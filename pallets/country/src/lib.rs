@@ -30,8 +30,6 @@ pub trait Trait: system::Trait {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
-		pub Balances get(fn get_balance): map hasher(blake2_128_concat) T::AccountId => u64;
-		pub TotalSupply get(fn total_supply): u64 = 21000000;
 
 		pub CountryOwner get(fn owner_of): map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
 		pub Countries get(fn get_country): map hasher(blake2_128_concat) T::Hash => Country<T::Hash>;
