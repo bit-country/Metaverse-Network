@@ -54,10 +54,8 @@ decl_event!(
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		/// Attempted to initialize the token after it had already been initialized.
-		AlreadyInitialized,
-		/// Attempted to transfer more funds than were available
-		InsufficientFunds,
+		/// Attempted to initialize the country after it had already been initialized.
+		AlreadyInitialized,	
 	}
 }
 
