@@ -13,6 +13,8 @@
 
 </div>
 
+Development Note: It is still a WIP.
+
 <!-- TOC -->
 
 - [1. Introduction](#1-introduction)
@@ -34,3 +36,11 @@ Bit.Country provides a new way to socialize with a game feel, while also being d
 
 Follow us on  [![Twitter URL](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2Fbitdotcountry)](https://twitter.com/bitdotcountry)
 [![Medium](https://img.shields.io/badge/Medium-BitCountry-brightgreen?logo=medium)](https://medium.com/@bitcountry)
+
+# 2. Overview
+
+# 3. Building
+
+# 4. Run
+
+# 5. Development
