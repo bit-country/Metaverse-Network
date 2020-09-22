@@ -32,7 +32,7 @@ decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
 		pub CountryOwner get(fn owner_of): map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
-		pub Countries get(fn get_country): map hasher(blake2_128_concat) T::Hash => Country<T::Hash>;
+		pub Countries get(fn get_country): map hasher(blake2_128_concat) T::Hash => Country<T::Hash>; 
 		pub AllCountriesCount get(fn all_countries_count): u64;
 
 		Init get(fn is_init): bool;
@@ -96,7 +96,21 @@ decl_module! {
 			Self::deposit_event(RawEvent::RandomnessConsumed(random_seed, random_result));
 
             Ok(())
-		}				
+		}			
+		
+		#[weight = 100_000]
+		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash) -> DispatchResult {
+
+            let sender = ensure_signed(origin)?;
+		   
+			//Get owner of the country
+			let owner = Self::owner_of(country_id).ok_or("No country owner of this country")?;
+			ensure!(owner == sender, "You are not the owner of the country");
+
+			Self::transfer_country_from(sender, to, country_id);
+			//Emit event
+            Ok(())
+		}		
 	}
 }
 
@@ -107,5 +121,12 @@ impl<T: Trait> Module<T> {
 		let nonce = Nonce::get();
 		Nonce::put(nonce.wrapping_add(1));
 		nonce.encode()
+	}
+
+	fn transfer_country_from(from: T::AccountId, to: T::AccountId ,country_id: T::Hash) -> DispatchResult {
+		<CountryOwner<T>>::remove(country_id);
+		//Assign ownership to new owner
+		<CountryOwner<T>>::insert(country_id, to);
+		Ok(())
 	}
 }

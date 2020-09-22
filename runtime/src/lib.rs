@@ -262,6 +262,7 @@ impl country::Trait for Runtime {
 
 impl block::Trait for Runtime {
 	type Event = Event;
+	type RandomnessSource = RandomnessCollectiveFlip;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
