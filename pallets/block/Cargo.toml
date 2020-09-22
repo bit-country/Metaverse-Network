@@ -29,7 +29,7 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc6'
 version = '2.0.0-rc6'
 
-[dev-dependencies.sp-core]
+[dependencies.sp-core]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc6'
@@ -41,11 +41,24 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc6'
 version = '2.0.0-rc6'
 
-[dev-dependencies.sp-runtime]
+[dependencies.sp-runtime]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0-rc6'
 version = '2.0.0-rc6'
+
+[dependencies.primitives]
+default_features = false
+git = 'https://github.com/paritytech/substrate.git'
+package = 'substrate-primitives'
+rev = 'acf86cd4b0ad4c45dbba57c2ae323531d5b71264'
+
+[dev-dependencies]
+pallet-randomness-collective-flip = { version = '2.0.0-rc6', default-features = false }
+pallet-timestamp = { version = '2.0.0-rc6', default-features = false }
+
+[dependencies]
+sp-std = { version = '2.0.0-rc6', default-features = false }
 
 [features]
 default = ['std']
@@ -54,4 +67,6 @@ std = [
     'frame-support/std',
     'frame-system/std',
     'sp-runtime/std',
+    'sp-core/std',
+    'primitives/std',
 ]
