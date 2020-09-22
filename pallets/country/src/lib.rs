@@ -54,10 +54,8 @@ decl_event!(
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		/// Attempted to initialize the token after it had already been initialized.
-		AlreadyInitialized,
-		/// Attempted to transfer more funds than were available
-		InsufficientFunds,
+		/// Attempted to initialize the country after it had already been initialized.
+		AlreadyInitialized,	
 	}
 }
 
@@ -68,19 +66,16 @@ decl_module! {
 		#[weight = 10_000]
 		fn create_country(origin) -> DispatchResult {
 
-            let sender = ensure_signed(origin)?;
-		   
+            		let sender = ensure_signed(origin)?;
 			let nonce = Nonce::get();
-			
 			let random_str = Self::encode_and_update_nonce();
-
 			let random_seed = T::RandomnessSource::random_seed();
 			let random_result = T::RandomnessSource::random(&random_str);
 			let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Trait>::Hashing::hash);
-
 			let new_country = Country{
 				id: random_hash,
 			};
+			
 			ensure!(!<Countries<T>>::contains_key(random_hash), "Country already exists");
 
 			<CountryOwner<T>>::insert(random_hash, &sender);
@@ -88,14 +83,14 @@ decl_module! {
 
 			let all_countries_count = Self::all_countries_count();
 
-            let new_all_countries_count = all_countries_count.checked_add(1)
+      let new_all_countries_count = all_countries_count.checked_add(1)
 				.ok_or("Overflow adding a new country to total supply")?;
 				
 			AllCountriesCount::put(new_all_countries_count);	
 
 			Self::deposit_event(RawEvent::RandomnessConsumed(random_seed, random_result));
 
-            Ok(())
+      Ok(())
 		}			
 		
 		#[weight = 100_000]
@@ -108,8 +103,8 @@ decl_module! {
 			ensure!(owner == sender, "You are not the owner of the country");
 
 			Self::transfer_country_from(sender, to, country_id);
-			//Emit event
-            Ok(())
+			//TODO Emit transfer event
+      Ok(())
 		}		
 	}
 }
