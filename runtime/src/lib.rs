@@ -22,6 +22,7 @@ use pallet_grandpa::fg_primitives;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
+use country;
 
 // A few exports that help ease life for downstream crates.
 #[cfg(any(feature = "std", test))]
@@ -38,6 +39,8 @@ pub use frame_support::{
 	},
 };
 
+pub mod constants;
+use constants::{currency::*, time::*};
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -56,6 +59,9 @@ pub type AccountIndex = u32;
 /// Balance of an account.
 pub type Balance = u128;
 
+/// Index of asset.
+pub type AssetId = u32;
+
 /// Index of a transaction in the chain.
 pub type Index = u32;
 
@@ -64,6 +70,9 @@ pub type Hash = sp_core::H256;
 
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
+
+pub type TokenId = u64;
+
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -258,12 +267,29 @@ impl pallet_sudo::Trait for Runtime {
 impl country::Trait for Runtime {
 	type Event = Event;
 	type RandomnessSource = RandomnessCollectiveFlip;
+	type ConvertCountryData = country::CountryAssetData;
+}
+
+impl unique_asset::Trait for Runtime {
+	type AssetId = u64;
+	type AssetData = country::CountryAssetData;
 }
 
 impl block::Trait for Runtime {
 	type Event = Event;
 	type RandomnessSource = RandomnessCollectiveFlip;
 }
+
+impl section::Trait for Runtime {
+	type Event = Event;
+	type BlockRandomnessSource = RandomnessCollectiveFlip;
+}
+
+// impl tokenization::Trait for Runtime {
+// 	type Event = Event;
+// 	type Balance = Balance;
+// 	type TokenId = u64;
+// }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -280,9 +306,13 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
+
 		//BitCountry pallets
 		CountryModule: country::{Module, Call, Storage, Event<T>},	
 		BlockModule: block::{Module, Call, Storage, Event<T>},
+		SectionModule: section::{Module, Call, Storage, Event<T>},
+		AssetModule: unique_asset::{Module, Call ,Storage},
+		// TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
 	}
 );
 

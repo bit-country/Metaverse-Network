@@ -1,12 +1,12 @@
 use sp_core::{Pair, Public, sr25519};
 use bitcountry_runtime::{
 	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
-	SudoConfig, SystemConfig, WASM_BINARY, Signature
+	SudoConfig, SystemConfig, WASM_BINARY, Signature, constants::currency::BCG
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{Verify, IdentifyAccount};
-use sc_service::ChainType;
+use sc_service::{ChainType, Properties};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -71,7 +71,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		// Protocol ID
 		None,
 		// Properties
-		None,
+		Some(bitcountry_properties()),
 		// Extensions
 		None,
 	))
@@ -119,7 +119,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		// Protocol ID
 		None,
 		// Properties
-		None,
+		Some(bitcountry_properties()),
 		// Extensions
 		None,
 	))
@@ -140,8 +140,9 @@ fn testnet_genesis(
 			changes_trie_config: Default::default(),
 		}),
 		pallet_balances: Some(BalancesConfig {
-			// Configure endowed accounts with initial balance of 1 << 60.
-			balances: endowed_accounts.iter().cloned().map(|k|(k, 1 << 60)).collect(),
+			// Configure endowed accounts with initial balance of 1 billion token to test.
+			// balances: endowed_accounts.iter().cloned().map(|k|(k)).collect(),
+			balances: endowed_accounts.iter().cloned().map(|k|(k, 10u128.pow(18+9))).collect(),
 		}),
 		pallet_aura: Some(AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
@@ -154,4 +155,14 @@ fn testnet_genesis(
 			key: root_key,
 		}),
 	}
+}
+
+pub fn bitcountry_properties() -> Properties {
+	let mut properties = Properties::new();
+
+	properties.insert("ss58Format".into(), 28.into());
+	properties.insert("tokenDecimals".into(), 12.into());
+	properties.insert("tokenSymbol".into(), "BCG".into());
+
+	properties
 }
