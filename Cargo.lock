@@ -448,16 +448,21 @@ dependencies = [
  "frame-support 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
  "frame-system 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
  "frame-system-rpc-runtime-api",
+ "node-primitives",
+ "pallet-assets",
  "pallet-aura",
  "pallet-balances",
  "pallet-block",
  "pallet-country",
  "pallet-grandpa",
  "pallet-randomness-collective-flip 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "pallet-section",
  "pallet-sudo",
  "pallet-timestamp 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "pallet-tokenization",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-unique-asset",
  "parity-scale-codec",
  "serde",
  "sp-api 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
@@ -3486,6 +3491,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "node-primitives"
+version = "2.0.0-rc6"
+source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6#be8bb186d87b9d2b47a2907c9b51ae1e252362c3"
+dependencies = [
+ "frame-system 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "parity-scale-codec",
+ "sp-application-crypto 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-core 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-runtime 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3633,6 +3650,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-assets"
+version = "2.0.0-rc6"
+source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6#be8bb186d87b9d2b47a2907c9b51ae1e252362c3"
+dependencies = [
+ "frame-support 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "frame-system 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "parity-scale-codec",
+ "serde",
+ "sp-runtime 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+]
+
+[[package]]
 name = "pallet-aura"
 version = "2.0.0-rc6"
 source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6#be8bb186d87b9d2b47a2907c9b51ae1e252362c3"
@@ -3688,6 +3717,7 @@ dependencies = [
  "frame-system 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
  "pallet-randomness-collective-flip 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
  "pallet-timestamp 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pallet-unique-asset",
  "parity-scale-codec",
  "sp-core 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
  "sp-io 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
@@ -3704,6 +3734,7 @@ dependencies = [
  "frame-system 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
  "pallet-randomness-collective-flip 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
  "pallet-timestamp 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pallet-unique-asset",
  "parity-scale-codec",
  "sp-core 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
  "sp-io 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
@@ -3778,6 +3809,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-section"
+version = "2.0.0-rc6"
+dependencies = [
+ "frame-support 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "frame-system 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "pallet-country",
+ "pallet-randomness-collective-flip 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pallet-timestamp 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pallet-unique-asset",
+ "parity-scale-codec",
+ "sp-core 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-io 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-runtime 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-std 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "substrate-primitives",
+]
+
+[[package]]
 name = "pallet-session"
 version = "2.0.0-rc6"
 source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6#be8bb186d87b9d2b47a2907c9b51ae1e252362c3"
@@ -3845,6 +3894,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-tokenization"
+version = "2.0.0-rc6"
+dependencies = [
+ "frame-support 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "frame-system 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "pallet-assets",
+ "pallet-country",
+ "pallet-randomness-collective-flip 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pallet-timestamp 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pallet-unique-asset",
+ "parity-scale-codec",
+ "sp-core 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-io 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-runtime 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-std 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "substrate-primitives",
+]
+
+[[package]]
 name = "pallet-transaction-payment"
 version = "2.0.0-rc6"
 source = "git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6#be8bb186d87b9d2b47a2907c9b51ae1e252362c3"
@@ -3890,6 +3958,23 @@ dependencies = [
  "sp-api 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
  "sp-runtime 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
  "sp-std 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+]
+
+[[package]]
+name = "pallet-unique-asset"
+version = "2.0.0-rc6"
+dependencies = [
+ "frame-support 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "frame-system 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "pallet-assets",
+ "pallet-randomness-collective-flip 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pallet-timestamp 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parity-scale-codec",
+ "sp-core 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-io 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-runtime 2.0.0-rc6 (git+https://github.com/paritytech/substrate.git?tag=v2.0.0-rc6)",
+ "sp-std 2.0.0-rc6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "substrate-primitives",
 ]
 
 [[package]]
