@@ -1,10 +1,10 @@
 [package]
 authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for block logic.'
+description = 'Bit Country pallet for section logic.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'pallet-block'
+name = 'pallet-section'
 repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
@@ -60,6 +60,12 @@ pallet-timestamp = { version = '2.0.0-rc6', default-features = false }
 [dependencies]
 sp-std = { version = '2.0.0-rc6', default-features = false }
 
+[dependencies.country]
+default-features = false
+package = 'pallet-country'
+path = '../country'
+version = '2.0.0-rc6'
+
 [dependencies.unique-asset]
 default-features = false
 package = 'pallet-unique-asset'
@@ -75,4 +81,6 @@ std = [
     'sp-runtime/std',
     'sp-core/std',
     'primitives/std',
+    'country/std',
+    'unique-asset/std',
 ]

@@ -60,6 +60,12 @@ pallet-timestamp = { version = '2.0.0-rc6', default-features = false }
 [dependencies]
 sp-std = { version = '2.0.0-rc6', default-features = false }
 
+[dependencies.unique-asset]
+default-features = false
+package = 'pallet-unique-asset'
+path = '../uniqueAsset'
+version = '2.0.0-rc6'
+
 [features]
 default = ['std']
 std = [
@@ -69,4 +75,5 @@ std = [
     'sp-runtime/std',
     'sp-core/std',
     'primitives/std',
+    'unique-asset/std',
 ]

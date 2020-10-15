@@ -7,32 +7,37 @@ use frame_support::{
 	StorageMap,
 	dispatch::DispatchResult, 
 	ensure,
-	traits::Randomness
+	traits::{Get, IsType, Randomness},
 };
 use sp_core::H256;
 use frame_system::{self as system, ensure_signed};
-use sp_runtime::traits::Hash;
+use sp_runtime::{
+	traits::Hash,
+	RuntimeDebug,
+};
 use sp_std::vec::Vec;
+use unique_asset;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
-#[cfg_attr(feature = "std", derive(Debug))]
-pub struct Country<Hash> {
-	id: Hash,
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub struct CountryAssetData {
+	pub image: Vec<u8>
 }
 
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: system::Trait {
+pub trait Trait: system::Trait + unique_asset::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	type RandomnessSource: Randomness<H256>;
+	/// Convert between TokenData and orml_nft::Trait::TokenData
+	type ConvertCountryData: IsType<<Self as unique_asset::Trait>::AssetData> + IsType<CountryAssetData>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
-		pub CountryOwner get(fn owner_of): map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
-		pub Countries get(fn get_country): map hasher(blake2_128_concat) T::Hash => Country<T::Hash>; 
+		pub Countries get(fn get_country): map hasher(blake2_128_concat) <T as unique_asset::Trait>::AssetId => Option<CountryAssetData>; 
+		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) <T as unique_asset::Trait>::AssetId => Option<T::AccountId>; 
 		pub AllCountriesCount get(fn all_countries_count): u64;
 
 		Init get(fn is_init): bool;
@@ -45,9 +50,12 @@ decl_event!(
 	pub enum Event<T>
 	where
 		AccountId = <T as system::Trait>::AccountId,
+		AssetId = <T as unique_asset::Trait>::AssetId,
 	{
 		Initialized(AccountId),
- 		RandomnessConsumed(H256, H256),
+		RandomnessConsumed(H256, H256),
+		NewCountryCreated(AssetId),
+		TransferedCountry(AccountId, AccountId, AssetId),
 	}
 
 );
@@ -55,7 +63,13 @@ decl_event!(
 decl_error! {
 	pub enum Error for Module<T: Trait> {
 		/// Attempted to initialize the country after it had already been initialized.
-		AlreadyInitialized,	
+		AlreadyInitialized,
+		//Asset Info not found
+		AssetInfoNotFound,
+		//Asset Id not found
+		AssetIdNotFound,
+		//No permission
+		NoPermission,	
 	}
 }
 
@@ -64,47 +78,61 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = 10_000]
-		fn create_country(origin) -> DispatchResult {
+		fn create_country(origin, image: Vec<u8>) -> DispatchResult {
 
-            		let sender = ensure_signed(origin)?;
-			let nonce = Nonce::get();
-			let random_str = Self::encode_and_update_nonce();
-			let random_seed = T::RandomnessSource::random_seed();
-			let random_result = T::RandomnessSource::random(&random_str);
-			let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Trait>::Hashing::hash);
-			let new_country = Country{
-				id: random_hash,
-			};
+			let sender = ensure_signed(origin)?;
 			
-			ensure!(!<Countries<T>>::contains_key(random_hash), "Country already exists");
+			// let nonce = Nonce::get();
+			// let random_str = Self::encode_and_update_nonce();
+			// let random_seed = T::RandomnessSource::random_seed();
+			// let random_result = T::RandomnessSource::random(&random_str);
+			// let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Trait>::Hashing::hash);
+			let new_country_data = CountryAssetData {
+				image: image,
+			};
 
-			<CountryOwner<T>>::insert(random_hash, &sender);
-			<Countries<T>>::insert(random_hash, new_country);
+			let country_data = new_country_data.clone();
+			
+			let new_country_data = T::ConvertCountryData::from(new_country_data);
+			let new_country_data = Into::<<T as unique_asset::Trait>::AssetData>::into(new_country_data);
+
+			// ensure!(!<Countries<T>>::contains_key(random_hash), "Country hash id already exists");
+
+			//Create country and mint nft asset token
+			let new_asset_id = unique_asset::Module::<T>::mint(&sender, new_country_data.clone())?;
+			<CountryOwner<T>>::insert(new_asset_id, &sender);
+
+			<Countries<T>>::insert(&new_asset_id, country_data);
 
 			let all_countries_count = Self::all_countries_count();
 
-      let new_all_countries_count = all_countries_count.checked_add(1)
+      		let new_all_countries_count = all_countries_count.checked_add(1)
 				.ok_or("Overflow adding a new country to total supply")?;
 				
 			AllCountriesCount::put(new_all_countries_count);	
 
-			Self::deposit_event(RawEvent::RandomnessConsumed(random_seed, random_result));
+			Self::deposit_event(RawEvent::NewCountryCreated(new_asset_id));
 
-      Ok(())
+      		Ok(())
 		}			
 		
 		#[weight = 100_000]
-		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash) -> DispatchResult {
+		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash, asset_id: <T as unique_asset::Trait>::AssetId) -> DispatchResult {
 
             let sender = ensure_signed(origin)?;
 		   
 			//Get owner of the country
-			let owner = Self::owner_of(country_id).ok_or("No country owner of this country")?;
-			ensure!(owner == sender, "You are not the owner of the country");
+			// let owner = Self::owner_of(country_id).ok_or("No country owner of this country")?;
+			// ensure!(owner == sender, "You are not the owner of the country");
 
-			Self::transfer_country_from(sender, to, country_id);
+			let asset_info = unique_asset::Module::<T>::assets(asset_id).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+			ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
+
+			unique_asset::Module::<T>::transfer(&sender, &to, asset_id)?;
 			//TODO Emit transfer event
-      Ok(())
+			Self::deposit_event(RawEvent::TransferedCountry(sender, to, asset_id));
+      		Ok(())
 		}		
 	}
 }
@@ -116,12 +144,5 @@ impl<T: Trait> Module<T> {
 		let nonce = Nonce::get();
 		Nonce::put(nonce.wrapping_add(1));
 		nonce.encode()
-	}
-
-	fn transfer_country_from(from: T::AccountId, to: T::AccountId ,country_id: T::Hash) -> DispatchResult {
-		<CountryOwner<T>>::remove(country_id);
-		//Assign ownership to new owner
-		<CountryOwner<T>>::insert(country_id, to);
-		Ok(())
 	}
 }

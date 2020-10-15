@@ -1,10 +1,10 @@
 [package]
 authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for block logic.'
+description = 'Bit Country pallet for unique asset of the country.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'pallet-block'
+name = 'pallet-unique-asset'
 repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
@@ -53,18 +53,18 @@ git = 'https://github.com/paritytech/substrate.git'
 package = 'substrate-primitives'
 rev = 'acf86cd4b0ad4c45dbba57c2ae323531d5b71264'
 
+[dependencies.pallet-assets]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'v2.0.0-rc6'
+version = '2.0.0-rc6'
+
 [dev-dependencies]
 pallet-randomness-collective-flip = { version = '2.0.0-rc6', default-features = false }
 pallet-timestamp = { version = '2.0.0-rc6', default-features = false }
 
 [dependencies]
 sp-std = { version = '2.0.0-rc6', default-features = false }
-
-[dependencies.unique-asset]
-default-features = false
-package = 'pallet-unique-asset'
-path = '../uniqueAsset'
-version = '2.0.0-rc6'
 
 [features]
 default = ['std']
@@ -74,5 +74,7 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
+    'sp-std/std', 
     'primitives/std',
+    'pallet-assets/std',
 ]
