@@ -1,10 +1,10 @@
 [package]
 authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for country logic.'
+description = 'Bit Country pallet for general nft logic.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'pallet-country'
+name = 'pallet-nft'
 repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
@@ -66,12 +66,6 @@ package = 'pallet-unique-asset'
 path = '../uniqueAsset'
 version = '2.0.0-rc6'
 
-[dependencies.nft]
-default-features = false
-package = 'pallet-nft'
-path = '../nft'
-version = '2.0.0-rc6'
-
 [features]
 default = ['std']
 std = [
@@ -82,5 +76,4 @@ std = [
     'sp-core/std',
     'primitives/std',
     'unique-asset/std',
-    'nft/std',
 ]

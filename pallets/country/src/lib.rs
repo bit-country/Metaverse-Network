@@ -16,7 +16,7 @@ use sp_runtime::{
 	RuntimeDebug,
 };
 use sp_std::vec::Vec;
-use unique_asset;
+use nft;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct CountryAssetData {
@@ -26,19 +26,19 @@ pub struct CountryAssetData {
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: system::Trait + unique_asset::Trait {
+pub trait Trait: system::Trait + nft::Trait + unique_asset::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	type RandomnessSource: Randomness<H256>;
-	/// Convert between TokenData and orml_nft::Trait::TokenData
-	type ConvertCountryData: IsType<<Self as unique_asset::Trait>::AssetData> + IsType<CountryAssetData>;
+	/// Convert between CountryAssetData and unique_asset::Trait::AssetData
+	type ConvertCountryData: IsType<<Self as unique_asset::Trait>::AssetData> + IsType<nft::NftAssetData>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
-		pub Countries get(fn get_country): map hasher(blake2_128_concat) <T as unique_asset::Trait>::AssetId => Option<CountryAssetData>; 
+		// pub Countries get(fn get_country): map hasher(blake2_128_concat) <T as nft::Trait>::AssetId => CountryAssetData; 
 		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) <T as unique_asset::Trait>::AssetId => Option<T::AccountId>; 
-		pub AllCountriesCount get(fn all_countries_count): u64;
+		// pub AllCountriesCount get(fn all_countries_count): u64;
 
 		Init get(fn is_init): bool;
 
@@ -50,12 +50,9 @@ decl_event!(
 	pub enum Event<T>
 	where
 		AccountId = <T as system::Trait>::AccountId,
-		AssetId = <T as unique_asset::Trait>::AssetId,
 	{
 		Initialized(AccountId),
 		RandomnessConsumed(H256, H256),
-		NewCountryCreated(AssetId),
-		TransferedCountry(AccountId, AccountId, AssetId),
 	}
 
 );
@@ -78,40 +75,43 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = 10_000]
-		fn create_country(origin, image: Vec<u8>) -> DispatchResult {
+		fn create_country(origin, country_name: Vec<u8> ,image: Vec<u8>) -> DispatchResult {
 
-			let sender = ensure_signed(origin)?;
+			// let sender = ensure_signed(origin)?;
 			
-			// let nonce = Nonce::get();
-			// let random_str = Self::encode_and_update_nonce();
-			// let random_seed = T::RandomnessSource::random_seed();
-			// let random_result = T::RandomnessSource::random(&random_str);
-			// let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Trait>::Hashing::hash);
-			let new_country_data = CountryAssetData {
-				image: image,
-			};
+			// // let nonce = Nonce::get();
+			// // let random_str = Self::encode_and_update_nonce();
+			// // let random_seed = T::RandomnessSource::random_seed();
+			// // let random_result = T::RandomnessSource::random(&random_str);
+			// // let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Trait>::Hashing::hash);
+			// let new_country_data = <T as nft::Trait>::NftAssetData {
+			// 	name: country_name,
+			// 	description: country_name,
+			// 	properties: image,
+			// };
 
-			let country_data = new_country_data.clone();
+
+			// let country_data = new_country_data.clone();
 			
-			let new_country_data = T::ConvertCountryData::from(new_country_data);
-			let new_country_data = Into::<<T as unique_asset::Trait>::AssetData>::into(new_country_data);
+			// let new_country_data = T::ConvertCountryData::from(new_country_data);
+			// let new_country_data = Into::<<T as unique_asset::Trait>::AssetData>::into(new_country_data);
 
-			// ensure!(!<Countries<T>>::contains_key(random_hash), "Country hash id already exists");
+			// // ensure!(!<Countries<T>>::contains_key(random_hash), "Country hash id already exists");
 
-			//Create country and mint nft asset token
-			let new_asset_id = unique_asset::Module::<T>::mint(&sender, new_country_data.clone())?;
-			<CountryOwner<T>>::insert(new_asset_id, &sender);
+			// //Create country and mint nft asset token
+			// let new_asset_id = unique_asset::Module::<T>::mint(&sender, new_country_data.clone())?;
+			// <CountryOwner<T>>::insert(new_asset_id, &sender);
 
-			<Countries<T>>::insert(&new_asset_id, country_data);
+			// <Countries<T>>::insert(&new_asset_id, country_data);
 
-			let all_countries_count = Self::all_countries_count();
+			// let all_countries_count = Self::all_countries_count();
 
-      		let new_all_countries_count = all_countries_count.checked_add(1)
-				.ok_or("Overflow adding a new country to total supply")?;
+      		// let new_all_countries_count = all_countries_count.checked_add(1)
+			// 	.ok_or("Overflow adding a new country to total supply")?;
 				
-			AllCountriesCount::put(new_all_countries_count);	
+			// AllCountriesCount::put(new_all_countries_count);	
 
-			Self::deposit_event(RawEvent::NewCountryCreated(new_asset_id));
+			// Self::deposit_event(RawEvent::NewCountryCreated(new_asset_id));
 
       		Ok(())
 		}			
@@ -119,19 +119,19 @@ decl_module! {
 		#[weight = 100_000]
 		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash, asset_id: <T as unique_asset::Trait>::AssetId) -> DispatchResult {
 
-            let sender = ensure_signed(origin)?;
+            // let sender = ensure_signed(origin)?;
 		   
-			//Get owner of the country
-			// let owner = Self::owner_of(country_id).ok_or("No country owner of this country")?;
-			// ensure!(owner == sender, "You are not the owner of the country");
+			// //Get owner of the country
+			// // let owner = Self::owner_of(country_id).ok_or("No country owner of this country")?;
+			// // ensure!(owner == sender, "You are not the owner of the country");
 
-			let asset_info = unique_asset::Module::<T>::assets(asset_id).ok_or(Error::<T>::AssetInfoNotFound)?;
+			// let asset_info = unique_asset::Module::<T>::assets(asset_id).ok_or(Error::<T>::AssetInfoNotFound)?;
 
-			ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
+			// ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
 
-			unique_asset::Module::<T>::transfer(&sender, &to, asset_id)?;
-			//TODO Emit transfer event
-			Self::deposit_event(RawEvent::TransferedCountry(sender, to, asset_id));
+			// unique_asset::Module::<T>::transfer(&sender, &to, asset_id)?;
+			// //TODO Emit transfer event
+			// Self::deposit_event(RawEvent::TransferedCountry(sender, to, asset_id));
       		Ok(())
 		}		
 	}
