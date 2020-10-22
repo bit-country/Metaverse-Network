@@ -23,6 +23,8 @@ use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use country;
+use nft;
+use unique_asset;
 
 // A few exports that help ease life for downstream crates.
 #[cfg(any(feature = "std", test))]
@@ -264,15 +266,20 @@ impl pallet_sudo::Trait for Runtime {
 	type Call = Call;
 }
 
+impl nft::Trait for Runtime {
+	// type Event = Event;
+	type RandomnessSource = RandomnessCollectiveFlip;
+	type ConvertNftData = nft::NftAssetData;
+}
+impl unique_asset::Trait for Runtime {
+	type AssetId = u64;
+	type AssetData = nft::NftAssetData;
+}
+
 impl country::Trait for Runtime {
 	type Event = Event;
 	type RandomnessSource = RandomnessCollectiveFlip;
-	type ConvertCountryData = country::CountryAssetData;
-}
-
-impl unique_asset::Trait for Runtime {
-	type AssetId = u64;
-	type AssetData = country::CountryAssetData;
+	type ConvertCountryData = nft::NftAssetData;
 }
 
 impl block::Trait for Runtime {
@@ -284,6 +291,7 @@ impl section::Trait for Runtime {
 	type Event = Event;
 	type BlockRandomnessSource = RandomnessCollectiveFlip;
 }
+
 
 // impl tokenization::Trait for Runtime {
 // 	type Event = Event;
@@ -312,6 +320,7 @@ construct_runtime!(
 		BlockModule: block::{Module, Call, Storage, Event<T>},
 		SectionModule: section::{Module, Call, Storage, Event<T>},
 		AssetModule: unique_asset::{Module, Call ,Storage},
+		NftModule: nft::{Module, Call ,Storage},
 		// TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
 	}
 );

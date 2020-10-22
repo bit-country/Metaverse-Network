@@ -3,8 +3,9 @@
 use codec::{Decode, Encode};
 use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Member, One, Zero},
+	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Member, One, Zero,Printable},
 	DispatchError, DispatchResult, RuntimeDebug,
+	print
 };
 use sp_std::vec::Vec;
 
@@ -14,9 +15,9 @@ use sp_std::vec::Vec;
 /// Token info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct AssetInfo<AccountId, Data> {
-	/// Token owner
+	/// Asset owner
 	pub owner: AccountId,
-	/// Token Properties
+	/// Asset Properties
 	pub data: Data,
 }
 
@@ -44,8 +45,6 @@ decl_error! {
 	}
 }
 
-pub type AssetInfoOf<T> = AssetInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::AssetData>;
-
 decl_storage! {
 	trait Store for Module<T: Trait> as NonFungibleToken {
 		/// Next available token ID.
@@ -53,9 +52,10 @@ decl_storage! {
 		/// Store asset info.
 		///
 		/// Returns `None` if token info not set or removed.
-		pub Assets get(fn assets): map hasher(twox_64_concat) T::AssetId => Option<AssetInfoOf<T>>;
+		pub Assets get(fn assets): map hasher(twox_64_concat) T::AssetId => Option<AssetInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::AssetData>>;
 		/// Token existence check by owner and class ID.
-		pub AssetByOwner get(fn tokens_by_owner): map hasher(twox_64_concat) T::AccountId => Option<T::AssetId>;
+		pub AssetByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) T::AssetId => Option<()>;
+		pub AssetsForAccount get(fn tokens_by_account): map hasher(twox_64_concat) T::AccountId => Vec<T::AssetId>;
 		pub TotalAssetIssuance get(fn get_total_assets): u64;
 	}
 }
@@ -67,17 +67,24 @@ decl_module! {
 
 impl<T: Trait> Module<T> {
 	/// Transfer NFT(non fungible token) from `from` account to `to` account
-	pub fn transfer(from: &T::AccountId, to: &T::AccountId, asset: T::AssetId) -> DispatchResult {
+	pub fn transfer(from: &T::AccountId, to: &T::AccountId, asset_id: T::AssetId) -> DispatchResult {
 		if from == to {
 			return Ok(());
 		}
 
-		AssetByOwner::<T>::try_mutate_exists(from, |asset_by_owner| -> DispatchResult {
+		AssetByOwner::<T>::try_mutate_exists(from, asset_id, |asset_by_owner| -> DispatchResult {
 			//Ensure there is record of the asset id with account
 			ensure!(asset_by_owner.take().is_some(), Error::<T>::NoPermission);
-			AssetByOwner::<T>::insert(to, asset);
+			AssetByOwner::<T>::insert(to, &asset_id, ());
+			
+			// AssetsForAccount::<T>::mutate(to, |assets| {
+			// 	match assets.binary_search(&asset_id) {
+			// 		Ok(_pos) => {} // should never happen
+			// 		Err(pos) => assets.insert(pos, &asset),
+			// 	}
+			// });
 
-			Assets::<T>::try_mutate_exists(asset, |asset_info| -> DispatchResult {
+			Assets::<T>::try_mutate_exists(asset_id, |asset_info| -> DispatchResult {
 				let mut info = asset_info.as_mut().ok_or(Error::<T>::AssetNotFound)?;
 				info.owner = to.clone();
 				
@@ -99,8 +106,15 @@ impl<T: Trait> Module<T> {
 				owner: owner.clone(),
 				data,
 			};
+
 			Assets::<T>::insert(asset_id, asset_info);
-			AssetByOwner::<T>::insert(owner, asset_id);
+			AssetByOwner::<T>::insert(owner, asset_id, ());
+			AssetsForAccount::<T>::mutate(owner, |assets| {
+				match assets.binary_search(&asset_id) {
+					Ok(_pos) => {} // should never happen
+					Err(pos) => assets.insert(pos, asset_id),
+				}
+			});
 
 			let total_asset_count = Self::get_total_assets();
 
@@ -118,9 +132,8 @@ impl<T: Trait> Module<T> {
 		Assets::<T>::try_mutate_exists(asset, |asset_info| -> DispatchResult {
 			ensure!(asset_info.take().is_some(), Error::<T>::AssetNotFound);
 
-			AssetByOwner::<T>::try_mutate_exists(owner, |asset_by_owner| -> DispatchResult {
-				ensure!(asset_by_owner.take().is_some(), Error::<T>::NoPermission);
-
+			AssetByOwner::<T>::try_mutate_exists(owner, asset ,|info| -> DispatchResult {
+				ensure!(info.take().is_some(), Error::<T>::NoPermission);
 				//TODO Do burn and reducee total supply
 
 				Ok(())

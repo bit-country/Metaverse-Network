@@ -201,7 +201,11 @@ package = 'pallet-tokenization'
 path = '../pallets/tokenization'
 version = '2.0.0-rc6'
 
-
+[dependencies.nft]
+default-features = false
+package = 'pallet-nft'
+path = '../pallets/nft'
+version = '2.0.0-rc6'
 
 [features]
 default = ['std']
@@ -220,7 +224,6 @@ std = [
     'pallet-timestamp/std',
     'pallet-transaction-payment/std',
     'pallet-transaction-payment-rpc-runtime-api/std',
-    'pallet-assets/std',
     'serde',
     'sp-api/std',
     'sp-block-builder/std',
@@ -237,6 +240,7 @@ std = [
     'country/std',
     'block/std',
     'section/std',
+    'nft/std'
 ]
 
 [build-dependencies.wasm-builder-runner]
