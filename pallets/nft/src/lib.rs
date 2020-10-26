@@ -16,7 +16,7 @@ use sp_runtime::{
 	RuntimeDebug,
 };
 use sp_std::vec::Vec;
-use unique_asset;
+use unique_asset::{AssetId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct NftAssetData {
@@ -38,8 +38,8 @@ pub trait Trait: system::Trait + unique_asset::Trait {
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
-		pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) <T as unique_asset::Trait>::AssetId => Option<NftAssetData>;
-		pub NftOwner get(fn get_nft_owner): map hasher(blake2_128_concat) <T as unique_asset::Trait>::AssetId => T::AccountId; 
+		pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) AssetId => Option<NftAssetData>;
+		pub NftOwner get(fn get_nft_owner): map hasher(blake2_128_concat) AssetId => T::AccountId; 
 		pub AllNftCount get(fn all_nft_count): u64;
 
 		Init get(fn is_init): bool;
@@ -52,7 +52,7 @@ decl_storage! {
 // 	pub enum Event<T>
 // 	where
 // 		// AccountId = <T as system::Trait>::AccountId,
-// 		AssetId = <T as unique_asset::Trait>::AssetId,
+// 		AssetId = AssetId,
 // 	{
 // 		NewNftCreated(AssetId),
 // 		// TransferedNft(AccountId, AccountId, AssetId),
@@ -98,7 +98,7 @@ decl_module! {
 				Ok(id) => {
 					<NftOwner<T>>::insert(&id, &sender);
 
-					<NftAssets<T>>::insert(&id, nft_data.clone());		
+					NftAssets::insert(&id, nft_data.clone());		
 
 					let all_nft_count = Self::all_nft_count();
 
@@ -116,7 +116,7 @@ decl_module! {
 		}			
 		
 		#[weight = 100_000]
-		fn transfer(origin,  to: T::AccountId, asset_id: <T as unique_asset::Trait>::AssetId) -> DispatchResult {
+		fn transfer(origin,  to: T::AccountId, asset_id: AssetId) -> DispatchResult {
 
             let sender = ensure_signed(origin)?;
 		   

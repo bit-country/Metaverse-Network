@@ -207,6 +207,12 @@ package = 'pallet-nft'
 path = '../pallets/nft'
 version = '2.0.0-rc6'
 
+[dependencies.auction]
+default-features = false
+package = 'pallet-auction'
+path = '../pallets/auction'
+version = '2.0.0-rc6'
+
 [features]
 default = ['std']
 std = [
@@ -240,7 +246,8 @@ std = [
     'country/std',
     'block/std',
     'section/std',
-    'nft/std'
+    'nft/std',
+    'auction/std',
 ]
 
 [build-dependencies.wasm-builder-runner]

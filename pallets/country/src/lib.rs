@@ -17,6 +17,7 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 use nft;
+use unique_asset::{AssetId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct CountryAssetData {
@@ -37,7 +38,7 @@ decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
 		// pub Countries get(fn get_country): map hasher(blake2_128_concat) <T as nft::Trait>::AssetId => CountryAssetData; 
-		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) <T as unique_asset::Trait>::AssetId => Option<T::AccountId>; 
+		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) AssetId => Option<T::AccountId>; 
 		// pub AllCountriesCount get(fn all_countries_count): u64;
 
 		Init get(fn is_init): bool;
@@ -117,7 +118,7 @@ decl_module! {
 		}			
 		
 		#[weight = 100_000]
-		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash, asset_id: <T as unique_asset::Trait>::AssetId) -> DispatchResult {
+		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash, asset_id: AssetId) -> DispatchResult {
 
             // let sender = ensure_signed(origin)?;
 		   
