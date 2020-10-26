@@ -12,6 +12,8 @@ use sp_std::vec::Vec;
 // mod mock;
 // mod tests;
 
+pub type AssetId = u64;
+
 /// Token info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct AssetInfo<AccountId, Data> {
@@ -23,7 +25,7 @@ pub struct AssetInfo<AccountId, Data> {
 
 pub trait Trait: frame_system::Trait {
 	/// The Asset ID type
-	type AssetId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
+	// type AssetId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 	/// The token properties type
 	type AssetData: Parameter + Member;
 }
@@ -48,14 +50,14 @@ decl_error! {
 decl_storage! {
 	trait Store for Module<T: Trait> as NonFungibleToken {
 		/// Next available token ID.
-		pub NextAssetId get(fn next_asset_id): T::AssetId;
+		pub NextAssetId get(fn next_asset_id): AssetId;
 		/// Store asset info.
 		///
 		/// Returns `None` if token info not set or removed.
-		pub Assets get(fn assets): map hasher(twox_64_concat) T::AssetId => Option<AssetInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::AssetData>>;
+		pub Assets get(fn assets): map hasher(twox_64_concat) AssetId => Option<AssetInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::AssetData>>;
 		/// Token existence check by owner and class ID.
-		pub AssetByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) T::AssetId => Option<()>;
-		pub AssetsForAccount get(fn tokens_by_account): map hasher(twox_64_concat) T::AccountId => Vec<T::AssetId>;
+		pub AssetByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) AssetId => Option<()>;
+		pub AssetsForAccount get(fn tokens_by_account): map hasher(twox_64_concat) T::AccountId => Vec<AssetId>;
 		pub TotalAssetIssuance get(fn get_total_assets): u64;
 	}
 }
@@ -67,7 +69,7 @@ decl_module! {
 
 impl<T: Trait> Module<T> {
 	/// Transfer NFT(non fungible token) from `from` account to `to` account
-	pub fn transfer(from: &T::AccountId, to: &T::AccountId, asset_id: T::AssetId) -> DispatchResult {
+	pub fn transfer(from: &T::AccountId, to: &T::AccountId, asset_id: AssetId) -> DispatchResult {
 		if from == to {
 			return Ok(());
 		}
@@ -97,10 +99,10 @@ impl<T: Trait> Module<T> {
 	pub fn mint(
 		owner: &T::AccountId,
 		data: T::AssetData,
-	) -> Result<T::AssetId, DispatchError> {
-		NextAssetId::<T>::try_mutate(|id| -> Result<T::AssetId, DispatchError> {
+	) -> Result<AssetId, DispatchError> {
+		NextAssetId::try_mutate(|id| -> Result<AssetId, DispatchError> {
 			let asset_id = *id;
-			*id = id.checked_add(&One::one()).ok_or(Error::<T>::NoAvailableAssetId)?;
+			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableAssetId)?;
 
 			let asset_info = AssetInfo {
 				owner: owner.clone(),
@@ -128,7 +130,7 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Burn NFT(non fungible token) from `owner`
-	pub fn burn(owner: &T::AccountId, asset: T::AssetId) -> DispatchResult {
+	pub fn burn(owner: &T::AccountId, asset: AssetId) -> DispatchResult {
 		Assets::<T>::try_mutate_exists(asset, |asset_info| -> DispatchResult {
 			ensure!(asset_info.take().is_some(), Error::<T>::AssetNotFound);
 

@@ -10,7 +10,7 @@ use sp_runtime::traits::Hash;
 use country:: {CountryOwner};
 use sp_std::vec::Vec;
 
-use unique_asset;
+use unique_asset::{AssetId};
 
 /// The module configuration trait.
 pub trait Trait: system::Trait + country::Trait + unique_asset::Trait{
@@ -39,7 +39,7 @@ pub struct Token<Balance> {
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Assets {
-		CountryTokens get(fn get_country_token): map hasher(blake2_128_concat) <T as unique_asset::Trait>::AssetId => Option<T::TokenId>;
+		CountryTokens get(fn get_country_token): map hasher(blake2_128_concat) AssetId => Option<T::TokenId>;
 		/// The number of units of assets held by any given account.
 		Balances: map hasher(blake2_128_concat) (T::TokenId, T::AccountId) => T::Balance;
 		/// The next asset identifier up for grabs.
@@ -63,7 +63,7 @@ decl_module! {
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
 		#[weight = 0]
-		fn issue(origin, country_id: <T as unique_asset::Trait>::AssetId, name: AssetName, ticker: Ticker ,#[compact] total: T::Balance) {
+		fn issue(origin, country_id: AssetId, name: AssetName, ticker: Ticker ,#[compact] total: T::Balance) {
 			let origin = ensure_signed(origin)?;
 			//Check country ownership
 			let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Not a country owner of this country")?;
@@ -142,7 +142,7 @@ decl_event! {
 		<T as system::Trait>::AccountId,
 		<T as Trait>::Balance,
 		<T as Trait>::TokenId,
-		<T as unique_asset::Trait>::AssetId,
+		AssetId = AssetId,
 	{
 		/// Some assets were issued. \[asset_id, owner, total_supply\]
 		Issued(TokenId, AccountId, Balance, AssetId),

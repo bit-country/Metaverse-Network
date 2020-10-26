@@ -25,6 +25,7 @@ use sp_version::NativeVersion;
 use country;
 use nft;
 use unique_asset;
+use auction;
 
 // A few exports that help ease life for downstream crates.
 #[cfg(any(feature = "std", test))]
@@ -271,8 +272,8 @@ impl nft::Trait for Runtime {
 	type RandomnessSource = RandomnessCollectiveFlip;
 	type ConvertNftData = nft::NftAssetData;
 }
+
 impl unique_asset::Trait for Runtime {
-	type AssetId = u64;
 	type AssetData = nft::NftAssetData;
 }
 
@@ -290,6 +291,18 @@ impl block::Trait for Runtime {
 impl section::Trait for Runtime {
 	type Event = Event;
 	type BlockRandomnessSource = RandomnessCollectiveFlip;
+}
+
+parameter_types! {
+	pub const AuctionTimeToClose: u32 = 100800;
+}
+
+impl auction::Trait for Runtime {
+	type Event = Event;
+	type AuctionTimeToClose = AuctionTimeToClose;
+	type Balance = Balance;
+	type AuctionId = u64;
+	type Handler = Auction;
 }
 
 
@@ -321,6 +334,7 @@ construct_runtime!(
 		SectionModule: section::{Module, Call, Storage, Event<T>},
 		AssetModule: unique_asset::{Module, Call ,Storage},
 		NftModule: nft::{Module, Call ,Storage},
+		Auction: auction::{Module, Call ,Storage, Event<T>},
 		// TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
 	}
 );
