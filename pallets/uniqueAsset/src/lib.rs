@@ -8,6 +8,7 @@ use sp_runtime::{
 	print
 };
 use sp_std::vec::Vec;
+use frame_system::{self as system, ensure_signed};
 
 // mod mock;
 // mod tests;
@@ -64,36 +65,21 @@ decl_storage! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+		
+		#[weight = 10_000]
+		pub fn transfer(origin, to: T::AccountId ,asset_id: AssetId) -> DispatchResult{
+			let from = ensure_signed(origin)?;
+
+			ensure!(AssetByOwner::<T>::contains_key(&from, &asset_id), Error::<T>::NoPermission);
+
+			Self::transfer_from(from, to, asset_id);
+
+			Ok(())
+		}
 	}
 }
 
-impl<T: Trait> Module<T> {
-	/// Transfer NFT(non fungible token) from `from` account to `to` account
-	pub fn transfer(from: &T::AccountId, to: &T::AccountId, asset_id: AssetId) -> DispatchResult {
-		if from == to {
-			return Ok(());
-		}
-
-		AssetByOwner::<T>::try_mutate_exists(from, asset_id, |asset_by_owner| -> DispatchResult {
-			//Ensure there is record of the asset id with account
-			ensure!(asset_by_owner.take().is_some(), Error::<T>::NoPermission);
-			AssetByOwner::<T>::insert(to, &asset_id, ());
-			
-			// AssetsForAccount::<T>::mutate(to, |assets| {
-			// 	match assets.binary_search(&asset_id) {
-			// 		Ok(_pos) => {} // should never happen
-			// 		Err(pos) => assets.insert(pos, &asset),
-			// 	}
-			// });
-
-			Assets::<T>::try_mutate_exists(asset_id, |asset_info| -> DispatchResult {
-				let mut info = asset_info.as_mut().ok_or(Error::<T>::AssetNotFound)?;
-				info.owner = to.clone();
-				
-				Ok(())
-			})
-		})
-	}
+impl<T: Trait> Module<T> {	
 
 	/// Mint NFT(non fungible token) to `owner`
 	pub fn mint(
@@ -138,6 +124,33 @@ impl<T: Trait> Module<T> {
 				ensure!(info.take().is_some(), Error::<T>::NoPermission);
 				//TODO Do burn and reducee total supply
 
+				Ok(())
+			})
+		})
+	}
+
+	/// Transfer NFT(non fungible token) from `from` account to `to` account
+	pub fn transfer_from(from: T::AccountId, to: T::AccountId, asset_id: AssetId) -> DispatchResult{
+		if from == to {
+			return Ok(());
+		}
+
+		AssetByOwner::<T>::try_mutate_exists(from, asset_id, |asset_by_owner| -> DispatchResult {
+			//Ensure there is record of the asset id with account and delete them
+			ensure!(asset_by_owner.take().is_some(), Error::<T>::NoPermission);
+			AssetByOwner::<T>::insert(&to, &asset_id, ());
+			
+			AssetsForAccount::<T>::mutate(&to, |assets| {
+				match assets.binary_search(&asset_id) {
+					Ok(_pos) => {} // should never happen
+					Err(pos) => assets.insert(pos, asset_id.clone()),
+				}
+			});
+
+			Assets::<T>::try_mutate_exists(asset_id, |asset_info| -> DispatchResult {
+				let mut info = asset_info.as_mut().ok_or(Error::<T>::AssetNotFound)?;
+				info.owner = to.clone();
+				
 				Ok(())
 			})
 		})

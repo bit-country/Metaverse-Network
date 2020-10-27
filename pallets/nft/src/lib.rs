@@ -128,7 +128,7 @@ decl_module! {
 
 			ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
 
-			unique_asset::Module::<T>::transfer(&sender, &to, asset_id)?;
+			unique_asset::Module::<T>::transfer_from(sender, to, asset_id)?;
 
 			// NftOwner::<T>::try_mutate_exists(asset_id, |asset_by_owner| -> DispatchResult {
 			// 	//Ensure there is record of the asset id with account

@@ -300,9 +300,9 @@ parameter_types! {
 impl auction::Trait for Runtime {
 	type Event = Event;
 	type AuctionTimeToClose = AuctionTimeToClose;
-	type Balance = Balance;
 	type AuctionId = u64;
 	type Handler = Auction;
+	type Currency = Balances;
 }
 
 

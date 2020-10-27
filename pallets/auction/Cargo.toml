@@ -60,6 +60,12 @@ pallet-timestamp = { version = '2.0.0-rc6', default-features = false }
 [dependencies]
 sp-std = { version = '2.0.0-rc6', default-features = false }
 
+[dependencies.pallet-balances]
+default-features = false
+git = 'https://github.com/paritytech/substrate.git'
+tag = 'v2.0.0-rc6'
+version = '2.0.0-rc6'
+
 [dependencies.unique-asset]
 default-features = false
 package = 'pallet-unique-asset'
@@ -76,4 +82,5 @@ std = [
     'sp-core/std',
     'primitives/std',
     'unique-asset/std',
+    'pallet-balances/std',
 ]

@@ -1,29 +1,41 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use sp_runtime::{
-	generic,
-	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, RuntimeDebug,
+use frame_support::{
+    decl_error, decl_module, decl_storage, decl_event,
+    dispatch::{DispatchError, DispatchResult}, ensure,
+    traits::{
+        Currency, Get,
+        Imbalance, OnUnbalanced,
+    },
 };
+use sp_runtime::RuntimeDebug;
+use sp_std::{
+    collections::btree_set::BTreeSet,
+    prelude::*,
+};
+use frame_system::{self as system};
 
+#[cfg(test)]
+mod mock;
 
-/// Alias to the public key used for this chain, actually a `MultiSigner`. Like
-/// the signature, this also isn't a fixed size when encoded, as different
-/// cryptos have different size public keys.
-pub type AccountPublic = <Signature as Verify>::Signer;
-/// An index to a block.
-pub type BlockNumber = u32;
+#[cfg(test)]
+mod tests;
 
-/// Alias to 512-bit hash when used in the context of a transaction signature on
-/// the chain.
-pub type Signature = MultiSignature;
+type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
-pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
-/// Auction ID
-pub type AuctionId = u32;
-//Asset ID
-pub type AssetId = u64;
-/// Balance of an account.
-pub type Balance = u128;
+pub trait Trait: system::Trait
+{
+    /// The overarching event type.
+    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 
+    /// The currency mechanism.
+    type Currency: Currency<Self::AccountId>;
+}
+
+decl_event!(
+    pub enum Event<T> where Balance = BalanceOf<T>
+    {
+		Deposit(Balance),
+    }
+);
