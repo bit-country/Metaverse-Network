@@ -131,18 +131,6 @@ decl_module! {
 				);
 
 				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
-				// match bid_result.auction_end_change {
-				// 	Change::NewValue(new_end) => {
-				// 		if let Some(old_end_block) = auction.end {
-				// 			<AuctionEndTime<T>>::remove(&old_end_block, id);
-				// 		}
-				// 		if let Some(new_end_block) = new_end {
-				// 			<AuctionEndTime<T>>::insert(&new_end_block, id, ());
-				// 		}
-				// 		auction.end = new_end;
-				// 	},
-				// 	Change::NoChange => {},
-				// }
 
 				ensure!(<pallet_balances::Module<T>>::free_balance(&from) >= value, "You don't have enough free balance for this bid");
 
