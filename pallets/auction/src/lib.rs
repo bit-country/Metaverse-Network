@@ -4,8 +4,9 @@
 
 use frame_support::{
 	decl_error, decl_event, decl_module, decl_storage, ensure, weights::Weight, IterableStorageDoubleMap, Parameter,
-	traits::Get
+	traits::{Get, Currency,ReservableCurrency,ExistenceRequirement}
 };
+
 use codec::{Decode, Encode};
 use sp_runtime::{
 	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
@@ -15,7 +16,6 @@ use sp_runtime::{
 use frame_system::{self as system, ensure_signed};
 use sp_std::result;
 use unique_asset::{AssetByOwner, AssetId};
-
 mod auction;
 
 pub use crate::auction::{Auction, AuctionHandler, AuctionInfo, Change, OnNewBidResult};
@@ -41,14 +41,13 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	start_time: BlockNumber,
 }
 
-pub trait Trait: frame_system::Trait + unique_asset::Trait{
+pub trait Trait: frame_system::Trait 
+	+ unique_asset::Trait 
+	+ pallet_balances::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 
 	/// The extended time for the auction to end after each successful bid
 	type AuctionTimeToClose: Get<Self::BlockNumber>;
-
-	/// The balance type for bidding
-	type Balance: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize;
 
 	/// The auction ID type
 	type AuctionId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy + MaybeSerializeDeserialize + Bounded;
@@ -56,6 +55,8 @@ pub trait Trait: frame_system::Trait + unique_asset::Trait{
 	/// The `AuctionHandler` that allow custom bidding logic and handles auction
 	/// result
 	type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
+	
+	type Currency: Currency<Self::AccountId>;
 
 	// /// Weight information for extrinsics in this module.
 	// type WeightInfo: WeightInfo;
@@ -80,13 +81,14 @@ decl_storage! {
 decl_event!(
 	pub enum Event<T> where
 		<T as frame_system::Trait>::AccountId,
-		<T as Trait>::Balance,
+		<T as pallet_balances::Trait>::Balance,
 		// AssetId = AssetId,
 		<T as Trait>::AuctionId,
 	{
 		/// A bid is placed. [auction_id, bidder, bidding_amount]
 		Bid(AuctionId, AccountId, Balance),
 		NewAuctionItem(AuctionId, AccountId ,Balance, Balance),
+		AuctionFinalized(AuctionId, AccountId, Balance),
 	}
 );
 
@@ -104,12 +106,17 @@ decl_module! {
 			let from = ensure_signed(origin)?;
 
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
+				
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
 				let block_number = <frame_system::Module<T>>::block_number();
 
 				// make sure auction is started
 				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+
+				let auction_end: Option<T::BlockNumber> = auction.end;
+
+				ensure!(block_number < auction_end.unwrap(), Error::<T>::AuctionIsExpired);
 
 				if let Some(ref current_bid) = auction.bid {
 					ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
@@ -124,20 +131,24 @@ decl_module! {
 				);
 
 				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
-				match bid_result.auction_end_change {
-					Change::NewValue(new_end) => {
-						if let Some(old_end_block) = auction.end {
-							<AuctionEndTime<T>>::remove(&old_end_block, id);
-						}
-						if let Some(new_end_block) = new_end {
-							<AuctionEndTime<T>>::insert(&new_end_block, id, ());
-						}
-						auction.end = new_end;
-					},
-					Change::NoChange => {},
-				}
-				auction.bid = Some((from.clone(), value));
+				// match bid_result.auction_end_change {
+				// 	Change::NewValue(new_end) => {
+				// 		if let Some(old_end_block) = auction.end {
+				// 			<AuctionEndTime<T>>::remove(&old_end_block, id);
+				// 		}
+				// 		if let Some(new_end_block) = new_end {
+				// 			<AuctionEndTime<T>>::insert(&new_end_block, id, ());
+				// 		}
+				// 		auction.end = new_end;
+				// 	},
+				// 	Change::NoChange => {},
+				// }
 
+				ensure!(<pallet_balances::Module<T>>::free_balance(&from) >= value, "You don't have enough free balance for this bid");
+
+				Self::auction_bid_handler(block_number, id, (from.clone(), value), auction.bid.clone());
+
+				auction.bid = Some((from.clone(), value));				
 				Self::deposit_event(RawEvent::Bid(id, from, value));
 
 				Ok(())
@@ -156,8 +167,6 @@ decl_module! {
 			let start_time = <system::Module<T>>::block_number();
 
 			let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
-
-
 
 			let auction_id = Self::new_auction(from.clone(), value, start_time, None)?;
 
@@ -183,7 +192,39 @@ decl_module! {
 		// }
 
 		fn on_finalize(now: T::BlockNumber) {
-			Self::_on_finalize(now);
+			for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
+				if let Some(auction) = <Auctions<T>>::take(&auction_id) {
+					
+						if let Some(auction_item) = <AuctionItems<T>>::take(&auction_id){
+							Self::remove_auction(auction_id.clone());
+	
+							//Transfer balance from high bidder to asset owner
+							if let Some(current_bid) = auction.bid{
+								let (high_bidder, high_bid_price): (T::AccountId, T::Balance) = current_bid;
+			
+								<pallet_balances::Module<T>>::unreserve(&high_bidder, high_bid_price);
+			
+								let currency_transfer = <pallet_balances::Module<T> as Currency<_>>::transfer(&high_bidder, &auction_item.recipient , high_bid_price, ExistenceRequirement::KeepAlive);
+				
+								match currency_transfer {
+									Err(_e) => continue,
+									Ok(_v) => {
+										//Transfer asset from asset owner to high bidder
+										let asset_transfer = <unique_asset::Module<T>>::transfer_from(auction_item.recipient.clone(), high_bidder.clone(), auction_item.asset_id);
+										match asset_transfer {
+											Err(_e) => continue,
+											Ok(_v) => {
+												Self::deposit_event(RawEvent::AuctionFinalized(auction_id, high_bidder ,high_bid_price));
+											},
+										}
+									},
+								}
+							}
+							
+						}
+						
+				}
+			}
 		}
 	}
 }
@@ -193,21 +234,15 @@ decl_error! {
 	pub enum Error for Module<T: Trait> {
 		AuctionNotExist,
 		AuctionNotStarted,
+		AuctionIsExpired,
 		BidNotAccepted,
 		InvalidBidPrice,
 		NoAvailableAuctionId,
-		NoPermissionToCreateAuction
+		NoPermissionToCreateAuction,
 	}
 }
 
 impl<T: Trait> Module<T> {
-	fn _on_finalize(now: T::BlockNumber) {
-		for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
-			if let Some(auction) = <Auctions<T>>::take(&auction_id) {
-				T::Handler::on_auction_ended(auction_id, auction.bid);
-			}
-		}
-	}
 
 	fn auction_info(id: T::AuctionId) -> Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>> {
 		Self::auctions(id)
@@ -257,6 +292,7 @@ impl<T: Trait> Module<T> {
 		if let Some(auction) = <Auctions<T>>::take(&id) {
 			if let Some(end_block) = auction.end {
 				<AuctionEndTime<T>>::remove(end_block, id);
+				<Auctions<T>>::remove(&id)
 			}
 		}
 	}
@@ -270,6 +306,42 @@ impl<T: Trait> Module<T> {
 			system::Module::<T>::dec_ref(who);
 		}
 	}
+
+	fn auction_bid_handler(
+		now: T::BlockNumber,
+		id: T::AuctionId,
+		new_bid: (T::AccountId, T::Balance),
+		last_bid: Option<(T::AccountId, T::Balance)>) -> DispatchResult{
+			
+			let (new_bidder, new_bid_price) = new_bid;
+			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
+
+			<AuctionItems<T>>::try_mutate_exists(
+				id, |auction_item| -> DispatchResult{
+
+					let mut auction_item = auction_item.as_mut().ok_or("Auction is not exists")?;
+					
+					let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); //get last bid price
+					let last_bidder = last_bid.as_ref().map(|(who, _)| who);
+					
+					if let Some(last_bidder) = last_bidder{ //unlock reserve amount
+						if(!last_bid_price.is_zero()){
+							//Unreserve balance of last bidder
+							<pallet_balances::Module<T>>::unreserve(&last_bidder, last_bid_price);
+						}
+					}
+											
+					//Lock fund of new bidder
+					//Reserve balance
+					<pallet_balances::Module<T>>::reserve(&new_bidder, new_bid_price)?;
+					auction_item.recipient = new_bidder.clone();
+					auction_item.amount = new_bid_price.clone();
+
+					Ok(())
+				}
+			)
+		}
+
 }
 
 // impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
