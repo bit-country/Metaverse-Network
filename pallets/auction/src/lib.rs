@@ -267,11 +267,11 @@ impl<T: Trait> Module<T> {
 			Ok(id)
 		})?;
 
-		// <Auctions<T>>::insert(auction_id, auction);
+		<Auctions<T>>::insert(auction_id, auction);
 
-		// if let Some(end_block) = end {
-		// 	<AuctionEndTime<T>>::insert(&end_block, auction_id, ());
-		// }
+		if let Some(end_block) = end {
+			<AuctionEndTime<T>>::insert(&end_block, auction_id, ());
+		}
 
 		Ok(auction_id)
 	}

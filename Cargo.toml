@@ -8,3 +8,6 @@ members = [
     'pallets/block',
     'runtime',
 ]
+exclude = [
+    'luckydraw'
+]
