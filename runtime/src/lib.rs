@@ -101,8 +101,8 @@ pub mod opaque {
 }
 
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("canvas"),
-	impl_name: create_runtime_str!("canvas"),
+	spec_name: create_runtime_str!("bitcountry-node"),
+	impl_name: create_runtime_str!("bitcountry-node"),
 	authoring_version: 1,
 	spec_version: 8,
 	impl_version: 0,
