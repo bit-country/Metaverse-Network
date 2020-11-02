@@ -1,14 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_system::{self as system, ensure_signed};
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Member, One, Zero,Printable},
+	print,
+	traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedSub, Member, One, Printable, Zero},
 	DispatchError, DispatchResult, RuntimeDebug,
-	print
 };
 use sp_std::vec::Vec;
-use frame_system::{self as system, ensure_signed};
 
 // mod mock;
 // mod tests;
@@ -27,7 +27,7 @@ pub struct AssetInfo<AccountId, Data> {
 pub trait Trait: frame_system::Trait {
 	/// The Asset ID type
 	// type AssetId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
-	/// The token properties type
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type AssetData: Parameter + Member;
 }
 
@@ -48,6 +48,17 @@ decl_error! {
 	}
 }
 
+decl_event!(
+	pub enum Event<T>
+	where
+		AccountId = <T as system::Trait>::AccountId,
+		AssetId = AssetId,
+	{
+		NewAssetCreated(AssetId),
+		TransferedAsset(AccountId, AccountId, AssetId),
+	}
+);
+
 decl_storage! {
 	trait Store for Module<T: Trait> as NonFungibleToken {
 		/// Next available token ID.
@@ -65,7 +76,6 @@ decl_storage! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		
 		#[weight = 10_000]
 		pub fn transfer(origin, to: T::AccountId ,asset_id: AssetId) -> DispatchResult{
 			let from = ensure_signed(origin)?;
@@ -79,16 +89,14 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Module<T> {	
-
+impl<T: Trait> Module<T> {
 	/// Mint NFT(non fungible token) to `owner`
-	pub fn mint(
-		owner: &T::AccountId,
-		data: T::AssetData,
-	) -> Result<AssetId, DispatchError> {
+	pub fn mint(owner: &T::AccountId, data: T::AssetData) -> Result<AssetId, DispatchError> {
 		NextAssetId::try_mutate(|id| -> Result<AssetId, DispatchError> {
 			let asset_id = *id;
-			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableAssetId)?;
+			*id = id
+				.checked_add(One::one())
+				.ok_or(Error::<T>::NoAvailableAssetId)?;
 
 			let asset_info = AssetInfo {
 				owner: owner.clone(),
@@ -106,11 +114,11 @@ impl<T: Trait> Module<T> {
 
 			let total_asset_count = Self::get_total_assets();
 
-			let new_total_asset_count = total_asset_count.checked_add(1)
+			let new_total_asset_count = total_asset_count
+				.checked_add(1)
 				.ok_or("Overflow adding a new count to total supply of asset")?;
-				  
-			TotalAssetIssuance::put(new_total_asset_count);	
-			
+
+			TotalAssetIssuance::put(new_total_asset_count);
 			Ok(asset_id)
 		})
 	}
@@ -120,7 +128,7 @@ impl<T: Trait> Module<T> {
 		Assets::<T>::try_mutate_exists(asset, |asset_info| -> DispatchResult {
 			ensure!(asset_info.take().is_some(), Error::<T>::AssetNotFound);
 
-			AssetByOwner::<T>::try_mutate_exists(owner, asset ,|info| -> DispatchResult {
+			AssetByOwner::<T>::try_mutate_exists(owner, asset, |info| -> DispatchResult {
 				ensure!(info.take().is_some(), Error::<T>::NoPermission);
 				//TODO Do burn and reducee total supply
 
@@ -130,7 +138,11 @@ impl<T: Trait> Module<T> {
 	}
 
 	/// Transfer NFT(non fungible token) from `from` account to `to` account
-	pub fn transfer_from(from: T::AccountId, to: T::AccountId, asset_id: AssetId) -> DispatchResult{
+	pub fn transfer_from(
+		from: T::AccountId,
+		to: T::AccountId,
+		asset_id: AssetId,
+	) -> DispatchResult {
 		if from == to {
 			return Ok(());
 		}
@@ -139,7 +151,6 @@ impl<T: Trait> Module<T> {
 			//Ensure there is record of the asset id with account and delete them
 			ensure!(asset_by_owner.take().is_some(), Error::<T>::NoPermission);
 			AssetByOwner::<T>::insert(&to, &asset_id, ());
-			
 			AssetsForAccount::<T>::mutate(&to, |assets| {
 				match assets.binary_search(&asset_id) {
 					Ok(_pos) => {} // should never happen
@@ -150,7 +161,6 @@ impl<T: Trait> Module<T> {
 			Assets::<T>::try_mutate_exists(asset_id, |asset_info| -> DispatchResult {
 				let mut info = asset_info.as_mut().ok_or(Error::<T>::AssetNotFound)?;
 				info.owner = to.clone();
-				
 				Ok(())
 			})
 		})
