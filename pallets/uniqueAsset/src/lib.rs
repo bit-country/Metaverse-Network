@@ -14,6 +14,7 @@ use sp_std::vec::Vec;
 // mod tests;
 
 pub type AssetId = u64;
+pub type RentId = u64;
 
 /// Token info
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
@@ -24,7 +25,20 @@ pub struct AssetInfo<AccountId, Data> {
 	pub data: Data,
 }
 
-pub trait Trait: frame_system::Trait {
+/// Rental info
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub struct RentalInfo<AccountId, BlockNumber, Balance> {
+	/// Rental beneficial
+	pub owner: AccountId,
+	/// Rent start
+	pub start: BlockNumber,
+	/// Rent end
+	pub end: Option<BlockNumber>,
+	//Price per block
+	pub price_per_block: Balance,
+}
+
+pub trait Trait: frame_system::Trait + pallet_balances::Trait {
 	/// The Asset ID type
 	// type AssetId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
@@ -56,6 +70,7 @@ decl_event!(
 	{
 		NewAssetCreated(AssetId),
 		TransferedAsset(AccountId, AccountId, AssetId),
+		NewAssetRented(AssetId, RentId),
 	}
 );
 
@@ -71,6 +86,17 @@ decl_storage! {
 		pub AssetByOwner get(fn tokens_by_owner): double_map hasher(twox_64_concat) T::AccountId, hasher(twox_64_concat) AssetId => Option<()>;
 		pub AssetsForAccount get(fn tokens_by_account): map hasher(twox_64_concat) T::AccountId => Vec<AssetId>;
 		pub TotalAssetIssuance get(fn get_total_assets): u64;
+
+		//Rental Mapping
+		pub NextRentId get(fn next_rent_id): RentId;
+		//Check if asset id and rent id is valid
+		pub AssetRent get(fn get_asset_rent): double_map hasher(twox_64_concat) AssetId, hasher(twox_64_concat) RentId => Option<()>;
+		//Get AssetId is currently on rent
+		pub AssetForRent get(fn asset_for_rent): map hasher(twox_64_concat) RentId => AssetId;
+		//Get AssetId is renting
+		pub AssetByRent get(fn asset_by_rent): map hasher(twox_64_concat) RentId => AssetId;
+		//Get rent info by id
+		pub Rents get(fn get_rent_info): map hasher(twox_64_concat) RentId => Option<RentalInfo<<T as frame_system::Trait>::AccountId, <T as frame_system::Trait>::BlockNumber, T::Balance>>;
 	}
 }
 
@@ -85,6 +111,33 @@ decl_module! {
 			Self::transfer_from(from, to, asset_id);
 
 			Ok(())
+		}
+
+		#[weight = 10_000]
+		pub fn rent_asset(origin, source_asset_id: AssetId, consume_asset_id: AssetId, start: T::BlockNumber, end: T::BlockNumber, price: T::Balance) -> DispatchResult{
+			let owner = ensure_signed(origin)?;
+			//TODO Check asset ownership
+			//TODO Check not in auction
+			NextRentId::try_mutate(|id| -> DispatchResult {
+				let rent_id = *id;
+				*id = id
+					.checked_add(One::one())
+					.ok_or(Error::<T>::NoAvailableAssetId)?;
+				let rent_info = RentalInfo {
+					owner: owner.clone(),
+					start: start,
+					end: Some(end),
+					price_per_block: price,
+				};
+
+				Rents::<T>::insert(rent_id, rent_info);
+
+				AssetRent::insert(rent_id, source_asset_id, ());
+				AssetByRent::insert(rent_id, consume_asset_id);
+				AssetForRent::insert(rent_id, source_asset_id);
+
+				Ok(())
+			})
 		}
 	}
 }

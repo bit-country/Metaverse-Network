@@ -2,28 +2,27 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{Parameter, decl_module, decl_event, decl_storage, decl_error, ensure};
-use sp_runtime::traits::{Member, AtLeast32Bit, AtLeast32BitUnsigned, Zero, StaticLookup};
+use country::CountryOwner;
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use frame_system::{self as system, ensure_signed};
-use sp_runtime::traits::{One};
 use sp_runtime::traits::Hash;
-use country:: {CountryOwner};
+use sp_runtime::traits::One;
+use sp_runtime::traits::{AtLeast32Bit, AtLeast32BitUnsigned, Member, StaticLookup, Zero};
 use sp_std::vec::Vec;
 
-use unique_asset::{AssetId};
+use unique_asset::AssetId;
 
 /// The module configuration trait.
-pub trait Trait: system::Trait + country::Trait + unique_asset::Trait{
+pub trait Trait: system::Trait + country::Trait + unique_asset::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 
 	/// The units in which we record balances.
-	type Balance: Member + Parameter + AtLeast32BitUnsigned + Default + Copy;
 
 	/// The arithmetic type of asset identifier.
 	type TokenId: Parameter + AtLeast32Bit + Default + Copy;
 }
-
+type Balance = u128;
 /// A wrapper for a asset name.
 pub type AssetName = Vec<u8>;
 /// A wrapper for a ticker name.
@@ -36,21 +35,20 @@ pub struct Token<Balance> {
 	pub total_supply: Balance,
 }
 
-
 decl_storage! {
 	trait Store for Module<T: Trait> as Assets {
 		CountryTokens get(fn get_country_token): map hasher(blake2_128_concat) AssetId => Option<T::TokenId>;
 		/// The number of units of assets held by any given account.
-		Balances: map hasher(blake2_128_concat) (T::TokenId, T::AccountId) => T::Balance;
+		Balances: map hasher(blake2_128_concat) (T::TokenId, T::AccountId) => Balance;
 		/// The next asset identifier up for grabs.
 		NextTokenId get(fn next_asset_id): T::TokenId;
 		/// The total unit supply of an asset.
 		///
 		/// TWOX-NOTE: `TokenId` is trusted, so this is safe.
-		TotalSupply: map hasher(twox_64_concat) T::TokenId => T::Balance;
-        /// Details of the token corresponding to the token id.
-        /// (hash) -> Token details [returns Token struct]
-        Tokens get(fn token_details): map hasher(blake2_128_concat) T::TokenId => Token<T::Balance>;
+		TotalSupply: map hasher(twox_64_concat) T::TokenId => Balance;
+		/// Details of the token corresponding to the token id.
+		/// (hash) -> Token details [returns Token struct]
+		Tokens get(fn token_details): map hasher(blake2_128_concat) T::TokenId => Token<Balance>;
 	}
 }
 
@@ -63,7 +61,7 @@ decl_module! {
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
 		#[weight = 0]
-		fn issue(origin, country_id: AssetId, name: AssetName, ticker: Ticker ,#[compact] total: T::Balance) {
+		fn issue(origin, country_id: AssetId, name: AssetName, ticker: Ticker ,#[compact] total: Balance) {
 			let origin = ensure_signed(origin)?;
 			//Check country ownership
 			let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Not a country owner of this country")?;
@@ -79,7 +77,6 @@ decl_module! {
 			<Balances<T>>::insert((&id, &origin), total);
 			<TotalSupply<T>>::insert(&id, total);
 			<CountryTokens<T>>::insert(country_id,&id);
-			
 			let new_token = Token{
 				name: name,
 				ticker: ticker,
@@ -103,7 +100,7 @@ decl_module! {
 		fn transfer(origin,
 			id: T::TokenId,
 			target: <T::Lookup as StaticLookup>::Source,
-			amount: T::Balance
+			amount: Balance
 		) {
 			let origin = ensure_signed(origin)?;
 			let origin_account = (id, origin.clone());
@@ -140,7 +137,7 @@ decl_module! {
 decl_event! {
 	pub enum Event<T> where
 		<T as system::Trait>::AccountId,
-		<T as Trait>::Balance,
+		Balance = Balance,
 		<T as Trait>::TokenId,
 		AssetId = AssetId,
 	{
@@ -173,12 +170,12 @@ impl<T: Trait> Module<T> {
 	// Public immutables
 
 	/// Get the asset `id` balance of `who`.
-	pub fn balance(id: T::TokenId, who: T::AccountId) -> T::Balance {
+	pub fn balance(id: T::TokenId, who: T::AccountId) -> Balance {
 		<Balances<T>>::get((id, who))
 	}
 
 	/// Get the total supply of an asset `id`.
-	pub fn total_supply(id: T::TokenId) -> T::Balance {
+	pub fn total_supply(id: T::TokenId) -> Balance {
 		<TotalSupply<T>>::get(id)
 	}
 }
