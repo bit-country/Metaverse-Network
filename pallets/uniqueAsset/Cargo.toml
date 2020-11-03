@@ -45,4 +45,5 @@ std = [
     'sp-runtime/std',
     'sp-core/std',
     'sp-std/std', 
+    'pallet-balances/std',
 ]
