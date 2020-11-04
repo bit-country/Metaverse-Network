@@ -15,10 +15,11 @@ use sp_std::vec::Vec;
 use unique_asset::AssetId;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct NftAssetData {
+pub struct NftAssetData<AccountId> {
 	pub name: Vec<u8>,
 	pub description: Vec<u8>,
 	pub properties: Vec<u8>,
+	pub supporters: Vec<AccountId>,
 }
 
 #[cfg(test)]
@@ -28,13 +29,14 @@ pub trait Trait: system::Trait + unique_asset::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type RandomnessSource: Randomness<H256>;
 	/// Convert between TokenData and orml_nft::Trait::TokenData
-	type ConvertNftData: IsType<<Self as unique_asset::Trait>::AssetData> + IsType<NftAssetData>;
+	type ConvertNftData: IsType<<Self as unique_asset::Trait>::AssetData>
+		+ IsType<NftAssetData<Self::AccountId>>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
-		pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) AssetId => Option<NftAssetData>;
+		pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) AssetId => Option<NftAssetData<T::AccountId>>;
 		pub NftOwner get(fn get_nft_owner): map hasher(blake2_128_concat) AssetId => T::AccountId;
 		pub AllNftCount get(fn all_nft_count): u64;
 
@@ -52,6 +54,7 @@ decl_event!(
 	{
 		NewNftCreated(AssetId),
 		TransferedNft(AccountId, AccountId, AssetId),
+		SignedNft(AssetId, AccountId),
 	}
 );
 
@@ -80,6 +83,7 @@ decl_module! {
 				name: name,
 				description: description,
 				properties: properties,
+				supporters: Vec::<T::AccountId>::new()
 			};
 
 			let nft_data = new_nft_data.clone();
@@ -91,7 +95,7 @@ decl_module! {
 				Ok(id) => {
 					<NftOwner<T>>::insert(&id, &sender);
 
-					NftAssets::insert(&id, nft_data.clone());
+					<NftAssets<T>>::insert(&id, nft_data.clone());
 
 					let all_nft_count = Self::all_nft_count();
 
@@ -119,18 +123,33 @@ decl_module! {
 
 			unique_asset::Module::<T>::transfer_from(sender.clone(), to.clone(), asset_id.clone())?;
 
-			// NftOwner::<T>::try_mutate_exists(asset_id, |asset_by_owner| -> DispatchResult {
-			// 	//Ensure there is record of the asset id with account
-			// 	ensure!(asset_by_owner.take().is_some(), Error::<T>::NoPermission);
-			// 	NftOwner::<T>::insert(&asset_id, &to);
-			// 	Self::deposit_event(RawEvent::TransferedNft(sender, to, asset_id));
+			NftOwner::<T>::try_mutate_exists(asset_id, |asset_by_owner| -> DispatchResult {
+				//Ensure there is record of the asset id with account
+				ensure!(asset_by_owner.take().is_some(), Error::<T>::NoPermission);
+				NftOwner::<T>::insert(&asset_id, &to);
+				Self::deposit_event(RawEvent::TransferedNft(sender, to, asset_id));
 
-			// 	Ok(())
-			// })
+				Ok(())
+			})
+		}
 
-			Self::deposit_event(RawEvent::TransferedNft(sender, to, asset_id));
+		#[weight = 100_000]
+		fn sign(origin, asset_id: AssetId) -> DispatchResult {
 
-			Ok(())
+			let sender = ensure_signed(origin)?;
+
+			<NftAssets<T>>::try_mutate_exists(asset_id, |asset_data| -> DispatchResult {
+				let mut asset = asset_data.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
+
+				match asset.supporters.binary_search(&sender) {
+					Ok(_pos) => {} // should never happen
+					Err(pos) => asset.supporters.insert(pos, sender.clone()),
+				}
+
+				Self::deposit_event(RawEvent::SignedNft(asset_id, sender));
+
+				Ok(())
+			})
 		}
 	}
 }

@@ -309,18 +309,18 @@ impl pallet_sudo::Trait for Runtime {
 impl nft::Trait for Runtime {
 	type Event = Event;
 	type RandomnessSource = RandomnessCollectiveFlip;
-	type ConvertNftData = nft::NftAssetData;
+	type ConvertNftData = nft::NftAssetData<AccountId>;
 }
 
 impl unique_asset::Trait for Runtime {
 	type Event = Event;
-	type AssetData = nft::NftAssetData;
+	type AssetData = nft::NftAssetData<AccountId>;
 }
 
 impl country::Trait for Runtime {
 	type Event = Event;
 	type RandomnessSource = RandomnessCollectiveFlip;
-	type ConvertCountryData = nft::NftAssetData;
+	type ConvertCountryData = nft::NftAssetData<AccountId>;
 }
 
 impl block::Trait for Runtime {
