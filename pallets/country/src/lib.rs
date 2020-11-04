@@ -2,26 +2,22 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, 
-	StorageValue,
-	StorageMap,
-	dispatch::DispatchResult, 
+	decl_error, decl_event, decl_module, decl_storage,
+	dispatch::DispatchResult,
 	ensure,
 	traits::{Get, IsType, Randomness},
+	StorageMap, StorageValue,
 };
-use sp_core::H256;
 use frame_system::{self as system, ensure_signed};
-use sp_runtime::{
-	traits::Hash,
-	RuntimeDebug,
-};
-use sp_std::vec::Vec;
 use nft;
-use unique_asset::{AssetId};
+use sp_core::H256;
+use sp_runtime::{traits::Hash, RuntimeDebug};
+use sp_std::vec::Vec;
+use unique_asset::AssetId;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct CountryAssetData {
-	pub image: Vec<u8>
+	pub image: Vec<u8>,
 }
 
 #[cfg(test)]
@@ -31,14 +27,15 @@ pub trait Trait: system::Trait + nft::Trait + unique_asset::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	type RandomnessSource: Randomness<H256>;
 	/// Convert between CountryAssetData and unique_asset::Trait::AssetData
-	type ConvertCountryData: IsType<<Self as unique_asset::Trait>::AssetData> + IsType<nft::NftAssetData>;
+	type ConvertCountryData: IsType<<Self as unique_asset::Trait>::AssetData>
+		+ IsType<nft::NftAssetData<Self::AccountId>>;
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
-		// pub Countries get(fn get_country): map hasher(blake2_128_concat) <T as nft::Trait>::AssetId => CountryAssetData; 
-		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) AssetId => Option<T::AccountId>; 
+		// pub Countries get(fn get_country): map hasher(blake2_128_concat) <T as nft::Trait>::AssetId => CountryAssetData;
+		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) AssetId => Option<T::AccountId>;
 		// pub AllCountriesCount get(fn all_countries_count): u64;
 
 		Init get(fn is_init): bool;
@@ -55,7 +52,6 @@ decl_event!(
 		Initialized(AccountId),
 		RandomnessConsumed(H256, H256),
 	}
-
 );
 
 decl_error! {
@@ -67,7 +63,7 @@ decl_error! {
 		//Asset Id not found
 		AssetIdNotFound,
 		//No permission
-		NoPermission,	
+		NoPermission,
 	}
 }
 
@@ -79,7 +75,6 @@ decl_module! {
 		fn create_country(origin, country_name: Vec<u8> ,image: Vec<u8>) -> DispatchResult {
 
 			// let sender = ensure_signed(origin)?;
-			
 			// // let nonce = Nonce::get();
 			// // let random_str = Self::encode_and_update_nonce();
 			// // let random_seed = T::RandomnessSource::random_seed();
@@ -93,7 +88,6 @@ decl_module! {
 
 
 			// let country_data = new_country_data.clone();
-			
 			// let new_country_data = T::ConvertCountryData::from(new_country_data);
 			// let new_country_data = Into::<<T as unique_asset::Trait>::AssetData>::into(new_country_data);
 
@@ -107,21 +101,18 @@ decl_module! {
 
 			// let all_countries_count = Self::all_countries_count();
 
-      		// let new_all_countries_count = all_countries_count.checked_add(1)
+			  // let new_all_countries_count = all_countries_count.checked_add(1)
 			// 	.ok_or("Overflow adding a new country to total supply")?;
-				
-			// AllCountriesCount::put(new_all_countries_count);	
 
+			// AllCountriesCount::put(new_all_countries_count);
 			// Self::deposit_event(RawEvent::NewCountryCreated(new_asset_id));
 
-      		Ok(())
-		}			
-		
+			  Ok(())
+		}
 		#[weight = 100_000]
 		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash, asset_id: AssetId) -> DispatchResult {
 
-            // let sender = ensure_signed(origin)?;
-		   
+			// let sender = ensure_signed(origin)?;
 			// //Get owner of the country
 			// // let owner = Self::owner_of(country_id).ok_or("No country owner of this country")?;
 			// // ensure!(owner == sender, "You are not the owner of the country");
@@ -133,8 +124,8 @@ decl_module! {
 			// unique_asset::Module::<T>::transfer(&sender, &to, asset_id)?;
 			// //TODO Emit transfer event
 			// Self::deposit_event(RawEvent::TransferedCountry(sender, to, asset_id));
-      		Ok(())
-		}		
+			  Ok(())
+		}
 	}
 }
 
