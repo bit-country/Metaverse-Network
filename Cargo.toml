@@ -9,5 +9,6 @@ members = [
     'runtime',
 ]
 exclude = [
-    'luckydraw'
+    'luckydraw',
+    'airdrop'
 ]
