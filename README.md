@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://bit.country/static/media/bit-country-logo.png" width="130">
+  <img src="https://bit.country/static/media/BG1png.9a04f88a.png" width="130">
 </p>
 
 <p align="center">  
