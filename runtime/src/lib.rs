@@ -315,6 +315,7 @@ impl nft::Trait for Runtime {
 impl unique_asset::Trait for Runtime {
 	type Event = Event;
 	type AssetData = nft::NftAssetData<AccountId>;
+	type CollectionData = nft::NftCollectionData<Balance>;
 }
 
 impl country::Trait for Runtime {

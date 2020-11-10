@@ -31,7 +31,7 @@ pub mod luckydraw {
         //Player status
         player_status: StorageHashMap<AccountId, bool>,
         //The random winning number generated per play
-        player_winning_numer: StorageHashMap<AccountId, u64>,
+        player_winning_numer: StorageHashMap<AccountId, u8>,
     }
 
     /// Errors that can occur upon calling this contract.
@@ -51,6 +51,7 @@ pub mod luckydraw {
         #[ink(topic)]
         /// The winner account
         winner: AccountId,
+        winning_number: u8,
     }
 
     #[ink(event)]
@@ -59,6 +60,7 @@ pub mod luckydraw {
         #[ink(topic)]
         /// The winner account
         caller: AccountId,
+        winning_number: u8,
     }
 
     impl LuckyDraw {
@@ -68,7 +70,7 @@ pub mod luckydraw {
             let caller = Self::env().caller();
 
             let lucky_draw_obj = Self {
-                total_balance: 10,
+                total_balance: 0,
                 pot_owner: caller,
                 player_status: StorageHashMap::default(),
                 player_winning_numer: StorageHashMap::default(),
@@ -80,7 +82,7 @@ pub mod luckydraw {
         /// Generate random winning number.
         /// Later will accept the user number then compare the winning number
         #[ink(message, payable)]
-        pub fn open_lucky_draw(&mut self, number: u64) -> Result<(), Error> {
+        pub fn open_lucky_draw(&mut self, number: u8) -> Result<(), Error> {
             let caller = self.env().caller();
             let value = self.env().transferred_balance();
 
@@ -96,12 +98,11 @@ pub mod luckydraw {
                 self.player_winning_numer.take(&caller);
             }
             //random thread
-            let x: u64 = Self::get_random();
+            let x: u8 = Self::get_random();
             //Winning
             if x == number {
                 self.player_winning_numer.insert(caller.clone(), x);
                 self.player_status.insert(caller.clone(), true);
-                self.env().emit_event(WinnerPicked { winner: caller });
 
                 self.env()
                     .transfer(caller, self.total_balance)
@@ -112,12 +113,19 @@ pub mod luckydraw {
                         _ => Error::TransferFailed,
                     });
 
+                self.env().emit_event(WinnerPicked {
+                    winner: caller,
+                    winning_number: x,
+                });
                 return Ok(());
             }
             //Fail
             else {
                 self.total_balance += value;
-                self.env().emit_event(WinnerFail { caller: caller });
+                self.env().emit_event(WinnerFail {
+                    caller: caller,
+                    winning_number: x,
+                });
 
                 return Ok(());
             }
@@ -129,17 +137,32 @@ pub mod luckydraw {
             return self.total_balance;
         }
 
-        fn get_random() -> u64 {
-            let seed: [u8; 8] = [70, 93, 3, 03, 15, 124, 148, 18];
-            let random_hash = Self::env().random(&seed);
-            Self::as_u64_be(&random_hash.as_ref())
+        #[ink(message, payable)]
+        pub fn add_more_fund(&mut self) -> Result<(), Error> {
+            let value = self.env().transferred_balance();
+
+            self.total_balance += value;
+
+            return Ok(());
         }
 
-        fn as_u64_be(array: &[u8]) -> u64 {
-            ((array[0] as u64) << 24)
-                + ((array[1] as u64) << 16)
-                + ((array[2] as u64) << 8)
-                + ((array[3] as u64) << 0)
+        // fn get_simple_random() -> u8 {
+        //     let block_number = Self::env().block_number();
+        // }
+
+        fn get_random() -> u8 {
+            let seed: [u8; 1] = [1];
+            let random_hash = Self::env().random(&seed);
+            let random_number = Self::as_u8_be(&random_hash.as_ref());
+
+            if (random_number % 2) == 0 {
+                return 0 as u8;
+            }
+            return 1 as u8;
+        }
+
+        fn as_u8_be(array: &[u8]) -> u8 {
+            (array[0] as u8) << 7
         }
     }
 

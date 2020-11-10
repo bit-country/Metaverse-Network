@@ -12,7 +12,7 @@ use frame_system::{self as system, ensure_signed};
 use sp_core::H256;
 use sp_runtime::{traits::Hash, RuntimeDebug};
 use sp_std::vec::Vec;
-use unique_asset::AssetId;
+use unique_asset::{AssetId, CollectionId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct NftAssetData<AccountId> {
@@ -20,6 +20,14 @@ pub struct NftAssetData<AccountId> {
 	pub description: Vec<u8>,
 	pub properties: Vec<u8>,
 	pub supporters: Vec<AccountId>,
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub struct NftCollectionData<Balance> {
+	//Minimum balance to create a collection of Asset
+	pub deposit: Balance,
+	// Metadata from ipfs
+	pub properties: Vec<u8>,
 }
 
 #[cfg(test)]
@@ -75,8 +83,15 @@ decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
+		// #[weight = 10_000]
+		// fn create_collection(origin, metadata: Vec<u8>, properties: Vec<u8>) -> DispatchResult {
+
+		// 	let sender = ensure_signed(origin)?;
+		// 	let next_collection_id = unique_asset::Module::<T>::next_collection_id();
+		// }
+
 		#[weight = 10_000]
-		fn mint(origin, name: Vec<u8>, description: Vec<u8>, properties: Vec<u8>) -> DispatchResult {
+		fn mint(origin, collection_id: CollectionId ,name: Vec<u8>, description: Vec<u8>, properties: Vec<u8>) -> DispatchResult {
 
 			let sender = ensure_signed(origin)?;
 			let new_nft_data = NftAssetData {
@@ -91,7 +106,7 @@ decl_module! {
 			let new_nft_data = Into::<<T as unique_asset::Trait>::AssetData>::into(new_nft_data);
 
 			//Create new nft token
-			match unique_asset::Module::<T>::mint(&sender, new_nft_data.clone()){
+			match unique_asset::Module::<T>::mint(&sender, collection_id ,new_nft_data.clone()){
 				Ok(id) => {
 					<NftOwner<T>>::insert(&id, &sender);
 
@@ -110,24 +125,24 @@ decl_module! {
 			Ok(())
 		}
 		#[weight = 100_000]
-		fn transfer(origin,  to: T::AccountId, asset_id: AssetId) -> DispatchResult {
+		fn transfer(origin,  to: T::AccountId, asset: (CollectionId, AssetId)) -> DispatchResult {
 
 			let sender = ensure_signed(origin)?;
 			//Get owner of the country
 			// let owner = Self::owner_of(country_id).ok_or("No country owner of this country")?;
 			// ensure!(owner == sender, "You are not the owner of the country");
 
-			let asset_info = unique_asset::Module::<T>::assets(asset_id).ok_or(Error::<T>::AssetInfoNotFound)?;
+			let asset_info = unique_asset::Module::<T>::assets(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
 
 			ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
 
-			unique_asset::Module::<T>::transfer_from(sender.clone(), to.clone(), asset_id.clone())?;
+			unique_asset::Module::<T>::transfer_from(sender.clone(), to.clone(), asset.0.clone(), asset.1.clone())?;
 
-			NftOwner::<T>::try_mutate_exists(asset_id, |asset_by_owner| -> DispatchResult {
+			NftOwner::<T>::try_mutate_exists(asset.1, |asset_by_owner| -> DispatchResult {
 				//Ensure there is record of the asset id with account
 				ensure!(asset_by_owner.take().is_some(), Error::<T>::NoPermission);
-				NftOwner::<T>::insert(&asset_id, &to);
-				Self::deposit_event(RawEvent::TransferedNft(sender, to, asset_id));
+				NftOwner::<T>::insert(&asset.1, &to);
+				Self::deposit_event(RawEvent::TransferedNft(sender, to, asset.1));
 
 				Ok(())
 			})
