@@ -17,7 +17,7 @@ use sp_runtime::{
 
 use frame_system::{self as system, ensure_signed};
 use sp_std::result;
-use unique_asset::{AssetByOwner, AssetId};
+use unique_asset::{AssetByOwner, AssetId, CollectionId};
 mod auction;
 
 pub use crate::auction::{Auction, AuctionHandler, Change, OnNewBidResult};
@@ -35,6 +35,7 @@ pub type BlockNumber = u32;
 #[derive(Encode, Decode, Clone, RuntimeDebug)]
 pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	asset_id: AssetId,
+	collection_id: CollectionId,
 	recipient: AccountId,
 	initial_amount: Balance,
 	/// Current amount for sale
@@ -160,11 +161,11 @@ decl_module! {
 
 
 		#[weight = 10_000]
-		fn create_auction(origin,asset_id: AssetId, value: T::Balance) {
+		fn create_auction(origin,asset_id: AssetId, collection_id: CollectionId, value: T::Balance) {
 			let from = ensure_signed(origin)?;
 
 			//Check ownership
-			ensure!(<AssetByOwner<T>>::contains_key(&from, &asset_id), Error::<T>::NoPermissionToCreateAuction);
+			ensure!(<AssetByOwner<T>>::contains_key(&from, (&asset_id, &collection_id)), Error::<T>::NoPermissionToCreateAuction);
 
 			let start_time = <system::Module<T>>::block_number();
 
@@ -174,6 +175,7 @@ decl_module! {
 
 			let new_auction_item = AuctionItem {
 				asset_id,
+				collection_id,
 				recipient : from.clone(),
 				initial_amount : value,
 				amount : value,
@@ -208,7 +210,7 @@ decl_module! {
 									Err(_e) => continue,
 									Ok(_v) => {
 										//Transfer asset from asset owner to high bidder
-										let asset_transfer = <unique_asset::Module<T>>::transfer_from(auction_item.recipient.clone(), high_bidder.clone(), auction_item.asset_id);
+										let asset_transfer = <unique_asset::Module<T>>::transfer_from(auction_item.recipient.clone(), high_bidder.clone(), auction_item.collection_id ,auction_item.asset_id);
 										match asset_transfer {
 											Err(_e) => continue,
 											Ok(_v) => {
