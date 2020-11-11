@@ -374,6 +374,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bit-country-primitives"
+version = "0.1.0"
+dependencies = [
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "bitcountry-node"
 version = "2.0.0-rc6"
 dependencies = [
@@ -3699,6 +3710,7 @@ dependencies = [
 name = "pallet-nft"
 version = "2.0.0-rc6"
 dependencies = [
+ "bit-country-primitives",
  "frame-executive",
  "frame-support",
  "frame-system",
