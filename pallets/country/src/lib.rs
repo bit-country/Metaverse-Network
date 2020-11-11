@@ -14,10 +14,18 @@ use sp_core::H256;
 use sp_runtime::{traits::Hash, RuntimeDebug};
 use sp_std::vec::Vec;
 use unique_asset::AssetId;
+use primitives::{AccountId, CountryId}
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct CountryAssetData {
 	pub image: Vec<u8>,
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub struct Country{
+	pub owner: AccountId;
+	pub metadata: Vec<u8>;
+	pub token_address: AccountId;
 }
 
 #[cfg(test)]
@@ -34,9 +42,10 @@ pub trait Trait: system::Trait + nft::Trait + unique_asset::Trait {
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
-		// pub Countries get(fn get_country): map hasher(blake2_128_concat) <T as nft::Trait>::AssetId => CountryAssetData;
-		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) AssetId => Option<T::AccountId>;
-		// pub AllCountriesCount get(fn all_countries_count): u64;
+		pub NextCountryId get(fn next_country_id): CountryId;
+		pub Countries get(fn get_country): map hasher(blake2_128_concat) CountryId => Country;
+		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) CountryId => Option<T::AccountId>;
+		pub AllCountriesCount get(fn all_countries_count): u64;
 
 		Init get(fn is_init): bool;
 
@@ -47,10 +56,11 @@ decl_storage! {
 decl_event!(
 	pub enum Event<T>
 	where
-		AccountId = <T as system::Trait>::AccountId,
+		AccountId = AccountId,
+		CountryId = CountryId,
 	{
 		Initialized(AccountId),
-		RandomnessConsumed(H256, H256),
+		NewCountryCreated(CountryId),
 	}
 );
 
@@ -72,7 +82,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = 10_000]
-		fn create_country(origin, country_name: Vec<u8> ,image: Vec<u8>) -> DispatchResult {
+		fn create_country(origin, metadata: Vec<u8>) -> DispatchResult {
 
 			// let sender = ensure_signed(origin)?;
 			// // let nonce = Nonce::get();

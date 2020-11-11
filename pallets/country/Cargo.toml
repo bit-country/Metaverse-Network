@@ -35,6 +35,8 @@ sp-session = { version = "2.0.0", default-features = false }
 sp-std = { version = "2.0.0", default-features = false }
 sp-transaction-pool = { version = "2.0.0", default-features = false }
 sp-version = { version = "2.0.0", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+
 
 [dependencies.unique-asset]
 default-features = false
@@ -58,4 +60,5 @@ std = [
     'sp-core/std',
     'unique-asset/std',
     'nft/std',
+    'primitives/std'
 ]

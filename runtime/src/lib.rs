@@ -18,7 +18,7 @@ use sp_runtime::traits::{
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Perquintill,
+	ApplyExtrinsicResult, FixedPointNumber, ModuleId, MultiSignature, Perquintill,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -33,6 +33,7 @@ use unique_asset;
 // use pallet_contracts_rpc_runtime_api::ContractExecResult;
 
 // A few exports that help ease life for downstream crates.
+pub use constants::currency::*;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{KeyOwnerProofSystem, Randomness},
@@ -42,6 +43,7 @@ pub use frame_support::{
 	},
 	StorageValue,
 };
+
 pub use pallet_balances::Call as BalancesCall;
 use pallet_contracts_rpc_runtime_api::ContractExecResult;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -49,6 +51,7 @@ pub use pallet_timestamp::Call as TimestampCall;
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+mod constants;
 // pub mod constants;
 // use constants::{currency::*, time::*};
 /// An index to a block.
@@ -120,10 +123,6 @@ pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
-// Money
-pub const MILLICENTS: Balance = 1_000_000_000;
-pub const CENTS: Balance = 1_000 * MILLICENTS;
-pub const DOLLARS: Balance = 100 * CENTS;
 pub const BCGS: Balance = CENTS;
 
 /// The version information used to identify this runtime when compiled natively.
@@ -229,8 +228,10 @@ impl pallet_grandpa::Trait for Runtime {
 	type WeightInfo = ();
 }
 
+// Module accounts of runtime
 parameter_types! {
 	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
+	// pub const NftModuleId: ModuleId = ModuleId(*b"bcc/bNFT");
 }
 
 impl pallet_timestamp::Trait for Runtime {
@@ -306,16 +307,23 @@ impl pallet_sudo::Trait for Runtime {
 	type Call = Call;
 }
 
+parameter_types! {
+	pub const CreateCollectionDeposit: Balance = 800 * MILLICENTS;
+}
+
 impl nft::Trait for Runtime {
 	type Event = Event;
 	type RandomnessSource = RandomnessCollectiveFlip;
 	type ConvertNftData = nft::NftAssetData<AccountId>;
+	type ConvertNftCollectionData = nft::NftCollectionData;
+	type Currency = Balances;
+	type CreateCollectionDeposit = CreateCollectionDeposit;
 }
 
 impl unique_asset::Trait for Runtime {
 	type Event = Event;
 	type AssetData = nft::NftAssetData<AccountId>;
-	type CollectionData = nft::NftCollectionData<Balance>;
+	type CollectionData = nft::NftCollectionData;
 }
 
 impl country::Trait for Runtime {

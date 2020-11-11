@@ -137,7 +137,7 @@ decl_module! {
 
 			ensure!(AssetByOwner::<T>::contains_key(&from, &asset), Error::<T>::NoPermission);
 
-			Self::transfer_from(from, to, asset.0 ,asset.1);
+			Self::transfer_from(from, to, asset.0 ,asset.1)?;
 
 			Ok(())
 		}

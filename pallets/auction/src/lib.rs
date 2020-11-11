@@ -27,7 +27,6 @@ mod tests;
 
 pub struct AuctionLogicHandler;
 
-// pub type Balance = u128;
 pub type AccountId = u128;
 pub type BlockNumber = u32;
 
