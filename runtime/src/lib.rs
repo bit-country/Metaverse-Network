@@ -33,6 +33,7 @@ use unique_asset;
 
 // A few exports that help ease life for downstream crates.
 pub use constants::currency::*;
+
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{KeyOwnerProofSystem, Randomness},
@@ -376,7 +377,7 @@ construct_runtime!(
 		Contracts: pallet_contracts::{Module, Call, Config, Storage, Event<T>},
 
 		//BitCountry pallets
-		CountryModule: country::{Module, Call, Storage, Event<T>},
+		CountryModule: country::{Module, Call, Storage, Event},
 		BlockModule: block::{Module, Call, Storage, Event<T>},
 		SectionModule: section::{Module, Call, Storage, Event<T>},
 		AssetModule: unique_asset::{Module, Call ,Storage, Event<T>},
