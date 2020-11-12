@@ -10,5 +10,6 @@ members = [
 ]
 exclude = [
     'luckydraw',
-    'airdrop'
+    'airdrop',
+    'countrytoken'
 ]
