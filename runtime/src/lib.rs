@@ -27,7 +27,6 @@ use sp_version::RuntimeVersion;
 
 // custom runtime pallet
 use auction;
-use country;
 use nft;
 use unique_asset;
 // use pallet_contracts_rpc_runtime_api::ContractExecResult;
@@ -329,7 +328,6 @@ impl unique_asset::Trait for Runtime {
 impl country::Trait for Runtime {
 	type Event = Event;
 	type RandomnessSource = RandomnessCollectiveFlip;
-	type ConvertCountryData = nft::NftAssetData<AccountId>;
 }
 
 impl block::Trait for Runtime {

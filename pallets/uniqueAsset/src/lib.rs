@@ -147,6 +147,7 @@ decl_module! {
 			let owner = ensure_signed(origin)?;
 			//TODO Check asset ownership
 			//TODO Check not in auction
+			//TODO Reserve fund from renter or do one off transfer
 			NextRentId::try_mutate(|id| -> DispatchResult {
 				let rent_id = *id;
 				*id = id
