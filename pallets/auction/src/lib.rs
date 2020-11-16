@@ -148,7 +148,7 @@ decl_module! {
 
 				ensure!(<pallet_balances::Module<T>>::free_balance(&from) >= value, "You don't have enough free balance for this bid");
 
-				Self::auction_bid_handler(block_number, id, (from.clone(), value), auction.bid.clone());
+				Self::auction_bid_handler(block_number, id, (from.clone(), value), auction.bid.clone())?;
 
 				auction.bid = Some((from.clone(), value));
 				Self::deposit_event(RawEvent::Bid(id, from, value));

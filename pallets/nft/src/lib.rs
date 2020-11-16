@@ -9,8 +9,8 @@ use frame_support::{
 	StorageMap, StorageValue,
 };
 use frame_system::{self as system, ensure_signed};
-use primitives::Balance;
 
+use primitives::Balance;
 use sp_core::H256;
 use sp_runtime::ModuleId;
 use sp_runtime::RuntimeDebug;
@@ -28,7 +28,7 @@ pub struct NftAssetData<AccountId> {
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct NftCollectionData {
+pub struct NftCollectionData<Balance> {
 	//Minimum balance to create a collection of Asset
 	pub deposit: Balance,
 	// Metadata from ipfs
@@ -43,14 +43,16 @@ pub trait Trait: system::Trait + unique_asset::Trait {
 	type RandomnessSource: Randomness<H256>;
 	/// Convert between NftCollectionData and unique_asset::Trait::CollectionData
 	type ConvertNftCollectionData: IsType<<Self as unique_asset::Trait>::CollectionData>
-		+ IsType<NftCollectionData>;
+		+ IsType<NftCollectionData<BalanceOf<Self>>>;
 	/// Convert between NftAssetData and unique_asset::Trait::AssetData
 	type ConvertNftData: IsType<<Self as unique_asset::Trait>::AssetData>
 		+ IsType<NftAssetData<Self::AccountId>>;
 	/// The minimum balance to create class
-	type CreateCollectionDeposit: Get<Balance>;
+	type CreateCollectionDeposit: Get<BalanceOf<Self>>;
 	type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 }
+
+type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
@@ -93,7 +95,6 @@ decl_error! {
 
 decl_module! {
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
-		const CreateCollectionDeposit: Balance = T::CreateCollectionDeposit::get();
 
 		fn deposit_event() = default;
 
@@ -103,8 +104,9 @@ decl_module! {
 			let sender = ensure_signed(origin)?;
 			let next_collection_id = unique_asset::Module::<T>::next_collection_id();
 			//Secure deposit of collection owner
-			let deposit: Balance = T::CreateCollectionDeposit::get();
-			//TODO Reserve thhe fund
+			let deposit = T::CreateCollectionDeposit::get();
+			//TODO Reserve the fund
+			<T as Trait>::Currency::reserve(&sender, deposit.clone())?;
 			let collection_data = NftCollectionData { deposit, properties };
 			let collection_data = T::ConvertNftCollectionData::from(collection_data);
 			let collection_data = Into::<<T as unique_asset::Trait>::CollectionData>::into(collection_data);

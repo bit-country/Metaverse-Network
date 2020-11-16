@@ -10,6 +10,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_signed};
 use nft;
+use primitives::CountryId;
 use sp_core::H256;
 use sp_runtime::{
 	traits::{Hash, One},
@@ -17,7 +18,6 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 use unique_asset::AssetId;
-use primitives::{CountryId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct CountryAssetData {
@@ -90,9 +90,7 @@ decl_module! {
 			let total_country_count = Self::all_countries_count();
 
 			let new_total_country_count = total_country_count.checked_add(One::one()).ok_or("Overflow adding new count to total country")?;
-
 			AllCountriesCount::put(new_total_country_count);
-
 			Self::deposit_event(Event::NewCountryCreated(country_id.clone()));
 
 			Ok(())
@@ -121,16 +119,13 @@ decl_module! {
 impl<T: Trait> Module<T> {
 	/// Reads the nonce from storage, increments the stored nonce, and returns
 	/// the encoded nonce to the caller.
-	fn encode_and_update_nonce() -> Vec<u8> {
-		let nonce = Nonce::get();
-		Nonce::put(nonce.wrapping_add(1));
-		nonce.encode()
-	}
 
 	fn new_country(owner: &T::AccountId, metadata: Vec<u8>) -> Result<CountryId, DispatchError> {
-		let country_id = NextCountryId::try_mutate(|id| -> Result<CountryId, DispatchError>{
+		let country_id = NextCountryId::try_mutate(|id| -> Result<CountryId, DispatchError> {
 			let current_id = *id;
-			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableCountryId)?;
+			*id = id
+				.checked_add(One::one())
+				.ok_or(Error::<T>::NoAvailableCountryId)?;
 			Ok(current_id)
 		})?;
 
