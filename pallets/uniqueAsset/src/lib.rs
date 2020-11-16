@@ -1,7 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{
+	decl_error, decl_event, decl_module, decl_storage, ensure,
+	traits::{Currency, ReservableCurrency},
+	Parameter,
+};
 use frame_system::{self as system, ensure_signed};
 use sp_runtime::{
 	print,
@@ -57,6 +61,7 @@ pub trait Trait: frame_system::Trait + pallet_balances::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 	type AssetData: Parameter + Member;
 	type CollectionData: Parameter + Member;
+	type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 }
 
 pub type CollectionInfoOf<T> =

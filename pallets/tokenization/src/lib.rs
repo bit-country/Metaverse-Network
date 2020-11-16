@@ -5,28 +5,36 @@ use codec::{Decode, Encode};
 use country::CountryOwner;
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use frame_system::{self as system, ensure_signed};
-use sp_runtime::traits::Hash;
-use sp_runtime::traits::One;
-use sp_runtime::traits::{AtLeast32Bit, AtLeast32BitUnsigned, Member, StaticLookup, Zero};
+use orml_traits::{
+	MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+};
+use sp_runtime::traits::{
+	AtLeast32Bit, AtLeast32BitUnsigned, Hash, Member, One, StaticLookup, Zero,
+};
 use sp_std::vec::Vec;
 
 use unique_asset::AssetId;
 
 /// The module configuration trait.
-pub trait Trait: system::Trait + country::Trait + unique_asset::Trait {
+pub trait Trait: system::Trait + country::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
-
-	/// The units in which we record balances.
-
 	/// The arithmetic type of asset identifier.
 	type TokenId: Parameter + AtLeast32Bit + Default + Copy;
+	type CountryCurrency: MultiCurrencyExtended<Self::AccountId>;
 }
 type Balance = u128;
 /// A wrapper for a asset name.
 pub type AssetName = Vec<u8>;
 /// A wrapper for a ticker name.
 pub type Ticker = Vec<u8>;
+
+type CurrencyIdOf<T> = <<T as Trait>::CountryCurrency as MultiCurrency<
+	<T as frame_system::Trait>::AccountId,
+>>::CurrencyId;
+type BalanceOf<T> = <<T as Trait>::CountryCurrency as MultiCurrency<
+	<T as frame_system::Trait>::AccountId,
+>>::Balance;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq)]
 pub struct Token<Balance> {
@@ -43,7 +51,6 @@ decl_storage! {
 		/// The next asset identifier up for grabs.
 		NextTokenId get(fn next_asset_id): T::TokenId;
 		/// The total unit supply of an asset.
-		///
 		/// TWOX-NOTE: `TokenId` is trusted, so this is safe.
 		TotalSupply: map hasher(twox_64_concat) T::TokenId => Balance;
 		/// Details of the token corresponding to the token id.
@@ -60,32 +67,41 @@ decl_module! {
 		/// Issue a new class of fungible assets for country. There are, and will only ever be, `total`
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
-		#[weight = 0]
-		fn issue(origin, country_id: AssetId, name: AssetName, ticker: Ticker ,#[compact] total: Balance) {
-			let origin = ensure_signed(origin)?;
-			//Check country ownership
-			let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Not a country owner of this country")?;
-			ensure!(country_owner == origin, Error::<T>::NoPermissionTokenIssuance);
+		// #[weight = 0]
+		// fn issue(origin, country_id: AssetId, name: AssetName, ticker: Ticker ,#[compact] total: Balance) {
+		// 	let origin = ensure_signed(origin)?;
+		// 	//Check country ownership
+		// 	let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Not a country owner of this country")?;
+		// 	ensure!(country_owner == origin, Error::<T>::NoPermissionTokenIssuance);
 
-			//Check if country already issued token
-			let country_token = Self::get_country_token(country_id);
-			ensure!(country_token.is_none(), Error::<T>::TokenAlreadyIssued);
+		// 	//Check if country already issued token
+		// 	let country_token = Self::get_country_token(country_id);
+		// 	ensure!(country_token.is_none(), Error::<T>::TokenAlreadyIssued);
 
-			let id = Self::next_asset_id();
-			<NextTokenId<T>>::mutate(|id| *id += One::one());
+		// 	let id = Self::next_asset_id();
+		// 	<NextTokenId<T>>::mutate(|id| *id += One::one());
 
-			<Balances<T>>::insert((&id, &origin), total);
-			<TotalSupply<T>>::insert(&id, total);
-			<CountryTokens<T>>::insert(country_id,&id);
-			let new_token = Token{
-				name: name,
-				ticker: ticker,
-				total_supply: total,
-			};
+		// 	<Balances<T>>::insert((&id, &origin), total);
+		// 	<TotalSupply<T>>::insert(&id, total);
+		// 	<CountryTokens<T>>::insert(country_id,&id);
+		// 	let new_token = Token{
+		// 		name: name,
+		// 		ticker: ticker,
+		// 		total_supply: total,
+		// 	};
 
-			<Tokens<T>>::insert(&id, new_token);
+		// 	<Tokens<T>>::insert(&id, new_token);
 
-			Self::deposit_event(RawEvent::Issued(id, origin, total, country_id));
+		// 	Self::deposit_event(RawEvent::Issued(id, origin, total, country_id));
+		// }
+
+		#[weight = 10_000]
+		fn mint_token(origin, currency_id: CurrencyIdOf<T>, balance: BalanceOf<T>){
+			let who = ensure_signed(origin)?;
+			//Generate new CurrencyId
+			T::CountryCurrency::deposit(currency_id, &who, balance)?;
+
+			Self::deposit_event(RawEvent::Issued(currency_id, who, balance))
 		}
 
 		/// Move some assets from one holder to another.
@@ -140,9 +156,10 @@ decl_event! {
 		Balance = Balance,
 		<T as Trait>::TokenId,
 		AssetId = AssetId,
+		CurrencyId = CurrencyIdOf<T>
 	{
 		/// Some assets were issued. \[asset_id, owner, total_supply\]
-		Issued(TokenId, AccountId, Balance, AssetId),
+		Issued(CurrencyId, AccountId, Balance),
 		/// Some assets were transferred. \[asset_id, from, to, amount\]
 		Transferred(TokenId, AccountId, AccountId, Balance),
 		/// Some assets were destroyed. \[asset_id, owner, balance\]

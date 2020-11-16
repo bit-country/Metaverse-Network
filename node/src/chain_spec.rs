@@ -1,6 +1,6 @@
 use bitcountry_runtime::{
 	AccountId, AuraConfig, BalancesConfig, ContractsConfig, GenesisConfig, GrandpaConfig,
-	Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	Signature, SudoConfig, SystemConfig, WASM_BINARY
 };
 use sp_core::{sr25519, Pair, Public};
 
@@ -178,7 +178,7 @@ fn testnet_genesis(
 				enable_println,
 				..Default::default()
 			},
-		}),
+		})
 	}
 }
 

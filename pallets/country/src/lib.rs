@@ -10,6 +10,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_signed};
 use nft;
+use primitives::CountryId;
 use sp_core::H256;
 use sp_runtime::{
 	traits::{Hash, One},
@@ -32,7 +33,7 @@ pub struct Country<AccountId> {
 
 #[cfg(test)]
 mod tests;
-pub type CountryId = u64;
+
 pub trait Trait: system::Trait {
 	type Event: From<Event> + Into<<Self as system::Trait>::Event>;
 	type RandomnessSource: Randomness<H256>;
@@ -42,8 +43,8 @@ decl_storage! {
 	trait Store for Module<T: Trait> as Country {
 
 		pub NextCountryId get(fn next_country_id): CountryId;
-		pub Countries get(fn get_country): map hasher(blake2_128_concat) CountryId => Option<Country<T::AccountId>>;
-		pub CountryOwner get(fn get_country_owner): map hasher(blake2_128_concat) CountryId => Option<T::AccountId>;
+		pub Countries get(fn get_country): map hasher(twox_64_concat) CountryId => Option<Country<T::AccountId>>;
+		pub CountryOwner get(fn get_country_owner): map hasher(twox_64_concat) CountryId => Option<T::AccountId>;
 		pub AllCountriesCount get(fn all_countries_count): u64;
 
 		Init get(fn is_init): bool;
@@ -54,7 +55,6 @@ decl_storage! {
 
 decl_event!(
 	pub enum Event {
-		Initialized(AccountId),
 		NewCountryCreated(CountryId),
 	}
 );
@@ -79,34 +79,23 @@ decl_module! {
 		fn deposit_event() = default;
 
 		#[weight = 10_000]
-		fn create_country(origin, metadata: Vec<u8>) -> Result<CountryId, DispatchError> {
+		fn create_country(origin, metadata: Vec<u8>) -> DispatchResult {
 
 			let owner = ensure_signed(origin)?;
-			let country_id = NextCountryId::try_mutate(|id| -> Result<CountryId, DispatchError>{
-				let current_id = *id;
-				*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableCountryId)?;
-				Ok(current_id)
-			})?;
 
-			let country_info = Country{
-				owner: owner.clone(),
-				token_address: Default::default(),
-				metadata
-			};
+			let country_id = Self::new_country(&owner, metadata)?;
 
-			Countries::<T>::insert(country_id, country_info);
 			CountryOwner::<T>::insert(country_id, owner);
 
 			let total_country_count = Self::all_countries_count();
 
 			let new_total_country_count = total_country_count.checked_add(One::one()).ok_or("Overflow adding new count to total country")?;
-
 			AllCountriesCount::put(new_total_country_count);
-
 			Self::deposit_event(Event::NewCountryCreated(country_id.clone()));
 
-			Ok(country_id)
+			Ok(())
 		}
+
 		#[weight = 100_000]
 		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash, asset_id: AssetId) -> DispatchResult {
 
@@ -130,15 +119,24 @@ decl_module! {
 impl<T: Trait> Module<T> {
 	/// Reads the nonce from storage, increments the stored nonce, and returns
 	/// the encoded nonce to the caller.
-	fn encode_and_update_nonce() -> Vec<u8> {
-		let nonce = Nonce::get();
-		Nonce::put(nonce.wrapping_add(1));
-		nonce.encode()
-	}
 
-	fn create_country(
-		owner: &T::AccountId,
-		metadata: Vec<u8>) -> {
+	fn new_country(owner: &T::AccountId, metadata: Vec<u8>) -> Result<CountryId, DispatchError> {
+		let country_id = NextCountryId::try_mutate(|id| -> Result<CountryId, DispatchError> {
+			let current_id = *id;
+			*id = id
+				.checked_add(One::one())
+				.ok_or(Error::<T>::NoAvailableCountryId)?;
+			Ok(current_id)
+		})?;
 
+		let country_info = Country {
+			owner: owner.clone(),
+			token_address: Default::default(),
+			metadata,
+		};
+
+		Countries::<T>::insert(country_id, country_info);
+
+		Ok(country_id)
 	}
 }
