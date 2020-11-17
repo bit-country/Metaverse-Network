@@ -8,22 +8,21 @@ use frame_system::{self as system, ensure_signed};
 use orml_traits::{
 	MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use sp_runtime::traits::{
+use sp_runtime::{traits::{
 	AtLeast32Bit, AtLeast32BitUnsigned, Hash, Member, One, StaticLookup, Zero,
-};
+}, DispatchResult };
 use sp_std::vec::Vec;
-
+use primitives::Balance;
 use unique_asset::AssetId;
 
 /// The module configuration trait.
-pub trait Trait: system::Trait + country::Trait {
+pub trait Trait: system::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	/// The arithmetic type of asset identifier.
 	type TokenId: Parameter + AtLeast32Bit + Default + Copy;
-	type CountryCurrency: MultiCurrencyExtended<Self::AccountId>;
+	type CountryCurrency: MultiCurrency<Self::AccountId>;
 }
-type Balance = u128;
 /// A wrapper for a asset name.
 pub type AssetName = Vec<u8>;
 /// A wrapper for a ticker name.
@@ -96,12 +95,14 @@ decl_module! {
 		// }
 
 		#[weight = 10_000]
-		fn mint_token(origin, currency_id: CurrencyIdOf<T>, balance: BalanceOf<T>){
+		fn mint_token(origin, currency_id: CurrencyIdOf<T>, balance: BalanceOf<T>) -> DispatchResult{
 			let who = ensure_signed(origin)?;
 			//Generate new CurrencyId
 			T::CountryCurrency::deposit(currency_id, &who, balance)?;
 
-			Self::deposit_event(RawEvent::Issued(currency_id, who, balance))
+			Self::deposit_event(RawEvent::Issued(who, balance));
+
+			Ok(())
 		}
 
 		/// Move some assets from one holder to another.
@@ -125,7 +126,7 @@ decl_module! {
 			ensure!(!amount.is_zero(), Error::<T>::AmountZero);
 			ensure!(origin_balance >= amount, Error::<T>::BalanceLow);
 
-			Self::deposit_event(RawEvent::Transferred(id, origin, target.clone(), amount));
+			// Self::deposit_event(RawEvent::Transferred(id, origin, target.clone(), amount));
 			<Balances<T>>::insert(origin_account, origin_balance - amount);
 			<Balances<T>>::mutate((id, target), |balance| *balance += amount);
 		}
@@ -145,7 +146,7 @@ decl_module! {
 			ensure!(!balance.is_zero(), Error::<T>::BalanceZero);
 
 			<TotalSupply<T>>::mutate(id, |total_supply| *total_supply -= balance);
-			Self::deposit_event(RawEvent::Destroyed(id, origin, balance));
+			// Self::deposit_event(RawEvent::Destroyed(id, origin, balance));
 		}
 	}
 }
@@ -153,13 +154,11 @@ decl_module! {
 decl_event! {
 	pub enum Event<T> where
 		<T as system::Trait>::AccountId,
-		Balance = Balance,
-		<T as Trait>::TokenId,
-		AssetId = AssetId,
-		CurrencyId = CurrencyIdOf<T>
+		Balance = BalanceOf<T>,
+		<T as Trait>::TokenId
 	{
 		/// Some assets were issued. \[asset_id, owner, total_supply\]
-		Issued(CurrencyId, AccountId, Balance),
+		Issued(AccountId, Balance),
 		/// Some assets were transferred. \[asset_id, from, to, amount\]
 		Transferred(TokenId, AccountId, AccountId, Balance),
 		/// Some assets were destroyed. \[asset_id, owner, balance\]
@@ -182,17 +181,17 @@ decl_error! {
 	}
 }
 
-// The main implementation block for the module.
-impl<T: Trait> Module<T> {
-	// Public immutables
+// // The main implementation block for the module.
+// impl<T: Trait> Module<T> {
+// 	// Public immutables
 
-	/// Get the asset `id` balance of `who`.
-	pub fn balance(id: T::TokenId, who: T::AccountId) -> Balance {
-		<Balances<T>>::get((id, who))
-	}
+// 	/// Get the asset `id` balance of `who`.
+// 	pub fn balance(id: T::TokenId, who: T::AccountId) -> Balance {
+// 		<Balances<T>>::get((id, who))
+// 	}
 
-	/// Get the total supply of an asset `id`.
-	pub fn total_supply(id: T::TokenId) -> Balance {
-		<TotalSupply<T>>::get(id)
-	}
-}
+// 	/// Get the total supply of an asset `id`.
+// 	pub fn total_supply(id: T::TokenId) -> Balance {
+// 		<TotalSupply<T>>::get(id)
+// 	}
+// }

@@ -41,6 +41,8 @@ orml-traits = { default-features = false, version = '0.3.0' }
 orml-currencies = { default-features = false, version = '0.3.0' }
 orml-tokens = { default-features = false, version = '0.3.0' }
 
+primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+
 [dependencies.country]
 default-features = false
 package = 'pallet-country'
@@ -65,6 +67,7 @@ std = [
     'orml-currencies/std',
     'orml-tokens/std',
     'orml-traits/std', 
+    'primitives/std',
     'country/std',
     'unique-asset/std',
 ]

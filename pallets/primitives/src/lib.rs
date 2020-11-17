@@ -23,3 +23,4 @@ pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 pub type Balance = u128;
 /// Country Id
 pub type CountryId = u64;
+pub type Amount = i128;
