@@ -44,7 +44,7 @@ decl_storage! {
 
 		pub NextCountryId get(fn next_country_id): CountryId;
 		pub Countries get(fn get_country): map hasher(twox_64_concat) CountryId => Option<Country<T::AccountId>>;
-		pub CountryOwner get(fn get_country_owner): map hasher(twox_64_concat) CountryId => Option<T::AccountId>;
+		pub CountryOwner get(fn get_country_owner): double_map hasher(twox_64_concat) CountryId, hasher(twox_64_concat) T::AccountId => Option<()>;
 		pub AllCountriesCount get(fn all_countries_count): u64;
 
 		Init get(fn is_init): bool;
@@ -85,7 +85,7 @@ decl_module! {
 
 			let country_id = Self::new_country(&owner, metadata)?;
 
-			CountryOwner::<T>::insert(country_id, owner);
+			CountryOwner::<T>::insert(country_id, owner, ());
 
 			let total_country_count = Self::all_countries_count();
 

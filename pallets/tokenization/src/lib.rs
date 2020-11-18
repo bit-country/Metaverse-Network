@@ -8,54 +8,62 @@ use frame_system::{self as system, ensure_signed};
 use orml_traits::{
 	MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use sp_runtime::traits::{
-	AtLeast32Bit, AtLeast32BitUnsigned, Hash, Member, One, StaticLookup, Zero,
+use primitives::{Balance, CountryId, CurrencyId};
+use sp_runtime::{
+	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Hash, Member, One, StaticLookup, Zero},
+	DispatchError, DispatchResult,
 };
 use sp_std::vec::Vec;
-
 use unique_asset::AssetId;
 
 /// The module configuration trait.
-pub trait Trait: system::Trait + country::Trait {
+pub trait Trait: system::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	/// The arithmetic type of asset identifier.
 	type TokenId: Parameter + AtLeast32Bit + Default + Copy;
-	type CountryCurrency: MultiCurrencyExtended<Self::AccountId>;
+	type CountryCurrency: MultiCurrencyExtended<
+		Self::AccountId,
+		CurrencyId = CurrencyId,
+		Balance = Balance,
+	>;
 }
-type Balance = u128;
-/// A wrapper for a asset name.
-pub type AssetName = Vec<u8>;
+/// A wrapper for a token name.
+pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
 pub type Ticker = Vec<u8>;
 
-type CurrencyIdOf<T> = <<T as Trait>::CountryCurrency as MultiCurrency<
-	<T as frame_system::Trait>::AccountId,
->>::CurrencyId;
-type BalanceOf<T> = <<T as Trait>::CountryCurrency as MultiCurrency<
-	<T as frame_system::Trait>::AccountId,
->>::Balance;
-
 #[derive(Encode, Decode, Default, Clone, PartialEq)]
 pub struct Token<Balance> {
-	pub name: AssetName,
 	pub ticker: Ticker,
 	pub total_supply: Balance,
 }
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Assets {
-		CountryTokens get(fn get_country_token): map hasher(blake2_128_concat) AssetId => Option<T::TokenId>;
-		/// The number of units of assets held by any given account.
-		Balances: map hasher(blake2_128_concat) (T::TokenId, T::AccountId) => Balance;
+		CountryTokens get(fn get_country_token): map hasher(blake2_128_concat) CountryId => Option<CurrencyId>;
 		/// The next asset identifier up for grabs.
-		NextTokenId get(fn next_asset_id): T::TokenId;
-		/// The total unit supply of an asset.
-		/// TWOX-NOTE: `TokenId` is trusted, so this is safe.
-		TotalSupply: map hasher(twox_64_concat) T::TokenId => Balance;
+		NextTokenId get(fn next_token_id): CurrencyId;
 		/// Details of the token corresponding to the token id.
 		/// (hash) -> Token details [returns Token struct]
-		Tokens get(fn token_details): map hasher(blake2_128_concat) T::TokenId => Token<Balance>;
+		Tokens get(fn token_details): map hasher(blake2_128_concat) CurrencyId => Token<Balance>;
+	}
+}
+
+decl_error! {
+	pub enum Error for Module<T: Trait> {
+		/// Transfer amount should be non-zero
+		AmountZero,
+		/// Account balance must be greater than or equal to the transfer amount
+		BalanceLow,
+		/// Balance should be non-zero
+		BalanceZero,
+		/// No permission to issue token
+		NoPermissionTokenIssuance,
+		/// Country Currency already issued for this country
+		TokenAlreadyIssued,
+		/// No available next token id
+		NoAvailableTokenId,
 	}
 }
 
@@ -96,56 +104,37 @@ decl_module! {
 		// }
 
 		#[weight = 10_000]
-		fn mint_token(origin, currency_id: CurrencyIdOf<T>, balance: BalanceOf<T>){
+		fn mint_token(origin, ticker: Ticker, country_id: CountryId, total_supply: Balance) -> DispatchResult{
 			let who = ensure_signed(origin)?;
+			let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Country is not available")?;
+
+			//Check ownership
+			ensure!(<CountryOwner<T>>::contains_key(&country_id, &who), Error::<T>::NoPermissionTokenIssuance);
+
 			//Generate new CurrencyId
-			T::CountryCurrency::deposit(currency_id, &who, balance)?;
+			let currency_id = NextTokenId::mutate(|id| -> Result<CurrencyId, DispatchError>{
 
-			Self::deposit_event(RawEvent::Issued(currency_id, who, balance))
-		}
+				let current_id =*id;
+				*id = id.checked_add(One::one())
+				.ok_or(Error::<T>::NoAvailableTokenId)?;
 
-		/// Move some assets from one holder to another.
-		///
-		/// # <weight>
-		/// - `O(1)`
-		/// - 1 static lookup
-		/// - 2 storage mutations (codec `O(1)`).
-		/// - 1 event.
-		/// # </weight>
-		#[weight = 0]
-		fn transfer(origin,
-			id: T::TokenId,
-			target: <T::Lookup as StaticLookup>::Source,
-			amount: Balance
-		) {
-			let origin = ensure_signed(origin)?;
-			let origin_account = (id, origin.clone());
-			let origin_balance = <Balances<T>>::get(&origin_account);
-			let target = T::Lookup::lookup(target)?;
-			ensure!(!amount.is_zero(), Error::<T>::AmountZero);
-			ensure!(origin_balance >= amount, Error::<T>::BalanceLow);
+				Ok(current_id)
+			})?;
 
-			Self::deposit_event(RawEvent::Transferred(id, origin, target.clone(), amount));
-			<Balances<T>>::insert(origin_account, origin_balance - amount);
-			<Balances<T>>::mutate((id, target), |balance| *balance += amount);
-		}
+			let token_info = Token{
+				ticker,
+				total_supply,
+			};
 
-		/// Destroy any assets of `id` owned by `origin`.
-		///
-		/// # <weight>
-		/// - `O(1)`
-		/// - 1 storage mutation (codec `O(1)`).
-		/// - 1 storage deletion (codec `O(1)`).
-		/// - 1 event.
-		/// # </weight>
-		#[weight = 0]
-		fn destroy(origin, id: T::TokenId) {
-			let origin = ensure_signed(origin)?;
-			let balance = <Balances<T>>::take((id, &origin));
-			ensure!(!balance.is_zero(), Error::<T>::BalanceZero);
+			Tokens::insert(currency_id, token_info);
+			CountryTokens::insert(country_id, currency_id);
+			//ONly for country owner
 
-			<TotalSupply<T>>::mutate(id, |total_supply| *total_supply -= balance);
-			Self::deposit_event(RawEvent::Destroyed(id, origin, balance));
+			T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
+
+			Self::deposit_event(RawEvent::Issued(who, total_supply));
+
+			Ok(())
 		}
 	}
 }
@@ -154,12 +143,10 @@ decl_event! {
 	pub enum Event<T> where
 		<T as system::Trait>::AccountId,
 		Balance = Balance,
-		<T as Trait>::TokenId,
-		AssetId = AssetId,
-		CurrencyId = CurrencyIdOf<T>
+		<T as Trait>::TokenId
 	{
 		/// Some assets were issued. \[asset_id, owner, total_supply\]
-		Issued(CurrencyId, AccountId, Balance),
+		Issued(AccountId, Balance),
 		/// Some assets were transferred. \[asset_id, from, to, amount\]
 		Transferred(TokenId, AccountId, AccountId, Balance),
 		/// Some assets were destroyed. \[asset_id, owner, balance\]
@@ -167,32 +154,17 @@ decl_event! {
 	}
 }
 
-decl_error! {
-	pub enum Error for Module<T: Trait> {
-		/// Transfer amount should be non-zero
-		AmountZero,
-		/// Account balance must be greater than or equal to the transfer amount
-		BalanceLow,
-		/// Balance should be non-zero
-		BalanceZero,
-		/// No permission to issue token
-		NoPermissionTokenIssuance,
-		/// Country Currency already issued for this country
-		TokenAlreadyIssued,
-	}
-}
+// // The main implementation block for the module.
+// impl<T: Trait> Module<T> {
+// 	// Public immutables
 
-// The main implementation block for the module.
-impl<T: Trait> Module<T> {
-	// Public immutables
+// 	/// Get the asset `id` balance of `who`.
+// 	pub fn balance(id: T::TokenId, who: T::AccountId) -> Balance {
+// 		<Balances<T>>::get((id, who))
+// 	}
 
-	/// Get the asset `id` balance of `who`.
-	pub fn balance(id: T::TokenId, who: T::AccountId) -> Balance {
-		<Balances<T>>::get((id, who))
-	}
-
-	/// Get the total supply of an asset `id`.
-	pub fn total_supply(id: T::TokenId) -> Balance {
-		<TotalSupply<T>>::get(id)
-	}
-}
+// 	/// Get the total supply of an asset `id`.
+// 	pub fn total_supply(id: T::TokenId) -> Balance {
+// 		<TotalSupply<T>>::get(id)
+// 	}
+// }
