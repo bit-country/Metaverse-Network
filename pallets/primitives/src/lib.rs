@@ -24,3 +24,4 @@ pub type Balance = u128;
 /// Country Id
 pub type CountryId = u64;
 pub type Amount = i128;
+pub type CurrencyId = u32;

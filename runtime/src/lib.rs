@@ -34,6 +34,7 @@ use unique_asset;
 
 // A few exports that help ease life for downstream crates.
 pub use constants::currency::*;
+pub use primitives::{CurrencyId};
 
 pub use frame_support::{
 	construct_runtime, parameter_types,
@@ -80,10 +81,6 @@ pub type Hash = sp_core::H256;
 
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
-
-/// CurrencyId
-pub type CurrencyId = u32;
-
 // Amount
 pub type Amount = i128;
 

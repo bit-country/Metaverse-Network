@@ -12,6 +12,7 @@ version = '2.0.0-rc6'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
+serde = { version = "1.0.111", optional = true }
 codec = { package = "parity-scale-codec", version = "1.3.4", default-features = false, features = ["derive"] }
 pallet-aura = { version = "2.0.0", default-features = false }
 pallet-balances = { version = "2.0.0", default-features = false }
@@ -23,7 +24,6 @@ frame-system = { version = "2.0.0", default-features = false }
 pallet-timestamp = { version = "2.0.0", default-features = false }
 pallet-transaction-payment = { version = "2.0.0", default-features = false }
 frame-executive = { version = "2.0.0", default-features = false }
-serde = { version = "1.0.101", optional = true, features = ["derive"] }
 sp-api = { version = "2.0.0", default-features = false }
 sp-block-builder = { version = "2.0.0", default-features = false }
 sp-consensus-aura = { version = "0.8.0", default-features = false }
@@ -58,6 +58,7 @@ version = '2.0.0-rc6'
 [features]
 default = ['std']
 std = [
+    'serde',
     'codec/std',
     'frame-support/std',
     'frame-system/std',
