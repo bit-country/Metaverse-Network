@@ -16,7 +16,6 @@ use sp_runtime::{
 use sp_std::vec::Vec;
 use unique_asset::AssetId;
 
-
 /// The module configuration trait.
 pub trait Trait: system::Trait {
 	/// The overarching event type.
@@ -107,8 +106,12 @@ decl_module! {
 		#[weight = 10_000]
 		fn mint_token(origin, ticker: Ticker, country_id: CountryId, total_supply: Balance) -> DispatchResult{
 			let who = ensure_signed(origin)?;
-			//Generate new CurrencyId
+			let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Country is not available")?;
 
+			//Check ownership
+			ensure!(<CountryOwner<T>>::contains_key(&country_id, &who), Error::<T>::NoPermissionTokenIssuance);
+
+			//Generate new CurrencyId
 			let currency_id = NextTokenId::mutate(|id| -> Result<CurrencyId, DispatchError>{
 
 				let current_id =*id;
@@ -126,6 +129,7 @@ decl_module! {
 			Tokens::insert(currency_id, token_info);
 			CountryTokens::insert(country_id, currency_id);
 			//ONly for country owner
+
 			T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
 
 			Self::deposit_event(RawEvent::Issued(who, total_supply));
