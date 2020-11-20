@@ -2,7 +2,7 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
+	debug, decl_error, decl_event, decl_module, decl_storage,
 	dispatch::DispatchResult,
 	ensure,
 	traits::{Get, IsType, Randomness},
@@ -13,8 +13,9 @@ use nft;
 use primitives::CountryId;
 use sp_core::H256;
 use sp_runtime::{
+	print,
 	traits::{Hash, One},
-	DispatchError, RuntimeDebug,
+	DispatchError, ModuleId, RuntimeDebug,
 };
 use sp_std::vec::Vec;
 use unique_asset::AssetId;
@@ -46,6 +47,7 @@ decl_storage! {
 		pub Countries get(fn get_country): map hasher(twox_64_concat) CountryId => Option<Country<T::AccountId>>;
 		pub CountryOwner get(fn get_country_owner): double_map hasher(twox_64_concat) CountryId, hasher(twox_64_concat) T::AccountId => Option<()>;
 		pub AllCountriesCount get(fn all_countries_count): u64;
+		pub CountryFund get (fn get_country_treasury): map hasher(twox_64_concat) CountryId => Option<ModuleId>;
 
 		Init get(fn is_init): bool;
 
@@ -84,6 +86,9 @@ decl_module! {
 			let owner = ensure_signed(origin)?;
 
 			let country_id = Self::new_country(&owner, metadata)?;
+			//Static module fund, will change to dynamic with randomness
+			let module_id: ModuleId = ModuleId(*b"Country!");
+			CountryFund::insert(country_id, module_id);
 
 			CountryOwner::<T>::insert(country_id, owner, ());
 
@@ -97,21 +102,28 @@ decl_module! {
 		}
 
 		#[weight = 100_000]
-		fn transfer_country(origin,  to: T::AccountId, country_id: T::Hash, asset_id: AssetId) -> DispatchResult {
+		fn transfer_country(origin,  to: T::AccountId, country_id: CountryId) -> DispatchResult {
 
-			// let sender = ensure_signed(origin)?;
-			// //Get owner of the country
-			// // let owner = Self::owner_of(country_id).ok_or("No country owner of this country")?;
-			// // ensure!(owner == sender, "You are not the owner of the country");
+			let who = ensure_signed(origin)?;
+			// Get owner of the country
+			CountryOwner::<T>::try_mutate_exists(
+				&country_id, &who, |country_by_owner| -> DispatchResult{
+					//ensure there is record of the country owner with country id, account id and delete them
+					ensure!(country_by_owner.take().is_some(), Error::<T>::NoPermission);
+					CountryOwner::<T>::insert(country_id.clone(),to.clone(), ());
 
-			// let asset_info = unique_asset::Module::<T>::assets(asset_id).ok_or(Error::<T>::AssetInfoNotFound)?;
+					Ok(())
+				}
+			);
 
-			// ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
-
-			// unique_asset::Module::<T>::transfer(&sender, &to, asset_id)?;
-			// //TODO Emit transfer event
-			// Self::deposit_event(RawEvent::TransferedCountry(sender, to, asset_id));
-			  Ok(())
+			Countries::<T>::try_mutate_exists(
+				&country_id,
+				|country| -> DispatchResult{
+					let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
+					country_record.owner = to.clone();
+					Ok(())
+				}
+			)
 		}
 	}
 }
