@@ -8,7 +8,7 @@ use frame_support::{
 	traits::{Get, IsType, Randomness},
 	StorageMap, StorageValue,
 };
-use frame_system::{self as system, ensure_signed};
+use frame_system::{self as system, ensure_root, ensure_signed};
 use nft;
 use primitives::CountryId;
 use sp_core::H256;
@@ -48,6 +48,7 @@ decl_storage! {
 		pub CountryOwner get(fn get_country_owner): double_map hasher(twox_64_concat) CountryId, hasher(twox_64_concat) T::AccountId => Option<()>;
 		pub AllCountriesCount get(fn all_countries_count): u64;
 		pub CountryFund get (fn get_country_treasury): map hasher(twox_64_concat) CountryId => Option<ModuleId>;
+		pub FreezingCountries get (fn get_freezing_country): map hasher(twox_64_concat) CountryId => Option<()>;
 
 		Init get(fn is_init): bool;
 
@@ -58,6 +59,7 @@ decl_storage! {
 decl_event!(
 	pub enum Event {
 		NewCountryCreated(CountryId),
+		CountryFreezed(CountryId),
 	}
 );
 
@@ -102,7 +104,7 @@ decl_module! {
 		}
 
 		#[weight = 100_000]
-		fn transfer_country(origin,  to: T::AccountId, country_id: CountryId) -> DispatchResult {
+		fn transfer_country(origin, to: T::AccountId, country_id: CountryId) -> DispatchResult {
 
 			let who = ensure_signed(origin)?;
 			// Get owner of the country
@@ -124,6 +126,16 @@ decl_module! {
 					Ok(())
 				}
 			)
+		}
+
+		#[weight = 10_000]
+		fn freeze_country(origin, country_id: CountryId) -> DispatchResult {
+			ensure_root(origin)?;
+
+			FreezingCountries::insert(country_id, ());
+			Self::deposit_event(Event::CountryFreezed(country_id));
+
+			Ok(())
 		}
 	}
 }
