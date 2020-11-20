@@ -2,7 +2,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use country::CountryOwner;
+use country::{Countries, CountryOwner};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
@@ -17,7 +17,7 @@ use sp_std::vec::Vec;
 use unique_asset::AssetId;
 
 /// The module configuration trait.
-pub trait Trait: system::Trait {
+pub trait Trait: system::Trait + country::Trait {
 	/// The overarching event type.
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 	/// The arithmetic type of asset identifier.
@@ -106,8 +106,6 @@ decl_module! {
 		#[weight = 10_000]
 		fn mint_token(origin, ticker: Ticker, country_id: CountryId, total_supply: Balance) -> DispatchResult{
 			let who = ensure_signed(origin)?;
-			let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Country is not available")?;
-
 			//Check ownership
 			ensure!(<CountryOwner<T>>::contains_key(&country_id, &who), Error::<T>::NoPermissionTokenIssuance);
 
@@ -128,7 +126,6 @@ decl_module! {
 
 			Tokens::insert(currency_id, token_info);
 			CountryTokens::insert(country_id, currency_id);
-			//ONly for country owner
 
 			T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
 
