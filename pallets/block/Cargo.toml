@@ -42,6 +42,10 @@ package = 'pallet-unique-asset'
 path = '../uniqueAsset'
 version = '2.0.0-rc6'
 
+[dev-dependencies]
+sp-core = { version = "2.0.0", default-features = false }
+sp-io = { version = "2.0.0", default-features = false }
+
 [features]
 default = ['std']
 std = [

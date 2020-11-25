@@ -21,7 +21,7 @@ pub struct Block<Hash> {
 	country_id: Hash,
 }
 
-#[cfg(test)]
+mod mock;
 mod tests;
 
 pub trait Trait: system::Trait {

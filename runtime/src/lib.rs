@@ -465,7 +465,6 @@ impl unique_asset::Trait for Runtime {
 
 impl country::Trait for Runtime {
 	type Event = Event;
-	type RandomnessSource = RandomnessCollectiveFlip;
 }
 
 impl block::Trait for Runtime {
@@ -520,7 +519,7 @@ construct_runtime!(
 		BitCountryTreasury: pallet_treasury::{Module, Call, Storage, Config, Event<T>},
 
 		//BitCountry pallets
-		CountryModule: country::{Module, Call, Storage, Event},
+		CountryModule: country::{Module, Call, Storage, Event<T>},
 		BlockModule: block::{Module, Call, Storage, Event<T>},
 		SectionModule: section::{Module, Call, Storage, Event<T>},
 		AssetModule: unique_asset::{Module, Call ,Storage, Event<T>},
