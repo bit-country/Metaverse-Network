@@ -1,61 +1,106 @@
-use crate::{Module, Trait};
-use sp_core::H256;
-use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill,
-};
-use frame_system as system;
 
-impl_outer_origin! {
-	pub enum Origin for Test {}
-}
+// #![cfg(test)]
 
-// Configure a mock runtime to test the pallet.
+// use super::*;
+// use crate::{Module, Trait};
+// use sp_core::H256;
+// use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
+// use sp_runtime::{
+// 	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill,
+// };
 
-#[derive(Clone, Eq, PartialEq)]
-pub struct Test;
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: Weight = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
-}
+// pub type AccountId = u128;
+// pub type BlockNumber = u64;
 
-impl system::Trait for Test {
-	type BaseCallFilter = ();
-	type Origin = Origin;
-	type Call = ();
-	type Index = u64;
-	type BlockNumber = u64;
-	type Hash = H256;
-	type Hashing = BlakeTwo256;
-	type AccountId = u64;
-	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
-	type Event = ();
-	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
-	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = MaximumBlockWeight;
-	type MaximumBlockLength = MaximumBlockLength;
-	type AvailableBlockRatio = AvailableBlockRatio;
-	type Version = ();
-	type ModuleToIndex = ();
-	type AccountData = ();
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type SystemWeightInfo = ();
-}
+// pub const ALICE: AccountId = 1;
+// pub const BOB: AccountId = 2;
 
-impl Trait for Test {
-	type Event = ();
-}
+// use super::*;
+// use frame_system as system;
 
-pub type TemplateModule = Module<Test>;
 
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
-}
+// #[derive(Clone, Eq, PartialEq)]
+// pub struct Runtime;
+
+// mod block {
+// 	pub use super::super::*;
+// }
+
+// impl_outer_origin! {
+// 	pub enum Origin for Runtime {}
+// }
+
+// impl_outer_event! {
+// 	pub enum TestEvent for Runtime {
+// 		frame_system<T>,
+// 		block,
+// 	}
+// }
+
+
+// // Configure a mock runtime to test the pallet.
+
+// parameter_types! {
+// 	pub const BlockHashCount: u64 = 250;
+// 	pub const MaximumBlockWeight: u32 = 1024;
+// 	pub const MaximumBlockLength: u32 = 2 * 1024;
+// 	pub const AvailableBlockRatio: Perbill = Perbill::one();
+// }
+
+
+// impl frame_system::Trait for Runtime {
+// 	type Origin = Origin;
+// 	type Index = u64;
+// 	type BlockNumber = BlockNumber;
+// 	type Call = ();
+// 	type Hash = H256;
+// 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
+// 	type AccountId = AccountId;
+// 	type Lookup = IdentityLookup<Self::AccountId>;
+// 	type Header = Header;
+// 	type Event = TestEvent;
+// 	type BlockHashCount = BlockHashCount;
+// 	type MaximumBlockWeight = MaximumBlockWeight;
+// 	type MaximumBlockLength = MaximumBlockLength;
+// 	type AvailableBlockRatio = AvailableBlockRatio;
+// 	type Version = ();
+// 	type PalletInfo = ();
+// 	type AccountData = ();
+// 	type OnNewAccount = ();
+// 	type OnKilledAccount = ();
+// 	type DbWeight = ();
+// 	type BlockExecutionWeight = ();
+// 	type ExtrinsicBaseWeight = ();
+// 	type MaximumExtrinsicWeight = ();
+// 	type BaseCallFilter = ();
+// 	type SystemWeightInfo = ();
+// }
+
+// pub type System = frame_system::Module<Runtime>;
+
+// impl Trait for Runtime {
+// 	type Event = TestEvent;
+// }
+
+// pub type BlockModule = Module<Runtime>;
+
+
+// pub struct ExtBuilder();
+
+// impl Default for ExtBuilder {
+// 	fn default() -> Self {
+// 		ExtBuilder
+// 	}
+// }
+
+// impl ExtBuilder {
+// 	pub fn build(self) -> sp_io::TestExternalities {
+// 		let t = frame_system::GenesisConfig::default()
+// 			.build_storage::<Runtime>()
+// 			.unwrap();
+
+// 		let mut ext = sp_io::TestExternalities::new(t);
+// 		ext.execute_with(|| System::set_block_number(1));
+// 		ext
+// 	}
+// }
