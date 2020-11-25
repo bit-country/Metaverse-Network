@@ -33,11 +33,13 @@ pub struct Country<AccountId> {
 }
 
 #[cfg(test)]
+mod mock;
+
+#[cfg(test)]
 mod tests;
 
 pub trait Trait: system::Trait {
-	type Event: From<Event> + Into<<Self as system::Trait>::Event>;
-	type RandomnessSource: Randomness<H256>;
+	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
 decl_storage! {
@@ -57,20 +59,21 @@ decl_storage! {
 }
 
 decl_event!(
-	pub enum Event {
+	pub enum Event<T> where AccountId = <T as system::Trait>::AccountId {
 		NewCountryCreated(CountryId),
+		TransferredCountry(CountryId, AccountId, AccountId),
 		CountryFreezed(CountryId),
+		CountryDestroyed(CountryId),
+		CountryUnFreezed(CountryId),
 	}
 );
 
 decl_error! {
 	pub enum Error for Module<T: Trait> {
-		/// Attempted to initialize the country after it had already been initialized.
-		AlreadyInitialized,
-		//Asset Info not found
-		AssetInfoNotFound,
-		//Asset Id not found
-		AssetIdNotFound,
+		//Country Info not found
+		CountryInfoNotFound,
+		//Country Id not found
+		CountryIdNotFound,
 		//No permission
 		NoPermission,
 		//No available country id
@@ -98,7 +101,7 @@ decl_module! {
 
 			let new_total_country_count = total_country_count.checked_add(One::one()).ok_or("Overflow adding new count to total country")?;
 			AllCountriesCount::put(new_total_country_count);
-			Self::deposit_event(Event::NewCountryCreated(country_id.clone()));
+			Self::deposit_event(RawEvent::NewCountryCreated(country_id.clone()));
 
 			Ok(())
 		}
@@ -109,33 +112,68 @@ decl_module! {
 			let who = ensure_signed(origin)?;
 			// Get owner of the country
 			CountryOwner::<T>::try_mutate_exists(
-				&country_id, &who, |country_by_owner| -> DispatchResult{
+				&country_id, &who, |country_by_owner| -> DispatchResult {
 					//ensure there is record of the country owner with country id, account id and delete them
-					ensure!(country_by_owner.take().is_some(), Error::<T>::NoPermission);
+					ensure!(country_by_owner.is_some(), Error::<T>::NoPermission);
+
+					if who == to {
+						// no change needed
+						return Ok(());
+					}
+
+					*country_by_owner = None;
 					CountryOwner::<T>::insert(country_id.clone(),to.clone(), ());
 
-					Ok(())
-				}
-			);
+					Countries::<T>::try_mutate_exists(
+						&country_id,
+						|country| -> DispatchResult{
+							let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
+							country_record.owner = to.clone();
+							Self::deposit_event(RawEvent::TransferredCountry(country_id, who.clone(), to.clone()));
 
-			Countries::<T>::try_mutate_exists(
-				&country_id,
-				|country| -> DispatchResult{
-					let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
-					country_record.owner = to.clone();
-					Ok(())
-				}
-			)
+							Ok(())
+						}
+					)
+			})	
 		}
 
 		#[weight = 10_000]
 		fn freeze_country(origin, country_id: CountryId) -> DispatchResult {
+			//Only Council can free a country
 			ensure_root(origin)?;
 
 			FreezingCountries::insert(country_id, ());
-			Self::deposit_event(Event::CountryFreezed(country_id));
+			Self::deposit_event(RawEvent::CountryFreezed(country_id));
 
 			Ok(())
+		}
+
+		#[weight = 10_000]
+		fn unfreeze_country(origin, country_id: CountryId) -> DispatchResult {
+			//Only Council can free a country
+			ensure_root(origin)?;
+
+			FreezingCountries::try_mutate(country_id, |freeze_country| -> DispatchResult{
+				ensure!(freeze_country.take().is_some(), Error::<T>::CountryInfoNotFound);
+
+				Self::deposit_event(RawEvent::CountryUnFreezed(country_id));
+				Ok(())
+			})
+		}
+
+		#[weight = 10_000]
+		fn destroy_country(origin, country_id: CountryId) -> DispatchResult {
+			//Only Council can destroy a country
+			ensure_root(origin)?;
+
+			Countries::<T>::try_mutate(country_id, |country_info| -> DispatchResult{
+				let t = country_info.take().ok_or(Error::<T>::CountryInfoNotFound)?;
+				
+				CountryOwner::<T>::remove(&country_id, t.owner.clone());
+				Self::deposit_event(RawEvent::CountryDestroyed(country_id));
+
+				Ok(())
+			})
 		}
 	}
 }
