@@ -32,4 +32,4 @@ jobs:
     - name: Install Wasm toolchain
       run: rustup target add wasm32-unknown-unknown
     - name: Run tests
-      run: make test 
+      run: cargo test 
