@@ -10,11 +10,11 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
 use nft;
-use primitives::CountryId;
+use primitives::{CountryId, Balance};
 use sp_core::H256;
 use sp_runtime::{
 	print,
-	traits::{Hash, One},
+	traits::{AccountIdConversion, Zero, One, Hash},
 	DispatchError, ModuleId, RuntimeDebug,
 };
 use sp_std::vec::Vec;
@@ -32,6 +32,14 @@ pub struct Country<AccountId> {
 	pub token_address: AccountId,
 }
 
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+pub struct CountryFund<AccountId, Balance> {
+	pub vault: AccountId,
+	pub value: Balance,
+	pub backing: Balance,
+}
+
 #[cfg(test)]
 mod mock;
 
@@ -40,6 +48,7 @@ mod tests;
 
 pub trait Trait: system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+	type ModuleId: Get<ModuleId>;
 }
 
 decl_storage! {
@@ -49,7 +58,7 @@ decl_storage! {
 		pub Countries get(fn get_country): map hasher(twox_64_concat) CountryId => Option<Country<T::AccountId>>;
 		pub CountryOwner get(fn get_country_owner): double_map hasher(twox_64_concat) CountryId, hasher(twox_64_concat) T::AccountId => Option<()>;
 		pub AllCountriesCount get(fn all_countries_count): u64;
-		pub CountryFund get (fn get_country_treasury): map hasher(twox_64_concat) CountryId => Option<ModuleId>;
+		pub CountryTresury get (fn get_country_treasury): map hasher(twox_64_concat) CountryId => Option<CountryFund<T::AccountId, Balance>>;
 		pub FreezingCountries get (fn get_freezing_country): map hasher(twox_64_concat) CountryId => Option<()>;
 
 		Init get(fn is_init): bool;
@@ -92,8 +101,16 @@ decl_module! {
 
 			let country_id = Self::new_country(&owner, metadata)?;
 			//Static module fund, will change to dynamic with randomness
-			let module_id: ModuleId = ModuleId(*b"Country!");
-			CountryFund::insert(country_id, module_id);
+			// let module_id: ModuleId = ModuleId(*b"Country!");
+			let fund_id = T::ModuleId::get().into_sub_account(country_id);
+
+			//Country treasury
+			let country_fund = CountryFund {
+				vault: fund_id,
+				value: 0,
+				backing: 0, //0 BCG backing for now 
+			};
+			CountryTresury::<T>::insert(country_id, country_fund);
 
 			CountryOwner::<T>::insert(country_id, owner, ());
 
@@ -201,4 +218,12 @@ impl<T: Trait> Module<T> {
 
 		Ok(country_id)
 	}
+
+	// pub fn account_id() -> T::AccountId{
+	// 	T::ModuleId::get().into_account()
+	// }
+
+	// pub fn country_fund_account_id(id: CountryId) -> T::AccountId{
+	// 	T::ModuleId::get().into_sub_account(("cf",id))
+	// }
 }

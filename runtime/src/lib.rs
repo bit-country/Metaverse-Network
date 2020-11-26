@@ -235,7 +235,6 @@ impl pallet_grandpa::Trait for Runtime {
 // Module accounts of runtime
 parameter_types! {
 	pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
-	// pub const NftModuleId: ModuleId = ModuleId(*b"bcc/bNFT");
 }
 
 impl pallet_timestamp::Trait for Runtime {
@@ -394,6 +393,7 @@ parameter_types! {
 
 parameter_types! {
 	pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
+	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
 }
 
 impl pallet_treasury::Trait for Runtime {
@@ -465,6 +465,8 @@ impl unique_asset::Trait for Runtime {
 
 impl country::Trait for Runtime {
 	type Event = Event;
+	type ModuleId = CountryFundModuleId;
+
 }
 
 impl block::Trait for Runtime {
