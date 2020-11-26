@@ -9,7 +9,8 @@ use sp_core::{sr25519, Pair, H256};
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-    Perbill,
+	Perbill,
+	ModuleId
 };
 use primitives::CountryId;
 
@@ -84,8 +85,13 @@ impl frame_system::Trait for Runtime {
 
 pub type System = frame_system::Module<Runtime>;
 
+parameter_types! {
+	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+}
+
 impl Trait for Runtime {
 	type Event = TestEvent;
+	type ModuleId = CountryFundModuleId;
 }
 
 pub type CountryModule = Module<Runtime>;
