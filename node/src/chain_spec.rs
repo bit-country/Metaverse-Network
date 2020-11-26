@@ -169,6 +169,8 @@ fn testnet_genesis(
 				.map(|x| (x.1.clone(), 1))
 				.collect(),
 		}),
+		pallet_collective_Instance1: Some(Default::default()),
+		pallet_treasury: Some(Default::default()),
 		pallet_sudo: Some(SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
@@ -179,6 +181,9 @@ fn testnet_genesis(
 				..Default::default()
 			},
 		}),
+		// tokenization: Some(TokenConfig {
+		// 	init_token_id: 0
+		// })
 	}
 }
 

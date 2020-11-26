@@ -1,61 +1,126 @@
+
 use crate::{Module, Trait};
-use sp_core::H256;
-use frame_support::{impl_outer_origin, parameter_types, weights::Weight};
-use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup}, testing::Header, Perbill,
+use frame_support::{
+    impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
 };
 use frame_system as system;
+use frame_system::RawOrigin;
+use sp_core::{sr25519, Pair, H256};
+use sp_runtime::{
+    testing::Header,
+    traits::{BlakeTwo256, IdentityLookup},
+	Perbill,
+	ModuleId
+};
+use primitives::CountryId;
+
+pub type AccountId = u128;
+pub type BlockNumber = u64;
+
+pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
+pub const COUNTRY_ID: CountryId = 0;
+pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct Runtime;
+
+use crate as country;
 
 impl_outer_origin! {
-	pub enum Origin for Test {}
+	pub enum Origin for Runtime {}
 }
+
+impl_outer_event! {
+	pub enum TestEvent for Runtime {
+		frame_system<T>,
+		country<T>,
+	}
+}
+
+impl_outer_dispatch! {
+	pub enum Call for Runtime where origin: Origin {
+		frame_system::System,
+	}
+}
+
 
 // Configure a mock runtime to test the pallet.
 
-#[derive(Clone, Eq, PartialEq)]
-pub struct Test;
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: Weight = 1024;
+	pub const MaximumBlockWeight: u32 = 1024;
 	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::from_percent(75);
+	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
-impl system::Trait for Test {
-	type BaseCallFilter = ();
+
+impl frame_system::Trait for Runtime {
 	type Origin = Origin;
-	type Call = ();
 	type Index = u64;
-	type BlockNumber = u64;
+	type BlockNumber = BlockNumber;
+	type Call = Call;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
-	type AccountId = u64;
+	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = ();
+	type Event = TestEvent;
 	type BlockHashCount = BlockHashCount;
 	type MaximumBlockWeight = MaximumBlockWeight;
-	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = MaximumBlockWeight;
 	type MaximumBlockLength = MaximumBlockLength;
 	type AvailableBlockRatio = AvailableBlockRatio;
 	type Version = ();
-	type ModuleToIndex = ();
+	type PalletInfo = ();
 	type AccountData = ();
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
+	type DbWeight = ();
+	type BlockExecutionWeight = ();
+	type ExtrinsicBaseWeight = ();
+	type MaximumExtrinsicWeight = ();
+	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 }
 
-impl Trait for Test {
-	type Event = ();
+pub type System = frame_system::Module<Runtime>;
+
+parameter_types! {
+	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
 }
 
-pub type TemplateModule = Module<Test>;
+impl Trait for Runtime {
+	type Event = TestEvent;
+	type ModuleId = CountryFundModuleId;
+}
 
-// Build genesis storage according to the mock runtime.
-pub fn new_test_ext() -> sp_io::TestExternalities {
-	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+pub type CountryModule = Module<Runtime>;
+
+use frame_system::Call as SystemCall;
+
+pub struct ExtBuilder;
+
+impl Default for ExtBuilder {
+	fn default() -> Self {
+		ExtBuilder
+	}
+}
+
+impl ExtBuilder {
+	pub fn build(self) -> sp_io::TestExternalities {
+		let t = frame_system::GenesisConfig::default()
+			.build_storage::<Runtime>()
+			.unwrap();
+
+		let mut ext = sp_io::TestExternalities::new(t);
+		ext.execute_with(|| System::set_block_number(1));
+		ext
+	}
+}
+
+pub fn last_event() -> TestEvent {
+	frame_system::Module::<Runtime>::events()
+		.pop()
+		.expect("Event expected")
+		.event
 }

@@ -1,23 +1,59 @@
-use crate::{Error, mock::*};
-use frame_support::{assert_ok, assert_noop};
+//! Unit tests for the country module.
+use super::*;
+use mock::*;
+
+use frame_support::{assert_noop, assert_ok, dispatch};
+use sp_runtime::traits::BadOrigin;
+use sp_core::blake2_256;
 
 #[test]
-fn it_works_for_default_value() {
-	new_test_ext().execute_with(|| {
-		// Dispatch a signed extrinsic.
-		assert_ok!(TemplateModule::do_something(Origin::signed(1), 42));
-		// Read pallet storage and assert an expected result.
-		assert_eq!(TemplateModule::something(), Some(42));
+fn create_country_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(CountryModule::create_country(Origin::signed(ALICE), vec![1]));
+		assert_eq!(
+			CountryModule::get_country(&COUNTRY_ID),
+			Some(Country{
+				owner: ALICE,
+				metadata: vec![1],
+				token_address: Default::default()
+			})
+		);
+		let event = TestEvent::country(RawEvent::NewCountryCreated(COUNTRY_ID));
+		assert_eq!(last_event(), event);
 	});
 }
 
 #[test]
-fn correct_error_for_none_value() {
-	new_test_ext().execute_with(|| {
-		// Ensure the expected error is thrown when no value is present.
+fn create_country_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			TemplateModule::cause_error(Origin::signed(1)),
-			Error::<Test>::NoneValue
+			CountryModule::create_country(
+				Origin::none(),
+				vec![1],
+			),
+			dispatch::DispatchError::BadOrigin
 		);
 	});
+}
+
+#[test]
+fn transfer_country_should_work() {
+	ExtBuilder::default().build().execute_with( || {
+		assert_ok!(CountryModule::create_country(Origin::signed(ALICE), vec![1]));
+		assert_ok!(CountryModule::transfer_country(Origin::signed(ALICE), BOB, COUNTRY_ID));
+		let event = TestEvent::country(RawEvent::TransferredCountry(COUNTRY_ID, ALICE, BOB));
+		assert_eq!(last_event(), event);
+		//Make sure 2 ways transfer works
+		assert_ok!(CountryModule::transfer_country(Origin::signed(BOB), ALICE, COUNTRY_ID));
+		let event = TestEvent::country(RawEvent::TransferredCountry(COUNTRY_ID, BOB, ALICE));
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn transfer_country_should_fail() {
+	ExtBuilder::default().build().execute_with( || {
+		assert_ok!(CountryModule::create_country(Origin::signed(ALICE), vec![1]));
+		assert_noop!(CountryModule::transfer_country(Origin::signed(BOB), ALICE, COUNTRY_ID), Error::<Runtime>::NoPermission);
+	})
 }
