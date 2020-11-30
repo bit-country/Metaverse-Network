@@ -10,7 +10,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
 use nft;
-use primitives::{CountryId, Balance};
+use primitives::{CountryId, Balance, CurrencyId};
 use sp_core::H256;
 use sp_runtime::{
 	print,
@@ -29,7 +29,7 @@ pub struct CountryAssetData {
 pub struct Country<AccountId> {
 	pub owner: AccountId,
 	pub metadata: Vec<u8>,
-	pub token_address: AccountId,
+	pub currency_id: CurrencyId,
 }
 
 
@@ -38,6 +38,7 @@ pub struct CountryFund<AccountId, Balance> {
 	pub vault: AccountId,
 	pub value: Balance,
 	pub backing: Balance,
+	pub currency_id: CurrencyId
 }
 
 #[cfg(test)]
@@ -108,7 +109,8 @@ decl_module! {
 			let country_fund = CountryFund {
 				vault: fund_id,
 				value: 0,
-				backing: 0, //0 BCG backing for now 
+				backing: 0, //0 BCG backing for now,
+				currency_id: Default::default() 
 			};
 			CountryTresury::<T>::insert(country_id, country_fund);
 
@@ -210,7 +212,7 @@ impl<T: Trait> Module<T> {
 
 		let country_info = Country {
 			owner: owner.clone(),
-			token_address: Default::default(),
+			currency_id: Default::default(),
 			metadata,
 		};
 

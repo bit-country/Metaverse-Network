@@ -2,7 +2,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use country::{Countries, CountryOwner};
+use country::{Countries, CountryOwner, CountryTresury};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
@@ -64,6 +64,8 @@ decl_error! {
 		TokenAlreadyIssued,
 		/// No available next token id
 		NoAvailableTokenId,
+		//Country Is Not Available
+		CountryFundIsNotAvailable
 	}
 }
 
@@ -75,34 +77,6 @@ decl_module! {
 		/// Issue a new class of fungible assets for country. There are, and will only ever be, `total`
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
-		// #[weight = 0]
-		// fn issue(origin, country_id: AssetId, name: AssetName, ticker: Ticker ,#[compact] total: Balance) {
-		// 	let origin = ensure_signed(origin)?;
-		// 	//Check country ownership
-		// 	let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Not a country owner of this country")?;
-		// 	ensure!(country_owner == origin, Error::<T>::NoPermissionTokenIssuance);
-
-		// 	//Check if country already issued token
-		// 	let country_token = Self::get_country_token(country_id);
-		// 	ensure!(country_token.is_none(), Error::<T>::TokenAlreadyIssued);
-
-		// 	let id = Self::next_asset_id();
-		// 	<NextTokenId<T>>::mutate(|id| *id += One::one());
-
-		// 	<Balances<T>>::insert((&id, &origin), total);
-		// 	<TotalSupply<T>>::insert(&id, total);
-		// 	<CountryTokens<T>>::insert(country_id,&id);
-		// 	let new_token = Token{
-		// 		name: name,
-		// 		ticker: ticker,
-		// 		total_supply: total,
-		// 	};
-
-		// 	<Tokens<T>>::insert(&id, new_token);
-
-		// 	Self::deposit_event(RawEvent::Issued(id, origin, total, country_id));
-		// }
-
 		#[weight = 10_000]
 		fn mint_token(origin, ticker: Ticker, country_id: CountryId, total_supply: Balance) -> DispatchResult{
 			let who = ensure_signed(origin)?;
@@ -133,6 +107,19 @@ decl_module! {
 
 			Ok(())
 		}
+
+		#[weight = 10_000]
+		fn transfer(
+			origin,
+			dest: <T::Lookup as StaticLookup>::Source,
+			currency_id: CurrencyId,
+			#[compact] amount: Balance
+		) {
+
+			let from = ensure_signed(origin)?;
+			let to = T::Lookup::lookup(dest)?;
+			Self::transfer_from(currency_id, &from, &to, amount)?;
+		}
 	}
 }
 
@@ -140,14 +127,45 @@ decl_event! {
 	pub enum Event<T> where
 		<T as system::Trait>::AccountId,
 		Balance = Balance,
-		<T as Trait>::TokenId
+		CurrencyId = CurrencyId
 	{
 		/// Some assets were issued. \[asset_id, owner, total_supply\]
 		Issued(AccountId, Balance),
 		/// Some assets were transferred. \[asset_id, from, to, amount\]
-		Transferred(TokenId, AccountId, AccountId, Balance),
+		Transferred(CurrencyId, AccountId, AccountId, Balance),
 		/// Some assets were destroyed. \[asset_id, owner, balance\]
-		Destroyed(TokenId, AccountId, Balance),
+		Destroyed(CurrencyId, AccountId, Balance),
+	}
+}
+
+impl<T: Trait> Module<T> {
+
+	fn total_issuance(currency_id: CurrencyId) -> Balance {
+		T::CountryCurrency::total_issuance(currency_id)
+	}
+	
+	fn transfer_from(
+		currency_id: CurrencyId, 
+		from: &T::AccountId, 
+		to: &T::AccountId, 
+		amount: Balance) -> DispatchResult{
+
+		if amount.is_zero() || from == to {
+			return Ok(());
+		}
+		
+		T::CountryCurrency::transfer(currency_id, from, to, amount)?;
+
+		Self::deposit_event(RawEvent::Transferred(currency_id, from.clone(), to.clone(), amount));
+		Ok(())
+	}
+
+	pub fn get_total_issuance(country_id: CountryId) -> Result<Balance, DispatchError>{
+
+		let country_fund = <CountryTresury<T>>::get(country_id).ok_or(Error::<T>::CountryFundIsNotAvailable)?;
+		let total_issuance = T::CountryCurrency::total_issuance(country_fund.currency_id);
+
+		Ok((total_issuance))
 	}
 }
 
