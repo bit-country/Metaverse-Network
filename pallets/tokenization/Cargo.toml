@@ -42,6 +42,7 @@ orml-currencies = { default-features = false, version = '0.3.0' }
 orml-tokens = { default-features = false, version = '0.3.0' }
 
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+sp-io = { version = "2.0.0", default-features = false }
 
 [dependencies.country]
 default-features = false

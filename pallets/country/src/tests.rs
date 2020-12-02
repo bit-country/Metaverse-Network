@@ -15,7 +15,7 @@ fn create_country_should_work() {
 			Some(Country{
 				owner: ALICE,
 				metadata: vec![1],
-				token_address: Default::default()
+				currency_id: Default::default()
 			})
 		);
 		let event = TestEvent::country(RawEvent::NewCountryCreated(COUNTRY_ID));

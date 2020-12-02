@@ -37,6 +37,10 @@ sp-transaction-pool = { version = "2.0.0", default-features = false }
 sp-version = { version = "2.0.0", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 
+# Orml packages
+orml-traits = { default-features = false, version = '0.3.0' }
+orml-currencies = { default-features = false, version = '0.3.0' }
+orml-tokens = { default-features = false, version = '0.3.0' }
 
 [dependencies.unique-asset]
 default-features = false
@@ -64,6 +68,8 @@ std = [
     'frame-system/std',
     'sp-core/std',
     "sp-std/std",
+    "orml-traits/std",
+	"orml-tokens/std",
     'unique-asset/std',
     'nft/std',
     'primitives/std'

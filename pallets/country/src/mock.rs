@@ -1,4 +1,3 @@
-
 use crate::{Module, Trait};
 use frame_support::{
     impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
@@ -12,7 +11,7 @@ use sp_runtime::{
 	Perbill,
 	ModuleId
 };
-use primitives::CountryId;
+use primitives::{CountryId, CurrencyId};
 
 pub type AccountId = u128;
 pub type BlockNumber = u64;
@@ -21,6 +20,7 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const COUNTRY_ID: CountryId = 0;
 pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
+pub const BCG: CurrencyId = 0;
 
 #[derive(Clone, Eq, PartialEq)]
 pub struct Runtime;
