@@ -3,18 +3,24 @@
 
 use codec::{Decode, Encode};
 use country::{Countries, CountryOwner, CountryTresury};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter, traits::{Get, IsType, Randomness}};
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
 	MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
 use primitives::{Balance, CountryId, CurrencyId};
 use sp_runtime::{
-	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Hash, Member, One, StaticLookup, Zero},
-	DispatchError, DispatchResult,
+	traits::{AtLeast32Bit, AtLeast32BitUnsigned, Hash, Member, One, StaticLookup, Zero, AccountIdConversion},
+	DispatchError, DispatchResult, ModuleId
 };
 use sp_std::vec::Vec;
 use unique_asset::AssetId;
+
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
 
 /// The module configuration trait.
 pub trait Trait: system::Trait + country::Trait {
@@ -58,6 +64,8 @@ decl_error! {
 		BalanceLow,
 		/// Balance should be non-zero
 		BalanceZero,
+		///Insufficient balance
+		InsufficientBalance,
 		/// No permission to issue token
 		NoPermissionTokenIssuance,
 		/// Country Currency already issued for this country
@@ -167,19 +175,8 @@ impl<T: Trait> Module<T> {
 
 		Ok((total_issuance))
 	}
+
+	fn get_country_fund_id(country_id: CountryId) -> T::AccountId {
+		T::ModuleId::get().into_sub_account(country_id)
+	}
 }
-
-// // The main implementation block for the module.
-// impl<T: Trait> Module<T> {
-// 	// Public immutables
-
-// 	/// Get the asset `id` balance of `who`.
-// 	pub fn balance(id: T::TokenId, who: T::AccountId) -> Balance {
-// 		<Balances<T>>::get((id, who))
-// 	}
-
-// 	/// Get the total supply of an asset `id`.
-// 	pub fn total_supply(id: T::TokenId) -> Balance {
-// 		<TotalSupply<T>>::get(id)
-// 	}
-// }
