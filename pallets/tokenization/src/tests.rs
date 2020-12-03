@@ -1,4 +1,4 @@
-/ Unit testing for country currency, country treasury
+// Unit testing for country currency, country treasury
 use super::*;
 use mock::*;
 use frame_support::{assert_noop, assert_ok, dispatch};
