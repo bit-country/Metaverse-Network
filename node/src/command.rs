@@ -49,7 +49,8 @@ impl SubstrateCli for Cli {
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
 		Ok(match id {
 			"dev" => Box::new(chain_spec::development_config()?),
-			"" | "local" => Box::new(chain_spec::local_testnet_config()?), // default to running on testnet
+			"" | "local" => Box::new(chain_spec::local_testnet_config()?),
+			"test" => Box::new(chain_spec::tewai_testnet_config()?), // default to running on testnet
 			path => Box::new(chain_spec::ChainSpec::from_json_file(
 				std::path::PathBuf::from(path),
 			)?),

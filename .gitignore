@@ -16,3 +16,6 @@
 
 .vscode
 *.code-workspace
+data/
+testnetSpec.json
+testnetSpecRaw.json
