@@ -70,7 +70,7 @@ cargo build --release
 Purge any existing developer chain state:
 
 ```bash
-./target/release/subsocial-node purge-chain --dev
+./target/release/bitcountry-node purge-chain --dev
 ```
 
 Start a development chain with:
