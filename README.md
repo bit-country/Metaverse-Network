@@ -25,7 +25,6 @@ Development Note: It is still a WIP.
 - [2. Overview](#2-overview)
 - [3. Building](#3-building)
 - [4. Run](#4-run)
-- [5. Development](#5-development)
 
 <!-- /TOC -->
 
