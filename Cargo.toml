@@ -9,7 +9,7 @@ members = [
     'runtime',
 ]
 exclude = [
-    'luckydraw',
-    'airdrop',
-    'countrytoken'
+    '/dapps/luckydraw',
+    '/dapps/airdrop',
+    '/dapps/countrytoken'
 ]
