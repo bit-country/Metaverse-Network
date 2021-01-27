@@ -13,44 +13,97 @@ version = '0.0.1'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
+derive_more = '0.15.0'
+log = "0.4.13"
+codec = { package = 'parity-scale-codec', version = '1.0.0' }
 structopt = "0.3.8"
-hex-literal = "0.3.1"
-sc-cli = { version = "0.8.0", features = ["wasmtime"] }
-sp-core = "2.0.0"
-sc-executor = { version = "0.8.0", features = ["wasmtime"] }
-sc-service = { version = "0.8.0", features = ["wasmtime"] }
-sp-inherents = "2.0.0"
-sc-transaction-pool = "2.0.0"
-sp-transaction-pool = "2.0.0"
-sc-consensus-aura = "0.8.0"
-sp-consensus-aura = "0.8.0"
-sp-consensus = "0.8.0"
-sc-consensus = "0.8.0"
-sc-finality-grandpa = "0.8.0"
-sp-finality-grandpa = "2.0.0"
-sc-client-api = "2.0.0"
-sp-runtime = "2.0.0"
-pallet-contracts = "2.0.0"
+serde = { version = "1.0.101", features = ["derive"] }
+hex-literal = "0.2.1"
+# RPC related dependencies
+jsonrpc-core = "15.1.0"
 
-# These dependencies are used for the node's RPCs
-jsonrpc-core = "15.0.0"
-sc-rpc = "2.0.0"
-sp-api = "2.0.0"
-sc-rpc-api = "0.8.0"
-sp-blockchain = "2.0.0"
-sp-block-builder = "2.0.0"
-sc-basic-authorship = "0.8.0"
-substrate-frame-rpc-system = "2.0.0"
-pallet-transaction-payment-rpc = "2.0.0"
-pallet-contracts-rpc = "0.8.0"
-bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime" }
+# Polkadot dependencies
+polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
+polkadot-service = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
+polkadot-cli = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
+polkadot-test-service = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
+polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
+
+primitives = { package = "bit-country-primitives", path = "../pallets/primitives", default-features = false }
+pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1",default-features = false }
+# Substrate dependencies
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-consensus = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-session = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-consensus = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-cli = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-executor = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-service = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-telemetry = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-network = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-basic-authorship = { git = "https://github.com/paritytech/substrate", version = "0.8.0-rc5", branch = "rococo-v1" }
+sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-trie = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-chain-spec = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-rpc = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sc-rpc-api = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+
+sc-tracing = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
+
+
+# Cumulus dependencies
+[dependencies.cumulus-consensus]
+git = 'https://github.com/paritytech/cumulus.git'
+branch = "rococo-v1"
+
+[dependencies.cumulus-collator]
+git = 'https://github.com/paritytech/cumulus.git'
+branch = "rococo-v1"
+
+[dependencies.cumulus-network]
+git = 'https://github.com/paritytech/cumulus.git'
+branch = "rococo-v1"
+
+[dependencies.cumulus-primitives]
+git = 'https://github.com/paritytech/cumulus.git'
+branch = "rococo-v1"
+
+[dependencies.cumulus-service]
+git = 'https://github.com/paritytech/cumulus.git'
+branch = "rococo-v1"
+
+[dependencies.bitcountry-runtime]
+branch = "2.0.0-rc6"
+path = "../runtime"
 
 [[bin]]
 name = "bitcountry-node"
 path = "src/main.rs"
 
+[dev-dependencies]
+assert_cmd = "0.12"
+nix = "0.17"
+rand = "0.7.3"
+tokio = { version = "0.2.13", features = ["macros"] }
 
+# Polkadot dependencies
+polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
+polkadot-test-runtime = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
+polkadot-test-client = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
+polkadot-test-service = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
 
 [build-dependencies]
-substrate-build-script-utils = "2.0.0"
-
+substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }

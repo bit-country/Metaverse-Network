@@ -156,7 +156,7 @@ fn submit_number_signed_works() {
 	t.execute_with(|| {
 		// call submit_number_signed
 		let num = 32;
-		let acct: <TestRuntime as system::Trait>::AccountId = Default::default();
+		let acct: <TestRuntime as system::Config>::AccountId = Default::default();
 		assert_ok!(OcwDemo::submit_number_signed(
 			Origin::signed(acct),
 			num

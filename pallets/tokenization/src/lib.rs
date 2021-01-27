@@ -23,9 +23,9 @@ mod mock;
 mod tests;
 
 /// The module configuration trait.
-pub trait Trait: system::Trait + country::Trait {
+pub trait Trait: system::Config + country::Trait {
 	/// The overarching event type.
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
 	/// The arithmetic type of asset identifier.
 	type TokenId: Parameter + AtLeast32Bit + Default + Copy;
 	type CountryCurrency: MultiCurrencyExtended<
@@ -133,7 +133,7 @@ decl_module! {
 
 decl_event! {
 	pub enum Event<T> where
-		<T as system::Trait>::AccountId,
+		<T as system::Config>::AccountId,
 		Balance = Balance,
 		CurrencyId = CurrencyId
 	{

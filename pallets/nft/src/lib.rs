@@ -38,8 +38,8 @@ pub struct NftCollectionData<Balance> {
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: system::Trait + unique_asset::Trait {
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Trait: system::Config + unique_asset::Trait {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 	type RandomnessSource: Randomness<H256>;
 	/// Convert between NftCollectionData and unique_asset::Trait::CollectionData
 	type ConvertNftCollectionData: IsType<<Self as unique_asset::Trait>::CollectionData>
@@ -52,7 +52,7 @@ pub trait Trait: system::Trait + unique_asset::Trait {
 	type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 }
 
-type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Trait>::AccountId>>::Balance;
+type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Config>::AccountId>>::Balance;
 
 decl_storage! {
 	trait Store for Module<T: Trait> as Country {
@@ -69,7 +69,7 @@ decl_storage! {
 decl_event!(
 	pub enum Event<T>
 	where
-		AccountId = <T as system::Trait>::AccountId,
+		AccountId = <T as system::Config>::AccountId,
 		AssetId = AssetId,
 		CollectionId = CollectionId,
 	{

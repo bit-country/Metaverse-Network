@@ -7,6 +7,14 @@ use sp_runtime::{
     MultiSignature, RuntimeDebug,
 };
 
+pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+/// Opaque block header type.
+pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+/// Opaque block type.
+pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+/// Opaque block identifier type.
+pub type BlockId = generic::BlockId<Block>;
 /// An index to a block.
 pub type BlockNumber = u32;
 /// Alias to 512-bit hash when used in the context of a transaction signature on
@@ -25,3 +33,9 @@ pub type Balance = u128;
 pub type CountryId = u64;
 pub type Amount = i128;
 pub type CurrencyId = u32;
+
+/// A hash of some data used by the chain.
+pub type Hash = sp_core::H256;
+
+/// Digest item type.
+pub type DigestItem = generic::DigestItem<Hash>;

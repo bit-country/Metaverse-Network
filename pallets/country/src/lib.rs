@@ -47,8 +47,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+pub trait Trait: system::Config {
+	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
 	type ModuleId: Get<ModuleId>;
 }
 
@@ -69,7 +69,7 @@ decl_storage! {
 }
 
 decl_event!(
-	pub enum Event<T> where AccountId = <T as system::Trait>::AccountId {
+	pub enum Event<T> where AccountId = <T as system::Config>::AccountId {
 		NewCountryCreated(CountryId),
 		TransferredCountry(CountryId, AccountId, AccountId),
 		CountryFreezed(CountryId),
