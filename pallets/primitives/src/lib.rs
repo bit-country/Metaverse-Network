@@ -33,9 +33,14 @@ pub type Balance = u128;
 pub type CountryId = u64;
 pub type Amount = i128;
 pub type CurrencyId = u32;
-
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
-
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
+/// An instant or duration in time.
+pub type Moment = u64;
+/// Counter for the number of eras that have passed.
+pub type EraIndex = u32;
+/// Auction ID
+pub type AuctionId = u32;
+pub type Index = u32;

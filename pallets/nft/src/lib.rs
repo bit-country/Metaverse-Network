@@ -38,7 +38,7 @@ pub struct NftCollectionData<Balance> {
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: system::Config + unique_asset::Trait {
+pub trait Config: system::Config + unique_asset::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 	type RandomnessSource: Randomness<H256>;
 	/// Convert between NftCollectionData and unique_asset::Trait::CollectionData
@@ -52,10 +52,10 @@ pub trait Trait: system::Config + unique_asset::Trait {
 	type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 }
 
-type BalanceOf<T> = <<T as Trait>::Currency as Currency<<T as system::Config>::AccountId>>::Balance;
+type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as system::Config>::AccountId>>::Balance;
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Country {
+	trait Store for Module<T: Config> as Country {
 
 		pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) AssetId => Option<NftAssetData<T::AccountId>>;
 		pub NftOwner get(fn get_nft_owner): map hasher(blake2_128_concat) AssetId => T::AccountId;
@@ -81,7 +81,7 @@ decl_event!(
 );
 
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// Attempted to initialize the country after it had already been initialized.
 		AlreadyInitialized,
 		//Asset Info not found
@@ -94,7 +94,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 
 		fn deposit_event() = default;
 
@@ -106,7 +106,7 @@ decl_module! {
 			//Secure deposit of collection owner
 			let deposit = T::CreateCollectionDeposit::get();
 			//TODO Reserve the fund
-			<T as Trait>::Currency::reserve(&sender, deposit.clone())?;
+			<T as Config>::Currency::reserve(&sender, deposit.clone())?;
 			let collection_data = NftCollectionData { deposit, properties };
 			let collection_data = T::ConvertNftCollectionData::from(collection_data);
 			let collection_data = Into::<<T as unique_asset::Trait>::CollectionData>::into(collection_data);

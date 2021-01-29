@@ -5,8 +5,13 @@ use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::{ChainType, Properties};
 use serde::{Deserialize, Serialize};
 use sp_core::{sr25519, Pair, Public};
+use sp_core::{crypto::UncheckedInto};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use bitcountry_runtime::{WASM_BINARY,BalancesConfig,SystemConfig, SudoConfig};
+use sp_finality_grandpa::AuthorityId as GrandpaId;
+use sp_consensus_babe::AuthorityId as BabeId;
+use sp_runtime::{FixedPointNumber, FixedU128, Perbill};
+
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
@@ -47,98 +52,33 @@ where
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-// /// Generate an Aura authority key.
-// pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
-// 	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
-// }
-
-pub fn get_chain_spec(id: ParaId) -> ChainSpec {
-	ChainSpec::from_genesis(
-		"Local Testnet",
-		"local_testnet",
-		ChainType::Local,
-		move || {
-			testnet_genesis(
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-				],
-				id,
-			)
-		},
-		vec![],
-		None,
-		None,
-		None,
-		Extensions {
-			relay_chain: "westend-dev".into(),
-			para_id: id.into(),
-		},
+/// Generate an Aura authority key.
+pub fn authority_keys_from_seed(seed: &str) -> (AccountId, AccountId, GrandpaId, BabeId) {
+	(
+		get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", seed)),
+		get_account_id_from_seed::<sr25519::Public>(seed),
+		get_from_seed::<GrandpaId>(seed),
+		get_from_seed::<BabeId>(seed),
 	)
 }
 
-pub fn development_config(id: ParaId) -> ChainSpec {
-	ChainSpec::from_genesis(
-		// Name
-		"Bit.Country Dev Chain",
-		// ID
-		"bit-country-dev",
-		ChainType::Development,
-		move || {
-			testnet_genesis(
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-				],
-				id,
-			)
-		},
-		Vec::new(),
-		None,
-		None,
-		// Properties
-		Some(bitcountry_properties()),
-		Extensions {
-			relay_chain: "westend-dev".into(),
-			para_id: id.into(),
-		},
-	)
-}
+// pub fn development_config(id: ParaId) -> ChainSpec {
 
-// pub fn development_config(id: ParaId) -> Result<ChainSpec, String> {
-// 	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
+// 	let wasm_binary = bitcountry_runtime::WASM_BINARY.ok_or("Bit Country Tewai runtime wasm binary not available")?;
 
-// 	Ok(ChainSpec::from_genesis(
+// 	ChainSpec::from_genesis(
 // 		// Name
 // 		"Bit.Country Dev Chain",
 // 		// ID
-// 		"dev",
+// 		"bit-country-dev",
 // 		ChainType::Development,
 // 		move || {
 // 			testnet_genesis(
+// 				wasm_binary,
 // 				get_account_id_from_seed::<sr25519::Public>("Alice"),
+// 				vec![
+// 					get_account_id_from_seed::<sr25519::Public>("Alice"),
+// 				],
 // 				vec![
 // 					get_account_id_from_seed::<sr25519::Public>("Alice"),
 // 					get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -156,34 +96,35 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 // 				id,
 // 			)
 // 		},
-// 		// Bootnodes
-// 		vec![],
-// 		// Telemetry
+// 		Vec::new(),
 // 		None,
-// 		// Protocol ID
 // 		None,
 // 		// Properties
 // 		Some(bitcountry_properties()),
-// 		// Extensions
 // 		Extensions {
 // 			relay_chain: "westend-dev".into(),
 // 			para_id: id.into(),
 // 		},
-// 	))
+// 	)
 // }
 
-pub fn local_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
+pub fn development_config() -> Result<ChainSpec, String> {
+
 	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
 		// Name
-		"Bit.Country Test Chain",
+		"Bit.Country Dev Chain",
 		// ID
-		"local_testnet",
-		ChainType::Local,
+		"dev",
+		ChainType::Development,
 		move || {
 			testnet_genesis(
+				wasm_binary,
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				vec![
+					authority_keys_from_seed("Alice"),
+				],
 				vec![
 					get_account_id_from_seed::<sr25519::Public>("Alice"),
 					get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -198,7 +139,7 @@ pub fn local_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
 					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 				],
-				id,
+				200.into(),
 			)
 		},
 		// Bootnodes
@@ -211,8 +152,59 @@ pub fn local_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
 		Some(bitcountry_properties()),
 		// Extensions
 		Extensions {
-			relay_chain: "westend-dev".into(),
-			para_id: id.into(),
+			relay_chain: "rococo".into(),
+			para_id: 668_u32.into(),
+		},
+	))
+}
+
+pub fn local_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
+
+	let wasm_binary = WASM_BINARY.ok_or("Development wasm binary not available".to_string())?;
+
+	Ok(ChainSpec::from_genesis(
+		// Name
+		"Bit.Country Test Chain",
+		// ID
+		"local_testnet",
+		ChainType::Local,
+		move || {
+			testnet_genesis(
+				wasm_binary,
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				vec![
+					authority_keys_from_seed("Alice"),
+					authority_keys_from_seed("Bob"),
+				],
+				vec![
+					get_account_id_from_seed::<sr25519::Public>("Alice"),
+					get_account_id_from_seed::<sr25519::Public>("Bob"),
+					get_account_id_from_seed::<sr25519::Public>("Charlie"),
+					get_account_id_from_seed::<sr25519::Public>("Dave"),
+					get_account_id_from_seed::<sr25519::Public>("Eve"),
+					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+				],
+				200.into(),
+			)
+		},
+		// Bootnodes
+		vec![],
+		// Telemetry
+		None,
+		// Protocol ID
+		None,
+		// Properties
+		Some(bitcountry_properties()),
+		// Extensions
+		Extensions {
+			relay_chain: "rococo".into(),
+			para_id: 668_u32.into(),
 		},
 	))
 }
@@ -228,8 +220,24 @@ pub fn tewai_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
 		ChainType::Live,
 		move || {
 			testnet_genesis(
+				wasm_binary,
 				// Sudo account
 				hex!["788dddd00a4c5ce1575fe9c11dee9a781455b516ee424885d4b50c2f49862a35"].into(),
+				// initial authorities accounts
+				vec![
+					(
+						hex!["788dddd00a4c5ce1575fe9c11dee9a781455b516ee424885d4b50c2f49862a35"].into(),
+						hex!["788dddd00a4c5ce1575fe9c11dee9a781455b516ee424885d4b50c2f49862a35"].into(),
+						hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"].unchecked_into(),
+						hex!["a98dc317f536c7bcd0f3cd560d03c9a386dcaa1e49ffe5e39d2012b9dec2aa8a"].unchecked_into(),
+					),
+					(
+						hex!["788dddd00a4c5ce1575fe9c11dee9a781455b516ee424885d4b50c2f49862a35"].into(),
+						hex!["788dddd00a4c5ce1575fe9c11dee9a781455b516ee424885d4b50c2f49862a35"].into(),
+						hex!["301b411ee0106a9c1da1ed28f0b965d2ced9ac6fb9fc34896f5e461a050b0143"].unchecked_into(),
+						hex!["9d33e2db76dc283b0f180a60987cc3c2900eb4999a3818c3fdf8f2eeaea00df2"].unchecked_into(),
+					),
+				],
 				// Pre-funded accounts
 				vec![
 						/* Sudo Account */
@@ -254,12 +262,25 @@ pub fn tewai_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
 	))
 }
 
+fn tewai_session_keys(grandpa: GrandpaId, babe: BabeId) -> bitcountry_runtime::SessionKeys {
+	bitcountry_runtime::SessionKeys { grandpa, babe }
+}
+
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
+	wasm_binary: &[u8],
 	root_key: AccountId,
+	initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> bitcountry_runtime::GenesisConfig {
+	use bitcountry_runtime::{
+		StakerStatus,SessionConfig,StakingConfig,GrandpaConfig,DOLLARS,BabeConfig
+	};
+
+	const INITIAL_BALANCE: u128 = 1_000_000 * DOLLARS;
+	const INITIAL_STAKING: u128 = 100_000 * DOLLARS;
+
 	bitcountry_runtime::GenesisConfig {
 		frame_system: Some(bitcountry_runtime::SystemConfig {
 			code: bitcountry_runtime::WASM_BINARY
@@ -273,9 +294,28 @@ fn testnet_genesis(
 			balances: endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, 10u128.pow(18 + 9)))
+				.map(|k| (k, INITIAL_BALANCE))
 				.collect(),
 		}),
+		pallet_session: Some(SessionConfig {
+			keys: initial_authorities
+				.iter()
+				.map(|x| (x.0.clone(), x.0.clone(), tewai_session_keys(x.2.clone(), x.3.clone())))
+				.collect::<Vec<_>>(),
+		}),
+		pallet_staking: Some(StakingConfig {
+			validator_count: initial_authorities.len() as u32 * 2,
+			minimum_validator_count: initial_authorities.len() as u32,
+			stakers: initial_authorities
+				.iter()
+				.map(|x| (x.0.clone(), x.1.clone(), INITIAL_STAKING, StakerStatus::Validator))
+				.collect(),
+			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+			slash_reward_fraction: Perbill::from_percent(10),
+			..Default::default()
+		}),
+		pallet_grandpa: Some(GrandpaConfig { authorities: vec![] }),
+		pallet_babe: Some(BabeConfig { authorities: vec![] }),
 		// pallet_aura: Some(AuraConfig {
 		// 	authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
 		// }),
@@ -285,8 +325,8 @@ fn testnet_genesis(
 		// 		.map(|x| (x.1.clone(), 1))
 		// 		.collect(),
 		// }),
-		// pallet_collective_Instance1: Some(Default::default()),
-		// pallet_treasury: Some(Default::default()),
+		pallet_collective_Instance1: Some(Default::default()),
+		pallet_treasury: Some(Default::default()),
 		pallet_sudo: Some(SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
