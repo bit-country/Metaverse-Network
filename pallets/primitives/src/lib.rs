@@ -7,6 +7,14 @@ use sp_runtime::{
     MultiSignature, RuntimeDebug,
 };
 
+use sp_std::{
+    convert::{Into, TryFrom, TryInto},
+    prelude::*,
+};
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+
 pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
 /// Opaque block header type.
@@ -31,8 +39,10 @@ pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 pub type Balance = u128;
 /// Country Id
 pub type CountryId = u64;
+/// Country Currency Id
+pub type CountryCurrencyId = u64;
+
 pub type Amount = i128;
-pub type CurrencyId = u32;
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 /// Digest item type.
@@ -44,3 +54,121 @@ pub type EraIndex = u32;
 /// Auction ID
 pub type AuctionId = u32;
 pub type Index = u32;
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum TokenSymbol {
+    BCG = 0,
+    AUSD = 1,
+    ACA = 2,
+    DOT = 3,
+}
+
+impl TryFrom<u8> for TokenSymbol {
+    type Error = ();
+
+    fn try_from(v: u8) -> Result<Self, Self::Error> {
+        match v {
+            0 => Ok(TokenSymbol::BCG),
+            1 => Ok(TokenSymbol::AUSD),
+            2 => Ok(TokenSymbol::ACA),
+            3 => Ok(TokenSymbol::DOT),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum CurrencyId {
+    Token(TokenSymbol),
+    DEXShare(TokenSymbol, TokenSymbol),
+}
+
+impl CurrencyId {
+    pub fn is_token_currency_id(&self) -> bool {
+        matches!(self, CurrencyId::Token(_))
+    }
+
+    pub fn is_dex_share_currency_id(&self) -> bool {
+        matches!(self, CurrencyId::DEXShare(_, _))
+    }
+
+    pub fn split_dex_share_currency_id(&self) -> Option<(Self, Self)> {
+        match self {
+            CurrencyId::DEXShare(token_symbol_0, token_symbol_1) => Some((
+                CurrencyId::Token(*token_symbol_0),
+                CurrencyId::Token(*token_symbol_1),
+            )),
+            _ => None,
+        }
+    }
+
+    pub fn join_dex_share_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
+        match (currency_id_0, currency_id_1) {
+            (CurrencyId::Token(token_symbol_0), CurrencyId::Token(token_symbol_1)) => {
+                Some(CurrencyId::DEXShare(token_symbol_0, token_symbol_1))
+            }
+            _ => None,
+        }
+    }
+}
+
+impl TryFrom<Vec<u8>> for CurrencyId {
+    type Error = ();
+    fn try_from(v: Vec<u8>) -> Result<CurrencyId, ()> {
+        match v.as_slice() {
+            b"BCG" => Ok(CurrencyId::Token(TokenSymbol::BCG)),
+            b"AUSD" => Ok(CurrencyId::Token(TokenSymbol::AUSD)),
+            b"ACA" => Ok(CurrencyId::Token(TokenSymbol::ACA)),
+            b"DOT" => Ok(CurrencyId::Token(TokenSymbol::DOT)),
+            _ => Err(()),
+        }
+    }
+}
+
+/// Note the pre-deployed ERC20 contracts depend on `CurrencyId` implementation,
+/// and need to be updated if any change.
+impl TryFrom<[u8; 32]> for CurrencyId {
+    type Error = ();
+
+    fn try_from(v: [u8; 32]) -> Result<Self, Self::Error> {
+        if !v.starts_with(&[0u8; 29][..]) {
+            return Err(());
+        }
+
+        // token
+        if v[29] == 0 && v[31] == 0 {
+            return v[30].try_into().map(CurrencyId::Token);
+        }
+
+        // DEX share
+        if v[29] == 1 {
+            let left = v[30].try_into()?;
+            let right = v[31].try_into()?;
+            return Ok(CurrencyId::DEXShare(left, right));
+        }
+
+        Err(())
+    }
+}
+
+/// Note the pre-deployed ERC20 contracts depend on `CurrencyId` implementation,
+/// and need to be updated if any change.
+impl Into<[u8; 32]> for CurrencyId {
+    fn into(self) -> [u8; 32] {
+        let mut bytes = [0u8; 32];
+        match self {
+            CurrencyId::Token(token) => {
+                bytes[30] = token as u8;
+            }
+            CurrencyId::DEXShare(left, right) => {
+                bytes[29] = 1;
+                bytes[30] = left as u8;
+                bytes[31] = right as u8;
+            }
+            _ => {}
+        }
+        bytes
+    }
+}

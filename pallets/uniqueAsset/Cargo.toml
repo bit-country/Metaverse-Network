@@ -39,9 +39,9 @@ primitives = { package = "bit-country-primitives", path = "../primitives", defau
 
 
 # Orml packages
-orml-traits = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", version = '0.3.3-dev', branch = "sw/rococo-v1" }
-orml-currencies = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", version = '0.3.3-dev', branch = "sw/rococo-v1"}
-orml-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", version = '0.3.3-dev', branch = "sw/rococo-v1" }
+orml-traits = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", version = '0.4.0-dev', branch = "sw/rococo-v1" }
+orml-currencies = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", version = "0.4.0-dev", branch = "sw/rococo-v1" }
+orml-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", version = '0.4.0-dev', branch = "sw/rococo-v1" }
 
 [features]
 default = ['std']

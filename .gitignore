@@ -19,3 +19,9 @@
 data/
 testnetSpec.json
 testnetSpecRaw.json
+genesis-state
+genesis-wasm
+para-200-genesis
+para-200-wasm
+para-668-genesis
+para-668-wasm
