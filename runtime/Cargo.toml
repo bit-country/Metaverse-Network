@@ -89,7 +89,7 @@ orml-traits = { default-features = false, git = "https://github.com/open-web3-st
 orml-currencies = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "sw/rococo-v1" }
 orml-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "sw/rococo-v1"}
 orml-xtokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "sw/rococo-v1"}
-oracle = {version = "1.0.0", path = "../pallets/oracle", default_features= false}
+# oracle = {version = "1.0.0", path = "../pallets/oracle", default_features= false}
 
 [dependencies.unique-asset]
 default-features = false
@@ -207,7 +207,7 @@ std = [
     "pallet-contracts/std",
     "pallet-contracts-primitives/std",
     "pallet-contracts-rpc-runtime-api/std",
-    "oracle/std",
+    # "oracle/std",
 ]
 
 # When enabled, the runtime api will not be build.

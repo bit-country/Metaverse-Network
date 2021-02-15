@@ -5,7 +5,7 @@ description = 'A decentralised world powered by economy.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'bitcountry-node'
+name = 'bitcountry-parachain'
 repository = 'https://github.com/bit-country/Bit-Country-Blockchain/'
 version = '0.0.1'
 
@@ -93,7 +93,7 @@ branch = "2.0.0-rc6"
 path = "../runtime"
 
 [[bin]]
-name = "bitcountry-node"
+name = "bitcountry-parachain"
 path = "src/main.rs"
 
 [dev-dependencies]

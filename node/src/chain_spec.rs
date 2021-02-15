@@ -113,30 +113,44 @@ pub fn development_config() -> Result<ChainSpec, String> {
 
     Ok(ChainSpec::from_genesis(
         // Name
-        "Bit.Country Dev Chain",
+        "Bit.Country Tewai Chain",
         // ID
         "dev",
-        ChainType::Development,
+        ChainType::Live,
         move || {
             testnet_genesis(
                 wasm_binary,
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                vec![authority_keys_from_seed("Alice")],
+                // Sudo account
+                hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"].into(),
+                // initial authorities accounts
                 vec![
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+                    (
+                        hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"]
+                            .into(),
+                        hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"]
+                            .into(),
+                        hex!["20232c0f2f4d25e2a710c39eb8dc02aef9d22347e190c8d0fec32cc8b7164da8"]
+                            .unchecked_into(),
+                        hex!["4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"]
+                            .unchecked_into(),
+                    ),
+                    (
+                        hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"]
+                            .into(),
+                        hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"]
+                            .into(),
+                        hex!["301b411ee0106a9c1da1ed28f0b965d2ced9ac6fb9fc34896f5e461a050b0143"]
+                            .unchecked_into(),
+                        hex!["004a7071e8289209e72c7d757613b57c784b5633646e290a4ee8e75a6906661f"]
+                            .unchecked_into(),
+                    ),
                 ],
-                200.into(),
+                // Pre-funded accounts
+                vec![
+                    /* Sudo Account */
+                    hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"].into(),
+                ],
+                8888.into(),
             )
         },
         // Bootnodes
@@ -150,7 +164,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
         // Extensions
         Extensions {
             relay_chain: "rococo".into(),
-            para_id: 668_u32.into(),
+            para_id: 8888_u32.into(),
         },
     ))
 }
