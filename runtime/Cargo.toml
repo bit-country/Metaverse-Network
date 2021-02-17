@@ -2,12 +2,12 @@
 substrate-wasm-builder = { version = "3.0.0", package = "substrate-wasm-builder", git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 
 [package]
-authors = ['Substrate DevHub <https://github.com/substrate-developer-hub>']
+authors = ['Bit.Country Developers <https://github.com/bit-country>']
 edition = '2018'
-homepage = 'https://substrate.dev'
+homepage = 'https://bit.country'
 license = 'Unlicense'
 name = 'bitcountry-runtime'
-repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
+repository = 'https://github.com/bit-country/Bit-Country-Blockchain'
 version = '2.0.0-rc6'
 
 [package.metadata.docs.rs]
