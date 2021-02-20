@@ -879,3 +879,128 @@ decl_storage! {
         });
     }
 }
+
+decl_event!(
+    pub enum Event<T>
+    where
+        AccountId = AccountId<T>,
+        BlockNumber = BlockNumber<T>,
+        NativeCurrencyBalance = NativeCurrencyBalance<T>,
+        StakingCurrencyBalance = StakingCurrencyBalance<T>,
+    {
+        /// The era payout has been set; the first balance is the validator-payout; the second is
+        /// the remainder from the maximum amount of reward.
+        /// [era_index, validator_payout, remainder]
+        EraPayout(EraIndex, NativeCurrencyBalance, NativeCurrencyBalance),
+
+        /// The staker has been rewarded by this amount. [stash, amount]
+        Reward(AccountId, NativeCurrencyBalance),
+
+        /// One validator (and its nominators) has been slashed by the given amount.
+        /// [validator, amount, amount]
+        Slash(AccountId, NativeCurrencyBalance, StakingCurrencyBalance),
+        /// An old slashing report from a prior era was discarded because it could
+        /// not be processed. [session_index]
+        OldSlashingReportDiscarded(SessionIndex),
+
+        /// A new set of stakers was elected with the given [compute].
+        StakingElection(ElectionCompute),
+
+        /// A new solution for the upcoming election has been stored. [compute]
+        SolutionStored(ElectionCompute),
+
+        /// An account has bonded this amount. [amount, start, end]
+        ///
+        /// NOTE: This event is only emitted when funds are bonded via a dispatchable. Notably,
+        /// it will not be emitted for staking rewards when they are added to stake.
+        BondNativeCurrency(NativeCurrencyBalance, TsInMs, TsInMs),
+        /// An account has bonded this amount. [amount, start, end]
+        ///
+        /// NOTE: This event is only emitted when funds are bonded via a dispatchable. Notably,
+        /// it will not be emitted for staking rewards when they are added to stake.
+        BondStakingCurrency(StakingCurrencyBalance),
+
+        /// An account has unbonded this amount. [amount, now]
+        UnbondNativeCurrency(NativeCurrencyBalance, BlockNumber),
+        /// An account has unbonded this amount. [amount, now]
+        UnbondStakingCurrency(StakingCurrencyBalance, BlockNumber),
+
+        /// Someone claimed his deposits. [stash]
+        DepositsClaimed(AccountId),
+        /// Someone claimed his deposits with some *Staking currency*s punishment. [stash, forfeit]
+        DepositsClaimedWithPunish(AccountId, StakingCurrencyBalance),
+    }
+);
+
+decl_error! {
+    /// Error for the staking module.
+    pub enum Error for Module<T: Trait> {
+        /// Not a controller account.
+        NotController,
+        /// Not a stash account.
+        NotStash,
+        /// Stash is already bonded.
+        AlreadyBonded,
+        /// Controller is already paired.
+        AlreadyPaired,
+        /// Targets cannot be empty.
+        EmptyTargets,
+        /// Duplicate index.
+        DuplicateIndex,
+        /// Slash record index out of bounds.
+        InvalidSlashIndex,
+        /// Can not bond with value less than minimum balance.
+        InsufficientValue,
+        /// Can not schedule more unlock chunks.
+        NoMoreChunks,
+        /// Can not rebond without unlocking chunks.
+        NoUnlockChunk,
+        /// Attempting to target a stash that still has funds.
+        FundedTarget,
+        /// Invalid era to reward.
+        InvalidEraToReward,
+        /// Invalid number of nominations.
+        InvalidNumberOfNominations,
+        /// Items are not sorted and unique.
+        NotSortedAndUnique,
+        /// Rewards for this era have already been claimed for this validator.
+        AlreadyClaimed,
+        /// The submitted result is received out of the open window.
+        OffchainElectionEarlySubmission,
+        /// The submitted result is not as good as the one stored on chain.
+        OffchainElectionWeakSubmission,
+        /// The snapshot data of the current window is missing.
+        SnapshotUnavailable,
+        /// Incorrect number of winners were presented.
+        OffchainElectionBogusWinnerCount,
+        /// One of the submitted winners is not an active candidate on chain (index is out of range
+        /// in snapshot).
+        OffchainElectionBogusWinner,
+        /// Error while building the assignment type from the compact. This can happen if an index
+        /// is invalid, or if the weights _overflow_.
+        OffchainElectionBogusCompact,
+        /// One of the submitted nominators is not an active nominator on chain.
+        OffchainElectionBogusNominator,
+        /// One of the submitted nominators has an edge to which they have not voted on chain.
+        OffchainElectionBogusNomination,
+        /// One of the submitted nominators has an edge which is submitted before the last non-zero
+        /// slash of the target.
+        OffchainElectionSlashedNomination,
+        /// A self vote must only be originated from a validator to ONLY themselves.
+        OffchainElectionBogusSelfVote,
+        /// The submitted result has unknown edges that are not among the presented winners.
+        OffchainElectionBogusEdge,
+        /// The claimed score does not match with the one computed from the data.
+        OffchainElectionBogusScore,
+        /// The election size is invalid.
+        OffchainElectionBogusElectionSize,
+        /// The call is not allowed at the given time due to restrictions of election period.
+        CallNotAllowed,
+        /// Incorrect previous history depth input provided.
+        IncorrectHistoryDepth,
+        /// Incorrect number of slashing spans provided.
+        IncorrectSlashingSpans,
+        /// Payout - INSUFFICIENT
+        PayoutIns,
+    }
+}
