@@ -10,7 +10,11 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
-    MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+    account::MergeAccount,
+    arithmetic::{Signed, SimpleArithmetic},
+    BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
+    BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
+    MultiLockableCurrency, MultiReservableCurrency,
 };
 use primitives::{Balance, CountryCurrencyId, CountryId, CurrencyId, TokenSymbol};
 use sp_runtime::{
@@ -29,12 +33,20 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+type CurrencyIdOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<
+    <T as frame_system::Config>::AccountId,
+>>::CurrencyId;
+
 /// The module configuration trait.
-pub trait Trait: system::Config + country::Trait {
+pub trait Config: system::Config + country::Trait {
     /// The overarching event type.
     type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
     /// The arithmetic type of asset identifier.
     type TokenId: Parameter + AtLeast32Bit + Default + Copy;
+    type MultiCurrency: MergeAccount<Self::AccountId>
+        + MultiCurrencyExtended<Self::AccountId, CurrencyId = CurrencyId>
+        + MultiLockableCurrency<Self::AccountId, CurrencyId = CurrencyId>
+        + MultiReservableCurrency<Self::AccountId, CurrencyId = CurrencyId>;
     type CountryCurrency: MultiCurrencyExtended<
         Self::AccountId,
         CurrencyId = CurrencyId,
@@ -53,7 +65,7 @@ pub struct Token<Balance> {
 }
 
 decl_storage! {
-    trait Store for Module<T: Trait> as Assets {
+    trait Store for Module<T: Config> as CountryTokens {
         CountryTokens get(fn get_country_token): map hasher(blake2_128_concat) CountryId => Option<CountryCurrencyId>;
         /// The next asset identifier up for grabs.
         NextTokenId get(fn next_token_id): CountryCurrencyId;
@@ -64,7 +76,7 @@ decl_storage! {
 }
 
 decl_error! {
-    pub enum Error for Module<T: Trait> {
+    pub enum Error for Module<T: Config> {
         /// Transfer amount should be non-zero
         AmountZero,
         /// Account balance must be greater than or equal to the transfer amount
@@ -85,7 +97,7 @@ decl_error! {
 }
 
 decl_module! {
-    pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+    pub struct Module<T: Config> for enum Call where origin: T::Origin {
         type Error = Error<T>;
 
         fn deposit_event() = default;
@@ -129,7 +141,7 @@ decl_module! {
         fn transfer(
             origin,
             dest: <T::Lookup as StaticLookup>::Source,
-            currency_id: CurrencyId,
+            currency_id: CurrencyIdOf<T>,
             #[compact] amount: Balance
         ) {
 
@@ -155,13 +167,13 @@ decl_event! {
     }
 }
 
-impl<T: Trait> Module<T> {
-    fn total_issuance(currency_id: CurrencyId) -> Balance {
+impl<T: Config> Module<T> {
+    fn total_issuance(currency_id: CurrencyIdOf<T>) -> Balance {
         T::CountryCurrency::total_issuance(currency_id)
     }
 
     fn transfer_from(
-        currency_id: CurrencyId,
+        currency_id: CurrencyIdOf<T>,
         from: &T::AccountId,
         to: &T::AccountId,
         amount: Balance,

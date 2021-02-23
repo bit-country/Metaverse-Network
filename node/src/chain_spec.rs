@@ -1,5 +1,5 @@
 use bitcountry_runtime::{BalancesConfig, SudoConfig, SystemConfig, WASM_BINARY};
-use cumulus_primitives::ParaId;
+use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
 use primitives::{AccountId, Signature};
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -280,9 +280,9 @@ pub fn tewai_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
     ))
 }
 
-fn tewai_session_keys(grandpa: GrandpaId, babe: BabeId) -> bitcountry_runtime::SessionKeys {
-    bitcountry_runtime::SessionKeys { grandpa, babe }
-}
+// fn tewai_session_keys(grandpa: GrandpaId, babe: BabeId) -> bitcountry_runtime::SessionKeys {
+//     bitcountry_runtime::SessionKeys { grandpa, babe }
+// }
 
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
@@ -292,9 +292,7 @@ fn testnet_genesis(
     endowed_accounts: Vec<AccountId>,
     id: ParaId,
 ) -> bitcountry_runtime::GenesisConfig {
-    use bitcountry_runtime::{
-        BabeConfig, GrandpaConfig, SessionConfig, StakerStatus, StakingConfig, DOLLARS,
-    };
+    use bitcountry_runtime::{StakerStatus, DOLLARS};
 
     const INITIAL_BALANCE: u128 = 1_000_000 * DOLLARS;
     const INITIAL_STAKING: u128 = 100_000 * DOLLARS;
@@ -315,42 +313,42 @@ fn testnet_genesis(
                 .map(|k| (k, INITIAL_BALANCE))
                 .collect(),
         }),
-        pallet_session: Some(SessionConfig {
-            keys: initial_authorities
-                .iter()
-                .map(|x| {
-                    (
-                        x.0.clone(),
-                        x.0.clone(),
-                        tewai_session_keys(x.2.clone(), x.3.clone()),
-                    )
-                })
-                .collect::<Vec<_>>(),
-        }),
-        pallet_staking: Some(StakingConfig {
-            validator_count: initial_authorities.len() as u32 * 2,
-            minimum_validator_count: initial_authorities.len() as u32,
-            stakers: initial_authorities
-                .iter()
-                .map(|x| {
-                    (
-                        x.0.clone(),
-                        x.1.clone(),
-                        INITIAL_STAKING,
-                        StakerStatus::Validator,
-                    )
-                })
-                .collect(),
-            invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
-            slash_reward_fraction: Perbill::from_percent(10),
-            ..Default::default()
-        }),
-        pallet_grandpa: Some(GrandpaConfig {
-            authorities: vec![],
-        }),
-        pallet_babe: Some(BabeConfig {
-            authorities: vec![],
-        }),
+        // pallet_session: Some(SessionConfig {
+        //     keys: initial_authorities
+        //         .iter()
+        //         .map(|x| {
+        //             (
+        //                 x.0.clone(),
+        //                 x.0.clone(),
+        //                 tewai_session_keys(x.2.clone(), x.3.clone()),
+        //             )
+        //         })
+        //         .collect::<Vec<_>>(),
+        // }),
+        // pallet_staking: Some(StakingConfig {
+        //     validator_count: initial_authorities.len() as u32 * 2,
+        //     minimum_validator_count: initial_authorities.len() as u32,
+        //     stakers: initial_authorities
+        //         .iter()
+        //         .map(|x| {
+        //             (
+        //                 x.0.clone(),
+        //                 x.1.clone(),
+        //                 INITIAL_STAKING,
+        //                 StakerStatus::Validator,
+        //             )
+        //         })
+        //         .collect(),
+        //     invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+        //     slash_reward_fraction: Perbill::from_percent(10),
+        //     ..Default::default()
+        // }),
+        // pallet_grandpa: Some(GrandpaConfig {
+        //     authorities: vec![],
+        // }),
+        // pallet_babe: Some(BabeConfig {
+        //     authorities: vec![],
+        // }),
         // pallet_aura: Some(AuraConfig {
         // 	authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
         // }),
