@@ -10,7 +10,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
 use nft;
-use primitives::{Balance, CountryId, CurrencyId, TokenSymbol};
+use primitives::{Balance, CountryCurrencyId, CountryId, CurrencyId, TokenSymbol};
 use sp_core::H256;
 use sp_runtime::{
     print,

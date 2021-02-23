@@ -5,7 +5,7 @@ description = 'A decentralised world powered by economy.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'bitcountry-node'
+name = 'bitcountry-parachain'
 repository = 'https://github.com/bit-country/Bit-Country-Blockchain/'
 version = '0.0.1'
 
@@ -15,7 +15,7 @@ targets = ['x86_64-unknown-linux-gnu']
 [dependencies]
 derive_more = '0.15.0'
 log = "0.4.13"
-codec = { package = 'parity-scale-codec', version = '1.0.0' }
+codec = { package = 'parity-scale-codec', version = '2.0.0' }
 structopt = "0.3.8"
 serde = { version = "1.0.101", features = ["derive"] }
 hex-literal = "0.2.1"
@@ -33,7 +33,6 @@ primitives = { package = "bit-country-primitives", path = "../pallets/primitives
 pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1",default-features = false }
 # Substrate dependencies
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-api = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
@@ -50,7 +49,7 @@ sc-telemetry = { git = "https://github.com/paritytech/substrate", branch = "roco
 sc-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sc-network = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
-sc-basic-authorship = { git = "https://github.com/paritytech/substrate", version = "0.8.0-rc5", branch = "rococo-v1" }
+sc-basic-authorship = { git = "https://github.com/paritytech/substrate", version = "0.9.0", branch = "rococo-v1" }
 sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-blockchain = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
 sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
@@ -68,32 +67,15 @@ sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "rococ
 
 
 # Cumulus dependencies
-[dependencies.cumulus-consensus]
-git = 'https://github.com/paritytech/cumulus.git'
-branch = "rococo-v1"
-
-[dependencies.cumulus-collator]
-git = 'https://github.com/paritytech/cumulus.git'
-branch = "rococo-v1"
-
-[dependencies.cumulus-network]
-git = 'https://github.com/paritytech/cumulus.git'
-branch = "rococo-v1"
-
-[dependencies.cumulus-primitives]
-git = 'https://github.com/paritytech/cumulus.git'
-branch = "rococo-v1"
-
-[dependencies.cumulus-service]
-git = 'https://github.com/paritytech/cumulus.git'
-branch = "rococo-v1"
-
-[dependencies.bitcountry-runtime]
-branch = "2.0.0-rc6"
-path = "../runtime"
+cumulus-client-consensus-relay-chain = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+cumulus-client-collator = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+cumulus-client-service = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+cumulus-client-network = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+bitcountry-runtime = { path = "../runtime" }
 
 [[bin]]
-name = "bitcountry-node"
+name = "bitcountry-parachain"
 path = "src/main.rs"
 
 [dev-dependencies]
