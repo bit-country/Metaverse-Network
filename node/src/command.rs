@@ -39,13 +39,34 @@ fn load_spec(
 	id: &str,
 	para_id: ParaId,
 ) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-	match id {
-		"dev" => Ok(Box::new(chain_spec::development_config(para_id))),
-		"" => Ok(Box::new(chain_spec::get_chain_spec(para_id))),
-		path => Ok(Box::new(chain_spec::ChainSpec::from_json_file(
-			path.into(),
-		)?)),
-	}
+	Ok(match id {
+		"dev" => Box::new(chain_spec::development_config()?),
+		"" => Box::new(chain_spec::local_testnet_config(para_id)?),
+		"collator" => Box::new(chain_spec::tewai_testnet_config(para_id)?),
+		path => {
+			let path = std::path::PathBuf::from(path);
+
+				let starts_with = |prefix: &str| {
+					path.file_name()
+						.map(|f| f.to_str().map(|s| s.starts_with(&prefix)))
+						.flatten()
+						.unwrap_or(false)
+				};
+
+				if starts_with("tewai") {
+					#[cfg(feature = "with-tewai-runtime")]
+					{
+						Box::new(chain_spec::ChainSpec::from_json_file(path)?)
+					}
+
+					#[cfg(not(feature = "with-tewai-runtime"))]
+					return Err("Tewai runtime is not available".into());
+				}
+				else{
+					Box::new(chain_spec::development_config()?)
+				}	
+		}
+	})
 }
 
 impl SubstrateCli for Cli {

@@ -24,8 +24,12 @@ genesis-wasm
 para-200-genesis
 para-200-wasm
 para-668-genesis
+para-668-wasm
 para-668-new-genesis
 para-668-new-wasm
-para-668-wasm
 para-8888-genesis
 para-8888-wasm
+customType.json
+para-8888--new-genesis
+para-8888-new-wasm
+para-8888-new.wasm
