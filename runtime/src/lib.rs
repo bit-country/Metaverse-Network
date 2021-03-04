@@ -46,25 +46,11 @@ use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_session::historical as pallet_session_historical;
 
-use cumulus_primitives_core::{relay_chain::Balance as RelayChainBalance, ParaId};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 
 // XCM imports
 use frame_system::limits::{BlockLength, BlockWeights};
-use polkadot_parachain::primitives::Sibling;
-use xcm::v0::{Junction, MultiLocation, NetworkId};
-use xcm_adapter::{
-    CurrencyIdConverter, IsConcreteWithGeneralKey, MultiCurrencyAdapter, NativePalletAssetOr,
-};
-use xcm_builder::{
-    AccountId32Aliases, ChildParachainConvertsVia, CurrencyAdapter, LocationInverter,
-    ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
-    SignedAccountId32AsNative, SovereignSignedViaLocation,
-};
-use xcm_executor::{
-    traits::{IsConcrete, NativeAsset},
-    Config, XcmExecutor,
-};
+
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime, parameter_types,
@@ -91,21 +77,23 @@ mod constants;
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core data structures.
-// pub mod opaque {
-//     use super::*;
+pub mod opaque {
+    use super::*;
 
-//     pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+    pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
-//     /// Opaque block type.
-//     pub type Block = generic::Block<Header, UncheckedExtrinsic>;
-
-//     pub type SessionHandlers = ();
-// }
+    /// Opaque block header type.
+    pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+    /// Opaque block type.
+    pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+    /// Opaque block identifier type.
+    pub type BlockId = generic::BlockId<Block>;
+}
 
 impl_opaque_keys! {
     pub struct SessionKeys {
-        pub grandpa: Grandpa,
         pub babe: Babe,
+        pub grandpa: Grandpa,
     }
 }
 
@@ -138,12 +126,6 @@ pub const DAYS: BlockNumber = HOURS * 24;
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
 pub const BCGS: Balance = CENTS;
-
-#[derive(codec::Encode, codec::Decode)]
-pub enum XCMPMessage<XAccountId, XBalance> {
-    /// Transfer tokens to the given account from the Parachain account.
-    TransferToken(XAccountId, XBalance),
-}
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -243,6 +225,8 @@ impl frame_system::Config for Runtime {
 parameter_types! {
     pub const EpochDuration: u64 = EPOCH_DURATION_IN_SLOTS;
     pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
+    pub const ReportLongevity: u64 =
+        BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * EpochDuration::get();
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
@@ -266,7 +250,8 @@ impl pallet_babe::Config for Runtime {
         KeyTypeId,
         pallet_babe::AuthorityId,
     )>>::IdentificationTuple;
-    type HandleEquivocation = pallet_babe::EquivocationHandler<Self::KeyOwnerIdentification, ()>; // Offences
+    type HandleEquivocation =
+        pallet_babe::EquivocationHandler<Self::KeyOwnerIdentification, (), ReportLongevity>; // Offences
     type WeightInfo = ();
 }
 
@@ -284,7 +269,8 @@ impl pallet_grandpa::Config for Runtime {
         GrandpaId,
     )>>::IdentificationTuple;
 
-    type HandleEquivocation = pallet_grandpa::EquivocationHandler<Self::KeyOwnerIdentification, ()>; // Offences
+    type HandleEquivocation =
+        pallet_grandpa::EquivocationHandler<Self::KeyOwnerIdentification, (), ReportLongevity>; // Offences
 
     type WeightInfo = ();
 }
@@ -617,114 +603,6 @@ impl pallet_staking::Config for Runtime {
     type OffchainSolutionWeightLimit = ();
 }
 
-impl cumulus_parachain_system::Config for Runtime {
-    type Event = Event;
-    type OnValidationData = ();
-    type SelfParaId = parachain_info::Module<Runtime>;
-    type DownwardMessageHandlers = XcmHandler;
-    type HrmpMessageHandlers = XcmHandler;
-}
-
-impl parachain_info::Config for Runtime {}
-
-// parameter_types! {
-//     pub const RococoLocation: MultiLocation = MultiLocation::X1(Junction::Parent);
-//     pub const RococoNetwork: NetworkId = NetworkId::Polkadot;
-//     pub RelayChainOrigin: Origin = xcm_handler::Origin::Relay.into();
-//     pub Ancestry: MultiLocation = Junction::Parachain {
-//         id: ParachainInfo::parachain_id().into()
-//     }.into();
-// }
-
-parameter_types! {
-    pub const PolkadotNetworkId: NetworkId = NetworkId::Polkadot;
-}
-
-pub struct AccountId32Convert;
-impl Convert<AccountId, [u8; 32]> for AccountId32Convert {
-    fn convert(account_id: AccountId) -> [u8; 32] {
-        account_id.into()
-    }
-}
-
-parameter_types! {
-    pub BitCountryNetwork: NetworkId = NetworkId::Named("bitcountry".into());
-    pub RelayChainOrigin: Origin = xcm_handler::Origin::Relay.into();
-    pub Ancestry: MultiLocation = MultiLocation::X1(Junction::Parachain {
-        id: ParachainInfo::parachain_id().into(),
-    });
-    pub const RelayChainCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
-}
-
-pub type LocationConverter = (
-    ParentIsDefault<AccountId>,
-    SiblingParachainConvertsVia<Sibling, AccountId>,
-    ChildParachainConvertsVia<ParaId, AccountId>,
-    AccountId32Aliases<BitCountryNetwork, AccountId>,
-);
-
-pub type LocalAssetTransactor = MultiCurrencyAdapter<
-    Currencies,
-    IsConcreteWithGeneralKey<CurrencyId, RelayToNative>,
-    LocationConverter,
-    AccountId,
-    CurrencyIdConverter<CurrencyId, RelayChainCurrencyId>,
-    CurrencyId,
->;
-
-pub type LocalOriginConverter = (
-    SovereignSignedViaLocation<LocationConverter, Origin>,
-    RelayChainAsNative<RelayChainOrigin, Origin>,
-    SiblingParachainAsNative<xcm_handler::Origin, Origin>,
-    SignedAccountId32AsNative<BitCountryNetwork, Origin>,
-);
-
-parameter_types! {
-    pub NativeOrmlTokens: BTreeSet<(Vec<u8>, MultiLocation)> = {
-        let mut t = BTreeSet::new();
-        //TODO: might need to add other assets based on orml-tokens
-        t.insert(("ACA".into(), MultiLocation::X1(Junction::Parachain { id: 666 })));
-        t
-    };
-}
-
-pub struct XcmConfig;
-impl Config for XcmConfig {
-    type Call = Call;
-    type XcmSender = XcmHandler;
-    type AssetTransactor = LocalAssetTransactor;
-    type OriginConverter = LocalOriginConverter;
-    //TODO: might need to add other assets based on orml-tokens
-    type IsReserve = NativePalletAssetOr<NativeOrmlTokens>;
-    type IsTeleporter = ();
-    type LocationInverter = LocationInverter<Ancestry>;
-}
-
-impl xcm_handler::Config for Runtime {
-    type Event = Event;
-    type XcmExecutor = XcmExecutor<XcmConfig>;
-    type UpwardMessageSender = ParachainSystem;
-    type HrmpMessageSender = ParachainSystem;
-}
-
-pub struct RelayToNative;
-impl Convert<RelayChainBalance, Balance> for RelayToNative {
-    fn convert(val: u128) -> Balance {
-        // native is 18
-        // relay is 12
-        val * 1_000_000
-    }
-}
-
-pub struct NativeToRelay;
-impl Convert<Balance, RelayChainBalance> for NativeToRelay {
-    fn convert(val: u128) -> Balance {
-        // native is 18
-        // relay is 12
-        val / 1_000_000
-    }
-}
-
 construct_runtime! {
     pub enum Runtime where
         Block = Block,
@@ -935,5 +813,3 @@ impl_runtime_apis! {
         }
     }
 }
-
-cumulus_pallet_parachain_system::register_validate_block!(Block, Executive);

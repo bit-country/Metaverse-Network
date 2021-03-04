@@ -118,7 +118,7 @@ decl_module! {
             Tokens::insert(currency_id, token_info);
             CountryTokens::insert(country_id, currency_id);
 
-            T::CountryCurrency::deposit(native_currency, &who, total_supply)?;
+            T::CountryCurrency::deposit(native_currency, &who, total_supply);
 
             Self::deposit_event(RawEvent::Issued(who, total_supply));
 
@@ -170,7 +170,7 @@ impl<T: Trait> Module<T> {
             return Ok(());
         }
 
-        T::CountryCurrency::transfer(currency_id, from, to, amount)?;
+        T::CountryCurrency::transfer(currency_id, from, to, amount);
 
         Self::deposit_event(RawEvent::Transferred(
             currency_id,

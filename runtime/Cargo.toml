@@ -80,9 +80,9 @@ sp-application-crypto = { version = '3.0.0', default-features = false }
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives", default-features = false }
 
 # Orml pacakges
-orml-traits = { default-features = false }
-orml-currencies = { default-features = false }
-orml-tokens = { default-features = false }
+orml-traits = {git="https://github.com/open-web3-stack/open-runtime-module-library", default-features = false }
+orml-currencies = {git="https://github.com/open-web3-stack/open-runtime-module-library", default-features = false }
+orml-tokens = {git="https://github.com/open-web3-stack/open-runtime-module-library", default-features = false }
 # oracle = {version = "1.0.0", path = "../pallets/oracle", default_features= false}
 
 [dependencies.unique-asset]
@@ -127,12 +127,6 @@ package = 'pallet-auction'
 path = '../pallets/auction'
 version = '2.0.0-rc6'
 
-
-[dependencies.xcm-adapter]
-default-features = false
-package = 'xcm-adapter'
-path = '../pallets/xcm-adapter'
-version = '0.1.0'
 
 [features]
 default = ["std"]
