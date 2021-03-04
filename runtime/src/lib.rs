@@ -46,7 +46,7 @@ use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_session::historical as pallet_session_historical;
 
-use cumulus_primitives::{relay_chain::Balance as RelayChainBalance, ParaId};
+use cumulus_primitives_core::{relay_chain::Balance as RelayChainBalance, ParaId};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 
 // XCM imports
@@ -725,18 +725,6 @@ impl Convert<Balance, RelayChainBalance> for NativeToRelay {
     }
 }
 
-impl orml_xtokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type ToRelayChainBalance = NativeToRelay;
-    type AccountId32Convert = AccountId32Convert;
-    //TODO: change network id if kusama
-    type RelayChainNetworkId = PolkadotNetworkId;
-    type ParaId = ParachainInfo;
-    type AccountIdConverter = LocationConverter;
-    type XcmExecutor = XcmExecutor<XcmConfig>;
-}
-
 construct_runtime! {
     pub enum Runtime where
         Block = Block,
@@ -780,11 +768,6 @@ construct_runtime! {
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
 
-        // Parachain
-        ParachainSystem: cumulus_parachain_system::{Module, Call, Storage, Inherent, Event},
-        ParachainInfo: parachain_info::{Module, Storage, Config},
-        XcmHandler: xcm_handler::{Module, Event<T>, Origin},
-        XTokens: orml_xtokens::{Module, Storage, Call, Event<T>},
         //Dev
         Sudo: pallet_sudo::{Module, Call, Storage, Config<T>, Event<T>},
     }
@@ -953,4 +936,4 @@ impl_runtime_apis! {
     }
 }
 
-cumulus_runtime::register_validate_block!(Block, Executive);
+cumulus_pallet_parachain_system::register_validate_block!(Block, Executive);
