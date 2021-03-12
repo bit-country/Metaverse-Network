@@ -14,7 +14,11 @@ use orml_nft::Module as NftModule;
 use orml_traits::{BasicCurrency, BasicReservableCurrency};
 use primitives::{AccountId, Balance, CollectionId};
 use sp_core::H256;
+<<<<<<< HEAD
 use sp_io::hashing::blake2_128;
+=======
+// use sp_io::hashing::blake2_128;
+>>>>>>> bump deps
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
     traits::{AccountIdConversion, One},
