@@ -454,21 +454,21 @@ parameter_types! {
     pub const CreateCollectionDeposit: Balance = 800 * MILLICENTS;
 }
 
-impl nft::Trait for Runtime {
-    type Event = Event;
-    type RandomnessSource = RandomnessCollectiveFlip;
-    type ConvertNftData = nft::NftAssetData<AccountId>;
-    type ConvertNftCollectionData = nft::NftCollectionData<Balance>;
-    type Currency = Balances;
-    type CreateCollectionDeposit = CreateCollectionDeposit;
-}
+// impl nft::Trait for Runtime {
+//     type Event = Event;
+//     type RandomnessSource = RandomnessCollectiveFlip;
+//     type ConvertNftData = nft::NftAssetData<AccountId>;
+//     type ConvertNftCollectionData = nft::NftCollectionData<Balance>;
+//     type Currency = Balances;
+//     type CreateCollectionDeposit = CreateCollectionDeposit;
+// }
 
-impl unique_asset::Trait for Runtime {
-    type Event = Event;
-    type AssetData = nft::NftAssetData<AccountId>;
-    type CollectionData = nft::NftCollectionData<Balance>;
-    type Currency = Balances;
-}
+// impl unique_asset::Trait for Runtime {
+//     type Event = Event;
+//     type AssetData = nft::NftAssetData<AccountId>;
+//     type CollectionData = nft::NftCollectionData<Balance>;
+//     type Currency = Balances;
+// }
 
 impl country::Trait for Runtime {
     type Event = Event;
@@ -489,13 +489,13 @@ parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800;
 }
 
-impl auction::Trait for Runtime {
-    type Event = Event;
-    type AuctionTimeToClose = AuctionTimeToClose;
-    type AuctionId = u64;
-    type Handler = Auction;
-    type Currency = Balances;
-}
+// impl auction::Trait for Runtime {
+//     type Event = Event;
+//     type AuctionTimeToClose = AuctionTimeToClose;
+//     type AuctionId = u64;
+//     type Handler = Auction;
+//     type Currency = Balances;
+// }
 
 impl tokenization::Trait for Runtime {
     type Event = Event;
@@ -614,9 +614,9 @@ construct_runtime!(
         CountryModule: country::{Module, Call, Storage, Event<T>},
         BlockModule: block::{Module, Call, Storage, Event<T>},
         SectionModule: section::{Module, Call, Storage, Event<T>},
-        AssetModule: unique_asset::{Module, Call ,Storage, Event<T>},
-        NftModule: nft::{Module, Call ,Storage, Event<T>},
-        Auction: auction::{Module, Call ,Storage, Event<T>},
+        // AssetModule: unique_asset::{Module, Call ,Storage, Event<T>},
+        // NftModule: nft::{Module, Call ,Storage, Event<T>},
+        // Auction: auction::{Module, Call ,Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},

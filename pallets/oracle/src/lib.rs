@@ -34,7 +34,6 @@ use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
 
 // We use `alt_serde`, and Xanewok-modified `serde_json` so that we can compile the program
 //   with serde(features `std`) and alt_serde(features `no_std`).
-use alt_serde::{Deserialize, Deserializer};
 
 /// Defines application identifier for crypto keys of this module.
 ///
@@ -108,14 +107,6 @@ impl<T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
 //     blog: Vec<u8>,
 //     public_repos: u32,
 // }
-
-pub fn de_string_to_bytes<'de, D>(de: D) -> Result<Vec<u8>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s: &str = Deserialize::deserialize(de)?;
-    Ok(s.as_bytes().to_vec())
-}
 
 // impl fmt::Debug for GithubInfo {
 //     // `fmt` converts the vector of bytes inside the struct back to string for
@@ -226,20 +217,21 @@ decl_module! {
             // 2. Sending unsigned transaction from ocw
             // 3. Sending unsigned transactions with signed payloads from ocw
             // 4. Fetching JSON via http requests in ocw
-            const TRANSACTION_TYPES: usize = 4;
-            let result = match block_number.try_into()
-                .map_or(TRANSACTION_TYPES, |bn| bn % TRANSACTION_TYPES)
-            {
-                0 => Self::offchain_signed_tx(block_number),
-                1 => Self::offchain_unsigned_tx(block_number),
-                2 => Self::offchain_unsigned_tx_signed_payload(block_number),
-                // 3 => Self::fetch_github_info(),
-                _ => Err(Error::<T>::UnknownOffchainMux),
-            };
 
-            if let Err(e) = result {
-                debug::error!("offchain_worker error: {:?}", e);
-            }
+            // const TRANSACTION_TYPES: usize = 4;
+            // let result = match block_number.try_into().unwrap()
+            //     .map_or(TRANSACTION_TYPES, |bn| bn % TRANSACTION_TYPES)
+            // {
+            //     0 => Self::offchain_signed_tx(block_number),
+            //     1 => Self::offchain_unsigned_tx(block_number),
+            //     2 => Self::offchain_unsigned_tx_signed_payload(block_number),
+            //     // 3 => Self::fetch_github_info(),
+            //     _ => Err(Error::<T>::UnknownOffchainMux),
+            // };
+
+            // if let Err(e) = result {
+            //     debug::error!("offchain_worker error: {:?}", e);
+            // }
         }
     }
 }
@@ -303,7 +295,8 @@ impl<T: Trait> Module<T> {
         let signer = Signer::<T, T::AuthorityId>::any_account();
 
         // Translating the current block number to number and submit it on-chain
-        let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+        // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+        let number: u64 = 0 as u64;
 
         // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
         //   - `None`: no account is available for sending transaction
@@ -329,7 +322,9 @@ impl<T: Trait> Module<T> {
     }
 
     fn offchain_unsigned_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
-        let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+        // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+
+        let number: u64 = 0 as u64;
         let call = Call::submit_number_unsigned(number);
 
         // `submit_unsigned_transaction` returns a type of `Result<(), ()>`
@@ -344,7 +339,8 @@ impl<T: Trait> Module<T> {
         // Retrieve the signer to sign the payload
         let signer = Signer::<T, T::AuthorityId>::any_account();
 
-        let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+        // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+        let number: u64 = 0 as u64;
 
         // `send_unsigned_transaction` is returning a type of `Option<(Account<T>, Result<(), ()>)>`.
         //   Similar to `send_signed_transaction`, they account for:

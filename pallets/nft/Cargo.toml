@@ -29,6 +29,7 @@ sp-block-builder = { version = "2.0.0", default-features = false }
 sp-consensus-aura = { version = "0.8.0", default-features = false }
 sp-core = { version = "2.0.0", default-features = false }
 sp-inherents = { version = "2.0.0", default-features = false }
+sp-io = { version = "2.0.0", default-features = false }
 sp-offchain = { version = "2.0.0", default-features = false }
 sp-runtime = { version = "2.0.0", default-features = false }
 sp-session = { version = "2.0.0", default-features = false }
@@ -36,12 +37,8 @@ sp-std = { version = "2.0.0", default-features = false }
 sp-transaction-pool = { version = "2.0.0", default-features = false }
 sp-version = { version = "2.0.0", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
-
-[dependencies.unique-asset]
-default-features = false
-package = 'pallet-unique-asset'
-path = '../uniqueAsset'
-version = '2.0.0-rc6'
+orml-traits = { default-features = false, version = '0.3.2' }
+orml-nft = { default-features = false, version = '0.3.4' }
 
 [features]
 default = ['std']
@@ -51,7 +48,9 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
-    'unique-asset/std',
+    'sp-io/std',
+    'orml-traits/std',
+    'orml-nft/std',
     'pallet-balances/std',
     'primitives/std'
 ]
