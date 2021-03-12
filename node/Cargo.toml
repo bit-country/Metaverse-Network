@@ -1,0 +1,56 @@
+[package]
+authors = ['BitCountry Developers <https://mvp.studio>']
+build = 'build.rs'
+description = 'A decentralised world powered by economy.'
+edition = '2018'
+homepage = 'https://bit.country'
+license = 'Unlicense'
+name = 'bitcountry-node'
+repository = 'https://github.com/bit-country/Bit-Country-Blockchain/'
+version = '0.0.1'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+structopt = "0.3.8"
+hex-literal = "0.3.1"
+sc-cli = { version = "0.8.0", features = ["wasmtime"] }
+sp-core = "2.0.0"
+sc-executor = { version = "0.8.0", features = ["wasmtime"] }
+sc-service = { version = "0.8.0", features = ["wasmtime"] }
+sp-inherents = "2.0.0"
+sc-transaction-pool = "2.0.0"
+sp-transaction-pool = "2.0.0"
+sc-consensus-aura = "0.8.0"
+sp-consensus-aura = "0.8.0"
+sp-consensus = "0.8.0"
+sc-consensus = "0.8.0"
+sc-finality-grandpa = "0.8.0"
+sp-finality-grandpa = "2.0.0"
+sc-client-api = "2.0.0"
+sp-runtime = "2.0.0"
+pallet-contracts = "2.0.0"
+
+# These dependencies are used for the node's RPCs
+jsonrpc-core = "15.0.0"
+sc-rpc = "2.0.0"
+sp-api = "2.0.0"
+sc-rpc-api = "0.8.0"
+sp-blockchain = "2.0.0"
+sp-block-builder = "2.0.0"
+sc-basic-authorship = "0.8.0"
+substrate-frame-rpc-system = "2.0.0"
+pallet-transaction-payment-rpc = "2.0.0"
+pallet-contracts-rpc = "0.8.0"
+bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime" }
+
+[[bin]]
+name = "bitcountry-node"
+path = "src/main.rs"
+
+
+
+[build-dependencies]
+substrate-build-script-utils = "2.0.0"
+

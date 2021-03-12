@@ -1,0 +1,75 @@
+[package]
+authors = ['Bit Country <https://github.com/bit-country>']
+description = 'Bit Country pallet for tokenization logic.'
+edition = '2018'
+homepage = 'https://bit.country'
+license = 'Unlicense'
+name = 'pallet-tokenization'
+repository = 'https://github.com/bit-country'
+version = '2.0.0-rc6'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+serde = { version = "1.0.111", optional = true }
+codec = { package = "parity-scale-codec", version = "1.3.4", default-features = false, features = ["derive"] }
+pallet-aura = { version = "2.0.0", default-features = false }
+pallet-balances = { version = "2.0.0", default-features = false }
+frame-support = { version = "2.0.0", default-features = false }
+pallet-grandpa = { version = "2.0.0", default-features = false }
+pallet-randomness-collective-flip = { version = "2.0.0", default-features = false }
+pallet-sudo = { version = "2.0.0", default-features = false }
+frame-system = { version = "2.0.0", default-features = false }
+pallet-timestamp = { version = "2.0.0", default-features = false }
+pallet-transaction-payment = { version = "2.0.0", default-features = false }
+frame-executive = { version = "2.0.0", default-features = false }
+sp-api = { version = "2.0.0", default-features = false }
+sp-block-builder = { version = "2.0.0", default-features = false }
+sp-consensus-aura = { version = "0.8.0", default-features = false }
+sp-core = { version = "2.0.0", default-features = false }
+sp-inherents = { version = "2.0.0", default-features = false }
+sp-offchain = { version = "2.0.0", default-features = false }
+sp-runtime = { version = "2.0.0", default-features = false }
+sp-session = { version = "2.0.0", default-features = false }
+sp-std = { version = "2.0.0", default-features = false }
+sp-transaction-pool = { version = "2.0.0", default-features = false }
+sp-version = { version = "2.0.0", default-features = false }
+
+# Orml packages
+orml-traits = { default-features = false, version = '0.3.0' }
+orml-currencies = { default-features = false, version = '0.3.0' }
+orml-tokens = { default-features = false, version = '0.3.0' }
+
+primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+sp-io = { version = "2.0.0", default-features = false }
+
+[dependencies.country]
+default-features = false
+package = 'pallet-country'
+path = '../country'
+version = '2.0.0-rc6'
+
+[dependencies.unique-asset]
+default-features = false
+package = 'pallet-unique-asset'
+path = '../uniqueAsset'
+version = '2.0.0-rc6'
+
+[features]
+default = ['std']
+std = [
+    'serde',
+    'codec/std',
+    'frame-support/std',
+    'frame-system/std',
+    'sp-runtime/std',
+    'sp-core/std',
+    'sp-std/std',
+    'orml-currencies/std',
+    'orml-tokens/std',
+    'orml-traits/std', 
+    'primitives/std',
+    'country/std',
+    'unique-asset/std',
+]
