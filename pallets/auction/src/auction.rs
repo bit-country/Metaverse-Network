@@ -10,7 +10,6 @@ use sp_std::{
 	fmt::Debug,
 	result,
 };
-use unique_asset::{Module as AssetByOwner, AssetId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
