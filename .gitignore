@@ -32,3 +32,5 @@ para-8888-wasm
 customType.json
 para-8888--new-genesis
 para-8888-new-wasm
+._*
+/._*

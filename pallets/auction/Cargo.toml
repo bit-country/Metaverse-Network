@@ -33,11 +33,9 @@ sp-session = { git = "https://github.com/paritytech/substrate", default-features
 sp-transaction-pool = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1"}
 sp-version = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1"}
 
-[dependencies.unique-asset]
-default-features = false
-package = 'pallet-unique-asset'
-path = '../uniqueAsset'
-version = '2.0.0-rc6'
+orml-nft = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
+
+primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 
 [features]
 default = ['std']
@@ -47,6 +45,6 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
-    'unique-asset/std',
+    'orml-nft/std',
     'pallet-balances/std',
 ]

@@ -10,8 +10,9 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+// use frame_support::traits::Currency;
 //Custom import
-use orml_currencies::BasicCurrencyAdapter;
+use orml_currencies::{BasicCurrencyAdapter, Currency};
 
 pub use constants::{currency::*, time::*};
 use sp_api::impl_runtime_apis;
@@ -54,7 +55,7 @@ use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use frame_system::limits::{BlockLength, BlockWeights};
 use polkadot_parachain::primitives::Sibling;
 use xcm::v0::{Junction, MultiLocation, NetworkId};
-use xcm_adapter::{
+use orml_xcm_support::{
     CurrencyIdConverter, IsConcreteWithGeneralKey, MultiCurrencyAdapter, NativePalletAssetOr,
 };
 use xcm_builder::{
@@ -66,6 +67,9 @@ use xcm_executor::{
     traits::{IsConcrete, NativeAsset},
     Config, XcmExecutor,
 };
+
+mod weights;
+
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime, parameter_types,
@@ -430,6 +434,7 @@ parameter_types! {
 parameter_types! {
     pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
     pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const NftModuleId: ModuleId = ModuleId(*b"bit/bnft");
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -481,23 +486,25 @@ impl orml_currencies::Config for Runtime {
 }
 
 parameter_types! {
-    pub const CreateCollectionDeposit: Balance = 800 * MILLICENTS;
+    pub CreateClassDeposit: Balance = 500 * MILLICENTS;
+	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
 }
 
 impl nft::Config for Runtime {
     type Event = Event;
-    type RandomnessSource = RandomnessCollectiveFlip;
-    type ConvertNftData = nft::NftAssetData<AccountId>;
-    type ConvertNftCollectionData = nft::NftCollectionData<Balance>;
-    type Currency = Balances;
-    type CreateCollectionDeposit = CreateCollectionDeposit;
+    type CreateClassDeposit = CreateClassDeposit;
+	type CreateAssetDeposit = CreateAssetDeposit;
+    type Randomness = RandomnessCollectiveFlip;
+    type Currency = Currency<Runtime, GetNativeCurrencyId>;
+    type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+    type ModuleId = NftModuleId;
 }
 
-impl unique_asset::Trait for Runtime {
-    type Event = Event;
-    type AssetData = nft::NftAssetData<AccountId>;
-    type CollectionData = nft::NftCollectionData<Balance>;
-    type Currency = Balances;
+impl orml_nft::Config for Runtime {
+    type ClassId = u32;
+	type TokenId = u64;
+	type ClassData = nft::NftClassData;
+	type TokenData = nft::NftAssetData;
 }
 
 impl country::Trait for Runtime {
@@ -519,7 +526,7 @@ parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800;
 }
 
-impl auction::Trait for Runtime {
+impl auction::Config for Runtime {
     type Event = Event;
     type AuctionTimeToClose = AuctionTimeToClose;
     type AuctionId = u64;
@@ -707,6 +714,8 @@ impl cumulus_pallet_xcm_handler::Config for Runtime {
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type UpwardMessageSender = ParachainSystem;
     type HrmpMessageSender = ParachainSystem;
+    type SendXcmOrigin = EnsureRoot<AccountId>;
+    type AccountIdConverter = LocationConverter;
 }
 
 pub struct RelayToNative;
@@ -774,7 +783,7 @@ construct_runtime! {
         CountryModule: country::{Module, Call, Storage, Event<T>},
         BlockModule: block::{Module, Call, Storage, Event<T>},
         SectionModule: section::{Module, Call, Storage, Event<T>},
-        AssetModule: unique_asset::{Module, Call ,Storage, Event<T>},
+        OrmlNFT: orml_nft::{Module ,Storage, Config<T>},
         NftModule: nft::{Module, Call ,Storage, Event<T>},
         Auction: auction::{Module, Call ,Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
@@ -952,4 +961,4 @@ impl_runtime_apis! {
     }
 }
 
-cumulus_pallet_parachain_system::register_validate_block!(Block, Executive);
+cumulus_pallet_parachain_system::register_validate_block!(Runtime, Executive);

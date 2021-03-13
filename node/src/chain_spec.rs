@@ -1,4 +1,4 @@
-use bitcountry_runtime::{BalancesConfig, SudoConfig, SystemConfig, WASM_BINARY};
+use bitcountry_runtime::{BalancesConfig, SudoConfig, SystemConfig, OrmlNFTConfig ,WASM_BINARY};
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
 use primitives::{AccountId, Signature};
@@ -298,13 +298,13 @@ fn testnet_genesis(
     const INITIAL_STAKING: u128 = 100_000 * DOLLARS;
 
     bitcountry_runtime::GenesisConfig {
-        frame_system: Some(bitcountry_runtime::SystemConfig {
+        frame_system: SystemConfig {
             code: bitcountry_runtime::WASM_BINARY
                 .expect("WASM binary was not build, please build it!")
                 .to_vec(),
             changes_trie_config: Default::default(),
-        }),
-        pallet_balances: Some(BalancesConfig {
+        },
+        pallet_balances: BalancesConfig {
             // Configure endowed accounts with initial balance of 1 billion token to test.
             // balances: endowed_accounts.iter().cloned().map(|k|(k)).collect(),
             balances: endowed_accounts
@@ -312,7 +312,8 @@ fn testnet_genesis(
                 .cloned()
                 .map(|k| (k, INITIAL_BALANCE))
                 .collect(),
-        }),
+        },
+        orml_nft: OrmlNFTConfig { tokens: vec![] },
         // pallet_session: Some(SessionConfig {
         //     keys: initial_authorities
         //         .iter()
@@ -358,19 +359,19 @@ fn testnet_genesis(
         // 		.map(|x| (x.1.clone(), 1))
         // 		.collect(),
         // }),
-        pallet_collective_Instance1: Some(Default::default()),
-        pallet_treasury: Some(Default::default()),
-        pallet_sudo: Some(SudoConfig {
+        pallet_collective_Instance1: Default::default(),
+        pallet_treasury: Default::default(),
+        pallet_sudo: SudoConfig {
             // Assign network admin rights.
             key: root_key,
-        }),
+        },
         // pallet_contracts: Some(ContractsConfig {
         // 	current_schedule: pallet_contracts::Schedule {
         // 		enable_println,
         // 		..Default::default()
         // 	},
         // }),
-        parachain_info: Some(bitcountry_runtime::ParachainInfoConfig { parachain_id: id }),
+        parachain_info: bitcountry_runtime::ParachainInfoConfig { parachain_id: id },
         // tokenization: Some(TokenConfig {
         // 	init_token_id: 0
         // })

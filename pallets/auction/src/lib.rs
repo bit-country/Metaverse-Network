@@ -17,7 +17,8 @@ use sp_runtime::{
 
 use frame_system::{self as system, ensure_signed};
 use sp_std::result;
-use unique_asset::{AssetByOwner, AssetId, CollectionId};
+use primitives::{CollectionId, AccountId, BlockNumber};
+use orml_nft::Module as NftModule;
 mod auction;
 
 pub use crate::auction::{Auction, AuctionHandler, Change, OnNewBidResult};
@@ -27,14 +28,14 @@ mod tests;
 
 pub struct AuctionLogicHandler;
 
-pub type AccountId = u128;
-pub type BlockNumber = u32;
+type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
+type AssetIdOf<T> = <T as orml_nft::Config>::TokenId;
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug)]
-pub struct AuctionItem<AccountId, BlockNumber, Balance> {
+pub struct AuctionItem<AccountId, BlockNumber, Balance, AssetId, ClassId> {
     asset_id: AssetId,
-    collection_id: CollectionId,
+    class_id: ClassId,
     recipient: AccountId,
     initial_amount: Balance,
     /// Current amount for sale
@@ -55,7 +56,7 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
     pub end: Option<BlockNumber>,
 }
 
-pub trait Trait: frame_system::Config + unique_asset::Trait + pallet_balances::Config {
+pub trait Config: frame_system::Config + orml_nft::Config + pallet_balances::Config {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 
     type AuctionTimeToClose: Get<Self::BlockNumber>;
@@ -79,12 +80,12 @@ pub trait Trait: frame_system::Config + unique_asset::Trait + pallet_balances::C
 }
 
 decl_storage! {
-    trait Store for Module<T: Trait> as Auction {
+    trait Store for Module<T: Config> as Auction {
         /// Stores on-going and future auctions. Closed auction are removed.
         pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 
         //Store asset with Auction
-        pub AuctionItems get(fn get_auction_item): map hasher(twox_64_concat) T::AuctionId => Option<AuctionItem<T::AccountId, T::BlockNumber, T::Balance>>;
+        pub AuctionItems get(fn get_auction_item): map hasher(twox_64_concat) T::AuctionId => Option<AuctionItem<T::AccountId, T::BlockNumber, T::Balance, AssetIdOf<T>, ClassIdOf<T>>>;
 
         /// Track the next auction ID.
         pub AuctionsIndex get(fn auctions_index): T::AuctionId;
@@ -99,7 +100,7 @@ decl_event!(
         <T as frame_system::Config>::AccountId,
         <T as pallet_balances::Config>::Balance,
         // AssetId = AssetId,
-        <T as Trait>::AuctionId,
+        <T as Config>::AuctionId,
     {
         /// A bid is placed. [auction_id, bidder, bidding_amount]
         Bid(AuctionId, AccountId, Balance),
@@ -109,7 +110,7 @@ decl_event!(
 );
 
 decl_module! {
-    pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+    pub struct Module<T: Config> for enum Call where origin: T::Origin {
         type Error = Error<T>;
         fn deposit_event() = default;
 
@@ -160,24 +161,26 @@ decl_module! {
 
 
         #[weight = 10_000]
-        fn create_auction(origin,asset_id: AssetId, collection_id: CollectionId, value: T::Balance) {
+        fn create_auction(origin, asset: (ClassIdOf<T>, AssetIdOf<T>), initial_price: T::Balance) {
             let from = ensure_signed(origin)?;
 
             //Check ownership
-            ensure!(<AssetByOwner<T>>::contains_key(&from, (&asset_id, &collection_id)), Error::<T>::NoPermissionToCreateAuction);
+
+            let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+            ensure!(from == asset_info.owner, Error::<T>::NoPermissionToCreateAuction);
 
             let start_time = <system::Module<T>>::block_number();
 
-            let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+            let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // get auction time to close from runtime. Can be dynamic in the new update
 
-            let auction_id = Self::new_auction(from.clone(), value, start_time, Some(end_time))?;
+            let auction_id = Self::new_auction(from.clone(), initial_price, start_time, Some(end_time))?;
 
             let new_auction_item = AuctionItem {
-                asset_id,
-                collection_id,
+                asset_id: asset.1,
+                class_id: asset.0 ,
                 recipient : from.clone(),
-                initial_amount : value,
-                amount : value,
+                initial_amount : initial_price,
+                amount : initial_price,
                 start_time : start_time,
                 end_time: end_time
             };
@@ -187,7 +190,7 @@ decl_module! {
                 new_auction_item
             );
 
-            Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
+            Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, initial_price ,initial_price));
         }
 
         /// dummy `on_initialize` to return the weight used in `on_finalize`.
@@ -209,7 +212,7 @@ decl_module! {
                                     Err(_e) => continue,
                                     Ok(_v) => {
                                         //Transfer asset from asset owner to high bidder
-                                        let asset_transfer = <unique_asset::Module<T>>::transfer_from(auction_item.recipient.clone(), high_bidder.clone(), auction_item.collection_id ,auction_item.asset_id);
+                                        let asset_transfer = NftModule::<T>::transfer(&auction_item.recipient, &high_bidder, (auction_item.class_id, auction_item.asset_id));
                                         match asset_transfer {
                                             Err(_e) => continue,
                                             Ok(_v) => {
@@ -228,7 +231,7 @@ decl_module! {
 
 decl_error! {
     /// Error for auction module.
-    pub enum Error for Module<T: Trait> {
+    pub enum Error for Module<T: Config> {
         AuctionNotExist,
         AuctionNotStarted,
         AuctionIsExpired,
@@ -236,10 +239,11 @@ decl_error! {
         InvalidBidPrice,
         NoAvailableAuctionId,
         NoPermissionToCreateAuction,
+        AssetInfoNotFound
     }
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
     fn auction_info(
         id: T::AuctionId,
     ) -> Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>> {
@@ -352,7 +356,7 @@ impl<T: Trait> Module<T> {
 
 // }
 
-impl<T: Trait> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, T::AuctionId>
+impl<T: Config> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, T::AuctionId>
     for Module<T>
 {
     fn on_new_bid(

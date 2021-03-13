@@ -41,7 +41,9 @@ pub type Balance = u128;
 pub type CountryId = u64;
 /// Country Currency Id
 pub type CountryCurrencyId = u64;
-
+// Collection Type Id
+pub type CollectionId = u64;
+// Amount type
 pub type Amount = i128;
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
