@@ -34,3 +34,5 @@ para-8888--new-genesis
 para-8888-new-wasm
 ._*
 /._*
+genesis-state.wasm
+genesis-wasm.wasm
