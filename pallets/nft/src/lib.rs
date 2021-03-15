@@ -9,16 +9,23 @@ use frame_support::{
     weights::Weight,
     StorageMap, StorageValue,
 };
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+
 use frame_system::{self as system, ensure_signed};
 use orml_nft::Module as NftModule;
 use orml_traits::{BasicCurrency, BasicReservableCurrency};
 use primitives::{AccountId, Balance, CollectionId};
 use sp_core::H256;
 <<<<<<< HEAD
+<<<<<<< HEAD
 use sp_io::hashing::blake2_128;
 =======
 // use sp_io::hashing::blake2_128;
 >>>>>>> bump deps
+=======
+use sp_io::hashing::blake2_128;
+>>>>>>> new collection structure runtime update
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
     traits::{AccountIdConversion, One},
@@ -34,7 +41,7 @@ pub trait WeightInfo {
 
 const MODULE_ID: ModuleId = ModuleId(*b"bcc/bNFT");
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct NftCollectionData<AccountId> {
     pub name: Vec<u8>,
     pub owner: AccountId,
@@ -42,7 +49,8 @@ pub struct NftCollectionData<AccountId> {
     pub properties: Vec<u8>,
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftAssetData {
     pub name: Vec<u8>,
     pub description: Vec<u8>,
@@ -50,12 +58,14 @@ pub struct NftAssetData {
 }
 
 #[derive(Encode, Decode, Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenType {
     Transferrable,
     BoundToAddress,
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftClassData {
     //Minimum balance to create a collection of Asset
     pub deposit: Balance,
@@ -93,7 +103,7 @@ decl_storage! {
         // pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) TokenId => Option<NftAssetData<T::AccountId>>;
         // pub NftOwner get(fn get_nft_owner): map hasher(blake2_128_concat) AssetId => T::AccountId;
         pub Collections get(fn get_collection): map hasher(blake2_128_concat) CollectionId => Option<NftCollectionData<T::AccountId>>;
-        pub TokenDataCollection get(fn get_token_collection): double_map hasher(twox_64_concat) ClassIdOf<T>, hasher(twox_64_concat) TokenIdOf<T> => Option<CollectionId>;
+        pub ClassDataCollection get(fn get_class_collection): map hasher(twox_64_concat) ClassIdOf<T> => CollectionId;
         pub NextCollectionId get(fn next_collection_id): u64;
         pub AllNftCount get(fn all_nft_count): u64;
         pub AllNftCollection get(fn all_nft_collection_count): u64;
@@ -129,6 +139,7 @@ decl_error! {
         //No permission
         NoPermission,
         NoAvailableCollectionId,
+        CollectionIsNotExist,
         //Class Id not found
         ClassIdNotFound,
         NonTransferrable,
@@ -147,17 +158,29 @@ decl_module! {
 
             let sender = ensure_signed(origin)?;
 
-            let next_collection_id = Self::do_create_collection(&sender, name, properties)?;
+            let next_collection_id = Self::do_create_collection(&sender, name.clone(), properties.clone())?;
+
+            let collection_data = NftCollectionData {
+                owner: sender.clone(),
+                name,
+                properties,
+            };
+
+            Collections::<T>::insert(next_collection_id, collection_data);
 
             Self::deposit_event(RawEvent::NewNftCollectionCreated(sender, next_collection_id));
             Ok(().into())
         }
 
         #[weight = 10_000]
-        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, token_type: TokenType) -> DispatchResultWithPostInfo{
+        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: CollectionId ,token_type: TokenType) -> DispatchResultWithPostInfo{
 
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
+
+            let collection_info = <Collections<T>>::get(collection_id).ok_or(Error::<T>::CollectionIsNotExist)?;
+
+            ensure!(sender == collection_info.owner, Error::<T>::NoPermission);
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
@@ -171,6 +194,7 @@ decl_module! {
             let class_data = NftClassData { deposit: class_deposit, properties, token_type };
 
             NftModule::<T>::create_class(&sender, metadata, class_data)?;
+            ClassDataCollection::<T>::insert(next_class_id, collection_id);
 
             Self::deposit_event(RawEvent::NewNftClassCreated(sender, next_class_id));
 
@@ -181,9 +205,11 @@ decl_module! {
         fn mint(origin, class_id: ClassIdOf<T>, name: Vec<u8>, description: Vec<u8>, metadata: Vec<u8>, quantity: u32) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
+
             ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
             let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
             ensure!(sender == class_info.owner, Error::<T>::NoPermission);
+
             let deposit = T::CreateAssetDeposit::get();
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(class_id);
             let total_deposit = deposit * (quantity as u128);

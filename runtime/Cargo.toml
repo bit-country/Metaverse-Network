@@ -43,8 +43,10 @@ frame-system-rpc-runtime-api = { version = "2.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "2.0.0", default-features = false }
 
 # Orml pacakges
-orml-currencies = { default-features = false, version = '0.3.0' }
-orml-tokens = { default-features = false, version = '0.3.0' }
+orml-currencies = { default-features = false, version = '0.3.2' }
+orml-tokens = { default-features = false, version = '0.3.2' }
+orml-traits = { default-features = false, version = '0.3.2' }
+orml-nft = { default-features = false, version = '0.3.4' }
 
 # Contracts specific packages
 pallet-contracts = { version = "2.0.0", default_features = false }
@@ -132,7 +134,7 @@ std = [
     'primitives/std',
     'orml-currencies/std',
     'orml-tokens/std',
-    'unique-asset/std',
+    'orml-nft/std',
     'country/std',
     'block/std',
     'section/std',
