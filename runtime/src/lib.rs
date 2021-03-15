@@ -6,7 +6,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use orml_currencies::BasicCurrencyAdapter;
+use orml_currencies::{BasicCurrencyAdapter, Currency};
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_transaction_payment::{Multiplier, TargetedFeeAdjustment};
@@ -37,12 +37,12 @@ use frame_system::{EnsureOneOf, EnsureRoot, RawOrigin};
 // custom runtime pallet
 use auction;
 use nft;
-use unique_asset;
 // use pallet_contracts_rpc_runtime_api::ContractExecResult;
 
 // A few exports that help ease life for downstream crates.
 pub use constants::currency::*;
 pub use primitives::{Balance, CurrencyId};
+mod weights;
 
 pub use frame_support::{
     construct_runtime, debug, parameter_types,
@@ -401,6 +401,7 @@ parameter_types! {
 parameter_types! {
     pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
     pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const NftModuleId: ModuleId = ModuleId(*b"bit/bnft");
 }
 
 impl pallet_treasury::Trait for Runtime {
@@ -451,24 +452,26 @@ impl orml_currencies::Trait for Runtime {
 }
 
 parameter_types! {
-    pub const CreateCollectionDeposit: Balance = 800 * MILLICENTS;
+    pub CreateClassDeposit: Balance = 500 * MILLICENTS;
+    pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
 }
 
-// impl nft::Trait for Runtime {
-//     type Event = Event;
-//     type RandomnessSource = RandomnessCollectiveFlip;
-//     type ConvertNftData = nft::NftAssetData<AccountId>;
-//     type ConvertNftCollectionData = nft::NftCollectionData<Balance>;
-//     type Currency = Balances;
-//     type CreateCollectionDeposit = CreateCollectionDeposit;
-// }
+impl nft::Trait for Runtime {
+    type Event = Event;
+    type CreateClassDeposit = CreateClassDeposit;
+    type CreateAssetDeposit = CreateAssetDeposit;
+    type Randomness = RandomnessCollectiveFlip;
+    type Currency = Currency<Runtime, GetNativeCurrencyId>;
+    type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+    type ModuleId = NftModuleId;
+}
 
-// impl unique_asset::Trait for Runtime {
-//     type Event = Event;
-//     type AssetData = nft::NftAssetData<AccountId>;
-//     type CollectionData = nft::NftCollectionData<Balance>;
-//     type Currency = Balances;
-// }
+impl orml_nft::Trait for Runtime {
+    type ClassId = u32;
+    type TokenId = u64;
+    type ClassData = nft::NftClassData;
+    type TokenData = nft::NftAssetData;
+}
 
 impl country::Trait for Runtime {
     type Event = Event;
@@ -614,6 +617,8 @@ construct_runtime!(
         CountryModule: country::{Module, Call, Storage, Event<T>},
         BlockModule: block::{Module, Call, Storage, Event<T>},
         SectionModule: section::{Module, Call, Storage, Event<T>},
+        OrmlNFT: orml_nft::{Module ,Storage},
+        NftModule: nft::{Module, Call ,Storage, Event<T>},
         // AssetModule: unique_asset::{Module, Call ,Storage, Event<T>},
         // NftModule: nft::{Module, Call ,Storage, Event<T>},
         // Auction: auction::{Module, Call ,Storage, Event<T>},
