@@ -97,7 +97,6 @@ decl_storage! {
         pub Collections get(fn get_collection): map hasher(blake2_128_concat) CollectionId => Option<NftCollectionData<T::AccountId>>;
         pub ClassDataCollection get(fn get_class_collection): map hasher(twox_64_concat) ClassIdOf<T> => CollectionId;
         pub NextCollectionId get(fn next_collection_id): u64;
-        pub AllNftCount get(fn all_nft_count): u64;
         pub AllNftCollection get(fn all_nft_collection_count): u64;
 
         Init get(fn is_init): bool;
@@ -160,6 +159,12 @@ decl_module! {
 
             Collections::<T>::insert(next_collection_id, collection_data);
 
+            let all_collection_count = Self::all_nft_collection_count();
+            let new_all_nft_collection_count = all_collection_count.checked_add(One::one())
+                .ok_or("Overflow adding a new collection to total collection")?;
+
+            AllNftCollection::put(new_all_nft_collection_count);
+
             Self::deposit_event(RawEvent::NewNftCollectionCreated(sender, next_collection_id));
             Ok(().into())
         }
@@ -170,7 +175,7 @@ decl_module! {
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
 
-            let collection_info = <Collections<T>>::get(collection_id).ok_or(Error::<T>::CollectionIsNotExist)?;
+            let collection_info = Self::get_collection(collection_id).ok_or(Error::<T>::CollectionIsNotExist)?;
 
             ensure!(sender == collection_info.owner, Error::<T>::NoPermission);
             //Class fund

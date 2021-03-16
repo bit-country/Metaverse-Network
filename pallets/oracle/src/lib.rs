@@ -212,6 +212,7 @@ decl_module! {
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("Entering off-chain worker");
 
+
             // Here we are showcasing various techniques used when running off-chain workers (ocw)
             // 1. Sending signed transaction from ocw
             // 2. Sending unsigned transaction from ocw
