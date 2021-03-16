@@ -58,10 +58,13 @@ pub struct NftAssetData {
 }
 
 #[derive(Encode, Decode, Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenType {
     Transferrable,
     BoundToAddress,
+}
+
+impl Default for TokenType {
+    fn default() -> Self { TokenType::Transferrable }
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
@@ -71,7 +74,6 @@ pub struct NftClassData {
     pub deposit: Balance,
     // Metadata from ipfs
     pub properties: Vec<u8>,
-    pub token_type: TokenType,
 }
 
 #[cfg(test)]
@@ -103,9 +105,10 @@ decl_storage! {
         // pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) TokenId => Option<NftAssetData<T::AccountId>>;
         // pub NftOwner get(fn get_nft_owner): map hasher(blake2_128_concat) AssetId => T::AccountId;
         pub Collections get(fn get_collection): map hasher(blake2_128_concat) CollectionId => Option<NftCollectionData<T::AccountId>>;
-        pub ClassDataCollection get(fn get_class_collection): map hasher(twox_64_concat) ClassIdOf<T> => CollectionId;
+        pub ClassDataCollection get(fn get_class_collection): map hasher(blake2_128_concat) ClassIdOf<T> => CollectionId;
         pub NextCollectionId get(fn next_collection_id): u64;
         pub AllNftCollection get(fn all_nft_collection_count): u64;
+        pub ClassDataType get(fn get_class_type): map hasher(blake2_128_concat) ClassIdOf<T> => TokenType;
 
         Init get(fn is_init): bool;
         // Nonce get(fn nonce): u32;
@@ -196,7 +199,9 @@ decl_module! {
 
             <T as Trait>::Currency::reserve(&class_fund, <T as Trait>::Currency::free_balance(&class_fund))?;
 
-            let class_data = NftClassData { deposit: class_deposit, properties, token_type };
+            let class_data = NftClassData { deposit: class_deposit, properties };
+
+            ClassDataType::<T>::insert(next_class_id, token_type);
 
             NftModule::<T>::create_class(&sender, metadata, class_data)?;
             ClassDataCollection::<T>::insert(next_class_id, collection_id);
@@ -243,11 +248,10 @@ decl_module! {
         fn transfer(origin,  to: T::AccountId, asset: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
-            let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
 
-            let data = class_info.data;
+            let class_type = Self::get_class_type(asset.0);
 
-            match data.token_type {
+            match class_type {
                 TokenType::Transferrable => {
                     let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
                     ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
