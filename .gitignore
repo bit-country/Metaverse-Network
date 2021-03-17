@@ -29,16 +29,5 @@ para-668-new-genesis
 para-668-new-wasm
 para-8888-genesis
 para-8888-wasm
-<<<<<<< HEAD
-<<<<<<< HEAD
-customType.json
-para-8888--new-genesis
-para-8888-new-wasm
-para-8888-new.wasm
-=======
-._*
->>>>>>> remove deps and cumulus
-=======
-._*
 genesis-*
->>>>>>> new collection structure runtime update
+._*
