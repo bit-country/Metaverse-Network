@@ -5,7 +5,7 @@ use frame_support::{
     decl_error, decl_event, decl_module, decl_storage,
     dispatch::{DispatchResult, DispatchResultWithPostInfo},
     ensure,
-    traits::{Currency, Get, IsType, Randomness, ReservableCurrency},
+    traits::{Currency, ExistenceRequirement, Get, IsType, Randomness, ReservableCurrency},
     weights::Weight,
     StorageMap, StorageValue,
 };
@@ -49,6 +49,7 @@ pub struct NftAssetData {
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenType {
     Transferrable,
     BoundToAddress,
@@ -62,25 +63,28 @@ impl Default for TokenType {
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct NftClassData {
+pub struct NftClassData<Balance> {
     //Minimum balance to create a collection of Asset
     pub deposit: Balance,
     // Metadata from ipfs
     pub properties: Vec<u8>,
+    pub token_type: TokenType,
 }
 
 #[cfg(test)]
 mod tests;
 
-pub trait Config: orml_nft::Config<TokenData = NftAssetData, ClassData = NftClassData> {
+pub trait Config:
+    orml_nft::Config<TokenData = NftAssetData, ClassData = NftClassData<BalanceOf<Self>>>
+{
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
     type Randomness: Randomness<Self::Hash>;
     /// The minimum balance to create class
-    type CreateClassDeposit: Get<Balance>;
+    type CreateClassDeposit: Get<BalanceOf<Self>>;
     /// The minimum balance to create token
-    type CreateAssetDeposit: Get<Balance>;
+    type CreateAssetDeposit: Get<BalanceOf<Self>>;
     // Currency type for reserve/unreserve balance
-    type Currency: BasicReservableCurrency<Self::AccountId, Balance = Balance>;
+    type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
     //NFT Module Id
     type ModuleId: Get<ModuleId>;
     // Weight info
@@ -174,7 +178,7 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: CollectionId) -> DispatchResultWithPostInfo{
+        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: CollectionId, token_type: TokenType) -> DispatchResultWithPostInfo{
 
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
@@ -185,16 +189,16 @@ decl_module! {
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
-            //Secure deposit of token class owner -- support customise deposit
+            // Secure deposit of token class owner -- support customise deposit
             let class_deposit = T::CreateClassDeposit::get();
-            //Transfer fund to pot
-            <T as Config>::Currency::transfer(&sender, &class_fund, class_deposit)?;
+            // Transfer fund to pot
+            <T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
 
             <T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
 
-            let class_data = NftClassData { deposit: class_deposit, properties };
+            let class_data = NftClassData { deposit: class_deposit, properties, token_type };
 
-            ClassDataType::<T>::insert(next_class_id, TokenType::Transferrable);
+            // ClassDataType::<T>::insert(next_class_id, TokenType::Transferrable);
 
             NftModule::<T>::create_class(&sender, metadata, class_data)?;
             ClassDataCollection::<T>::insert(next_class_id, collection_id);
@@ -215,8 +219,8 @@ decl_module! {
 
             let deposit = T::CreateAssetDeposit::get();
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(class_id);
-            let total_deposit = deposit * (quantity as u128);
-            <T as Config>::Currency::transfer(&sender, &class_fund, total_deposit)?;
+            let total_deposit = deposit * Into::<BalanceOf<T>>::into(quantity);
+            <T as Config>::Currency::transfer(&sender, &class_fund, total_deposit, ExistenceRequirement::KeepAlive)?;
             <T as Config>::Currency::reserve(&class_fund, total_deposit)?;
 
             //Global Identifier -  todo
