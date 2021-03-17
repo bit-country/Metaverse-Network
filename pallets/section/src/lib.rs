@@ -26,13 +26,13 @@ pub struct Section<Hash> {
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: system::Trait + country::Trait {
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+pub trait Config: system::Config + country::Config {
+	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
 	type BlockRandomnessSource: Randomness<H256>;
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as SectionModule {
+	trait Store for Module<T: Config> as SectionModule {
 
 		pub SectionOwner get(fn get_section_owner): map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
 		pub Sections get(fn get_section): map hasher(blake2_128_concat) T::Hash => Section<T::Hash>;
@@ -47,7 +47,7 @@ decl_storage! {
 decl_event!(
 	pub enum Event<T>
 	where
-		AccountId = <T as system::Trait>::AccountId,
+		AccountId = <T as system::Config>::AccountId,
 	{
 		Initialized(AccountId),
 		BlockRandomnessSource(H256, H256),
@@ -56,7 +56,7 @@ decl_event!(
 );
 
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// Attempted to initialize the token after it had already been initialized.
 		AlreadyInitialized,
 		//No permission section issuance
@@ -65,7 +65,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
 		// #[weight = 10_000]
@@ -79,7 +79,7 @@ decl_module! {
 
 		// 	let random_seed = T::RandomnessSource::random_seed();
 		// 	let random_result = T::RandomnessSource::random(&random_str);
-		// 	let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Trait>::Hashing::hash);
+		// 	let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Config>::Hashing::hash);
 
 		// 	//Check country ownership
 		// 	let country_owner = <CountryOwner<T>>::get(country_id).ok_or("Not a country owner of this country")?;
@@ -108,7 +108,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	/// Reads the nonce from storage, increments the stored nonce, and returns
 	/// the encoded nonce to the caller.
 	fn encode_and_update_nonce() -> Vec<u8> {

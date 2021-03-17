@@ -117,8 +117,8 @@ pub type Power = u32;
 /// time scale is milliseconds.
 pub type TsInMs = u64;
 
-pub type AccountId<T> = <T as frame_system::Trait>::AccountId;
-pub type BlockNumber<T> = <T as frame_system::Trait>::BlockNumber;
+pub type AccountId<T> = <T as frame_system::Config>::AccountId;
+pub type BlockNumber<T> = <T as frame_system::Config>::BlockNumber;
 
 /// The balance type of this module.
 pub type NativeCurrencyBalance<T> = <NativeCurrencyCurrency<T> as Currency<AccountId<T>>>::Balance;
@@ -137,8 +137,8 @@ pub type StakingCurrencyNegativeImbalance<T> =
 pub type ExposureT<T> = Exposure<AccountId<T>, RingBalance<T>, KtonBalance<T>>;
 pub type ElectionResultT<T> = ElectionResult<AccountId<T>, RingBalance<T>, KtonBalance<T>>;
 
-type NativeCurrency<T> = <T as Trait>::NativeCurrency;
-type StakingCurrency<T> = <T as Trait>::StakingCurrency;
+type NativeCurrency<T> = <T as Config>::NativeCurrency;
+type StakingCurrency<T> = <T as Config>::StakingCurrency;
 
 /// Information regarding the active era (era in used in session).
 #[derive(Encode, Decode, RuntimeDebug)]

@@ -24,13 +24,13 @@ pub struct Block<Hash> {
 mod mock;
 mod tests;
 
-pub trait Trait: system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+pub trait Config: system::Config {
+	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
 	type RandomnessSource: Randomness<H256>;
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as BlockModule {
+	trait Store for Module<T: Config> as BlockModule {
 
 		pub BlockOwner get(fn owner_of): map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
 		pub Blocks get(fn get_block): map hasher(blake2_128_concat) T::Hash => Block<T::Hash>;
@@ -45,7 +45,7 @@ decl_storage! {
 decl_event!(
 	pub enum Event<T>
 	where
-		AccountId = <T as system::Trait>::AccountId,
+		AccountId = <T as system::Config>::AccountId,
 	{
 		Initialized(AccountId),
  		RandomnessConsumed(H256, H256),
@@ -54,7 +54,7 @@ decl_event!(
 );
 
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// Attempted to initialize the token after it had already been initialized.
 		AlreadyInitialized,
 		/// Attempted to transfer more funds than were available
@@ -63,7 +63,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
 		#[weight = 10_000]
@@ -77,7 +77,7 @@ decl_module! {
 
 			let random_seed = T::RandomnessSource::random_seed();
 			let random_result = T::RandomnessSource::random(&random_str);
-			let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Trait>::Hashing::hash);
+			let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Config>::Hashing::hash);
 
 			//Check only country owner can add new block
 
@@ -104,7 +104,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	/// Reads the nonce from storage, increments the stored nonce, and returns
 	/// the encoded nonce to the caller.
 	fn encode_and_update_nonce() -> Vec<u8> {

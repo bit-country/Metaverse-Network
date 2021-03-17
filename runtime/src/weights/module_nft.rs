@@ -6,7 +6,7 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions for module_nft.
 pub struct WeightInfo<T>(PhantomData<T>);
-impl<T: frame_system::Trait> nft::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> nft::WeightInfo for WeightInfo<T> {
     fn mint(i: u32) -> Weight {
         (1_701_000 as Weight)
             // Standard Error: 5_000

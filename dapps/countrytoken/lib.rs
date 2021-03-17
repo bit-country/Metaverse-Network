@@ -27,7 +27,7 @@ mod countrytoken {
     /// The ERC-20 result type.
     pub type Result<T> = core::result::Result<T, Error>;
 
-    /// Trait implemented by all ERC-20 respecting smart contracts.
+    /// Config implemented by all ERC-20 respecting smart contracts.
     #[ink::trait_definition]
     pub trait BaseErc20 {
         /// Creates a new ERC-20 contract with the specified initial supply.

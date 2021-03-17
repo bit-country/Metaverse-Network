@@ -57,14 +57,16 @@ pub struct NftAssetData {
     pub properties: Vec<u8>,
 }
 
-#[derive(Encode, Decode, Debug, Clone, Eq, PartialEq)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum TokenType {
     Transferrable,
     BoundToAddress,
 }
 
 impl Default for TokenType {
-    fn default() -> Self { TokenType::Transferrable }
+    fn default() -> Self {
+        TokenType::Transferrable
+    }
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
@@ -79,8 +81,8 @@ pub struct NftClassData {
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: orml_nft::Trait<TokenData = NftAssetData, ClassData = NftClassData> {
-    type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+pub trait Config: orml_nft::Config<TokenData = NftAssetData, ClassData = NftClassData> {
+    type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
     type Randomness: Randomness<Self::Hash>;
     /// The minimum balance to create class
     type CreateClassDeposit: Get<Balance>;
@@ -94,13 +96,13 @@ pub trait Trait: orml_nft::Trait<TokenData = NftAssetData, ClassData = NftClassD
     type WeightInfo: WeightInfo;
 }
 
-type ClassIdOf<T> = <T as orml_nft::Trait>::ClassId;
-type TokenIdOf<T> = <T as orml_nft::Trait>::TokenId;
+type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
+type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 type BalanceOf<T> =
-    <<T as Trait>::Currency as Currency<<T as frame_system::Trait>::AccountId>>::Balance;
+    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 decl_storage! {
-    trait Store for Module<T: Trait> as NftAsset {
+    trait Store for Module<T: Config> as NftAsset {
 
         // pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) TokenId => Option<NftAssetData<T::AccountId>>;
         // pub NftOwner get(fn get_nft_owner): map hasher(blake2_128_concat) AssetId => T::AccountId;
@@ -118,7 +120,7 @@ decl_storage! {
 decl_event!(
     pub enum Event<T>
     where
-        <T as frame_system::Trait>::AccountId,
+        <T as frame_system::Config>::AccountId,
         ClassId = ClassIdOf<T>,
         AssetId = TokenIdOf<T>,
     {
@@ -131,7 +133,7 @@ decl_event!(
 );
 
 decl_error! {
-    pub enum Error for Module<T: Trait> {
+    pub enum Error for Module<T: Config> {
         /// Attempted to initialize the country after it had already been initialized.
         AlreadyInitialized,
         //Asset Info not found
@@ -150,7 +152,7 @@ decl_error! {
 }
 
 decl_module! {
-    pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+    pub struct Module<T: Config> for enum Call where origin: T::Origin {
         type Error = Error<T>;
 
         fn deposit_event() = default;
@@ -181,7 +183,7 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: CollectionId ,token_type: TokenType) -> DispatchResultWithPostInfo{
+        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: CollectionId) -> DispatchResultWithPostInfo{
 
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
@@ -195,13 +197,13 @@ decl_module! {
             //Secure deposit of token class owner -- support customise deposit
             let class_deposit = T::CreateClassDeposit::get();
             //Transfer fund to pot
-            <T as Trait>::Currency::transfer(&sender, &class_fund, class_deposit)?;
+            <T as Config>::Currency::transfer(&sender, &class_fund, class_deposit)?;
 
-            <T as Trait>::Currency::reserve(&class_fund, <T as Trait>::Currency::free_balance(&class_fund))?;
+            <T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
 
             let class_data = NftClassData { deposit: class_deposit, properties };
 
-            ClassDataType::<T>::insert(next_class_id, token_type);
+            ClassDataType::<T>::insert(next_class_id, TokenType::Transferrable);
 
             NftModule::<T>::create_class(&sender, metadata, class_data)?;
             ClassDataCollection::<T>::insert(next_class_id, collection_id);
@@ -211,7 +213,7 @@ decl_module! {
             Ok(().into())
         }
 
-        #[weight = <T as Trait>::WeightInfo::mint(*quantity)]
+        #[weight = <T as Config>::WeightInfo::mint(*quantity)]
         fn mint(origin, class_id: ClassIdOf<T>, name: Vec<u8>, description: Vec<u8>, metadata: Vec<u8>, quantity: u32) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
@@ -223,8 +225,8 @@ decl_module! {
             let deposit = T::CreateAssetDeposit::get();
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(class_id);
             let total_deposit = deposit * (quantity as u128);
-            <T as Trait>::Currency::transfer(&sender, &class_fund, total_deposit)?;
-            <T as Trait>::Currency::reserve(&class_fund, total_deposit)?;
+            <T as Config>::Currency::transfer(&sender, &class_fund, total_deposit)?;
+            <T as Config>::Currency::reserve(&class_fund, total_deposit)?;
 
             //Global Identifier -  todo
             // let nft_uid = Self::random_value(&sender);
@@ -286,7 +288,7 @@ decl_module! {
     }
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
     fn random_value(sender: &T::AccountId) -> [u8; 16] {
         let payload = (
             T::Randomness::random_seed(),
