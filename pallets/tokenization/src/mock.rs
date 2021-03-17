@@ -1,4 +1,4 @@
-use crate::{Module, Trait};
+use crate::{Module, Config};
 use frame_support::{
     impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
 };
@@ -61,7 +61,7 @@ parameter_types! {
 }
 
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -91,7 +91,7 @@ impl frame_system::Trait for Runtime {
 
 pub type System = frame_system::Module<Runtime>;
 
-impl orml_tokens::Trait for Runtime {
+impl orml_tokens::Config for Runtime {
 	type Event = TestEvent;
 	type Balance = Balance;
 	type Amount = Amount;
@@ -105,7 +105,7 @@ parameter_types! {
 	pub const ExistentialDeposit: Balance = 1;
 }
 
-impl pallet_balances::Trait for Runtime {
+impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
 	type Event = TestEvent;
@@ -121,7 +121,7 @@ parameter_types! {
 	pub const GetNativeCurrencyId: CurrencyId = BCG;
 }
 
-impl orml_currencies::Trait for Runtime {
+impl orml_currencies::Config for Runtime {
 	type Event = TestEvent;
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
@@ -134,7 +134,7 @@ parameter_types! {
 	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = TestEvent;
 	type TokenId = u64;
 	type CountryCurrency = Currencies;
@@ -142,7 +142,7 @@ impl Trait for Runtime {
 
 pub type TokenizationModule = Module<Runtime>;
 
-impl country::Trait for Runtime{
+impl country::Config for Runtime{
 	type Event = TestEvent;
 	type ModuleId = CountryFundModuleId;
 }

@@ -1,4 +1,4 @@
-use crate::{Module, Trait};
+use crate::{Module, Config};
 use frame_support::{
     impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
 };
@@ -55,7 +55,7 @@ parameter_types! {
 }
 
 
-impl frame_system::Trait for Runtime {
+impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
@@ -89,7 +89,7 @@ parameter_types! {
 	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
 }
 
-impl Trait for Runtime {
+impl Config for Runtime {
 	type Event = TestEvent;
 	type ModuleId = CountryFundModuleId;
 }

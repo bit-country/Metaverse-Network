@@ -55,22 +55,22 @@ pub struct RentalInfo<AccountId, BlockNumber, Balance> {
 	pub price_per_block: Balance,
 }
 
-pub trait Trait: frame_system::Trait + pallet_balances::Trait {
+pub trait Config: frame_system::Config + pallet_balances::Config {
 	/// The Asset ID type
 	// type AssetId: Parameter + Member + AtLeast32BitUnsigned + Default + Copy;
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 	type AssetData: Parameter + Member;
 	type CollectionData: Parameter + Member;
 	type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 }
 
 pub type CollectionInfoOf<T> =
-	CollectionInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::CollectionData>;
-pub type AssetInfoOf<T> = AssetInfo<<T as frame_system::Trait>::AccountId, <T as Trait>::AssetData>;
+	CollectionInfo<<T as frame_system::Config>::AccountId, <T as Config>::CollectionData>;
+pub type AssetInfoOf<T> = AssetInfo<<T as frame_system::Config>::AccountId, <T as Config>::AssetData>;
 
 decl_error! {
 	/// Error for non-fungible-token module.
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		// No available Collection Id
 		NoAvailableCollectionId,
 		/// No available Asset ID
@@ -92,7 +92,7 @@ decl_error! {
 decl_event!(
 	pub enum Event<T>
 	where
-		AccountId = <T as system::Trait>::AccountId,
+		AccountId = <T as system::Config>::AccountId,
 		AssetId = AssetId,
 	{
 		NewAssetCreated(AssetId),
@@ -102,7 +102,7 @@ decl_event!(
 );
 
 decl_storage! {
-	trait Store for Module<T: Trait> as NonFungibleToken {
+	trait Store for Module<T: Config> as NonFungibleToken {
 		/// Next collection id
 		pub NextCollectionId get(fn next_collection_id): CollectionId;
 		/// Next available asset id per collection.
@@ -129,12 +129,12 @@ decl_storage! {
 		//Get AssetId is renting
 		pub AssetByRent get(fn asset_by_rent): map hasher(twox_64_concat) RentId => AssetId;
 		//Get rent info by id
-		pub Rents get(fn get_rent_info): map hasher(twox_64_concat) RentId => Option<RentalInfo<<T as frame_system::Trait>::AccountId, <T as frame_system::Trait>::BlockNumber, T::Balance>>;
+		pub Rents get(fn get_rent_info): map hasher(twox_64_concat) RentId => Option<RentalInfo<<T as frame_system::Config>::AccountId, <T as frame_system::Config>::BlockNumber, T::Balance>>;
 	}
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 
 		#[weight = 10_000]
 		pub fn transfer(origin, to: T::AccountId, asset: (CollectionId, AssetId)) -> DispatchResult{
@@ -177,7 +177,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	pub fn create_collection(
 		owner: &T::AccountId,
 		metadata: Vec<u8>,

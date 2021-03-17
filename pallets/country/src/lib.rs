@@ -47,13 +47,13 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub trait Trait: system::Trait {
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+pub trait Config: system::Config {
+	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
 	type ModuleId: Get<ModuleId>;
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Country {
+	trait Store for Module<T: Config> as Country {
 
 		pub NextCountryId get(fn next_country_id): CountryId;
 		pub Countries get(fn get_country): map hasher(twox_64_concat) CountryId => Option<Country<T::AccountId>>;
@@ -69,7 +69,7 @@ decl_storage! {
 }
 
 decl_event!(
-	pub enum Event<T> where AccountId = <T as system::Trait>::AccountId {
+	pub enum Event<T> where AccountId = <T as system::Config>::AccountId {
 		NewCountryCreated(CountryId),
 		TransferredCountry(CountryId, AccountId, AccountId),
 		CountryFreezed(CountryId),
@@ -79,7 +79,7 @@ decl_event!(
 );
 
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		//Country Info not found
 		CountryInfoNotFound,
 		//Country Id not found
@@ -92,7 +92,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		fn deposit_event() = default;
 
 		#[weight = 10_000]
@@ -197,7 +197,7 @@ decl_module! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 	/// Reads the nonce from storage, increments the stored nonce, and returns
 	/// the encoded nonce to the caller.
 

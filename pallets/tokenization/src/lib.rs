@@ -23,9 +23,9 @@ mod mock;
 mod tests;
 
 /// The module configuration trait.
-pub trait Trait: system::Trait + country::Trait {
+pub trait Config: system::Config + country::Config {
 	/// The overarching event type.
-	type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+	type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
 	/// The arithmetic type of asset identifier.
 	type TokenId: Parameter + AtLeast32Bit + Default + Copy;
 	type CountryCurrency: MultiCurrencyExtended<
@@ -46,7 +46,7 @@ pub struct Token<Balance> {
 }
 
 decl_storage! {
-	trait Store for Module<T: Trait> as Assets {
+	trait Store for Module<T: Config> as Assets {
 		CountryTokens get(fn get_country_token): map hasher(blake2_128_concat) CountryId => Option<CurrencyId>;
 		/// The next asset identifier up for grabs.
 		NextTokenId get(fn next_token_id): CurrencyId;
@@ -57,7 +57,7 @@ decl_storage! {
 }
 
 decl_error! {
-	pub enum Error for Module<T: Trait> {
+	pub enum Error for Module<T: Config> {
 		/// Transfer amount should be non-zero
 		AmountZero,
 		/// Account balance must be greater than or equal to the transfer amount
@@ -78,7 +78,7 @@ decl_error! {
 }
 
 decl_module! {
-	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+	pub struct Module<T: Config> for enum Call where origin: T::Origin {
 		type Error = Error<T>;
 
 		fn deposit_event() = default;
@@ -133,7 +133,7 @@ decl_module! {
 
 decl_event! {
 	pub enum Event<T> where
-		<T as system::Trait>::AccountId,
+		<T as system::Config>::AccountId,
 		Balance = Balance,
 		CurrencyId = CurrencyId
 	{
@@ -146,7 +146,7 @@ decl_event! {
 	}
 }
 
-impl<T: Trait> Module<T> {
+impl<T: Config> Module<T> {
 
 	fn total_issuance(currency_id: CurrencyId) -> Balance {
 		T::CountryCurrency::total_issuance(currency_id)

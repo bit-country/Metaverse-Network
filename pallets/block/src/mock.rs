@@ -2,7 +2,7 @@
 // #![cfg(test)]
 
 // use super::*;
-// use crate::{Module, Trait};
+// use crate::{Module, Config};
 // use sp_core::H256;
 // use frame_support::{impl_outer_event, impl_outer_origin, parameter_types};
 // use sp_runtime::{
@@ -48,7 +48,7 @@
 // }
 
 
-// impl frame_system::Trait for Runtime {
+// impl frame_system::Config for Runtime {
 // 	type Origin = Origin;
 // 	type Index = u64;
 // 	type BlockNumber = BlockNumber;
@@ -78,7 +78,7 @@
 
 // pub type System = frame_system::Module<Runtime>;
 
-// impl Trait for Runtime {
+// impl Config for Runtime {
 // 	type Event = TestEvent;
 // }
 
