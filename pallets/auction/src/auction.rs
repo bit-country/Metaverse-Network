@@ -1,3 +1,5 @@
+/// This pallet trait use The Open Runtime Module Library (ORML) which is a community maintained collection of Substrate runtime modules. Thanks to all contributors of orml.
+
 use codec::FullCodec;
 use codec::{Decode, Encode};
 use sp_runtime::{
