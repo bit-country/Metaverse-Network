@@ -3,20 +3,18 @@
 use codec::{Decode, Encode};
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage,
-    dispatch::{DispatchResult, DispatchResultWithPostInfo},
+    dispatch::DispatchResultWithPostInfo,
     ensure,
-    traits::{Currency, ExistenceRequirement, Get, IsType, Randomness, ReservableCurrency},
+    traits::{Currency, ExistenceRequirement, Get, Randomness, ReservableCurrency},
     weights::Weight,
     StorageMap, StorageValue,
 };
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-use frame_system::{self as system, ensure_signed};
+use frame_system::ensure_signed;
 use orml_nft::Module as NftModule;
-use orml_traits::{BasicCurrency, BasicReservableCurrency};
-use primitives::{AccountId, Balance, CollectionId};
-use sp_io::hashing::blake2_128;
+use primitives::CollectionId;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
     traits::{AccountIdConversion, One},
@@ -29,8 +27,6 @@ mod default_weight;
 pub trait WeightInfo {
     fn mint(i: u32) -> Weight;
 }
-
-const MODULE_ID: ModuleId = ModuleId(*b"bcc/bNFT");
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct NftCollectionData<AccountId> {
@@ -53,6 +49,15 @@ pub struct NftAssetData {
 pub enum TokenType {
     Transferrable,
     BoundToAddress,
+}
+
+impl TokenType {
+    pub fn is_transferrable(&self) -> bool {
+        match *self {
+            TokenType::Transferrable => true,
+            _ => false,
+        }
+    }
 }
 
 impl Default for TokenType {
@@ -99,16 +104,12 @@ type BalanceOf<T> =
 decl_storage! {
     trait Store for Module<T: Config> as NftAsset {
 
-        // pub NftAssets get(fn get_nft_asset): map hasher(blake2_128_concat) TokenId => Option<NftAssetData<T::AccountId>>;
-        // pub NftOwner get(fn get_nft_owner): map hasher(blake2_128_concat) AssetId => T::AccountId;
         pub Collections get(fn get_collection): map hasher(blake2_128_concat) CollectionId => Option<NftCollectionData<T::AccountId>>;
         pub ClassDataCollection get(fn get_class_collection): map hasher(blake2_128_concat) ClassIdOf<T> => CollectionId;
         pub NextCollectionId get(fn next_collection_id): u64;
         pub AllNftCollection get(fn all_nft_collection_count): u64;
         pub ClassDataType get(fn get_class_type): map hasher(blake2_128_concat) ClassIdOf<T> => TokenType;
 
-        Init get(fn is_init): bool;
-        // Nonce get(fn nonce): u32;
     }
 }
 
@@ -137,11 +138,15 @@ decl_error! {
         AssetIdNotFound,
         //No permission
         NoPermission,
+        //No available collection id
         NoAvailableCollectionId,
+        //Collection id is not exist
         CollectionIsNotExist,
         //Class Id not found
         ClassIdNotFound,
+        //Non transferrable
         NonTransferrable,
+        //Invalid quantity
         InvalidQuantity
     }
 }
@@ -198,8 +203,6 @@ decl_module! {
 
             let class_data = NftClassData { deposit: class_deposit, properties, token_type };
 
-            // ClassDataType::<T>::insert(next_class_id, TokenType::Transferrable);
-
             NftModule::<T>::create_class(&sender, metadata, class_data)?;
             ClassDataCollection::<T>::insert(next_class_id, collection_id);
 
@@ -246,9 +249,10 @@ decl_module! {
 
             let sender = ensure_signed(origin)?;
 
-            let class_type = Self::get_class_type(asset.0);
+            let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
+            let data = class_info.data;
 
-            match class_type {
+            match data.token_type {
                 TokenType::Transferrable => {
                     let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
                     ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
@@ -284,15 +288,15 @@ decl_module! {
 }
 
 impl<T: Config> Module<T> {
-    fn random_value(sender: &T::AccountId) -> [u8; 16] {
-        let payload = (
-            T::Randomness::random_seed(),
-            &sender,
-            <frame_system::Module<T>>::extrinsic_index(),
-        );
+    // fn random_value(sender: &T::AccountId) -> [u8; 16] {
+    //     let payload = (
+    //         T::Randomness::random_seed(),
+    //         &sender,
+    //         <frame_system::Module<T>>::extrinsic_index(),
+    //     );
 
-        payload.using_encoded(blake2_128)
-    }
+    //     payload.using_encoded(blake2_128)
+    // }
 
     fn do_create_collection(
         sender: &T::AccountId,

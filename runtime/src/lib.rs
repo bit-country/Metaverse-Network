@@ -6,22 +6,22 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use orml_currencies::{BasicCurrencyAdapter, Currency};
+use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
-use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
+use pallet_transaction_payment::{CurrencyAdapter, Multiplier};
 
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{
     crypto::KeyTypeId,
     u32_trait::{_1, _2, _3, _4},
-    Encode, OpaqueMetadata, H256,
+    OpaqueMetadata,
 };
 use sp_runtime::traits::{
-    AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount,
-    IdentityLookup, NumberFor, SaturatedConversion, Saturating, Verify, Zero,
+    AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor,
+    Verify, Zero,
 };
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
@@ -33,10 +33,9 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use frame_system::{EnsureOneOf, EnsureRoot, RawOrigin};
+use frame_system::{EnsureOneOf, EnsureRoot};
 
 // custom runtime pallet
-use auction;
 use nft;
 use pallet_contracts::weights::WeightInfo;
 
@@ -338,17 +337,18 @@ type EnsureRootOrHalfGeneralCouncil = EnsureOneOf<
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, GeneralCouncilInstance>,
 >;
 
-type EnsureRootOrTwoThirdsGeneralCouncil = EnsureOneOf<
-    AccountId,
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<_2, _3, AccountId, GeneralCouncilInstance>,
->;
+//TODO implement on separate council
+// type EnsureRootOrTwoThirdsGeneralCouncil = EnsureOneOf<
+//     AccountId,
+//     EnsureRoot<AccountId>,
+//     pallet_collective::EnsureProportionMoreThan<_2, _3, AccountId, GeneralCouncilInstance>,
+// >;
 
-type EnsureRootOrThreeFourthsGeneralCouncil = EnsureOneOf<
-    AccountId,
-    EnsureRoot<AccountId>,
-    pallet_collective::EnsureProportionMoreThan<_3, _4, AccountId, GeneralCouncilInstance>,
->;
+// type EnsureRootOrThreeFourthsGeneralCouncil = EnsureOneOf<
+//     AccountId,
+//     EnsureRoot<AccountId>,
+//     pallet_collective::EnsureProportionMoreThan<_3, _4, AccountId, GeneralCouncilInstance>,
+// >;
 
 impl pallet_sudo::Config for Runtime {
     type Event = Event;
@@ -533,16 +533,16 @@ impl section::Config for Runtime {
 }
 
 parameter_types! {
-    pub const AuctionTimeToClose: u32 = 100800;
+    pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
 }
 
-// impl auction::Config for Runtime {
-//     type Event = Event;
-//     type AuctionTimeToClose = AuctionTimeToClose;
-//     type AuctionId = u64;
-//     type Handler = Auction;
-//     type Currency = Balances;
-// }
+impl auction::Config for Runtime {
+    type Event = Event;
+    type AuctionTimeToClose = AuctionTimeToClose;
+    type AuctionId = u64;
+    type Handler = Auction;
+    type Currency = Balances;
+}
 
 impl tokenization::Config for Runtime {
     type Event = Event;
@@ -581,7 +581,7 @@ construct_runtime!(
         SectionModule: section::{Module, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Module ,Storage},
         NftModule: nft::{Module, Call ,Storage, Event<T>},
-        // Auction: auction::{Module, Call ,Storage, Event<T>},
+        Auction: auction::{Module, Call ,Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},

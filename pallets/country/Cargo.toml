@@ -42,12 +42,6 @@ orml-traits = { default-features = false, version = '0.4.0' }
 orml-currencies = { default-features = false, version = '0.4.0' }
 orml-tokens = { default-features = false, version = '0.4.0' }
 
-[dependencies.unique-asset]
-default-features = false
-package = 'pallet-unique-asset'
-path = '../uniqueAsset'
-version = '2.0.0-rc6'
-
 [dependencies.nft]
 default-features = false
 package = 'pallet-nft'
@@ -70,7 +64,6 @@ std = [
     "sp-std/std",
     "orml-traits/std",
 	"orml-tokens/std",
-    'unique-asset/std',
     'nft/std',
     'primitives/std'
 ]

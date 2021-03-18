@@ -50,11 +50,6 @@ package = 'pallet-country'
 path = '../country'
 version = '2.0.0-rc6'
 
-[dependencies.unique-asset]
-default-features = false
-package = 'pallet-unique-asset'
-path = '../uniqueAsset'
-version = '2.0.0-rc6'
 
 [features]
 default = ['std']
@@ -71,5 +66,4 @@ std = [
     'orml-traits/std', 
     'primitives/std',
     'country/std',
-    'unique-asset/std',
 ]

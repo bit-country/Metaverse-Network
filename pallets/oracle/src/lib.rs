@@ -5,7 +5,6 @@
 #[cfg(test)]
 mod tests;
 
-use core::{convert::TryInto, fmt};
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
 };
@@ -21,10 +20,6 @@ use frame_system::{
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::{
     offchain as rt_offchain,
-    offchain::{
-        storage::StorageValueRef,
-        storage_lock::{BlockAndTime, StorageLock},
-    },
     transaction_validity::{
         InvalidTransaction, TransactionSource, TransactionValidity, ValidTransaction,
     },
@@ -252,77 +247,77 @@ impl<T: Config> Module<T> {
 
     /// This function uses the `offchain::http` API to query the remote github information,
     ///   and returns the JSON response as vector of bytes.
-    fn fetch_from_remote() -> Result<Vec<u8>, Error<T>> {
-        debug::info!("sending request to: {}", HTTP_REMOTE_REQUEST);
+    // fn fetch_from_remote() -> Result<Vec<u8>, Error<T>> {
+    //     debug::info!("sending request to: {}", HTTP_REMOTE_REQUEST);
 
-        // Initiate an external HTTP GET request. This is using high-level wrappers from `sp_runtime`.
-        let request = rt_offchain::http::Request::get(HTTP_REMOTE_REQUEST);
+    //     // Initiate an external HTTP GET request. This is using high-level wrappers from `sp_runtime`.
+    //     let request = rt_offchain::http::Request::get(HTTP_REMOTE_REQUEST);
 
-        // Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
-        let timeout = sp_io::offchain::timestamp()
-            .add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
+    //     // Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
+    //     let timeout = sp_io::offchain::timestamp()
+    //         .add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
 
-        // For github API request, we also need to specify `user-agent` in http request header.
-        //   See: https://developer.github.com/v3/#user-agent-required
-        let pending = request
-            .add_header("User-Agent", HTTP_HEADER_USER_AGENT)
-            .deadline(timeout) // Setting the timeout time
-            .send() // Sending the request out by the host
-            .map_err(|_| <Error<T>>::HttpFetchingError)?;
+    //     // For github API request, we also need to specify `user-agent` in http request header.
+    //     //   See: https://developer.github.com/v3/#user-agent-required
+    //     let pending = request
+    //         .add_header("User-Agent", HTTP_HEADER_USER_AGENT)
+    //         .deadline(timeout) // Setting the timeout time
+    //         .send() // Sending the request out by the host
+    //         .map_err(|_| <Error<T>>::HttpFetchingError)?;
 
-        // By default, the http request is async from the runtime perspective. So we are asking the
-        //   runtime to wait here.
-        // The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
-        //   ref: https://substrate.dev/rustdocs/v2.0.0/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
-        let response = pending
-            .try_wait(timeout)
-            .map_err(|_| <Error<T>>::HttpFetchingError)?
-            .map_err(|_| <Error<T>>::HttpFetchingError)?;
+    //     // By default, the http request is async from the runtime perspective. So we are asking the
+    //     //   runtime to wait here.
+    //     // The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
+    //     //   ref: https://substrate.dev/rustdocs/v2.0.0/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
+    //     let response = pending
+    //         .try_wait(timeout)
+    //         .map_err(|_| <Error<T>>::HttpFetchingError)?
+    //         .map_err(|_| <Error<T>>::HttpFetchingError)?;
 
-        if response.code != 200 {
-            debug::error!("Unexpected http request status code: {}", response.code);
-            return Err(<Error<T>>::HttpFetchingError);
-        }
+    //     if response.code != 200 {
+    //         debug::error!("Unexpected http request status code: {}", response.code);
+    //         return Err(<Error<T>>::HttpFetchingError);
+    //     }
 
-        // Next we fully read the response body and collect it to a vector of bytes.
-        Ok(response.body().collect::<Vec<u8>>())
-    }
+    //     // Next we fully read the response body and collect it to a vector of bytes.
+    //     Ok(response.body().collect::<Vec<u8>>())
+    // }
 
-    fn offchain_signed_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
-        // We retrieve a signer and check if it is valid.
-        //   Since this pallet only has one key in the keystore. We use `any_account()1 to
-        //   retrieve it. If there are multiple keys and we want to pinpoint it, `with_filter()` can be chained,
-        //   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
-        let signer = Signer::<T, T::AuthorityId>::any_account();
+    // fn offchain_signed_tx(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
+    //     // We retrieve a signer and check if it is valid.
+    //     //   Since this pallet only has one key in the keystore. We use `any_account()1 to
+    //     //   retrieve it. If there are multiple keys and we want to pinpoint it, `with_filter()` can be chained,
+    //     //   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
+    //     let signer = Signer::<T, T::AuthorityId>::any_account();
 
-        // Translating the current block number to number and submit it on-chain
-        // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
-        let number: u64 = 0 as u64;
+    //     // Translating the current block number to number and submit it on-chain
+    //     // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+    //     let number: u64 = 0 as u64;
 
-        // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
-        //   - `None`: no account is available for sending transaction
-        //   - `Some((account, Ok(())))`: transaction is successfully sent
-        //   - `Some((account, Err(())))`: error occured when sending the transaction
-        let result = signer.send_signed_transaction(|_acct|
-			// This is the on-chain function
-			Call::submit_number_signed(number));
+    //     // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
+    //     //   - `None`: no account is available for sending transaction
+    //     //   - `Some((account, Ok(())))`: transaction is successfully sent
+    //     //   - `Some((account, Err(())))`: error occured when sending the transaction
+    //     let result = signer.send_signed_transaction(|_acct|
+    // 		// This is the on-chain function
+    // 		Call::submit_number_signed(number));
 
-        // Display error if the signed tx fails.
-        if let Some((acc, res)) = result {
-            if res.is_err() {
-                debug::error!("failure: offchain_signed_tx: tx sent: {:?}", acc.id);
-                return Err(<Error<T>>::OffchainSignedTxError);
-            }
-            // Transaction is sent successfully
-            return Ok(());
-        }
+    //     // Display error if the signed tx fails.
+    //     if let Some((acc, res)) = result {
+    //         if res.is_err() {
+    //             debug::error!("failure: offchain_signed_tx: tx sent: {:?}", acc.id);
+    //             return Err(<Error<T>>::OffchainSignedTxError);
+    //         }
+    //         // Transaction is sent successfully
+    //         return Ok(());
+    //     }
 
-        // The case of `None`: no account is available for sending
-        debug::error!("No local account available");
-        Err(<Error<T>>::NoLocalAcctForSigning)
-    }
+    //     // The case of `None`: no account is available for sending
+    //     debug::error!("No local account available");
+    //     Err(<Error<T>>::NoLocalAcctForSigning)
+    // }
 
-    fn offchain_unsigned_tx(block_number: T::BlockNumber) -> Result<(), Error<T>> {
+    fn offchain_unsigned_tx(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
         // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
 
         let number: u64 = 0 as u64;
@@ -336,7 +331,7 @@ impl<T: Config> Module<T> {
         })
     }
 
-    fn offchain_unsigned_tx_signed_payload(block_number: T::BlockNumber) -> Result<(), Error<T>> {
+    fn offchain_unsigned_tx_signed_payload(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
         // Retrieve the signer to sign the payload
         let signer = Signer::<T, T::AuthorityId>::any_account();
 

@@ -547,7 +547,6 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
- "pallet-unique-asset",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -3884,19 +3883,21 @@ dependencies = [
 name = "pallet-auction"
 version = "2.0.0-rc6"
 dependencies = [
+ "bit-country-primitives",
  "frame-executive",
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
+ "orml-nft",
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
+ "pallet-nft",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
- "pallet-unique-asset",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -3976,7 +3977,6 @@ dependencies = [
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
- "pallet-unique-asset",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -4121,7 +4121,6 @@ dependencies = [
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
- "pallet-unique-asset",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -4222,7 +4221,6 @@ dependencies = [
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
- "pallet-unique-asset",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -4327,7 +4325,6 @@ dependencies = [
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
- "pallet-unique-asset",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -4405,35 +4402,6 @@ dependencies = [
  "serde",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-unique-asset"
-version = "2.0.0-rc6"
-dependencies = [
- "frame-executive",
- "frame-support",
- "frame-system",
- "pallet-aura",
- "pallet-balances",
- "pallet-grandpa",
- "pallet-randomness-collective-flip",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "serde",
- "sp-api",
- "sp-block-builder",
- "sp-consensus-aura",
- "sp-core",
- "sp-inherents",
- "sp-offchain",
- "sp-runtime",
- "sp-session",
- "sp-std",
- "sp-transaction-pool",
- "sp-version",
 ]
 
 [[package]]

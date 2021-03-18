@@ -60,12 +60,6 @@ oracle = {version = "1.0.0", path = "../pallets/oracle", default_features= false
 
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives", default-features = false }
 
-[dependencies.unique-asset]
-default-features = false
-package = 'pallet-unique-asset'
-path = '../pallets/uniqueAsset'
-version = '2.0.0-rc6'
-
 [dependencies.country]
 default-features = false
 package = 'pallet-country'

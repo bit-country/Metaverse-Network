@@ -39,12 +39,11 @@ sp-version = { version = "3.0.0", default-features = false }
 # Used for the node's RPCs
 frame-system-rpc-runtime-api = { version = "3.0.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { version = "3.0.0", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 
-[dependencies.unique-asset]
-default-features = false
-package = 'pallet-unique-asset'
-path = '../uniqueAsset'
-version = '2.0.0-rc6'
+# orml packages
+orml-nft = { default-features = false, version = '0.4.0' }
+pallet-nft = {default-features = false, package = 'pallet-nft', path = '../nft'}
 
 [features]
 default = ['std']
@@ -54,6 +53,7 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
-    'unique-asset/std',
+    'orml-nft/std',
+    'pallet-nft/std',
     'pallet-balances/std',
 ]
