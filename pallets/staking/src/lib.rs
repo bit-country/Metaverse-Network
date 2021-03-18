@@ -134,8 +134,8 @@ pub type StakingCurrencyPositiveImbalance<T> =
 pub type StakingCurrencyNegativeImbalance<T> =
     <StakingCurrency<T> as Currency<AccountId<T>>>::NegativeImbalance;
 
-pub type ExposureT<T> = Exposure<AccountId<T>, RingBalance<T>, KtonBalance<T>>;
-pub type ElectionResultT<T> = ElectionResult<AccountId<T>, RingBalance<T>, KtonBalance<T>>;
+pub type ExposureT<T> = Exposure<AccountId<T>, NativeCurrencyBalance<T>, StakingCurrencyBalance<T>>;
+pub type ElectionResultT<T> = ElectionResult<AccountId<T>, NativeCurrencyBalance<T>, StakingCurrencyBalance<T>>;
 
 type NativeCurrency<T> = <T as Config>::NativeCurrency;
 type StakingCurrency<T> = <T as Config>::StakingCurrency;
