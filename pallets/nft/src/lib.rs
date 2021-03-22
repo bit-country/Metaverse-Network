@@ -66,6 +66,44 @@ impl Default for TokenType {
     }
 }
 
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum CollectionType {
+    Collectable,
+    Rentable,
+    Executable,
+}
+
+//Collection extension for fast retrieval
+impl CollectionType {
+    pub fn is_collectable(&self) -> bool {
+        match *self {
+            CollectionType::Collectable => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_executable(&self) -> bool {
+        match *self {
+            CollectionType::Executable => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_rentable(&self) -> bool {
+        match *self {
+            CollectionType::Collectable => true,
+            _ => false,
+        }
+    }
+}
+
+impl Default for CollectionType {
+    fn default() -> Self {
+        CollectionType::Collectable
+    }
+}
+
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftClassData<Balance> {
@@ -74,6 +112,8 @@ pub struct NftClassData<Balance> {
     // Metadata from ipfs
     pub properties: Vec<u8>,
     pub token_type: TokenType,
+    pub total_supply: u64,
+    pub initial_supply: u64,
 }
 
 #[cfg(test)]
@@ -201,7 +241,14 @@ decl_module! {
 
             <T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
 
-            let class_data = NftClassData { deposit: class_deposit, properties, token_type };
+            let class_data = NftClassData
+            {
+                deposit: class_deposit,
+                properties,
+                token_type,
+                total_supply: Default::default(),
+                initial_supply: Default::default()
+            };
 
             NftModule::<T>::create_class(&sender, metadata, class_data)?;
             ClassDataCollection::<T>::insert(next_class_id, collection_id);
@@ -223,6 +270,7 @@ decl_module! {
             let deposit = T::CreateAssetDeposit::get();
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(class_id);
             let total_deposit = deposit * Into::<BalanceOf<T>>::into(quantity);
+
             <T as Config>::Currency::transfer(&sender, &class_fund, total_deposit, ExistenceRequirement::KeepAlive)?;
             <T as Config>::Currency::reserve(&class_fund, total_deposit)?;
 
@@ -267,6 +315,36 @@ decl_module! {
             }
         }
 
+        #[weight = 100_000]
+        fn transferBatch(origin, tos: Vec<(T::AccountId, ClassIdOf<T>, TokenIdOf<T>)>) -> DispatchResultWithPostInfo {
+
+            let sender = ensure_signed(origin)?;
+
+            for (i, x) in tos.iter().enumerate(){
+
+                let item = &x;
+                let owner = &sender.clone();
+
+                let class_info = NftModule::<T>::classes(item.1).ok_or(Error::<T>::ClassIdNotFound)?;
+                let data = class_info.data;
+
+                match data.token_type {
+                    TokenType::Transferrable => {
+                        let asset_info = NftModule::<T>::tokens(item.1, item.2).ok_or(Error::<T>::AssetInfoNotFound)?;
+                        ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
+
+                        NftModule::<T>::transfer(&owner, &item.0, (item.1, item.2))?;
+
+                        Self::deposit_event(RawEvent::TransferedNft(owner.clone(), item.0.clone(), item.2.clone()));
+                    }
+                    _ => ()
+                };
+            }
+
+            Ok(().into())
+        }
+
+        //TODO
         // #[weight = 100_000]
         // fn sign(origin, asset_id: TokenIdOf<T>) -> DispatchResult {
 
@@ -288,16 +366,6 @@ decl_module! {
 }
 
 impl<T: Config> Module<T> {
-    // fn random_value(sender: &T::AccountId) -> [u8; 16] {
-    //     let payload = (
-    //         T::Randomness::random_seed(),
-    //         &sender,
-    //         <frame_system::Module<T>>::extrinsic_index(),
-    //     );
-
-    //     payload.using_encoded(blake2_128)
-    // }
-
     fn do_create_collection(
         sender: &T::AccountId,
         name: Vec<u8>,
