@@ -1,4 +1,6 @@
-/// This pallet trait use The Open Runtime Module Library (ORML) which is a community maintained collection of Substrate runtime modules. Thanks to all contributors of orml.
+// This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection of Substrate runtime modules.
+// Thanks to all contributors of orml.
+// Ref: https://github.com/open-web3-stack/open-runtime-module-library
 
 use codec::FullCodec;
 use codec::{Decode, Encode};

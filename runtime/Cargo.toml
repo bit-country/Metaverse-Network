@@ -1,10 +1,10 @@
 [package]
-authors = ['Substrate DevHub <https://github.com/substrate-developer-hub>']
+authors = ['Bit.Country Developers <https://github.com/bit.country>']
 edition = '2018'
-homepage = 'https://substrate.dev'
+homepage = 'https://bit.country'
 license = 'Unlicense'
 name = 'bitcountry-runtime'
-repository = 'https://github.com/substrate-developer-hub/substrate-node-template/'
+repository = 'https://github.com/bit.country/Bit-Country-Blockchain'
 version = '2.0.0-rc6'
 
 [package.metadata.docs.rs]
@@ -70,12 +70,6 @@ version = '2.0.0-rc6'
 default-features = false
 package = 'pallet-block'
 path = '../pallets/block'
-version = '2.0.0-rc6'
-
-[dependencies.section]
-default-features = false
-package = 'pallet-section'
-path = '../pallets/section'
 version = '2.0.0-rc6'
 
 [dependencies.tokenization]
@@ -146,7 +140,6 @@ std = [
     'orml-nft/std',
     'country/std',
     'block/std',
-    'section/std',
     'nft/std',
     'auction/std',
     "pallet-contracts/std",

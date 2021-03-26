@@ -1,10 +1,12 @@
-//! A demonstration of an offchain worker that sends onchain callbacks
+// A demonstration of an offchain worker that sends onchain callbacks which originally attributed from FRAME example-offchain-worker
+// More detail of original FRAME example can find here https://github.com/paritytech/substrate/blob/master/frame/example-offchain-worker/src/lib.rs
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(test)]
 mod tests;
 
+/// A runtime module template with necessary imports
 use frame_support::{
     debug, decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult,
 };
@@ -26,9 +28,6 @@ use sp_runtime::{
     RuntimeDebug,
 };
 use sp_std::{collections::vec_deque::VecDeque, prelude::*, str};
-
-// We use `alt_serde`, and Xanewok-modified `serde_json` so that we can compile the program
-//   with serde(features `std`) and alt_serde(features `no_std`).
 
 /// Defines application identifier for crypto keys of this module.
 ///
@@ -89,33 +88,6 @@ impl<T: SigningTypes> SignedPayload<T> for Payload<T::Public> {
         self.public.clone()
     }
 }
-
-// // Specifying serde path as `alt_serde`
-// // ref: https://serde.rs/container-attrs.html#crate
-// #[serde(crate = "alt_serde")]
-// #[derive(Deserialize, Encode, Decode, Default)]
-// struct GithubInfo {
-//     // Specify our own deserializing function to convert JSON string to vector of bytes
-//     #[serde(deserialize_with = "de_string_to_bytes")]
-//     login: Vec<u8>,
-//     #[serde(deserialize_with = "de_string_to_bytes")]
-//     blog: Vec<u8>,
-//     public_repos: u32,
-// }
-
-// impl fmt::Debug for GithubInfo {
-//     // `fmt` converts the vector of bytes inside the struct back to string for
-//     //   more friendly display.
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(
-//             f,
-//             "{{ login: {}, blog: {}, public_repos: {} }}",
-//             str::from_utf8(&self.login).map_err(|_| fmt::Error)?,
-//             str::from_utf8(&self.blog).map_err(|_| fmt::Error)?,
-//             &self.public_repos
-//         )
-//     }
-// }
 
 /// This is the pallet's configuration trait
 pub trait Config: system::Config + CreateSignedTransaction<Call<Self>> {
@@ -206,28 +178,6 @@ decl_module! {
 
         fn offchain_worker(block_number: T::BlockNumber) {
             debug::info!("Entering off-chain worker");
-
-
-            // Here we are showcasing various techniques used when running off-chain workers (ocw)
-            // 1. Sending signed transaction from ocw
-            // 2. Sending unsigned transaction from ocw
-            // 3. Sending unsigned transactions with signed payloads from ocw
-            // 4. Fetching JSON via http requests in ocw
-
-            // const TRANSACTION_TYPES: usize = 4;
-            // let result = match block_number.try_into().unwrap()
-            //     .map_or(TRANSACTION_TYPES, |bn| bn % TRANSACTION_TYPES)
-            // {
-            //     0 => Self::offchain_signed_tx(block_number),
-            //     1 => Self::offchain_unsigned_tx(block_number),
-            //     2 => Self::offchain_unsigned_tx_signed_payload(block_number),
-            //     // 3 => Self::fetch_github_info(),
-            //     _ => Err(Error::<T>::UnknownOffchainMux),
-            // };
-
-            // if let Err(e) = result {
-            //     debug::error!("offchain_worker error: {:?}", e);
-            // }
         }
     }
 }
@@ -244,78 +194,6 @@ impl<T: Config> Module<T> {
             debug::info!("Number vector: {:?}", numbers);
         });
     }
-
-    /// This function uses the `offchain::http` API to query the remote github information,
-    ///   and returns the JSON response as vector of bytes.
-    // fn fetch_from_remote() -> Result<Vec<u8>, Error<T>> {
-    //     debug::info!("sending request to: {}", HTTP_REMOTE_REQUEST);
-
-    //     // Initiate an external HTTP GET request. This is using high-level wrappers from `sp_runtime`.
-    //     let request = rt_offchain::http::Request::get(HTTP_REMOTE_REQUEST);
-
-    //     // Keeping the offchain worker execution time reasonable, so limiting the call to be within 3s.
-    //     let timeout = sp_io::offchain::timestamp()
-    //         .add(rt_offchain::Duration::from_millis(FETCH_TIMEOUT_PERIOD));
-
-    //     // For github API request, we also need to specify `user-agent` in http request header.
-    //     //   See: https://developer.github.com/v3/#user-agent-required
-    //     let pending = request
-    //         .add_header("User-Agent", HTTP_HEADER_USER_AGENT)
-    //         .deadline(timeout) // Setting the timeout time
-    //         .send() // Sending the request out by the host
-    //         .map_err(|_| <Error<T>>::HttpFetchingError)?;
-
-    //     // By default, the http request is async from the runtime perspective. So we are asking the
-    //     //   runtime to wait here.
-    //     // The returning value here is a `Result` of `Result`, so we are unwrapping it twice by two `?`
-    //     //   ref: https://substrate.dev/rustdocs/v2.0.0/sp_runtime/offchain/http/struct.PendingRequest.html#method.try_wait
-    //     let response = pending
-    //         .try_wait(timeout)
-    //         .map_err(|_| <Error<T>>::HttpFetchingError)?
-    //         .map_err(|_| <Error<T>>::HttpFetchingError)?;
-
-    //     if response.code != 200 {
-    //         debug::error!("Unexpected http request status code: {}", response.code);
-    //         return Err(<Error<T>>::HttpFetchingError);
-    //     }
-
-    //     // Next we fully read the response body and collect it to a vector of bytes.
-    //     Ok(response.body().collect::<Vec<u8>>())
-    // }
-
-    // fn offchain_signed_tx(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
-    //     // We retrieve a signer and check if it is valid.
-    //     //   Since this pallet only has one key in the keystore. We use `any_account()1 to
-    //     //   retrieve it. If there are multiple keys and we want to pinpoint it, `with_filter()` can be chained,
-    //     //   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.Signer.html
-    //     let signer = Signer::<T, T::AuthorityId>::any_account();
-
-    //     // Translating the current block number to number and submit it on-chain
-    //     // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
-    //     let number: u64 = 0 as u64;
-
-    //     // `result` is in the type of `Option<(Account<T>, Result<(), ()>)>`. It is:
-    //     //   - `None`: no account is available for sending transaction
-    //     //   - `Some((account, Ok(())))`: transaction is successfully sent
-    //     //   - `Some((account, Err(())))`: error occured when sending the transaction
-    //     let result = signer.send_signed_transaction(|_acct|
-    // 		// This is the on-chain function
-    // 		Call::submit_number_signed(number));
-
-    //     // Display error if the signed tx fails.
-    //     if let Some((acc, res)) = result {
-    //         if res.is_err() {
-    //             debug::error!("failure: offchain_signed_tx: tx sent: {:?}", acc.id);
-    //             return Err(<Error<T>>::OffchainSignedTxError);
-    //         }
-    //         // Transaction is sent successfully
-    //         return Ok(());
-    //     }
-
-    //     // The case of `None`: no account is available for sending
-    //     debug::error!("No local account available");
-    //     Err(<Error<T>>::NoLocalAcctForSigning)
-    // }
 
     fn offchain_unsigned_tx(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
         // let number: u64 = block_number.try_into().unwrap_or(0) as u64;

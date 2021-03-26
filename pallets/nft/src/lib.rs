@@ -1,5 +1,6 @@
-
-/// This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection of Substrate runtime modules. Thanks to all contributors of orml.
+// This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection of Substrate runtime modules.
+// Thanks to all contributors of orml.
+// https://github.com/open-web3-stack/open-runtime-module-library
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -17,7 +18,7 @@ use serde::{Deserialize, Serialize};
 
 use frame_system::ensure_signed;
 use orml_nft::Module as NftModule;
-use primitives::CollectionId;
+use primitives::GroupCollectionId;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
     traits::{AccountIdConversion, One},
@@ -32,7 +33,7 @@ pub trait WeightInfo {
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
-pub struct NftCollectionData<AccountId> {
+pub struct NftGroupCollectionData<AccountId> {
     pub name: Vec<u8>,
     pub owner: AccountId,
     // Metadata from ipfs
@@ -147,10 +148,10 @@ type BalanceOf<T> =
 decl_storage! {
     trait Store for Module<T: Config> as NftAsset {
 
-        pub Collections get(fn get_collection): map hasher(blake2_128_concat) CollectionId => Option<NftCollectionData<T::AccountId>>;
-        pub ClassDataCollection get(fn get_class_collection): map hasher(blake2_128_concat) ClassIdOf<T> => CollectionId;
-        pub NextCollectionId get(fn next_collection_id): u64;
-        pub AllNftCollection get(fn all_nft_collection_count): u64;
+        pub GroupCollections get(fn get_group_collection): map hasher(blake2_128_concat) GroupCollectionId => Option<NftGroupCollectionData<T::AccountId>>;
+        pub ClassDataCollection get(fn get_class_collection): map hasher(blake2_128_concat) ClassIdOf<T> => GroupCollectionId;
+        pub NextGroupCollectionId get(fn next_group_collection_id): u64;
+        pub AllNftGroupCollection get(fn all_nft_collection_count): u64;
         pub ClassDataType get(fn get_class_type): map hasher(blake2_128_concat) ClassIdOf<T> => TokenType;
 
     }
@@ -163,7 +164,7 @@ decl_event!(
         ClassId = ClassIdOf<T>,
         AssetId = TokenIdOf<T>,
     {
-        NewNftCollectionCreated(AccountId, CollectionId),
+        NewNftCollectionCreated(AccountId, GroupCollectionId),
         NewNftClassCreated(AccountId, ClassId),
         NewNftMinted(AccountId, ClassId, u32),
         TransferedNft(AccountId, AccountId, AssetId),
@@ -201,43 +202,43 @@ decl_module! {
         fn deposit_event() = default;
 
         #[weight = 10_000]
-        fn create_collection(origin, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo{
+        fn create_group(origin, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo{
 
             let sender = ensure_signed(origin)?;
 
-            let next_collection_id = Self::do_create_collection(&sender, name.clone(), properties.clone())?;
+            let next_group_collection_id = Self::do_create_group_collection(&sender, name.clone(), properties.clone())?;
 
-            let collection_data = NftCollectionData {
+            let collection_data = NftGroupCollectionData {
                 owner: sender.clone(),
                 name,
                 properties,
             };
 
-            Collections::<T>::insert(next_collection_id, collection_data);
+            GroupCollections::<T>::insert(next_group_collection_id, collection_data);
 
             let all_collection_count = Self::all_nft_collection_count();
             let new_all_nft_collection_count = all_collection_count.checked_add(One::one())
                 .ok_or("Overflow adding a new collection to total collection")?;
 
-            AllNftCollection::put(new_all_nft_collection_count);
+            AllNftGroupCollection::put(new_all_nft_collection_count);
 
-            Self::deposit_event(RawEvent::NewNftCollectionCreated(sender, next_collection_id));
+            Self::deposit_event(RawEvent::NewNftCollectionCreated(sender, next_group_collection_id));
             Ok(().into())
         }
 
         #[weight = 10_000]
-        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: CollectionId, token_type: TokenType) -> DispatchResultWithPostInfo{
+        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType) -> DispatchResultWithPostInfo{
 
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
 
-            let collection_info = Self::get_collection(collection_id).ok_or(Error::<T>::CollectionIsNotExist)?;
+            let collection_info = Self::get_group_collection(collection_id).ok_or(Error::<T>::CollectionIsNotExist)?;
 
             ensure!(sender == collection_info.owner, Error::<T>::NoPermission);
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
-            // Secure deposit of token class owner -- support customise deposit
+            // Secure deposit of token class owner -- TODO - support customise deposit
             let class_deposit = T::CreateClassDeposit::get();
             // Transfer fund to pot
             <T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
@@ -319,7 +320,7 @@ decl_module! {
         }
 
         #[weight = 100_000]
-        fn transferBatch(origin, tos: Vec<(T::AccountId, ClassIdOf<T>, TokenIdOf<T>)>) -> DispatchResultWithPostInfo {
+        fn transfer_batch(origin, tos: Vec<(T::AccountId, ClassIdOf<T>, TokenIdOf<T>)>) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
 
@@ -346,36 +347,17 @@ decl_module! {
 
             Ok(().into())
         }
-
-        //TODO
-        // #[weight = 100_000]
-        // fn sign(origin, asset_id: TokenIdOf<T>) -> DispatchResult {
-
-        //     let sender = ensure_signed(origin)?;
-        //     <NftAssets<T>>::try_mutate_exists(asset_id, |asset_data| -> DispatchResult {
-        //         let mut asset = asset_data.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
-
-        //         match asset.supporters.binary_search(&sender) {
-        //             Ok(_pos) => {} // should never happen
-        //             Err(pos) => asset.supporters.insert(pos, sender.clone()),
-        //         }
-
-        //         Self::deposit_event(RawEvent::SignedNft(asset_id, sender));
-
-        //         Ok(())
-        //     })
-        // }
     }
 }
 
 impl<T: Config> Module<T> {
-    fn do_create_collection(
+    fn do_create_group_collection(
         sender: &T::AccountId,
         name: Vec<u8>,
         properties: Vec<u8>,
-    ) -> Result<CollectionId, DispatchError> {
-        let next_collection_id =
-            NextCollectionId::try_mutate(|collection_id| -> Result<CollectionId, DispatchError> {
+    ) -> Result<GroupCollectionId, DispatchError> {
+        let next_group_collection_id = NextGroupCollectionId::try_mutate(
+            |collection_id| -> Result<GroupCollectionId, DispatchError> {
                 let current_id = *collection_id;
 
                 *collection_id = collection_id
@@ -383,16 +365,17 @@ impl<T: Config> Module<T> {
                     .ok_or(Error::<T>::NoAvailableCollectionId)?;
 
                 Ok(current_id)
-            })?;
+            },
+        )?;
 
-        let collection_data = NftCollectionData::<T::AccountId> {
+        let collection_data = NftGroupCollectionData::<T::AccountId> {
             name,
             owner: sender.clone(),
             properties,
         };
 
-        <Collections<T>>::insert(next_collection_id, collection_data);
+        <GroupCollections<T>>::insert(next_group_collection_id, collection_data);
 
-        Ok(next_collection_id)
+        Ok(next_group_collection_id)
     }
 }

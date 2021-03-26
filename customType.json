@@ -1,7 +1,6 @@
 {
   "Address": "MultiAddress",
   "LookupSource": "MultiAddress",
-  "Balance": "u128",
   "AssetInfo": {
     "owner": "AccountId",
     "data": "AssetData"
@@ -14,7 +13,8 @@
   },
   "AuctionId": "u64",
   "AuctionItem": {
-    "asset_id": "AssetId",
+    "asset_id": "TokenId",
+    "class_id": "ClassId",
     "recipient": "AccountId",
     "initial_amount": "Balance",
     "amount": "Balance",

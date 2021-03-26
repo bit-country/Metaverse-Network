@@ -539,7 +539,6 @@ dependencies = [
  "pallet-grandpa",
  "pallet-nft",
  "pallet-randomness-collective-flip",
- "pallet-section",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-tips",
@@ -4204,36 +4203,6 @@ dependencies = [
  "safe-mix",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-section"
-version = "2.0.0-rc6"
-dependencies = [
- "frame-executive",
- "frame-support",
- "frame-system",
- "pallet-aura",
- "pallet-balances",
- "pallet-country",
- "pallet-grandpa",
- "pallet-randomness-collective-flip",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "serde",
- "sp-api",
- "sp-block-builder",
- "sp-consensus-aura",
- "sp-core",
- "sp-inherents",
- "sp-offchain",
- "sp-runtime",
- "sp-session",
- "sp-std",
- "sp-transaction-pool",
- "sp-version",
 ]
 
 [[package]]

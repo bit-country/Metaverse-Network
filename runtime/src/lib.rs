@@ -337,19 +337,6 @@ type EnsureRootOrHalfGeneralCouncil = EnsureOneOf<
     pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, GeneralCouncilInstance>,
 >;
 
-//TODO implement on separate council
-// type EnsureRootOrTwoThirdsGeneralCouncil = EnsureOneOf<
-//     AccountId,
-//     EnsureRoot<AccountId>,
-//     pallet_collective::EnsureProportionMoreThan<_2, _3, AccountId, GeneralCouncilInstance>,
-// >;
-
-// type EnsureRootOrThreeFourthsGeneralCouncil = EnsureOneOf<
-//     AccountId,
-//     EnsureRoot<AccountId>,
-//     pallet_collective::EnsureProportionMoreThan<_3, _4, AccountId, GeneralCouncilInstance>,
-// >;
-
 impl pallet_sudo::Config for Runtime {
     type Event = Event;
     type Call = Call;
@@ -527,11 +514,6 @@ impl block::Config for Runtime {
     type RandomnessSource = RandomnessCollectiveFlip;
 }
 
-impl section::Config for Runtime {
-    type Event = Event;
-    type BlockRandomnessSource = RandomnessCollectiveFlip;
-}
-
 parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
 }
@@ -578,15 +560,12 @@ construct_runtime!(
         //BitCountry pallets
         CountryModule: country::{Module, Call, Storage, Event<T>},
         BlockModule: block::{Module, Call, Storage, Event<T>},
-        SectionModule: section::{Module, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Module ,Storage},
         NftModule: nft::{Module, Call ,Storage, Event<T>},
         Auction: auction::{Module, Call ,Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
-
-        // Oracle: oracle::{Module, Call, Storage, Event<T>, ValidateUnsigned},
     }
 );
 

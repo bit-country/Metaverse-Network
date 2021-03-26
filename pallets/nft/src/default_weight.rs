@@ -1,3 +1,6 @@
+// This default_weight is manually generated for UI integration testing purpose 
+// This bench_marking cli need to run to complete bench marking for all functions 
+
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 
