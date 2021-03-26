@@ -1,4 +1,5 @@
-//! A demonstration of an offchain worker that sends onchain callbacks
+// A demonstration of an offchain worker that sends onchain callbacks which originally attributed from FRAME example-offchain-worker
+// More detail of original FRAME example can find here https://github.com/paritytech/substrate/blob/master/frame/example-offchain-worker/src/lib.rs
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

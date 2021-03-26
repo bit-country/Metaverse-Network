@@ -1,3 +1,7 @@
+// This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection of Substrate runtime modules.
+// Thanks to all contributors of orml.
+// https://github.com/open-web3-stack/open-runtime-module-library
+
 #![cfg_attr(not(feature = "std"), no_std)]
 // Disable the following two lints since they originate from an external macro (namely decl_storage)
 #![allow(clippy::string_lit_as_bytes)]
@@ -16,9 +20,9 @@ use sp_runtime::{
 };
 
 use frame_system::{self as system, ensure_signed};
-use sp_std::result;
-use primitives::{CollectionId, AccountId, BlockNumber};
 use orml_nft::Module as NftModule;
+use primitives::{AccountId, BlockNumber, CollectionId};
+use sp_std::result;
 mod auction;
 
 pub use crate::auction::{Auction, AuctionHandler, Change, OnNewBidResult};
