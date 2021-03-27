@@ -501,7 +501,7 @@ impl orml_nft::Config for Runtime {
     type ClassId = u32;
     type TokenId = u64;
     type ClassData = nft::NftClassData<Balance>;
-    type TokenData = nft::NftAssetData;
+    type TokenData = nft::NftAssetData<Balance>;
 }
 
 impl country::Config for Runtime {

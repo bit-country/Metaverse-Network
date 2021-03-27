@@ -17,8 +17,8 @@ use frame_support::{
 use serde::{Deserialize, Serialize};
 
 use frame_system::ensure_signed;
-use orml_nft::Module as NftModule;
-use primitives::GroupCollectionId;
+use orml_nft::Pallet as NftModule;
+use primitives::{AssetId, GroupCollectionId};
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
     traits::{AccountIdConversion, One},
@@ -42,7 +42,22 @@ pub struct NftGroupCollectionData<AccountId> {
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct NftAssetData {
+pub struct NftClassData<Balance> {
+    //Minimum balance to create a collection of Asset
+    pub deposit: Balance,
+    // Metadata from ipfs
+    pub properties: Vec<u8>,
+    pub token_type: TokenType,
+    pub collection_type: CollectionType,
+    pub total_supply: u64,
+    pub initial_supply: u64,
+}
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftAssetData<Balance> {
+    //Deposit balance to create each token
+    pub deposit: Balance,
     pub name: Vec<u8>,
     pub description: Vec<u8>,
     pub properties: Vec<u8>,
@@ -74,7 +89,7 @@ impl Default for TokenType {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CollectionType {
     Collectable,
-    Rentable,
+    Wearable,
     Executable,
 }
 
@@ -94,9 +109,9 @@ impl CollectionType {
         }
     }
 
-    pub fn is_rentable(&self) -> bool {
+    pub fn is_wearable(&self) -> bool {
         match *self {
-            CollectionType::Collectable => true,
+            CollectionType::Wearable => true,
             _ => false,
         }
     }
@@ -108,23 +123,14 @@ impl Default for CollectionType {
     }
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct NftClassData<Balance> {
-    //Minimum balance to create a collection of Asset
-    pub deposit: Balance,
-    // Metadata from ipfs
-    pub properties: Vec<u8>,
-    pub token_type: TokenType,
-    pub total_supply: u64,
-    pub initial_supply: u64,
-}
-
 #[cfg(test)]
 mod tests;
 
 pub trait Config:
-    orml_nft::Config<TokenData = NftAssetData, ClassData = NftClassData<BalanceOf<Self>>>
+    orml_nft::Config<
+    TokenData = NftAssetData<BalanceOf<Self>>,
+    ClassData = NftClassData<BalanceOf<Self>>,
+>
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
     type Randomness: Randomness<Self::Hash>;
@@ -148,12 +154,14 @@ type BalanceOf<T> =
 decl_storage! {
     trait Store for Module<T: Config> as NftAsset {
 
+        pub Assets get(fn get_asset): map hasher(blake2_128_concat) AssetId => Option<(ClassIdOf<T>, TokenIdOf<T>)>;
+        pub AssetsByOwner get (fn get_assets_by_owner): map hasher(blake2_128_concat) T::AccountId => Vec<AssetId>;
         pub GroupCollections get(fn get_group_collection): map hasher(blake2_128_concat) GroupCollectionId => Option<NftGroupCollectionData<T::AccountId>>;
         pub ClassDataCollection get(fn get_class_collection): map hasher(blake2_128_concat) ClassIdOf<T> => GroupCollectionId;
         pub NextGroupCollectionId get(fn next_group_collection_id): u64;
         pub AllNftGroupCollection get(fn all_nft_collection_count): u64;
         pub ClassDataType get(fn get_class_type): map hasher(blake2_128_concat) ClassIdOf<T> => TokenType;
-
+        pub NextAssetId get(fn next_asset_id): AssetId;
     }
 }
 
@@ -162,13 +170,18 @@ decl_event!(
     where
         <T as frame_system::Config>::AccountId,
         ClassId = ClassIdOf<T>,
-        AssetId = TokenIdOf<T>,
+        TokenId = TokenIdOf<T>,
     {
+        //New NFT Group Collection created
         NewNftCollectionCreated(AccountId, GroupCollectionId),
+        //New NFT Collection/Class created
         NewNftClassCreated(AccountId, ClassId),
-        NewNftMinted(AccountId, ClassId, u32),
-        TransferedNft(AccountId, AccountId, AssetId),
-        SignedNft(AssetId, AccountId),
+        //Emit event when new nft minted - show the first and last asset mint
+        NewNftMinted(AssetId, AssetId, AccountId, ClassId, u32),
+        //Successfully transfer NFT
+        TransferedNft(AccountId, AccountId, TokenId),
+        //Signed on NFT
+        SignedNft(TokenId, AccountId),
     }
 );
 
@@ -191,7 +204,9 @@ decl_error! {
         //Non transferrable
         NonTransferrable,
         //Invalid quantity
-        InvalidQuantity
+        InvalidQuantity,
+        //No available asset id
+        NoAvailableAssetId,
     }
 }
 
@@ -227,7 +242,7 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType) -> DispatchResultWithPostInfo{
+        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo{
 
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
@@ -250,6 +265,7 @@ decl_module! {
                 deposit: class_deposit,
                 properties,
                 token_type,
+                collection_type,
                 total_supply: Default::default(),
                 initial_supply: Default::default()
             };
@@ -278,20 +294,31 @@ decl_module! {
             <T as Config>::Currency::transfer(&sender, &class_fund, total_deposit, ExistenceRequirement::KeepAlive)?;
             <T as Config>::Currency::reserve(&class_fund, total_deposit)?;
 
-            //Global Identifier -  todo
-            // let nft_uid = Self::random_value(&sender);
-
             let new_nft_data = NftAssetData {
+                deposit,
                 name,
                 description,
                 properties: metadata.clone(),
             };
 
+            let mut new_asset_ids: Vec<AssetId> = Vec::new();
+
             for _ in 0..quantity{
-                NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
+                let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
+
+                let asset_id = NextAssetId::try_mutate(|id| -> Result<AssetId, DispatchError> {
+                    let current_id = *id;
+                    *id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableAssetId)?;
+
+                    Ok(current_id)
+                })?;
+
+                new_asset_ids.push(asset_id);
+                Assets::<T>::insert(asset_id, (class_id, token_id));                
             }
 
-            Self::deposit_event(RawEvent::NewNftMinted(sender, class_id, quantity));
+            
+            Self::deposit_event(RawEvent::NewNftMinted(*new_asset_ids.first().unwrap(), *new_asset_ids.last().unwrap(), sender, class_id, quantity));
 
             Ok(().into())
         }
@@ -347,6 +374,11 @@ decl_module! {
 
             Ok(().into())
         }
+
+        // #[weight = 10_000]
+        // fn burn(origin, asset_id: AssetId) -> DispatchResultWithPostInfo{
+
+        // }
     }
 }
 

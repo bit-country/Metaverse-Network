@@ -44,3 +44,5 @@ pub type Amount = i128;
 pub type CurrencyId = u32;
 /// Group collection id type
 pub type GroupCollectionId = u64;
+/// AssetId for all NFT and FT
+pub type AssetId = u64;
