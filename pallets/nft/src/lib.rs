@@ -7,7 +7,7 @@
 use codec::{Decode, Encode};
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage,
-    dispatch::DispatchResultWithPostInfo,
+    dispatch::{DispatchResult, DispatchResultWithPostInfo},
     ensure,
     traits::{Currency, ExistenceRequirement, Get, Randomness, ReservableCurrency},
     weights::Weight,
@@ -207,6 +207,8 @@ decl_error! {
         InvalidQuantity,
         //No available asset id
         NoAvailableAssetId,
+        //Asset Id is already exist
+        AssetIdAlreadyExist,
     }
 }
 
@@ -304,7 +306,6 @@ decl_module! {
             let mut new_asset_ids: Vec<AssetId> = Vec::new();
 
             for _ in 0..quantity{
-                let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
 
                 let asset_id = NextAssetId::try_mutate(|id| -> Result<AssetId, DispatchError> {
                     let current_id = *id;
@@ -314,17 +315,33 @@ decl_module! {
                 })?;
 
                 new_asset_ids.push(asset_id);
-                Assets::<T>::insert(asset_id, (class_id, token_id));                
+
+                if AssetsByOwner::<T>::contains_key(&sender){
+                    AssetsByOwner::<T>::try_mutate(
+                        &sender,
+                        |asset_ids| -> DispatchResult {
+                            // Check if the asset_id already in the owner
+                            ensure!(asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
+                            asset_ids.push(asset_id);
+                            Ok(())
+                        }
+                    )?;
+                }
+                else{
+                    AssetsByOwner::<T>::insert(&sender, Vec::<AssetId>::new())
+                }
+
+                let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
+                Assets::<T>::insert(asset_id, (class_id, token_id));
             }
 
-            
             Self::deposit_event(RawEvent::NewNftMinted(*new_asset_ids.first().unwrap(), *new_asset_ids.last().unwrap(), sender, class_id, quantity));
 
             Ok(().into())
         }
 
         #[weight = 100_000]
-        fn transfer(origin,  to: T::AccountId, asset: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
+        fn transfer(origin,  to: T::AccountId, asset_id: AssetId ,asset: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
 
@@ -336,10 +353,10 @@ decl_module! {
                     let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
                     ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
 
+                    Self::handle_asset_ownership_transfer(&sender, &to, asset_id);
+
                     NftModule::<T>::transfer(&sender, &to, asset)?;
-
                     Self::deposit_event(RawEvent::TransferedNft(sender, to, asset.1));
-
                     Ok(().into())
                 }
                 TokenType::BoundToAddress => Err(Error::<T>::NonTransferrable.into())
@@ -347,26 +364,28 @@ decl_module! {
         }
 
         #[weight = 100_000]
-        fn transfer_batch(origin, tos: Vec<(T::AccountId, ClassIdOf<T>, TokenIdOf<T>)>) -> DispatchResultWithPostInfo {
+        fn transfer_batch(origin, tos: Vec<(T::AccountId, AssetId ,ClassIdOf<T>, TokenIdOf<T>)>) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
 
-            for (i, x) in tos.iter().enumerate(){
+            for (_i, x) in tos.iter().enumerate(){
 
                 let item = &x;
                 let owner = &sender.clone();
 
-                let class_info = NftModule::<T>::classes(item.1).ok_or(Error::<T>::ClassIdNotFound)?;
+                let class_info = NftModule::<T>::classes(item.2).ok_or(Error::<T>::ClassIdNotFound)?;
                 let data = class_info.data;
 
                 match data.token_type {
                     TokenType::Transferrable => {
-                        let asset_info = NftModule::<T>::tokens(item.1, item.2).ok_or(Error::<T>::AssetInfoNotFound)?;
+                        let asset_info = NftModule::<T>::tokens(item.2, item.3).ok_or(Error::<T>::AssetInfoNotFound)?;
                         ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
 
-                        NftModule::<T>::transfer(&owner, &item.0, (item.1, item.2))?;
+                        Self::handle_asset_ownership_transfer(&owner, &item.0, item.1);
 
-                        Self::deposit_event(RawEvent::TransferedNft(owner.clone(), item.0.clone(), item.2.clone()));
+                        NftModule::<T>::transfer(&owner, &item.0, (item.2, item.3))?;
+
+                        Self::deposit_event(RawEvent::TransferedNft(owner.clone(), item.0.clone(), item.3.clone()));
                     }
                     _ => ()
                 };
@@ -374,11 +393,6 @@ decl_module! {
 
             Ok(().into())
         }
-
-        // #[weight = 10_000]
-        // fn burn(origin, asset_id: AssetId) -> DispatchResultWithPostInfo{
-
-        // }
     }
 }
 
@@ -409,5 +423,38 @@ impl<T: Config> Module<T> {
         <GroupCollections<T>>::insert(next_group_collection_id, collection_data);
 
         Ok(next_group_collection_id)
+    }
+
+    fn handle_asset_ownership_transfer(
+        sender: &T::AccountId,
+        to: &T::AccountId,
+        asset_id: AssetId,
+    ) -> DispatchResult {
+        //Remove asset from sender
+        AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
+            // Check if the asset_id already in the owner
+            let asset_index = asset_ids.iter().position(|x| *x == asset_id).unwrap();
+            asset_ids.remove(asset_index);
+
+            Ok(())
+        })?;
+
+        //Insert asset to recipient
+
+        if AssetsByOwner::<T>::contains_key(to) {
+            AssetsByOwner::<T>::try_mutate(&to, |asset_ids| -> DispatchResult {
+                // Check if the asset_id already in the owner
+                ensure!(
+                    asset_ids.iter().any(|i| asset_id == *i),
+                    Error::<T>::AssetIdAlreadyExist
+                );
+                asset_ids.push(asset_id);
+                Ok(())
+            })?;
+        } else {
+            AssetsByOwner::<T>::insert(&to, Vec::<AssetId>::new());
+        }
+
+        Ok(())
     }
 }
