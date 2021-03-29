@@ -32,7 +32,7 @@ use sp_runtime::{
     generic, impl_opaque_keys,
     traits::{AccountIdConversion, Zero},
     transaction_validity::{TransactionPriority, TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, FixedPointNumber, ModuleId, MultiSignature, Perquintill,
+    ApplyExtrinsicResult, DispatchResult, FixedPointNumber, ModuleId, MultiSignature, Perquintill,
 };
 use sp_std::{collections::btree_set::BTreeSet, prelude::*};
 #[cfg(feature = "std")]
@@ -53,11 +53,12 @@ use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 
 // XCM imports
 use frame_system::limits::{BlockLength, BlockWeights};
-use polkadot_parachain::primitives::Sibling;
-use xcm::v0::{Junction, MultiLocation, NetworkId};
 use orml_xcm_support::{
     CurrencyIdConverter, IsConcreteWithGeneralKey, MultiCurrencyAdapter, NativePalletAssetOr,
+    XcmHandler as XcmHandlerT,
 };
+use polkadot_parachain::primitives::Sibling;
+use xcm::v0::{Junction, MultiLocation, NetworkId, Xcm};
 use xcm_builder::{
     AccountId32Aliases, ChildParachainConvertsVia, CurrencyAdapter, LocationInverter,
     ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia,
@@ -474,26 +475,28 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::BCG);
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::BCG;
 }
+
+pub type BCGToken = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 impl orml_currencies::Config for Runtime {
     type Event = Event;
-    type MultiCurrency = orml_tokens::Module<Runtime>;
-    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+    type MultiCurrency = orml_tokens::Pallet<Runtime>;
+    type NativeCurrency = BCGToken;
     type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
 }
 
 parameter_types! {
     pub CreateClassDeposit: Balance = 500 * MILLICENTS;
-	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+    pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
 }
 
 impl nft::Config for Runtime {
     type Event = Event;
     type CreateClassDeposit = CreateClassDeposit;
-	type CreateAssetDeposit = CreateAssetDeposit;
+    type CreateAssetDeposit = CreateAssetDeposit;
     type Randomness = RandomnessCollectiveFlip;
     type Currency = Currency<Runtime, GetNativeCurrencyId>;
     type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
@@ -502,9 +505,9 @@ impl nft::Config for Runtime {
 
 impl orml_nft::Config for Runtime {
     type ClassId = u32;
-	type TokenId = u64;
-	type ClassData = nft::NftClassData;
-	type TokenData = nft::NftAssetData;
+    type TokenId = u64;
+    type ClassData = nft::NftClassData<Balance>;
+    type TokenData = nft::NftAssetData<Balance>;
 }
 
 impl country::Trait for Runtime {
@@ -662,7 +665,7 @@ parameter_types! {
     pub Ancestry: MultiLocation = MultiLocation::X1(Junction::Parachain {
         id: ParachainInfo::parachain_id().into(),
     });
-    pub const RelayChainCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::DOT);
+    pub const RelayChainCurrencyId: CurrencyId = CurrencyId::DOT;
 }
 
 pub type LocationConverter = (
@@ -674,6 +677,7 @@ pub type LocationConverter = (
 
 pub type LocalAssetTransactor = MultiCurrencyAdapter<
     Currencies,
+    UnknownTokens,
     IsConcreteWithGeneralKey<CurrencyId, RelayToNative>,
     LocationConverter,
     AccountId,
@@ -692,7 +696,7 @@ parameter_types! {
     pub NativeOrmlTokens: BTreeSet<(Vec<u8>, MultiLocation)> = {
         let mut t = BTreeSet::new();
         //TODO: might need to add other assets based on orml-tokens
-        t.insert(("ACA".into(), MultiLocation::X1(Junction::Parachain { id: 666 })));
+        t.insert(("AUSD".into(), MultiLocation::X1(Junction::Parachain { id: 666 })));
         t
     };
 }
@@ -736,6 +740,13 @@ impl Convert<Balance, RelayChainBalance> for NativeToRelay {
     }
 }
 
+pub struct HandleXcm;
+impl XcmHandlerT<AccountId> for HandleXcm {
+    fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult {
+        XcmHandler::execute_xcm(origin, xcm)
+    }
+}
+
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
@@ -744,8 +755,11 @@ impl orml_xtokens::Config for Runtime {
     //TODO: change network id if kusama
     type RelayChainNetworkId = PolkadotNetworkId;
     type ParaId = ParachainInfo;
-    type AccountIdConverter = LocationConverter;
-    type XcmExecutor = XcmExecutor<XcmConfig>;
+    type XcmHandler = HandleXcm;
+}
+
+impl orml_unknown_tokens::Config for Runtime {
+    type Event = Event;
 }
 
 construct_runtime! {
@@ -756,47 +770,48 @@ construct_runtime! {
     {
 
         //Core
-        System: frame_system::{Module, Call, Storage, Config, Event<T>},
-        Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
+        System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
 
         //Token
-        Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        TransactionPayment: pallet_transaction_payment::{Module, Storage},
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 
         // Consensus & Staking
-        // Authorship: pallet_authorship::{Module, Call, Storage, Inherent},
-        // Babe: pallet_babe::{Module, Call, Storage, Config, Inherent, ValidateUnsigned},
-        // Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event, ValidateUnsigned},
-        // Staking: pallet_staking::{Module, Call, Config<T>, Storage, Event<T>},
-        // Session: pallet_session::{Module, Call, Storage, Event, Config<T>},
-        // Historical: pallet_session_historical::{Module},
+        // Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
+        // Babe: pallet_babe::{Pallet, Call, Storage, Config, Inherent, ValidateUnsigned},
+        // Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event, ValidateUnsigned},
+        // Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>},
+        // Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+        // Historical: pallet_session_historical::{Pallet},
 
         // Governance
-        GeneralCouncil: pallet_collective::<Instance1>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
+        GeneralCouncil: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
 
         //Treasury
-        BitCountryTreasury: pallet_treasury::{Module, Call, Storage, Config, Event<T>},
-        Bounties: pallet_bounties::{Module, Call, Storage, Event<T>},
+        BitCountryTreasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
+        Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>},
 
         //Bit.Country Core
-        CountryModule: country::{Module, Call, Storage, Event<T>},
-        BlockModule: block::{Module, Call, Storage, Event<T>},
-        SectionModule: section::{Module, Call, Storage, Event<T>},
-        OrmlNFT: orml_nft::{Module ,Storage, Config<T>},
-        NftModule: nft::{Module, Call ,Storage, Event<T>},
-        Auction: auction::{Module, Call ,Storage, Event<T>},
-        Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
-        Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
-        TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
+        CountryModule: country::{Pallet, Call, Storage, Event<T>},
+        BlockModule: block::{Pallet, Call, Storage, Event<T>},
+        SectionModule: section::{Pallet, Call, Storage, Event<T>},
+        OrmlNFT: orml_nft::{Pallet ,Storage, Config<T>},
+        NftModule: nft::{Pallet, Call ,Storage, Event<T>},
+        Auction: auction::{Pallet, Call ,Storage, Event<T>},
+        Currencies: orml_currencies::{ Pallet, Storage, Call, Event<T>},
+        Tokens: orml_tokens::{ Pallet, Storage, Call, Event<T>},
+        TokenizationModule: tokenization:: {Pallet, Call, Storage, Event<T>},
 
         // Parachain
-        ParachainSystem: cumulus_pallet_parachain_system::{Module, Call, Storage, Inherent, Event},
-        ParachainInfo: parachain_info::{Module, Storage, Config},
-        XcmHandler: cumulus_pallet_xcm_handler::{Module, Event<T>, Origin},
-        XTokens: orml_xtokens::{Module, Storage, Call, Event<T>},
+        ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event},
+        ParachainInfo: parachain_info::{Pallet, Storage, Config},
+        XcmHandler: cumulus_pallet_xcm_handler::{Pallet, Event<T>, Origin},
+        XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
+        UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
         //Dev
-        Sudo: pallet_sudo::{Module, Call, Storage, Config<T>, Event<T>},
+        Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
     }
 }
 
@@ -876,7 +891,7 @@ impl_runtime_apis! {
         }
 
         fn random_seed() -> <Block as BlockT>::Hash {
-            RandomnessCollectiveFlip::random_seed()
+            RandomnessCollectiveFlip::random_seed().0
         }
     }
 

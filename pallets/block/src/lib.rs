@@ -1,4 +1,3 @@
-
 // This file is part of Bit.Country.
 
 // Copyright (C) 2020-2021 Bit.Country.
@@ -40,7 +39,7 @@ mod tests;
 
 pub trait Trait: system::Config {
     type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
-    type RandomnessSource: Randomness<H256>;
+    type RandomnessSource: Randomness<H256, Self::BlockNumber>;
 }
 
 decl_storage! {
@@ -110,7 +109,7 @@ decl_module! {
 
             AllBlocksCount::put(new_all_blocks_count);
 
-            Self::deposit_event(RawEvent::RandomnessConsumed(random_seed, random_result));
+            Self::deposit_event(RawEvent::RandomnessConsumed(random_seed.0, random_result.0));
 
             Ok(())
         }

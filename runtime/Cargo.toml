@@ -16,7 +16,7 @@ targets = ['x86_64-unknown-linux-gnu']
 [dependencies]
 smallvec = "1.4.0"
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-serde = { version = "1.0.101", optional = true, default-features = false }
+serde = { version = "1.0.124", optional = true, default-features = false }
 serde_json = "1.0.60"
 hex = { version = "0.4", default-features = false, optional = true }
 hex-literal = { version = "0.3.1" }
@@ -86,6 +86,7 @@ orml-tokens = { default-features = false, git = "https://github.com/open-web3-st
 orml-xtokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
 orml-nft = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
 orml-xcm-support = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
+orml-unknown-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
 # oracle = {version = "1.0.0", path = "../pallets/oracle", default_features= false}
 
 country = {default-features = false, package = 'pallet-country', path = '../pallets/country'}

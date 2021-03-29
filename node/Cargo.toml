@@ -17,8 +17,8 @@ derive_more = '0.15.0'
 log = "0.4.13"
 codec = { package = 'parity-scale-codec', version = '2.0.0' }
 structopt = "0.3.8"
-serde = { version = "1.0.101", features = ["derive"] }
-hex-literal = "0.2.1"
+serde = { version = "1.0.124", features = ["derive"] }
+hex-literal = "0.3.1"
 # RPC related dependencies
 jsonrpc-core = "15.1.0"
 
@@ -82,6 +82,7 @@ path = "src/main.rs"
 assert_cmd = "0.12"
 nix = "0.17"
 rand = "0.7.3"
+tempfile = "3.2.0"
 tokio = { version = "0.2.13", features = ["macros"] }
 
 # Polkadot dependencies
