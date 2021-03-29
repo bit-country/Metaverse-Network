@@ -28,7 +28,7 @@ pallet-randomness-collective-flip = { git = "https://github.com/paritytech/subst
 pallet-timestamp = {  git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1"}
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1"}
 # frame-executive = { version = "2.0.0", git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1"}
-serde = { version = "1.0.101", optional = true, features = ["derive"] }
+serde = { version = "1.0.124", optional = true, features = ["derive"] }
 sp-api = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1"}
 sp-block-builder = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1"}
 sp-consensus-aura = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }

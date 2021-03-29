@@ -41,7 +41,7 @@ mod tests;
 
 pub trait Trait: system::Config + country::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
-    type BlockRandomnessSource: Randomness<H256>;
+    type BlockRandomnessSource: Randomness<H256, Self::BlockNumber>;
 }
 
 decl_storage! {
