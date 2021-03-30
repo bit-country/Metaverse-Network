@@ -807,7 +807,7 @@ construct_runtime! {
         // Parachain
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
-        XcmHandler: cumulus_pallet_xcm_handler::{Pallet, Event<T>, Origin},
+        XcmHandler: cumulus_pallet_xcm_handler::{Pallet, Call ,Event<T>, Origin},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
         //Dev
