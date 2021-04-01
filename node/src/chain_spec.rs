@@ -1,4 +1,4 @@
-use bitcountry_runtime::{BalancesConfig, SudoConfig, SystemConfig, OrmlNFTConfig ,WASM_BINARY};
+use bitcountry_runtime::{BalancesConfig, OrmlNFTConfig, SudoConfig, SystemConfig, WASM_BINARY};
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
 use primitives::{AccountId, Signature};
@@ -150,7 +150,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
                     /* Sudo Account */
                     hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"].into(),
                 ],
-                8888.into(),
+                8.into(),
             )
         },
         // Bootnodes
@@ -200,7 +200,7 @@ pub fn local_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
                     get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
                     get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
                 ],
-                200.into(),
+                id,
             )
         },
         // Bootnodes
@@ -214,7 +214,7 @@ pub fn local_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
         // Extensions
         Extensions {
             relay_chain: "rococo".into(),
-            para_id: 668_u32.into(),
+            para_id: 8_u32.into(),
         },
     ))
 }
@@ -274,7 +274,7 @@ pub fn tewai_testnet_config(id: ParaId) -> Result<ChainSpec, String> {
         Some(bitcountry_properties()),
         // Extensions
         Extensions {
-            relay_chain: "westend-dev".into(),
+            relay_chain: "rococo".into(),
             para_id: id.into(),
         },
     ))
