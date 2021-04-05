@@ -125,11 +125,12 @@ impl Default for CollectionType {
 
 #[cfg(test)]
 mod tests;
+mod mock;
 
 pub trait Config:
-    orml_nft::Config<
-    TokenData = NftAssetData<BalanceOf<Self>>,
-    ClassData = NftClassData<BalanceOf<Self>>,
+orml_nft::Config<
+    TokenData=NftAssetData<BalanceOf<Self>>,
+    ClassData=NftClassData<BalanceOf<Self>>,
 >
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
@@ -149,7 +150,7 @@ pub trait Config:
 type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 type BalanceOf<T> =
-    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 decl_storage! {
     trait Store for Module<T: Config> as NftAsset {
