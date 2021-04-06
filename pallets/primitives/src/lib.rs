@@ -29,6 +29,8 @@ use sp_std::{
     prelude::*,
 };
 
+use xcm::v0::{Junction, NetworkId, MultiLocation};
+
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -120,6 +122,21 @@ impl TryFrom<Vec<u8>> for CurrencyId {
             b"ACA" => Ok(CurrencyId::ACA),
             b"DOT" => Ok(CurrencyId::DOT),
             _ => Err(()),
+        }
+    }
+}
+
+impl From<CurrencyId> for MultiLocation {
+    fn from(id: CurrencyId) -> Self {
+        match id {
+            CurrencyId::BCG => Junction::Parent.into(),
+            CurrencyId::AUSD => (
+                Junction::Parent,
+                Junction::Parachain { id: 666 },
+                Junction::GeneralKey("AUSD".into()),
+            )
+                .into(),
+            _ => Junction::Parent.into()
         }
     }
 }

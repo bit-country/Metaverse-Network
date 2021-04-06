@@ -80,81 +80,78 @@ cumulus-pallet-xcm-handler = { git = "https://github.com/paritytech/cumulus", br
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives", default-features = false }
 
 # Orml pacakges
-orml-traits = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
+orml-traits = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
 orml-currencies = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
-orml-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
-orml-xtokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
-orml-nft = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
-orml-xcm-support = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
-orml-unknown-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master"}
+orml-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
+orml-xtokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
+orml-nft = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
+orml-xcm-support = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
+orml-unknown-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
 # oracle = {version = "1.0.0", path = "../pallets/oracle", default_features= false}
 
-country = {default-features = false, package = 'pallet-country', path = '../pallets/country'}
-block = {default-features = false, package = 'pallet-block', path = '../pallets/block'}
-section = {default-features = false, package = 'pallet-section', path = '../pallets/section'}
-tokenization = {default-features = false, package = 'pallet-tokenization', path = '../pallets/tokenization'}
-nft = {default-features = false, package = 'pallet-nft', path = '../pallets/nft'}
-auction = {default-features = false, package = 'pallet-auction', path = '../pallets/auction'}
+country = { default-features = false, package = 'pallet-country', path = '../pallets/country' }
+block = { default-features = false, package = 'pallet-block', path = '../pallets/block' }
+section = { default-features = false, package = 'pallet-section', path = '../pallets/section' }
+tokenization = { default-features = false, package = 'pallet-tokenization', path = '../pallets/tokenization' }
+nft = { default-features = false, package = 'pallet-nft', path = '../pallets/nft' }
+auction = { default-features = false, package = 'pallet-auction', path = '../pallets/auction' }
 
 
 [features]
 default = ["std"]
 no_std = []
 std = [
-  	"codec/std",
-	"serde",
-	"sp-core/std",
-	"sp-io/std",
-	"sp-api/std",
-	"sp-runtime/std",
-	"sp-std/std",
-	"sp-version/std",
-
-	"frame-executive/std",
-	"frame-support/std",
-	"frame-system/std",
-	"frame-system-rpc-runtime-api/std",
-	"frame-benchmarking/std",
-	"pallet-babe/std",
-	"pallet-balances/std",
-	"pallet-collective/std",
-	"pallet-grandpa/std",
-	"pallet-indices/std",
-	"pallet-membership/std",
-	"pallet-randomness-collective-flip/std",
-	"pallet-staking/std",
-	"pallet-sudo/std",
-	"pallet-timestamp/std",
-	"pallet-transaction-payment-rpc-runtime-api/std",
-	"pallet-transaction-payment/std",
-	"pallet-treasury/std",
-	"pallet-bounties/std",
-	"pallet-utility/std",
-	"pallet-offences/std",
-	"pallet-multisig/std",
-	"sp-block-builder/std",
-	"sp-consensus-babe/std",
-	"sp-consensus-aura/std",
-	"sp-inherents/std",
-	"sp-offchain/std",
-	"sp-session/std",
-	"sp-arithmetic/std",
-	"sp-transaction-pool/std",
-
-	"cumulus-pallet-parachain-system/std",
-	"cumulus-primitives-core/std",
-	"parachain-info/std",
-	"polkadot-parachain/std",
-	"xcm/std",
-	"xcm-executor/std",
-	"xcm-builder/std",
-	"cumulus-pallet-xcm-handler/std",
-	'orml-xcm-support/std',
+    "codec/std",
+    "serde",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-api/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "sp-version/std",
+    "frame-executive/std",
+    "frame-support/std",
+    "frame-system/std",
+    "frame-system-rpc-runtime-api/std",
+    "frame-benchmarking/std",
+    "pallet-babe/std",
+    "pallet-balances/std",
+    "pallet-collective/std",
+    "pallet-grandpa/std",
+    "pallet-indices/std",
+    "pallet-membership/std",
+    "pallet-randomness-collective-flip/std",
+    "pallet-staking/std",
+    "pallet-sudo/std",
+    "pallet-timestamp/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
+    "pallet-transaction-payment/std",
+    "pallet-treasury/std",
+    "pallet-bounties/std",
+    "pallet-utility/std",
+    "pallet-offences/std",
+    "pallet-multisig/std",
+    "sp-block-builder/std",
+    "sp-consensus-babe/std",
+    "sp-consensus-aura/std",
+    "sp-inherents/std",
+    "sp-offchain/std",
+    "sp-session/std",
+    "sp-arithmetic/std",
+    "sp-transaction-pool/std",
+    "cumulus-pallet-parachain-system/std",
+    "cumulus-primitives-core/std",
+    "parachain-info/std",
+    "polkadot-parachain/std",
+    "xcm/std",
+    "xcm-executor/std",
+    "xcm-builder/std",
+    "cumulus-pallet-xcm-handler/std",
+    'orml-xcm-support/std',
     'orml-currencies/std',
     'orml-tokens/std',
-    'orml-xtokens/std', 
-	'orml-nft/std',
-	
+    'orml-xtokens/std',
+    'orml-nft/std',
     'country/std',
     'block/std',
     'section/std',

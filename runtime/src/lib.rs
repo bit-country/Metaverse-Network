@@ -90,6 +90,7 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Percent, Permill};
 
 pub use primitives::*;
+
 //Bit.Country constants
 mod constants;
 
@@ -244,6 +245,7 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = ();
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
+    type OnSetCode = ParachainSystem;
 }
 
 parameter_types! {
@@ -252,8 +254,8 @@ parameter_types! {
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
-where
-    Call: From<C>,
+    where
+        Call: From<C>,
 {
     type OverarchingCall = Call;
     type Extrinsic = UncheckedExtrinsic;
@@ -376,6 +378,7 @@ parameter_types! {
 }
 
 type GeneralCouncilInstance = pallet_collective::Instance1;
+
 impl pallet_collective::Config<GeneralCouncilInstance> for Runtime {
     type Origin = Origin;
     type Proposal = Call;
@@ -388,6 +391,7 @@ impl pallet_collective::Config<GeneralCouncilInstance> for Runtime {
 }
 
 pub struct GeneralCouncilProvider;
+
 impl Contains<AccountId> for GeneralCouncilProvider {
     fn contains(who: &AccountId) -> bool {
         GeneralCouncil::is_member(who)
@@ -634,7 +638,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
     type OnValidationData = ();
     type SelfParaId = parachain_info::Module<Runtime>;
     type DownwardMessageHandlers = XcmHandler;
-    type HrmpMessageHandlers = XcmHandler;
+    type XcmpMessageHandlers = XcmHandler;
 }
 
 impl parachain_info::Config for Runtime {}
@@ -653,6 +657,7 @@ parameter_types! {
 }
 
 pub struct AccountId32Convert;
+
 impl Convert<AccountId, [u8; 32]> for AccountId32Convert {
     fn convert(account_id: AccountId) -> [u8; 32] {
         account_id.into()
@@ -702,6 +707,7 @@ parameter_types! {
 }
 
 pub struct XcmConfig;
+
 impl Config for XcmConfig {
     type Call = Call;
     type XcmSender = XcmHandler;
@@ -717,12 +723,13 @@ impl cumulus_pallet_xcm_handler::Config for Runtime {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type UpwardMessageSender = ParachainSystem;
-    type HrmpMessageSender = ParachainSystem;
+    type XcmpMessageSender = ParachainSystem;
     type SendXcmOrigin = EnsureRoot<AccountId>;
     type AccountIdConverter = LocationConverter;
 }
 
 pub struct RelayToNative;
+
 impl Convert<RelayChainBalance, Balance> for RelayToNative {
     fn convert(val: u128) -> Balance {
         // native is 18
@@ -732,6 +739,7 @@ impl Convert<RelayChainBalance, Balance> for RelayToNative {
 }
 
 pub struct NativeToRelay;
+
 impl Convert<Balance, RelayChainBalance> for NativeToRelay {
     fn convert(val: u128) -> Balance {
         // native is 18
@@ -741,21 +749,28 @@ impl Convert<Balance, RelayChainBalance> for NativeToRelay {
 }
 
 pub struct HandleXcm;
+
 impl XcmHandlerT<AccountId> for HandleXcm {
     fn execute_xcm(origin: AccountId, xcm: Xcm) -> DispatchResult {
         XcmHandler::execute_xcm(origin, xcm)
     }
 }
 
+parameter_types! {
+    pub SelfLocation: MultiLocation = (Junction::Parent, Junction::Parachain { id: ParachainInfo::parachain_id().into() }).into();
+}
+
 impl orml_xtokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
-    type ToRelayChainBalance = NativeToRelay;
+    // type ToRelayChainBalance = NativeToRelay;
     type AccountId32Convert = AccountId32Convert;
     //TODO: change network id if kusama
-    type RelayChainNetworkId = PolkadotNetworkId;
-    type ParaId = ParachainInfo;
+    // type RelayChainNetworkId = PolkadotNetworkId;
+    // type ParaId = ParachainInfo;
     type XcmHandler = HandleXcm;
+    type SelfLocation = SelfLocation;
+    type CurrencyId = CurrencyId;
 }
 
 impl orml_unknown_tokens::Config for Runtime {
