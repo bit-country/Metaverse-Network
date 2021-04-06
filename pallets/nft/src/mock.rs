@@ -11,14 +11,16 @@ use sp_core::H256;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
 use orml_currencies::BasicCurrencyAdapter;
-use primitives::{CurrencyId, Amount, BlockNumber, AccountId};
+use primitives::{CurrencyId, Amount, BlockNumber};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
 }
 
-pub const ALICE: AccountId = AccountId::new([1u8; 32]);
-pub const BOB: AccountId = AccountId::new([2u8; 32]);
+pub type AccountId = u128;
+
+pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
 pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
 pub const CLASS_ID_NOT_EXIST: <Runtime as orml_nft::Config>::ClassId = 1;
 pub const TOKEN_ID: <Runtime as orml_nft::Config>::TokenId = 0;
@@ -143,7 +145,7 @@ impl ExtBuilder {
 }
 
 pub fn last_event() -> Event {
-    frame_system::Pallet::<Runtime>::events()
+    frame_system::Module::<Runtime>::events()
         .pop()
         .expect("Event expected")
         .event

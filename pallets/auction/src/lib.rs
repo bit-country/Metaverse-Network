@@ -29,6 +29,9 @@ pub use crate::auction::{Auction, AuctionHandler, Change, OnNewBidResult};
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+mod mock;
+
 pub struct AuctionLogicHandler;
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
