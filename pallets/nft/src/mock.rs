@@ -1,49 +1,29 @@
-#[cfg(test)]
-use frame_support::{
-    impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
-};
-use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
-use orml_currencies::BasicCurrencyAdapter;
+#![cfg(test)]
 
 use super::*;
 
 use crate as nft;
+use frame_support::{
+    construct_runtime, impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
+};
+use orml_traits::parameter_type_with_key;
+use sp_core::H256;
+use sp_runtime::testing::Header;
+use sp_runtime::traits::IdentityLookup;
+use orml_currencies::BasicCurrencyAdapter;
+use primitives::{CurrencyId, Amount, BlockNumber, AccountId};
 
 parameter_types! {
-    pub const BlockHashCount: u64 = 256;
+    pub const BlockHashCount: u32 = 256;
 }
 
-pub type AccountId = u128;
-pub type BlockNumber = u64;
-
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
+pub const ALICE: AccountId = AccountId::new([1u8; 32]);
+pub const BOB: AccountId = AccountId::new([2u8; 32]);
 pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
 pub const CLASS_ID_NOT_EXIST: <Runtime as orml_nft::Config>::ClassId = 1;
 pub const TOKEN_ID: <Runtime as orml_nft::Config>::TokenId = 0;
 pub const TOKEN_ID_NOT_EXIST: <Runtime as orml_nft::Config>::TokenId = 1;
 pub const COLLECTION_ID: u64 = 0;
-
-#[derive(Clone, Eq, PartialEq)]
-pub struct Runtime;
-
-impl_outer_origin! {
-	pub enum Origin for Runtime {}
-}
-
-impl_outer_event! {
-	pub enum TestEvent for Runtime {
-		frame_system<T>,
-		nft<T>,
-	}
-}
-
-impl_outer_dispatch! {
-	pub enum Call for Runtime where origin: Origin {
-		frame_system::System,
-	}
-}
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -61,7 +41,7 @@ impl frame_system::Config for Runtime {
     type BlockLength = ();
     type Version = ();
     type PalletInfo = PalletInfo;
-    type AccountData = ();
+    type AccountData = pallet_balances::AccountData<Balance>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type DbWeight = ();
@@ -79,21 +59,19 @@ impl pallet_balances::Config for Runtime {
     type Event = Event;
     type DustRemoval = ();
     type ExistentialDeposit = ExistentialDeposit;
-    type AccountStore = frame_system::Pallet<Runtime>;
+    type AccountStore = System;
     type MaxLocks = ();
     type WeightInfo = ();
 }
 
-parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = 0;
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+		Default::default()
+	};
 }
 
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
+parameter_types! {
+    pub const GetNativeCurrencyId: CurrencyId = 0;
 }
 
 parameter_types! {
@@ -102,14 +80,13 @@ parameter_types! {
     pub NftModuleId: ModuleId = ModuleId(*b"bit/bNFT");
 }
 
-impl nft::Config for Runtime {
+impl Config for Runtime {
     type Event = Event;
     type CreateClassDeposit = CreateClassDeposit;
     type CreateAssetDeposit = CreateAssetDeposit;
-    type Randomness = RandomnessCollectiveFlip;
     type Currency = Balances;
-    type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
     type ModuleId = NftModuleId;
+    type WeightInfo = ();
 }
 
 impl orml_nft::Config for Runtime {
@@ -119,12 +96,24 @@ impl orml_nft::Config for Runtime {
     type TokenData = nft::NftAssetData<Balance>;
 }
 
-pub type NftModule = Module<Runtime>;
-
 use frame_system::Call as SystemCall;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
+
+
+construct_runtime!(
+	pub enum Runtime where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic
+	{
+		System: frame_system::{Module, Call, Config, Storage, Event<T>},
+		Nft: nft::{Module, Call, Event<T>},
+		OrmlNft: orml_nft::{Module, Storage, Config<T>},
+		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+	}
+);
 
 
 pub struct ExtBuilder;

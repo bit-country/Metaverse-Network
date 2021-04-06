@@ -13,6 +13,7 @@ use frame_support::{
     weights::Weight,
     StorageMap, StorageValue,
 };
+use primitives::Balance;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -26,11 +27,15 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
-mod default_weight;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 
-pub trait WeightInfo {
-    fn mint(i: u32) -> Weight;
-}
+pub mod default_weight;
+
+pub use default_weight::WeightInfo;
+
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct NftGroupCollectionData<AccountId> {
@@ -123,18 +128,15 @@ impl Default for CollectionType {
     }
 }
 
-#[cfg(test)]
-mod tests;
-mod mock;
 
 pub trait Config:
+frame_system::Config +
 orml_nft::Config<
     TokenData=NftAssetData<BalanceOf<Self>>,
     ClassData=NftClassData<BalanceOf<Self>>,
 >
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
-    type Randomness: Randomness<Self::Hash>;
     /// The minimum balance to create class
     type CreateClassDeposit: Get<BalanceOf<Self>>;
     /// The minimum balance to create token

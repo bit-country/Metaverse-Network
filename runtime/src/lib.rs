@@ -495,7 +495,6 @@ impl nft::Config for Runtime {
     type Event = Event;
     type CreateClassDeposit = CreateClassDeposit;
     type CreateAssetDeposit = CreateAssetDeposit;
-    type Randomness = RandomnessCollectiveFlip;
     type Currency = Balances;
     type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
     type ModuleId = NftModuleId;

@@ -24,18 +24,18 @@ orml-nft = { default-features = false, version = '0.4.0' }
 pallet-timestamp = { version = "3.0.0", default-features = false }
 orml-currencies = { default-features = false, version = '0.4.0' }
 
-[dev-dependencies]
 sp-core = { version = "3.0.0", default-features = false }
 sp-io = { version = "3.0.0", default-features = false }
 pallet-balances = { version = "3.0.0", default-features = false }
-orml-currencies = { default-features = false, version = '0.4.0' }
+orml-tokens = { default-features = false, version = '0.4.0' }
 
 [features]
 default = ['std']
 std = [
     'serde',
     'codec/std',
-    "sp-std/std",
+    'sp-std/std',
+    'sp-core/std',
     'sp-runtime/std',
     'frame-support/std',
     'frame-system/std',
@@ -43,5 +43,6 @@ std = [
     'orml-traits/std',
     'orml-nft/std',
     'orml-currencies/std',
-    "pallet-timestamp/std",
+    'pallet-balances/std',
+    'pallet-timestamp/std',
 ]
