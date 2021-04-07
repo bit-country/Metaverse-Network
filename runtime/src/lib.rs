@@ -42,6 +42,7 @@ use pallet_contracts::weights::WeightInfo;
 // A few exports that help ease life for downstream crates.
 pub use constants::currency::*;
 pub use primitives::{Balance, CurrencyId};
+
 mod weights;
 
 pub use frame_support::{
@@ -64,6 +65,7 @@ pub use sp_runtime::{Perbill, Percent, Permill};
 pub use oracle;
 
 mod constants;
+
 // pub mod constants;
 // use constants::{currency::*, time::*};
 /// An index to a block.
@@ -218,7 +220,7 @@ impl pallet_grandpa::Config for Runtime {
     type KeyOwnerProofSystem = ();
 
     type KeyOwnerProof =
-        <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
+    <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
 
     type KeyOwnerIdentification = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
         KeyTypeId,
@@ -349,6 +351,7 @@ parameter_types! {
 }
 
 type GeneralCouncilInstance = pallet_collective::Instance1;
+
 impl pallet_collective::Config<GeneralCouncilInstance> for Runtime {
     type Origin = Origin;
     type Proposal = Call;
@@ -361,6 +364,7 @@ impl pallet_collective::Config<GeneralCouncilInstance> for Runtime {
 }
 
 pub struct GeneralCouncilProvider;
+
 impl Contains<AccountId> for GeneralCouncilProvider {
     fn contains(who: &AccountId) -> bool {
         GeneralCouncil::is_member(who)
@@ -491,7 +495,6 @@ impl nft::Config for Runtime {
     type Event = Event;
     type CreateClassDeposit = CreateClassDeposit;
     type CreateAssetDeposit = CreateAssetDeposit;
-    type Randomness = RandomnessCollectiveFlip;
     type Currency = Balances;
     type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
     type ModuleId = NftModuleId;

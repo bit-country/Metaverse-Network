@@ -21,12 +21,16 @@ use sp_runtime::{
 use frame_system::{self as system, ensure_signed};
 use orml_nft::Module as NftModule;
 use pallet_nft::NftClassData;
+
 mod auction;
 
 pub use crate::auction::{Auction, AuctionHandler, Change, OnNewBidResult};
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod mock;
 
 pub struct AuctionLogicHandler;
 
@@ -43,6 +47,7 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance, AssetId, ClassId> {
     start_time: BlockNumber,
     end_time: BlockNumber,
 }
+
 /// Auction info.
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug)]
@@ -58,12 +63,12 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 type BalanceOf<T> =
-    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 pub trait Config:
-    frame_system::Config
-    + orml_nft::Config<ClassData = NftClassData<BalanceOf<Self>>>
-    + pallet_balances::Config
+frame_system::Config
++ orml_nft::Config<ClassData=NftClassData<BalanceOf<Self>>>
++ pallet_balances::Config
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
 
@@ -71,12 +76,12 @@ pub trait Config:
 
     /// The auction ID type
     type AuctionId: Parameter
-        + Member
-        + AtLeast32BitUnsigned
-        + Default
-        + Copy
-        + MaybeSerializeDeserialize
-        + Bounded;
+    + Member
+    + AtLeast32BitUnsigned
+    + Default
+    + Copy
+    + MaybeSerializeDeserialize
+    + Bounded;
 
     /// The `AuctionHandler` that allow custom bidding logic and handles auction
     /// result
@@ -102,7 +107,6 @@ decl_storage! {
         pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
     }
 }
-
 decl_event!(
     pub enum Event<T> where
         <T as frame_system::Config>::AccountId,
@@ -360,7 +364,7 @@ impl<T: Config> Module<T> {
 // }
 
 impl<T: Config> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, T::AuctionId>
-    for Module<T>
+for Module<T>
 {
     fn on_new_bid(
         _now: T::BlockNumber,

@@ -14,44 +14,35 @@ targets = ['x86_64-unknown-linux-gnu']
 [dependencies]
 serde = { version = "1.0.101", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-pallet-aura = { version = "3.0.0", default-features = false }
-pallet-balances = { version = "3.0.0", default-features = false }
-frame-support = { version = "3.0.0", default-features = false }
-pallet-grandpa = { version = "3.0.0", default-features = false }
-pallet-randomness-collective-flip = { version = "3.0.0", default-features = false }
-pallet-sudo = { version = "3.0.0", default-features = false }
-frame-system = { version = "3.0.0", default-features = false }
-pallet-timestamp = { version = "3.0.0", default-features = false }
-pallet-transaction-payment = { version = "3.0.0", default-features = false }
-frame-executive = { version = "3.0.0", default-features = false }
-sp-api = { version = "3.0.0", default-features = false }
-sp-block-builder = { version = "3.0.0", default-features = false }
-sp-consensus-aura = { version = "0.9.0", default-features = false }
-sp-core = { version = "3.0.0", default-features = false }
-sp-inherents = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
-sp-offchain = { version = "3.0.0", default-features = false }
-sp-runtime = { version = "3.0.0", default-features = false }
-sp-session = { version = "3.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
-sp-transaction-pool = { version = "3.0.0", default-features = false }
-sp-version = { version = "3.0.0", default-features = false }
+sp-runtime = { version = "3.0.0", default-features = false }
+frame-support = { version = "3.0.0", default-features = false }
+frame-system = { version = "3.0.0", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 orml-traits = { default-features = false, version = '0.4.0' }
 orml-nft = { default-features = false, version = '0.4.0' }
+pallet-timestamp = { version = "3.0.0", default-features = false }
+orml-currencies = { default-features = false, version = '0.4.0' }
+
+sp-core = { version = "3.0.0", default-features = false }
+sp-io = { version = "3.0.0", default-features = false }
+pallet-balances = { version = "3.0.0", default-features = false }
+orml-tokens = { default-features = false, version = '0.4.0' }
 
 [features]
 default = ['std']
 std = [
     'serde',
     'codec/std',
+    'sp-std/std',
+    'sp-core/std',
+    'sp-runtime/std',
     'frame-support/std',
     'frame-system/std',
-    'sp-runtime/std',
-    'sp-core/std',
-    'sp-io/std',
+    'primitives/std',
     'orml-traits/std',
     'orml-nft/std',
+    'orml-currencies/std',
     'pallet-balances/std',
-    'primitives/std'
+    'pallet-timestamp/std',
 ]

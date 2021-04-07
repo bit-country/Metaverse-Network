@@ -3888,27 +3888,18 @@ dependencies = [
  "frame-system",
  "frame-system-rpc-runtime-api",
  "orml-nft",
- "pallet-aura",
  "pallet-balances",
- "pallet-grandpa",
  "pallet-nft",
- "pallet-randomness-collective-flip",
- "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
  "serde",
  "sp-api",
- "sp-block-builder",
- "sp-consensus-aura",
  "sp-core",
- "sp-inherents",
- "sp-offchain",
+ "sp-io",
  "sp-runtime",
- "sp-session",
  "sp-std",
- "sp-transaction-pool",
  "sp-version",
 ]
 
@@ -4163,32 +4154,20 @@ name = "pallet-nft"
 version = "2.0.0-rc6"
 dependencies = [
  "bit-country-primitives",
- "frame-executive",
  "frame-support",
  "frame-system",
+ "orml-currencies",
  "orml-nft",
+ "orml-tokens",
  "orml-traits",
- "pallet-aura",
  "pallet-balances",
- "pallet-grandpa",
- "pallet-randomness-collective-flip",
- "pallet-sudo",
  "pallet-timestamp",
- "pallet-transaction-payment",
  "parity-scale-codec",
  "serde",
- "sp-api",
- "sp-block-builder",
- "sp-consensus-aura",
  "sp-core",
- "sp-inherents",
  "sp-io",
- "sp-offchain",
  "sp-runtime",
- "sp-session",
  "sp-std",
- "sp-transaction-pool",
- "sp-version",
 ]
 
 [[package]]
@@ -8172,7 +8151,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04f8ab788026715fa63b31960869617cba39117e520eb415b0139543e325ab59"
 dependencies = [
  "cfg-if 0.1.10",
- "rand 0.7.3",
+ "rand 0.3.23",
  "static_assertions",
 ]
 
