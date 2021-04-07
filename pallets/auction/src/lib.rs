@@ -107,7 +107,6 @@ decl_storage! {
         pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
     }
 }
-
 decl_event!(
     pub enum Event<T> where
         <T as frame_system::Config>::AccountId,
