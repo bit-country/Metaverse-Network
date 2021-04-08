@@ -7,11 +7,9 @@ use frame_support::{
     construct_runtime, impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
 };
 use sp_core::H256;
-use sp_runtime::testing::Header;
-use sp_runtime::traits::IdentityLookup;
+use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
 use primitives::{CurrencyId, Amount, BlockNumber};
-use orml_nft;
-use pallet_nft as NFTModule;
+
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
@@ -23,6 +21,7 @@ pub type Balance = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
 
 impl frame_system::Config for Runtime {
@@ -98,11 +97,26 @@ impl Config for Runtime {
     type Currency = Balances;
 }
 
+parameter_types! {
+    pub CreateClassDeposit: Balance = 2;
+    pub CreateAssetDeposit: Balance = 1;
+    pub NftModuleId: ModuleId = ModuleId(*b"bit/bNFT");
+}
+
+impl pallet_nft::Config for Runtime {
+    type Event = Event;
+    type CreateClassDeposit = CreateClassDeposit;
+    type CreateAssetDeposit = CreateAssetDeposit;
+    type Currency = Balances;
+    type ModuleId = NftModuleId;
+    type WeightInfo = ();
+}
+
 impl orml_nft::Config for Runtime {
     type ClassId = u32;
     type TokenId = u64;
-    type ClassData = NFTModule::NftClassData<Balance>;
-    type TokenData = NFTModule::NftAssetData<Balance>;
+    type ClassData = pallet_nft::NftClassData<Balance>;
+    type TokenData = pallet_nft::NftAssetData<Balance>;
 }
 
 use frame_system::Call as SystemCall;
@@ -118,8 +132,9 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-        OrmlNft: orml_nft::{Module, Storage, Config<T>},
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+        NFTModule: pallet_nft::{Module, Storage ,Call, Event<T>},
+        OrmlNft: orml_nft::{Module, Storage, Config<T>},
         NftAuctionModule: auction::{Module, Call, Storage, Event<T>},
 	}
 );

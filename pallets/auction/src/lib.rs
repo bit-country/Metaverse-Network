@@ -10,6 +10,7 @@ use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, ensure,
     traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
     IterableStorageDoubleMap, Parameter,
+    debug,
 };
 
 use codec::{Decode, Encode};
@@ -19,8 +20,8 @@ use sp_runtime::{
 };
 
 use frame_system::{self as system, ensure_signed};
-use orml_nft::Module as NftModule;
-use pallet_nft::NftClassData;
+use pallet_nft::Module as NFTModule;
+use primitives::ItemId;
 
 mod auction;
 
@@ -36,9 +37,8 @@ pub struct AuctionLogicHandler;
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug)]
-pub struct AuctionItem<AccountId, BlockNumber, Balance, AssetId, ClassId> {
-    asset_id: AssetId,
-    class_id: ClassId,
+pub struct AuctionItem<AccountId, BlockNumber, Balance> {
+    item_id: ItemId,
     recipient: AccountId,
     initial_amount: Balance,
     /// Current amount for sale
@@ -67,7 +67,7 @@ type BalanceOf<T> =
 
 pub trait Config:
 frame_system::Config
-+ orml_nft::Config<ClassData=NftClassData<BalanceOf<Self>>>
++ pallet_nft::Config
 + pallet_balances::Config
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
@@ -98,7 +98,7 @@ decl_storage! {
         pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 
         //Store asset with Auction
-        pub AuctionItems get(fn get_auction_item): map hasher(twox_64_concat) T::AuctionId => Option<AuctionItem<T::AccountId, T::BlockNumber, T::Balance, TokenIdOf<T>, ClassIdOf<T>>>;
+        pub AuctionItems get(fn get_auction_item): map hasher(twox_64_concat) T::AuctionId => Option<AuctionItem<T::AccountId, T::BlockNumber, T::Balance>>;
 
         /// Track the next auction ID.
         pub AuctionsIndex get(fn auctions_index): T::AuctionId;
@@ -172,39 +172,46 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn create_auction(origin,  asset: (ClassIdOf<T>, TokenIdOf<T>), value: T::Balance) {
+        fn create_auction(origin, item_id: ItemId, value: T::Balance) {
             let from = ensure_signed(origin)?;
 
-            //Check ownership
-            let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
-            ensure!(from == class_info.owner, Error::<T>::NoPermissionToCreateAuction);
+            match item_id{
+                ItemId::NFT(asset_id) => {
+                    //FIXME - Remove in prod - For debugging purpose
+                    debug::info!("Asset id {}", asset_id);
+                    //Get asset detail
+                    let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
 
-            let class_info_data = class_info.data;
+                    //Check ownership
+                    let class_info = orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
+                    ensure!(from == class_info.owner, Error::<T>::NoPermissionToCreateAuction);
 
-            ensure!(class_info_data.token_type.is_transferrable(), Error::<T>::NoPermissionToCreateAuction);
+                    let class_info_data = class_info.data;
 
-            let start_time = <system::Module<T>>::block_number();
+                    ensure!(class_info_data.token_type.is_transferrable(), Error::<T>::NoPermissionToCreateAuction);
 
-            let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+                    let start_time = <system::Module<T>>::block_number();
+                    let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+                    let auction_id = Self::new_auction(from.clone(), value, start_time, Some(end_time))?;
 
-            let auction_id = Self::new_auction(from.clone(), value, start_time, Some(end_time))?;
+                    let new_auction_item = AuctionItem {
+                        item_id,
+                        recipient : from.clone(),
+                        initial_amount : value,
+                        amount : value,
+                        start_time,
+                        end_time
+                    };
 
-            let new_auction_item = AuctionItem {
-                asset_id : asset.1,
-                class_id: asset.0,
-                recipient : from.clone(),
-                initial_amount : value,
-                amount : value,
-                start_time : start_time,
-                end_time: end_time
+                    <AuctionItems<T>>::insert(
+                        auction_id,
+                        new_auction_item
+                    );
+
+                    Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
+                }
+                _ => {},
             };
-
-            <AuctionItems<T>>::insert(
-                auction_id,
-                new_auction_item
-            );
-
-            Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
         }
 
         /// dummy `on_initialize` to return the weight used in `on_finalize`.
@@ -226,12 +233,19 @@ decl_module! {
                                     Err(_e) => continue,
                                     Ok(_v) => {
                                         //Transfer asset from asset owner to high bidder
-                                        let asset_transfer = NftModule::<T>::transfer(&auction_item.recipient, &high_bidder, (auction_item.class_id, auction_item.asset_id));
-                                        match asset_transfer {
-                                            Err(_) => continue,
-                                            Ok(_) => {
-                                                Self::deposit_event(RawEvent::AuctionFinalized(auction_id, high_bidder ,high_bid_price));
-                                            },
+                                        //Check asset type and handle internal logic
+
+                                    match auction_item.item_id {
+                                            ItemId::NFT(asset_id) => {
+                                                let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &high_bidder, asset_id);
+                                                   match asset_transfer {
+                                                        Err(_) => continue,
+                                                        Ok(_) => {
+                                                            Self::deposit_event(RawEvent::AuctionFinalized(auction_id, high_bidder ,high_bid_price));
+                                                        },
+                                                    }
+                                            }
+                                            _ => {} //Future implementation for Spot, Country
                                         }
                                     },
                                 }
@@ -247,6 +261,7 @@ decl_error! {
     /// Error for auction module.
     pub enum Error for Module<T: Config> {
         AuctionNotExist,
+        AssetIsNotExist,
         AuctionNotStarted,
         AuctionIsExpired,
         BidNotAccepted,
