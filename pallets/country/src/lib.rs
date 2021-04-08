@@ -233,11 +233,4 @@ impl<T: Config> Module<T> {
         Ok(country_id)
     }
 
-    // pub fn account_id() -> T::AccountId{
-    // 	T::ModuleId::get().into_account()
-    // }
-
-    // pub fn country_fund_account_id(id: CountryId) -> T::AccountId{
-    // 	T::ModuleId::get().into_sub_account(("cf",id))
-    // }
 }

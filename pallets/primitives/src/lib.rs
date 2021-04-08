@@ -21,6 +21,11 @@ use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     MultiSignature,
 };
+use codec::{Decode, Encode};
+use sp_runtime::RuntimeDebug;
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 /// An index to a block.
 pub type BlockNumber = u64;
@@ -46,3 +51,13 @@ pub type CurrencyId = u32;
 pub type GroupCollectionId = u64;
 /// AssetId for all NFT and FT
 pub type AssetId = u64;
+
+/// Public item id for auction
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum ItemId {
+    NFT(AssetId),
+    Spot(u64),
+    Country(CountryId),
+    Block(u64),
+}
