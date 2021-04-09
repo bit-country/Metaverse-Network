@@ -524,7 +524,6 @@ parameter_types! {
 impl auction::Config for Runtime {
     type Event = Event;
     type AuctionTimeToClose = AuctionTimeToClose;
-    type AuctionId = u64;
     type Handler = Auction;
     type Currency = Balances;
 }

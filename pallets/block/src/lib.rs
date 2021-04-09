@@ -89,7 +89,7 @@ decl_module! {
             let random_result = T::RandomnessSource::random(&random_str);
             let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Config>::Hashing::hash);
 
-            //Check only country owner can add new block
+            //Check only bitcountry owner can add new block
 
             let new_block = Block{
                 id: random_hash,

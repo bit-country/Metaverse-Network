@@ -47,7 +47,7 @@ sp-io = { version = "3.0.0", default-features = false }
 [dependencies.country]
 default-features = false
 package = 'pallet-country'
-path = '../country'
+path = '../bitcountry'
 version = '2.0.0-rc6'
 
 
@@ -63,7 +63,7 @@ std = [
     'sp-std/std',
     'orml-currencies/std',
     'orml-tokens/std',
-    'orml-traits/std', 
+    'orml-traits/std',
     'primitives/std',
     'country/std',
 ]

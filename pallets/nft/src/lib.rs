@@ -190,7 +190,7 @@ decl_event!(
 
 decl_error! {
     pub enum Error for Module<T: Config> {
-        /// Attempted to initialize the country after it had already been initialized.
+        /// Attempted to initialize the bitcountry after it had already been initialized.
         AlreadyInitialized,
         //Asset Info not found
         AssetInfoNotFound,
@@ -348,6 +348,7 @@ decl_module! {
 
             let sender = ensure_signed(origin)?;
 
+            //FIXME asset transfer should be reverted once it's locked in Auction
             let token_id = Self::do_transfer(&sender, &to, asset_id)?;
 
             Self::deposit_event(RawEvent::TransferedNft(sender, to, token_id));
