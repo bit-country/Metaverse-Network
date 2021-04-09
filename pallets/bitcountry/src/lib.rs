@@ -98,7 +98,7 @@ decl_error! {
         CountryIdNotFound,
         //No permission
         NoPermission,
-        //No available country id
+        //No available bitcountry id
         NoAvailableCountryId,
     }
 }
@@ -130,7 +130,7 @@ decl_module! {
 
             let total_country_count = Self::all_countries_count();
 
-            let new_total_country_count = total_country_count.checked_add(One::one()).ok_or("Overflow adding new count to total country")?;
+            let new_total_country_count = total_country_count.checked_add(One::one()).ok_or("Overflow adding new count to total bitcountry")?;
             AllCountriesCount::put(new_total_country_count);
             Self::deposit_event(RawEvent::NewCountryCreated(country_id.clone()));
 
@@ -141,10 +141,10 @@ decl_module! {
         fn transfer_country(origin, to: T::AccountId, country_id: CountryId) -> DispatchResult {
 
             let who = ensure_signed(origin)?;
-            // Get owner of the country
+            // Get owner of the bitcountry
             CountryOwner::<T>::try_mutate_exists(
                 &country_id, &who, |country_by_owner| -> DispatchResult {
-                    //ensure there is record of the country owner with country id, account id and delete them
+                    //ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
                     ensure!(country_by_owner.is_some(), Error::<T>::NoPermission);
 
                     if who == to {
@@ -170,7 +170,7 @@ decl_module! {
 
         #[weight = 10_000]
         fn freeze_country(origin, country_id: CountryId) -> DispatchResult {
-            //Only Council can free a country
+            //Only Council can free a bitcountry
             ensure_root(origin)?;
 
             FreezingCountries::insert(country_id, ());
@@ -181,7 +181,7 @@ decl_module! {
 
         #[weight = 10_000]
         fn unfreeze_country(origin, country_id: CountryId) -> DispatchResult {
-            //Only Council can free a country
+            //Only Council can free a bitcountry
             ensure_root(origin)?;
 
             FreezingCountries::try_mutate(country_id, |freeze_country| -> DispatchResult{
@@ -194,7 +194,7 @@ decl_module! {
 
         #[weight = 10_000]
         fn destroy_country(origin, country_id: CountryId) -> DispatchResult {
-            //Only Council can destroy a country
+            //Only Council can destroy a bitcountry
             ensure_root(origin)?;
 
             Countries::<T>::try_mutate(country_id, |country_info| -> DispatchResult{
