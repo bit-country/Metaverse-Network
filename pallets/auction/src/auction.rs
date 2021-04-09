@@ -13,6 +13,8 @@ use sp_std::{
     fmt::Debug,
 };
 
+use primitives::AuctionId;
+
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
     /// No change.
@@ -35,25 +37,16 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 
 /// Abstraction over a simple auction system.
 pub trait Auction<AccountId, BlockNumber> {
-    /// The id of an AuctionInfo
-    type AuctionId: FullCodec
-        + Default
-        + Copy
-        + Eq
-        + PartialEq
-        + MaybeSerializeDeserialize
-        + Bounded
-        + Debug;
     /// The price to bid.
     type Balance: AtLeast32Bit + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
     /// The auction info of `id`
     fn auction_info(
-        id: Self::AuctionId,
+        id: AuctionId,
     ) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
     /// Update the auction info of `id` with `info`
     fn update_auction(
-        id: Self::AuctionId,
+        id: AuctionId,
         info: AuctionInfo<AccountId, Self::Balance, BlockNumber>,
     ) -> DispatchResult;
     /// Create new auction with specific startblock and endblock, return the id
@@ -63,9 +56,9 @@ pub trait Auction<AccountId, BlockNumber> {
         initial_amount: Self::Balance,
         start: BlockNumber,
         end: Option<BlockNumber>,
-    ) -> Result<Self::AuctionId, DispatchError>;
+    ) -> Result<AuctionId, DispatchError>;
     /// Remove auction by `id`
-    fn remove_auction(id: Self::AuctionId);
+    fn remove_auction(id: AuctionId);
 
     fn swap_bidders(new_bidder: &AccountId, last_bidder: Option<&AccountId>);
 }

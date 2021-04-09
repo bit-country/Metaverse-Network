@@ -63,7 +63,7 @@ primitives = { package = "bit-country-primitives", path = "../pallets/primitives
 [dependencies.country]
 default-features = false
 package = 'pallet-country'
-path = '../pallets/country'
+path = '../pallets/bitcountry'
 version = '2.0.0-rc6'
 
 [dependencies.block]
