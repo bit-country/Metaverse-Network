@@ -102,5 +102,15 @@
   "XCurrencyId": {
     "chain_id": "ChainId",
     "currency_id": "CurrencyId"
-  }
+  },
+  "GroupCollectionId": "u64",
+  "ClassIdOf": "u64",
+  "CollectionType": {
+    "_enum": {
+      "Any": "Null",
+      "Named": "Vec<u8>",
+      "Polkadot": "Null",
+      "Kusama": "Null"
+    }
+  },
 }
