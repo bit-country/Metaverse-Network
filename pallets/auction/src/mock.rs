@@ -4,7 +4,8 @@ use super::*;
 
 use crate as auction;
 use frame_support::{
-    construct_runtime, impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
+    construct_runtime, impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types
+    , traits::{OnInitialize, OnFinalize, EnsureOrigin}, weights::Weight, 
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
@@ -155,7 +156,7 @@ impl ExtBuilder {
             .unwrap();
 
         pallet_balances::GenesisConfig::<Runtime> {
-            balances: vec![(ALICE, 100000)],
+            balances: vec![(ALICE, 100000),(BOB,2000)],
         }
             .assimilate_storage(&mut t)
             .unwrap();
@@ -173,3 +174,15 @@ pub fn last_event() -> Event {
         .event
 }
 
+
+// Simulate block production
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		
+		NftAuctionModule::on_finalize(System::block_number());
+		System::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+		NftAuctionModule::on_initialize(System::block_number());
+	}
+}
