@@ -53,6 +53,8 @@ pub type GroupCollectionId = u64;
 pub type AssetId = u64;
 /// AuctionId
 pub type AuctionId = u64;
+/// SpotId
+pub type SpotId = u64;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]

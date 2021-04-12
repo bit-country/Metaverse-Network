@@ -56,7 +56,7 @@ orml-nft = { default-features = false, version = '0.4.0' }
 pallet-contracts = { version = "3.0.0", default_features = false }
 pallet-contracts-primitives = { version = "3.0.0", default_features = false }
 pallet-contracts-rpc-runtime-api = { version = "3.0.0", default-features = false }
-oracle = {version = "1.0.0", path = "../pallets/oracle", default_features= false}
+oracle = { version = "1.0.0", path = "../pallets/oracle", default_features = false }
 
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives", default-features = false }
 
@@ -89,6 +89,12 @@ default-features = false
 package = 'pallet-auction'
 path = '../pallets/auction'
 version = '2.0.0-rc6'
+
+[dependencies.continuum]
+default-features = false
+package = 'pallet-continuum'
+path = '../pallets/continuum'
+version = '0.0.1'
 
 [build-dependencies]
 substrate-wasm-builder = '4.0.0'
@@ -142,6 +148,7 @@ std = [
     'block/std',
     'nft/std',
     'auction/std',
+    'continuum/std',
     "pallet-contracts/std",
     "pallet-contracts-primitives/std",
     "pallet-contracts-rpc-runtime-api/std",

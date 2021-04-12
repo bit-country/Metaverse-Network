@@ -426,6 +426,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
+name = "bc-continuum"
+version = "2.0.0-rc6"
+dependencies = [
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "bincode"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -532,6 +541,7 @@ dependencies = [
  "pallet-block",
  "pallet-bounties",
  "pallet-collective",
+ "pallet-continuum",
  "pallet-contracts",
  "pallet-contracts-primitives",
  "pallet-contracts-rpc-runtime-api",
@@ -4012,6 +4022,42 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-continuum"
+version = "0.0.1"
+dependencies = [
+ "bc-continuum",
+ "bit-country-primitives",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "orml-currencies",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-aura",
+ "pallet-balances",
+ "pallet-grandpa",
+ "pallet-nft",
+ "pallet-randomness-collective-flip",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
 ]
 
 [[package]]
