@@ -375,11 +375,8 @@ decl_module! {
                     TokenType::Transferrable => {
                         let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
                         ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
-
                         Self::handle_asset_ownership_transfer(&owner, &item.0, item.1);
-
                         NftModule::<T>::transfer(&owner, &item.0, (asset.0, asset.1))?;
-
                         Self::deposit_event(RawEvent::TransferedNft(owner.clone(), item.0.clone(), asset.1.clone()));
                     }
                     _ => ()

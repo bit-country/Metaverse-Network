@@ -21,10 +21,10 @@
 use codec::{Decode, Encode};
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
-    traits::Get, StorageMap, StorageValue,
+    traits::{Get, Vec}, StorageMap, StorageValue,
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, CurrencyId};
+use primitives::{Balance, CountryId, CurrencyId, SpotId};
 use sp_runtime::{
     traits::{AccountIdConversion, One, Zero},
     DispatchError, ModuleId, RuntimeDebug,
@@ -32,7 +32,6 @@ use sp_runtime::{
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-use bc_continuum::{SessionIndex, SpotId, ActiveSessionId};
 pub use pallet::*;
 use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
 
@@ -78,8 +77,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use frame_support::pallet_prelude::*;
     use sp_runtime::traits::Zero;
-    use bc_continuum::*;
-    use crate::{AuctionSlot, SpotEOI};
+    use crate::{AuctionSlot, SpotEOI, SpotId};
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -92,6 +90,8 @@ pub mod pallet {
         /// Auction Slot Chilling Duration
         /// How long the participates in the New Auction Slots will get confirmed by neighbours
         type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
+        /// Number of the most subscribed slots available per term
+        type DesiredSlots: Get<u32>;
     }
 
     #[pallet::pallet]
@@ -99,10 +99,10 @@ pub mod pallet {
     pub struct Pallet<T>(_);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         /// Initialization
-        fn on_initialize(now: BlockNumberFor<T>) -> Weight {
-            let auction_duration = T::SessionDuration::get();
+        fn on_initialize(now: T::BlockNumber) -> Weight {
+            let auction_duration: T::BlockNumber = T::SessionDuration::get();
             if !auction_duration.is_zero() && (now % auction_duration).is_zero() {
                 Self::rotate_auction_slots(now);
                 T::BlockWeights::get().max_block
@@ -115,28 +115,36 @@ pub mod pallet {
     /// Get current active session
     #[pallet::storage]
     #[pallet::getter(fn current_session)]
-    pub type CurrentIndex<T: Config> = StorageValue<_, ActiveSessionId, ValueQuery>;
+    pub type CurrentIndex<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
 
     /// Active Auction Slots of current session index that accepting participants
     #[pallet::storage]
     #[pallet::getter(fn get_active_auction_slots)]
-    pub type ActiveAuctionSlots<T: Config> = StorageMap<_, Twox64Concat, SessionIndex, Vec<AuctionSlot<T::BlockNumber, T::AccountId>>, OptionQuery>;
+    pub type ActiveAuctionSlots<T: Config> = StorageMap<_, Twox64Concat, T::BlockNumber, Vec<AuctionSlot<T::BlockNumber, T::AccountId>>, OptionQuery>;
 
     /// Active Auction Slots that is currently conducting GN Protocol
     #[pallet::storage]
     #[pallet::getter(fn get_active_gnp_slots)]
-    pub type GNPSlots<T: Config> = StorageMap<_, Twox64Concat, SessionIndex, Vec<AuctionSlot<T::BlockNumber, T::AccountId>>, OptionQuery>;
+    pub type GNPSlots<T: Config> = StorageMap<_, Twox64Concat, T::BlockNumber, Vec<AuctionSlot<T::BlockNumber, T::AccountId>>, OptionQuery>;
 
     /// Active set of EOI on Continuum Spot
     #[pallet::storage]
     #[pallet::getter(fn get_eoi_set)]
-    pub type EOISlots<T: Config> = StorageMap<_, Twox64Concat, SessionIndex, Vec<SpotEOI<T::AccountId>>, ValueQuery>;
+    pub type EOISlots<T: Config> = StorageMap<_, Twox64Concat, T::BlockNumber, Vec<SpotEOI<T::AccountId>>, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(fn deposit_event)]
     pub enum Event<T: Config> {
-        //New express of interest
+        // New express of interest
         NewExpressOfInterestAdded(T::AccountId, SpotId),
+    }
+
+    #[pallet::error]
+    pub enum Error<T> {
+        /// No Active Auction Slot
+        NoActiveAuctionSlot,
+        /// No Active GNP List
+        NoActiveGNP,
     }
 
 
@@ -144,7 +152,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn register_interest(origin: OriginFor<T>, spot_id: SpotId) -> DispatchResultWithPostInfo {
-            /// Ensure AccountId own a country
+            // Ensure AccountId own a country
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -166,28 +174,53 @@ pub mod pallet {
     }
 }
 
-impl<T: Config> Pallet<T> {
+impl<T: Config> Pallet<T>
+{
+    //noinspection ALL
     fn rotate_auction_slots(now: T::BlockNumber) -> DispatchResult {
-        ///Get current active session
+        // Get current active session
         let current_active_session_id = CurrentIndex::<T>::get();
+        // Get desired slots
+        let desired_slots: u32 = T::DesiredSlots::get().into();
 
-        ///Change status of all current active auction slots
-        let active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id);
+        // Change status of all current active auction slots
+        let mut active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id).ok_or(Error::<T>::NoActiveAuctionSlot)?;
 
-        ///Move current auctions slot to start GN Protocol
-        let started_gnp_auction_slots: Vec<AuctionSlot<T::BlockNumber, T::AccountId>> =
-            active_auction_slots.iter()
-                .map(|x| x.status == ContinuumAuctionSlotStatus::GNPStarted)
+        // Move current auctions slot to start GN Protocol
+        let started_gnp_auction_slots: Vec<_> =
+            active_auction_slots
+                .iter()
+                .map(|x| {
+                    let mut t = x.clone();
+                    t.status = ContinuumAuctionSlotStatus::GNPStarted;
+                    t
+                })
                 .collect();
-
+        // Move active auction slots to GNP
         GNPSlots::<T>::insert(now, started_gnp_auction_slots);
+        // Emit event Auction slot start GNP
+
+        // Remove the old active auction slots
         ActiveAuctionSlots::<T>::remove(&current_active_session_id);
 
-        /// Get active EOI and add the top N to new Auction Slots
-        let mut current_eoi_slots = EOISlots::<T>::get(current_active_session_id);
+        // Get active EOI and add the top N to new Auction Slots
+        let mut current_eoi_slots: Vec<SpotEOI<T::AccountId>> = EOISlots::<T>::get(current_active_session_id);
+        current_eoi_slots.sort_by_key(|eoi_slot| eoi_slot.participants.len());
+        // Get highest ranked slot
 
-        let get_top_n_ranking = &current_eoi_slots.sort_by_key(|eoi_slot| eoi_slot.participants.len());
-
+        let mut new_valid_auction_slot: Vec<AuctionSlot<T::BlockNumber, T::AccountId>> = Vec::new();
+        let highest_ranked_sorted: Vec<SpotEOI<T::AccountId>> = current_eoi_slots.iter().map(|x| x.clone()).take(desired_slots as usize).collect::<Vec<SpotEOI<T::AccountId>>>();
+        // Add highest ranked EOI to New Active Auction slot
+        for (x, item) in highest_ranked_sorted.iter().enumerate() {
+            let auction_slot = AuctionSlot {
+                spot_id: item.spot_id,
+                participants: item.participants.clone(),
+                active_session_index: now,
+                status: ContinuumAuctionSlotStatus::AcceptParticipates,
+            };
+            new_valid_auction_slot.push(auction_slot);
+        }
+        // Emit event
         Ok(().into())
     }
 

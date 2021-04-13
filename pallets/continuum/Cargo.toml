@@ -36,7 +36,6 @@ sp-session = { version = "3.0.0", default-features = false }
 sp-transaction-pool = { version = "3.0.0", default-features = false }
 sp-version = { version = "3.0.0", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
-bc-continuum = { package = "bc-continuum", path = "../primitives/continuum", default-features = false }
 
 # Orml packages
 orml-traits = { default-features = false, version = '0.4.0' }
@@ -68,5 +67,4 @@ std = [
     'orml-tokens/std',
     'nft/std',
     'primitives/std',
-    'bc-continuum/std',
 ]
