@@ -354,7 +354,6 @@ impl<T: Config> Module<T> {
             //Lock fund of new bidder
             //Reserve balance
             <pallet_balances::Module<T>>::reserve(&new_bidder, new_bid_price)?;
-            auction_item.recipient = new_bidder.clone();
             auction_item.amount = new_bid_price.clone();
 
             Ok(())

@@ -8,8 +8,8 @@ use sp_core::{sr25519, Pair, H256};
 use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
-	Perbill,
-	ModuleId
+    Perbill,
+    ModuleId,
 };
 use primitives::{CountryId, CurrencyId};
 
@@ -56,31 +56,31 @@ parameter_types! {
 
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
-	type Index = u64;
-	type BlockNumber = BlockNumber;
-	type Call = Call;
-	type Hash = H256;
-	type Hashing = BlakeTwo256;
-	type AccountId = AccountId;
-	type Lookup = IdentityLookup<Self::AccountId>;
-	type Header = Header;
-	type Event = TestEvent;
-	type BlockHashCount = BlockHashCount;
-	type MaximumBlockWeight = MaximumBlockWeight;
-	type MaximumBlockLength = MaximumBlockLength;
-	type AvailableBlockRatio = AvailableBlockRatio;
-	type Version = ();
-	type PalletInfo = ();
-	type AccountData = ();
-	type OnNewAccount = ();
-	type OnKilledAccount = ();
-	type DbWeight = ();
-	type BlockExecutionWeight = ();
-	type ExtrinsicBaseWeight = ();
-	type MaximumExtrinsicWeight = ();
-	type BaseCallFilter = ();
-	type SystemWeightInfo = ();
+    type Origin = Origin;
+    type Index = u64;
+    type BlockNumber = BlockNumber;
+    type Call = Call;
+    type Hash = H256;
+    type Hashing = BlakeTwo256;
+    type AccountId = AccountId;
+    type Lookup = IdentityLookup<Self::AccountId>;
+    type Header = Header;
+    type Event = TestEvent;
+    type BlockHashCount = BlockHashCount;
+    type MaximumBlockWeight = MaximumBlockWeight;
+    type MaximumBlockLength = MaximumBlockLength;
+    type AvailableBlockRatio = AvailableBlockRatio;
+    type Version = ();
+    type PalletInfo = ();
+    type AccountData = ();
+    type OnNewAccount = ();
+    type OnKilledAccount = ();
+    type DbWeight = ();
+    type BlockExecutionWeight = ();
+    type ExtrinsicBaseWeight = ();
+    type MaximumExtrinsicWeight = ();
+    type BaseCallFilter = ();
+    type SystemWeightInfo = ();
 }
 
 pub type System = frame_system::Module<Runtime>;
@@ -90,8 +90,8 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-	type Event = TestEvent;
-	type ModuleId = CountryFundModuleId;
+    type Event = TestEvent;
+    type ModuleId = CountryFundModuleId;
 }
 
 pub type CountryModule = Module<Runtime>;
@@ -101,26 +101,26 @@ use frame_system::Call as SystemCall;
 pub struct ExtBuilder;
 
 impl Default for ExtBuilder {
-	fn default() -> Self {
-		ExtBuilder
-	}
+    fn default() -> Self {
+        ExtBuilder
+    }
 }
 
 impl ExtBuilder {
-	pub fn build(self) -> sp_io::TestExternalities {
-		let t = frame_system::GenesisConfig::default()
-			.build_storage::<Runtime>()
-			.unwrap();
+    pub fn build(self) -> sp_io::TestExternalities {
+        let t = frame_system::GenesisConfig::default()
+            .build_storage::<Runtime>()
+            .unwrap();
 
-		let mut ext = sp_io::TestExternalities::new(t);
-		ext.execute_with(|| System::set_block_number(1));
-		ext
-	}
+        let mut ext = sp_io::TestExternalities::new(t);
+        ext.execute_with(|| System::set_block_number(1));
+        ext
+    }
 }
 
 pub fn last_event() -> TestEvent {
-	frame_system::Module::<Runtime>::events()
-		.pop()
-		.expect("Event expected")
-		.event
+    frame_system::Module::<Runtime>::events()
+        .pop()
+        .expect("Event expected")
+        .event
 }

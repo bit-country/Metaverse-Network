@@ -78,6 +78,7 @@ pub mod pallet {
     use frame_support::pallet_prelude::*;
     use sp_runtime::traits::Zero;
     use crate::{AuctionSlot, SpotEOI, SpotId};
+    use frame_support::dispatch::DispatchResult;
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -90,8 +91,6 @@ pub mod pallet {
         /// Auction Slot Chilling Duration
         /// How long the participates in the New Auction Slots will get confirmed by neighbours
         type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
-        /// Number of the most subscribed slots available per term
-        type DesiredSlots: Get<u32>;
     }
 
     #[pallet::pallet]
@@ -132,6 +131,16 @@ pub mod pallet {
     #[pallet::getter(fn get_eoi_set)]
     pub type EOISlots<T: Config> = StorageMap<_, Twox64Concat, T::BlockNumber, Vec<SpotEOI<T::AccountId>>, ValueQuery>;
 
+    /// Get max bound
+    #[pallet::storage]
+    #[pallet::getter(fn get_max_bound)]
+    pub type MaxBound<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+
+    /// Maximum desired auction slots available per term
+    #[pallet::storage]
+    #[pallet::getter(fn get_max_desired_slot)]
+    pub type MaxDesiredAuctionSlot<T: Config> = StorageValue<_, u32, ValueQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(fn deposit_event)]
     pub enum Event<T: Config> {
@@ -145,6 +154,12 @@ pub mod pallet {
         NoActiveAuctionSlot,
         /// No Active GNP List
         NoActiveGNP,
+        /// Can't add EOI to Slot
+        FailedEOIToSlot,
+        /// Only send EOI once
+        EOIAlreadyExists,
+        /// No Active Session
+        NoActiveSession,
     }
 
 
@@ -152,19 +167,71 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn register_interest(origin: OriginFor<T>, spot_id: SpotId) -> DispatchResultWithPostInfo {
-            // Ensure AccountId own a country
+            let sender = ensure_signed(origin)?;
+            //TODO Ensure AccountId own a country
+            //TODO Spot has no owner
+            // Get current active session
+            let current_active_session_id = CurrentIndex::<T>::get();
+
+            ensure!(EOISlots::<T>::contains_key(current_active_session_id), Error::<T>::NoActiveSession);
+
+            // Mutate current active EOI Slot session
+            EOISlots::<T>::try_mutate(current_active_session_id, |spot_eoi| -> DispatchResult {
+
+                // Check if the interested Spot exists
+                let interested_spot_index: Option<usize> = spot_eoi.iter().position(|x| x.spot_id == spot_id);
+                match interested_spot_index {
+                    // Already got participants
+                    Some(index) => {
+                        // Works on existing eoi index
+                        let interested_spot = spot_eoi.get_mut(index).ok_or("No Spot EOI exist")?;
+
+                        if interested_spot.participants.len() == 0 {
+                            interested_spot.participants.push(sender);
+                        } else {
+                            interested_spot.participants.push(sender);
+                        }
+                    }
+                    // No participants - add one
+                    None => {
+                        // No spot found - first one in EOI
+                        let mut new_list: Vec<T::AccountId> = Vec::new();
+                        new_list.push(sender);
+
+                        let _spot_eoi = SpotEOI {
+                            spot_id,
+                            participants: new_list,
+                        };
+                        spot_eoi.push(_spot_eoi);
+                    }
+                }
+                Ok(())
+            })?;
+
+            //TODO Emit event
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn vote_bidder_rejection(origin: OriginFor<T>, bidders: Vec<T::AccountId>) -> DispatchResultWithPostInfo {
+        pub fn enable_bidder_rejection_voting(origin: OriginFor<T>, spot_id: SpotId, bidders: Vec<T::AccountId>) -> DispatchResultWithPostInfo {
+            let sender = ensure_signed(origin);
+            //TODO Check if neighborhood
+            //Enable democracy pallet
+            //Propose bidder removal action on democracy
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn set_max_bounds(origin: OriginFor<T>, new_bound: (u64, u64)) -> DispatchResultWithPostInfo {
+        pub fn set_max_bounds(origin: OriginFor<T>, new_bound: (u32, u32)) -> DispatchResultWithPostInfo {
+            // Only execute by governance
+            ensure_root(origin);
+            MaxBound::<T>::set(new_bound);
+            //TODO Emit event
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn set_new_auction_rate(origin: OriginFor<T>, new_rate: u32) -> DispatchResultWithPostInfo {
+            ensure_root(origin);
+            MaxDesiredAuctionSlot::<T>::set(new_rate);
+            //TODO Emit event
             Ok(().into())
         }
         // #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -180,9 +247,6 @@ impl<T: Config> Pallet<T>
     fn rotate_auction_slots(now: T::BlockNumber) -> DispatchResult {
         // Get current active session
         let current_active_session_id = CurrentIndex::<T>::get();
-        // Get desired slots
-        let desired_slots: u32 = T::DesiredSlots::get().into();
-
         // Change status of all current active auction slots
         let mut active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id).ok_or(Error::<T>::NoActiveAuctionSlot)?;
 
@@ -198,13 +262,24 @@ impl<T: Config> Pallet<T>
                 .collect();
         // Move active auction slots to GNP
         GNPSlots::<T>::insert(now, started_gnp_auction_slots);
-        // Emit event Auction slot start GNP
+        //TODO Emit event Auction slot start GNP
 
         // Remove the old active auction slots
         ActiveAuctionSlots::<T>::remove(&current_active_session_id);
 
+        Self::eoi_to_auction_slots(current_active_session_id, now)?;
+        CurrentIndex::<T>::set(now);
+        //TODO Emit event
+        Ok(().into())
+    }
+
+    fn eoi_to_auction_slots(active_session: T::BlockNumber, now: T::BlockNumber) -> DispatchResult {
+        // Get maximum desired slots
+        let desired_slots = MaxDesiredAuctionSlot::<T>::get();
+
         // Get active EOI and add the top N to new Auction Slots
-        let mut current_eoi_slots: Vec<SpotEOI<T::AccountId>> = EOISlots::<T>::get(current_active_session_id);
+        let mut current_eoi_slots: Vec<SpotEOI<T::AccountId>> = EOISlots::<T>::get(active_session);
+
         current_eoi_slots.sort_by_key(|eoi_slot| eoi_slot.participants.len());
         // Get highest ranked slot
 
@@ -220,8 +295,15 @@ impl<T: Config> Pallet<T>
             };
             new_valid_auction_slot.push(auction_slot);
         }
-        // Emit event
-        Ok(().into())
+
+        ActiveAuctionSlots::<T>::insert(now, new_valid_auction_slot);
+        //Remove EOISlot
+        EOISlots::<T>::remove(active_session);
+        let empty_eoi_spots: Vec<SpotEOI<T::AccountId>> = Vec::new();
+        //Add new EOISlot for current session - ensure active session has entry
+        EOISlots::<T>::insert(now, empty_eoi_spots);
+        //TODO Emit event
+        Ok(())
     }
 
     fn do_register(who: &T::AccountId, spot_id: &SpotId) -> SpotId {
