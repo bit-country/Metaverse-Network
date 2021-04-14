@@ -111,7 +111,7 @@ fn freeze_country_should_fail() {
             Origin::signed(ALICE),
             vec![1]
         ));
-        //Country owner tries to freeze their own country
+        //Country owner tries to freeze their own bitcountry
         assert_noop!(
             CountryModule::freeze_country(Origin::signed(ALICE), COUNTRY_ID),
             dispatch::DispatchError::BadOrigin

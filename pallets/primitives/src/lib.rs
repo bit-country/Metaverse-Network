@@ -51,6 +51,10 @@ pub type CurrencyId = u32;
 pub type GroupCollectionId = u64;
 /// AssetId for all NFT and FT
 pub type AssetId = u64;
+/// AuctionId
+pub type AuctionId = u64;
+/// SpotId
+pub type SpotId = u64;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]

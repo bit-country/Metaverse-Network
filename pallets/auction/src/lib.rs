@@ -21,7 +21,7 @@ use sp_runtime::{
 
 use frame_system::{self as system, ensure_signed};
 use pallet_nft::Module as NFTModule;
-use primitives::ItemId;
+use primitives::{ItemId, AuctionId};
 
 mod auction;
 
@@ -71,21 +71,10 @@ frame_system::Config
 + pallet_balances::Config
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
-
     type AuctionTimeToClose: Get<Self::BlockNumber>;
-
-    /// The auction ID type
-    type AuctionId: Parameter
-    + Member
-    + AtLeast32BitUnsigned
-    + Default
-    + Copy
-    + MaybeSerializeDeserialize
-    + Bounded;
-
     /// The `AuctionHandler` that allow custom bidding logic and handles auction
     /// result
-    type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
+    type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, AuctionId>;
     type Currency: Currency<Self::AccountId>;
 
     // /// Weight information for extrinsics in this module.
@@ -95,16 +84,16 @@ frame_system::Config
 decl_storage! {
     trait Store for Module<T: Config> as Auction {
         /// Stores on-going and future auctions. Closed auction are removed.
-        pub Auctions get(fn auctions): map hasher(twox_64_concat) T::AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
+        pub Auctions get(fn auctions): map hasher(twox_64_concat) AuctionId => Option<AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>>;
 
         //Store asset with Auction
-        pub AuctionItems get(fn get_auction_item): map hasher(twox_64_concat) T::AuctionId => Option<AuctionItem<T::AccountId, T::BlockNumber, T::Balance>>;
+        pub AuctionItems get(fn get_auction_item): map hasher(twox_64_concat) AuctionId => Option<AuctionItem<T::AccountId, T::BlockNumber, T::Balance>>;
 
         /// Track the next auction ID.
-        pub AuctionsIndex get(fn auctions_index): T::AuctionId;
+        pub AuctionsIndex get(fn auctions_index): AuctionId;
 
         /// Index auctions by end time.
-        pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) T::AuctionId => Option<()>;
+        pub AuctionEndTime get(fn auction_end_time): double_map hasher(twox_64_concat) T::BlockNumber, hasher(twox_64_concat) AuctionId => Option<()>;
     }
 }
 decl_event!(
@@ -112,7 +101,6 @@ decl_event!(
         <T as frame_system::Config>::AccountId,
         <T as pallet_balances::Config>::Balance,
         // AssetId = AssetId,
-        <T as Config>::AuctionId,
     {
         /// A bid is placed. [auction_id, bidder, bidding_amount]
         Bid(AuctionId, AccountId, Balance),
@@ -130,7 +118,7 @@ decl_module! {
         const AuctionTimeToClose: T::BlockNumber = T::AuctionTimeToClose::get();
 
         #[weight = 10_000]
-        fn bid(origin, id: T::AuctionId, value: T::Balance) {
+        fn bid(origin, id: AuctionId, value: T::Balance) {
             let from = ensure_signed(origin)?;
 
             <Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
@@ -273,7 +261,7 @@ decl_error! {
 
 impl<T: Config> Module<T> {
     fn update_auction(
-        id: T::AuctionId,
+        id: AuctionId,
         info: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber>,
     ) -> DispatchResult {
         let auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
@@ -292,21 +280,23 @@ impl<T: Config> Module<T> {
         _initial_amount: T::Balance,
         start: T::BlockNumber,
         end: Option<T::BlockNumber>,
-    ) -> Result<T::AuctionId, DispatchError> {
+    ) -> Result<AuctionId, DispatchError> {
         let auction: AuctionInfo<T::AccountId, T::Balance, T::BlockNumber> = AuctionInfo {
             bid: None,
             start,
             end,
         };
 
-        let auction_id: T::AuctionId =
-            <AuctionsIndex<T>>::try_mutate(|n| -> Result<T::AuctionId, DispatchError> {
+        let auction_id: AuctionId =
+            AuctionsIndex::try_mutate(|n| -> Result<AuctionId, DispatchError> {
                 let id = *n;
                 ensure!(
-                    id != T::AuctionId::max_value(),
+                    id != AuctionId::max_value(),
                     Error::<T>::NoAvailableAuctionId
                 );
-                *n += One::one();
+                *n = n
+                    .checked_add(One::one())
+                    .ok_or(Error::<T>::NoAvailableAuctionId)?;
                 Ok(id)
             })?;
 
@@ -319,7 +309,7 @@ impl<T: Config> Module<T> {
         Ok(auction_id)
     }
 
-    fn remove_auction(id: T::AuctionId) {
+    fn remove_auction(id: AuctionId) {
         if let Some(auction) = <Auctions<T>>::get(&id) {
             if let Some(end_block) = auction.end {
                 <AuctionEndTime<T>>::remove(end_block, id);
@@ -340,7 +330,7 @@ impl<T: Config> Module<T> {
 
     fn auction_bid_handler(
         _now: T::BlockNumber,
-        id: T::AuctionId,
+        id: AuctionId,
         new_bid: (T::AccountId, T::Balance),
         last_bid: Option<(T::AccountId, T::Balance)>,
     ) -> DispatchResult {
@@ -364,7 +354,6 @@ impl<T: Config> Module<T> {
             //Lock fund of new bidder
             //Reserve balance
             <pallet_balances::Module<T>>::reserve(&new_bidder, new_bid_price)?;
-            auction_item.recipient = new_bidder.clone();
             auction_item.amount = new_bid_price.clone();
 
             Ok(())
@@ -378,12 +367,12 @@ impl<T: Config> Module<T> {
 
 // }
 
-impl<T: Config> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, T::AuctionId>
+impl<T: Config> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, AuctionId>
 for Module<T>
 {
     fn on_new_bid(
         _now: T::BlockNumber,
-        _id: T::AuctionId,
+        _id: AuctionId,
         _new_bid: (T::AccountId, T::Balance),
         _last_bid: Option<(T::AccountId, T::Balance)>,
     ) -> OnNewBidResult<T::BlockNumber> {
@@ -393,5 +382,5 @@ for Module<T>
         }
     }
 
-    fn on_auction_ended(_id: T::AuctionId, _winner: Option<(T::AccountId, T::Balance)>) {}
+    fn on_auction_ended(_id: AuctionId, _winner: Option<(T::AccountId, T::Balance)>) {}
 }

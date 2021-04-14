@@ -82,7 +82,7 @@ decl_error! {
         InsufficientBalance,
         /// No permission to issue token
         NoPermissionTokenIssuance,
-        /// Country Currency already issued for this country
+        /// Country Currency already issued for this bitcountry
         TokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
@@ -96,7 +96,7 @@ decl_module! {
         type Error = Error<T>;
 
         fn deposit_event() = default;
-        /// Issue a new class of fungible assets for country. There are, and will only ever be, `total`
+        /// Issue a new class of fungible assets for bitcountry. There are, and will only ever be, `total`
         /// such assets and they'll all belong to the `origin` initially. It will have an
         /// identifier `TokenId` instance: this will be specified in the `Issued` event.
         #[weight = 10_000]
