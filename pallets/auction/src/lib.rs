@@ -223,32 +223,36 @@ decl_module! {
             for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
                 if let Some(auction) = <Auctions<T>>::get(&auction_id) {
                         if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id){
+                         
                             Self::remove_auction(auction_id.clone());
                             //Transfer balance from high bidder to asset owner
                             if let Some(current_bid) = auction.bid{
                                 let (high_bidder, high_bid_price): (T::AccountId, T::Balance) = current_bid;
                                 <pallet_balances::Module<T>>::unreserve(&high_bidder, high_bid_price);
+                                
                                 let currency_transfer = <pallet_balances::Module<T> as Currency<_>>::transfer(&high_bidder, &auction_item.recipient , high_bid_price, ExistenceRequirement::KeepAlive);
                                 match currency_transfer {
                                     Err(_e) => continue,
                                     Ok(_v) => {
                                         //Transfer asset from asset owner to high bidder
                                         //Check asset type and handle internal logic
-
                                     match auction_item.item_id {
                                             ItemId::NFT(asset_id) => {
                                                 let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &high_bidder, asset_id);
-                                                   match asset_transfer {
-                                                        Err(_) => continue,
+                                                
+                                                    match asset_transfer {
+                                                        Err(_) => continue, // TESTS FAIL HERE
                                                         Ok(_) => {
                                                             Self::deposit_event(RawEvent::AuctionFinalized(auction_id, high_bidder ,high_bid_price));
                                                         },
                                                     }
+                                                
                                             }
                                             _ => {} //Future implementation for Spot, Country
                                         }
                                     },
                                 }
+                                
                             }
                         }
                 }

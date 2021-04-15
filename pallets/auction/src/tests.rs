@@ -160,12 +160,11 @@ fn bidding_with_isufficient_funds_fails() {
 }
 
 #[test]
-//#[ignore = "not yet implemented"]
 // Asset transferred correctly after bidding
 fn asset_transfer_after_auction_end_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(BOB);
-        let bidder_origin = Origin::signed(ALICE);
+        //let bidder_origin = Origin::signed(ALICE);
        
         //Create group collection before class
         assert_ok!(NFTModule::<Runtime>::create_group(
@@ -193,16 +192,19 @@ fn asset_transfer_after_auction_end_work() {
 		));
 
         assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
-
+        assert_eq!(NFTModule::<Runtime>::check_nft_ownership(&BOB,&0),Ok(true));
+        assert_eq!(NFTModule::<Runtime>::check_nft_ownership(&ALICE,&0),Ok(false));
         // Create auction and bid on it
-       // assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB),[0]);
-        assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), Vec::<u64>::new());
         assert_ok!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100));
-        assert_ok!(NftAuctionModule::bid(bidder_origin.clone(), 0, 20000));
+        assert_ok!(NftAuctionModule::bid(Origin::signed(ALICE), 0, 20000));
         assert_eq!(last_event(), Event::auction(RawEvent::Bid(0, ALICE, 20000)));
-        run_to_block(103);
-        assert_ne!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), Vec::<u64>::new());
-       
+        // Simulate the auction's end
+        run_to_block(102);
+        assert_eq!(Balances::free_balance(&ALICE), 80000);
+        assert_eq!(Balances::free_balance(&BOB), 21997);
+        assert_eq!(NFTModule::<Runtime>::check_nft_ownership(&BOB,&0),Ok(false));
+        assert_eq!(NFTModule::<Runtime>::check_nft_ownership(&ALICE,&0),Ok(true));
+        assert_eq!(last_event(), Event::auction(RawEvent::AuctionFinalized(0, ALICE, 20000))); 
     });
 }
 

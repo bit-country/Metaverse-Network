@@ -12,7 +12,7 @@ test:
 
 .PHONY: run
 run:
-	cargo run --release -- --dev --tmp -lruntime=debug --instant-sealing
+	cargo run --release -- --dev --tmp -lruntime=debug 
 
 .PHONY: build
 build:
