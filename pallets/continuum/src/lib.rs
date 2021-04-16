@@ -35,6 +35,12 @@ use serde::{Deserialize, Serialize};
 pub use pallet::*;
 use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
 
+mod vote;
+mod types;
+
+pub use vote::{Vote, Voting, AccountVote};
+pub use types::{ReferendumInfo, ReferendumStatus, ContinuumSpotTally};
+
 #[cfg(test)]
 mod mock;
 
@@ -77,8 +83,11 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use frame_support::pallet_prelude::*;
     use sp_runtime::traits::Zero;
-    use crate::{AuctionSlot, SpotEOI, SpotId};
+    use crate::{AuctionSlot, SpotEOI, SpotId, ReferendumInfo, Voting};
     use frame_support::dispatch::DispatchResult;
+    use frame_support::traits::Currency;
+
+    pub(crate) type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
     /// Configure the pallet by specifying the parameters and types on which it depends.
     #[pallet::config]
@@ -131,6 +140,16 @@ pub mod pallet {
     #[pallet::getter(fn get_eoi_set)]
     pub type EOISlots<T: Config> = StorageMap<_, Twox64Concat, T::BlockNumber, Vec<SpotEOI<T::AccountId>>, ValueQuery>;
 
+    /// Information of Continuum Spot Referendum
+    #[pallet::storage]
+    #[pallet::getter(fn get_continuum_referedum)]
+    pub type ReferendumInfoOf<T: Config> = StorageMap<_, Twox64Concat, SpotId, ReferendumInfo<T::AccountId, T::BlockNumber, T::Hash, BalanceOf<T>>, OptionQuery>;
+
+    /// All votes of a particular voter
+    #[pallet::storage]
+    #[pallet::getter(fn get_continuum_referedum)]
+    pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Voting<BalanceOf<T>, T::AccountId, T::BlockNumber>, ValueQuery>;
+
     /// Get max bound
     #[pallet::storage]
     #[pallet::getter(fn get_max_bound)]
@@ -160,6 +179,10 @@ pub mod pallet {
         EOIAlreadyExists,
         /// No Active Session
         NoActiveSession,
+        /// Referendum is invalid
+        ReferendumIsInValid,
+        /// Tally Overflow
+        TallyOverflow,
     }
 
 
@@ -212,8 +235,8 @@ pub mod pallet {
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn enable_bidder_rejection_voting(origin: OriginFor<T>, spot_id: SpotId, bidders: Vec<T::AccountId>) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin);
+        pub fn enable_bidder_rejection_voting(origin: OriginFor<T>, spot_id: SpotId) -> DispatchResultWithPostInfo {
+            let root = ensure_root(origin);
             //TODO Check if neighborhood
             //Enable democracy pallet
             //Propose bidder removal action on democracy
@@ -234,10 +257,10 @@ pub mod pallet {
             //TODO Emit event
             Ok(().into())
         }
-        // #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        // pub fn bid(origin: OriginFor<T>, id: SpotId, value: T::Balance) -> DispatchResultWithPostInfo {
-        //     Ok(().into())
-        // }
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn neighbor_vote(origin: OriginFor<T>, id: SpotId, rejects: Vec<T::AccountId>) -> DispatchResultWithPostInfo {
+            Ok(().into())
+        }
     }
 }
 
@@ -304,6 +327,51 @@ impl<T: Config> Pallet<T>
         EOISlots::<T>::insert(now, empty_eoi_spots);
         //TODO Emit event
         Ok(())
+    }
+
+    fn try_vote(who: &T::AccountId, spot_id: SpotId, vote: AccountVote<T::AccountId>) -> DispatchResult {
+        let mut status = Self::referendum_status(spot_id)?;
+
+        VotingOf::<T>::try_mutate(who, |mut voting| -> DispatchResult {
+            let mut votes = &voting.votes;
+            match votes.binary_search_by_key(&spot_id, |i| i.0) {
+                //Already voted
+                Ok(i) => {}
+                Err(i) => {
+                    //Haven't vote for this spot id
+                    // Add votes under user
+                    votes.insert(i, (spot_id, vote.clone()));
+
+                    //Find existing tally of bidder
+                    let mut tally_index = status.tallies.binary_search_by(|x| x.who.cmp(vote.vote_who()));
+                    match tally_index {
+                        Ok(index) => {
+                            let mut tally: ContinuumSpotTally<T::AccountId, T::BlockNumber> = *status.tallies[index];
+                            // Add vote record to bidder's tally
+                            tally.add(vote).ok_or(Err::<T>::TallyOverflow)?
+                        }
+                        Err(index) => {}
+                    }
+                }
+            }
+            Ok(())
+        })
+    }
+
+    fn referendum_status(spot_id: SpotId) -> Result<ReferendumStatus<T::AccountId, T::BlockNumber, T::Hash, BalanceOf<T>>, DispatchError> {
+        let info = ReferendumInfoOf::<T>::get(spot_id).ok_or(Error::<T>::ReferendumIsInValid)?;
+
+        Self::ensure_ongoing(info.into())
+    }
+
+    /// Ok if the given referendum is active, Err otherwise
+    fn ensure_ongoing(r: ReferendumInfo<T::AccountId, T::BlockNumber, T::Hash, BalanceOf<T>>)
+                      -> Result<ReferendumStatus<T::AccountId, T::BlockNumber, T::Hash, BalanceOf<T>>, DispatchError>
+    {
+        match r {
+            ReferendumInfo::Ongoing(s) => Ok(s),
+            _ => Err(Error::<T>::ReferendumInvalid.into()),
+        }
     }
 
     fn do_register(who: &T::AccountId, spot_id: &SpotId) -> SpotId {
