@@ -181,6 +181,8 @@ pub mod pallet {
         NoActiveSession,
         /// Referendum is invalid
         ReferendumIsInValid,
+        /// Tally Overflow
+        TallyOverflow,
     }
 
 
@@ -327,15 +329,30 @@ impl<T: Config> Pallet<T>
         Ok(())
     }
 
-    fn try_vote(who: &T::AccountId, spot_id: SpotId, bidder: AccountId, vote: AccountVote<T::AccountId>) -> DispatchResult {
+    fn try_vote(who: &T::AccountId, spot_id: SpotId, vote: AccountVote<T::AccountId>) -> DispatchResult {
         let mut status = Self::referendum_status(spot_id)?;
 
         VotingOf::<T>::try_mutate(who, |mut voting| -> DispatchResult {
             let mut votes = &voting.votes;
             match votes.binary_search_by_key(&spot_id, |i| i.0) {
-                //Already votedd
+                //Already voted
                 Ok(i) => {}
-                Err(i) => {}
+                Err(i) => {
+                    //Haven't vote for this spot id
+                    // Add votes under user
+                    votes.insert(i, (spot_id, vote.clone()));
+
+                    //Find existing tally of bidder
+                    let mut tally_index = status.tallies.binary_search_by(|x| x.who.cmp(vote.vote_who()));
+                    match tally_index {
+                        Ok(index) => {
+                            let mut tally: ContinuumSpotTally<T::AccountId, T::BlockNumber> = *status.tallies[index];
+                            // Add vote record to bidder's tally
+                            tally.add(vote).ok_or(Err::<T>::TallyOverflow)?
+                        }
+                        Err(index) => {}
+                    }
+                }
             }
             Ok(())
         })
