@@ -25,10 +25,7 @@ use frame_support::{
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
 use primitives::{Balance, CountryId, CurrencyId, SpotId};
-use sp_runtime::{
-    traits::{AccountIdConversion, One, Zero},
-    DispatchError, ModuleId, RuntimeDebug,
-};
+use sp_runtime::{traits::{AccountIdConversion, One, Zero}, DispatchError, ModuleId, RuntimeDebug};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -40,6 +37,7 @@ mod types;
 
 pub use vote::{Vote, Voting, AccountVote};
 pub use types::{ReferendumInfo, ReferendumStatus, ContinuumSpotTally};
+use frame_support::sp_runtime::Perbill;
 
 #[cfg(test)]
 mod mock;
@@ -83,7 +81,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use frame_support::pallet_prelude::*;
     use sp_runtime::traits::Zero;
-    use crate::{AuctionSlot, SpotEOI, SpotId, ReferendumInfo, Voting};
+    use crate::{AuctionSlot, SpotEOI, SpotId, ReferendumInfo, Voting, AccountVote};
     use frame_support::dispatch::DispatchResult;
     use frame_support::traits::Currency;
 
@@ -100,6 +98,8 @@ pub mod pallet {
         /// Auction Slot Chilling Duration
         /// How long the participates in the New Auction Slots will get confirmed by neighbours
         type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
+        /// Emergency shutdown origin which allow cancellation in an emergency
+        type EmergencyOrigin: EnsureOrigin<Self::Origin>;
     }
 
     #[pallet::pallet]
@@ -153,12 +153,17 @@ pub mod pallet {
     /// Get max bound
     #[pallet::storage]
     #[pallet::getter(fn get_max_bound)]
-    pub type MaxBound<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+    pub type MaxBound = StorageValue<_, (u32, u32), ValueQuery>;
+
+    /// Record of all spot ids voting that in an emergency shut down
+    #[pallet::storage]
+    #[pallet::getter(fn get_max_bound)]
+    pub type Cancellations = StorageMap<_, Twox64Concat, SpotId, bool, ValueQuery>;
 
     /// Maximum desired auction slots available per term
     #[pallet::storage]
     #[pallet::getter(fn get_max_desired_slot)]
-    pub type MaxDesiredAuctionSlot<T: Config> = StorageValue<_, u32, ValueQuery>;
+    pub type MaxDesiredAuctionSlot = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(fn deposit_event)]
@@ -179,10 +184,14 @@ pub mod pallet {
         EOIAlreadyExists,
         /// No Active Session
         NoActiveSession,
+        /// No Active Referendum
+        NoActiveReferendum,
         /// Referendum is invalid
         ReferendumIsInValid,
         /// Tally Overflow
         TallyOverflow,
+        /// Already shutdown
+        AlreadyShutdown,
     }
 
 
@@ -258,8 +267,22 @@ pub mod pallet {
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn neighbor_vote(origin: OriginFor<T>, id: SpotId, rejects: Vec<T::AccountId>) -> DispatchResultWithPostInfo {
+        pub fn vote(origin: OriginFor<T>, id: SpotId, reject: AccountVote<BalanceOf<T>>) -> DispatchResultWithPostInfo {
+            let sender = ensure_signed(origin)?;
+            Self::try_vote(sender, id, reject);
             Ok(().into())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn emergency_shutdown(origin: OriginFor<T>, spot_id: SpotId) {
+            T::EmergencyOrigin::ensure_origin(origin)?;
+
+            let status = Self::referendum_status(spot_id)?;
+
+            ensure!(!Cancellations::contains_key(spot_id), Err::<T>::AlreadyShutdown);
+
+            Cancellations::insert(spot_id, true);
+            ReferendumInfoOf::<T>::remove(spot_id);
         }
     }
 }
@@ -285,6 +308,9 @@ impl<T: Config> Pallet<T>
                 .collect();
         // Move active auction slots to GNP
         GNPSlots::<T>::insert(now, started_gnp_auction_slots);
+
+        // Start referedum
+        Self::start_gnp_protocol(&started_gnp_auction_slots, now)?;
         //TODO Emit event Auction slot start GNP
 
         // Remove the old active auction slots
@@ -295,6 +321,56 @@ impl<T: Config> Pallet<T>
         //TODO Emit event
         Ok(().into())
     }
+
+
+    fn finalize_vote(&now: T::BlockNumber) -> DispatchResult {
+        let recent_slots = GNPSlots::<T>::get(now).ok_or(Err::<T>::NoActiveReferendum)?;
+        let matured_ref: Vec<ReferendumStatus<T::AccountId, T::BlockNumber, T::Hash, BalanceOf<T>>> = recent_slots.into_iter()
+            .map(|i| (i.spot_id, Self::referendum_info(i.spot_id)))
+            .filter_map(|(spot_id, maybe_ref)| match maybe_ref {
+                Some(ReferendumInfo::Ongoing(status)) => Some((spot_id, status)),
+                _ => None
+            })
+            .filter(|(_, status)| status.end == now)
+            .collect();
+
+        for (index, info) in matured_ref.into_iter() {
+            let approved = Self::approve(info);
+            if approved {
+                //TODO Settle - remove voted out candidate
+
+            } else {
+                //TODO Emit event No passed
+            }
+        }
+
+        Ok(())
+    }
+
+    fn start_gnp_protocol(&slots: Vec<AuctionSlot<T::BlockNumber, T::AccountId>>, &end: T::BlockNumber) -> DispatchResult {
+        for slot in slots {
+            let end = end + T::SessionDuration::get();
+            Self::start_referendum(&end, slot.spot_id);
+            //TODO Emit event
+        }
+        Ok(())
+    }
+
+    fn start_referendum(
+        &end: T::BlockNumber,
+        spot_id: SpotId,
+    ) -> SpotId {
+        let status = ReferendumStatus {
+            end: end,
+            spot_id: spot_id,
+            tallies: Default::default(),
+        };
+        let item = ReferendumInfo::Ongoing(status);
+        ReferendumInfoOf::<T>::insert(spot_id, item);
+        //TODO Emit event
+        spot_id
+    }
+
 
     fn eoi_to_auction_slots(active_session: T::BlockNumber, now: T::BlockNumber) -> DispatchResult {
         // Get maximum desired slots
@@ -376,5 +452,9 @@ impl<T: Config> Pallet<T>
 
     fn do_register(who: &T::AccountId, spot_id: &SpotId) -> SpotId {
         return 5;
+    }
+
+    fn approve(tally: ContinuumSpotTally<T::AccountId, BalanceOf<T>>) -> bool {
+        tally.nays / tally.turnout > Perbill::from_fraction(0.49)
     }
 }
