@@ -27,15 +27,9 @@ pub enum AccountVote<AccountId> {
 impl<AccountId: From<u32>> AccountVote<AccountId> {
     pub fn vote_who(&self) -> AccountId {
         match self {
-            AccountVote::Standard {vote} => &vote.who
+            AccountVote::Standard { vote } => &vote.who
         }
     }
-}
-
-pub trait Approved<AccountId, Balance> {
-    /// Given a `tally` of votes and a total size of `electorate`, this returns `true` if the
-    /// overall outcome is in favor of approval according to `self`'s threshold method.
-    fn approved(&self, tally: ContinuumSpotTally<AccountId, Balance>, electorate: Balance) -> bool;
 }
 
 

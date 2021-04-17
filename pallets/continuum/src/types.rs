@@ -110,10 +110,6 @@ pub struct ReferendumStatus<AccountId, BlockNumber, Hash, Balance> {
     pub(crate) end: BlockNumber,
     /// The continuum spot that being voted on.
     pub(crate) spot_id: SpotId,
-    // /// The thresholding mechanism to determine whether it passed.
-    // pub(crate) threshold: VoteThreshold,
-    /// The delay (in blocks) to wait after a successful referendum before deploying.
-    pub(crate) delay: BlockNumber,
     /// The current tally of votes in this referendum.
     pub(crate) tallies: Vec<ContinuumSpotTally<AccountId, Balance>>,
 }
