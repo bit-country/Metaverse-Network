@@ -312,35 +312,36 @@ impl<T: Config> Pallet<T>
         // Start referedum
         Self::start_gnp_protocol(&started_gnp_auction_slots, now)?;
         //TODO Emit event Auction slot start GNP
-
         // Remove the old active auction slots
         ActiveAuctionSlots::<T>::remove(&current_active_session_id);
-
+        // Move EOI to Auction Slots
         Self::eoi_to_auction_slots(current_active_session_id, now)?;
+        // Finalise due vote
+        Self::finalize_vote(&now);
+        //TODO Start Auction for GNP Confirmed
         CurrentIndex::<T>::set(now);
         //TODO Emit event
         Ok(().into())
     }
 
-
     fn finalize_vote(&now: T::BlockNumber) -> DispatchResult {
         let recent_slots = GNPSlots::<T>::get(now).ok_or(Err::<T>::NoActiveReferendum)?;
-        let matured_ref: Vec<ReferendumStatus<T::AccountId, T::BlockNumber, T::Hash, BalanceOf<T>>> = recent_slots.into_iter()
-            .map(|i| (i.spot_id, Self::referendum_info(i.spot_id)))
-            .filter_map(|(spot_id, maybe_ref)| match maybe_ref {
-                Some(ReferendumInfo::Ongoing(status)) => Some((spot_id, status)),
-                _ => None
-            })
-            .filter(|(_, status)| status.end == now)
-            .collect();
 
-        for (index, info) in matured_ref.into_iter() {
-            let approved = Self::approve(info);
-            if approved {
-                //TODO Settle - remove voted out candidate
+        for mut recent_slot in recent_slots.into_iter() {
+            let referendum_info: ReferendumStatus<T::AccountId, T::BlockNumber, T::Hash, BalanceOf<T>> = Self::referendum_info(recent_slot.spot_id);
 
-            } else {
-                //TODO Emit event No passed
+            if referendum_info.end == now {
+                let tallies = referendum_info.tallies;
+                let banned_list: Vec<T::AccountId> =
+                    tallies.into_iter()
+                        .filter(|tally: ContinuumSpotTally<T::AccountId, BalanceOf<T>>| Self::check_ban(tally) == true)
+                        .map(|tally| tally.who)
+                        .collect();
+
+                for banned_account in banned_list {
+                    recent_slot.participant.remove(banned_account);
+                    recent_slot.status = ContinuumAuctionSlotStatus::GNPConfirmed;
+                }
             }
         }
 
@@ -454,7 +455,7 @@ impl<T: Config> Pallet<T>
         return 5;
     }
 
-    fn approve(tally: ContinuumSpotTally<T::AccountId, BalanceOf<T>>) -> bool {
+    fn check_ban(tally: ContinuumSpotTally<T::AccountId, BalanceOf<T>>) -> bool {
         tally.nays / tally.turnout > Perbill::from_fraction(0.49)
     }
 }

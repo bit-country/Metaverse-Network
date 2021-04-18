@@ -25,6 +25,40 @@ use frame_support::sp_runtime::traits::One;
 
 pub type ReferendumIndex = u64;
 
+/// Spot Struct
+pub struct ContinuumSpot<AccountId> {
+    pub(crate) x: i32,
+    pub(crate) y: i32,
+}
+
+impl<AccountId: From<u32> + Zero + Copy + CheckedAdd + CheckedSub + CheckedMul + CheckedDiv + Bounded +
+Saturating> ContinuumSpot<AccountId> {
+    pub fn find_neighbour(&self) -> Vec<(i32, i32)> {
+        let adjacent = vec![
+            (-1, -1),
+            (-1, 0),
+            (-1, 1),
+            (0, -1),
+            (0, 1),
+            (1, -1),
+            (1, 0),
+            (1, 1),
+        ];
+
+        let neighbors: Vec<(i32, i32)> = adjacent
+            .into_iter()
+            .map(|(x, y)| Self::move_coordinate((self.x, self.y), (x, y)))
+            .collect();
+
+        return neighbors;
+    }
+
+    //Move coordinate by another coordinate
+    pub fn move_coordinate(from_coordinate: (i32, i32), coordinate: (i32, i32)) -> (i32, i32) {
+        (from_coordinate.0.checked_add(coordinate.0)?, from_coordinate.1.checked_add(coordinate.1)?)
+    }
+}
+
 /// Info regarding an ongoing referendum.
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct ContinuumSpotTally<AccountId, Balance> {
