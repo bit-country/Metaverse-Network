@@ -37,6 +37,6 @@ fn create_new_auction_work() {
 		));
 
         assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
-        assert_ok!(NftAuctionModule::create_auction(origin, ItemId::NFT(0), 100));
+        assert_ok!(NftAuctionModule::create_new_auction(origin, ItemId::NFT(0), 100));
     });
 }
