@@ -48,6 +48,12 @@ package = 'pallet-nft'
 path = '../nft'
 version = '2.0.0-rc6'
 
+[dependencies.auction]
+default-features = false
+package = 'pallet-auction'
+path = '../auction'
+version = '2.0.0-rc6'
+
 
 [dev-dependencies]
 sp-core = { version = "3.0.0", default-features = false }
@@ -66,5 +72,6 @@ std = [
     'orml-traits/std',
     'orml-tokens/std',
     'nft/std',
+    'auction/std',
     'primitives/std',
 ]
