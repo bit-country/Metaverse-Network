@@ -13,7 +13,7 @@ use sp_std::{
     fmt::Debug,
 };
 
-use primitives::AuctionId;
+use primitives::{AuctionId, ItemId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
@@ -57,6 +57,15 @@ pub trait Auction<AccountId, BlockNumber> {
         start: BlockNumber,
         end: Option<BlockNumber>,
     ) -> Result<AuctionId, DispatchError>;
+
+    fn create_auction(
+        item_id: ItemId,
+        end: Option<BlockNumber>,
+        recipient: AccountId,
+        initial_amount: Self::Balance,
+        start: BlockNumber,
+    ) -> Result<AuctionId, DispatchError>;
+
     /// Remove auction by `id`
     fn remove_auction(id: AuctionId);
 

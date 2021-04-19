@@ -24,10 +24,11 @@ use frame_support::{
     traits::{Get, Vec}, StorageMap, StorageValue,
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, CurrencyId, SpotId};
+use primitives::{Balance, CountryId, CurrencyId, SpotId, ItemId};
 use sp_runtime::{traits::{AccountIdConversion, One, Zero}, DispatchError, ModuleId, RuntimeDebug};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use auction::{Auction};
 
 pub use pallet::*;
 use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
@@ -84,6 +85,9 @@ pub mod pallet {
     use crate::{AuctionSlot, SpotEOI, SpotId, ReferendumInfo, Voting, AccountVote};
     use frame_support::dispatch::DispatchResult;
     use frame_support::traits::Currency;
+    use crate::types::ContinuumSpot;
+    use orml_traits::Auction;
+    use frame_support::sp_runtime::ModuleId;
 
     pub(crate) type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -100,6 +104,12 @@ pub mod pallet {
         type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
         /// Emergency shutdown origin which allow cancellation in an emergency
         type EmergencyOrigin: EnsureOrigin<Self::Origin>;
+        /// Auction Handler
+        type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber>;
+        /// Auction duration
+        type AuctionDuration: Get<Self::BlockNumber>;
+        /// Continuum Treasury
+        type ContinuumTreasury: Get<ModuleId>;
     }
 
     #[pallet::pallet]
@@ -124,6 +134,16 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn current_session)]
     pub type CurrentIndex<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+
+    /// Continuum Spot
+    #[pallet::storage]
+    #[pallet::getter(fn get_continuum_spot)]
+    pub type ContinuumSpots<T: Config> = StorageMap<_, Twox64Concat, SpotId, ContinuumSpot<T>, OptionQuery>;
+
+    /// Continuum Spot Position
+    #[pallet::storage]
+    #[pallet::getter(fn get_continuum_position)]
+    pub type ContinuumCoordinates<T: Config> = StorageMap<_, Twox64Concat, (i32, i32), SpotId, OptionQuery>;
 
     /// Active Auction Slots of current session index that accepting participants
     #[pallet::storage]
@@ -192,6 +212,8 @@ pub mod pallet {
         TallyOverflow,
         /// Already shutdown
         AlreadyShutdown,
+        /// Spot Not Found
+        SpotNotFound,
     }
 
 
@@ -275,9 +297,10 @@ pub mod pallet {
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn emergency_shutdown(origin: OriginFor<T>, spot_id: SpotId) {
+            // Only some origins can execute this function
             T::EmergencyOrigin::ensure_origin(origin)?;
 
-            let status = Self::referendum_status(spot_id)?;
+            // let status = Self::referendum_status(spot_id)?;
 
             ensure!(!Cancellations::contains_key(spot_id), Err::<T>::AlreadyShutdown);
 
@@ -312,13 +335,14 @@ impl<T: Config> Pallet<T>
         // Start referedum
         Self::start_gnp_protocol(&started_gnp_auction_slots, now)?;
         //TODO Emit event Auction slot start GNP
+
         // Remove the old active auction slots
         ActiveAuctionSlots::<T>::remove(&current_active_session_id);
         // Move EOI to Auction Slots
         Self::eoi_to_auction_slots(current_active_session_id, now)?;
         // Finalise due vote
         Self::finalize_vote(&now);
-        //TODO Start Auction for GNP Confirmed
+
         CurrentIndex::<T>::set(now);
         //TODO Emit event
         Ok(().into())
@@ -342,6 +366,10 @@ impl<T: Config> Pallet<T>
                     recent_slot.participant.remove(banned_account);
                     recent_slot.status = ContinuumAuctionSlotStatus::GNPConfirmed;
                 }
+                let treasury = T::ContinuumTreasury::get();
+
+                T::AuctionHandler.create_auction(ItemId::Spot(recent_slot.spot_id), T::AuctionDuration::get(), treasury, 0, now);
+                //TODO Emit event
             }
         }
 
@@ -361,11 +389,33 @@ impl<T: Config> Pallet<T>
         &end: T::BlockNumber,
         spot_id: SpotId,
     ) -> SpotId {
-        let status = ReferendumStatus {
+        let spot = ContinuumSpots::<T>::get(spot_id).ok_or(Err::<T>::SpotNotFound)?;
+        let neighbors = spot.find_neighbour();
+        let mut available_neighbors = 0;
+        for (x, y) in neighbors {
+            match ContinuumCoordinates::<T>::get((x, y)) {
+                Ok(i) => {
+                    available_neighbors += available_neighbors.checked_add(One::one())?
+                }
+                _ => ()
+            }
+        }
+
+        let mut status = ReferendumStatus {
             end: end,
             spot_id: spot_id,
             tallies: Default::default(),
         };
+
+        for (_) in available_neighbors {
+            let initial_tally = ContinuumSpotTally {
+                nays: 0,
+                who: Default::default(),
+                turnout: available_neighbors,
+            };
+            status.tallies.push(initial_tally);
+        }
+
         let item = ReferendumInfo::Ongoing(status);
         ReferendumInfoOf::<T>::insert(spot_id, item);
         //TODO Emit event
@@ -437,7 +487,6 @@ impl<T: Config> Pallet<T>
 
     fn referendum_status(spot_id: SpotId) -> Result<ReferendumStatus<T::AccountId, T::BlockNumber, T::Hash, BalanceOf<T>>, DispatchError> {
         let info = ReferendumInfoOf::<T>::get(spot_id).ok_or(Error::<T>::ReferendumIsInValid)?;
-
         Self::ensure_ongoing(info.into())
     }
 

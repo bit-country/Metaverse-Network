@@ -4103,6 +4103,7 @@ dependencies = [
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
+ "pallet-auction",
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",

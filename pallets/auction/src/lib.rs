@@ -256,6 +256,7 @@ decl_error! {
         InvalidBidPrice,
         NoAvailableAuctionId,
         NoPermissionToCreateAuction,
+        AuctionTypeIsNotSupported,
     }
 }
 
@@ -309,6 +310,75 @@ impl<T: Config> Module<T> {
         Ok(auction_id)
     }
 
+    fn create_auction(
+        item_id: ItemId,
+        end: Option<BlockNumber>,
+        recipient: T::AccountId,
+        initial_amount: T::Balance,
+        start: T::BlockNumber,
+    ) -> Result<AuctionId, DispatchError> {
+        match item_id {
+            ItemId::NFT(asset_id) => {
+                //FIXME - Remove in prod - For debugging purpose
+                debug::info!("Asset id {}", asset_id);
+                //Get asset detail
+                let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
+                //Check ownership
+                let class_info = orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
+                ensure!(from == class_info.owner, Error::<T>::NoPermissionToCreateAuction);
+                let class_info_data = class_info.data;
+                ensure!(class_info_data.token_type.is_transferrable(), Error::<T>::NoPermissionToCreateAuction);
+
+                let start_time = <system::Module<T>>::block_number();
+                let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+                let auction_id = Self::new_auction(from.clone(), value, start_time, Some(end_time))?;
+
+                let new_auction_item = AuctionItem {
+                    item_id,
+                    recipient: from.clone(),
+                    initial_amount: value,
+                    amount: value,
+                    start_time,
+                    end_time,
+                };
+
+                <AuctionItems<T>>::insert(
+                    auction_id,
+                    new_auction_item,
+                );
+
+                Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value, value));
+
+                Ok(auction_id)
+            }
+            ItemId::Spot(spot_id) => {
+                //TODO Check if spot_id is not owned by any
+                let start_time = <system::Module<T>>::block_number();
+                let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+                let auction_id = Self::new_auction(from.clone(), value, start_time, Some(end_time))?;
+
+                let new_auction_item = AuctionItem {
+                    item_id,
+                    recipient: from.clone(),
+                    initial_amount: value,
+                    amount: value,
+                    start_time,
+                    end_time,
+                };
+
+                <AuctionItems<T>>::insert(
+                    auction_id,
+                    new_auction_item,
+                );
+
+                Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value, value));
+
+                Ok(auction_id)
+            }
+            _ => {}
+        }
+    }
+
     fn remove_auction(id: AuctionId) {
         if let Some(auction) = <Auctions<T>>::get(&id) {
             if let Some(end_block) = auction.end {
@@ -360,12 +430,6 @@ impl<T: Config> Module<T> {
         })
     }
 }
-
-// impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
-// 	type AuctionId = T::AuctionId;
-// 	type Balance = T::Balance;
-
-// }
 
 impl<T: Config> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, AuctionId>
 for Module<T>
