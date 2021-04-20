@@ -20,19 +20,20 @@
 use codec::{Encode, Decode};
 use sp_runtime::RuntimeDebug;
 use sp_runtime::traits::{Zero, Bounded, CheckedAdd, CheckedSub, CheckedMul, CheckedDiv, Saturating};
-use crate::{Vote, AccountVote, Conviction};
+use crate::{Vote, AccountVote};
 use frame_support::sp_runtime::traits::One;
+use primitives::{CountryId};
 
 pub type ReferendumIndex = u64;
 
 /// Spot Struct
-pub struct ContinuumSpot<AccountId> {
+pub struct ContinuumSpot {
     pub(crate) x: i32,
     pub(crate) y: i32,
+    pub(crate) country: CountryId,
 }
 
-impl<AccountId: From<u32> + Zero + Copy + CheckedAdd + CheckedSub + CheckedMul + CheckedDiv + Bounded +
-Saturating> ContinuumSpot<AccountId> {
+impl ContinuumSpot {
     pub fn find_neighbour(&self) -> Vec<(i32, i32)> {
         let adjacent = vec![
             (-1, -1),
@@ -139,7 +140,7 @@ impl<
 
 /// Info regarding an ongoing referendum.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct ReferendumStatus<AccountId, BlockNumber, Hash, Balance> {
+pub struct ReferendumStatus<AccountId, BlockNumber, Balance> {
     /// When voting on this referendum will end.
     pub(crate) end: BlockNumber,
     /// The continuum spot that being voted on.
@@ -150,22 +151,21 @@ pub struct ReferendumStatus<AccountId, BlockNumber, Hash, Balance> {
 
 /// Info regarding a referendum, present or past.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum ReferendumInfo<AccountId, BlockNumber, Hash, Balance> {
+pub enum ReferendumInfo<AccountId, BlockNumber, Balance> {
     /// Referendum is happening, the arg is the block number at which it will end.
-    Ongoing(ReferendumStatus<AccountId, BlockNumber, Hash, Balance>),
+    Ongoing(ReferendumStatus<AccountId, BlockNumber, Balance>),
     /// Referendum finished at `end`, and has been `approved` or rejected.
     Finished { approved: bool, end: BlockNumber },
 }
 
-impl<AccountId, BlockNumber, Hash, Balance: Default> ReferendumInfo<AccountId, BlockNumber, Hash, Balance> {
+impl<AccountId, BlockNumber, Balance: Default> ReferendumInfo<AccountId, BlockNumber, Balance> {
     /// Create a new instance.
     pub fn new(
         end: BlockNumber,
         spot_id: SpotId,
         // threshold: VoteThreshold,
-        delay: BlockNumber,
     ) -> Self {
-        let s = ReferendumStatus { end, spot_id, delay, tallies: Vec::new() };
+        let s = ReferendumStatus { end, spot_id, tallies: Vec::new() };
         ReferendumInfo::Ongoing(s)
     }
 }

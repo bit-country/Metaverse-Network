@@ -408,6 +408,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "auction-manager"
+version = "2.0.0-rc6"
+dependencies = [
+ "bit-country-primitives",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "frame-system-rpc-runtime-api",
+ "orml-nft",
+ "pallet-balances",
+ "pallet-nft",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -557,7 +582,6 @@ dependencies = [
  "pallet-block",
  "pallet-bounties",
  "pallet-collective",
- "pallet-continuum",
  "pallet-contracts",
  "pallet-contracts-primitives",
  "pallet-contracts-rpc-runtime-api",
@@ -3960,6 +3984,7 @@ dependencies = [
 name = "pallet-auction"
 version = "2.0.0-rc6"
 dependencies = [
+ "auction-manager",
  "bit-country-primitives",
  "frame-executive",
  "frame-support",
@@ -3967,6 +3992,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "orml-nft",
  "pallet-balances",
+ "pallet-continuum",
  "pallet-nft",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -4096,6 +4122,7 @@ dependencies = [
 name = "pallet-continuum"
 version = "0.0.1"
 dependencies = [
+ "auction-manager",
  "bit-country-primitives",
  "frame-executive",
  "frame-support",
@@ -4103,7 +4130,6 @@ dependencies = [
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
- "pallet-auction",
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",

@@ -48,10 +48,10 @@ package = 'pallet-nft'
 path = '../nft'
 version = '2.0.0-rc6'
 
-[dependencies.auction]
+[dependencies.auction-manager]
 default-features = false
-package = 'pallet-auction'
-path = '../auction'
+package = 'auction-manager'
+path = '../auction-manager'
 version = '2.0.0-rc6'
 
 
@@ -72,6 +72,6 @@ std = [
     'orml-traits/std',
     'orml-tokens/std',
     'nft/std',
-    'auction/std',
+    'auction-manager/std',
     'primitives/std',
 ]

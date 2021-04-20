@@ -21,11 +21,14 @@ use sp_runtime::{
 
 use frame_system::{self as system, ensure_signed};
 use pallet_nft::Module as NFTModule;
+use pallet_continuum::Pallet as ContinuumModule;
+
 use primitives::{ItemId, AuctionId};
 
-mod auction;
+use auction_manager;
 
 pub use crate::auction::{Auction, AuctionHandler, Change, OnNewBidResult};
+use auction_manager::{OnNewBidResult, AuctionHandler, Change};
 
 #[cfg(test)]
 mod tests;
@@ -201,6 +204,16 @@ decl_module! {
                                                         },
                                                     }
                                             }
+                                            ItemId::Spot(spot_id, country_id) => {
+                                                let continuum_spot = ContinuumModule::<T>::transfer_spot(&spot_id, &auction_item.recipient, &(high_bidder, country_id));
+                                                match continuum_spot{
+                                                     Err(_) => continue,
+                                                     Ok(_) => {
+                                                            Self::deposit_event(RawEvent::AuctionFinalized(auction_id, high_bidder ,high_bid_price));
+                                                     },
+                                                }
+                                            }
+                                            }
                                             _ => {} //Future implementation for Spot, Country
                                         }
                                     },
@@ -319,7 +332,7 @@ impl<T: Config> Module<T> {
 
                 Ok(auction_id)
             }
-            ItemId::Spot(spot_id) => {
+            ItemId::Spot(_spot_id, _country_id) => {
                 //TODO Check if spot_id is not owned by any
                 let start_time = <system::Module<T>>::block_number();
                 let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction

@@ -1,8 +1,9 @@
 use sp_std::{prelude::*, result::Result, convert::TryFrom};
 use codec::{Encode, EncodeLike, Decode, Output, Input};
 use sp_runtime::{RuntimeDebug, traits::{Saturating, Zero}};
-use crate::{Conviction, ReferendumIndex, Delegations, ContinuumSpotTally};
-use crate::mock::AccountId;
+use crate::{ContinuumSpotTally};
+use primitives::{SpotId};
+// use crate::mock::AccountId;
 
 /// Struct of every Continuum vote
 #[derive(Copy, Clone, Eq, PartialEq, Default, RuntimeDebug)]
@@ -13,8 +14,8 @@ pub struct Vote<AccountId> {
 
 /// Keep track of voting activities of an account
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct Voting<Balance, AccountId, BlockNumber> {
-    pub votes: Vec<(SpotId, AccountVote<T::AccountId>)>
+pub struct Voting<AccountId> {
+    pub votes: Vec<(SpotId, AccountVote<AccountId>)>
 }
 
 /// A vote for a referendum of a particular account.
