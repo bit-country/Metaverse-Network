@@ -20,36 +20,34 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
-    traits::{Get, Vec}, StorageMap, StorageValue,
+    dispatch::DispatchResult, ensure,
+    traits::{Get, Vec},
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
 use primitives::{Balance, CountryId, CurrencyId, SpotId, ItemId};
-use sp_runtime::{traits::{AccountIdConversion, One, Zero}, DispatchError, ModuleId, RuntimeDebug};
+use sp_runtime::{traits::{AccountIdConversion, One, Zero, CheckedDiv, CheckedAdd}, DispatchError, ModuleId, RuntimeDebug, FixedPointNumber};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use auction_manager::{Auction};
 
-pub use pallet::*;
+use auction_manager::{Auction};
+use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
+
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
 
 mod vote;
 mod types;
 
-pub use vote::{Vote, Voting, AccountVote};
-pub use types::{ReferendumInfo, ReferendumStatus, ContinuumSpotTally};
-use frame_support::sp_runtime::Perbill;
-use crate::types::ContinuumSpot;
+pub use vote::*;
+pub use types::*;
 
 #[cfg(test)]
 mod mock;
-
 #[cfg(test)]
 mod tests;
 
+pub use pallet::*;
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ContinuumAuctionSlotStatus {
     /// Accept participation
     AcceptParticipates,
@@ -79,16 +77,9 @@ pub struct AuctionSlot<BlockNumber, AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
-    use sp_std::vec::Vec;
-    use frame_system::pallet_prelude::*;
-    use frame_support::pallet_prelude::*;
-    use sp_runtime::traits::Zero;
-    use crate::{AuctionSlot, SpotEOI, SpotId, ReferendumInfo, Voting, AccountVote};
-    use frame_support::dispatch::DispatchResult;
-    use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
-    use crate::types::ContinuumSpot;
-    use orml_traits::Auction;
-    use frame_support::sp_runtime::ModuleId;
+    use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+    use frame_system::pallet_prelude::OriginFor;
+    use super::*;
 
     pub(crate) type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -117,8 +108,7 @@ pub mod pallet {
     }
 
     #[pallet::pallet]
-    #[pallet::generate_store(pub (super) trait Store)]
-    pub struct Pallet<T>(_);
+    pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
@@ -167,7 +157,7 @@ pub mod pallet {
     /// Information of Continuum Spot Referendum
     #[pallet::storage]
     #[pallet::getter(fn get_continuum_referendum)]
-    pub type ReferendumInfoOf<T: Config> = StorageMap<_, Twox64Concat, SpotId, ReferendumInfo<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
+    pub type ReferendumInfoOf<T: Config> = StorageMap<_, Twox64Concat, SpotId, ReferendumInfo<T::AccountId, T::BlockNumber>, OptionQuery>;
 
     /// All votes of a particular voter
     #[pallet::storage]
@@ -230,6 +220,7 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
             //TODO Ensure AccountId own a country
             //TODO Spot has no owner
+
             // Get current active session
             let current_active_session_id = CurrentIndex::<T>::get();
 
@@ -295,9 +286,9 @@ pub mod pallet {
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn vote(origin: OriginFor<T>, id: SpotId, reject: AccountVote<BalanceOf<T>>) -> DispatchResultWithPostInfo {
+        pub fn vote(origin: OriginFor<T>, id: SpotId, reject: AccountVote<T::AccountId>) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            Self::try_vote(sender, id, reject);
+            Self::try_vote(&sender, id, reject);
             Ok(().into())
         }
 
@@ -308,9 +299,9 @@ pub mod pallet {
 
             // let status = Self::referendum_status(spot_id)?;
 
-            ensure!(!Cancellations::contains_key(spot_id), Error::<T>::AlreadyShutdown);
+            ensure!(!Cancellations::<T>::contains_key(spot_id), Error::<T>::AlreadyShutdown);
 
-            Cancellations::insert(spot_id, true);
+            Cancellations::<T>::insert(spot_id, true);
             ReferendumInfoOf::<T>::remove(spot_id);
 
             Ok(().into())
@@ -320,6 +311,9 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T>
 {
+    fn account_id() -> T::AccountId {
+        T::ContinuumTreasury::get().into_account()
+    }
     //noinspection ALL
     fn rotate_auction_slots(now: T::BlockNumber) -> DispatchResult {
         // Get current active session
@@ -338,10 +332,10 @@ impl<T: Config> Pallet<T>
                 })
                 .collect();
         // Move active auction slots to GNP
-        GNPSlots::<T>::insert(now, started_gnp_auction_slots);
+        GNPSlots::<T>::insert(now, started_gnp_auction_slots.clone());
 
         // Start referedum
-        Self::start_gnp_protocol(&started_gnp_auction_slots, now)?;
+        Self::start_gnp_protocol(started_gnp_auction_slots, now)?;
         //TODO Emit event Auction slot start GNP
 
         // Remove the old active auction slots
@@ -349,34 +343,35 @@ impl<T: Config> Pallet<T>
         // Move EOI to Auction Slots
         Self::eoi_to_auction_slots(current_active_session_id, now)?;
         // Finalise due vote
-        Self::finalize_vote(&now);
+        Self::finalize_vote(now);
 
         CurrentIndex::<T>::set(now);
         //TODO Emit event
         Ok(().into())
     }
 
-    fn finalize_vote(&now: T::BlockNumber) -> DispatchResult {
+    fn finalize_vote(now: T::BlockNumber) -> DispatchResult {
         let recent_slots = GNPSlots::<T>::get(now).ok_or(Error::<T>::NoActiveReferendum)?;
 
         for mut recent_slot in recent_slots.into_iter() {
-            let referendum_info: ReferendumStatus<T::AccountId, T::BlockNumber, BalanceOf<T>> = Self::referendum_info(recent_slot.spot_id);
+            let referendum_info: ReferendumStatus<T::AccountId, T::BlockNumber> = Self::referendum_status(recent_slot.spot_id)?;
 
             if referendum_info.end == now {
-                let tallies = referendum_info.tallies;
+                // let tallies = referendum_info.tallies;
                 let banned_list: Vec<T::AccountId> =
-                    tallies.into_iter()
-                        .filter(|tally: ContinuumSpotTally<T::AccountId, BalanceOf<T>>| Self::check_ban(tally) == true)
+                    referendum_info.tallies.into_iter()
+                        .filter(|mut t| Self::check_approved(t) == true)
                         .map(|tally| tally.who)
                         .collect();
 
                 for banned_account in banned_list {
-                    recent_slot.participant.remove(banned_account);
+                    let account_index = recent_slot.participants.iter().position(|x| *x == banned_account).unwrap();
+                    recent_slot.participants.remove(account_index);
                     recent_slot.status = ContinuumAuctionSlotStatus::GNPConfirmed;
                 }
-                let treasury = T::ContinuumTreasury::get();
+                let treasury = Self::account_id();
                 //From treasury spot
-                T::AuctionHandler.create_auction(ItemId::Spot(recent_slot.spot_id, Default::default()), T::AuctionDuration::get(), treasury, 0, now);
+                T::AuctionHandler::create_auction(ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now);
                 //TODO Emit event
             }
         }
@@ -384,50 +379,51 @@ impl<T: Config> Pallet<T>
         Ok(())
     }
 
-    fn start_gnp_protocol(&slots: Vec<AuctionSlot<T::BlockNumber, T::AccountId>>, &end: T::BlockNumber) -> DispatchResult {
+    fn start_gnp_protocol(slots: Vec<AuctionSlot<T::BlockNumber, T::AccountId>>, end: T::BlockNumber) -> DispatchResult {
         for slot in slots {
             let end = end + T::SessionDuration::get();
-            Self::start_referendum(&end, slot.spot_id);
+            Self::start_referendum(end, slot.spot_id);
             //TODO Emit event
         }
         Ok(())
     }
 
     fn start_referendum(
-        &end: T::BlockNumber,
+        end: T::BlockNumber,
         spot_id: SpotId,
-    ) -> SpotId {
+    ) -> Result<SpotId, DispatchError> {
         let spot = ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound)?;
         let neighbors = spot.find_neighbour();
-        let mut available_neighbors = 0;
+        let mut available_neighbors: u8 = 0;
+
         for (x, y) in neighbors {
             match ContinuumCoordinates::<T>::get((x, y)) {
-                Ok(i) => {
-                    available_neighbors += available_neighbors.checked_add(One::one())?
+                Some(i) => {
+                    available_neighbors = available_neighbors.checked_add(One::one()).ok_or("Overflow")?;
                 }
                 _ => ()
             }
         }
 
-        let mut status = ReferendumStatus {
-            end: end,
-            spot_id: spot_id,
+        let mut status: ReferendumStatus<T::AccountId, T::BlockNumber> = ReferendumStatus {
+            end,
+            spot_id,
             tallies: Default::default(),
         };
 
-        for (_) in available_neighbors {
-            let initial_tally = ContinuumSpotTally {
-                nays: 0,
+        for _i in 0..available_neighbors {
+            let initial_tally: ContinuumSpotTally<T::AccountId> = ContinuumSpotTally {
+                nays: One::one(),
                 who: Default::default(),
                 turnout: available_neighbors,
             };
             status.tallies.push(initial_tally);
         }
 
-        let item = ReferendumInfo::Ongoing(status);
+        let item: ReferendumInfo<T::AccountId, T::BlockNumber> = ReferendumInfo::Ongoing(status);
         ReferendumInfoOf::<T>::insert(spot_id, item);
         //TODO Emit event
-        spot_id
+        Ok(spot_id)
     }
 
 
@@ -468,24 +464,27 @@ impl<T: Config> Pallet<T>
         let mut status = Self::referendum_status(spot_id)?;
 
         VotingOf::<T>::try_mutate(who, |mut voting| -> DispatchResult {
-            let mut votes = &voting.votes;
+            let mut votes = &mut voting.votes;
             match votes.binary_search_by_key(&spot_id, |i| i.0) {
                 //Already voted
                 Ok(i) => {}
                 Err(i) => {
                     //Haven't vote for this spot id
                     // Add votes under user
+                    let new_vote: AccountVote<T::AccountId> = vote.clone();
+                    let who = new_vote.vote_who();
                     votes.insert(i, (spot_id, vote.clone()));
 
+                    let mut tallies = status.tallies.clone();
+
                     //Find existing tally of bidder
-                    let mut tally_index = status.tallies.binary_search_by(|x| x.who.cmp(vote.vote_who()));
-                    match tally_index {
-                        Ok(index) => {
-                            let mut tally: ContinuumSpotTally<T::AccountId, T::BlockNumber> = *status.tallies[index];
-                            // Add vote record to bidder's tally
-                            tally.add(vote).ok_or(Error::<T>::TallyOverflow)?
+                    for mut tally in status.tallies {
+                        // Existing vote
+                        if tally.who == who.who {
+                            tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?
+                        } else {
+                            //Create new vote
                         }
-                        Err(index) => {}
                     }
                 }
             }
@@ -493,18 +492,23 @@ impl<T: Config> Pallet<T>
         })
     }
 
-    fn referendum_status(spot_id: SpotId) -> Result<ReferendumStatus<T::AccountId, T::BlockNumber, BalanceOf<T>>, DispatchError> {
+    fn referendum_status(spot_id: SpotId) -> Result<ReferendumStatus<T::AccountId, T::BlockNumber>, DispatchError> {
         let info = ReferendumInfoOf::<T>::get(spot_id).ok_or(Error::<T>::ReferendumIsInValid)?;
         Self::ensure_ongoing(info.into())
     }
 
+    fn referendum_info(spot_id: SpotId) -> Result<ReferendumInfo<T::AccountId, T::BlockNumber>, DispatchError> {
+        let info = ReferendumInfoOf::<T>::get(spot_id).ok_or(Error::<T>::ReferendumIsInValid.into());
+        info
+    }
+
     /// Ok if the given referendum is active, Err otherwise
-    fn ensure_ongoing(r: ReferendumInfo<T::AccountId, T::BlockNumber, BalanceOf<T>>)
-                      -> Result<ReferendumStatus<T::AccountId, T::BlockNumber, BalanceOf<T>>, DispatchError>
+    fn ensure_ongoing(r: ReferendumInfo<T::AccountId, T::BlockNumber>)
+                      -> Result<ReferendumStatus<T::AccountId, T::BlockNumber>, DispatchError>
     {
         match r {
             ReferendumInfo::Ongoing(s) => Ok(s),
-            _ => Err(Error::<T>::ReferendumInvalid.into()),
+            _ => Err(Error::<T>::ReferendumIsInValid.into()),
         }
     }
 
@@ -512,24 +516,38 @@ impl<T: Config> Pallet<T>
         return 5;
     }
 
-    fn check_ban(tally: ContinuumSpotTally<T::AccountId, BalanceOf<T>>) -> bool {
-        tally.nays / tally.turnout > Perbill::from_fraction(0.49)
-    }
 
     pub fn get_spot(spot_id: SpotId) -> Result<ContinuumSpot, DispatchError> {
         ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound.into())
     }
 
-    pub fn transfer_spot(&spot_id: SpotId, &from: T::AccountId, &to: (T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
-        ContinuumSpots::<T>::try_mutate(spot_id, |spot| -> Result<bool, Error<T>>{
-            let mut spot = spot.ok_or(Error::<T>::SpotNotFound)?;
-            let s = *spot;
-            ensure!(spot.country == from.1, Error::<T>::NoPermission);
-            if !from.0 == T::ContinuumTreasury::get() {
+    pub fn transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
+        ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError>{
+            let treasury = Self::account_id();
+            if *from != treasury {
                 //TODO Check account Id own country spot.country
             }
+            let mut spot = maybe_spot.take().ok_or(Error::<T>::SpotNotFound)?;
             spot.country = to.1;
             Ok(spot_id)
         })
     }
+
+    pub fn check_approved(tally: &ContinuumSpotTally<T::AccountId>) -> bool {
+        true
+    }
+
+    // pub fn add(
+    //     tally: &mut ContinuumSpotTally<T::AccountId, BalanceOf<T>>,
+    //     _vote: &mut AccountVote<T::AccountId>,
+    // ) -> Option<()> {
+    //     match _vote {
+    //         AccountVote::Standard { vote } => {
+    //             tally.turnout = tally.turnout.checked_add(One::one())?;
+    //             tally.nays = tally.nays.checked_add(One::one())?;
+    //         }
+    //         _ => {}
+    //     }
+    //     Some(())
+    // }
 }

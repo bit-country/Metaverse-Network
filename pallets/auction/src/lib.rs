@@ -213,7 +213,6 @@ decl_module! {
                                                      },
                                                 }
                                             }
-                                            }
                                             _ => {} //Future implementation for Spot, Country
                                         }
                                     },
