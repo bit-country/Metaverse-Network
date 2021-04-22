@@ -21,11 +21,14 @@ use sp_runtime::{
 
 use frame_system::{self as system, ensure_signed};
 use pallet_nft::Module as NFTModule;
+use pallet_continuum::Pallet as ContinuumModule;
+
 use primitives::{ItemId, AuctionId};
 
-mod auction;
+use auction_manager;
 
 pub use crate::auction::{Auction, AuctionHandler, Change, OnNewBidResult};
+use auction_manager::{OnNewBidResult, AuctionHandler, Change};
 
 #[cfg(test)]
 mod tests;
@@ -160,46 +163,14 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn create_auction(origin, item_id: ItemId, value: T::Balance) {
+        fn create_new_auction(origin, item_id: ItemId, value: T::Balance) {
             let from = ensure_signed(origin)?;
 
-            match item_id{
-                ItemId::NFT(asset_id) => {
-                    //FIXME - Remove in prod - For debugging purpose
-                    debug::info!("Asset id {}", asset_id);
-                    //Get asset detail
-                    let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
+            let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+            let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
 
-                    //Check ownership
-                    let class_info = orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
-                    ensure!(from == class_info.owner, Error::<T>::NoPermissionToCreateAuction);
-
-                    let class_info_data = class_info.data;
-
-                    ensure!(class_info_data.token_type.is_transferrable(), Error::<T>::NoPermissionToCreateAuction);
-
-                    let start_time = <system::Module<T>>::block_number();
-                    let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
-                    let auction_id = Self::new_auction(from.clone(), value, start_time, Some(end_time))?;
-
-                    let new_auction_item = AuctionItem {
-                        item_id,
-                        recipient : from.clone(),
-                        initial_amount : value,
-                        amount : value,
-                        start_time,
-                        end_time
-                    };
-
-                    <AuctionItems<T>>::insert(
-                        auction_id,
-                        new_auction_item
-                    );
-
-                    Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
-                }
-                _ => {},
-            };
+            let auction_id = Self::create_auction(item_id, end_time, from, value, start_time);
+            Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
         }
 
         /// dummy `on_initialize` to return the weight used in `on_finalize`.
@@ -232,6 +203,15 @@ decl_module! {
                                                             Self::deposit_event(RawEvent::AuctionFinalized(auction_id, high_bidder ,high_bid_price));
                                                         },
                                                     }
+                                            }
+                                            ItemId::Spot(spot_id, country_id) => {
+                                                let continuum_spot = ContinuumModule::<T>::transfer_spot(&spot_id, &auction_item.recipient, &(high_bidder, country_id));
+                                                match continuum_spot{
+                                                     Err(_) => continue,
+                                                     Ok(_) => {
+                                                            Self::deposit_event(RawEvent::AuctionFinalized(auction_id, high_bidder ,high_bid_price));
+                                                     },
+                                                }
                                             }
                                             _ => {} //Future implementation for Spot, Country
                                         }
@@ -351,7 +331,7 @@ impl<T: Config> Module<T> {
 
                 Ok(auction_id)
             }
-            ItemId::Spot(spot_id) => {
+            ItemId::Spot(_spot_id, _country_id) => {
                 //TODO Check if spot_id is not owned by any
                 let start_time = <system::Module<T>>::block_number();
                 let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
