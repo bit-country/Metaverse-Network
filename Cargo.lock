@@ -563,6 +563,7 @@ dependencies = [
  "pallet-block",
  "pallet-bounties",
  "pallet-collective",
+ "pallet-continuum",
  "pallet-contracts",
  "pallet-contracts-primitives",
  "pallet-contracts-rpc-runtime-api",

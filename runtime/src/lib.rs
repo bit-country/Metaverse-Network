@@ -413,6 +413,7 @@ parameter_types! {
     pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
     pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
     pub const NftModuleId: ModuleId = ModuleId(*b"bit/bnft");
+    pub const ContinuumTreasuryModuleId: ModuleId = ModuleId(*b"bit/ctmu");
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -519,12 +520,26 @@ impl block::Config for Runtime {
 
 parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
+    pub const SessionDuration: BlockNumber = 43200; //Default 43200 Blocks
+    pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
 }
+
 
 impl auction::Config for Runtime {
     type Event = Event;
     type AuctionTimeToClose = AuctionTimeToClose;
     type Handler = Auction;
+    type Currency = Balances;
+}
+
+impl continuum::Config for Runtime {
+    type Event = Event;
+    type SessionDuration = SessionDuration;
+    type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
+    type EmergencyOrigin = EnsureRootOrHalfGeneralCouncil;
+    type AuctionHandler = Auction;
+    type AuctionDuration = SpotAuctionChillingDuration;
+    type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
 }
 
@@ -564,6 +579,7 @@ construct_runtime!(
         BlockModule: block::{Module, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Module ,Storage},
         NftModule: nft::{Module, Call ,Storage, Event<T>},
+        Continuum: continuum::{Module, Call ,Storage, Event<T>},
         Auction: auction::{Module, Call ,Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
