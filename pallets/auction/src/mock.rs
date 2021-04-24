@@ -8,7 +8,8 @@ use frame_support::{
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{CurrencyId, Amount, BlockNumber};
+use primitives::{CurrencyId, Amount, BlockNumber, AuctionId};
+use crate::sp_api_hidden_includes_decl_storage::hidden_include::traits::{OnInitialize, OnFinalize};
 
 
 parameter_types! {
@@ -16,7 +17,6 @@ parameter_types! {
 }
 
 pub type AccountId = u128;
-pub type AuctionId = u64;
 pub type Balance = u64;
 
 pub const ALICE: AccountId = 1;
@@ -92,7 +92,6 @@ parameter_types! {
 impl Config for Runtime {
     type Event = Event;
     type AuctionTimeToClose = AuctionTimeToClose;
-    type AuctionId = AuctionId;
     type Handler = Handler;
     type Currency = Balances;
 }
@@ -150,18 +149,22 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
+       self.build_with_block_number(1)
+    }
+
+    pub fn build_with_block_number(self, block_number: u64) -> sp_io::TestExternalities {
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
 
         pallet_balances::GenesisConfig::<Runtime> {
-            balances: vec![(ALICE, 100000)],
+            balances: vec![(ALICE, 100000), (BOB, 500)],
         }
             .assimilate_storage(&mut t)
             .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| System::set_block_number(1));
+        ext.execute_with(|| System::set_block_number(block_number));
         ext
     }
 }
@@ -172,4 +175,15 @@ pub fn last_event() -> Event {
         .expect("Event expected")
         .event
 }
+
+pub fn run_to_block(n: u64) {
+    while System::block_number() < n {
+        NftAuctionModule::on_finalize(System::block_number());
+        System::on_finalize(System::block_number());
+        System::set_block_number(System::block_number() + 1);
+        System::on_initialize(System::block_number());        
+        NftAuctionModule::on_initialize(System::block_number());
+    }
+}
+
 

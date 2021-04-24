@@ -331,7 +331,9 @@ decl_module! {
                     )?;
                 }
                 else{
-                    AssetsByOwner::<T>::insert(&sender, Vec::<AssetId>::new())
+                    let mut assets = Vec::<AssetId>::new();
+                    assets.push(asset_id);
+                    AssetsByOwner::<T>::insert(&sender, assets)
                 }
 
                 let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
@@ -444,7 +446,9 @@ impl<T: Config> Module<T> {
                 Ok(())
             })?;
         } else {
-            AssetsByOwner::<T>::insert(&to, Vec::<AssetId>::new());
+            let mut asset_ids = Vec::<AssetId>::new();
+            asset_ids.push(asset_id);
+            AssetsByOwner::<T>::insert(&to, asset_ids);
         }
 
         Ok(())
