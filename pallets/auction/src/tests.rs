@@ -91,6 +91,7 @@ fn cannot_bid_with_insufficient_funds() {
         );
 
         assert_eq!(Balances::free_balance(ALICE), 100000);
+
     });
 }
 

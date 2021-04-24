@@ -61,7 +61,7 @@ pub type SpotId = u64;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
     NFT(AssetId),
-    Spot(u64),
+    Spot(u64, CountryId),
     Country(CountryId),
     Block(u64),
 }

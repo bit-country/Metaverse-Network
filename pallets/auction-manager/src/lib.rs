@@ -23,6 +23,19 @@ pub enum Change<Value> {
     NewValue(Value),
 }
 
+#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
+#[derive(Encode, Decode, Clone, RuntimeDebug)]
+pub struct AuctionItem<AccountId, BlockNumber, Balance> {
+    pub item_id: ItemId,
+    pub recipient: AccountId,
+    pub initial_amount: Balance,
+    /// Current amount for sale
+    pub amount: Balance,
+    /// Auction start time
+    pub start_time: BlockNumber,
+    pub end_time: BlockNumber,
+}
+
 /// Auction info.
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, RuntimeDebug)]
@@ -70,6 +83,13 @@ pub trait Auction<AccountId, BlockNumber> {
     fn remove_auction(id: AuctionId);
 
     fn swap_bidders(new_bidder: &AccountId, last_bidder: Option<&AccountId>);
+
+    fn auction_bid_handler(
+        _now: BlockNumber,
+        id: AuctionId,
+        new_bid: (AccountId, Self::Balance),
+        last_bid: Option<(AccountId, Self::Balance)>,
+    ) -> DispatchResult;
 }
 
 /// The result of bid handling.

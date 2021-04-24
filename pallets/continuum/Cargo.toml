@@ -32,6 +32,7 @@ sp-consensus-aura = { version = "0.9.0", default-features = false }
 sp-core = { version = "3.0.0", default-features = false }
 sp-inherents = { version = "3.0.0", default-features = false }
 sp-offchain = { version = "3.0.0", default-features = false }
+sp-arithmetic = { version = "3.0.0", default-features = false }
 sp-session = { version = "3.0.0", default-features = false }
 sp-transaction-pool = { version = "3.0.0", default-features = false }
 sp-version = { version = "3.0.0", default-features = false }
@@ -48,10 +49,10 @@ package = 'pallet-nft'
 path = '../nft'
 version = '2.0.0-rc6'
 
-[dependencies.auction]
+[dependencies.auction-manager]
 default-features = false
-package = 'pallet-auction'
-path = '../auction'
+package = 'auction-manager'
+path = '../auction-manager'
 version = '2.0.0-rc6'
 
 
@@ -72,6 +73,7 @@ std = [
     'orml-traits/std',
     'orml-tokens/std',
     'nft/std',
-    'auction/std',
+    'auction-manager/std',
     'primitives/std',
+    'sp-arithmetic/std',
 ]
