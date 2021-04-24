@@ -4112,6 +4112,7 @@ dependencies = [
  "orml-currencies",
  "orml-tokens",
  "orml-traits",
+ "pallet-auction",
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
@@ -4288,7 +4289,6 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-core",
- "sp-io",
  "sp-runtime",
  "sp-std",
 ]

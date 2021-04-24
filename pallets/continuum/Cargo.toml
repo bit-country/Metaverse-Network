@@ -57,8 +57,8 @@ version = '2.0.0-rc6'
 
 
 [dev-dependencies]
-sp-core = { version = "3.0.0", default-features = false }
 sp-io = { version = "3.0.0", default-features = false }
+auction = { package = 'pallet-auction', path = '../auction', version = '2.0.0-rc6' }
 
 [features]
 default = ['std']
@@ -76,4 +76,6 @@ std = [
     'auction-manager/std',
     'primitives/std',
     'sp-arithmetic/std',
+    'sp-io/std',
+    'auction/std',
 ]

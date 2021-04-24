@@ -25,7 +25,6 @@ pallet-transaction-payment = { version = "3.0.0", default-features = false }
 frame-executive = { version = "3.0.0", default-features = false }
 sp-api = { version = "3.0.0", default-features = false }
 sp-core = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
 sp-version = { version = "3.0.0", default-features = false }
 
 # Used for the node's RPCs
@@ -39,6 +38,9 @@ pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft'
 pallet-continuum = { default-features = false, package = 'pallet-continuum', path = '../continuum' }
 auction-manager = { default-features = false, package = 'auction-manager', path = '../auction-manager' }
 
+[dev-dependencies]
+sp-io = { version = "3.0.0", default-features = false }
+
 [features]
 default = ['std']
 std = [
@@ -48,10 +50,10 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
-    'sp-io/std',
     'orml-nft/std',
     'pallet-nft/std',
     'pallet-balances/std',
     'pallet-continuum/std',
     'auction-manager/std',
+    'sp-io/std'
 ]

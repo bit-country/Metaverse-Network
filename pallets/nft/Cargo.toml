@@ -25,7 +25,6 @@ pallet-timestamp = { version = "3.0.0", default-features = false }
 orml-currencies = { default-features = false, version = '0.4.0' }
 
 sp-core = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
 pallet-balances = { version = "3.0.0", default-features = false }
 orml-tokens = { default-features = false, version = '0.4.0' }
 
