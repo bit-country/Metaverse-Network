@@ -536,18 +536,4 @@ impl<T: Config> Pallet<T>
     pub fn check_approved(tally: &ContinuumSpotTally<T::AccountId>) -> bool {
         true
     }
-
-    // pub fn add(
-    //     tally: &mut ContinuumSpotTally<T::AccountId, BalanceOf<T>>,
-    //     _vote: &mut AccountVote<T::AccountId>,
-    // ) -> Option<()> {
-    //     match _vote {
-    //         AccountVote::Standard { vote } => {
-    //             tally.turnout = tally.turnout.checked_add(One::one())?;
-    //             tally.nays = tally.nays.checked_add(One::one())?;
-    //         }
-    //         _ => {}
-    //     }
-    //     Some(())
-    // }
 }
