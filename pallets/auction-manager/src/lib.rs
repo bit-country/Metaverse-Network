@@ -5,7 +5,7 @@
 use codec::FullCodec;
 use codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{AtLeast32Bit, Bounded, MaybeSerializeDeserialize},
+    traits::{AtLeast32Bit, MaybeSerializeDeserialize},
     DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::{

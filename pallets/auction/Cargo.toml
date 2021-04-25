@@ -12,7 +12,7 @@ version = '2.0.0-rc6'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-serde = { version = "1.0.101", optional = true, features = ["derive"] }
+serde = { version = "1.0.119", optional = true }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 sp-std = { version = "3.0.0", default-features = false }
 sp-runtime = { version = "3.0.0", default-features = false }
@@ -38,6 +38,7 @@ pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft'
 pallet-continuum = { default-features = false, package = 'pallet-continuum', path = '../continuum' }
 auction-manager = { default-features = false, package = 'auction-manager', path = '../auction-manager' }
 
+
 [dev-dependencies]
 sp-io = { version = "3.0.0", default-features = false }
 
@@ -50,10 +51,9 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
+    'pallet-balances/std',
+    'auction-manager/std',
     'orml-nft/std',
     'pallet-nft/std',
-    'pallet-balances/std',
     'pallet-continuum/std',
-    'auction-manager/std',
-    'sp-io/std'
 ]

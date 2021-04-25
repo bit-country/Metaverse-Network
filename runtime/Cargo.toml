@@ -60,6 +60,12 @@ oracle = { version = "1.0.0", path = "../pallets/oracle", default_features = fal
 
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives", default-features = false }
 
+[dependencies.auction-manager]
+default-features = false
+package = 'auction-manager'
+path = '../pallets/auction-manager'
+version = '2.0.0-rc6'
+
 [dependencies.country]
 default-features = false
 package = 'pallet-country'
@@ -71,6 +77,7 @@ default-features = false
 package = 'pallet-block'
 path = '../pallets/block'
 version = '2.0.0-rc6'
+
 
 [dependencies.tokenization]
 default-features = false
@@ -112,6 +119,7 @@ runtime-benchmarks = [
     'sp-runtime/runtime-benchmarks',
 ]
 std = [
+    'serde',
     'codec/std',
     'frame-executive/std',
     'frame-support/std',
@@ -128,7 +136,6 @@ std = [
     'pallet-treasury/std',
     'pallet-bounties/std',
     'pallet-tips/std',
-    'serde',
     'sp-api/std',
     'sp-block-builder/std',
     'sp-consensus-aura/std',
@@ -141,13 +148,13 @@ std = [
     'sp-transaction-pool/std',
     'sp-version/std',
     'primitives/std',
+    'auction/std',
     'orml-currencies/std',
     'orml-tokens/std',
     'orml-nft/std',
     'country/std',
     'block/std',
     'nft/std',
-    'auction/std',
     'continuum/std',
     "pallet-contracts/std",
     "pallet-contracts-primitives/std",

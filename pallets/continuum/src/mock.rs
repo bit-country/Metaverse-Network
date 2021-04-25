@@ -1,61 +1,56 @@
+// This file is part of Bit.Country.
+
+// Copyright (C) 2020-2021 Bit.Country.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #![cfg(test)]
 
-use crate::{Config, Pallet};
-use frame_support::{
-    impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
-};
-use frame_system as system;
-use frame_system::RawOrigin;
-use sp_core::{sr25519, Pair, H256};
-use sp_runtime::{
-    testing::Header,
-    traits::{BlakeTwo256, IdentityLookup},
-    Perbill,
-    ModuleId,
-};
-use primitives::{CountryId, CurrencyId, AuctionId};
-
-pub type AccountId = u128;
-pub type BlockNumber = u64;
-
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const COUNTRY_ID: CountryId = 0;
-pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
-pub const BCG: CurrencyId = 0;
-
-#[derive(Clone, Eq, PartialEq)]
-pub struct Runtime;
-
 use crate as continuum;
+use super::*;
+use frame_support::{
+    construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
+};
+use sp_core::H256;
+use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
+use primitives::{CurrencyId, Amount, BlockNumber};
+use frame_system::{EnsureSignedBy, EnsureRoot};
+use auction_manager::{AuctionHandler, OnNewBidResult, Change, AuctionInfo, Auction};
+use frame_support::pallet_prelude::MaybeSerializeDeserialize;
+use frame_support::sp_runtime::traits::AtLeast32Bit;
 
-impl_outer_origin! {
-	pub enum Origin for Runtime {}
+parameter_types! {
+    pub const BlockHashCount: u32 = 256;
+    pub const MaximumBlockWeight: u32 = 1024;
+	pub const MaximumBlockLength: u32 = 2 * 1024;
 }
 
-impl_outer_event! {
-	pub enum TestEvent for Runtime {
-		frame_system<T>,
-		country<T>,
-	}
-}
 
-impl_outer_dispatch! {
-	pub enum Call for Runtime where origin: Origin {
-		frame_system::System,
-	}
+ord_parameter_types! {
+    pub const One: AccountId = 1;
 }
-
 
 // Configure a mock runtime to test the pallet.
 
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
-}
+pub type AccountId = u128;
+pub type AuctionId = u64;
+pub type Balance = u64;
 
+pub const ALICE: AccountId = 1;
+pub const BOB: AccountId = 2;
+pub const CLASS_ID: u32 = 0;
+pub const COLLECTION_ID: u64 = 0;
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -63,29 +58,24 @@ impl frame_system::Config for Runtime {
     type BlockNumber = BlockNumber;
     type Call = Call;
     type Hash = H256;
-    type Hashing = BlakeTwo256;
+    type Hashing = ::sp_runtime::traits::BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = TestEvent;
+    type Event = Event;
     type BlockHashCount = BlockHashCount;
-    type MaximumBlockWeight = MaximumBlockWeight;
-    type MaximumBlockLength = MaximumBlockLength;
-    type AvailableBlockRatio = AvailableBlockRatio;
+    type BlockWeights = ();
+    type BlockLength = ();
     type Version = ();
-    type PalletInfo = ();
-    type AccountData = ();
+    type PalletInfo = PalletInfo;
+    type AccountData = pallet_balances::AccountData<Balance>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type DbWeight = ();
-    type BlockExecutionWeight = ();
-    type ExtrinsicBaseWeight = ();
-    type MaximumExtrinsicWeight = ();
     type BaseCallFilter = ();
     type SystemWeightInfo = ();
+    type SS58Prefix = ();
 }
-
-pub type System = frame_system::Module<Runtime>;
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
@@ -101,25 +91,38 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = ();
 }
 
-pub struct Handler;
+pub struct MockAuctionManager;
 
-impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
-    fn on_new_bid(now: BlockNumber, id: AuctionId, new_bid: (AccountId, Balance), last_bid: Option<(AccountId, Balance)>) -> OnNewBidResult<BlockNumber> {
-        //Test with Alice bid
-        if new_bid.0 == ALICE {
-            OnNewBidResult {
-                accept_bid: true,
-                auction_end_change: Change::NoChange,
-            }
-        } else {
-            OnNewBidResult {
-                accept_bid: false,
-                auction_end_change: Change::NoChange,
-            }
-        }
+impl Auction<AccountId, BlockNumber> for MockAuctionManager {
+    type Balance = Balance;
+
+    fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+        todo!()
     }
 
-    fn on_auction_ended(_id: AuctionId, _winner: Option<(AccountId, Balance)>) {}
+    fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+        todo!()
+    }
+
+    fn new_auction(recipient: u128, initial_amount: Self::Balance, start: u64, end: Option<u64>) -> Result<u64, DispatchError> {
+        todo!()
+    }
+
+    fn create_auction(item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64) -> Result<u64, DispatchError> {
+        todo!()
+    }
+
+    fn remove_auction(id: u64) {
+        todo!()
+    }
+
+    fn swap_bidders(new_bidder: &u128, last_bidder: Option<&u128>) {
+        todo!()
+    }
+
+    fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
+        todo!()
+    }
 }
 
 parameter_types! {
@@ -129,29 +132,18 @@ parameter_types! {
     pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
 }
 
-impl pallet_auction::Config for Runtime {
-    type Event = TestEvent;
-    type AuctionTimeToClose = AuctionTimeToClose;
-    type AuctionId = AuctionId;
-    type Handler = Handler;
-    type Currency = Balances;
-}
-
 impl Config for Runtime {
-    type Event = TestEvent;
+    type Event = Event;
     type SessionDuration = SessionDuration;
     type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
-    type EmergencyOrigin = EnsureRootOrHalfGeneralCouncil;
-    type AuctionHandler = Auction;
+    type EmergencyOrigin = EnsureSignedBy<One, AccountId>;
+    type AuctionHandler = MockAuctionManager;
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
 }
 
 pub type ContinuumModule = Pallet<Runtime>;
-
-use frame_system::Call as SystemCall;
-use auction_manager::{AuctionHandler, OnNewBidResult, Change};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -165,7 +157,6 @@ construct_runtime!(
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         Continuum: continuum::{Module, Call ,Storage, Event<T>},
-        Auction: pallet_auction::{Module, Call ,Storage, Event<T>},
 	}
 );
 
@@ -179,7 +170,7 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
-        let t = frame_system::GenesisConfig::default()
+        let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
 
@@ -195,7 +186,7 @@ impl ExtBuilder {
     }
 }
 
-pub fn last_event() -> TestEvent {
+pub fn last_event() -> Event {
     frame_system::Module::<Runtime>::events()
         .pop()
         .expect("Event expected")

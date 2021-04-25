@@ -16,17 +16,17 @@ alt_serde = { version = "1", default-features = false, features = ["derive"] }
 frame-support = { version = '3.0.0', default-features = false }
 frame-system = { version = '3.0.0', default-features = false }
 sp-core = { version = '3.0.0', default-features = false }
-sp-io = { version = '3.0.0', default-features = false }
+#sp-io = { version = '3.0.0', default-features = false }
 sp-runtime = { version = '3.0.0', default-features = false }
 sp-std = { version = '3.0.0', default-features = false }
 
 [features]
 default = ['std']
 std = [
-	'frame-support/std',
-	'frame-system/std',
-	'parity-scale-codec/std',
-	'sp-io/std',
-	'sp-runtime/std',
-	'sp-std/std',
+    'frame-support/std',
+    'frame-system/std',
+    'parity-scale-codec/std',
+    #	'sp-io/std',
+    'sp-runtime/std',
+    'sp-std/std',
 ]
