@@ -666,7 +666,7 @@ impl Convert<AccountId, [u8; 32]> for AccountId32Convert {
 
 parameter_types! {
     pub BitCountryNetwork: NetworkId = NetworkId::Named("bitcountry".into());
-    pub RelayChainOrigin: Origin = cumulus_pallet_xcm_handler::Origin::Relay.into();
+    pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
     pub Ancestry: MultiLocation = MultiLocation::X1(Junction::Parachain {
         id: ParachainInfo::parachain_id().into(),
     });
@@ -693,7 +693,7 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 pub type LocalOriginConverter = (
     SovereignSignedViaLocation<LocationConverter, Origin>,
     RelayChainAsNative<RelayChainOrigin, Origin>,
-    SiblingParachainAsNative<cumulus_pallet_xcm_handler::Origin, Origin>,
+    SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
     SignedAccountId32AsNative<BitCountryNetwork, Origin>,
 );
 
@@ -719,7 +719,7 @@ impl Config for XcmConfig {
     type LocationInverter = LocationInverter<Ancestry>;
 }
 
-impl cumulus_pallet_xcm_handler::Config for Runtime {
+impl cumulus_pallet_xcm::Config for Runtime {
     type Event = Event;
     type XcmExecutor = XcmExecutor<XcmConfig>;
     type UpwardMessageSender = ParachainSystem;
@@ -822,7 +822,7 @@ construct_runtime! {
         // Parachain
         ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
-        XcmHandler: cumulus_pallet_xcm_handler::{Pallet, Call ,Event<T>, Origin},
+        XcmHandler: cumulus_pallet_xcm::{Pallet, Call ,Event<T>, Origin},
         XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>},
         UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event},
         //Dev

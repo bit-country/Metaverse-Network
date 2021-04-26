@@ -30,7 +30,7 @@ polkadot-test-service = { git = "https://github.com/paritytech/polkadot", branch
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
 
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives", default-features = false }
-pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1",default-features = false }
+pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 # Substrate dependencies
 sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1" }
@@ -68,10 +68,10 @@ sp-offchain = { git = "https://github.com/paritytech/substrate", branch = "rococ
 
 # Cumulus dependencies
 cumulus-client-consensus-relay-chain = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
-cumulus-client-collator = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
-cumulus-client-service = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
-cumulus-client-network = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
-cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+cumulus-client-collator = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
+cumulus-client-service = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
+cumulus-client-network = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
 bitcountry-runtime = { path = "../runtime" }
 
 [[bin]]

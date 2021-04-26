@@ -67,14 +67,14 @@ sp-transaction-pool = { git = "https://github.com/paritytech/substrate", branch 
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 sp-application-crypto = { git = "https://github.com/paritytech/substrate", branch = "rococo-v1", default-features = false }
 
-cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
-cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
-parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
+cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
+parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
 xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
 xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1", default-features = false }
-cumulus-pallet-xcm-handler = { git = "https://github.com/paritytech/cumulus", branch = "rococo-v1", default-features = false }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "master", default-features = false }
 
 # Bit.Country primitives
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives", default-features = false }
@@ -85,7 +85,7 @@ orml-currencies = { default-features = false, git = "https://github.com/open-web
 orml-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
 orml-xtokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
 orml-nft = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
-orml-xcm-support = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
+orml-xcm-support = { default-features = false, package = 'orml-xcm-support', path = '../pallets/xcm-support' }
 orml-unknown-tokens = { default-features = false, git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "master" }
 # oracle = {version = "1.0.0", path = "../pallets/oracle", default_features= false}
 
@@ -146,7 +146,7 @@ std = [
     "xcm/std",
     "xcm-executor/std",
     "xcm-builder/std",
-    "cumulus-pallet-xcm-handler/std",
+    "cumulus-pallet-xcm/std",
     'orml-xcm-support/std',
     'orml-currencies/std',
     'orml-tokens/std',
