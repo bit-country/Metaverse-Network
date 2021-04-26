@@ -17,6 +17,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     MultiSignature,
@@ -26,6 +27,8 @@ use sp_runtime::RuntimeDebug;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+
+pub mod continuum;
 
 /// An index to a block.
 pub type BlockNumber = u64;

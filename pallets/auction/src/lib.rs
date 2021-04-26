@@ -23,7 +23,7 @@ use frame_system::{self as system, ensure_signed};
 use pallet_nft::Module as NFTModule;
 use pallet_continuum::Pallet as ContinuumModule;
 
-use primitives::{ItemId, AuctionId};
+use primitives::{ItemId, AuctionId, continuum::Continuum};
 
 use auction_manager::{Auction, OnNewBidResult, AuctionHandler, Change, AuctionInfo, AuctionItem};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
@@ -44,7 +44,6 @@ type BalanceOf<T> =
 pub trait Config:
 frame_system::Config
 + pallet_nft::Config
-+ pallet_continuum::Config
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
     type AuctionTimeToClose: Get<Self::BlockNumber>;
@@ -52,6 +51,7 @@ frame_system::Config
     type Handler: AuctionHandler<Self::AccountId, BalanceOf<Self>, Self::BlockNumber, AuctionId>;
     type Currency: ReservableCurrency<Self::AccountId>
     + LockableCurrency<Self::AccountId, Moment=Self::BlockNumber>;
+    type ContinuumHandler: Continuum<Self::AccountId>;
 
     // /// Weight information for extrinsics in this module.
     // type WeightInfo: WeightInfo;
@@ -178,7 +178,7 @@ decl_module! {
                                                     }
                                             }
                                             ItemId::Spot(spot_id, country_id) => {
-                                                let continuum_spot = ContinuumModule::<T>::transfer_spot(spot_id, &auction_item.recipient, &(high_bidder.clone(), country_id));
+                                                let continuum_spot = T::ContinuumHandler::transfer_spot(spot_id, &auction_item.recipient, &(high_bidder.clone(), country_id));
                                                 match continuum_spot{
                                                      Err(_) => continue,
                                                      Ok(_) => {

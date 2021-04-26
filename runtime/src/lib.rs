@@ -530,6 +530,7 @@ impl auction::Config for Runtime {
     type AuctionTimeToClose = AuctionTimeToClose;
     type Handler = Auction;
     type Currency = Balances;
+    type ContinuumHandler = Continuum;
 }
 
 impl continuum::Config for Runtime {
