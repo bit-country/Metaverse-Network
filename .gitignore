@@ -35,3 +35,8 @@ para-8-genesis.wasm
 para-8-wasm.wasm
 para-18-genesis
 para-666-genesis
+/.idea*
+/node2/*
+/.idea/*
+/Cargo.lock
+/tewai*
