@@ -45,9 +45,6 @@ package = 'auction-manager'
 path = '../auction-manager'
 version = '2.0.0-rc6'
 
-[dev-dependencies]
-pallet-auction = { package = 'pallet-auction', path = '../auction', version = '2.0.0-rc6' }
-
 [features]
 default = ['std']
 std = [
@@ -63,7 +60,6 @@ std = [
     'orml-tokens/std',
     'pallet_nft/std',
     'auction-manager/std',
-    'pallet-auction/std',
     'primitives/std',
     'sp-arithmetic/std',
 ]

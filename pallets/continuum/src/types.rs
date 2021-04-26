@@ -22,6 +22,8 @@ use sp_runtime::{RuntimeDebug, DispatchError};
 use sp_runtime::traits::{Zero, Bounded, CheckedAdd, CheckedSub, CheckedMul, CheckedDiv, Saturating, One};
 use crate::{Vote, AccountVote};
 use primitives::{CountryId, SpotId};
+use sp_std::vec;
+use sp_std::vec::Vec;
 
 pub type ReferendumIndex = u64;
 
