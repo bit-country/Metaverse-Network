@@ -10,11 +10,15 @@ version = '2.0.0-rc6'
 
 [dependencies]
 serde = { version = "1.0.119", optional = true }
-codec = { default-features = false, package = "parity-scale-codec", version = "2.0.0", features = ["derive"] }
-sp-std = { version = "3.0.0", default-features = false }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-runtime = { version = "3.0.0", default-features = false }
+sp-std = { version = "3.0.0", default-features = false }
+sp-io = { version = "3.0.0", default-features = false }
+frame-support = { version = "3.0.0", default-features = false }
 # Used for the node's RPCs
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+
+funty = { version = "=1.1.0", default-features = false }
 
 [features]
 default = ['std']
@@ -22,5 +26,7 @@ std = [
     'serde',
     'codec/std',
     'sp-runtime/std',
+    'sp-io/std',
     'sp-std/std',
+    'frame-support/std',
 ]

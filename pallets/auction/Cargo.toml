@@ -13,9 +13,10 @@ targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
 serde = { version = "1.0.119", optional = true }
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
 sp-runtime = { version = "3.0.0", default-features = false }
+sp-io = { version = "3.0.0", default-features = false }
 frame-support = { version = "3.0.0", default-features = false }
 frame-system = { version = "3.0.0", default-features = false }
 
@@ -39,9 +40,6 @@ pallet-continuum = { default-features = false, package = 'pallet-continuum', pat
 auction-manager = { default-features = false, package = 'auction-manager', path = '../auction-manager' }
 
 
-[dev-dependencies]
-sp-io = { version = "3.0.0", default-features = false }
-
 [features]
 default = ['std']
 std = [
@@ -49,6 +47,7 @@ std = [
     'codec/std',
     'frame-support/std',
     'frame-system/std',
+    'sp-io/std',
     'sp-runtime/std',
     'sp-core/std',
     'pallet-balances/std',

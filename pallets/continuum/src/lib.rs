@@ -24,7 +24,7 @@ use frame_support::{
     traits::{Get, Vec},
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, CurrencyId, SpotId, ItemId};
+use primitives::{Balance, CountryId, CurrencyId, SpotId, ItemId, continuum::Continuum};
 use sp_runtime::{traits::{AccountIdConversion, One, Zero, CheckedDiv, CheckedAdd}, DispatchError, ModuleId, RuntimeDebug, FixedPointNumber};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -522,6 +522,16 @@ impl<T: Config> Pallet<T>
     }
 
     pub fn transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
+        Self::transfer_spot(spot_id, from, to)
+    }
+
+    pub fn check_approved(tally: &ContinuumSpotTally<T::AccountId>) -> bool {
+        true
+    }
+}
+
+impl<T: Config> Continuum<T::AccountId> for Pallet<T> {
+    fn transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
         ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError>{
             let treasury = Self::account_id();
             if *from != treasury {
@@ -531,9 +541,5 @@ impl<T: Config> Pallet<T>
             spot.country = to.1;
             Ok(spot_id)
         })
-    }
-
-    pub fn check_approved(tally: &ContinuumSpotTally<T::AccountId>) -> bool {
-        true
     }
 }
