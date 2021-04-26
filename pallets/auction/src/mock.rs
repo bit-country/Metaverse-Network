@@ -8,7 +8,7 @@ use frame_support::{
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{CurrencyId, Amount, BlockNumber, AuctionId};
+use primitives::{CurrencyId, Amount, BlockNumber, AuctionId, continuum::Continuum};
 use crate::sp_api_hidden_includes_decl_storage::hidden_include::traits::{OnInitialize, OnFinalize};
 
 
@@ -51,6 +51,8 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
+    pub const SpotId: u64 = 1;
+    pub const CountryId: u64 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -61,6 +63,15 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = System;
     type MaxLocks = ();
     type WeightInfo = ();
+}
+
+
+pub struct Continuumm;
+
+impl Continuum<u128> for Continuumm {
+    fn transfer_spot(spot_id: u64, from: &AccountId, to: &(AccountId, u64)) -> Result<u64, DispatchError> {
+        Ok(1)
+    }
 }
 
 pub struct Handler;
@@ -94,6 +105,7 @@ impl Config for Runtime {
     type AuctionTimeToClose = AuctionTimeToClose;
     type Handler = Handler;
     type Currency = Balances;
+    type ContinuumHandler = Continuumm;
 }
 
 parameter_types! {
