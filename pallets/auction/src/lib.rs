@@ -97,6 +97,9 @@ decl_module! {
         fn bid(origin, id: AuctionId, value: BalanceOf<T>) {
             let from = ensure_signed(origin)?;
 
+            let auction_item = Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;           
+            ensure!(auction_item.recipient != from, Error::<T>::SelfBidNotAccepted);
+
             <Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
                 let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
@@ -167,8 +170,8 @@ decl_module! {
                                         //Transfer asset from asset owner to high bidder
                                         //Check asset type and handle internal logic
 
-                                    match auction_item.item_id {
-                                            ItemId::NFT(asset_id) => {
+                                         match auction_item.item_id {
+                                            ItemId::NFT(asset_id) => {                                           
                                                 let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &high_bidder, asset_id);
                                                    match asset_transfer {
                                                         Err(_) => continue,
@@ -201,15 +204,17 @@ decl_module! {
 decl_error! {
     /// Error for auction module.
     pub enum Error for Module<T: Config> {
-        AuctionNotExist,
-        AssetIsNotExist,
+        AuctionNotExist,        
+        AssetIsNotExist,        
         AuctionNotStarted,
         AuctionIsExpired,
-        BidNotAccepted,
+        AuctionTypeIsNotSupported,        
+        BidNotAccepted,        
+        InsufficientFreeBalance,
         InvalidBidPrice,
         NoAvailableAuctionId,
         NoPermissionToCreateAuction,
-        AuctionTypeIsNotSupported,
+        SelfBidNotAccepted,
     }
 }
 

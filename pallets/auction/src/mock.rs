@@ -8,7 +8,8 @@ use frame_support::{
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{CurrencyId, Amount, BlockNumber};
+use primitives::{CurrencyId, Amount, BlockNumber, AuctionId, continuum::Continuum};
+use crate::sp_api_hidden_includes_decl_storage::hidden_include::traits::{OnInitialize, OnFinalize};
 
 
 parameter_types! {
@@ -16,7 +17,6 @@ parameter_types! {
 }
 
 pub type AccountId = u128;
-pub type AuctionId = u64;
 pub type Balance = u64;
 
 pub const ALICE: AccountId = 1;
@@ -51,6 +51,8 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
+    pub const SpotId: u64 = 1;
+    pub const CountryId: u64 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -61,6 +63,15 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = System;
     type MaxLocks = ();
     type WeightInfo = ();
+}
+
+
+pub struct Continuumm;
+
+impl Continuum<u128> for Continuumm {
+    fn transfer_spot(spot_id: u64, from: &AccountId, to: &(AccountId, u64)) -> Result<u64, DispatchError> {
+        Ok(1)
+    }
 }
 
 pub struct Handler;
@@ -92,9 +103,9 @@ parameter_types! {
 impl Config for Runtime {
     type Event = Event;
     type AuctionTimeToClose = AuctionTimeToClose;
-    type AuctionId = AuctionId;
     type Handler = Handler;
     type Currency = Balances;
+    type ContinuumHandler = Continuumm;
 }
 
 parameter_types! {
@@ -150,18 +161,22 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
+       self.build_with_block_number(1)
+    }
+
+    pub fn build_with_block_number(self, block_number: u64) -> sp_io::TestExternalities {
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
 
         pallet_balances::GenesisConfig::<Runtime> {
-            balances: vec![(ALICE, 100000)],
+            balances: vec![(ALICE, 100000), (BOB, 500)],
         }
             .assimilate_storage(&mut t)
             .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| System::set_block_number(1));
+        ext.execute_with(|| System::set_block_number(block_number));
         ext
     }
 }
@@ -172,4 +187,15 @@ pub fn last_event() -> Event {
         .expect("Event expected")
         .event
 }
+
+pub fn run_to_block(n: u64) {
+    while System::block_number() < n {
+        NftAuctionModule::on_finalize(System::block_number());
+        System::on_finalize(System::block_number());
+        System::set_block_number(System::block_number() + 1);
+        System::on_initialize(System::block_number());        
+        NftAuctionModule::on_initialize(System::block_number());
+    }
+}
+
 
