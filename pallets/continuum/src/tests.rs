@@ -20,6 +20,7 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
+use pallet_nft::RawEvent;
 
 #[test]
 // Private test continuum pallet to ensure mocking and unit tests working
@@ -30,7 +31,7 @@ fn test() {
 }
 
 #[test]
-fn find_neighborhood_spot_is_work() {
+fn find_neighborhood_spot_should_work() {
     ExtBuilder::default().build().execute_with(|| {
         let continuum_spot = ContinuumSpot {
             x: 0,
@@ -57,4 +58,12 @@ fn find_neighborhood_spot_is_work() {
 }
 
 #[test]
-fn
+fn register_interest_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+
+        System::set_block_number(1);
+        assert_ok!(ContinuumModule::register_interest(origin, (0, 0)));
+        assert_eq!(last_event(), Event::continuum(crate::Event::NewExpressOfInterestAdded(ALICE, 0)))
+    })
+}

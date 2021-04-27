@@ -27,7 +27,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
 use primitives::{CurrencyId, Amount, BlockNumber};
 use frame_system::{EnsureSignedBy, EnsureRoot};
 use auction_manager::{AuctionHandler, OnNewBidResult, Change, AuctionInfo, Auction};
-use frame_support::pallet_prelude::MaybeSerializeDeserialize;
+use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 
 parameter_types! {
@@ -172,25 +172,40 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
+        self.build_with_block_number(1)
+    }
+
+    pub fn build_with_block_number(self, block_number: u64) -> sp_io::TestExternalities {
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
 
         pallet_balances::GenesisConfig::<Runtime> {
-            balances: vec![(ALICE, 100000)],
+            balances: vec![(ALICE, 100000), (BOB, 500)],
         }
             .assimilate_storage(&mut t)
             .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| System::set_block_number(1));
+        ext.execute_with(|| System::set_block_number(block_number));
         ext
     }
 }
 
 pub fn last_event() -> Event {
-    frame_system::Module::<Runtime>::events()
+    frame_system::Pallet::<Runtime>::events()
         .pop()
         .expect("Event expected")
         .event
+}
+
+fn next_block() {
+    System::set_block_number(System::block_number() + 1);
+    ContinuumModule::on_initialize(System::block_number());
+}
+
+pub fn run_to_block(n: u64) {
+    while System::block_number() < n {
+        next_block();
+    }
 }

@@ -167,7 +167,7 @@ pub mod pallet {
     /// Get max bound
     #[pallet::storage]
     #[pallet::getter(fn get_max_bound)]
-    pub type MaxBound<T: Config> = StorageValue<_, (u32, u32), ValueQuery>;
+    pub type MaxBound<T: Config> = StorageValue<_, (i32, i32), ValueQuery>;
 
     /// Record of all spot ids voting that in an emergency shut down
     #[pallet::storage]
@@ -226,42 +226,50 @@ pub mod pallet {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn register_interest(origin: OriginFor<T>, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            //TODO Ensure AccountId own a country
+            //TODO Ensure AccountId own a country - extend bitcountry trait to check membership
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
             let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
             // Get current active session
             let current_active_session_id = CurrentIndex::<T>::get();
 
-            ensure!(EOISlots::<T>::contains_key(current_active_session_id), Error::<T>::NoActiveSession);
+            if EOISlots::<T>::contains_key(current_active_session_id) {
+                // Mutate current active EOI Slot session
+                EOISlots::<T>::try_mutate(current_active_session_id, |spot_eoi| -> DispatchResult {
+                    // Check if the interested Spot exists
+                    let interested_spot_index: Option<usize> = spot_eoi.iter().position(|x| x.spot_id == spot_id);
+                    match interested_spot_index {
+                        // Already got participants
+                        Some(index) => {
+                            // Works on existing eoi index
+                            let interested_spot = spot_eoi.get_mut(index).ok_or("No Spot EOI exist")?;
 
-            // Mutate current active EOI Slot session
-            EOISlots::<T>::try_mutate(current_active_session_id, |spot_eoi| -> DispatchResult {
+                            interested_spot.participants.push(sender.clone());
+                        }
+                        // No participants - add one
+                        None => {
+                            // No spot found - first one in EOI
+                            let mut new_list: Vec<T::AccountId> = Vec::new();
+                            new_list.push(sender.clone());
 
-                // Check if the interested Spot exists
-                let interested_spot_index: Option<usize> = spot_eoi.iter().position(|x| x.spot_id == spot_id);
-                match interested_spot_index {
-                    // Already got participants
-                    Some(index) => {
-                        // Works on existing eoi index
-                        let interested_spot = spot_eoi.get_mut(index).ok_or("No Spot EOI exist")?;
-
-                        interested_spot.participants.push(sender.clone());
+                            let _spot_eoi = SpotEOI {
+                                spot_id,
+                                participants: new_list,
+                            };
+                            spot_eoi.push(_spot_eoi);
+                        }
                     }
-                    // No participants - add one
-                    None => {
-                        // No spot found - first one in EOI
-                        let mut new_list: Vec<T::AccountId> = Vec::new();
-                        new_list.push(sender.clone());
-
-                        let _spot_eoi = SpotEOI {
-                            spot_id,
-                            participants: new_list,
-                        };
-                        spot_eoi.push(_spot_eoi);
+                    Ok(())
+                })?;
+            } else {
+                let mut eoi_slots: Vec<SpotEOI<T::AccountId>> = Vec::new();
+                eoi_slots.push(
+                    SpotEOI {
+                        spot_id,
+                        participants: vec![sender.clone()],
                     }
-                }
-                Ok(())
-            })?;
+                );
+                EOISlots::<T>::insert(current_active_session_id, eoi_slots);
+            }
 
             Self::deposit_event(Event::NewExpressOfInterestAdded(sender, spot_id));
             Ok(().into())
@@ -275,7 +283,7 @@ pub mod pallet {
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn set_max_bounds(origin: OriginFor<T>, new_bound: (u32, u32)) -> DispatchResultWithPostInfo {
+        pub fn set_max_bounds(origin: OriginFor<T>, new_bound: (i32, i32)) -> DispatchResultWithPostInfo {
             // Only execute by governance
             ensure_root(origin);
             MaxBound::<T>::set(new_bound);
