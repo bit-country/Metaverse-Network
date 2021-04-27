@@ -22,9 +22,39 @@ use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 
 #[test]
-// Private test continuum pallet
+// Private test continuum pallet to ensure mocking and unit tests working
 fn test() {
     ExtBuilder::default().build().execute_with(|| {
         assert_eq!(0, 0)
     });
 }
+
+#[test]
+fn find_neighborhood_spot_is_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let continuum_spot = ContinuumSpot {
+            x: 0,
+            y: 0,
+            country: COUNTRY_ID,
+        };
+
+        let correct_neighbors = vec![
+            (-1, -1),
+            (-1, 0),
+            (-1, 1),
+            (0, -1),
+            (0, 1),
+            (1, -1),
+            (1, 0),
+            (1, 1),
+        ];
+
+        let neighbors = continuum_spot.find_neighbour();
+        let total_matching = neighbors.iter().zip(&correct_neighbors).filter(|&(a, b)| a.0 == b.0 && a.1 == b.1).count();
+
+        assert_eq!(8, total_matching)
+    })
+}
+
+#[test]
+fn
