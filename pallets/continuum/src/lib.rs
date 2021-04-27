@@ -179,8 +179,12 @@ pub mod pallet {
     #[pallet::getter(fn get_max_desired_slot)]
     pub type MaxDesiredAuctionSlot<T: Config> = StorageValue<_, u32, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn next_spot_id)]
+    pub type NextContinuumSpotId<T: Config> = StorageValue<_, SpotId, ValueQuery>;
+
     #[pallet::event]
-    #[pallet::generate_deposit(fn deposit_event)]
+    #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
         // New express of interest
         NewExpressOfInterestAdded(T::AccountId, SpotId),
@@ -210,17 +214,21 @@ pub mod pallet {
         SpotNotFound,
         /// No permission
         NoPermission,
+        /// Spot Owned
+        SpotIsNotAvailable,
+        /// Spot is out of bound
+        SpotIsOutOfBound,
     }
 
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn register_interest(origin: OriginFor<T>, spot_id: SpotId) -> DispatchResultWithPostInfo {
+        pub fn register_interest(origin: OriginFor<T>, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             //TODO Ensure AccountId own a country
-            //TODO Spot has no owner
-
+            let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
+            let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
             // Get current active session
             let current_active_session_id = CurrentIndex::<T>::get();
 
@@ -237,17 +245,13 @@ pub mod pallet {
                         // Works on existing eoi index
                         let interested_spot = spot_eoi.get_mut(index).ok_or("No Spot EOI exist")?;
 
-                        if interested_spot.participants.len() == 0 {
-                            interested_spot.participants.push(sender);
-                        } else {
-                            interested_spot.participants.push(sender);
-                        }
+                        interested_spot.participants.push(sender.clone());
                     }
                     // No participants - add one
                     None => {
                         // No spot found - first one in EOI
                         let mut new_list: Vec<T::AccountId> = Vec::new();
-                        new_list.push(sender);
+                        new_list.push(sender.clone());
 
                         let _spot_eoi = SpotEOI {
                             spot_id,
@@ -259,7 +263,7 @@ pub mod pallet {
                 Ok(())
             })?;
 
-            //TODO Emit event
+            Self::deposit_event(Event::NewExpressOfInterestAdded(sender, spot_id));
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -527,6 +531,37 @@ impl<T: Config> Pallet<T>
 
     pub fn check_approved(tally: &ContinuumSpotTally<T::AccountId>) -> bool {
         true
+    }
+
+    pub fn check_spot_ownership(spot_id: Option<SpotId>, coordinate: (i32, i32)) -> Result<SpotId, DispatchError> {
+        match spot_id {
+            None => {
+                //Insert continuum spot as it's empty
+                let max_bound = MaxBound::<T>::get();
+                ensure!((coordinate.0 >= max_bound.0 && coordinate.1 >= max_bound.1) && (coordinate.0 <= max_bound.1 && coordinate.1 <= max_bound.1), Error::<T>::SpotIsOutOfBound);
+
+                let spot = ContinuumSpot {
+                    x: coordinate.0,
+                    y: coordinate.1,
+                    country: 0,
+                };
+
+                let next_spot_id = NextContinuumSpotId::<T>::try_mutate(|id| -> Result<SpotId, DispatchError> {
+                    let current_id = *id;
+                    *id = id.checked_add(One::one()).ok_or(Error::<T>::SpotIsNotAvailable)?;
+
+                    Ok(current_id)
+                })?;
+                ContinuumSpots::<T>::insert(next_spot_id, spot);
+
+                Ok(next_spot_id)
+            }
+            Some(spot_id) => {
+                let spot = ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound)?;
+                ensure!(spot.country == 0, Error::<T>::SpotIsNotAvailable);
+                Ok(spot_id)
+            }
+        }
     }
 }
 

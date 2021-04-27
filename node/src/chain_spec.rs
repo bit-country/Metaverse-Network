@@ -247,8 +247,8 @@ pub fn bitcountry_properties() -> Properties {
     let mut properties = Properties::new();
 
     properties.insert("ss58Format".into(), 28.into());
-    properties.insert("tokenDecimals".into(), 12.into());
-    properties.insert("tokenSymbol".into(), "BCG".into());
+    properties.insert("tokenDecimals".into(), 18.into());
+    properties.insert("tokenSymbol".into(), "NUUM".into());
 
     properties
 }
