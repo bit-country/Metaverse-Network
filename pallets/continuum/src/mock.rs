@@ -46,11 +46,13 @@ ord_parameter_types! {
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u64;
+pub type CountryId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
+pub const COUNTRY_ID: CountryId = 1;
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;

@@ -136,8 +136,6 @@ pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
-pub const BCGS: Balance = CENTS;
-
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
 pub fn native_version() -> NativeVersion {
@@ -263,8 +261,8 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    /// 1 BCG = 1 Megabyte
-    pub const TransactionByteFee: Balance = BCGS / (1024 * 1024);
+    /// 0.01 BCG = 1 Megabyte
+    pub const TransactionByteFee: Balance = CENTS / (1024 * 1024);
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
     pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
     pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
