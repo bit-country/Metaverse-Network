@@ -158,7 +158,7 @@ decl_module! {
             ensure!(auction_item.buy_it_now_amount.is_none() == false, Error::<T>::BuyItNowNotAvailable);
             let buy_it_now_amount = auction_item.buy_it_now_amount.unwrap();
             ensure!(value == buy_it_now_amount, Error::<T>::InvalidBuyItNowPrice);
-            ensure!(   <T as Config>::Currency::free_balance(&from) >= value, Error::<T>::InsufficientFunds);
+            ensure!(<T as Config>::Currency::free_balance(&from) >= value, Error::<T>::InsufficientFunds);
 
             Self::remove_auction(auction_id.clone());
             //Transfer balance from buy it now user to asset owner
