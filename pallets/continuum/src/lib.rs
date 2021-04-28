@@ -28,6 +28,7 @@ use primitives::{Balance, CountryId, CurrencyId, SpotId, ItemId, continuum::Cont
 use sp_runtime::{traits::{AccountIdConversion, One, Zero, CheckedDiv, CheckedAdd}, DispatchError, ModuleId, RuntimeDebug, FixedPointNumber};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_std::vec;
 
 use auction_manager::{Auction};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
