@@ -150,8 +150,10 @@ decl_module! {
 
             let block_number = <frame_system::Module<T>>::block_number();
             ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
-            let auction_end: Option<T::BlockNumber> = auction.end;
-            ensure!(block_number < auction_end.unwrap(), Error::<T>::AuctionIsExpired);
+            if !(auction.end.is_none()) {
+                let auction_end: T::BlockNumber = auction.end.unwrap();
+                ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
+            }
 
             ensure!(auction_item.buy_it_now_amount.is_none() == false, Error::<T>::BuyItNowNotAvailable);
             let buy_it_now_amount = auction_item.buy_it_now_amount.unwrap();
