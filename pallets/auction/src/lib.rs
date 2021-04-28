@@ -161,8 +161,12 @@ decl_module! {
             ensure!(<T as Config>::Currency::free_balance(&from) >= value, Error::<T>::InsufficientFunds);
 
             Self::remove_auction(auction_id.clone());
+            //Unreserve balance of last bidder
+             if let Some(current_bid) = auction.bid{
+                let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
+                <T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+            }
             //Transfer balance from buy it now user to asset owner
-            <T as Config>::Currency::unreserve(&from, value);
             let currency_transfer = <T as Config>::Currency::transfer(&from, &auction_item.recipient, value, ExistenceRequirement::KeepAlive);
             match currency_transfer {
                 Err(_e) => (),
