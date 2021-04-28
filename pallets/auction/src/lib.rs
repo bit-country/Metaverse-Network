@@ -168,30 +168,30 @@ decl_module! {
                 Err(_e) => (),
                 Ok(_v) => {
                     //Transfer asset from asset owner to buy it now user
-                            match auction_item.item_id {
-                                ItemId::NFT(asset_id) => {                                           
-                                    let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
-                                        match asset_transfer {
-                                            Err(_) => (),
-                                            Ok(_) => {
-                                                Self::deposit_event(RawEvent::BuyItNowFinalised(auction_id, from, value));
-                                            },
-                                        }
+                    match auction_item.item_id {
+                        ItemId::NFT(asset_id) => {                                           
+                            let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
+                                match asset_transfer {
+                                    Err(_) => (),
+                                    Ok(_) => {
+                                        Self::deposit_event(RawEvent::BuyItNowFinalised(auction_id, from, value));
+                                    },
                                 }
-                                ItemId::Spot(spot_id, country_id) => {
-                                    let continuum_spot = T::ContinuumHandler::transfer_spot(spot_id, &auction_item.recipient, &(from.clone(), country_id));
-                                    match continuum_spot{
-                                            Err(_) => (),
-                                            Ok(_) => {
-                                                Self::deposit_event(RawEvent::BuyItNowFinalised(auction_id, from, value));
-                                            },
-                                    }
-                                }
-                                _ => {} //Future implementation for Spot, Country
+                        }
+                        ItemId::Spot(spot_id, country_id) => {
+                            let continuum_spot = T::ContinuumHandler::transfer_spot(spot_id, &auction_item.recipient, &(from.clone(), country_id));
+                            match continuum_spot{
+                                    Err(_) => (),
+                                    Ok(_) => {
+                                        Self::deposit_event(RawEvent::BuyItNowFinalised(auction_id, from, value));
+                                    },
                             }
-                        },
+                        }
+                        _ => {} //Future implementation for Spot, Country
                     }
-                }
+                },
+            }
+        }
 
         #[weight = 10_000]
         fn create_new_auction(origin, item_id: ItemId, value: BalanceOf<T>, buy_it_now_value: Option<BalanceOf<T>>) {
