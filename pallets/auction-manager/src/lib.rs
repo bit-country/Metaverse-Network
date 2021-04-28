@@ -32,6 +32,7 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
     pub initial_amount: Balance,
     /// Current amount for sale
     pub amount: Balance,
+    pub buy_it_now_amount: Option<Balance>,
     /// Auction start time
     pub start_time: BlockNumber,
     pub end_time: BlockNumber,
@@ -77,6 +78,7 @@ pub trait Auction<AccountId, BlockNumber> {
         end: Option<BlockNumber>,
         recipient: AccountId,
         initial_amount: Self::Balance,
+        buy_it_now_amount: Option<Self::Balance>,
         start: BlockNumber,
     ) -> Result<AuctionId, DispatchError>;
 
@@ -116,3 +118,4 @@ pub trait AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> {
     /// End an auction with `winner`
     fn on_auction_ended(id: AuctionId, winner: Option<(AccountId, Balance)>);
 }
+

@@ -383,7 +383,7 @@ impl<T: Config> Pallet<T>
                 }
                 let treasury = Self::account_id();
                 //From treasury spot
-                T::AuctionHandler::create_auction(ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now);
+                T::AuctionHandler::create_auction(ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), Default::default(), now);
                 //TODO Emit event
             }
         }

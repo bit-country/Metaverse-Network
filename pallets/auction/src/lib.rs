@@ -82,6 +82,7 @@ decl_event!(
         Bid(AuctionId, AccountId, Balance),
         NewAuctionItem(AuctionId, AccountId ,Balance, Balance),
         AuctionFinalized(AuctionId, AccountId, Balance),
+        BuyItNowFinalised(AuctionId, AccountId, Balance),
     }
 );
 
@@ -139,13 +140,65 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn create_new_auction(origin, item_id: ItemId, value: BalanceOf<T>) {
+        fn buy_it_now(origin, auction_id: AuctionId, value: BalanceOf<T>) {
+            let from = ensure_signed(origin)?;
+
+            let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;  
+            let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;  
+            
+            ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
+
+            let block_number = <frame_system::Module<T>>::block_number();
+            ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+            let auction_end: Option<T::BlockNumber> = auction.end;
+            ensure!(block_number < auction_end.unwrap(), Error::<T>::AuctionIsExpired);
+
+            ensure!(auction_item.buy_it_now_amount.is_none() == false, Error::<T>::BuyItNowNotAvailable);
+            let buy_it_now_amount = auction_item.buy_it_now_amount.unwrap();
+            ensure!(value == buy_it_now_amount, Error::<T>::InvalidBuyItNowPrice);
+            ensure!(   <T as Config>::Currency::free_balance(&from) >= value, Error::<T>::InsufficientFunds);
+
+            Self::remove_auction(auction_id.clone());
+            //Transfer balance from buy it now user to asset owner
+            <T as Config>::Currency::unreserve(&from, value);
+            let currency_transfer = <T as Config>::Currency::transfer(&from, &auction_item.recipient, value, ExistenceRequirement::KeepAlive);
+            match currency_transfer {
+                Err(_e) => (),
+                Ok(_v) => {
+                    //Transfer asset from asset owner to buy it now user
+                            match auction_item.item_id {
+                                ItemId::NFT(asset_id) => {                                           
+                                    let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
+                                        match asset_transfer {
+                                            Err(_) => (),
+                                            Ok(_) => {
+                                                Self::deposit_event(RawEvent::BuyItNowFinalised(auction_id, from, value));
+                                            },
+                                        }
+                                }
+                                ItemId::Spot(spot_id, country_id) => {
+                                    let continuum_spot = T::ContinuumHandler::transfer_spot(spot_id, &auction_item.recipient, &(from.clone(), country_id));
+                                    match continuum_spot{
+                                            Err(_) => (),
+                                            Ok(_) => {
+                                                Self::deposit_event(RawEvent::BuyItNowFinalised(auction_id, from, value));
+                                            },
+                                    }
+                                }
+                                _ => {} //Future implementation for Spot, Country
+                            }
+                        },
+                    }
+                }
+
+        #[weight = 10_000]
+        fn create_new_auction(origin, item_id: ItemId, value: BalanceOf<T>, buy_it_now_value: Option<BalanceOf<T>>) {
             let from = ensure_signed(origin)?;
 
             let start_time: T::BlockNumber = <system::Module<T>>::block_number();
             let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
 
-            let auction_id = Self::create_auction(item_id, Some(end_time), from.clone(), value.clone(), start_time)?;
+            let auction_id = Self::create_auction(item_id, Some(end_time), from.clone(), value.clone(), buy_it_now_value.clone(), start_time)?;
             Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
         }
 
@@ -215,6 +268,10 @@ decl_error! {
         NoAvailableAuctionId,
         NoPermissionToCreateAuction,
         SelfBidNotAccepted,
+        CannotBidOnOwnAuction,
+        InvalidBuyItNowPrice,
+        InsufficientFunds,
+        BuyItNowNotAvailable,
     }
 }
 
@@ -275,6 +332,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
         end: Option<T::BlockNumber>,
         recipient: T::AccountId,
         initial_amount: Self::Balance,
+        buy_it_now_amount: Option<Self::Balance>,
         start: T::BlockNumber,
     ) -> Result<AuctionId, DispatchError> {
         match item_id {
@@ -298,6 +356,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
                     recipient: recipient.clone(),
                     initial_amount: initial_amount,
                     amount: initial_amount,
+                    buy_it_now_amount: buy_it_now_amount,
                     start_time,
                     end_time,
                 };
@@ -322,6 +381,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
                     recipient: recipient.clone(),
                     initial_amount: initial_amount,
                     amount: initial_amount,
+                    buy_it_now_amount: buy_it_now_amount,
                     start_time,
                     end_time,
                 };
