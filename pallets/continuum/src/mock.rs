@@ -24,10 +24,10 @@ use frame_support::{
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{CurrencyId, Amount, BlockNumber};
+use primitives::{CurrencyId, Amount};
 use frame_system::{EnsureSignedBy, EnsureRoot};
 use auction_manager::{AuctionHandler, OnNewBidResult, Change, AuctionInfo, Auction};
-use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks};
+use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 
 parameter_types! {
@@ -37,22 +37,24 @@ parameter_types! {
 }
 
 
-ord_parameter_types! {
-    pub const One: AccountId = 1;
-}
-
 // Configure a mock runtime to test the pallet.
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u64;
 pub type CountryId = u64;
+pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const CHARLIE: AccountId = 3;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
 pub const COUNTRY_ID: CountryId = 1;
+
+ord_parameter_types! {
+    pub const One: AccountId = ALICE;
+}
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -129,9 +131,9 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 parameter_types! {
     pub const ContinuumTreasuryModuleId: ModuleId = ModuleId(*b"bit/ctmu");
-    pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
-    pub const SessionDuration: BlockNumber = 43200; //Default 43200 Blocks
-    pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
+    pub const AuctionTimeToClose: u32 = 10; //Default 100800 Blocks
+    pub const SessionDuration: BlockNumber = 10; //Default 43200 Blocks
+    pub const SpotAuctionChillingDuration: BlockNumber = 10; //Default 43200 Blocks
 }
 
 impl Config for Runtime {
@@ -184,6 +186,13 @@ impl ExtBuilder {
             balances: vec![(ALICE, 100000), (BOB, 500)],
         }
             .assimilate_storage(&mut t)
+            .unwrap();
+
+        continuum::GenesisConfig::<Runtime> {
+            initial_active_session: 0,
+            initial_auction_rate: 5,
+        }
+            .assimilate_storage((&mut t))
             .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
