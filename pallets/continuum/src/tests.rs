@@ -67,3 +67,85 @@ fn register_interest_should_work() {
         assert_eq!(last_event(), Event::continuum(crate::Event::NewExpressOfInterestAdded(ALICE, 0)))
     })
 }
+
+#[test]
+fn rotate_session_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let alice = Origin::signed(ALICE);
+        let bob = Origin::signed(BOB);
+
+        System::set_block_number(1);
+        assert_ok!(ContinuumModule::register_interest(alice, (0, 0)));
+        assert_ok!(ContinuumModule::register_interest(bob, (0, 0)));
+
+        run_to_block(10);
+
+        let auction_slot = AuctionSlot {
+            spot_id: 0,
+            participants: vec![ALICE, BOB],
+            active_session_index: 1,
+            status: ContinuumAuctionSlotStatus::AcceptParticipates,
+        };
+
+        let auction_slots: Vec<AuctionSlot<BlockNumber, AccountId>> = vec![
+            auction_slot
+        ];
+
+        let active_auctions: Option<Vec<AuctionSlot<BlockNumber, AccountId>>> = ContinuumModule::get_active_auction_slots(10);
+        match active_auctions {
+            Some(a) => {
+                //Verify EOI move to Auction Slots
+                assert_eq!(a[0].spot_id, auction_slots[0].spot_id);
+            }
+            _ => {
+                //Should fail test
+                assert_eq!(0, 1);
+            }
+        }
+
+        //Test starting GNP should work
+        run_to_block(20);
+        let gnp_started_auctions: Option<Vec<AuctionSlot<BlockNumber, AccountId>>> = ContinuumModule::get_active_gnp_slots(20);
+        match gnp_started_auctions {
+            Some(a) => {
+                //Verify Auction slots move to good neighborhood protocol Slots
+                assert_eq!(a[0].spot_id, a[0].spot_id);
+                assert_eq!(a[0].status, ContinuumAuctionSlotStatus::GNPStarted);
+
+                //Test start referendum should work
+                let status = ContinuumModule::referendum_status(0);
+                match status {
+                    Ok(r) => {
+                        assert_eq!(r.end, 30);
+                    }
+                    _ => {
+                        assert_eq!(0, 1);
+                    }
+                }
+            }
+            _ => {
+                //Should fail test
+                assert_eq!(0, 1);
+            }
+        }
+
+        //Try vote while referendum is active
+        assert_ok!(ContinuumModule::try_vote(&CHARLIE,0, AccountVote::Standard {vote: Vote {
+            nay: true,
+            who: ALICE
+        }}));
+
+        //ALICE should be removed from participants list
+        //Conduct the referendum and finalise vote
+        run_to_block(30);
+
+        let finalised_votes: Option<Vec<AuctionSlot<BlockNumber, AccountId>>> = ContinuumModule::get_active_auction_slots(20);
+        match finalised_votes {
+            Some(v) => {
+                assert_eq!(v[0].participants.len(), 1); //Only BOB is eligible
+                assert_eq!(v[0].participants[0], BOB); // Confirm if it's BOB
+            }
+            _ => {}
+        }
+    })
+}
