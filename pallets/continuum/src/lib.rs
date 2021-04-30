@@ -30,7 +30,7 @@ use sp_runtime::{traits::{AccountIdConversion, One, Zero, CheckedDiv, CheckedAdd
 use serde::{Deserialize, Serialize};
 use sp_std::vec;
 
-use auction_manager::{Auction};
+use auction_manager::{Auction, AuctionType};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
 
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
@@ -384,7 +384,7 @@ impl<T: Config> Pallet<T>
                 }
                 let treasury = Self::account_id();
                 //From treasury spot
-                T::AuctionHandler::create_auction(ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), Default::default(), now);
+                T::AuctionHandler::create_auction(AuctionType::Auction, ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now);
                 //TODO Emit event
             }
         }

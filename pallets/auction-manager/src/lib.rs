@@ -13,6 +13,8 @@ use sp_std::{
     cmp::{Eq, PartialEq},
     fmt::Debug,
 };
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 use primitives::{AuctionId, ItemId};
 
@@ -24,6 +26,13 @@ pub enum Change<Value> {
     NewValue(Value),
 }
 
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum AuctionType {
+    Auction,
+    BuyNow,
+}
+
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug)]
 pub struct AuctionItem<AccountId, BlockNumber, Balance> {
@@ -32,10 +41,10 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
     pub initial_amount: Balance,
     /// Current amount for sale
     pub amount: Balance,
-    pub buy_it_now_amount: Option<Balance>,
     /// Auction start time
     pub start_time: BlockNumber,
     pub end_time: BlockNumber,
+    pub auction_type: AuctionType
 }
 
 /// Auction info.
@@ -74,11 +83,11 @@ pub trait Auction<AccountId, BlockNumber> {
     ) -> Result<AuctionId, DispatchError>;
 
     fn create_auction(
+        auction_type: AuctionType,
         item_id: ItemId,
         end: Option<BlockNumber>,
         recipient: AccountId,
         initial_amount: Self::Balance,
-        buy_it_now_amount: Option<Self::Balance>,
         start: BlockNumber,
     ) -> Result<AuctionId, DispatchError>;
 

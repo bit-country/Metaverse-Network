@@ -9,7 +9,7 @@ repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
 [dependencies]
-serde = { version = "1.0.119", optional = true }
+serde = { version = "1.0.119", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-runtime = { version = "3.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }

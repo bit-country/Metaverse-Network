@@ -25,7 +25,7 @@ use pallet_continuum::Pallet as ContinuumModule;
 
 use primitives::{ItemId, AuctionId, continuum::Continuum};
 
-use auction_manager::{Auction, OnNewBidResult, AuctionHandler, Change, AuctionInfo, AuctionItem};
+use auction_manager::{Auction, OnNewBidResult, AuctionHandler, Change, AuctionInfo, AuctionItem, AuctionType};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 
 #[cfg(test)]
@@ -82,7 +82,7 @@ decl_event!(
         Bid(AuctionId, AccountId, Balance),
         NewAuctionItem(AuctionId, AccountId ,Balance, Balance),
         AuctionFinalized(AuctionId, AccountId, Balance),
-        BuyItNowFinalised(AuctionId, AccountId, Balance),
+        BuyNowFinalised(AuctionId, AccountId, Balance),
     }
 );
 
@@ -98,7 +98,8 @@ decl_module! {
         fn bid(origin, id: AuctionId, value: BalanceOf<T>) {
             let from = ensure_signed(origin)?;
 
-            let auction_item = Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;           
+            let auction_item = Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;     
+            ensure!(auction_item.auction_type == AuctionType::Auction, Error::<T>::InvalidAuctionType);
             ensure!(auction_item.recipient != from, Error::<T>::SelfBidNotAccepted);
 
             <Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
@@ -140,11 +141,12 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn buy_it_now(origin, auction_id: AuctionId, value: BalanceOf<T>) {
+        fn buy_now(origin, auction_id: AuctionId, value: BalanceOf<T>) {
             let from = ensure_signed(origin)?;
 
             let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;  
             let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;  
+            ensure!(auction_item.auction_type == AuctionType::BuyNow, Error::<T>::InvalidAuctionType);
             
             ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
@@ -155,9 +157,7 @@ decl_module! {
                 ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
             }
 
-            ensure!(auction_item.buy_it_now_amount.is_none() == false, Error::<T>::BuyItNowNotAvailable);
-            let buy_it_now_amount = auction_item.buy_it_now_amount.unwrap();
-            ensure!(value == buy_it_now_amount, Error::<T>::InvalidBuyItNowPrice);
+            ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
             ensure!(<T as Config>::Currency::free_balance(&from) >= value, Error::<T>::InsufficientFunds);
 
             Self::remove_auction(auction_id.clone());
@@ -178,7 +178,7 @@ decl_module! {
                                 match asset_transfer {
                                     Err(_) => (),
                                     Ok(_) => {
-                                        Self::deposit_event(RawEvent::BuyItNowFinalised(auction_id, from, value));
+                                        Self::deposit_event(RawEvent::BuyNowFinalised(auction_id, from, value));
                                     },
                                 }
                         }
@@ -187,7 +187,7 @@ decl_module! {
                             match continuum_spot{
                                     Err(_) => (),
                                     Ok(_) => {
-                                        Self::deposit_event(RawEvent::BuyItNowFinalised(auction_id, from, value));
+                                        Self::deposit_event(RawEvent::BuyNowFinalised(auction_id, from, value));
                                     },
                             }
                         }
@@ -198,13 +198,24 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn create_new_auction(origin, item_id: ItemId, value: BalanceOf<T>, buy_it_now_value: Option<BalanceOf<T>>) {
+        fn create_new_auction(origin, item_id: ItemId, value: BalanceOf<T>) {
             let from = ensure_signed(origin)?;
 
             let start_time: T::BlockNumber = <system::Module<T>>::block_number();
             let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
 
-            let auction_id = Self::create_auction(item_id, Some(end_time), from.clone(), value.clone(), buy_it_now_value.clone(), start_time)?;
+            let auction_id = Self::create_auction(AuctionType::Auction, item_id, Some(end_time), from.clone(), value.clone(), start_time)?;
+            Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
+        }
+
+        #[weight = 10_000]
+        fn create_new_buy_now(origin, item_id: ItemId, value: BalanceOf<T>) {
+            let from = ensure_signed(origin)?;
+
+            let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+            let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+
+            let auction_id = Self::create_auction(AuctionType::BuyNow, item_id, Some(end_time), from.clone(), value.clone(), start_time)?;
             Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
         }
 
@@ -277,7 +288,7 @@ decl_error! {
         CannotBidOnOwnAuction,
         InvalidBuyItNowPrice,
         InsufficientFunds,
-        BuyItNowNotAvailable,
+        InvalidAuctionType,
     }
 }
 
@@ -334,11 +345,11 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
     }
 
     fn create_auction(
+        auction_type: AuctionType,
         item_id: ItemId,
         end: Option<T::BlockNumber>,
         recipient: T::AccountId,
         initial_amount: Self::Balance,
-        buy_it_now_amount: Option<Self::Balance>,
         start: T::BlockNumber,
     ) -> Result<AuctionId, DispatchError> {
         match item_id {
@@ -362,9 +373,9 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
                     recipient: recipient.clone(),
                     initial_amount: initial_amount,
                     amount: initial_amount,
-                    buy_it_now_amount: buy_it_now_amount,
                     start_time,
                     end_time,
+                    auction_type
                 };
 
                 <AuctionItems<T>>::insert(
@@ -387,9 +398,9 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
                     recipient: recipient.clone(),
                     initial_amount: initial_amount,
                     amount: initial_amount,
-                    buy_it_now_amount: buy_it_now_amount,
                     start_time,
                     end_time,
+                    auction_type,
                 };
 
                 <AuctionItems<T>>::insert(
