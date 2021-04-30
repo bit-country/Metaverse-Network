@@ -28,8 +28,9 @@ use primitives::{Balance, CountryId, CurrencyId, SpotId, ItemId, continuum::Cont
 use sp_runtime::{traits::{AccountIdConversion, One, Zero, CheckedDiv, CheckedAdd}, DispatchError, ModuleId, RuntimeDebug, FixedPointNumber};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_std::vec;
 
-use auction_manager::{Auction};
+use auction_manager::{Auction, AuctionType};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
 use sp_std::vec;
 use sp_arithmetic::Perbill;
@@ -420,7 +421,7 @@ impl<T: Config> Pallet<T>
                 }
                 let treasury = Self::account_id();
                 //From treasury spot
-                T::AuctionHandler::create_auction(ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now);
+                T::AuctionHandler::create_auction(AuctionType::Auction, ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now);
                 //TODO Emit event
             }
         }

@@ -25,7 +25,7 @@ use pallet_continuum::Pallet as ContinuumModule;
 
 use primitives::{ItemId, AuctionId, continuum::Continuum};
 
-use auction_manager::{Auction, OnNewBidResult, AuctionHandler, Change, AuctionInfo, AuctionItem};
+use auction_manager::{Auction, OnNewBidResult, AuctionHandler, Change, AuctionInfo, AuctionItem, AuctionType};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 
 #[cfg(test)]
@@ -82,6 +82,7 @@ decl_event!(
         Bid(AuctionId, AccountId, Balance),
         NewAuctionItem(AuctionId, AccountId ,Balance, Balance),
         AuctionFinalized(AuctionId, AccountId, Balance),
+        BuyNowFinalised(AuctionId, AccountId, Balance),
     }
 );
 
@@ -97,7 +98,8 @@ decl_module! {
         fn bid(origin, id: AuctionId, value: BalanceOf<T>) {
             let from = ensure_signed(origin)?;
 
-            let auction_item = Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;           
+            let auction_item = Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;     
+            ensure!(auction_item.auction_type == AuctionType::Auction, Error::<T>::InvalidAuctionType);
             ensure!(auction_item.recipient != from, Error::<T>::SelfBidNotAccepted);
 
             <Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
@@ -139,13 +141,81 @@ decl_module! {
         }
 
         #[weight = 10_000]
+        fn buy_now(origin, auction_id: AuctionId, value: BalanceOf<T>) {
+            let from = ensure_signed(origin)?;
+
+            let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;  
+            let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;  
+            ensure!(auction_item.auction_type == AuctionType::BuyNow, Error::<T>::InvalidAuctionType);
+            
+            ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
+
+            let block_number = <frame_system::Module<T>>::block_number();
+            ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+            if !(auction.end.is_none()) {
+                let auction_end: T::BlockNumber = auction.end.unwrap();
+                ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
+            }
+
+            ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
+            ensure!(<T as Config>::Currency::free_balance(&from) >= value, Error::<T>::InsufficientFunds);
+
+            Self::remove_auction(auction_id.clone());
+            //Unreserve balance of last bidder
+             if let Some(current_bid) = auction.bid{
+                let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
+                <T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+            }
+            //Transfer balance from buy it now user to asset owner
+            let currency_transfer = <T as Config>::Currency::transfer(&from, &auction_item.recipient, value, ExistenceRequirement::KeepAlive);
+            match currency_transfer {
+                Err(_e) => (),
+                Ok(_v) => {
+                    //Transfer asset from asset owner to buy it now user
+                    match auction_item.item_id {
+                        ItemId::NFT(asset_id) => {                                           
+                            let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
+                                match asset_transfer {
+                                    Err(_) => (),
+                                    Ok(_) => {
+                                        Self::deposit_event(RawEvent::BuyNowFinalised(auction_id, from, value));
+                                    },
+                                }
+                        }
+                        ItemId::Spot(spot_id, country_id) => {
+                            let continuum_spot = T::ContinuumHandler::transfer_spot(spot_id, &auction_item.recipient, &(from.clone(), country_id));
+                            match continuum_spot{
+                                    Err(_) => (),
+                                    Ok(_) => {
+                                        Self::deposit_event(RawEvent::BuyNowFinalised(auction_id, from, value));
+                                    },
+                            }
+                        }
+                        _ => {} //Future implementation for Spot, Country
+                    }
+                },
+            }
+        }
+
+        #[weight = 10_000]
         fn create_new_auction(origin, item_id: ItemId, value: BalanceOf<T>) {
             let from = ensure_signed(origin)?;
 
             let start_time: T::BlockNumber = <system::Module<T>>::block_number();
             let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
 
-            let auction_id = Self::create_auction(item_id, Some(end_time), from.clone(), value.clone(), start_time)?;
+            let auction_id = Self::create_auction(AuctionType::Auction, item_id, Some(end_time), from.clone(), value.clone(), start_time)?;
+            Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
+        }
+
+        #[weight = 10_000]
+        fn create_new_buy_now(origin, item_id: ItemId, value: BalanceOf<T>) {
+            let from = ensure_signed(origin)?;
+
+            let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+            let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+
+            let auction_id = Self::create_auction(AuctionType::BuyNow, item_id, Some(end_time), from.clone(), value.clone(), start_time)?;
             Self::deposit_event(RawEvent::NewAuctionItem(auction_id, from, value ,value));
         }
 
@@ -215,6 +285,10 @@ decl_error! {
         NoAvailableAuctionId,
         NoPermissionToCreateAuction,
         SelfBidNotAccepted,
+        CannotBidOnOwnAuction,
+        InvalidBuyItNowPrice,
+        InsufficientFunds,
+        InvalidAuctionType,
     }
 }
 
@@ -271,6 +345,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
     }
 
     fn create_auction(
+        auction_type: AuctionType,
         item_id: ItemId,
         end: Option<T::BlockNumber>,
         recipient: T::AccountId,
@@ -300,6 +375,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
                     amount: initial_amount,
                     start_time,
                     end_time,
+                    auction_type
                 };
 
                 <AuctionItems<T>>::insert(
@@ -324,6 +400,7 @@ impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Module<T> {
                     amount: initial_amount,
                     start_time,
                     end_time,
+                    auction_type,
                 };
 
                 <AuctionItems<T>>::insert(
