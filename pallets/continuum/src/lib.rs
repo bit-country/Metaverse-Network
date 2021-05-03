@@ -32,7 +32,6 @@ use sp_std::vec;
 
 use auction_manager::{Auction, AuctionType};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
-use sp_std::vec;
 use sp_arithmetic::Perbill;
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
 
