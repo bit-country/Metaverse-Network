@@ -23,6 +23,7 @@ use frame_support::{
     dispatch::DispatchResult,
     ensure,
     traits::{Get, IsType, Randomness},
+    PalletId,
     StorageMap, StorageValue,
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
@@ -32,7 +33,7 @@ use sp_core::H256;
 use sp_runtime::{
     print,
     traits::{AccountIdConversion, Hash, One, Zero},
-    DispatchError, ModuleId, RuntimeDebug,
+    DispatchError, RuntimeDebug,
 };
 use sp_std::vec::Vec;
 use unique_asset::AssetId;
@@ -65,7 +66,7 @@ mod tests;
 
 pub trait Trait: system::Config {
     type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
-    type ModuleId: Get<ModuleId>;
+    type PalletId: Get<PalletId>;
 }
 
 decl_storage! {
@@ -121,8 +122,8 @@ decl_module! {
 
             let country_id = Self::new_country(&owner, metadata)?;
             //Static module fund, will change to dynamic with randomness
-            // let module_id: ModuleId = ModuleId(*b"Country!");
-            let fund_id = T::ModuleId::get().into_sub_account(country_id);
+            // let module_id: PalletId = PalletId(*b"Country!");
+            let fund_id = T::PalletId::get().into_sub_account(country_id);
 
             //Country treasury
             let country_fund = CountryFund {
@@ -241,10 +242,10 @@ impl<T: Trait> Module<T> {
     }
 
     // pub fn account_id() -> T::AccountId{
-    // 	T::ModuleId::get().into_account()
+    // 	T::PalletId::get().into_account()
     // }
 
     // pub fn country_fund_account_id(id: CountryId) -> T::AccountId{
-    // 	T::ModuleId::get().into_sub_account(("cf",id))
+    // 	T::PalletId::get().into_sub_account(("cf",id))
     // }
 }

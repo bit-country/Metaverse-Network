@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use primitives::{Block, AccountId, Balance, BlockNumber, Index};
+use primitives::{Block, AccountId, Balance, BlockNumber, Index, Hash};
 use pallet_contracts_rpc::{Contracts, ContractsApi};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{Error as BlockChainError, HeaderMetadata, HeaderBackend};
@@ -17,49 +17,49 @@ use sp_transaction_pool::TransactionPool;
 
 /// Full client dependencies.
 pub struct FullDeps<C, P> {
-	/// The client instance to use.
-	pub client: Arc<C>,
-	/// Transaction pool instance.
-	pub pool: Arc<P>,
-	/// Whether to deny unsafe calls
-	pub deny_unsafe: DenyUnsafe,
+    /// The client instance to use.
+    pub client: Arc<C>,
+    /// Transaction pool instance.
+    pub pool: Arc<P>,
+    /// Whether to deny unsafe calls
+    pub deny_unsafe: DenyUnsafe,
 }
 
 /// Instantiate all full RPC extensions.
 pub fn create_full<C, P>(
-	deps: FullDeps<C, P>,
+    deps: FullDeps<C, P>,
 ) -> jsonrpc_core::IoHandler<sc_rpc::Metadata> where
-	C: ProvideRuntimeApi<Block>,
-	C: HeaderBackend<Block> + HeaderMetadata<Block, Error=BlockChainError> + 'static,
-	C: Send + Sync + 'static,
-	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
-	C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber>,
-	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
-	C::Api: BlockBuilder<Block>,
-	P: TransactionPool + 'static,
+    C: ProvideRuntimeApi<Block>,
+    C: HeaderBackend<Block> + HeaderMetadata<Block, Error=BlockChainError> + 'static,
+    C: Send + Sync + 'static,
+    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
+    C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
+    C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+    C::Api: BlockBuilder<Block>,
+    P: TransactionPool + 'static,
 {
-	use substrate_frame_rpc_system::{FullSystem, SystemApi};
-	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+    use substrate_frame_rpc_system::{FullSystem, SystemApi};
+    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 
-	let mut io = jsonrpc_core::IoHandler::default();
-	let FullDeps {
-		client,
-		pool,
-		deny_unsafe,
-	} = deps;
+    let mut io = jsonrpc_core::IoHandler::default();
+    let FullDeps {
+        client,
+        pool,
+        deny_unsafe,
+    } = deps;
 
-	io.extend_with(
-		SystemApi::to_delegate(FullSystem::new(client.clone(), pool, deny_unsafe))
-	);
+    io.extend_with(
+        SystemApi::to_delegate(FullSystem::new(client.clone(), pool, deny_unsafe))
+    );
 
-	io.extend_with(
-		TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone()))
-	);
+    io.extend_with(
+        TransactionPaymentApi::to_delegate(TransactionPayment::new(client.clone()))
+    );
 
-	// Contracts RPC API extension
-	io.extend_with(
-		ContractsApi::to_delegate(Contracts::new(client.clone()))
-	);
+    // Contracts RPC API extension
+    io.extend_with(
+        ContractsApi::to_delegate(Contracts::new(client.clone()))
+    );
 
-	io
+    io
 }

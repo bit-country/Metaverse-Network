@@ -11,6 +11,7 @@ use frame_support::{
     ensure,
     traits::{Currency, ExistenceRequirement, Get, Randomness, ReservableCurrency},
     weights::Weight,
+    PalletId,
     StorageMap, StorageValue,
 };
 use orml_traits::{BasicCurrency, BasicReservableCurrency};
@@ -20,10 +21,10 @@ use serde::{Deserialize, Serialize};
 use frame_system::ensure_signed;
 use orml_nft::Pallet as NftModule;
 use primitives::{AssetId, Balance, GroupCollectionId};
-use sp_runtime::RuntimeDebug;
 use sp_runtime::{
-    traits::{AccountIdConversion, One},
-    DispatchError, ModuleId,
+    print,
+    traits::{AccountIdConversion, Hash, One, Zero},
+    DispatchError, RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
@@ -128,7 +129,7 @@ impl Default for CollectionType {
 mod tests;
 
 pub trait Config:
-    orml_nft::Config<TokenData = NftAssetData<Balance>, ClassData = NftClassData<Balance>>
+orml_nft::Config<TokenData=NftAssetData<Balance>, ClassData=NftClassData<Balance>>
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
     type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
@@ -137,9 +138,9 @@ pub trait Config:
     /// The minimum balance to create token
     type CreateAssetDeposit: Get<Balance>;
     // Currency type for reserve/unreserve balance
-    type Currency: BasicReservableCurrency<Self::AccountId, Balance = Balance>;
+    type Currency: BasicReservableCurrency<Self::AccountId, Balance=Balance>;
     //NFT Module Id
-    type ModuleId: Get<ModuleId>;
+    type PalletId: Get<PalletId>;
     // Weight info
     type WeightInfo: WeightInfo;
 }
@@ -249,7 +250,7 @@ decl_module! {
 
             ensure!(sender == collection_info.owner, Error::<T>::NoPermission);
             //Class fund
-            let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
+            let class_fund: T::AccountId = T::PalletId::get().into_sub_account(next_class_id);
 
             // Secure deposit of token class owner -- TODO - support customise deposit
             let class_deposit = T::CreateClassDeposit::get();
@@ -286,7 +287,7 @@ decl_module! {
             ensure!(sender == class_info.owner, Error::<T>::NoPermission);
 
             let deposit = T::CreateAssetDeposit::get();
-            let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(class_id);
+            let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
             let total_deposit = deposit * Into::<Balance>::into(quantity);
 
             <T as Config>::Currency::transfer(&sender, &class_fund, total_deposit)?;

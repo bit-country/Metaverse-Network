@@ -23,11 +23,10 @@ use country::{Countries, CountryOwner, CountryTresury};
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, ensure,
     traits::{Get, IsType, Randomness},
-    Parameter,
+    Parameter, PalletId,
 };
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
-    account::MergeAccount,
     arithmetic::{Signed, SimpleArithmetic},
     BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
     BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
@@ -39,7 +38,7 @@ use sp_runtime::{
         AccountIdConversion, AtLeast32Bit, AtLeast32BitUnsigned, Hash, Member, One, StaticLookup,
         Zero,
     },
-    DispatchError, DispatchResult, ModuleId,
+    DispatchError, DispatchResult,
 };
 use sp_std::vec::Vec;
 use unique_asset::AssetId;
@@ -60,16 +59,16 @@ pub trait Config: system::Config + country::Trait {
     type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
     /// The arithmetic type of asset identifier.
     type TokenId: Parameter + AtLeast32Bit + Default + Copy;
-    type MultiCurrency: MergeAccount<Self::AccountId>
-        + MultiCurrencyExtended<Self::AccountId, CurrencyId = CurrencyId>
-        + MultiLockableCurrency<Self::AccountId, CurrencyId = CurrencyId>
-        + MultiReservableCurrency<Self::AccountId, CurrencyId = CurrencyId>;
+    type MultiCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId=CurrencyId>
+    + MultiLockableCurrency<Self::AccountId, CurrencyId=CurrencyId>
+    + MultiReservableCurrency<Self::AccountId, CurrencyId=CurrencyId>;
     type CountryCurrency: MultiCurrencyExtended<
         Self::AccountId,
-        CurrencyId = CurrencyId,
-        Balance = Balance,
+        CurrencyId=CurrencyId,
+        Balance=Balance,
     >;
 }
+
 /// A wrapper for a token name.
 pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
@@ -219,6 +218,6 @@ impl<T: Config> Module<T> {
     }
 
     fn get_country_fund_id(country_id: CountryId) -> T::AccountId {
-        T::ModuleId::get().into_sub_account(country_id)
+        T::PalletId::get().into_sub_account(country_id)
     }
 }

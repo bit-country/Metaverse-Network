@@ -1,0 +1,3 @@
+[submodule "open-runtime-module-library"]
+	path = open-runtime-module-library
+	url = https://github.com/bit-country/open-runtime-module-library.git

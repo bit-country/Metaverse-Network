@@ -9,7 +9,7 @@ use sp_runtime::{
     testing::Header,
     traits::{BlakeTwo256, IdentityLookup},
 	Perbill,
-	ModuleId
+	PalletId
 };
 use primitives::{CountryId, CurrencyId, Balance};
 
@@ -131,7 +131,7 @@ impl orml_currencies::Trait for Runtime {
 pub type Currencies = orml_currencies::Module<Runtime>;
 
 parameter_types! {
-	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl Trait for Runtime {
@@ -144,7 +144,7 @@ pub type TokenizationModule = Module<Runtime>;
 
 impl country::Trait for Runtime{
 	type Event = TestEvent;
-	type ModuleId = CountryFundModuleId;
+	type PalletId = CountryFundPalletId;
 }
 
 use frame_system::Call as SystemCall;
