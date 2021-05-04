@@ -141,7 +141,7 @@ decl_module! {
                 total_supply,
             };
 
-            let native_currency = CurrencyId::BCG;
+            let native_currency = CurrencyId::NUUM;
 
             Tokens::insert(currency_id, token_info);
             CountryTokens::insert(country_id, currency_id);

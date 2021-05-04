@@ -18,7 +18,7 @@ serde_json = { version = "1", default-features = false, git = "https://github.co
 # sp-runtime = { version = "2.0.0", default-features = false }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 # sp-runtime = { version = "2.0.0", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
 frame-system = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
 frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
 pallet-aura = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }

@@ -46,8 +46,8 @@ type AccountPublic = <Signature as Verify>::Signer;
 
 /// Helper function to generate an account ID from seed
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-where
-    AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+    where
+        AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
@@ -383,7 +383,7 @@ pub fn bitcountry_properties() -> Properties {
 
     properties.insert("ss58Format".into(), 28.into());
     properties.insert("tokenDecimals".into(), 18.into());
-    properties.insert("tokenSymbol".into(), "BCG".into());
+    properties.insert("tokenSymbol".into(), "NUUM".into());
 
     properties
 }

@@ -79,11 +79,23 @@ pub type Index = u32;
 pub type GroupCollectionId = u64;
 /// AssetId for all NFT and FT
 pub type AssetId = u64;
+/// SpotId
+pub type SpotId = u64;
+
+/// Public item id for auction
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum ItemId {
+    NFT(AssetId),
+    Spot(u64, CountryId),
+    Country(CountryId),
+    Block(u64),
+}
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenSymbol {
-    BCG = 0,
+    NUUM = 0,
     AUSD = 1,
     ACA = 2,
     DOT = 3,
@@ -94,7 +106,7 @@ impl TryFrom<u8> for TokenSymbol {
 
     fn try_from(v: u8) -> Result<Self, Self::Error> {
         match v {
-            0 => Ok(TokenSymbol::BCG),
+            0 => Ok(TokenSymbol::NUUM),
             1 => Ok(TokenSymbol::AUSD),
             2 => Ok(TokenSymbol::ACA),
             3 => Ok(TokenSymbol::DOT),
@@ -106,7 +118,7 @@ impl TryFrom<u8> for TokenSymbol {
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CurrencyId {
-    BCG = 0,
+    NUUM = 0,
     AUSD,
     ACA,
     DOT,
@@ -117,7 +129,7 @@ impl TryFrom<Vec<u8>> for CurrencyId {
     type Error = ();
     fn try_from(v: Vec<u8>) -> Result<CurrencyId, ()> {
         match v.as_slice() {
-            b"BCG" => Ok(CurrencyId::BCG),
+            b"NUUM" => Ok(CurrencyId::NUUM),
             b"AUSD" => Ok(CurrencyId::AUSD),
             b"ACA" => Ok(CurrencyId::ACA),
             b"DOT" => Ok(CurrencyId::DOT),
@@ -129,7 +141,7 @@ impl TryFrom<Vec<u8>> for CurrencyId {
 impl From<CurrencyId> for MultiLocation {
     fn from(id: CurrencyId) -> Self {
         match id {
-            CurrencyId::BCG => Junction::Parent.into(),
+            CurrencyId::NUUM => Junction::Parent.into(),
             CurrencyId::AUSD => (
                 Junction::Parent,
                 Junction::Parachain { id: 666 },

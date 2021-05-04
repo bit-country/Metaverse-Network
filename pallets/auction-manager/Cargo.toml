@@ -1,0 +1,32 @@
+[package]
+authors = ['Bit Country <https://github.com/bit-country>']
+description = 'Bit Country pallet for auction management.'
+edition = '2018'
+homepage = 'https://bit.country'
+license = 'Unlicense'
+name = 'auction-manager'
+repository = 'https://github.com/bit-country'
+version = '2.0.0-rc6'
+
+[dependencies]
+serde = { version = "1.0.119", optional = true, default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
+sp-std = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
+sp-io = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
+frame-support = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "rococo-v1" }
+# Used for the node's RPCs
+primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+
+funty = { version = "=1.1.0", default-features = false }
+
+[features]
+default = ['std']
+std = [
+    'serde',
+    'codec/std',
+    'sp-runtime/std',
+    'sp-io/std',
+    'sp-std/std',
+    'frame-support/std',
+]

@@ -8,7 +8,7 @@
 
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, ensure,
-    traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
+    traits::{ExistenceRequirement, Get, Currency, ReservableCurrency},
     weights::Weight,
     IterableStorageDoubleMap, Parameter,
 };
@@ -23,6 +23,7 @@ use frame_system::{self as system, ensure_signed};
 use orml_nft::Module as NftModule;
 use primitives::{AccountId, BlockNumber, CollectionId};
 use sp_std::result;
+
 mod auction;
 
 pub use crate::auction::{Auction, AuctionHandler, Change, OnNewBidResult};
@@ -48,6 +49,7 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance, AssetId, ClassId> {
     start_time: BlockNumber,
     end_time: BlockNumber,
 }
+
 /// Auction info.
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug)]
@@ -67,17 +69,17 @@ pub trait Config: frame_system::Config + orml_nft::Config + pallet_balances::Con
 
     /// The auction ID type
     type AuctionId: Parameter
-        + Member
-        + AtLeast32BitUnsigned
-        + Default
-        + Copy
-        + MaybeSerializeDeserialize
-        + Bounded;
+    + Member
+    + AtLeast32BitUnsigned
+    + Default
+    + Copy
+    + MaybeSerializeDeserialize
+    + Bounded;
 
     /// The `AuctionHandler` that allow custom bidding logic and handles auction
     /// result
     type Handler: AuctionHandler<Self::AccountId, Self::Balance, Self::BlockNumber, Self::AuctionId>;
-    type Currency: Currency<Self::AccountId>;
+    type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
     // /// Weight information for extrinsics in this module.
     // type WeightInfo: WeightInfo;
@@ -354,14 +356,9 @@ impl<T: Config> Module<T> {
     }
 }
 
-// impl<T: Trait> Auction<T::AccountId, T::BlockNumber> for Module<T> {
-// 	type AuctionId = T::AuctionId;
-// 	type Balance = T::Balance;
-
-// }
 
 impl<T: Config> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, T::AuctionId>
-    for Module<T>
+for Module<T>
 {
     fn on_new_bid(
         now: T::BlockNumber,
@@ -369,17 +366,6 @@ impl<T: Config> AuctionHandler<T::AccountId, T::Balance, T::BlockNumber, T::Auct
         new_bid: (T::AccountId, T::Balance),
         _last_bid: Option<(T::AccountId, T::Balance)>,
     ) -> OnNewBidResult<T::BlockNumber> {
-        // if new_bid.0 == ALICE {
-        // 	OnNewBidResult {
-        // 		accept_bid: true,
-        // 		auction_end_change: Change::NewValue(Some(now + BID_EXTEND_BLOCK)),
-        // 	}
-        // } else {
-        // 	OnNewBidResult {
-        // 		accept_bid: false,
-        // 		auction_end_change: Change::NoChange,
-        // 	}
-        // }
         OnNewBidResult {
             accept_bid: true,
             auction_end_change: Change::NoChange,

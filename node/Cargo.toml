@@ -78,13 +78,6 @@ bitcountry-runtime = { path = "../runtime" }
 name = "bitcountry-parachain"
 path = "src/main.rs"
 
-[dev-dependencies]
-assert_cmd = "0.12"
-nix = "0.17"
-rand = "0.7.3"
-tempfile = "3.2.0"
-tokio = { version = "0.2.13", features = ["macros"] }
-
 # Polkadot dependencies
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }
 polkadot-test-runtime = { git = "https://github.com/paritytech/polkadot", branch = "rococo-v1" }

@@ -9,30 +9,34 @@ use frame_support::{
     decl_error, decl_event, decl_module, decl_storage,
     dispatch::{DispatchResult, DispatchResultWithPostInfo},
     ensure,
-    traits::{Currency, ExistenceRequirement, Get, Randomness, ReservableCurrency},
+    traits::{ExistenceRequirement, Get, Randomness},
     weights::Weight,
-    PalletId,
-    StorageMap, StorageValue,
+    StorageMap, StorageValue, PalletId,
 };
-use orml_traits::{BasicCurrency, BasicReservableCurrency};
+use primitives::Balance;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
 use frame_system::ensure_signed;
 use orml_nft::Pallet as NftModule;
-use primitives::{AssetId, Balance, GroupCollectionId};
+use primitives::{AssetId, GroupCollectionId};
+use sp_runtime::RuntimeDebug;
 use sp_runtime::{
-    print,
-    traits::{AccountIdConversion, Hash, One, Zero},
-    DispatchError, RuntimeDebug,
+    traits::{AccountIdConversion, One},
+    DispatchError,
 };
 use sp_std::vec::Vec;
+use orml_traits::{BasicCurrency, BasicReservableCurrency};
 
-mod default_weight;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 
-pub trait WeightInfo {
-    fn mint(i: u32) -> Weight;
-}
+pub mod default_weight;
+
+pub use default_weight::WeightInfo;
+
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct NftGroupCollectionData<AccountId> {
@@ -125,20 +129,21 @@ impl Default for CollectionType {
     }
 }
 
-#[cfg(test)]
-mod tests;
 
 pub trait Config:
-orml_nft::Config<TokenData=NftAssetData<Balance>, ClassData=NftClassData<Balance>>
+frame_system::Config +
+orml_nft::Config<
+    TokenData=NftAssetData<BalanceOf<Self>>,
+    ClassData=NftClassData<BalanceOf<Self>>,
+>
 {
     type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
-    type Randomness: Randomness<Self::Hash, Self::BlockNumber>;
     /// The minimum balance to create class
-    type CreateClassDeposit: Get<Balance>;
+    type CreateClassDeposit: Get<BalanceOf<Self>>;
     /// The minimum balance to create token
-    type CreateAssetDeposit: Get<Balance>;
+    type CreateAssetDeposit: Get<BalanceOf<Self>>;
     // Currency type for reserve/unreserve balance
-    type Currency: BasicReservableCurrency<Self::AccountId, Balance=Balance>;
+    type Currency: BasicCurrency<Self::AccountId> + BasicReservableCurrency<Self::AccountId>;
     //NFT Module Id
     type PalletId: Get<PalletId>;
     // Weight info
@@ -147,6 +152,8 @@ orml_nft::Config<TokenData=NftAssetData<Balance>, ClassData=NftClassData<Balance
 
 type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
+type BalanceOf<T> =
+<<T as Config>::Currency as BasicCurrency<<T as frame_system::Config>::AccountId>>::Balance;
 
 decl_storage! {
     trait Store for Module<T: Config> as NftAsset {
@@ -184,7 +191,7 @@ decl_event!(
 
 decl_error! {
     pub enum Error for Module<T: Config> {
-        /// Attempted to initialize the country after it had already been initialized.
+        /// Attempted to initialize the bitcountry after it had already been initialized.
         AlreadyInitialized,
         //Asset Info not found
         AssetInfoNotFound,
@@ -216,7 +223,7 @@ decl_module! {
         fn deposit_event() = default;
 
         #[weight = 10_000]
-        fn create_group(origin, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo{
+        pub fn create_group(origin, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo{
 
             let sender = ensure_signed(origin)?;
 
@@ -241,7 +248,7 @@ decl_module! {
         }
 
         #[weight = 10_000]
-        fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo{
+        pub fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo{
 
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
@@ -278,7 +285,7 @@ decl_module! {
         }
 
         #[weight = <T as Config>::WeightInfo::mint(*quantity)]
-        fn mint(origin, class_id: ClassIdOf<T>, name: Vec<u8>, description: Vec<u8>, metadata: Vec<u8>, quantity: u32) -> DispatchResultWithPostInfo {
+        pub fn mint(origin, class_id: ClassIdOf<T>, name: Vec<u8>, description: Vec<u8>, metadata: Vec<u8>, quantity: u32) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
 
@@ -288,7 +295,7 @@ decl_module! {
 
             let deposit = T::CreateAssetDeposit::get();
             let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
-            let total_deposit = deposit * Into::<Balance>::into(quantity);
+            let total_deposit = deposit * Into::<BalanceOf<T>>::into(quantity);
 
             <T as Config>::Currency::transfer(&sender, &class_fund, total_deposit)?;
             <T as Config>::Currency::reserve(&class_fund, total_deposit)?;
@@ -325,7 +332,9 @@ decl_module! {
                     )?;
                 }
                 else{
-                    AssetsByOwner::<T>::insert(&sender, Vec::<AssetId>::new())
+                    let mut assets = Vec::<AssetId>::new();
+                    assets.push(asset_id);
+                    AssetsByOwner::<T>::insert(&sender, assets)
                 }
 
                 let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
@@ -338,30 +347,20 @@ decl_module! {
         }
 
         #[weight = 100_000]
-        fn transfer(origin,  to: T::AccountId, asset_id: AssetId ,asset: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
+        pub fn transfer(origin,  to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
 
-            let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
-            let data = class_info.data;
+            //FIXME asset transfer should be reverted once it's locked in Auction
+            let token_id = Self::do_transfer(&sender, &to, asset_id)?;
 
-            match data.token_type {
-                TokenType::Transferrable => {
-                    let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
-                    ensure!(sender == asset_info.owner, Error::<T>::NoPermission);
+            Self::deposit_event(RawEvent::TransferedNft(sender, to, token_id));
 
-                    Self::handle_asset_ownership_transfer(&sender, &to, asset_id);
-
-                    NftModule::<T>::transfer(&sender, &to, asset)?;
-                    Self::deposit_event(RawEvent::TransferedNft(sender, to, asset.1));
-                    Ok(().into())
-                }
-                TokenType::BoundToAddress => Err(Error::<T>::NonTransferrable.into())
-            }
+            Ok(().into())
         }
 
         #[weight = 100_000]
-        fn transfer_batch(origin, tos: Vec<(T::AccountId, AssetId ,ClassIdOf<T>, TokenIdOf<T>)>) -> DispatchResultWithPostInfo {
+        pub fn transfer_batch(origin, tos: Vec<(T::AccountId, AssetId)>) -> DispatchResultWithPostInfo {
 
             let sender = ensure_signed(origin)?;
 
@@ -370,19 +369,18 @@ decl_module! {
                 let item = &x;
                 let owner = &sender.clone();
 
-                let class_info = NftModule::<T>::classes(item.2).ok_or(Error::<T>::ClassIdNotFound)?;
+                let asset = Assets::<T>::get(item.1).ok_or(Error::<T>::AssetIdNotFound)?;
+
+                let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
                 let data = class_info.data;
 
                 match data.token_type {
                     TokenType::Transferrable => {
-                        let asset_info = NftModule::<T>::tokens(item.2, item.3).ok_or(Error::<T>::AssetInfoNotFound)?;
+                        let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
                         ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
-
                         Self::handle_asset_ownership_transfer(&owner, &item.0, item.1);
-
-                        NftModule::<T>::transfer(&owner, &item.0, (item.2, item.3))?;
-
-                        Self::deposit_event(RawEvent::TransferedNft(owner.clone(), item.0.clone(), item.3.clone()));
+                        NftModule::<T>::transfer(&owner, &item.0, (asset.0, asset.1))?;
+                        Self::deposit_event(RawEvent::TransferedNft(owner.clone(), item.0.clone(), asset.1.clone()));
                     }
                     _ => ()
                 };
@@ -449,9 +447,49 @@ impl<T: Config> Module<T> {
                 Ok(())
             })?;
         } else {
-            AssetsByOwner::<T>::insert(&to, Vec::<AssetId>::new());
+            let mut asset_ids = Vec::<AssetId>::new();
+            asset_ids.push(asset_id);
+            AssetsByOwner::<T>::insert(&to, asset_ids);
         }
 
         Ok(())
+    }
+
+    pub fn do_transfer(
+        sender: &T::AccountId,
+        to: &T::AccountId,
+        asset_id: AssetId) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
+        let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+
+        let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
+        let data = class_info.data;
+
+        match data.token_type {
+            TokenType::Transferrable => {
+                let check_ownership = Self::check_nft_ownership(&sender, &asset_id)?;
+                ensure!(check_ownership, Error::<T>::NoPermission);
+
+                Self::handle_asset_ownership_transfer(&sender, &to, asset_id);
+
+                NftModule::<T>::transfer(&sender, &to, asset.clone())?;
+                Ok(asset.1)
+            }
+            TokenType::BoundToAddress => Err(Error::<T>::NonTransferrable.into())
+        }
+    }
+
+    pub fn check_nft_ownership(
+        sender: &T::AccountId,
+        asset_id: &AssetId) -> Result<bool, DispatchError> {
+        let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+        let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
+        let data = class_info.data;
+
+        let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+        if sender == &asset_info.owner {
+            return Ok(true);
+        }
+
+        return Ok(false);
     }
 }

@@ -143,7 +143,7 @@ pub const DAYS: BlockNumber = HOURS * 24;
 // 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
-pub const BCGS: Balance = DOLLARS;
+pub const NUUMS: Balance = DOLLARS;
 
 #[derive(codec::Encode, codec::Decode)]
 pub enum XCMPMessage<XAccountId, XBalance> {
@@ -365,7 +365,7 @@ impl pallet_transaction_payment::Config for Runtime {
 // }
 //
 // parameter_types! {
-//     pub const TransactionByteFee: Balance = BCGS / (1024 * 1024);
+//     pub const TransactionByteFee: Balance = NUUMS / (1024 * 1024);
 // }
 //
 // impl pallet_transaction_payment::Config for Runtime {
@@ -502,15 +502,15 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::BCG;
+    pub const GetNativeCurrencyId: CurrencyId = CurrencyId::NUUM;
 }
 
-pub type BCGToken = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+pub type NUUMToken = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 impl orml_currencies::Config for Runtime {
     type Event = Event;
     type MultiCurrency = orml_tokens::Pallet<Runtime>;
-    type NativeCurrency = BCGToken;
+    type NativeCurrency = NUUMToken;
     type GetNativeCurrencyId = GetNativeCurrencyId;
     type WeightInfo = ();
 }
@@ -524,7 +524,6 @@ impl nft::Config for Runtime {
     type Event = Event;
     type CreateClassDeposit = CreateClassDeposit;
     type CreateAssetDeposit = CreateAssetDeposit;
-    type Randomness = RandomnessCollectiveFlip;
     type Currency = Currency<Runtime, GetNativeCurrencyId>;
     type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
     type PalletId = NftModuleId;
@@ -559,7 +558,7 @@ parameter_types! {
 impl auction::Config for Runtime {
     type Event = Event;
     type AuctionTimeToClose = AuctionTimeToClose;
-    type AuctionId = u64;
+    type AuctionId = AuctionId;
     type Handler = Auction;
     type Currency = Balances;
 }
@@ -743,14 +742,15 @@ construct_runtime! {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
+        //Token
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 
         //Parachain
 		ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Storage, Inherent, Event<T>},
         ParachainInfo: parachain_info::{Pallet, Storage, Config},
 
-        //Token
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 
         // Consensus & Staking
         // Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},

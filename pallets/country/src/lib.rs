@@ -129,8 +129,8 @@ decl_module! {
             let country_fund = CountryFund {
                 vault: fund_id,
                 value: 0,
-                backing: 0, //0 BCG backing for now,
-                currency_id: CurrencyId::BCG
+                backing: 0, //0 NUUM backing for now,
+                currency_id: CurrencyId::NUUM
             };
             CountryTresury::<T>::insert(country_id, country_fund);
 
@@ -232,7 +232,7 @@ impl<T: Trait> Module<T> {
 
         let country_info = Country {
             owner: owner.clone(),
-            currency_id: CurrencyId::BCG,
+            currency_id: CurrencyId::NUUM,
             metadata,
         };
 
