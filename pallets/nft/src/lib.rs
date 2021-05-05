@@ -324,7 +324,7 @@ decl_module! {
                         &sender,
                         |asset_ids| -> DispatchResult {
                             // Check if the asset_id already in the owner
-                            ensure!(asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
+                            ensure!(!asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
                             asset_ids.push(asset_id);
                             Ok(())
                         }
