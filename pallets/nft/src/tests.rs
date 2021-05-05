@@ -76,7 +76,7 @@ fn create_group_should_work() {
 fn create_group_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        //find way to set next collection id
+        //TODO: find way to set next collection id
     });
 }
 
@@ -242,8 +242,6 @@ fn mint_asset_should_fail() {
             vec![1],
             1
         ), Error::<Runtime>::NoPermission);
-
-        //TODO No asset id
     })
 }
 
@@ -308,8 +306,8 @@ fn transfer_batch_should_fail() {
             1
         ));
         assert_noop!(Nft::transfer_batch(origin.clone(), vec![(BOB,3),(BOB,4)]), Error::<Runtime>::AssetIdNotFound);
-        //TO DO add test case for ClassIdNotFound
-         //TO DO add test case for AssetInfoNotFound
+        //TODO add test case for ClassIdNotFound
+         //TODO add test case for AssetInfoNotFound
     })
 }
 
