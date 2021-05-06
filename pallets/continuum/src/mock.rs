@@ -36,7 +36,6 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 }
 
-
 // Configure a mock runtime to test the pallet.
 
 pub type AccountId = u128;
@@ -112,7 +111,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn create_auction(item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64) -> Result<u64, DispatchError> {
+    fn create_auction(auction_type: AuctionType, item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64) -> Result<u64, DispatchError> {
         todo!()
     }
 

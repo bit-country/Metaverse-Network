@@ -44,7 +44,7 @@ fn init_test_nft(owner: Origin) {
         vec![1],
         1
     ));
-}        
+}
 
 
 #[test]
@@ -171,7 +171,7 @@ fn mint_asset_should_work() {
         let origin = Origin::signed(ALICE);
 
         init_test_nft(origin.clone());
-        
+
         assert_eq!(
             reserved_balance(&class_id_account()),
             <Runtime as Config>::CreateClassDeposit::get() +  <Runtime as Config>::CreateAssetDeposit::get()

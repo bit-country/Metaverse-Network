@@ -1,49 +1,29 @@
-use crate::{Module, Config};
+#![cfg(test)]
+
+use crate as bitcountry;
+use super::*;
 use frame_support::{
-    impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
+    construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
+    impl_outer_event, impl_outer_origin, impl_outer_dispatch, traits::EnsureOrigin,
 };
-use frame_system as system;
-use frame_system::RawOrigin;
-use sp_core::{sr25519, Pair, H256};
-use sp_runtime::{
-    testing::Header,
-    traits::{BlakeTwo256, IdentityLookup},
-    Perbill,
-    ModuleId,
-};
-use primitives::{CountryId, CurrencyId};
+use sp_core::H256;
+use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId, Perbill};
+use primitives::{CurrencyId, Amount};
+use frame_system::{EnsureSignedBy, EnsureRoot};
+use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
+use frame_support::sp_runtime::traits::AtLeast32Bit;
 
 pub type AccountId = u128;
+pub type AuctionId = u64;
+pub type Balance = u64;
+pub type CountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const COUNTRY_ID: CountryId = 0;
 pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
-pub const BCG: CurrencyId = 0;
-
-#[derive(Clone, Eq, PartialEq)]
-pub struct Runtime;
-
-use crate as country;
-
-impl_outer_origin! {
-	pub enum Origin for Runtime {}
-}
-
-impl_outer_event! {
-	pub enum TestEvent for Runtime {
-		frame_system<T>,
-		country<T>,
-	}
-}
-
-impl_outer_dispatch! {
-	pub enum Call for Runtime where origin: Origin {
-		frame_system::System,
-	}
-}
-
+pub const NUUM: CurrencyId = 0;
 
 // Configure a mock runtime to test the pallet.
 
@@ -61,42 +41,64 @@ impl frame_system::Config for Runtime {
     type BlockNumber = BlockNumber;
     type Call = Call;
     type Hash = H256;
-    type Hashing = BlakeTwo256;
+    type Hashing = ::sp_runtime::traits::BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = TestEvent;
+    type Event = Event;
     type BlockHashCount = BlockHashCount;
-    type MaximumBlockWeight = MaximumBlockWeight;
-    type MaximumBlockLength = MaximumBlockLength;
-    type AvailableBlockRatio = AvailableBlockRatio;
+    type BlockWeights = ();
+    type BlockLength = ();
     type Version = ();
-    type PalletInfo = ();
-    type AccountData = ();
+    type PalletInfo = PalletInfo;
+    type AccountData = pallet_balances::AccountData<Balance>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type DbWeight = ();
-    type BlockExecutionWeight = ();
-    type ExtrinsicBaseWeight = ();
-    type MaximumExtrinsicWeight = ();
     type BaseCallFilter = ();
     type SystemWeightInfo = ();
+    type SS58Prefix = ();
 }
 
-pub type System = frame_system::Module<Runtime>;
+parameter_types! {
+	pub const ExistentialDeposit: u64 = 1;
+}
+
+impl pallet_balances::Config for Runtime {
+    type Balance = Balance;
+    type Event = Event;
+    type DustRemoval = ();
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type MaxLocks = ();
+    type WeightInfo = ();
+}
 
 parameter_types! {
 	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
 }
 
 impl Config for Runtime {
-    type Event = TestEvent;
+    type Event = Event;
     type ModuleId = CountryFundModuleId;
 }
 
 pub type CountryModule = Module<Runtime>;
 
-use frame_system::Call as SystemCall;
+type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
+type Block = frame_system::mocking::MockBlock<Runtime>;
+
+construct_runtime!(
+	pub enum Runtime where
+		Block = Block,
+		NodeBlock = Block,
+		UncheckedExtrinsic = UncheckedExtrinsic
+	{
+		System: frame_system::{Module, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+        Country: bitcountry::{Module, Call ,Storage, Event<T>},
+	}
+);
 
 pub struct ExtBuilder;
 
@@ -108,8 +110,14 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
-        let t = frame_system::GenesisConfig::default()
+        let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
+            .unwrap();
+
+        pallet_balances::GenesisConfig::<Runtime> {
+            balances: vec![(ALICE, 100000)],
+        }
+            .assimilate_storage(&mut t)
             .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
@@ -118,7 +126,7 @@ impl ExtBuilder {
     }
 }
 
-pub fn last_event() -> TestEvent {
+pub fn last_event() -> Event {
     frame_system::Module::<Runtime>::events()
         .pop()
         .expect("Event expected")

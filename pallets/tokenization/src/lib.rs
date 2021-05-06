@@ -44,10 +44,11 @@ pub trait Config: system::Config + country::Config {
     type TokenId: Parameter + AtLeast32Bit + Default + Copy;
     type CountryCurrency: MultiCurrencyExtended<
         Self::AccountId,
-        CurrencyId = CurrencyId,
-        Balance = Balance,
+        CurrencyId=CurrencyId,
+        Balance=Balance,
     >;
 }
+
 /// A wrapper for a token name.
 pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
@@ -188,5 +189,12 @@ impl<T: Config> Module<T> {
         let total_issuance = T::CountryCurrency::total_issuance(country_fund.currency_id);
 
         Ok(total_issuance)
+    }
+
+    pub fn get_country_fund_id(country_id: CountryId) -> T::AccountId {
+        match <CountryTresury<T>>::get(country_id) {
+            Some(fund) => fund.vault,
+            _ => Default::default()
+        }
     }
 }
