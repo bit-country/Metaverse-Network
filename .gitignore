@@ -40,3 +40,4 @@ para-666-genesis
 /.idea/*
 /Cargo.lock
 /tewai*
+/.dockerignore
