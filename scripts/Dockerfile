@@ -19,8 +19,8 @@ RUN apt-get update && \
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
 	export PATH="$PATH:$HOME/.cargo/bin" && \
-	rustup default nightly && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly && \
+	rustup default nightly-2021-03-04 && \
+	rustup target add wasm32-unknown-unknown --toolchain nightly-2021-03-04 && \
 	cargo build "--$PROFILE"
 
 # ===== SECOND STAGE ======
@@ -39,11 +39,11 @@ RUN mv /usr/share/ca* /tmp && \
 	ln -s /bitCountry/.local/share/bitCountry /data
 
 # Add the binary file generated in the `builder` container above
-COPY --from=builder /bitCountry/target/$PROFILE/bitcountry-node /usr/local/bin
+COPY --from=builder /bitCountry/target/$PROFILE/bitcountry-parachain /usr/local/bin
 
 # checks
-RUN ldd /usr/local/bin/bitcountry-node && \
-	/usr/local/bin/bitcountry-node --version
+RUN ldd /usr/local/bin/bitcountry-parachain && \
+	/usr/local/bin/bitcountry-parachain --version
 
 # Shrinking
 RUN rm -rf /usr/lib/python* && \
@@ -56,4 +56,4 @@ RUN mkdir /bitCountry/data
 
 VOLUME ["/bitCountry/data"]
 
-CMD ["/usr/local/bin/bitcountry-node"]
+CMD ["/usr/local/bin/bitcountry-parachain"]
