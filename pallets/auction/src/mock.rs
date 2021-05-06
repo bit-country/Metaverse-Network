@@ -1,16 +1,12 @@
 #![cfg(test)]
 
 use super::*;
-
-use crate as auction;
-use frame_support::{
-    construct_runtime, impl_outer_event, impl_outer_origin, impl_outer_dispatch, parameter_types, traits::EnsureOrigin, weights::Weight,
-};
+use frame_support::{construct_runtime, parameter_types, pallet_prelude::Hooks};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{CurrencyId, Amount, BlockNumber, AuctionId, continuum::Continuum};
-use crate::sp_api_hidden_includes_decl_storage::hidden_include::traits::{OnInitialize, OnFinalize};
+use primitives::{BlockNumber, AuctionId, continuum::Continuum};
 
+use crate as auction;
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
@@ -65,7 +61,6 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = ();
 }
 
-
 pub struct Continuumm;
 
 impl Continuum<u128> for Continuumm {
@@ -94,7 +89,6 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 
     fn on_auction_ended(_id: AuctionId, _winner: Option<(AccountId, Balance)>) {}
 }
-
 
 parameter_types! {
     pub const AuctionTimeToClose: u64 = 100; //Test auction end within 100 blocks
@@ -130,11 +124,8 @@ impl orml_nft::Config for Runtime {
     type TokenData = pallet_nft::NftAssetData<Balance>;
 }
 
-use frame_system::Call as SystemCall;
-
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
-
 
 construct_runtime!(
 	pub enum Runtime where
@@ -149,8 +140,6 @@ construct_runtime!(
         NftAuctionModule: auction::{Module, Call, Storage, Event<T>},
 	}
 );
-
-
 pub struct ExtBuilder;
 
 impl Default for ExtBuilder {
@@ -197,5 +186,3 @@ pub fn run_to_block(n: u64) {
         NftAuctionModule::on_initialize(System::block_number());
     }
 }
-
-
