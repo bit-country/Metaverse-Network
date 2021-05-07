@@ -54,7 +54,7 @@ fn bid_works() {
         assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 100, 0));
         
         assert_ok!(NftAuctionModule::bid(bidder, 0, 200));
-        assert_eq!(last_event(), Event::auction(RawEvent::Bid(0, ALICE, 200)));
+        assert_eq!(last_event(), Event::auction(crate::Event::Bid(0, ALICE, 200)));
 
         assert_eq!(Balances::reserved_balance(ALICE), 200);
     });
@@ -123,14 +123,14 @@ fn asset_transfers_after_auction() {
         assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 100, 0));
     
         assert_ok!(NftAuctionModule::bid(bidder, 0, 200));
-        assert_eq!(last_event(), Event::auction(RawEvent::Bid(0, ALICE, 200)));
+        assert_eq!(last_event(), Event::auction(crate::Event::Bid(0, ALICE, 200)));
 
         run_to_block(102);
         
         // Verify asset transfers to alice after end of auction
         assert_eq!(
             last_event(), 
-            Event::auction(RawEvent::AuctionFinalized(0, 1 ,200))
+            Event::auction(crate::Event::AuctionFinalized(0, 1 ,200))
         );          
 
         // Verify transfer of funs (minus gas)
@@ -185,7 +185,7 @@ fn buy_now_work() {
         assert_eq!(Balances::free_balance(BOB), 647);
 
         //event was triggered
-        let event = mock::Event::auction(RawEvent::BuyNowFinalised(0, ALICE, 150));
+        let event = mock::Event::auction(crate::Event::BuyNowFinalised(0, ALICE, 150));
         assert_eq!(last_event(), event);
 
         //Check that auction is over
