@@ -30,7 +30,7 @@ jobs:
           override: true
           default: true
       - name: Install Wasm toolchain
-        run: rustup target add wasm32-unknown-unknown nightly-2021-04-24
+        run: rustup target add wasm32-unknown-unknown
       - name: Build project
         run: cargo build
       - name: Run tests
