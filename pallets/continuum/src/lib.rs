@@ -81,6 +81,7 @@ pub mod pallet {
     use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::OriginFor;
     use super::*;
+    use frame_support::traits::ExistenceRequirement;
 
     pub(crate) type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -214,6 +215,10 @@ pub mod pallet {
     #[pallet::getter(fn next_spot_id)]
     pub type NextContinuumSpotId<T: Config> = StorageValue<_, SpotId, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn allow_buy_now)]
+    pub type AllowBuyNow<T: Config> = StorageValue<_, bool, ValueQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
@@ -249,11 +254,30 @@ pub mod pallet {
         SpotIsNotAvailable,
         /// Spot is out of bound
         SpotIsOutOfBound,
+        /// Continuum Spot is not found
+        ContinuumSpotNotFound,
     }
 
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn buy_continuum_spot(origin: OriginFor<T>, coordinate: (i32, i32), country_id: CountryId) -> DispatchResultWithPostInfo {
+            let sender = ensure_signed(origin)?;
+            //TODO check if owner own county
+            ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumSpotNotFound);
+            let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
+            let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
+
+            let continuum_treasury = Self::account_id();
+            //Define how many NUUM for continuum spot - default 1 NUUM - need to change to variable
+            ensure!(T::Currency::free_balance(sender) > 1_000_000_000_000_000_000);
+            T::Currency::transfer(sender, continuum_treasury, 1_000_000_000_000_000_000, ExistenceRequirement::KeepAlive);
+
+            Self::transfer_spot(spot_id, &continuum_treasury, &(sender, country_id));
+
+            Ok(().into())
+        }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn register_interest(origin: OriginFor<T>, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
