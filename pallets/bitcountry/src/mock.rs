@@ -1,21 +1,21 @@
-use crate::{Module, Config};
-use crate as tokenization;
+#![cfg(test)]
+
+use crate as bitcountry;
 use super::*;
 use frame_support::{
     construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
     impl_outer_event, impl_outer_origin, impl_outer_dispatch, traits::EnsureOrigin,
 };
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::{IdentityLookup, AccountIdConversion}, ModuleId, Perbill};
+use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId, Perbill};
 use primitives::{CurrencyId, Amount};
 use frame_system::{EnsureSignedBy, EnsureRoot};
 use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
-use orml_traits::parameter_type_with_key;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
-pub type Balance = u128;
+pub type Balance = u64;
 pub type CountryId = u64;
 pub type BlockNumber = u64;
 
@@ -24,8 +24,6 @@ pub const BOB: AccountId = 2;
 pub const COUNTRY_ID: CountryId = 0;
 pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
 pub const NUUM: CurrencyId = 0;
-pub const COUNTRY_FUND: CurrencyId = 1;
-
 
 // Configure a mock runtime to test the pallet.
 
@@ -35,6 +33,7 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
+
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -75,52 +74,16 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = ();
 }
 
-parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-		Default::default()
-	};
-}
-
 parameter_types! {
-    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
-    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
 }
-
-impl orml_tokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = CurrencyId;
-    type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
-}
-
-pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 impl Config for Runtime {
     type Event = Event;
-    type TokenId = u64;
-    type CountryCurrency = Currencies;
-}
-
-parameter_types! {
-	pub const GetNativeCurrencyId: CurrencyId = NUUM;
-}
-
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency = AdaptedBasicCurrency;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
-}
-
-impl country::Config for Runtime {
-    type Event = Event;
     type ModuleId = CountryFundModuleId;
 }
+
+pub type CountryModule = Module<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -133,10 +96,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        CountryModule: country::{Module, Call, Storage, Event<T>},
-        Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
-        Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
-        TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
+        Country: bitcountry::{Module, Call ,Storage, Event<T>},
 	}
 );
 

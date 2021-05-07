@@ -44,10 +44,11 @@ pub trait Config: system::Config + country::Config {
     type TokenId: Parameter + AtLeast32Bit + Default + Copy;
     type CountryCurrency: MultiCurrencyExtended<
         Self::AccountId,
-        CurrencyId = CurrencyId,
-        Balance = Balance,
+        CurrencyId=CurrencyId,
+        Balance=Balance,
     >;
 }
+
 /// A wrapper for a token name.
 pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
@@ -82,7 +83,7 @@ decl_error! {
         InsufficientBalance,
         /// No permission to issue token
         NoPermissionTokenIssuance,
-        /// Country Currency already issued for this country
+        /// Country Currency already issued for this bitcountry
         TokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
@@ -96,7 +97,7 @@ decl_module! {
         type Error = Error<T>;
 
         fn deposit_event() = default;
-        /// Issue a new class of fungible assets for country. There are, and will only ever be, `total`
+        /// Issue a new class of fungible assets for bitcountry. There are, and will only ever be, `total`
         /// such assets and they'll all belong to the `origin` initially. It will have an
         /// identifier `TokenId` instance: this will be specified in the `Issued` event.
         #[weight = 10_000]
@@ -188,5 +189,12 @@ impl<T: Config> Module<T> {
         let total_issuance = T::CountryCurrency::total_issuance(country_fund.currency_id);
 
         Ok(total_issuance)
+    }
+
+    pub fn get_country_fund_id(country_id: CountryId) -> T::AccountId {
+        match <CountryTresury<T>>::get(country_id) {
+            Some(fund) => fund.vault,
+            _ => Default::default()
+        }
     }
 }

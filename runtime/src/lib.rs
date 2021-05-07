@@ -136,8 +136,6 @@ pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
 pub const HOURS: BlockNumber = MINUTES * 60;
 pub const DAYS: BlockNumber = HOURS * 24;
 
-pub const BCGS: Balance = CENTS;
-
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
 pub fn native_version() -> NativeVersion {
@@ -263,8 +261,8 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    /// 1 BCG = 1 Megabyte
-    pub const TransactionByteFee: Balance = BCGS / (1024 * 1024);
+    /// 0.01 BCG = 1 Megabyte
+    pub const TransactionByteFee: Balance = CENTS / (1024 * 1024);
     pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
     pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(3, 100_000);
     pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
@@ -413,6 +411,7 @@ parameter_types! {
     pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
     pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
     pub const NftModuleId: ModuleId = ModuleId(*b"bit/bnft");
+    pub const ContinuumTreasuryModuleId: ModuleId = ModuleId(*b"bit/ctmu");
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -519,13 +518,27 @@ impl block::Config for Runtime {
 
 parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
+    pub const SessionDuration: BlockNumber = 43200; //Default 43200 Blocks
+    pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
 }
+
 
 impl auction::Config for Runtime {
     type Event = Event;
     type AuctionTimeToClose = AuctionTimeToClose;
-    type AuctionId = u64;
     type Handler = Auction;
+    type Currency = Balances;
+    type ContinuumHandler = Continuum;
+}
+
+impl continuum::Config for Runtime {
+    type Event = Event;
+    type SessionDuration = SessionDuration;
+    type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
+    type EmergencyOrigin = EnsureRootOrHalfGeneralCouncil;
+    type AuctionHandler = Auction;
+    type AuctionDuration = SpotAuctionChillingDuration;
+    type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
 }
 
@@ -565,6 +578,7 @@ construct_runtime!(
         BlockModule: block::{Module, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Module ,Storage},
         NftModule: nft::{Module, Call ,Storage, Event<T>},
+        Continuum: continuum::{Module, Call ,Storage, Event<T>},
         Auction: auction::{Module, Call ,Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},

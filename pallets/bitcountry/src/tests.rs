@@ -15,10 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::*;
-use mock::*;
+#![cfg(test)]
 
-use frame_support::{assert_noop, assert_ok, dispatch};
+use super::*;
+use frame_support::{assert_noop, assert_ok};
+use mock::{Event, *};
 use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
 
@@ -34,10 +35,10 @@ fn create_country_should_work() {
             Some(Country {
                 owner: ALICE,
                 metadata: vec![1],
-                currency_id: Default::default()
+                currency_id: Default::default(),
             })
         );
-        let event = TestEvent::country(RawEvent::NewCountryCreated(COUNTRY_ID));
+        let event = Event::bitcountry(RawEvent::NewCountryCreated(COUNTRY_ID));
         assert_eq!(last_event(), event);
     });
 }
@@ -47,7 +48,7 @@ fn create_country_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(
             CountryModule::create_country(Origin::none(), vec![1],),
-            dispatch::DispatchError::BadOrigin
+            BadOrigin
         );
     });
 }
@@ -64,7 +65,7 @@ fn transfer_country_should_work() {
             BOB,
             COUNTRY_ID
         ));
-        let event = TestEvent::country(RawEvent::TransferredCountry(COUNTRY_ID, ALICE, BOB));
+        let event = Event::bitcountry(RawEvent::TransferredCountry(COUNTRY_ID, ALICE, BOB));
         assert_eq!(last_event(), event);
         //Make sure 2 ways transfer works
         assert_ok!(CountryModule::transfer_country(
@@ -72,7 +73,7 @@ fn transfer_country_should_work() {
             ALICE,
             COUNTRY_ID
         ));
-        let event = TestEvent::country(RawEvent::TransferredCountry(COUNTRY_ID, BOB, ALICE));
+        let event = Event::bitcountry(RawEvent::TransferredCountry(COUNTRY_ID, BOB, ALICE));
         assert_eq!(last_event(), event);
     })
 }
@@ -99,7 +100,7 @@ fn freeze_country_should_work() {
             vec![1]
         ));
         assert_ok!(CountryModule::freeze_country(Origin::root(), COUNTRY_ID));
-        let event = TestEvent::country(RawEvent::CountryFreezed(COUNTRY_ID));
+        let event = Event::bitcountry(RawEvent::CountryFreezed(COUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }
@@ -111,10 +112,10 @@ fn freeze_country_should_fail() {
             Origin::signed(ALICE),
             vec![1]
         ));
-        //Country owner tries to freeze their own country
+        //Country owner tries to freeze their own bitcountry
         assert_noop!(
             CountryModule::freeze_country(Origin::signed(ALICE), COUNTRY_ID),
-            dispatch::DispatchError::BadOrigin
+            BadOrigin
         );
     })
 }
@@ -127,10 +128,10 @@ fn unfreeze_country_should_work() {
             vec![1]
         ));
         assert_ok!(CountryModule::freeze_country(Origin::root(), COUNTRY_ID));
-        let event = TestEvent::country(RawEvent::CountryFreezed(COUNTRY_ID));
+        let event = Event::bitcountry(RawEvent::CountryFreezed(COUNTRY_ID));
         assert_eq!(last_event(), event);
         assert_ok!(CountryModule::unfreeze_country(Origin::root(), COUNTRY_ID));
-        let event = TestEvent::country(RawEvent::CountryUnFreezed(COUNTRY_ID));
+        let event = Event::bitcountry(RawEvent::CountryUnFreezed(COUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }
@@ -143,7 +144,7 @@ fn destroy_country_should_work() {
             vec![1]
         ));
         assert_ok!(CountryModule::destroy_country(Origin::root(), COUNTRY_ID));
-        let event = TestEvent::country(RawEvent::CountryDestroyed(COUNTRY_ID));
+        let event = Event::bitcountry(RawEvent::CountryDestroyed(COUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }
@@ -157,7 +158,7 @@ fn destroy_country_without_root_should_fail() {
         ));
         assert_noop!(
             CountryModule::destroy_country(Origin::signed(ALICE), COUNTRY_ID),
-            dispatch::DispatchError::BadOrigin
+            BadOrigin
         );
     })
 }

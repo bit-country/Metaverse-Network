@@ -6,334 +6,238 @@ use mock::{Event, *};
 use pallet_nft::{TokenType, CollectionType};
 use primitives::BlockNumber;
 
+
+fn init_test_nft(owner: Origin) {
+
+    //Create group collection before class
+    assert_ok!(NFTModule::<Runtime>::create_group(
+        owner.clone(),
+        vec![1],
+        vec![1]
+    ));
+
+    assert_ok!(NFTModule::<Runtime>::create_class(
+        owner.clone(),
+        vec![1],
+        vec![1],
+        COLLECTION_ID,
+        TokenType::Transferrable,
+        CollectionType::Collectable,
+    ));
+
+    assert_ok!(NFTModule::<Runtime>::mint(
+        owner.clone(),
+        CLASS_ID,
+        vec![1],
+        vec![1],
+        vec![1],
+        1
+    ));    
+}
+
 #[test]
 // Creating auction should work
 fn create_new_auction_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-
-        //Create NFT before creating an auction
-        assert_ok!(NFTModule::<Runtime>::create_group(
-            origin.clone(),
-            vec![1],
-            vec![1]
-        ));
-
-        assert_ok!(NFTModule::<Runtime>::create_class(
-			origin.clone(),
-			vec![1],
-            vec![1],
-            COLLECTION_ID,
-            TokenType::Transferrable,
-            CollectionType::Collectable,
-		));
-
-        assert_ok!(NFTModule::<Runtime>::mint(
-			origin.clone(),
-			CLASS_ID,
-            vec![1],
-            vec![1],
-            vec![1],
-            1
-		));
-        assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
-
-        //Create auction
-        assert_ok!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100));
-        assert_eq!(NftAuctionModule::auctions_index(),1);
-        assert_eq!(last_event(), Event::auction(RawEvent::NewAuctionItem(0, ALICE, 100, 100)));
+        init_test_nft(origin.clone());
     });
 }
 
 #[test]
-// Creating with non-existing asset should fail
-fn create_auction_with_non_existing_asset_should_fail() {
+// Walk the happy path
+fn bid_works() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(ALICE);
+        let owner = Origin::signed(BOB);
+        let bidder = Origin::signed(ALICE);
+        
+        init_test_nft(owner.clone());        
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 100, 0));
+        
+        assert_ok!(NftAuctionModule::bid(bidder, 0, 200));
+        assert_eq!(last_event(), Event::auction(crate::Event::Bid(0, ALICE, 200)));
 
-        // Cannot create auction with non-existing asset
-        assert_noop!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100),Error::<Runtime>::AssetIsNotExist);
+        assert_eq!(Balances::reserved_balance(ALICE), 200);
     });
 }
 
 #[test]
-// Bidding should work
-fn bidding_should_work() {
+fn cannot_bid_on_non_existent_auction() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(BOB);
-        let bidder_origin = Origin::signed(ALICE);
-       
-        //Create group collection before class
-        assert_ok!(NFTModule::<Runtime>::create_group(
-            origin.clone(),
-            vec![1],
-            vec![1]
-        ));
+        assert_noop!(
+            NftAuctionModule::bid(Origin::signed(ALICE), 0, 10), 
+            Error::<Runtime>::AuctionNotExist
+        ); 
 
-        assert_ok!(NFTModule::<Runtime>::create_class(
-			origin.clone(),
-			vec![1],
-            vec![1],
-            COLLECTION_ID,
-            TokenType::Transferrable,
-            CollectionType::Collectable,
-		));
+        assert_eq!(Balances::free_balance(ALICE), 100000);
+    });
+}
 
-        assert_ok!(NFTModule::<Runtime>::mint(
-			origin.clone(),
-			CLASS_ID,
-            vec![1],
-            vec![1],
-            vec![1],
-            1
-		));
+#[test]
+fn cannot_bid_with_insufficient_funds() {
+    ExtBuilder::default().build().execute_with(|| {
+        let owner = Origin::signed(BOB);
+        let bidder = Origin::signed(ALICE);
+        
+        init_test_nft(owner.clone());        
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 600, 0));
+        
+        assert_noop!(
+            NftAuctionModule::bid(bidder, 0, 100001), 
+            "You don\'t have enough free balance for this bid"
+        );
 
-        assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
-
-        // Create auction and bid on it
-        assert_ok!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100));
-        assert_ok!(NftAuctionModule::update_auction(0, AuctionInfo {
-            bid: None,
-            start: 1,
-            end: Some(101),
-        })); 
-        assert_eq!(NftAuctionModule::get_auction_item(0),Some(AuctionItem {
-            item_id: ItemId::NFT(0),
-            recipient: BOB,
-            initial_amount: 100,
-            amount:100,
-            start_time: 1,
-            end_time: 101
-        }));
-        assert_ok!(NftAuctionModule::bid(bidder_origin.clone(), 0, 101));
-        assert_eq!(last_event(), Event::auction(RawEvent::Bid(0, ALICE, 101)));
-        assert_eq!(NftAuctionModule::get_auction_item(0),Some(AuctionItem {
-            item_id: ItemId::NFT(0),
-            recipient: ALICE,
-            initial_amount: 100,
-            amount:101,
-            start_time: 1,
-            end_time: 101
-        }));
+        assert_eq!(Balances::free_balance(ALICE), 100000);
 
     });
 }
 
 #[test]
-// Bidding with insufficient funds shoud fail
-fn bidding_with_isufficient_funds_fails() {
-    ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(BOB);
-        let bidder_origin = Origin::signed(ALICE);
-       
-        //Create group collection before class
-        assert_ok!(NFTModule::<Runtime>::create_group(
-            origin.clone(),
-            vec![1],
-            vec![1]
-        ));
-
-        assert_ok!(NFTModule::<Runtime>::create_class(
-			origin.clone(),
-			vec![1],
-            vec![1],
-            COLLECTION_ID,
-            TokenType::Transferrable,
-            CollectionType::Collectable,
-		));
-
-        assert_ok!(NFTModule::<Runtime>::mint(
-			origin.clone(),
-			CLASS_ID,
-            vec![1],
-            vec![1],
-            vec![1],
-            1
-		));
-
-        assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
-
-        // Create auction and bid on it
-        assert_ok!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100)); 
-        assert_noop!(NftAuctionModule::bid(bidder_origin.clone(), 0, 100001),DispatchError::Other("You don\'t have enough free balance for this bid"));
+fn cannot_bid_on_own_auction() {
+    ExtBuilder::default().build().execute_with(|| {        
+        let owner = Origin::signed(ALICE);
+        
+        init_test_nft(owner.clone());        
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, ALICE, 100, 0));
+        
+        assert_noop!(
+            NftAuctionModule::bid(owner, 0, 50), 
+            Error::<Runtime>::SelfBidNotAccepted
+        );
     });
 }
 
 #[test]
-// Asset transferred correctly after bidding
-fn asset_transfer_after_auction_end_work() {
+fn asset_transfers_after_auction() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(BOB);
-        //let bidder_origin = Origin::signed(ALICE);
-       
-        //Create group collection before class
-        assert_ok!(NFTModule::<Runtime>::create_group(
-            origin.clone(),
-            vec![1],
-            vec![1]
-        ));
+        let owner = Origin::signed(BOB);
+        let bidder = Origin::signed(ALICE);
+        
+        // Make sure balances start off as we expect
+        assert_eq!(Balances::free_balance(BOB), 500);
+        assert_eq!(Balances::free_balance(ALICE), 100000);
 
-        assert_ok!(NFTModule::<Runtime>::create_class(
-			origin.clone(),
-			vec![1],
-            vec![1],
-            COLLECTION_ID,
-            TokenType::Transferrable,
-            CollectionType::Collectable,
-		));
+        // Setup NFT and verify that BOB has ownership
+        init_test_nft(owner.clone());            
+        assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), [0]);
 
-        assert_ok!(NFTModule::<Runtime>::mint(
-			origin.clone(),
-			CLASS_ID,
-            vec![1],
-            vec![1],
-            vec![1],
-            1
-		));
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 100, 0));
+    
+        assert_ok!(NftAuctionModule::bid(bidder, 0, 200));
+        assert_eq!(last_event(), Event::auction(crate::Event::Bid(0, ALICE, 200)));
 
-        assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
-        assert_eq!(NFTModule::<Runtime>::check_nft_ownership(&BOB,&0),Ok(true));
-        assert_eq!(NFTModule::<Runtime>::check_nft_ownership(&ALICE,&0),Ok(false));
-        // Create auction and bid on it
-        assert_ok!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100));
-        assert_ok!(NftAuctionModule::bid(Origin::signed(ALICE), 0, 20000));
-        assert_eq!(last_event(), Event::auction(RawEvent::Bid(0, ALICE, 20000)));
-        // Simulate the auction's end
         run_to_block(102);
-        assert_eq!(Balances::free_balance(&ALICE), 80000);
-        assert_eq!(Balances::free_balance(&BOB), 21997);
-        assert_eq!(NFTModule::<Runtime>::check_nft_ownership(&BOB,&0),Ok(false));
-        assert_eq!(NFTModule::<Runtime>::check_nft_ownership(&ALICE,&0),Ok(true));
-        assert_eq!(last_event(), Event::auction(RawEvent::AuctionFinalized(0, ALICE, 20000))); 
+        
+        // Verify asset transfers to alice after end of auction
+        assert_eq!(
+            last_event(), 
+            Event::auction(crate::Event::AuctionFinalized(0, 1 ,200))
+        );          
+
+        // Verify transfer of funs (minus gas)
+        assert_eq!(Balances::free_balance(BOB), 697);
+        assert_eq!(Balances::free_balance(ALICE), 99800);
+
+        // Verify Alice has the NFT and Bob doesn't
+        assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);                
+        assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), Vec::<u64>::new());
     });
 }
 
 #[test]
-// Self bidding fails
-fn self_bidding_fails() {
+fn cannot_bid_on_ended_auction() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(BOB);
-        let bidder_origin = Origin::signed(ALICE);
-       
-        //Create group collection before class
-        assert_ok!(NFTModule::<Runtime>::create_group(
-            origin.clone(),
-            vec![1],
-            vec![1]
-        ));
+        let owner = Origin::signed(BOB);
+        let bidder = Origin::signed(ALICE);
+        
+        init_test_nft(owner.clone());        
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 150, 0));
 
-        assert_ok!(NFTModule::<Runtime>::create_class(
-			origin.clone(),
-			vec![1],
-            vec![1],
-            COLLECTION_ID,
-            TokenType::Transferrable,
-            CollectionType::Collectable,
-		));
+        System::set_block_number(101);
+                
+        assert_noop!(
+            NftAuctionModule::bid(bidder, 0, 200), 
+            Error::<Runtime>::AuctionIsExpired
+        );
 
-        assert_ok!(NFTModule::<Runtime>::mint(
-			origin.clone(),
-			CLASS_ID,
-            vec![1],
-            vec![1],
-            vec![1],
-            1
-		));
-
-        assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
-
-        // Create auction and bid on it
-        assert_ok!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100)); 
-        assert_noop!(NftAuctionModule::bid(origin.clone(), 0, 201),Error::<Runtime>::BidNotAccepted);
+        assert_eq!(Balances::free_balance(ALICE), 100000);
     });
 }
 
 #[test]
-// Bidding on expired auction fails
-fn bidding_on_expired_auction_fails() {
+// Private bid_auction should work
+fn buy_now_work() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(BOB);
-        let bidder_origin = Origin::signed(ALICE);
-       
-        //Create group collection before class
-        assert_ok!(NFTModule::<Runtime>::create_group(
-            origin.clone(),
-            vec![1],
-            vec![1]
-        ));
+        let owner = Origin::signed(BOB);
+        let buyer = Origin::signed(ALICE);
+        init_test_nft(owner.clone());
 
-        assert_ok!(NFTModule::<Runtime>::create_class(
-			origin.clone(),
-			vec![1],
-            vec![1],
-            COLLECTION_ID,
-            TokenType::Transferrable,
-            CollectionType::Collectable,
-		));
+        // call create_auction
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::BuyNow, ItemId::NFT(0), None, BOB, 150, 0));
+        
+        //buy now successful
+        assert_ok!(NftAuctionModule::buy_now(buyer.clone(), 0, 150));
 
-        assert_ok!(NFTModule::<Runtime>::mint(
-			origin.clone(),
-			CLASS_ID,
-            vec![1],
-            vec![1],
-            vec![1],
-            1
-		));
+        assert_eq!(NftAuctionModule::auctions(0), None);
+        // check account received asset
+        assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
+        // check balances were transferred
+        assert_eq!(Balances::free_balance(ALICE), 99850);
+        assert_eq!(Balances::free_balance(BOB), 647);
 
-        assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
+        //event was triggered
+        let event = mock::Event::auction(crate::Event::BuyNowFinalised(0, ALICE, 150));
+        assert_eq!(last_event(), event);
 
-        // Create auction and bid on it
-        assert_ok!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100));
-        assert_ok!(NftAuctionModule::update_auction(0, AuctionInfo {
-            bid: None,
-            start: 0,
-            end: Some(1),
-        }));
-        assert_noop!(NftAuctionModule::bid(bidder_origin.clone(), 0, 1000), Error::<Runtime>::AuctionIsExpired);
+        //Check that auction is over
+        assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 1, 150),Error::<Runtime>::AuctionNotExist);
     });
 }
 
 #[test]
-// Bidding on auction that have not started fails
-fn bidding_on_auction_that_have_not_started_fails() {
+// Private bid_auction should work
+fn buy_now_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(BOB);
-        let bidder_origin = Origin::signed(ALICE);
-       
-        //Create group collection before class
-        assert_ok!(NFTModule::<Runtime>::create_group(
-            origin.clone(),
-            vec![1],
-            vec![1]
-        ));
+        let owner = Origin::signed(BOB);
+        let buyer = Origin::signed(ALICE);
+        // we need this to test auction not started scenario
+        System::set_block_number(1);
+        init_test_nft(owner.clone());
 
-        assert_ok!(NFTModule::<Runtime>::create_class(
-			origin.clone(),
-			vec![1],
-            vec![1],
-            COLLECTION_ID,
-            TokenType::Transferrable,
-            CollectionType::Collectable,
-		));
-
-        assert_ok!(NFTModule::<Runtime>::mint(
-			origin.clone(),
-			CLASS_ID,
-            vec![1],
-            vec![1],
-            vec![1],
-            1
-		));
-
-        assert_eq!(NFTModule::<Runtime>::get_asset(0), Some((CLASS_ID, 0)));
-
-        // Create auction and bid on it
-        assert_ok!(NftAuctionModule::create_auction(origin.clone(), ItemId::NFT(0), 100)); 
-        assert_ok!(NftAuctionModule::update_auction(0, AuctionInfo {
-            bid: None,
-            start: 200,
-            end: Some(300),
-        }));
-        assert_noop!(NftAuctionModule::bid(bidder_origin.clone(), 0, 1000),Error::<Runtime>::AuctionNotStarted);
+        // call create_auction
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::BuyNow, ItemId::NFT(0), None, BOB, 150, 0));
+        
+        // no auction id 
+        assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 1, 150),Error::<Runtime>::AuctionNotExist);
+        // user is seller
+        assert_noop!(NftAuctionModule::buy_now(owner.clone(), 0, 150),Error::<Runtime>::CannotBidOnOwnAuction);
+        //buy it now value is less than buy_now_amount
+        assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 100),Error::<Runtime>::InvalidBuyItNowPrice);
+        //buy it now value is more than buy_now_amount
+        assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 200),Error::<Runtime>::InvalidBuyItNowPrice);
+        // user does not have enough balance in wallet
+        assert_ok!(Balances::reserve(&ALICE, 100000));
+        assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 150),Error::<Runtime>::InsufficientFunds);
+        assert_eq!(Balances::unreserve(&ALICE, 100000), 0);
+        //auction has not started or is over
+        System::set_block_number(0);
+        assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 150),Error::<Runtime>::AuctionNotStarted);
+        System::set_block_number(101);
+        assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 150),Error::<Runtime>::AuctionIsExpired);
     });
 }
+
+#[test]
+// Private bid_auction should work
+fn invalid_auction_type() {
+    ExtBuilder::default().build().execute_with(|| {
+        let owner = Origin::signed(BOB);
+        init_test_nft(owner.clone());
+        let participant = Origin::signed(ALICE);
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::BuyNow, ItemId::NFT(0), None, BOB, 150, 0));
+        assert_noop!(NftAuctionModule::bid(participant.clone(), 0, 200), Error::<Runtime>::InvalidAuctionType);
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 150, 0));
+        assert_noop!(NftAuctionModule::buy_now(participant.clone(), 1, 150),Error::<Runtime>::InvalidAuctionType);
+    });
+}
+

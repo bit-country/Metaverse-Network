@@ -190,7 +190,7 @@ decl_event!(
 
 decl_error! {
     pub enum Error for Module<T: Config> {
-        /// Attempted to initialize the country after it had already been initialized.
+        /// Attempted to initialize the bitcountry after it had already been initialized.
         AlreadyInitialized,
         //Asset Info not found
         AssetInfoNotFound,
@@ -324,14 +324,16 @@ decl_module! {
                         &sender,
                         |asset_ids| -> DispatchResult {
                             // Check if the asset_id already in the owner
-                            ensure!(asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
+                            ensure!(!asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
                             asset_ids.push(asset_id);
                             Ok(())
                         }
                     )?;
                 }
                 else{
-                    AssetsByOwner::<T>::insert(&sender, Vec::<AssetId>::new())
+                    let mut assets = Vec::<AssetId>::new();
+                    assets.push(asset_id);
+                    AssetsByOwner::<T>::insert(&sender, assets)
                 }
 
                 let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
@@ -348,6 +350,7 @@ decl_module! {
 
             let sender = ensure_signed(origin)?;
 
+            //FIXME asset transfer should be reverted once it's locked in Auction
             let token_id = Self::do_transfer(&sender, &to, asset_id)?;
 
             Self::deposit_event(RawEvent::TransferedNft(sender, to, token_id));
@@ -374,11 +377,8 @@ decl_module! {
                     TokenType::Transferrable => {
                         let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
                         ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
-
                         Self::handle_asset_ownership_transfer(&owner, &item.0, item.1);
-
                         NftModule::<T>::transfer(&owner, &item.0, (asset.0, asset.1))?;
-
                         Self::deposit_event(RawEvent::TransferedNft(owner.clone(), item.0.clone(), asset.1.clone()));
                     }
                     _ => ()
@@ -446,7 +446,9 @@ impl<T: Config> Module<T> {
                 Ok(())
             })?;
         } else {
-            AssetsByOwner::<T>::insert(&to, Vec::<AssetId>::new());
+            let mut asset_ids = Vec::<AssetId>::new();
+            asset_ids.push(asset_id);
+            AssetsByOwner::<T>::insert(&to, asset_ids);
         }
 
         Ok(())

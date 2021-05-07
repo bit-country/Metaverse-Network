@@ -17,6 +17,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     MultiSignature,
@@ -26,6 +27,8 @@ use sp_runtime::RuntimeDebug;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+
+pub mod continuum;
 
 /// An index to a block.
 pub type BlockNumber = u64;
@@ -51,13 +54,17 @@ pub type CurrencyId = u32;
 pub type GroupCollectionId = u64;
 /// AssetId for all NFT and FT
 pub type AssetId = u64;
+/// AuctionId
+pub type AuctionId = u64;
+/// SpotId
+pub type SpotId = u64;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
     NFT(AssetId),
-    Spot(u64),
+    Spot(u64, CountryId),
     Country(CountryId),
     Block(u64),
 }
