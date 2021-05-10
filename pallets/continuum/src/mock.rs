@@ -190,6 +190,7 @@ impl ExtBuilder {
         continuum::GenesisConfig::<Runtime> {
             initial_active_session: 0,
             initial_auction_rate: 5,
+            initial_max_bound: (-100, 100),
         }
             .assimilate_storage((&mut t))
             .unwrap();
