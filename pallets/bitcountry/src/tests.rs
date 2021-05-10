@@ -38,7 +38,7 @@ fn create_country_should_work() {
                 currency_id: Default::default(),
             })
         );
-        let event = Event::bitcountry(RawEvent::NewCountryCreated(COUNTRY_ID));
+        let event = Event::bitcountry(crate::Event::NewCountryCreated(COUNTRY_ID));
         assert_eq!(last_event(), event);
     });
 }
@@ -65,7 +65,7 @@ fn transfer_country_should_work() {
             BOB,
             COUNTRY_ID
         ));
-        let event = Event::bitcountry(RawEvent::TransferredCountry(COUNTRY_ID, ALICE, BOB));
+        let event = Event::bitcountry(crate::Event::TransferredCountry(COUNTRY_ID, ALICE, BOB));
         assert_eq!(last_event(), event);
         //Make sure 2 ways transfer works
         assert_ok!(CountryModule::transfer_country(
@@ -73,7 +73,7 @@ fn transfer_country_should_work() {
             ALICE,
             COUNTRY_ID
         ));
-        let event = Event::bitcountry(RawEvent::TransferredCountry(COUNTRY_ID, BOB, ALICE));
+        let event = Event::bitcountry(crate::Event::TransferredCountry(COUNTRY_ID, BOB, ALICE));
         assert_eq!(last_event(), event);
     })
 }
@@ -100,7 +100,7 @@ fn freeze_country_should_work() {
             vec![1]
         ));
         assert_ok!(CountryModule::freeze_country(Origin::root(), COUNTRY_ID));
-        let event = Event::bitcountry(RawEvent::CountryFreezed(COUNTRY_ID));
+        let event = Event::bitcountry(crate::Event::CountryFreezed(COUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }
@@ -128,10 +128,10 @@ fn unfreeze_country_should_work() {
             vec![1]
         ));
         assert_ok!(CountryModule::freeze_country(Origin::root(), COUNTRY_ID));
-        let event = Event::bitcountry(RawEvent::CountryFreezed(COUNTRY_ID));
+        let event = Event::bitcountry(crate::Event::CountryFreezed(COUNTRY_ID));
         assert_eq!(last_event(), event);
         assert_ok!(CountryModule::unfreeze_country(Origin::root(), COUNTRY_ID));
-        let event = Event::bitcountry(RawEvent::CountryUnFreezed(COUNTRY_ID));
+        let event = Event::bitcountry(crate::Event::CountryUnFreezed(COUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }
@@ -144,7 +144,7 @@ fn destroy_country_should_work() {
             vec![1]
         ));
         assert_ok!(CountryModule::destroy_country(Origin::root(), COUNTRY_ID));
-        let event = Event::bitcountry(RawEvent::CountryDestroyed(COUNTRY_ID));
+        let event = Event::bitcountry(crate::Event::CountryDestroyed(COUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }

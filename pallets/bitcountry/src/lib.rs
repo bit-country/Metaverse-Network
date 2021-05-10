@@ -18,17 +18,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
-    traits::Get, StorageMap, StorageValue,
-};
-use frame_system::{self as system, ensure_root, ensure_signed};
+use frame_support::ensure;
+use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, CountryId, CurrencyId};
-use sp_runtime::{
-    traits::{AccountIdConversion, One},
-    DispatchError, ModuleId, RuntimeDebug,
-};
+use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
 use sp_std::vec::Vec;
+use frame_support::pallet_prelude::*;
+use frame_system::pallet_prelude::*;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct CountryAssetData {
@@ -56,42 +52,73 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub trait Config: system::Config {
-    type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
-    type ModuleId: Get<ModuleId>;
-}
+pub use pallet::*;
 
-decl_storage! {
-    trait Store for Module<T: Config> as Country {
+#[frame_support::pallet]
+pub mod pallet {
+    use super::*;
 
-        pub NextCountryId get(fn next_country_id): CountryId;
-        pub Countries get(fn get_country): map hasher(twox_64_concat) CountryId => Option<Country<T::AccountId>>;
-        pub CountryOwner get(fn get_country_owner): double_map hasher(twox_64_concat) CountryId, hasher(twox_64_concat) T::AccountId => Option<()>;
-        pub AllCountriesCount get(fn all_countries_count): u64;
-        pub CountryTresury get (fn get_country_treasury): map hasher(twox_64_concat) CountryId => Option<CountryFund<T::AccountId, Balance>>;
-        pub FreezingCountries get (fn get_freezing_country): map hasher(twox_64_concat) CountryId => Option<()>;
+    #[pallet::pallet]
+    #[pallet::generate_store(trait Store)]
+    pub struct Pallet<T>(PhantomData<T>);   
+    
+    #[pallet::config]
+    pub trait Config: frame_system::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-        Init get(fn is_init): bool;
-
-        Nonce get(fn nonce): u32;
+        #[pallet::constant]
+        type ModuleId: Get<ModuleId>;
     }
-}
+    
+    #[pallet::storage]
+    #[pallet::getter(fn next_country_id)]
+    pub type NextCountryId<T: Config> = StorageValue<_, CountryId, ValueQuery>;
+    
+    #[pallet::storage]
+    #[pallet::getter(fn get_country)]
+    pub type Countries<T: Config> = 
+        StorageMap<_, Twox64Concat, CountryId, Country<T::AccountId>, OptionQuery>;
+    
+    #[pallet::storage]
+    #[pallet::getter(fn get_country_owner)]
+    pub type CountryOwner<T: Config> = 
+        StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, T::AccountId, (), OptionQuery>;
 
-decl_event!(
-    pub enum Event<T>
-    where
-        AccountId = <T as system::Config>::AccountId,
-    {
+    #[pallet::storage]
+    #[pallet::getter(fn all_countries_count)]
+    pub(super) type AllCountriesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+    
+    #[pallet::storage]
+    #[pallet::getter(fn get_country_treasury)]
+    pub type CountryTresury<T: Config> = 
+        StorageMap<_, Twox64Concat, CountryId, CountryFund<T::AccountId, Balance>, OptionQuery>;
+    
+    #[pallet::storage]
+    #[pallet::getter(fn get_freezing_country)]
+    pub(super) type FreezingCountries<T: Config> = 
+        StorageMap<_, Twox64Concat, CountryId, (), OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn is_init)]
+    pub(super) type Init<T: Config> = StorageValue<_, bool, ValueQuery>;
+    
+    #[pallet::storage]
+    #[pallet::getter(fn nonce)]
+    pub(super) type Nonce<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    #[pallet::metadata(T::AccountId = "AccountId")]
+    pub enum Event<T: Config> {        
         NewCountryCreated(CountryId),
-        TransferredCountry(CountryId, AccountId, AccountId),
+        TransferredCountry(CountryId, T::AccountId, T::AccountId),
         CountryFreezed(CountryId),
         CountryDestroyed(CountryId),
         CountryUnFreezed(CountryId),
     }
-);
 
-decl_error! {
-    pub enum Error for Module<T: Config> {
+    #[pallet::error]
+	pub enum Error<T> {
         //Country Info not found
         CountryInfoNotFound,
         //Country Id not found
@@ -101,14 +128,12 @@ decl_error! {
         //No available bitcountry id
         NoAvailableCountryId,
     }
-}
 
-decl_module! {
-    pub struct Module<T: Config> for enum Call where origin: T::Origin {
-        fn deposit_event() = default;
-
-        #[weight = 10_000]
-        fn create_country(origin, metadata: Vec<u8>) -> DispatchResult {
+    #[pallet::call]
+	impl<T: Config> Pallet<T> {
+        //#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[pallet::weight(10_000)]
+        pub(super) fn create_country(origin: OriginFor<T>, metadata: Vec<u8>) -> DispatchResultWithPostInfo {
 
             let owner = ensure_signed(origin)?;
 
@@ -131,25 +156,25 @@ decl_module! {
             let total_country_count = Self::all_countries_count();
 
             let new_total_country_count = total_country_count.checked_add(One::one()).ok_or("Overflow adding new count to total bitcountry")?;
-            AllCountriesCount::put(new_total_country_count);
-            Self::deposit_event(RawEvent::NewCountryCreated(country_id.clone()));
+            AllCountriesCount::<T>::put(new_total_country_count);
+            Self::deposit_event(Event::<T>::NewCountryCreated(country_id.clone()));
 
-            Ok(())
+            Ok(().into())
         }
 
-        #[weight = 100_000]
-        fn transfer_country(origin, to: T::AccountId, country_id: CountryId) -> DispatchResult {
+        #[pallet::weight(10_000)]
+        pub(super) fn transfer_country(origin: OriginFor<T>, to: T::AccountId, country_id: CountryId) -> DispatchResultWithPostInfo {
 
             let who = ensure_signed(origin)?;
             // Get owner of the bitcountry
             CountryOwner::<T>::try_mutate_exists(
-                &country_id, &who, |country_by_owner| -> DispatchResult {
+                &country_id, &who, |country_by_owner| -> DispatchResultWithPostInfo {
                     //ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
                     ensure!(country_by_owner.is_some(), Error::<T>::NoPermission);
 
                     if who == to {
                         // no change needed
-                        return Ok(());
+                        return Ok(().into());
                     }
 
                     *country_by_owner = None;
@@ -157,56 +182,59 @@ decl_module! {
 
                     Countries::<T>::try_mutate_exists(
                         &country_id,
-                        |country| -> DispatchResult{
+                        |country| -> DispatchResultWithPostInfo{
                             let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
                             country_record.owner = to.clone();
-                            Self::deposit_event(RawEvent::TransferredCountry(country_id, who.clone(), to.clone()));
+                            Self::deposit_event(Event::<T>::TransferredCountry(country_id, who.clone(), to.clone()));
 
-                            Ok(())
+                            Ok(().into())
                         }
                     )
             })
         }
 
-        #[weight = 10_000]
-        fn freeze_country(origin, country_id: CountryId) -> DispatchResult {
+        #[pallet::weight(10_000)]
+        pub(super) fn freeze_country(origin: OriginFor<T>, country_id: CountryId) -> DispatchResultWithPostInfo {
             //Only Council can free a bitcountry
             ensure_root(origin)?;
 
-            FreezingCountries::insert(country_id, ());
-            Self::deposit_event(RawEvent::CountryFreezed(country_id));
+            FreezingCountries::<T>::insert(country_id, ());
+            Self::deposit_event(Event::<T>::CountryFreezed(country_id));
 
-            Ok(())
+            Ok(().into())
         }
 
-        #[weight = 10_000]
-        fn unfreeze_country(origin, country_id: CountryId) -> DispatchResult {
+        #[pallet::weight(10_000)]
+        pub(super) fn unfreeze_country(origin: OriginFor<T>, country_id: CountryId) -> DispatchResultWithPostInfo {
             //Only Council can free a bitcountry
             ensure_root(origin)?;
 
-            FreezingCountries::try_mutate(country_id, |freeze_country| -> DispatchResult{
+            FreezingCountries::<T>::try_mutate(country_id, |freeze_country| -> DispatchResultWithPostInfo{
                 ensure!(freeze_country.take().is_some(), Error::<T>::CountryInfoNotFound);
 
-                Self::deposit_event(RawEvent::CountryUnFreezed(country_id));
-                Ok(())
+                Self::deposit_event(Event::<T>::CountryUnFreezed(country_id));
+                Ok(().into())
             })
         }
 
-        #[weight = 10_000]
-        fn destroy_country(origin, country_id: CountryId) -> DispatchResult {
+        #[pallet::weight(10_000)]
+        pub(super) fn destroy_country(origin: OriginFor<T>, country_id: CountryId) -> DispatchResultWithPostInfo {
             //Only Council can destroy a bitcountry
             ensure_root(origin)?;
 
-            Countries::<T>::try_mutate(country_id, |country_info| -> DispatchResult{
+            Countries::<T>::try_mutate(country_id, |country_info| -> DispatchResultWithPostInfo{
                 let t = country_info.take().ok_or(Error::<T>::CountryInfoNotFound)?;
 
                 CountryOwner::<T>::remove(&country_id, t.owner.clone());
-                Self::deposit_event(RawEvent::CountryDestroyed(country_id));
+                Self::deposit_event(Event::<T>::CountryDestroyed(country_id));
 
-                Ok(())
+                Ok(().into())
             })
         }
-    }
+    }    
+
+    #[pallet::hooks]
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Module<T> {
@@ -214,7 +242,7 @@ impl<T: Config> Module<T> {
     /// the encoded nonce to the caller.
 
     fn new_country(owner: &T::AccountId, metadata: Vec<u8>) -> Result<CountryId, DispatchError> {
-        let country_id = NextCountryId::try_mutate(|id| -> Result<CountryId, DispatchError> {
+        let country_id = NextCountryId::<T>::try_mutate(|id| -> Result<CountryId, DispatchError> {
             let current_id = *id;
             *id = id
                 .checked_add(One::one())
