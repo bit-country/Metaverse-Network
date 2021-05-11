@@ -56,4 +56,4 @@ RUN mkdir /bitCountry/data
 
 VOLUME ["/bitCountry/data"]
 
-CMD ["/usr/local/bin/bitcountry-node"]
+ENTRYPOINT ["/usr/local/bin/bitcountry-node"]
