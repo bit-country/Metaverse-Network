@@ -149,3 +149,23 @@ fn rotate_session_should_work() {
         }
     })
 }
+
+#[test]
+fn buy_now_continuum_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let root = Origin::root();
+
+        //Enable Allow BuyNow
+        assert_ok!(ContinuumModule::set_allow_buy_now(root, true));
+        assert_ok!(ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0,1), COUNTRY_ID));
+    })
+}
+
+#[test]
+fn buy_now_continuum_should_fail_if_buy_now_setting_is_disabled() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0,1), COUNTRY_ID),
+        Error::<Runtime>::ContinuumBuyNowIsDisabled
+        );
+    })
+}

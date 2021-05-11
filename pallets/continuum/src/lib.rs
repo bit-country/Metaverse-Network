@@ -113,6 +113,7 @@ pub mod pallet {
     pub struct GenesisConfig<T: Config> {
         pub initial_active_session: T::BlockNumber,
         pub initial_auction_rate: u8,
+        pub initial_max_bound: (i32, i32),
     }
 
     #[cfg(feature = "std")]
@@ -121,6 +122,7 @@ pub mod pallet {
             GenesisConfig {
                 initial_active_session: Default::default(),
                 initial_auction_rate: Default::default(),
+                initial_max_bound: Default::default(),
             }
         }
     }
@@ -136,6 +138,7 @@ pub mod pallet {
             EOISlots::<T>::insert(self.initial_active_session, eoi_slots);
             GNPSlots::<T>::insert(self.initial_active_session, gnp_slots);
             ActiveAuctionSlots::<T>::insert(self.initial_active_session, active_auction_slots);
+            MaxBound::<T>::set(self.initial_max_bound);
         }
     }
 
@@ -219,6 +222,10 @@ pub mod pallet {
     #[pallet::getter(fn allow_buy_now)]
     pub type AllowBuyNow<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn initial_spot_price)]
+    pub type SpotPrice<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub (crate) fn deposit_event)]
     pub enum Event<T: Config> {
@@ -256,6 +263,10 @@ pub mod pallet {
         SpotIsOutOfBound,
         /// Continuum Spot is not found
         ContinuumSpotNotFound,
+        /// Insufficient fund to buy
+        InsufficientFund,
+        /// Continuum Buynow is disable
+        ContinuumBuyNowIsDisabled,
     }
 
 
@@ -264,20 +275,29 @@ pub mod pallet {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn buy_continuum_spot(origin: OriginFor<T>, coordinate: (i32, i32), country_id: CountryId) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            //TODO check if owner own county
-            ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumSpotNotFound);
+            //TODO check if owner own country
+            ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
             let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
+            let continuum_price_spot = SpotPrice::<T>::get();
 
             let continuum_treasury = Self::account_id();
             //Define how many NUUM for continuum spot - default 1 NUUM - need to change to variable
-            ensure!(T::Currency::free_balance(sender) > 1_000_000_000_000_000_000);
-            T::Currency::transfer(sender, continuum_treasury, 1_000_000_000_000_000_000, ExistenceRequirement::KeepAlive);
+            ensure!(T::Currency::free_balance(&sender) > continuum_price_spot, Error::<T>::InsufficientFund);
+            T::Currency::transfer(&sender, &continuum_treasury, continuum_price_spot, ExistenceRequirement::KeepAlive);
 
-            Self::transfer_spot(spot_id, &continuum_treasury, &(sender, country_id));
+            Self::do_transfer_spot(spot_id, &continuum_treasury, &(sender, country_id));
 
             Ok(().into())
         }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn set_allow_buy_now(origin: OriginFor<T>, enable: bool) -> DispatchResultWithPostInfo {
+            ensure_root(origin)?;
+            AllowBuyNow::<T>::set(enable);
+            Ok(().into())
+        }
+
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn register_interest(origin: OriginFor<T>, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
@@ -596,7 +616,7 @@ impl<T: Config> Pallet<T>
         ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound.into())
     }
 
-    pub fn transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
+    pub fn do_transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
         Self::transfer_spot(spot_id, from, to)
     }
 
@@ -612,7 +632,7 @@ impl<T: Config> Pallet<T>
             None => {
                 //Insert continuum spot as it's empty
                 let max_bound = MaxBound::<T>::get();
-                ensure!((coordinate.0 >= max_bound.0 && coordinate.1 >= max_bound.1) && (coordinate.0 <= max_bound.1 && coordinate.1 <= max_bound.1), Error::<T>::SpotIsOutOfBound);
+                ensure!(( coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0) && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1), Error::<T>::SpotIsOutOfBound);
 
                 let spot = ContinuumSpot {
                     x: coordinate.0,
