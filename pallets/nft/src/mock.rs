@@ -98,7 +98,6 @@ impl orml_nft::Config for Runtime {
     type TokenData = nft::NftAssetData<Balance>;
 }
 
-use frame_system::Call as SystemCall;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;

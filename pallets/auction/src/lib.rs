@@ -26,13 +26,18 @@ pub mod pallet {
     use frame_system::pallet_prelude::OriginFor;
     use super::*;
 
-    pub(crate) type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
-    pub(crate) type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
-    pub(crate) type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+    #[pallet::pallet]
+    #[pallet::generate_store(pub(super) trait Store)]
+    pub struct Pallet<T>(PhantomData<T>);   
+
+    pub(super) type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
+    pub(super) type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
+    pub(super) type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_nft::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        #[pallet::constant]
         type AuctionTimeToClose: Get<Self::BlockNumber>;
         /// The `AuctionHandler` that allow custom bidding logic and handles auction result
         type Handler: AuctionHandler<Self::AccountId, BalanceOf<Self>, Self::BlockNumber, AuctionId>;
@@ -44,25 +49,25 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn auctions)]
     /// Stores on-going and future auctions. Closed auction are removed.
-    pub type Auctions<T: Config> = StorageMap<_, Twox64Concat, AuctionId, AuctionInfo<T::AccountId, BalanceOf<T>, T::BlockNumber>, OptionQuery>;
+    pub(super) type Auctions<T: Config> = StorageMap<_, Twox64Concat, AuctionId, AuctionInfo<T::AccountId, BalanceOf<T>, T::BlockNumber>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_auction_item)]
     //Store asset with Auction
-    pub type AuctionItems<T: Config> = StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
+    pub(super) type AuctionItems<T: Config> = StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
     
     #[pallet::storage]
     #[pallet::getter(fn auctions_index)]
     /// Track the next auction ID.
-    pub type AuctionsIndex<T: Config> = StorageValue<_, AuctionId, ValueQuery>;
+    pub(super) type AuctionsIndex<T: Config> = StorageValue<_, AuctionId, ValueQuery>;
     
     #[pallet::storage]
     #[pallet::getter(fn auction_end_time)]
     /// Index auctions by end time.
-    pub type AuctionEndTime<T: Config> = StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
+    pub(super) type AuctionEndTime<T: Config> = StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
     
     #[pallet::event]
-    #[pallet::generate_deposit(pub (crate) fn deposit_event)]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
     #[pallet::metadata()]
     pub enum Event<T: Config> {
         /// A bid is placed. [auction_id, bidder, bidding_amount]
@@ -75,7 +80,7 @@ pub mod pallet {
     #[pallet::call]
 	impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn bid(origin: OriginFor<T>, id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
+        pub(super) fn bid(origin: OriginFor<T>, id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
 
             let auction_item = Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;     
@@ -122,7 +127,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
+        pub(super) fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
 
             let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;  
@@ -175,7 +180,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn create_new_auction(origin: OriginFor<T>, item_id: ItemId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
+        pub(super) fn create_new_auction(origin: OriginFor<T>, item_id: ItemId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
 
             let start_time: T::BlockNumber = <system::Module<T>>::block_number();
@@ -188,7 +193,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn create_new_buy_now(origin: OriginFor<T>, item_id: ItemId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
+        pub(super) fn create_new_buy_now(origin: OriginFor<T>, item_id: ItemId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
 
             let start_time: T::BlockNumber = <system::Module<T>>::block_number();
@@ -272,10 +277,7 @@ pub mod pallet {
         InvalidBuyItNowPrice,
         InsufficientFunds,
         InvalidAuctionType,
-	}
-
-    #[pallet::pallet]
-    pub struct Pallet<T>(PhantomData<T>);   
+	}    
 
     impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
         type Balance = BalanceOf<T>;
