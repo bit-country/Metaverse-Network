@@ -1,4 +1,4 @@
-name: BitCountry Test
+name: BitCountry Build & Test
 
 on:
   pull_request:
@@ -8,30 +8,32 @@ on:
     branches:
       - master
 
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  check:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-20.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      - name: Cache cargo
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo
-      - name: Setup toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          components: rustfmt
-          target: wasm32-unknown-unknown
-          default: true
-      - name: Install Wasm toolchain
-        run: rustup target add wasm32-unknown-unknown nightly
-      - name: Build project
-        run: cargo build
+
+      - name: Set-Up
+        run: sudo apt install -y cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
+
+      - name: Install Rustup
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          source ~/.cargo/env
+          rustup default stable
+          rustup update nightly
+          rustup update stable
+          rustup target add wasm32-unknown-unknown --toolchain nightly
+      - name: Check Build
+        run: |
+          SKIP_WASM_BUILD=1 cargo check --release
       - name: Run tests
         run: cargo test
