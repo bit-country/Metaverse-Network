@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Cache cargo
@@ -25,12 +25,12 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2021-04-24
+          toolchain: nightly-2021-03-04
+          components: rustfmt
           target: wasm32-unknown-unknown
-          override: true
           default: true
       - name: Install Wasm toolchain
-        run: rustup target add wasm32-unknown-unknown nightly-2021-04-24
+        run: rustup target add wasm32-unknown-unknown nightly-2021-03-04
       - name: Build project
         run: cargo build
       - name: Run tests
