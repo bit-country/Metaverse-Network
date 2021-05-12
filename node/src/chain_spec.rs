@@ -171,11 +171,11 @@ pub fn tewai_testnet_config() -> Result<ChainSpec, String> {
                     ),
                 ],
                 // Sudo account
-                hex!["788dddd00a4c5ce1575fe9c11dee9a781455b516ee424885d4b50c2f49862a35"].into(),
+                hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"].into(),
                 // Pre-funded accounts
                 vec![
                     /* Sudo Account */
-                    hex!["788dddd00a4c5ce1575fe9c11dee9a781455b516ee424885d4b50c2f49862a35"].into(),
+                    hex!["c0568109deb73ec388a329981e589a8d9baccd64a14107468aefae8806a70f2e"].into(),
                 ],
                 true,
             )
