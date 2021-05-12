@@ -20,7 +20,6 @@
 use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
-use pallet_nft::RawEvent;
 
 #[test]
 // Private test continuum pallet to ensure mocking and unit tests working
