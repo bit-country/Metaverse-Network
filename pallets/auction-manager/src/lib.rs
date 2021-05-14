@@ -44,7 +44,7 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
     /// Auction start time
     pub start_time: BlockNumber,
     pub end_time: BlockNumber,
-    pub auction_type: AuctionType
+    pub auction_type: AuctionType,
 }
 
 /// Auction info.
@@ -93,8 +93,6 @@ pub trait Auction<AccountId, BlockNumber> {
 
     /// Remove auction by `id`
     fn remove_auction(id: AuctionId);
-
-    fn swap_bidders(new_bidder: &AccountId, last_bidder: Option<&AccountId>);
 
     fn auction_bid_handler(
         _now: BlockNumber,

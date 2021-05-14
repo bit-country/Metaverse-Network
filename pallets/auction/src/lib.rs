@@ -413,16 +413,6 @@ pub mod pallet {
             }
         }
 
-        /// increment `new_bidder` reference and decrement `last_bidder` reference
-        /// if any
-        fn swap_bidders(new_bidder: &T::AccountId, last_bidder: Option<&T::AccountId>) {
-            system::Module::<T>::inc_consumers(new_bidder);
-
-            if let Some(who) = last_bidder {
-                system::Module::<T>::dec_consumers(who);
-            }
-        }
-
         fn auction_bid_handler(
             _now: T::BlockNumber,
             id: AuctionId,

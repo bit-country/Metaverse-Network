@@ -36,9 +36,8 @@ pub mod default_weight;
 pub use default_weight::WeightInfo;
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
-pub struct NftGroupCollectionData<AccountId> {
+pub struct NftGroupCollectionData {
     pub name: Vec<u8>,
-    pub owner: AccountId,
     // Metadata from ipfs
     pub properties: Vec<u8>,
 }
@@ -177,7 +176,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_group_collection)]
     pub(super) type GroupCollections<T: Config> =
-    StorageMap<_, Blake2_128Concat, GroupCollectionId, NftGroupCollectionData<T::AccountId>, OptionQuery>;
+    StorageMap<_, Blake2_128Concat, GroupCollectionId, NftGroupCollectionData, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_class_collection)]
@@ -209,7 +208,7 @@ pub mod pallet {
     )]
     pub enum Event<T: Config> {
         //New NFT Group Collection created
-        NewNftCollectionCreated(<T as frame_system::Config>::AccountId, GroupCollectionId),
+        NewNftCollectionCreated(GroupCollectionId),
         //New NFT Collection/Class created
         NewNftClassCreated(<T as frame_system::Config>::AccountId, ClassIdOf<T>),
         //Emit event when new nft minted - show the first and last asset mint
@@ -250,12 +249,10 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
         pub fn create_group(origin: OriginFor<T>, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin)?;
-
-            let next_group_collection_id = Self::do_create_group_collection(&sender, name.clone(), properties.clone())?;
+            ensure_root(origin)?;
+            let next_group_collection_id = Self::do_create_group_collection(name.clone(), properties.clone())?;
 
             let collection_data = NftGroupCollectionData {
-                owner: sender.clone(),
                 name,
                 properties,
             };
@@ -266,9 +263,9 @@ pub mod pallet {
             let new_all_nft_collection_count = all_collection_count.checked_add(One::one())
                 .ok_or("Overflow adding a new collection to total collection")?;
 
-            AllNftGroupCollection::<T>::put(new_all_nft_collection_count);
+            AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
-            Self::deposit_event(Event::<T>::NewNftCollectionCreated(sender, next_group_collection_id));
+            Self::deposit_event(Event::<T>::NewNftCollectionCreated(next_group_collection_id));
             Ok(().into())
         }
 
@@ -277,9 +274,6 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
 
-            let collection_info = Self::get_group_collection(collection_id).ok_or(Error::<T>::CollectionIsNotExist)?;
-
-            ensure!(sender == collection_info.owner, Error::<T>::NoPermission);
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
@@ -415,7 +409,6 @@ pub mod pallet {
 
 impl<T: Config> Module<T> {
     fn do_create_group_collection(
-        sender: &T::AccountId,
         name: Vec<u8>,
         properties: Vec<u8>,
     ) -> Result<GroupCollectionId, DispatchError> {
@@ -431,9 +424,8 @@ impl<T: Config> Module<T> {
             },
         )?;
 
-        let collection_data = NftGroupCollectionData::<T::AccountId> {
+        let collection_data = NftGroupCollectionData {
             name,
-            owner: sender.clone(),
             properties,
         };
 
