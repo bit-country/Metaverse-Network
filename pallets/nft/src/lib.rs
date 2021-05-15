@@ -6,18 +6,15 @@
 
 use codec::{Decode, Encode};
 use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage,
-    dispatch::{DispatchResult, DispatchResultWithPostInfo},
-    ensure,
-    traits::{Currency, ExistenceRequirement, Get, Randomness, ReservableCurrency},
-    weights::Weight,
-    StorageMap, StorageValue,
+    ensure, dispatch::{DispatchResult, DispatchResultWithPostInfo},
+    traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
+    pallet_prelude::*,
 };
 use primitives::Balance;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-use frame_system::ensure_signed;
+use frame_system::pallet_prelude::*;
 use orml_nft::Pallet as NftModule;
 use primitives::{AssetId, GroupCollectionId};
 use sp_runtime::RuntimeDebug;
@@ -32,15 +29,15 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub use pallet::*;
+
 pub mod default_weight;
 
 pub use default_weight::WeightInfo;
 
-
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
-pub struct NftGroupCollectionData<AccountId> {
+pub struct NftGroupCollectionData {
     pub name: Vec<u8>,
-    pub owner: AccountId,
     // Metadata from ipfs
     pub properties: Vec<u8>,
 }
@@ -71,14 +68,14 @@ pub struct NftAssetData<Balance> {
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenType {
-    Transferrable,
+    Transferable,
     BoundToAddress,
 }
 
 impl TokenType {
-    pub fn is_transferrable(&self) -> bool {
+    pub fn is_transferable(&self) -> bool {
         match *self {
-            TokenType::Transferrable => true,
+            TokenType::Transferable => true,
             _ => false,
         }
     }
@@ -86,7 +83,7 @@ impl TokenType {
 
 impl Default for TokenType {
     fn default() -> Self {
-        TokenType::Transferrable
+        TokenType::Transferable
     }
 }
 
@@ -128,68 +125,102 @@ impl Default for CollectionType {
     }
 }
 
+pub use pallet::*;
 
-pub trait Config:
-frame_system::Config +
-orml_nft::Config<
-    TokenData=NftAssetData<BalanceOf<Self>>,
-    ClassData=NftClassData<BalanceOf<Self>>,
->
-{
-    type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
-    /// The minimum balance to create class
-    type CreateClassDeposit: Get<BalanceOf<Self>>;
-    /// The minimum balance to create token
-    type CreateAssetDeposit: Get<BalanceOf<Self>>;
-    // Currency type for reserve/unreserve balance
-    type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-    //NFT Module Id
-    type ModuleId: Get<ModuleId>;
-    // Weight info
-    type WeightInfo: WeightInfo;
-}
+#[frame_support::pallet]
+pub mod pallet {
+    use super::*;
 
-type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
-type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
-type BalanceOf<T> =
-<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+    #[pallet::pallet]
+    pub struct Pallet<T>(PhantomData<T>);
 
-decl_storage! {
-    trait Store for Module<T: Config> as NftAsset {
-
-        pub Assets get(fn get_asset): map hasher(blake2_128_concat) AssetId => Option<(ClassIdOf<T>, TokenIdOf<T>)>;
-        pub AssetsByOwner get (fn get_assets_by_owner): map hasher(blake2_128_concat) T::AccountId => Vec<AssetId>;
-        pub GroupCollections get(fn get_group_collection): map hasher(blake2_128_concat) GroupCollectionId => Option<NftGroupCollectionData<T::AccountId>>;
-        pub ClassDataCollection get(fn get_class_collection): map hasher(blake2_128_concat) ClassIdOf<T> => GroupCollectionId;
-        pub NextGroupCollectionId get(fn next_group_collection_id): u64;
-        pub AllNftGroupCollection get(fn all_nft_collection_count): u64;
-        pub ClassDataType get(fn get_class_type): map hasher(blake2_128_concat) ClassIdOf<T> => TokenType;
-        pub NextAssetId get(fn next_asset_id): AssetId;
-    }
-}
-
-decl_event!(
-    pub enum Event<T>
-    where
-        <T as frame_system::Config>::AccountId,
-        ClassId = ClassIdOf<T>,
-        TokenId = TokenIdOf<T>,
+    #[pallet::config]
+    pub trait Config:
+    frame_system::Config +
+    orml_nft::Config<
+        TokenData=NftAssetData<BalanceOf<Self>>,
+        ClassData=NftClassData<BalanceOf<Self>>,
+    >
     {
-        //New NFT Group Collection created
-        NewNftCollectionCreated(AccountId, GroupCollectionId),
-        //New NFT Collection/Class created
-        NewNftClassCreated(AccountId, ClassId),
-        //Emit event when new nft minted - show the first and last asset mint
-        NewNftMinted(AssetId, AssetId, AccountId, ClassId, u32),
-        //Successfully transfer NFT
-        TransferedNft(AccountId, AccountId, TokenId),
-        //Signed on NFT
-        SignedNft(TokenId, AccountId),
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        /// The minimum balance to create class
+        #[pallet::constant]
+        type CreateClassDeposit: Get<BalanceOf<Self>>;
+        /// The minimum balance to create token
+        #[pallet::constant]
+        type CreateAssetDeposit: Get<BalanceOf<Self>>;
+        // Currency type for reserve/unreserve balance
+        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+        //NFT Module Id
+        #[pallet::constant]
+        type ModuleId: Get<ModuleId>;
+        // Weight info
+        type WeightInfo: WeightInfo;
     }
-);
 
-decl_error! {
-    pub enum Error for Module<T: Config> {
+    type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
+    type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
+    type BalanceOf<T> =
+    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_asset)]
+    pub(super) type Assets<T: Config> =
+    StorageMap<_, Blake2_128Concat, AssetId, (ClassIdOf<T>, TokenIdOf<T>), OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_assets_by_owner)]
+    pub(super) type AssetsByOwner<T: Config> =
+    StorageMap<_, Blake2_128Concat, T::AccountId, Vec<AssetId>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_group_collection)]
+    pub(super) type GroupCollections<T: Config> =
+    StorageMap<_, Blake2_128Concat, GroupCollectionId, NftGroupCollectionData, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_class_collection)]
+    pub(super) type ClassDataCollection<T: Config> =
+    StorageMap<_, Blake2_128Concat, ClassIdOf<T>, GroupCollectionId, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn next_group_collection_id)]
+    pub(super) type NextGroupCollectionId<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn all_nft_collection_count)]
+    pub(super) type AllNftGroupCollection<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_class_type)]
+    pub(super) type ClassDataType<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, TokenType, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn next_asset_id)]
+    pub(super) type NextAssetId<T: Config> = StorageValue<_, AssetId, ValueQuery>;
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub (super) fn deposit_event)]
+    #[pallet::metadata(
+    < T as frame_system::Config >::AccountId = "AccountId",
+    ClassIdOf < T > = "ClassId",
+    TokenIdOf < T > = "TokenId",
+    )]
+    pub enum Event<T: Config> {
+        //New NFT Group Collection created
+        NewNftCollectionCreated(GroupCollectionId),
+        //New NFT Collection/Class created
+        NewNftClassCreated(<T as frame_system::Config>::AccountId, ClassIdOf<T>),
+        //Emit event when new nft minted - show the first and last asset mint
+        NewNftMinted(AssetId, AssetId, <T as frame_system::Config>::AccountId, ClassIdOf<T>, u32),
+        //Successfully transfer NFT
+        TransferedNft(<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, TokenIdOf<T>),
+        //Signed on NFT
+        SignedNft(TokenIdOf<T>, <T as frame_system::Config>::AccountId),
+    }
+
+    #[pallet::error]
+    pub enum Error<T> {
         /// Attempted to initialize the bitcountry after it had already been initialized.
         AlreadyInitialized,
         //Asset Info not found
@@ -204,8 +235,8 @@ decl_error! {
         CollectionIsNotExist,
         //Class Id not found
         ClassIdNotFound,
-        //Non transferrable
-        NonTransferrable,
+        //Non Transferable
+        NonTransferable,
         //Invalid quantity
         InvalidQuantity,
         //No available asset id
@@ -213,23 +244,15 @@ decl_error! {
         //Asset Id is already exist
         AssetIdAlreadyExist,
     }
-}
 
-decl_module! {
-    pub struct Module<T: Config> for enum Call where origin: T::Origin {
-        type Error = Error<T>;
-
-        fn deposit_event() = default;
-
-        #[weight = 10_000]
-        pub fn create_group(origin, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo{
-
-            let sender = ensure_signed(origin)?;
-
-            let next_group_collection_id = Self::do_create_group_collection(&sender, name.clone(), properties.clone())?;
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000)]
+        pub fn create_group(origin: OriginFor<T>, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo {
+            ensure_root(origin)?;
+            let next_group_collection_id = Self::do_create_group_collection(name.clone(), properties.clone())?;
 
             let collection_data = NftGroupCollectionData {
-                owner: sender.clone(),
                 name,
                 properties,
             };
@@ -240,21 +263,17 @@ decl_module! {
             let new_all_nft_collection_count = all_collection_count.checked_add(One::one())
                 .ok_or("Overflow adding a new collection to total collection")?;
 
-            AllNftGroupCollection::put(new_all_nft_collection_count);
+            AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
-            Self::deposit_event(RawEvent::NewNftCollectionCreated(sender, next_group_collection_id));
+            Self::deposit_event(Event::<T>::NewNftCollectionCreated(next_group_collection_id));
             Ok(().into())
         }
 
-        #[weight = 10_000]
-        pub fn create_class(origin, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo{
-
+        #[pallet::weight(10_000)]
+        pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
 
-            let collection_info = Self::get_group_collection(collection_id).ok_or(Error::<T>::CollectionIsNotExist)?;
-
-            ensure!(sender == collection_info.owner, Error::<T>::NoPermission);
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
@@ -272,20 +291,20 @@ decl_module! {
                 token_type,
                 collection_type,
                 total_supply: Default::default(),
-                initial_supply: Default::default()
+                initial_supply: Default::default(),
             };
 
             NftModule::<T>::create_class(&sender, metadata, class_data)?;
             ClassDataCollection::<T>::insert(next_class_id, collection_id);
 
-            Self::deposit_event(RawEvent::NewNftClassCreated(sender, next_class_id));
+            Self::deposit_event(Event::<T>::NewNftClassCreated(sender, next_class_id));
 
             Ok(().into())
         }
 
-        #[weight = <T as Config>::WeightInfo::mint(*quantity)]
-        pub fn mint(origin, class_id: ClassIdOf<T>, name: Vec<u8>, description: Vec<u8>, metadata: Vec<u8>, quantity: u32) -> DispatchResultWithPostInfo {
 
+        #[pallet::weight(< T as Config >::WeightInfo::mint(* quantity))]
+        pub fn mint(origin: OriginFor<T>, class_id: ClassIdOf<T>, name: Vec<u8>, description: Vec<u8>, metadata: Vec<u8>, quantity: u32) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
             ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
@@ -308,9 +327,8 @@ decl_module! {
 
             let mut new_asset_ids: Vec<AssetId> = Vec::new();
 
-            for _ in 0..quantity{
-
-                let asset_id = NextAssetId::try_mutate(|id| -> Result<AssetId, DispatchError> {
+            for _ in 0..quantity {
+                let asset_id = NextAssetId::<T>::try_mutate(|id| -> Result<AssetId, DispatchError> {
                     let current_id = *id;
                     *id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableAssetId)?;
 
@@ -319,7 +337,7 @@ decl_module! {
 
                 new_asset_ids.push(asset_id);
 
-                if AssetsByOwner::<T>::contains_key(&sender){
+                if AssetsByOwner::<T>::contains_key(&sender) {
                     AssetsByOwner::<T>::try_mutate(
                         &sender,
                         |asset_ids| -> DispatchResult {
@@ -327,10 +345,9 @@ decl_module! {
                             ensure!(!asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
                             asset_ids.push(asset_id);
                             Ok(())
-                        }
+                        },
                     )?;
-                }
-                else{
+                } else {
                     let mut assets = Vec::<AssetId>::new();
                     assets.push(asset_id);
                     AssetsByOwner::<T>::insert(&sender, assets)
@@ -340,31 +357,28 @@ decl_module! {
                 Assets::<T>::insert(asset_id, (class_id, token_id));
             }
 
-            Self::deposit_event(RawEvent::NewNftMinted(*new_asset_ids.first().unwrap(), *new_asset_ids.last().unwrap(), sender, class_id, quantity));
+            Self::deposit_event(Event::<T>::NewNftMinted(*new_asset_ids.first().unwrap(), *new_asset_ids.last().unwrap(), sender, class_id, quantity));
 
             Ok(().into())
         }
 
-        #[weight = 100_000]
-        pub fn transfer(origin,  to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
-
+        #[pallet::weight(10_000)]
+        pub fn transfer(origin: OriginFor<T>, to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
             //FIXME asset transfer should be reverted once it's locked in Auction
             let token_id = Self::do_transfer(&sender, &to, asset_id)?;
 
-            Self::deposit_event(RawEvent::TransferedNft(sender, to, token_id));
+            Self::deposit_event(Event::<T>::TransferedNft(sender, to, token_id));
 
             Ok(().into())
         }
 
-        #[weight = 100_000]
-        pub fn transfer_batch(origin, tos: Vec<(T::AccountId, AssetId)>) -> DispatchResultWithPostInfo {
-
+        #[pallet::weight(10_000)]
+        pub fn transfer_batch(origin: OriginFor<T>, tos: Vec<(T::AccountId, AssetId)>) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            for (_i, x) in tos.iter().enumerate(){
-
+            for (_i, x) in tos.iter().enumerate() {
                 let item = &x;
                 let owner = &sender.clone();
 
@@ -374,12 +388,12 @@ decl_module! {
                 let data = class_info.data;
 
                 match data.token_type {
-                    TokenType::Transferrable => {
+                    TokenType::Transferable => {
                         let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
                         ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
                         Self::handle_asset_ownership_transfer(&owner, &item.0, item.1);
                         NftModule::<T>::transfer(&owner, &item.0, (asset.0, asset.1))?;
-                        Self::deposit_event(RawEvent::TransferedNft(owner.clone(), item.0.clone(), asset.1.clone()));
+                        Self::deposit_event(Event::<T>::TransferedNft(owner.clone(), item.0.clone(), asset.1.clone()));
                     }
                     _ => ()
                 };
@@ -388,15 +402,17 @@ decl_module! {
             Ok(().into())
         }
     }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Module<T> {
     fn do_create_group_collection(
-        sender: &T::AccountId,
         name: Vec<u8>,
         properties: Vec<u8>,
     ) -> Result<GroupCollectionId, DispatchError> {
-        let next_group_collection_id = NextGroupCollectionId::try_mutate(
+        let next_group_collection_id = NextGroupCollectionId::<T>::try_mutate(
             |collection_id| -> Result<GroupCollectionId, DispatchError> {
                 let current_id = *collection_id;
 
@@ -408,9 +424,8 @@ impl<T: Config> Module<T> {
             },
         )?;
 
-        let collection_data = NftGroupCollectionData::<T::AccountId> {
+        let collection_data = NftGroupCollectionData {
             name,
-            owner: sender.clone(),
             properties,
         };
 
@@ -464,7 +479,7 @@ impl<T: Config> Module<T> {
         let data = class_info.data;
 
         match data.token_type {
-            TokenType::Transferrable => {
+            TokenType::Transferable => {
                 let check_ownership = Self::check_nft_ownership(&sender, &asset_id)?;
                 ensure!(check_ownership, Error::<T>::NoPermission);
 
@@ -473,7 +488,7 @@ impl<T: Config> Module<T> {
                 NftModule::<T>::transfer(&sender, &to, asset.clone())?;
                 Ok(asset.1)
             }
-            TokenType::BoundToAddress => Err(Error::<T>::NonTransferrable.into())
+            TokenType::BoundToAddress => Err(Error::<T>::NonTransferable.into())
         }
     }
 

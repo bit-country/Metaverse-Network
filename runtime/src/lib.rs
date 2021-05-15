@@ -10,7 +10,7 @@ use orml_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 use pallet_grandpa::fg_primitives;
 use pallet_grandpa::{AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
-use pallet_transaction_payment::{CurrencyAdapter, Multiplier};
+use pallet_transaction_payment::{CurrencyAdapter, Multiplier, RuntimeDispatchInfo};
 
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -121,7 +121,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("bitcountry-node"),
     impl_name: create_runtime_str!("bitcountry-node"),
     authoring_version: 1,
-    spec_version: 8,
+    spec_version: 11,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -735,20 +735,18 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<Block, Balance> for Runtime {
-        fn query_info(
-            uxt: <Block as BlockT>::Extrinsic,
-            len: u32,
-        ) -> pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo<Balance> {
-            TransactionPayment::query_info(uxt, len)
-        }
-        fn query_fee_details(
-            uxt: <Block as BlockT>::Extrinsic,
-            len: u32,
-        ) -> pallet_transaction_payment::FeeDetails<Balance> {
-            TransactionPayment::query_fee_details(uxt, len)
-        }
-    }
+    impl pallet_transaction_payment_rpc_runtime_api::TransactionPaymentApi<
+		Block,
+		Balance,
+	> for Runtime {
+		fn query_info(uxt: <Block as BlockT>::Extrinsic, len: u32) -> RuntimeDispatchInfo<Balance> {
+			TransactionPayment::query_info(uxt, len)
+		}
+
+		fn query_fee_details(uxt: <Block as BlockT>::Extrinsic, len: u32) -> pallet_transaction_payment_rpc_runtime_api::FeeDetails<Balance> {
+			TransactionPayment::query_fee_details(uxt, len)
+		}
+	}
 
     impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber>
     for Runtime
