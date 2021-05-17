@@ -127,7 +127,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
     fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
         todo!()
     }
-
+    
     fn check_item_in_auction(asset_id: AssetId) -> bool {
         todo!()
     }
@@ -152,10 +152,6 @@ impl BCCountry<AccountId> for CountryInfoSource {
     }
 
     fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
-        None
-    }
-
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
         None
     }
 }
