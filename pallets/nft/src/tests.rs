@@ -129,6 +129,41 @@ fn create_class_should_work() {
     });
 }
 
+
+#[test]
+fn create_class_should_fail() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+        let invalid_owner = Origin::signed(BOB);
+        // assert_ok!(Nft::create_group(
+        //     Origin::root(),
+        //     vec![1],
+        //     vec![1],
+        // ));
+
+        //collection does not exist
+        assert_noop!(Nft::create_class(
+            origin.clone(),
+            vec![1],
+            vec![1],
+            1,
+            TokenType::Transferable,
+            CollectionType::Collectable,
+        ), Error::<Runtime>::CollectionIsNotExist);
+
+        //no permission
+        // assert_noop!(Nft::create_class(
+        //     invalid_owner.clone(),
+        //     vec![1],
+        //     vec![1],
+        //     0,
+        //     TokenType::Transferable,
+        //     CollectionType::Collectable,
+        // ), Error::<Runtime>::NoPermission);
+    });
+}
+
+
 #[test]
 fn mint_asset_should_work() {
     ExtBuilder::default().build().execute_with(|| {
