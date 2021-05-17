@@ -49,7 +49,8 @@ pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
-pub const COUNTRY_ID: CountryId = 1;
+pub const ALICE_COUNTRY_ID: CountryId = 1;
+pub const BOB_COUNTRY_ID: CountryId = 2;
 
 ord_parameter_types! {
     pub const One: AccountId = ALICE;
@@ -122,6 +123,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
     fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
         todo!()
     }
+    
+    // fn swap_bidders(new_bidder: &u128, last_bidder: Option<&u128>) {
+    //     todo!()
+    // }
 
     fn check_item_in_auction(asset_id: AssetId) -> bool {
         todo!()
@@ -135,6 +140,26 @@ parameter_types! {
     pub const SpotAuctionChillingDuration: BlockNumber = 10; //Default 43200 Blocks
 }
 
+pub struct CountryInfoSource {}
+
+impl BCCountry<AccountId> for CountryInfoSource {
+    fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
+        match *who {
+            ALICE => *country_id == ALICE_COUNTRY_ID,
+            BOB => *country_id == BOB_COUNTRY_ID,
+            _ => false,
+        }
+    }
+
+    fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
+        None
+    }   
+
+    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+        None
+    }
+}
+
 impl Config for Runtime {
     type Event = Event;
     type SessionDuration = SessionDuration;
@@ -144,6 +169,7 @@ impl Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
+    type CountryInfoSource = CountryInfoSource;
 }
 
 pub type ContinuumModule = Pallet<Runtime>;
@@ -156,7 +182,7 @@ construct_runtime!(
 		Block = Block,
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
-	{
+	{        
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         Continuum: continuum::{Module, Call ,Storage, Event<T>},
