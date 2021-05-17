@@ -273,7 +273,11 @@ pub mod pallet {
         pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
-
+            // TODO 
+            ensure!(
+                GroupCollections::<T>::contains_key(collection_id), 
+                Error::<T>::CollectionIsNotExist
+            ); 
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
