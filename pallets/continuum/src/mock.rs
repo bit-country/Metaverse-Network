@@ -120,10 +120,6 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
-        todo!()
-    }
-
     // fn swap_bidders(new_bidder: &u128, last_bidder: Option<&u128>) {
     //     todo!()
     // }
