@@ -10,7 +10,7 @@ fn init_test_nft(owner: Origin) {
 
     //Create group collection before class
     assert_ok!(NFTModule::<Runtime>::create_group(
-        owner.clone(),
+        Origin::root(),
         vec![1],
         vec![1]
     ));
@@ -20,7 +20,7 @@ fn init_test_nft(owner: Origin) {
         vec![1],
         vec![1],
         COLLECTION_ID,
-        TokenType::Transferrable,
+        TokenType::Transferable,
         CollectionType::Collectable,
     ));
 
@@ -40,6 +40,82 @@ fn create_new_auction_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         init_test_nft(origin.clone());
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, ALICE, 100, 0));
+        assert_eq!(NftAuctionModule::auctions(0), Some(AuctionInfo { bid: None, start: 1, end: Some(101) }));
+        assert_eq!(NftAuctionModule::assets_in_auction(0), Some(true));
+    });
+}
+
+#[test]
+// Private create_auction should work
+fn create_auction_fail() {
+    ExtBuilder::default().build().execute_with(|| {
+        let owner = Origin::signed(ALICE);
+
+        assert_ok!(NFTModule::<Runtime>::create_group(
+            Origin::root(),
+            vec![1],
+            vec![1]
+        ));
+
+        assert_ok!(NFTModule::<Runtime>::create_class(
+            owner.clone(),
+            vec![1],
+            vec![1],
+            COLLECTION_ID,
+            TokenType::Transferable,
+            CollectionType::Collectable,
+        ));
+
+        assert_ok!(NFTModule::<Runtime>::mint(
+            owner.clone(),
+            CLASS_ID,
+            vec![1],
+            vec![1],
+            vec![1],
+            1
+        ));    
+        //account does not have permission to create auction
+        assert_noop!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 100, 0
+        ), Error::<Runtime>::NoPermissionToCreateAuction);
+
+        assert_ok!(NFTModule::<Runtime>::create_class(
+            owner.clone(),
+            vec![1],
+            vec![1],
+            COLLECTION_ID,
+            TokenType::BoundToAddress,
+            CollectionType::Collectable,
+        ));
+
+        assert_ok!(NFTModule::<Runtime>::mint(
+            owner.clone(),
+            1,
+            vec![1],
+            vec![1],
+            vec![1],
+            1
+        ));    
+        
+        //Class is BoundToAddress
+        assert_noop!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(1), None, ALICE, 100, 0), Error::<Runtime>::NoPermissionToCreateAuction);
+
+        //Asset is already in an auction
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, ALICE, 100, 0));
+        assert_noop!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, ALICE, 100, 0), Error::<Runtime>::AssetAlreadyInAuction);
+    });
+}
+
+#[test]
+// Private remove_auction should work
+fn remove_auction_work() {
+    ExtBuilder::default().build().execute_with(|| {  
+        let origin = Origin::signed(ALICE);
+        init_test_nft(origin.clone());
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, ALICE, 100, 0));
+        NftAuctionModule::remove_auction(0,ItemId::NFT(0));
+        assert_eq!(NftAuctionModule::auctions(0), None);
+        assert_eq!(NftAuctionModule::assets_in_auction(0), None);
     });
 }
 
@@ -235,8 +311,33 @@ fn invalid_auction_type() {
         let participant = Origin::signed(ALICE);
         assert_ok!(NftAuctionModule::create_auction(AuctionType::BuyNow, ItemId::NFT(0), None, BOB, 150, 0));
         assert_noop!(NftAuctionModule::bid(participant.clone(), 0, 200), Error::<Runtime>::InvalidAuctionType);
+        NftAuctionModule::remove_auction(0,ItemId::NFT(0));
         assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 150, 0));
         assert_noop!(NftAuctionModule::buy_now(participant.clone(), 1, 150),Error::<Runtime>::InvalidAuctionType);
     });
 }
 
+#[test]
+// Private auction_bid_handler should not work
+fn on_finalize_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let owner = Origin::signed(BOB);
+        let bidder = Origin::signed(ALICE);
+        init_test_nft(owner.clone());
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::Auction, ItemId::NFT(0), None, BOB, 100, 0));
+        assert_eq!(NftAuctionModule::assets_in_auction(0), Some(true));
+         assert_ok!(NftAuctionModule::bid(bidder, 0, 100));
+         run_to_block(102);
+         assert_eq!(NftAuctionModule::auctions(0), None);
+        // check account received asset
+        assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);            
+        // check balances were transferred
+        assert_eq!(Balances::free_balance(ALICE), 99900);
+        assert_eq!(Balances::free_balance(BOB), 597);
+        //asset is not longer in auction
+        assert_eq!(NftAuctionModule::assets_in_auction(0), None);
+        //event was triggered
+        let event = mock::Event::auction(crate::Event::AuctionFinalized(0, ALICE, 100));
+        assert_eq!(last_event(), event);
+    });
+}
