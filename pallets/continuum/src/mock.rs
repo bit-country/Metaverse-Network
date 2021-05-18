@@ -153,7 +153,7 @@ impl BCCountry<AccountId> for CountryInfoSource {
 
     fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
         None
-    }   
+    }
 
     fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
         None
@@ -217,6 +217,7 @@ impl ExtBuilder {
             initial_active_session: 0,
             initial_auction_rate: 5,
             initial_max_bound: (-100, 100),
+            spot_price: 10000,
         }
             .assimilate_storage((&mut t))
             .unwrap();
