@@ -24,7 +24,7 @@ use frame_support::{
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{CurrencyId, Amount};
+use primitives::{CurrencyId, Amount, AssetId};
 use frame_system::{EnsureSignedBy, EnsureRoot};
 use auction_manager::{AuctionHandler, OnNewBidResult, Change, AuctionInfo, Auction};
 use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
@@ -116,7 +116,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn remove_auction(id: u64) {
+    fn remove_auction(id: u64, item_id: ItemId) {
         todo!()
     }
 
@@ -125,6 +125,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
     // }
 
     fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
+        todo!()
+    }
+
+    fn check_item_in_auction(asset_id: AssetId) -> bool {
         todo!()
     }
 }
