@@ -35,6 +35,8 @@ use bc_country::{BCCountry, Country};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
 use sp_arithmetic::Perbill;
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
+#[cfg(feature = "std")]
+use frame_support::traits::GenesisBuild;
 
 mod vote;
 mod types;
@@ -117,6 +119,7 @@ pub mod pallet {
         pub initial_active_session: T::BlockNumber,
         pub initial_auction_rate: u8,
         pub initial_max_bound: (i32, i32),
+        pub spot_price: BalanceOf<T>,
     }
 
     #[cfg(feature = "std")]
@@ -126,6 +129,7 @@ pub mod pallet {
                 initial_active_session: Default::default(),
                 initial_auction_rate: Default::default(),
                 initial_max_bound: Default::default(),
+                spot_price: Default::default(),
             }
         }
     }
@@ -142,6 +146,7 @@ pub mod pallet {
             GNPSlots::<T>::insert(self.initial_active_session, gnp_slots);
             ActiveAuctionSlots::<T>::insert(self.initial_active_session, active_auction_slots);
             MaxBound::<T>::set(self.initial_max_bound);
+            SpotPrice::<T>::set(self.spot_price);
         }
     }
 

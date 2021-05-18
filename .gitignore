@@ -17,6 +17,7 @@
 .vscode
 *.code-workspace
 data/
+tewaiDb
 testnetSpec.json
 tewai-dev-bootNode.json
 genesis-state
