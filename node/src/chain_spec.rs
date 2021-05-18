@@ -1,7 +1,4 @@
-use bitcountry_runtime::{
-    AccountId, AuraConfig, BalancesConfig, ContractsConfig, GenesisConfig, GrandpaConfig,
-    Signature, SudoConfig, SystemConfig, WASM_BINARY,
-};
+use bitcountry_runtime::{AccountId, AuraConfig, BalancesConfig, ContractsConfig, GrandpaConfig, ContinuumConfig, Signature, SudoConfig, SystemConfig, WASM_BINARY, DOLLARS};
 use sp_core::{sr25519, Pair, Public};
 
 use hex_literal::hex;
@@ -15,7 +12,7 @@ use sp_runtime::traits::{IdentifyAccount, Verify};
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec<bitcountry_runtime::GenesisConfig>;
 
 /// Generate a crypto pair from seed.
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -200,8 +197,8 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     enable_println: bool,
-) -> GenesisConfig {
-    GenesisConfig {
+) -> bitcountry_runtime::GenesisConfig {
+    bitcountry_runtime::GenesisConfig {
         frame_system: Some(SystemConfig {
             // Add Wasm runtime to storage.
             code: wasm_binary.to_vec(),
@@ -236,6 +233,12 @@ fn testnet_genesis(
                 enable_println,
                 ..Default::default()
             },
+        }),
+        continuum: Some(ContinuumConfig {
+            initial_active_session: Default::default(),
+            initial_auction_rate: 5,
+            initial_max_bound: (-100, 100),
+            spot_price: 5 * DOLLARS,
         }),
         // tokenization: Some(TokenConfig {
         // 	init_token_id: 0
