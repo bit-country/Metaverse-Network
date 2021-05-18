@@ -246,6 +246,8 @@ pub mod pallet {
         NoAvailableAssetId,
         //Asset Id is already exist
         AssetIdAlreadyExist,
+        //Asset Id is currently in an auction
+        AssetAlreadyInAuction
     }
 
     #[pallet::call]
@@ -373,8 +375,7 @@ pub mod pallet {
         pub fn transfer(origin: OriginFor<T>, to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            //FIXME asset transfer should be reverted once it's locked in Auction
-            ensure!(!T::AssetsHandler::check_item_in_auction(asset_id),Error::<T>::InvalidQuantity);
+            ensure!(!T::AssetsHandler::check_item_in_auction(asset_id),Error::<T>::AssetAlreadyInAuction);
 
             let token_id = Self::do_transfer(&sender, &to, asset_id)?;
 
