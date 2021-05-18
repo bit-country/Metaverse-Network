@@ -35,7 +35,7 @@ fn find_neighborhood_spot_should_work() {
         let continuum_spot = ContinuumSpot {
             x: 0,
             y: 0,
-            country: COUNTRY_ID,
+            country: ALICE_COUNTRY_ID,
         };
 
         let correct_neighbors = vec![
@@ -60,10 +60,22 @@ fn find_neighborhood_spot_should_work() {
 fn register_interest_should_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-
+        
         System::set_block_number(1);
-        assert_ok!(ContinuumModule::register_interest(origin, (0, 0)));
+        assert_ok!(ContinuumModule::register_interest(origin, ALICE_COUNTRY_ID, (0, 0)));
         assert_eq!(last_event(), Event::continuum(crate::Event::NewExpressOfInterestAdded(ALICE, 0)))
+    })
+}
+
+#[test]
+fn register_interest_should_not_work_for_non_owner() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+        System::set_block_number(1);
+        assert_noop!(
+            ContinuumModule::register_interest(origin, BOB_COUNTRY_ID, (0, 0)),
+            Error::<Runtime>::NoPermission
+        );       
     })
 }
 
@@ -74,8 +86,8 @@ fn rotate_session_should_work() {
         let bob = Origin::signed(BOB);
 
         System::set_block_number(1);
-        assert_ok!(ContinuumModule::register_interest(alice, (0, 0)));
-        assert_ok!(ContinuumModule::register_interest(bob, (0, 0)));
+        assert_ok!(ContinuumModule::register_interest(alice, ALICE_COUNTRY_ID, (0, 0)));
+        assert_ok!(ContinuumModule::register_interest(bob, BOB_COUNTRY_ID, (0, 0)));
 
         run_to_block(10);
 
@@ -150,20 +162,34 @@ fn rotate_session_should_work() {
 }
 
 #[test]
+fn buy_now_continuum_should_fail_when_not_owner() {
+    ExtBuilder::default().build().execute_with(|| {
+        let root = Origin::root();
+
+        //Enable Allow BuyNow
+        assert_ok!(ContinuumModule::set_allow_buy_now(root, true));
+        assert_noop!(
+            ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0,1), BOB_COUNTRY_ID),
+            Error::<Runtime>::NoPermission
+        );
+    })
+}
+
+#[test]
 fn buy_now_continuum_should_work() {
     ExtBuilder::default().build().execute_with(|| {
         let root = Origin::root();
 
         //Enable Allow BuyNow
         assert_ok!(ContinuumModule::set_allow_buy_now(root, true));
-        assert_ok!(ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0,1), COUNTRY_ID));
+        assert_ok!(ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0,1), ALICE_COUNTRY_ID));
     })
 }
 
 #[test]
 fn buy_now_continuum_should_fail_if_buy_now_setting_is_disabled() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_noop!(ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0,1), COUNTRY_ID),
+        assert_noop!(ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0,1), ALICE_COUNTRY_ID),
         Error::<Runtime>::ContinuumBuyNowIsDisabled
         );
     })

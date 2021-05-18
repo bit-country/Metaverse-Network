@@ -42,7 +42,13 @@ version = '2.0.0-rc6'
 [dependencies.auction-manager]
 default-features = false
 package = 'auction-manager'
-path = '../auction-manager'
+path = '../../traits/auction-manager'
+version = '2.0.0-rc6'
+
+[dependencies.bc-country]
+default-features = false
+package = 'bc-country'
+path = '../../traits/bc-country'
 version = '2.0.0-rc6'
 
 [features]
