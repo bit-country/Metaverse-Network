@@ -540,6 +540,7 @@ impl continuum::Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
+    type CountryInfoSource = CountryModule;
 }
 
 impl tokenization::Config for Runtime {
