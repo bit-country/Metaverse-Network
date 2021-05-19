@@ -13,19 +13,25 @@ version = '0.0.1'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
+serde = "1.0.119"
 structopt = "0.3.8"
 hex-literal = "0.3.1"
 frame-benchmarking = '3.0.0'
 frame-benchmarking-cli = '3.0.0'
+futures = "0.3.1"
+rand = "0.7.3"
 sc-cli = { version = "0.9.0", features = ["wasmtime"] }
 sp-core = "3.0.0"
 sc-executor = { version = "0.9.0", features = ["wasmtime"] }
 sc-service = { version = "0.9.0", features = ["wasmtime"] }
 sc-consensus = '0.9.0'
+sc-network = '0.9.0'
 sc-consensus-aura = '0.9.0'
 sp-inherents = "3.0.0"
 sc-transaction-pool = "3.0.0"
 sp-consensus-aura = "0.9.0"
+sp-consensus-babe = "0.9.0"
+sc-chain-spec = '3.0.0'
 sp-consensus = "0.9.0"
 sp-transaction-pool = '3.0.0'
 sc-finality-grandpa = "0.9.0"
@@ -34,6 +40,17 @@ sp-finality-grandpa = "3.0.0"
 sc-client-api = "3.0.0"
 sp-runtime = "3.0.0"
 pallet-contracts = "3.0.0"
+sc-telemetry = "3.0.0"
+pallet-im-online = "3.0.0"
+sp-authority-discovery = "3.0.0"
+node-executor = "2.0.0"
+node-rpc = "2.0.0"
+sc-consensus-slots = "0.9.0"
+sp-authorship = "3.0.0"
+sc-authority-discovery = "0.9.0"
+sc-consensus-babe = "0.9.0"
+sc-consensus-uncles = "0.9.0"
+sp-timestamp = "3.0.0"
 
 # These dependencies are used for the node's RPCs
 jsonrpc-core = "15.0.0"
@@ -46,6 +63,7 @@ sc-basic-authorship = "0.9.0"
 substrate-frame-rpc-system = "3.0.0"
 pallet-transaction-payment-rpc = "3.0.0"
 pallet-contracts-rpc = "3.0.0"
+primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
 bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime" }
 
 [[bin]]

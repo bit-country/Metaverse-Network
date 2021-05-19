@@ -39,7 +39,7 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "https://github.com/bitcountry".into()
+        "https://github.com/bit-country".into()
     }
 
     fn copyright_start_year() -> i32 {
