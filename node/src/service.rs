@@ -17,7 +17,7 @@ use futures::prelude::*;
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use node_executor::Executor;
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sc_consensus_babe::SlotProportion;
+// use sc_consensus_babe::SlotProportion;
 
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
@@ -317,7 +317,7 @@ pub fn new_full_base(
             backoff_authoring_blocks,
             babe_link,
             can_author_with,
-            block_proposal_slot_portion: SlotProportion::new(0.5),
+            block_proposal_slot_portion: sc_concensus_slots::SlotProportion::new(0.5),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
         };
 
