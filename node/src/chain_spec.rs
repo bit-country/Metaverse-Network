@@ -5,7 +5,7 @@ use bitcountry_runtime::{
     AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContractsConfig, CouncilConfig,
     DemocracyConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
     StakingConfig, ElectionsConfig, IndicesConfig, SocietyConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, wasm_binary_unwrap,
+    ContinuumConfig, TechnicalCommitteeConfig, wasm_binary_unwrap,
 };
 use bitcountry_runtime::Block;
 use bitcountry_runtime::constants::currency::*;
@@ -346,12 +346,12 @@ fn testnet_genesis(
             max_members: 999,
         }),
         pallet_vesting: Some(Default::default()),
-        // continuum: Some(ContinuumConfig {
-        //     initial_active_session: Default::default(),
-        //     initial_auction_rate: 5,
-        //     initial_max_bound: (-100, 100),
-        //     spot_price: 5 * DOLLARS,
-        // }),
+        continuum: Some(ContinuumConfig {
+            initial_active_session: Default::default(),
+            initial_auction_rate: 5,
+            initial_max_bound: (-100, 100),
+            spot_price: 5 * DOLLARS,
+        }),
         // tokenization: Some(TokenConfig {
         // 	init_token_id: 0
         // })

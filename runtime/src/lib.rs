@@ -2,7 +2,8 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-
+use orml_currencies::BasicCurrencyAdapter;
+use orml_traits::parameter_type_with_key;
 use sp_std::prelude::*;
 use frame_support::{
     construct_runtime, parameter_types, debug, RuntimeDebug,
@@ -27,7 +28,7 @@ use sp_core::{
     OpaqueMetadata,
 };
 pub use primitives::{AccountId, Signature};
-use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment};
+use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount};
 use sp_api::impl_runtime_apis;
 use sp_runtime::{
     Permill, Perbill, Perquintill, Percent, ApplyExtrinsicResult,
@@ -36,8 +37,8 @@ use sp_runtime::{
 use sp_runtime::curve::PiecewiseLinear;
 use sp_runtime::transaction_validity::{TransactionValidity, TransactionSource, TransactionPriority};
 use sp_runtime::traits::{
-    self, BlakeTwo256, Block as BlockT, StaticLookup, SaturatedConversion,
-    ConvertInto, OpaqueKeys, NumberFor,
+    AccountIdConversion, self, BlakeTwo256, Block as BlockT, StaticLookup, SaturatedConversion,
+    ConvertInto, OpaqueKeys, NumberFor, Zero,
 };
 use sp_version::RuntimeVersion;
 #[cfg(any(feature = "std", test))]
@@ -61,6 +62,11 @@ pub use frame_system::Call as SystemCall;
 #[cfg(any(feature = "std", test))]
 pub use pallet_staking::StakerStatus;
 use pallet_contracts::weights::WeightInfo;
+
+// custom runtime pallet
+use nft;
+
+mod weights;
 
 pub struct Author;
 
@@ -641,15 +647,18 @@ parameter_types! {
 	pub const DataDepositPerByte: Balance = 1 * CENTS;
 	pub const BountyDepositBase: Balance = 1 * DOLLARS;
 	pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
-	pub const TreasuryModuleId: ModuleId = ModuleId(*b"py/trsry");
+    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
 	pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
 	pub const BountyValueMinimum: Balance = 5 * DOLLARS;
+    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const NftModuleId: ModuleId = ModuleId(*b"bit/bnft");
+    pub const ContinuumTreasuryModuleId: ModuleId = ModuleId(*b"bit/ctmu");
 }
 
 impl pallet_treasury::Config for Runtime {
-    type ModuleId = TreasuryModuleId;
+    type ModuleId = BitCountryTreasuryModuleId;
     type Currency = Balances;
     type ApproveOrigin = EnsureOneOf<
         AccountId,
@@ -988,6 +997,102 @@ impl pallet_assets::Config for Runtime {
     type WeightInfo = pallet_assets::weights::SubstrateWeight<Runtime>;
 }
 
+parameter_type_with_key! {
+    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+        Zero::zero()
+    };
+}
+
+parameter_types! {
+    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
+}
+
+impl orml_tokens::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type Amount = Amount;
+    type CurrencyId = CurrencyId;
+    type WeightInfo = ();
+    type ExistentialDeposits = ExistentialDeposits;
+    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+}
+
+parameter_types! {
+    pub const GetNativeCurrencyId: CurrencyId = 0;
+}
+
+impl orml_currencies::Config for Runtime {
+    type Event = Event;
+    type MultiCurrency = Tokens;
+    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+    type GetNativeCurrencyId = GetNativeCurrencyId;
+    type WeightInfo = ();
+}
+
+parameter_types! {
+    pub CreateClassDeposit: Balance = 500 * MILLICENTS;
+    pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+}
+
+impl nft::Config for Runtime {
+    type Event = Event;
+    type CreateClassDeposit = CreateClassDeposit;
+    type CreateAssetDeposit = CreateAssetDeposit;
+    type Currency = Balances;
+    type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+    type ModuleId = NftModuleId;
+}
+
+impl orml_nft::Config for Runtime {
+    type ClassId = u32;
+    type TokenId = u64;
+    type ClassData = nft::NftClassData<Balance>;
+    type TokenData = nft::NftAssetData<Balance>;
+}
+
+impl country::Config for Runtime {
+    type Event = Event;
+    type ModuleId = CountryFundModuleId;
+}
+
+impl block::Config for Runtime {
+    type Event = Event;
+    type RandomnessSource = RandomnessCollectiveFlip;
+}
+
+parameter_types! {
+    pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
+    pub const ContinuumSessionDuration: BlockNumber = 43200; //Default 43200 Blocks
+    pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
+}
+
+
+impl auction::Config for Runtime {
+    type Event = Event;
+    type AuctionTimeToClose = AuctionTimeToClose;
+    type Handler = Auction;
+    type Currency = Balances;
+    type ContinuumHandler = Continuum;
+}
+
+impl continuum::Config for Runtime {
+    type Event = Event;
+    type SessionDuration = ContinuumSessionDuration;
+    type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
+    type EmergencyOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+    type AuctionHandler = Auction;
+    type AuctionDuration = SpotAuctionChillingDuration;
+    type ContinuumTreasury = ContinuumTreasuryModuleId;
+    type Currency = Balances;
+    type CountryInfoSource = CountryModule;
+}
+
+impl tokenization::Config for Runtime {
+    type Event = Event;
+    type TokenId = u64;
+    type CountryCurrency = Currencies;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1029,6 +1134,17 @@ construct_runtime!(
 		Assets: pallet_assets::{Module, Call, Storage, Event<T>},
 		Mmr: pallet_mmr::{Module, Storage},
 		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>},
+
+         //BitCountry pallets
+        CountryModule: country::{Module, Call, Storage, Event<T>},
+        BlockModule: block::{Module, Call, Storage, Event<T>},
+        OrmlNFT: orml_nft::{Module, Storage},
+        NftModule: nft::{Module, Call, Storage, Event<T>},
+        Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
+        Auction: auction::{Module, Call ,Storage, Event<T>},
+        Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
+        Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
+        TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
 	}
 );
 
