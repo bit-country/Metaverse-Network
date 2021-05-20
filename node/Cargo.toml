@@ -95,7 +95,8 @@ wasm-bindgen-futures = { version = "0.4.18", optional = true }
 browser-utils = { package = "substrate-browser-utils", optional = true, version = "0.9.0" }
 libp2p-wasm-ext = { version = "0.28", features = ["websocket"], optional = true }
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
-bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime" }
+bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime/bitcountry", optional = true }
+tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
 
 [[bin]]
 name = "bitcountry-node"
@@ -105,6 +106,19 @@ path = "src/main.rs"
 substrate-build-script-utils = "3.0.0"
 
 [features]
-default = []
-runtime-benchmarks = ['bitcountry-runtime/runtime-benchmarks']
+default = ["with-bitcountry-runtime"]
+runtime-benchmarks = [
+    'bitcountry-runtime/runtime-benchmarks',
+    'tewai-runtime/runtime-benchmarks'
+]
+with-bitcountry-runtime = [
+    "bitcountry-runtime",
+]
+with-tewai-runtime = [
+    "tewai-runtime",
+]
 
+#TODO change to rococo runtime when merge rococo branch back to master
+with-parachain-runtime = [
+    "bitcountry-runtime",
+]
