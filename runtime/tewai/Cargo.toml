@@ -4,6 +4,7 @@ edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
 name = 'tewai-runtime'
+description = 'Tewai Public Testnet'
 repository = 'https://github.com/bit-country/Bit-Country-Blockchain'
 version = '2.0.0-rc6'
 

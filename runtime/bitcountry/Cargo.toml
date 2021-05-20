@@ -1,9 +1,11 @@
+#BitCountry Parachain runtime - need to merge rococo branch back to this runtime
 [package]
 authors = ['Bit.Country Developers <https://github.com/bit-country>']
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
 name = 'bitcountry-runtime'
+description = 'BitCountry Runtime'
 repository = 'https://github.com/bit-country/Bit-Country-Blockchain'
 version = '2.0.0-rc6'
 
