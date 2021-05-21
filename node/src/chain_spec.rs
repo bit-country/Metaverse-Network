@@ -5,7 +5,7 @@ use bitcountry_runtime::{
     AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContractsConfig, CouncilConfig,
     DemocracyConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
     StakingConfig, ElectionsConfig, IndicesConfig, SocietyConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, wasm_binary_unwrap,
+    ContinuumConfig, TechnicalCommitteeConfig, wasm_binary_unwrap, BABE_GENESIS_EPOCH_CONFIG,
 };
 use bitcountry_runtime::Block;
 use bitcountry_runtime::constants::currency::*;
@@ -153,25 +153,21 @@ fn tewai_testnet_genesis() -> GenesisConfig {
         ImOnlineId,
         AuthorityDiscoveryId,
     )> = vec![(
-                  //5Gsdy68uCzZFq6SRmQjprH2tLMdCcPeQzKJJYPiaDFEjbGaC
-                  hex!["d4bc601183193eaa19e75d6204612e07a29983263808244121f8137727d9d37a"].into(),
-                  //5Dqy8KtwmGJd6Tkar8Va3Uw7xvX4RQAhrygUk3T8vUxDXf2a
-                  hex!["4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"].into(),
-                  //5CnqqYWT3TRFSNtUeuBGqAy3W6xFC4cDxMrNLrRejWDronbi
-                  hex!["20232c0f2f4d25e2a710c39eb8dc02aef9d22347e190c8d0fec32cc8b7164da8"].unchecked_into(),
-                  hex!["4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"].unchecked_into(),
-                  hex!["4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"].unchecked_into(),
-                  hex!["4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"].unchecked_into(),
+                  //5FpqLqqbFyYWgYtgQS11HvTkaripk1nPFFti6CwDaMj8cSvu
+                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].into(),
+                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].into(),
+                  hex!["2098c0df8dd97903bf2203bda7ba5aa6afaf3b5e353f60bc42000dca351c6a20"].unchecked_into(),
+                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].unchecked_into(),
+                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].unchecked_into(),
+                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].unchecked_into(),
               ), (
-                  //5HU23akSFB1bXQjoz7GUHxqjdNXBQRbiooQ81W3cCE1o7ccu
-                  hex!["eef509d51bd1bb8d7949a9b70bfb38eadde15e15746a4ef61d9c980696363d2a"].into(),
-                  //5C55yE7mBnunBTys1PRwmuT8FA9N4V7e73Tn5LNhM8TPy2ne
-                  hex!["004a7071e8289209e72c7d757613b57c784b5633646e290a4ee8e75a6906661f"].into(),
-                  //5EsijiPvJpyHW5XX9L3ZpQEeMfACPSzpXHvMSeTz33qUmGMv
-                  hex!["7c53f6add892707b55875073c2a781c4e6358372995faca0cb81c24875673814"].unchecked_into(),
-                  hex!["004a7071e8289209e72c7d757613b57c784b5633646e290a4ee8e75a6906661f"].unchecked_into(),
-                  hex!["004a7071e8289209e72c7d757613b57c784b5633646e290a4ee8e75a6906661f"].unchecked_into(),
-                  hex!["004a7071e8289209e72c7d757613b57c784b5633646e290a4ee8e75a6906661f"].unchecked_into(),
+                  //5EUXjqNx3Rsh3wtDJAPBzEvJdGVD3QmxmMUjrfARNr4uh7pq
+                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].into(),
+                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].into(),
+                  hex!["ed0524b8e41b652c36381c0d77ab80129c39070a808ab53586177804291acc79"].unchecked_into(),
+                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
+                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
+                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
               )];
     // generated with secret: subkey inspect "$secret"/fir
     let root_key: AccountId = hex![
@@ -195,7 +191,7 @@ pub fn tewai_testnet_config() -> ChainSpec {
         "Bit.Country Tewai Chain",
         "tewai_testnet",
         ChainType::Live,
-        local_testnet_genesis,
+        tewai_testnet_genesis,
         vec![],
         None,
         None,
@@ -265,7 +261,7 @@ fn testnet_genesis(
 
     let num_endowed_accounts = endowed_accounts.len();
 
-    const ENDOWMENT: Balance = 100_000_000_000 * DOLLARS;
+    const ENDOWMENT: Balance = 500_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 1000;
 
     bitcountry_runtime::GenesisConfig {
@@ -325,7 +321,7 @@ fn testnet_genesis(
             key: root_key,
         }),
         pallet_babe: Some(BabeConfig {
-            authorities: vec![],
+            authorities: vec![]
         }),
         pallet_im_online: Some(ImOnlineConfig {
             keys: vec![],
@@ -334,7 +330,7 @@ fn testnet_genesis(
             keys: vec![],
         }),
         pallet_grandpa: Some(GrandpaConfig {
-            authorities: vec![],
+            authorities: vec![]
         }),
         pallet_treasury: Some(Default::default()),
         pallet_society: Some(SocietyConfig {
@@ -346,12 +342,12 @@ fn testnet_genesis(
             max_members: 999,
         }),
         pallet_vesting: Some(Default::default()),
-        // continuum: Some(ContinuumConfig {
-        //     initial_active_session: Default::default(),
-        //     initial_auction_rate: 5,
-        //     initial_max_bound: (-100, 100),
-        //     spot_price: 5 * DOLLARS,
-        // }),
+        continuum: Some(ContinuumConfig {
+            initial_active_session: Default::default(),
+            initial_auction_rate: 5,
+            initial_max_bound: (-100, 100),
+            spot_price: 5 * DOLLARS,
+        }),
         // tokenization: Some(TokenConfig {
         // 	init_token_id: 0
         // })
