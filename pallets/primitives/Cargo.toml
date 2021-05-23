@@ -8,6 +8,8 @@ edition = "2018"
 serde = { version = "1.0.119", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-core = { version = "3.0.0", default-features = false }
+frame-system = { version = "3.0.0", default-features = false }
+sp-application-crypto = { version = "3.0.0", default-features = false }
 sp-runtime = { version = "3.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
 
@@ -16,7 +18,8 @@ default = ["std"]
 std = [
     "serde",
     "codec/std",
-    "sp-runtime/std",
+    "frame-system/std",
+    "sp-application-crypto/std",
     "sp-core/std",
-    "sp-std/std",
+    "sp-runtime/std",
 ]

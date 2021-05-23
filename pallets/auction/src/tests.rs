@@ -11,7 +11,7 @@ fn init_test_nft(owner: Origin) {
 
     //Create group collection before class
     assert_ok!(NFTModule::<Runtime>::create_group(
-        owner.clone(),
+        Origin::root(),
         vec![1],
         vec![1]
     ));
@@ -21,7 +21,7 @@ fn init_test_nft(owner: Origin) {
         vec![1],
         vec![1],
         COLLECTION_ID,
-        TokenType::Transferrable,
+        TokenType::Transferable,
         CollectionType::Collectable,
     ));
 

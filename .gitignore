@@ -17,6 +17,7 @@
 .vscode
 *.code-workspace
 data/
+tewaiDb
 testnetSpec.json
 tewai-dev-bootNode.json
 genesis-state
@@ -41,3 +42,5 @@ para-666-genesis
 /Cargo.lock
 /tewai*
 /.dockerignore
+/customNewTewaiChainRaw.json
+/newTewai*

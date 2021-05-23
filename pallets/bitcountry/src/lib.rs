@@ -22,29 +22,11 @@ use frame_support::ensure;
 use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, CountryId, CurrencyId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
+use bc_country::*;
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct CountryAssetData {
-    pub image: Vec<u8>,
-}
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct Country<AccountId> {
-    pub owner: AccountId,
-    pub metadata: Vec<u8>,
-    pub currency_id: CurrencyId,
-}
-
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
-pub struct CountryFund<AccountId, Balance> {
-    pub vault: AccountId,
-    pub value: Balance,
-    pub backing: Balance,
-    pub currency_id: CurrencyId,
-}
 
 #[cfg(test)]
 mod mock;
@@ -131,7 +113,7 @@ pub mod pallet {
 
     #[pallet::call]
 	impl<T: Config> Pallet<T> {
-        //#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+
         #[pallet::weight(10_000)]
         pub(super) fn create_country(origin: OriginFor<T>, metadata: Vec<u8>) -> DispatchResultWithPostInfo {
 
@@ -259,5 +241,23 @@ impl<T: Config> Module<T> {
         Countries::<T>::insert(country_id, country_info);
 
         Ok(country_id)
+    }
+}
+
+impl<T: Config> BCCountry<T::AccountId> for Module<T>
+{
+    fn check_ownership(who: &T::AccountId, country_id: &CountryId) -> bool {
+        Self::get_country_owner(country_id, who) == Some(())
+    }
+
+    fn get_country(country_id: CountryId) -> Option<Country<T::AccountId>> {
+        Self::get_country(country_id)
+    }    
+
+    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+        if let Some(country) = Self::get_country(country_id) {
+            return Some(country.currency_id);
+        }
+        None
     }
 }

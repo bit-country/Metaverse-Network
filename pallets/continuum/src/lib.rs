@@ -31,9 +31,12 @@ use serde::{Deserialize, Serialize};
 use sp_std::vec;
 
 use auction_manager::{Auction, AuctionType};
+use bc_country::{BCCountry, Country};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
 use sp_arithmetic::Perbill;
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
+#[cfg(feature = "std")]
+use frame_support::traits::GenesisBuild;
 
 mod vote;
 mod types;
@@ -107,6 +110,8 @@ pub mod pallet {
         /// Currency
         type Currency: ReservableCurrency<Self::AccountId>
         + LockableCurrency<Self::AccountId, Moment=Self::BlockNumber>;
+        /// Source of Country Info
+        type CountryInfoSource: BCCountry<Self::AccountId>;
     }
 
     #[pallet::genesis_config]
@@ -114,6 +119,7 @@ pub mod pallet {
         pub initial_active_session: T::BlockNumber,
         pub initial_auction_rate: u8,
         pub initial_max_bound: (i32, i32),
+        pub spot_price: BalanceOf<T>,
     }
 
     #[cfg(feature = "std")]
@@ -123,6 +129,7 @@ pub mod pallet {
                 initial_active_session: Default::default(),
                 initial_auction_rate: Default::default(),
                 initial_max_bound: Default::default(),
+                spot_price: Default::default(),
             }
         }
     }
@@ -139,6 +146,7 @@ pub mod pallet {
             GNPSlots::<T>::insert(self.initial_active_session, gnp_slots);
             ActiveAuctionSlots::<T>::insert(self.initial_active_session, active_auction_slots);
             MaxBound::<T>::set(self.initial_max_bound);
+            SpotPrice::<T>::set(self.spot_price);
         }
     }
 
@@ -273,9 +281,13 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn buy_continuum_spot(origin: OriginFor<T>, coordinate: (i32, i32), country_id: CountryId) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin)?;
-            //TODO check if owner own country
+        pub fn buy_continuum_spot(
+            origin: OriginFor<T>, 
+            coordinate: (i32, i32), 
+            country_id: CountryId
+        ) -> DispatchResultWithPostInfo {
+            let sender = ensure_signed(origin)?;            
+            ensure!(T::CountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
             ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
             let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
@@ -284,9 +296,9 @@ pub mod pallet {
             let continuum_treasury = Self::account_id();
             //Define how many NUUM for continuum spot - default 1 NUUM - need to change to variable
             ensure!(T::Currency::free_balance(&sender) > continuum_price_spot, Error::<T>::InsufficientFund);
-            T::Currency::transfer(&sender, &continuum_treasury, continuum_price_spot, ExistenceRequirement::KeepAlive);
+            T::Currency::transfer(&sender, &continuum_treasury, continuum_price_spot, ExistenceRequirement::KeepAlive)?;
 
-            Self::do_transfer_spot(spot_id, &continuum_treasury, &(sender, country_id));
+            Self::do_transfer_spot(spot_id, &continuum_treasury, &(sender, country_id))?;
 
             Ok(().into())
         }
@@ -299,9 +311,9 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn register_interest(origin: OriginFor<T>, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
+        pub fn register_interest(origin: OriginFor<T>, country_id: CountryId, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            //TODO Ensure AccountId own a country - extend bitcountry trait to check membership
+            ensure!(T::CountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
             let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
             // Get current active session
@@ -361,14 +373,14 @@ pub mod pallet {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn set_max_bounds(origin: OriginFor<T>, new_bound: (i32, i32)) -> DispatchResultWithPostInfo {
             // Only execute by governance
-            ensure_root(origin);
+            ensure_root(origin)?;
             MaxBound::<T>::set(new_bound);
             //TODO Emit event
             Ok(().into())
         }
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn set_new_auction_rate(origin: OriginFor<T>, new_rate: u8) -> DispatchResultWithPostInfo {
-            ensure_root(origin);
+            ensure_root(origin)?;
             MaxDesiredAuctionSlot::<T>::set(new_rate);
             //TODO Emit event
             Ok(().into())
@@ -376,7 +388,7 @@ pub mod pallet {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn vote(origin: OriginFor<T>, id: SpotId, reject: AccountVote<T::AccountId>) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            Self::try_vote(&sender, id, reject);
+            Self::try_vote(&sender, id, reject)?;
             Ok(().into())
         }
 
@@ -464,7 +476,7 @@ impl<T: Config> Pallet<T>
                 }
                 let treasury = Self::account_id();
                 //From treasury spot
-                T::AuctionHandler::create_auction(AuctionType::Auction, ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now);
+                T::AuctionHandler::create_auction(AuctionType::Auction, ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now)?;
                 //TODO Emit event
             }
         }
@@ -475,7 +487,7 @@ impl<T: Config> Pallet<T>
     fn start_gnp_protocol(slots: Vec<AuctionSlot<T::BlockNumber, T::AccountId>>, end: T::BlockNumber) -> DispatchResult {
         for slot in slots {
             let end = end + T::SessionDuration::get();
-            Self::start_referendum(end, slot.spot_id);
+            Self::start_referendum(end, slot.spot_id)?;
             //TODO Emit event
         }
         Ok(())
@@ -661,7 +673,7 @@ impl<T: Config> Pallet<T>
 
 impl<T: Config> Continuum<T::AccountId> for Pallet<T> {
     fn transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
-        ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError>{
+        ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError> {
             let treasury = Self::account_id();
             if *from != treasury {
                 //TODO Check account Id own country spot.country

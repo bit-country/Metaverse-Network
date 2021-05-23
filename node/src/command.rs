@@ -39,7 +39,7 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "https://github.com/bitcountry".into()
+        "https://github.com/bit-country".into()
     }
 
     fn copyright_start_year() -> i32 {
@@ -49,9 +49,10 @@ impl SubstrateCli for Cli {
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "dev" => Box::new(chain_spec::development_config()?),
-            "" | "local" => Box::new(chain_spec::local_testnet_config()?),
-            "test" => Box::new(chain_spec::tewai_testnet_config()?), // default to running on testnet
+            "" => return Err("Please specify which chain you want to run, e.g. --dev or --chain=tewai".into()),
+            "dev" => Box::new(chain_spec::development_config()),
+            "local" => Box::new(chain_spec::local_testnet_config()),
+            "tewai" => Box::new(chain_spec::tewai_testnet_config()),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),
@@ -120,7 +121,7 @@ pub fn run() -> sc_cli::Result<()> {
             if cfg!(feature = "runtime-benchmarks") {
                 let runner = cli.create_runner(cmd)?;
 
-                runner.sync_run(|config| cmd.run::<Block, service::Executor>(config))
+                runner.sync_run(|config| cmd.run::<Block, service::BitCountryExecutor>(config))
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
 				You can enable it with `--features runtime-benchmarks`.".into())

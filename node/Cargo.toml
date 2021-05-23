@@ -13,40 +13,90 @@ version = '0.0.1'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-structopt = "0.3.8"
+# third-party dependencies
+codec = { package = "parity-scale-codec", version = "2.0.0" }
+serde = { version = "1.0.102", features = ["derive"] }
+futures = { version = "0.3.9", features = ["compat"] }
 hex-literal = "0.3.1"
-frame-benchmarking = '3.0.0'
-frame-benchmarking-cli = '3.0.0'
-sc-cli = { version = "0.9.0", features = ["wasmtime"] }
-sp-core = "3.0.0"
-sc-executor = { version = "0.9.0", features = ["wasmtime"] }
-sc-service = { version = "0.9.0", features = ["wasmtime"] }
-sc-consensus = '0.9.0'
-sc-consensus-aura = '0.9.0'
-sp-inherents = "3.0.0"
-sc-transaction-pool = "3.0.0"
-sp-consensus-aura = "0.9.0"
-sp-consensus = "0.9.0"
-sp-transaction-pool = '3.0.0'
-sc-finality-grandpa = "0.9.0"
-sc-keystore = '3.0.0'
-sp-finality-grandpa = "3.0.0"
-sc-client-api = "3.0.0"
-sp-runtime = "3.0.0"
-pallet-contracts = "3.0.0"
+log = "0.4.8"
+rand = "0.7.2"
+structopt = { version = "0.3.21" }
+parking_lot = "0.11.1"
 
-# These dependencies are used for the node's RPCs
-jsonrpc-core = "15.0.0"
-sc-rpc = "3.0.0"
+
+# primitives
+sp-authority-discovery = { version = "3.0.0" }
+sp-consensus-babe = { version = "0.9.0" }
+sp-finality-grandpa = { version = "3.0.0" }
+sp-core = { version = "3.0.0" }
+sp-runtime = { version = "3.0.0" }
+sp-timestamp = { version = "3.0.0" }
+sp-authorship = { version = "3.0.0" }
+sp-inherents = { version = "3.0.0" }
+sp-keyring = { version = "3.0.0" }
+sp-keystore = { version = "0.9.0" }
+sp-io = { version = "3.0.0" }
+sp-consensus = { version = "0.9.0" }
+sp-transaction-pool = { version = "3.0.0" }
+
+# client dependencies
+sc-client-api = { version = "3.0.0" }
+sc-chain-spec = { version = "3.0.0" }
+sc-consensus = { version = "0.9.0" }
+sc-transaction-pool = { version = "3.0.0" }
+sc-network = { version = "0.9.0" }
+sc-consensus-babe = { version = "0.9.0" }
+sc-consensus-uncles = "0.9.0"
+sc-consensus-aura = "0.9.0"
+sc-finality-grandpa = { version = "0.9.0" }
+sc-client-db = { version = "0.9.0", default-features = false }
+sc-offchain = { version = "3.0.0" }
+sc-rpc = { version = "3.0.0" }
+sc-basic-authorship = { version = "0.9.0" }
+sc-service = { features = ["wasmtime"], version = "0.9.0" }
+sc-tracing = { version = "3.0.0" }
+sc-telemetry = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.1" }
+sc-executor = { features = ["wasmtime"], version = "0.9.0" }
+sc-authority-discovery = { version = "0.9.0" }
+sc-finality-grandpa-warp-sync = { version = "0.9.0", optional = true }
+pallet-contracts-rpc = "3.0.0"
 sp-api = "3.0.0"
-sc-rpc-api = "0.9.0"
 sp-blockchain = "3.0.0"
 sp-block-builder = "3.0.0"
-sc-basic-authorship = "0.9.0"
+sc-rpc-api = "0.9.0"
+sc-cli = { version = "0.9.0" }
+node-rpc = "2.0.0"
+sc-consensus-slots = "0.9.0"
+frame-benchmarking = "3.1.0"
+frame-benchmarking-cli = "3.0.0"
+sc-consensus-babe-rpc = "0.9.0"
+sc-consensus-epochs = "0.9.0"
+sc-finality-grandpa-rpc = "0.9.0"
 substrate-frame-rpc-system = "3.0.0"
+jsonrpc-core = "15.1.0"
+sc-sync-state-rpc = "0.9.0"
 pallet-transaction-payment-rpc = "3.0.0"
-pallet-contracts-rpc = "3.0.0"
-bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime" }
+
+# frame dependencies
+pallet-indices = { version = "3.0.0" }
+pallet-timestamp = { version = "3.0.0", default-features = false }
+pallet-contracts = { version = "3.0.0" }
+frame-system = { version = "3.0.0" }
+pallet-balances = { version = "3.0.0" }
+pallet-transaction-payment = { version = "3.0.0" }
+frame-support = { version = "3.0.0", default-features = false }
+pallet-im-online = { version = "3.0.0", default-features = false }
+pallet-authority-discovery = { version = "3.0.0" }
+pallet-staking = { version = "3.0.0" }
+pallet-grandpa = { version = "3.0.0" }
+# WASM-specific dependencies
+wasm-bindgen = { version = "0.2.73", optional = true }
+wasm-bindgen-futures = { version = "0.4.18", optional = true }
+browser-utils = { package = "substrate-browser-utils", optional = true, version = "0.9.0" }
+libp2p-wasm-ext = { version = "0.28", features = ["websocket"], optional = true }
+primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
+bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime/bitcountry", optional = true }
+tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
 
 [[bin]]
 name = "bitcountry-node"
@@ -56,6 +106,19 @@ path = "src/main.rs"
 substrate-build-script-utils = "3.0.0"
 
 [features]
-default = []
-runtime-benchmarks = ['bitcountry-runtime/runtime-benchmarks']
+default = ["with-bitcountry-runtime"]
+runtime-benchmarks = [
+    'bitcountry-runtime/runtime-benchmarks',
+    'tewai-runtime/runtime-benchmarks'
+]
+with-bitcountry-runtime = [
+    "bitcountry-runtime",
+]
+with-tewai-runtime = [
+    "tewai-runtime",
+]
 
+#TODO change to rococo runtime when merge rococo branch back to master
+with-parachain-runtime = [
+    "bitcountry-runtime",
+]
