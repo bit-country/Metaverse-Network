@@ -1048,6 +1048,8 @@ impl nft::Config for Runtime {
     type Currency = Balances;
     type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
     type ModuleId = NftModuleId;
+    type AuctionHandler = Auction;
+    type AssetsHandler = NftModule;
 }
 
 impl orml_nft::Config for Runtime {
