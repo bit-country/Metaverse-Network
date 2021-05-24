@@ -153,6 +153,10 @@ impl BCCountry<AccountId> for CountryInfoSource {
     fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
         None
     }
+
+    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+        None
+    }
 }
 
 impl Config for Runtime {

@@ -4,7 +4,7 @@ use super::*;
 use frame_support::{construct_runtime, parameter_types, pallet_prelude::Hooks};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{BlockNumber, AuctionId, continuum::Continuum};
+use primitives::{AuctionId, continuum::Continuum};
 use pallet_nft::{AssetHandler};
 
 use crate as auction;
@@ -15,6 +15,7 @@ parameter_types! {
 
 pub type AccountId = u128;
 pub type Balance = u64;
+pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;

@@ -11,7 +11,7 @@ use sp_core::H256;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
 use orml_currencies::BasicCurrencyAdapter;
-use primitives::{CurrencyId, Amount, ItemId, BlockNumber};
+use primitives::{CurrencyId, Amount, ItemId};
 use auction_manager::{AuctionHandler, AuctionType, OnNewBidResult, Change, AuctionInfo, Auction};
 
 parameter_types! {
@@ -20,6 +20,7 @@ parameter_types! {
 
 pub type AccountId = u128;
 pub type Balance = u128;
+pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
