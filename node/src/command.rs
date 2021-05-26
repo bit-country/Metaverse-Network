@@ -52,7 +52,7 @@ impl SubstrateCli for Cli {
             "" => return Err("Please specify which chain you want to run, e.g. --dev or --chain=tewai".into()),
             "dev" => Box::new(chain_spec::development_config()),
             "local" => Box::new(chain_spec::local_testnet_config()),
-            "tewai" => Box::new(chain_spec::tewai_testnet_config()),
+            "tewai" => Box::new(chain_spec::tewai_testnet_config()?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),

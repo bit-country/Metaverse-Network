@@ -186,8 +186,8 @@ fn tewai_testnet_genesis() -> GenesisConfig {
     )
 }
 
-pub fn tewai_testnet_config() -> ChainSpec {
-    ChainSpec::from_genesis(
+pub fn tewai_testnet_config() -> Result<ChainSpec, String> {
+    Ok(ChainSpec::from_genesis(
         "Bit.Country Tewai Chain",
         "tewai_testnet",
         ChainType::Live,
@@ -197,7 +197,7 @@ pub fn tewai_testnet_config() -> ChainSpec {
         None,
         Some(bitcountry_properties()),
         Default::default(),
-    )
+    ))
 }
 
 /// Configure initial storage state for FRAME modules.
@@ -261,8 +261,8 @@ fn testnet_genesis(
 
     let num_endowed_accounts = endowed_accounts.len();
 
-    const ENDOWMENT: Balance = 500_000_000 * DOLLARS;
-    const STASH: Balance = ENDOWMENT / 1000;
+    const ENDOWMENT: Balance = 300_000_000 * DOLLARS;
+    const STASH: Balance = ENDOWMENT / 100;
 
     bitcountry_runtime::GenesisConfig {
         frame_system: Some(SystemConfig {
