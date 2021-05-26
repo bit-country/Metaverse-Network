@@ -1,0 +1,43 @@
+[package]
+authors = ['Bit Country <https://github.com/bit-country>']
+description = 'Bit Country pallet for governance logic.'
+edition = '2018'
+homepage = 'https://bit.country'
+license = 'Unlicense'
+name = 'pallet-bc-governance'
+repository = 'https://github.com/bit-country'
+version = '0.0.1'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+serde = { version = "1.0.119", optional = true, default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+sp-runtime = { version = "3.0.0", default-features = false }
+sp-std = { version = "3.0.0", default-features = false }
+frame-system = { version = "3.0.0", default-features = false }
+frame-support = { version = "3.0.0", default-features = false }
+sp-io = { version = "3.0.0", default-features = false }
+sp-core = { version = "3.0.0", default-features = false }
+pallet-balances = { version = "3.0.0", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+
+[dependencies.bc-country]
+default-features = false
+package = 'bc-country'
+path = '../../traits/bc-country'
+version = '2.0.0-rc6'
+
+[features]
+default = ['std']
+std = [
+    'serde',
+    'codec/std',
+    'frame-support/std',
+    'frame-system/std',
+    'sp-runtime/std',
+    'sp-core/std',
+    'pallet-balances/std',
+    'primitives/std',
+]
