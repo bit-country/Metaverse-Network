@@ -1100,6 +1100,20 @@ impl tokenization::Config for Runtime {
     type CountryCurrency = Currencies;
 }
 
+parameter_types! {
+    pub const DefaultVotingPeriod: BlockNumber = 100800; //Default 100800 Blocks
+    pub const DefaultEnactmentPeriod: BlockNumber = 72000; //Default 72000 Blocks
+    pub const DefaultProposalLaunchPeriod: BlockNumber = 172800; //Default 43200 Blocks
+}
+
+impl governance::Config for Runtime {
+    type DefaultVotingPeriod = DefaultVotingPeriod;
+    type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+    type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+    type Event = Event;
+    type Currency = Balances;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1149,6 +1163,7 @@ construct_runtime!(
         NftModule: nft::{Module, Call, Storage, Event<T>},
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
         Auction: auction::{Module, Call ,Storage, Event<T>},
+        GovernanceModule: governance::{Module, Call, Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},

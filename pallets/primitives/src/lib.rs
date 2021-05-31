@@ -81,6 +81,10 @@ pub type AssetId = u64;
 pub type AuctionId = u64;
 /// SpotId
 pub type SpotId = u64;
+/// ProposalId
+pub type ProposalId = u64;
+/// ReferendumId
+pub type ReferendumId = u64;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]

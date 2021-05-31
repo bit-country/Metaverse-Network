@@ -1,0 +1,70 @@
+use codec::{Encode, Decode};
+use sp_runtime::{RuntimeDebug, DispatchError};
+use sp_std::vec;
+use sp_std::vec::Vec;
+use primitives::{CountryId, AccountId,BlockNumber,ProposalId, ReferendumId,Balance};
+use crate::*;
+
+
+#[derive(Encode, Decode,  Clone, PartialEq, Eq, RuntimeDebug)]
+pub enum VoteThreshold {
+    StandardQualifiedMajority, // 72%+ 72%+ representation
+    TwoThirdsSupermajority, // 66%+
+    ThreeFifthsSupermajority, // 60%+
+    ReinforcedQualifiedMajority, // 55%+ 65%+ representation
+    AbsoluteMajority, // 50%+
+    RelativeMajorty, // Most votes
+}
+
+#[derive(Encode, Decode,  Clone, PartialEq, Eq, RuntimeDebug)]
+pub enum CountryParameter {
+    Max_Proposals(u8),
+    Max_Parameters_Per_Proposal(u8),
+}
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct VotingRecord  {
+    pub(crate) votes: Vec<(ReferendumId,Vote)>
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct Vote {
+    pub(crate) who: AccountId,
+    pub(crate) aye: bool,
+    pub(crate) balance: Balance,
+}
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct ProposalInfo {
+    pub(crate) proposed_by: AccountId,
+    pub(crate) parameters: Vec<CountryParameter>,
+    pub(crate) description: Vec<u8>, // link to proposal description
+}
+/// Tally Struct
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct Tally {
+    pub(crate) ayes: Balance,
+    pub(crate) nays: Balance,
+    pub(crate) trunout: u64,
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct ReferendumStatus {
+    pub(crate) end: BlockNumber,
+    pub(crate) country: CountryId,
+    pub(crate) proposal: ProposalId,
+    pub(crate) threshold: VoteThreshold,
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct ReferendumParameters {
+    pub(crate) voting_threshold: VoteThreshold,
+    pub(crate) min_proposal_launch_period: BlockNumber,//ProposalLaunchPeriod, // number of blocks
+    pub(crate) voting_period: BlockNumber, // number of blocks
+    pub(crate) enactment_period: BlockNumber, // number of blocks
+    pub(crate) max_params_per_proposal: u8,
+    pub(crate) max_proposals_per_country: u8,
+}
+
+pub enum ReferendumInfo {
+    Ongoing(ReferendumStatus),
+    Finished{passed: bool, end: BlockNumber},
+}

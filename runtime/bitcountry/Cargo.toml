@@ -98,7 +98,7 @@ tokenization = { package = "pallet-tokenization", path = "../../pallets/tokeniza
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = '2.0.0-rc6', default-features = false }
 continuum = { package = "pallet-continuum", path = "../../pallets/continuum", version = '0.0.1', default-features = false }
 auction = { package = "pallet-auction", path = "../../pallets/auction", version = '2.0.0-rc6', default-features = false }
-
+governance = {package = "pallet-governance", path = "../../pallets/governance", version = '2.0.0-rc6', default-features = false }
 [build-dependencies]
 substrate-wasm-builder = "4.0.0"
 
@@ -175,6 +175,7 @@ std = [
     'block/std',
     'nft/std',
     'continuum/std',
+    'governance/std',
 ]
 runtime-benchmarks = [
     "frame-benchmarking",
