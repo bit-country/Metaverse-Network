@@ -11,13 +11,16 @@ use sp_core::H256;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
 use orml_currencies::BasicCurrencyAdapter;
-use primitives::{CurrencyId, Amount, BlockNumber};
+use primitives::{CurrencyId, Amount, ItemId};
+use auction_manager::{AuctionHandler, AuctionType, OnNewBidResult, Change, AuctionInfo, Auction};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
 }
 
 pub type AccountId = u128;
+pub type Balance = u128;
+pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -76,6 +79,40 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = 0;
 }
 
+pub struct MockAuctionManager;
+
+impl Auction<AccountId, BlockNumber> for MockAuctionManager {
+    type Balance = Balance;
+
+    fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+        todo!()
+    }
+
+    fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+        todo!()
+    }
+
+    fn new_auction(recipient: u128, initial_amount: Self::Balance, start: u64, end: Option<u64>) -> Result<u64, DispatchError> {
+        todo!()
+    }
+
+    fn create_auction(auction_type: AuctionType, item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64) -> Result<u64, DispatchError> {
+        todo!()
+    }
+
+    fn remove_auction(id: u64, item_id: ItemId) {
+        todo!()
+    }
+
+    fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
+        todo!()
+    }
+
+    fn check_item_in_auction(asset_id: AssetId) -> bool {
+        return false
+    }
+}
+
 parameter_types! {
     pub CreateClassDeposit: Balance = 2;
     pub CreateAssetDeposit: Balance = 1;
@@ -88,7 +125,9 @@ impl Config for Runtime {
     type CreateAssetDeposit = CreateAssetDeposit;
     type Currency = Balances;
     type ModuleId = NftModuleId;
+    type AuctionHandler = MockAuctionManager;
     type WeightInfo = ();
+    type AssetsHandler = Handler;
 }
 
 impl orml_nft::Config for Runtime {
@@ -150,3 +189,12 @@ pub fn last_event() -> Event {
         .event
 }
 
+pub struct Handler;
+
+impl AssetHandler for Handler {
+    fn check_item_in_auction(
+        asset_id: AssetId,
+    ) -> bool {
+        return MockAuctionManager::check_item_in_auction(asset_id);
+    }
+}

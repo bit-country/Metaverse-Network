@@ -16,7 +16,7 @@ use sp_std::{
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-use primitives::{AuctionId, ItemId};
+use primitives::{AuctionId, ItemId, AssetId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
@@ -92,7 +92,7 @@ pub trait Auction<AccountId, BlockNumber> {
     ) -> Result<AuctionId, DispatchError>;
 
     /// Remove auction by `id`
-    fn remove_auction(id: AuctionId);
+    fn remove_auction(id: AuctionId, item_id: ItemId);
 
     fn auction_bid_handler(
         _now: BlockNumber,
@@ -100,6 +100,10 @@ pub trait Auction<AccountId, BlockNumber> {
         new_bid: (AccountId, Self::Balance),
         last_bid: Option<(AccountId, Self::Balance)>,
     ) -> DispatchResult;
+
+    fn check_item_in_auction(
+        asset_id: AssetId
+    ) -> bool;
 }
 
 /// The result of bid handling.
