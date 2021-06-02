@@ -22,3 +22,6 @@ build:
 check-debug:
 	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check
 
+.PHONY: build-docker
+build-docker:
+	./scripts/docker_run.sh
