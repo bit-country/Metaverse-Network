@@ -1112,6 +1112,7 @@ impl governance::Config for Runtime {
     type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
     type Event = Event;
     type Currency = Balances;
+    type CountryInfo = CountryModule;
 }
 
 construct_runtime!(

@@ -8,10 +8,10 @@ use frame_support::{
 };
 
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId };
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 use primitives::{CurrencyId, Amount};
 use frame_system::EnsureSignedBy;
-use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
+use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 
 parameter_types! {
@@ -31,6 +31,17 @@ pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
 pub const ALICE_COUNTRY_ID: CountryId = 1;
 pub const BOB_COUNTRY_ID: CountryId = 2;
+pub const PROPOSAL_DESCRIPTION: [u8;2] = [1,2];
+pub const PROPOSAL_PARAMETERS: [CountryParameter;2] = [CountryParameter::MaxProposals(2), CountryParameter::MaxParametersPerProposal(2)];
+pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumParameters {
+    voting_threshold: Some(VoteThreshold::RelativeMajority),
+    min_proposal_launch_period: 12,
+    voting_period:5, 
+    enactment_period: 10, 
+    max_params_per_proposal: 2,
+    max_proposals_per_country: 1,
+};  
+
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -71,9 +82,9 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = ();
 }
 
-pub struct CountryInfoSource {}
+pub struct CountryInfo {}
 
-impl BCCountry<AccountId> for CountryInfoSource {
+impl BCCountry<AccountId> for CountryInfo {
     fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
         match *who {
             ALICE => *country_id == ALICE_COUNTRY_ID,
@@ -103,6 +114,7 @@ impl Config for Runtime {
     type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
     type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
     type Currency = Balances;
+    type CountryInfo = CountryInfo;
 }
 
 pub type GovernanceModule = Pallet<Runtime>;

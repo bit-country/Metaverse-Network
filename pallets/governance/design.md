@@ -5,10 +5,12 @@
       - account: AccountId
       - country: CountryId
       - balance: Balance
-      - proposal_info: ProposalInfo
+      - proposal_parameters: Vec [CountryParameter]
+      - proposal_description: Vec [u8]
     - cancel_proposal - works if you have created the proposal
       - account: AccountId
       - proposal: ProposalId
+      - country: CountryId
     - vote - works only if the account is a resident of a referendum's country
       - origin: AccountId
       - referendum: ReferendumId
@@ -23,11 +25,12 @@
     - fast_track_proposal - works only if you are the country owner; puts proposal on top of the referendum queue
       - owner: AccountId
       - proposal: ProposalId
+      - country: CountryId
     - emergency_cancel_referendum - can be activated only by account with given privileges; the account can't cancel a vote about the removal of these privileges
       - origin: AccountId
       - referendum: ReferendumId
 * Storages
-  - Proposals: double_map (CountryId, ProposalId) => ProposalInfo
+  - Proposals: double_map (CountryId, ProposalId) => Option(ProposalInfo)
   - NextProposalId: ProposalId
   - ReferendumInfoOf: map ReferendumId => ReferendumInfo
   - NextReferendumId: ReferendumId
@@ -37,8 +40,8 @@
   
 * Types
   - struct VotingRecord 
-    - votes: Vec<(ReferendumId,Vote)>
-  - Vote
+    - votes: Vec [(ReferendumId,Vote)]
+  - struct Vote
     - who: AccountId
     - aye: bool
     - balance: Balance
@@ -57,8 +60,9 @@
     - turnout: u64
   - struct ProposalInfo
     - proposed_by: AccountId
-    - parameters: Vec<CountryParameter>
-    - description: Vec<u8> // link to proposal description
+    - parameters: Vec [CountryParameter]
+    - description: Vec [u8] // link to proposal description
+    - referendum_launch_block: BlockNumber
   - struct ReferendumParameters
     - voting_threshold: VoteThreshold 
     - min_proposal_launch_period: ProposalLaunchPeriod // number of blocks
@@ -67,8 +71,18 @@
     - max_params_per_proposal: u8
     - proposals_per_country: u8
   - enum CountryParameter - parameters will be enum values in the format parameter_name(parameter_value_type); **TO BE DISCUSSED!:** enum values
+  - enum VoteThreshold 
+    - StandardQualifiedMajority, // 72%+ 72%+ qorum
+    - ReinforcedQualifiedMajority, // 55%+ 65%+ qorum
+    - TwoThirdsSupermajority, // 66%+
+    - ThreeFifthsSupermajority, // 60%+
+    - AbsoluteMajority, // 50%+
+    - RelativeMajorty, // Most votes
+
   
 * Events
+  - RefrendumParametersUpdated
+    - country: CountryId
   - ProposalSubmitted
      - account: AccountId
      - country: CountryId
@@ -94,6 +108,7 @@
     - ReferendumId
   - ReferendumCancelled
     - ReferendumId
+  
 
 * Hooks
   - on_initialize
@@ -113,4 +128,4 @@
     - proposal: ProposalId 
   - update_country_parameters - unlocks reserved balances as well
     - country: CountryId
-    - new_parameters: Vec<CountryParameter>
+    - new_parameters: Vec[CountryParameter]
