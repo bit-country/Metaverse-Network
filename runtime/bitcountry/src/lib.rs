@@ -1104,12 +1104,18 @@ parameter_types! {
     pub const DefaultVotingPeriod: BlockNumber = 100800; //Default 100800 Blocks
     pub const DefaultEnactmentPeriod: BlockNumber = 72000; //Default 72000 Blocks
     pub const DefaultProposalLaunchPeriod: BlockNumber = 172800; //Default 43200 Blocks
+    pub const DefaultMaxParametersPerProposal: u8 = 3; //Defaul 3 prameters
+    pub const DefaultMaxProposalsPerCountry: u8 = 4; //Default 4 prameters
+    pub const OneBlock: BlockNumber = 1;
 }
 
 impl governance::Config for Runtime {
     type DefaultVotingPeriod = DefaultVotingPeriod;
     type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
     type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+    type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
+    type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
+    type OneBlock = OneBlock;
     type Event = Event;
     type Currency = Balances;
     type CountryInfo = CountryModule;

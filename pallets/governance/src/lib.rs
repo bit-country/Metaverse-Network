@@ -4,11 +4,11 @@
 use codec::{Decode, Encode};
 use frame_support::{
     dispatch::DispatchResult, ensure,
-    traits::{Get, Vec},
+    traits::{Get, Vec}, IterableStorageDoubleMap,
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
 use primitives::{Balance, CountryId, ProposalId, ReferendumId};
-use sp_runtime::{traits::{AccountIdConversion, One, Zero, CheckedDiv, CheckedAdd}, DispatchError, ModuleId, RuntimeDebug};
+use sp_runtime::{traits::{AccountIdConversion, Zero, CheckedDiv, CheckedAdd}, DispatchError, ModuleId, RuntimeDebug};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,6 @@ use bc_country::{BCCountry, Country};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
 
 mod types;
-
 pub use types::*;
 
 #[cfg(test)]
@@ -49,7 +48,16 @@ pub mod pallet {
        
         #[pallet::constant]
         type DefaultProposalLaunchPeriod: Get<Self::BlockNumber>;
+
+        #[pallet::constant]
+        type OneBlock: Get<Self::BlockNumber>;
+
+        #[pallet::constant]
+        type DefaultMaxParametersPerProposal: Get<u8>;
         
+        #[pallet::constant]
+        type DefaultMaxProposalsPerCountry: Get<u8>;
+
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
         type CountryInfo: BCCountry<Self::AccountId>;
@@ -62,6 +70,7 @@ pub mod pallet {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         /// Initialization
         fn on_initialize(now: T::BlockNumber) -> Weight {
+            for proposal
             0
         }
 
@@ -77,7 +86,11 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn next_proposal)]
-    pub type NextProrposalId<T: Config> = StorageValue<_, ProposalId, ValueQuery>;
+    pub type NextProposalId<T: Config> = StorageValue<_, ProposalId, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn proposals_per_country)]
+    pub type TotalProposalsPerCountry<T: Config> = StorageMap<_, Twox64Concat, CountryId, u8, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn deposit)]
@@ -131,7 +144,9 @@ pub mod pallet {
         ProposalIsReferendum,
         NotProposalCreator,
         InsufficientPrivileges,
-        ReferendumDoesNotExist
+        ReferendumDoesNotExist,
+        ProposalIdOverflow,
+        ProposalQueueOverflow
     }
 
     #[pallet::call]
@@ -160,6 +175,38 @@ pub mod pallet {
             proposal_description: Vec<u8>
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
+            ensure!(Self::is_member(from,country),  Error::<T>::AccountNotCountryMember);
+            ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
+            let current_block = <frame_system::Module<T>>::block_number();
+            let mut launch_block: T::BlockNumber = current_block;
+            match Self::referendum_parameters(country) {
+                Some(country_referendum_params) => {
+                    ensure!(Self::proposals_per_country(country) < country_referendum_params.max_proposals_per_country, Error::<T>::ProposalQueueFull);
+                    ensure!(proposal_parameters.len() <= country_referendum_params.max_params_per_proposal.into(), Error::<T>::TooManyProposalParameters);   
+                    if country_referendum_params.min_proposal_launch_period.is_zero() {
+                        launch_block += country_referendum_params.min_proposal_launch_period;
+                    }
+                    else {
+                        launch_block += T::DefaultProposalLaunchPeriod::get();
+                    }
+                },
+                None => {
+                    ensure!(Self::proposals_per_country(country) < T::DefaultMaxProposalsPerCountry::get(), Error::<T>::ProposalQueueFull);
+                    ensure!(proposal_parameters.len() <= T::DefaultMaxParametersPerProposal::get().into(), Error::<T>::TooManyProposalParameters);   
+                    launch_block += T::DefaultProposalLaunchPeriod::get();
+                }, 
+            }
+            
+            let proposal_info = ProposalInfo {
+                proposed_by: from.clone(),
+                parameters: proposal_parameters,
+                description: proposal_description,
+                referendum_launch_block: launch_block,
+            };
+            let proposal_id = Self::get_next_proposal_id()?;         
+            <Proposals<T>>::insert(country, proposal_id, proposal_info);
+            Self::update_proposals_per_country_number(country,true);
+            Self::deposit_event(Event::ProposalSubmitted(from, country, proposal_id)); 
             Ok(().into())
         }
 
@@ -173,9 +220,9 @@ pub mod pallet {
             let from = ensure_signed(origin)?;
             let proposal_info = Self::proposals(country,proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
             ensure!(proposal_info.proposed_by == from, Error::<T>::NotProposalCreator);
-            let current_block_number = <frame_system::Module<T>>::block_number();
-            ensure!(proposal_info.referendum_launch_block < current_block_number, Error::<T>::ProposalIsReferendum);
+            ensure!(proposal_info.referendum_launch_block > <frame_system::Module<T>>::block_number(), Error::<T>::ProposalIsReferendum);
             <Proposals<T>>::remove(country, proposal);
+            Self::update_proposals_per_country_number(country,false);
             Self::deposit_event(Event::ProposalCancelled(from, country, proposal));
             Ok(().into())
         }
@@ -188,11 +235,14 @@ pub mod pallet {
             country: CountryId
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
-            let proposal_info = Self::proposals(country,proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
-            let current_block_number = <frame_system::Module<T>>::block_number();
+            let mut proposal_info = Self::proposals(country,proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
             ensure!(T::CountryInfo::check_ownership(&from, &country), Error::<T>::AccountNotCountryOwner);
-            ensure!(proposal_info.referendum_launch_block < current_block_number, Error::<T>::ProposalIsReferendum);
-            
+            let current_block_number = <frame_system::Module<T>>::block_number();
+            ensure!(proposal_info.referendum_launch_block > current_block_number, Error::<T>::ProposalIsReferendum);
+            proposal_info.referendum_launch_block = current_block_number + T::OneBlock::get();
+            <Proposals<T>>::remove(country,proposal);
+            <Proposals<T>>::insert(country,proposal,proposal_info);
+            Self::deposit_event(Event::ProposalFastTracked(from.clone(), country, proposal));
             Ok(().into())
         }
 
@@ -203,6 +253,7 @@ pub mod pallet {
             vote_aye: bool
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
+            ensure!(Self::is_member(from,country), Error::<T>::AccountNotCountryMember);
             Ok(().into())
         }
 
@@ -226,6 +277,30 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        fn is_member(country: CountryId, account: AccountId) -> bool {
+            // ТO DO: finish implementation
+            true
+        }
+        fn get_next_proposal_id() -> Result<ProposalId, DispatchError> {
+            <NextProposalId<T>>::try_mutate(|next_id| -> Result<ProposalId, DispatchError> {
+                let current_id = *next_id;
+                *next_id = next_id.checked_add(1).ok_or(Error::<T>::ProposalIdOverflow)?;
+                Ok(current_id)
+            })
+        }
+
+        fn update_proposals_per_country_number(country: CountryId, is_value_added: bool) -> DispatchResult {
+            <TotalProposalsPerCountry<T>>::try_mutate(country, |number_of_proposals| -> DispatchResult {
+                if is_value_added {
+                    *number_of_proposals = number_of_proposals.checked_add(1).ok_or(Error::<T>::ProposalQueueOverflow)?;
+                }
+                else {
+                    *number_of_proposals = number_of_proposals.checked_sub(1).ok_or(Error::<T>::ProposalQueueOverflow)?;
+                }
+                Ok(())
+            })
+        }
+
         fn update_referendum_tally(referendum: ReferendumId, vote: Vote<Balance>, is_vote_removed: bool) -> DispatchResult {
             
             if is_vote_removed {

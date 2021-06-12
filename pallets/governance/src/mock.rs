@@ -103,9 +103,12 @@ impl BCCountry<AccountId> for CountryInfo {
 }
 
 parameter_types! {
-    pub const DefaultVotingPeriod: BlockNumber = 10; //Default 100800 Blocks
-    pub const DefaultEnactmentPeriod: BlockNumber = 5; //Default 72000 Blocks
-    pub const DefaultProposalLaunchPeriod: BlockNumber = 15; //Default 43200 Blocks
+    pub const DefaultVotingPeriod: BlockNumber = 10; 
+    pub const DefaultEnactmentPeriod: BlockNumber = 5; 
+    pub const DefaultProposalLaunchPeriod: BlockNumber = 15; 
+    pub const DefaultMaxParametersPerProposal: u8 = 3;
+    pub const DefaultMaxProposalsPerCountry: u8 = 2;
+    pub const OneBlock: BlockNumber = 1;
 }
 
 impl Config for Runtime {
@@ -113,6 +116,9 @@ impl Config for Runtime {
     type DefaultVotingPeriod = DefaultVotingPeriod;
     type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
     type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+    type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
+    type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
+    type OneBlock = OneBlock;
     type Currency = Balances;
     type CountryInfo = CountryInfo;
 }
