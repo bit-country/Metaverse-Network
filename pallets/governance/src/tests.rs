@@ -165,53 +165,62 @@ fn fast_track_proposal_that_is_a_referendum_does_not_work() {
 
 // Voting tests
 #[test]
-#[ignore]
 fn vote_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
+        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
+        assert_eq!(Balances::free_balance(&BOB), 100);
+        assert_eq!(last_event(), Event::governance(crate::Event::VoteRecorded(BOB, 0, Vote {
+            aye: true,
+            balance: 400
+        })));
     });
 }
 
 #[test]
-#[ignore]
 fn vote_when_not_country_member_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        assert_ok!(GovernanceModule::propose(origin.clone(), ALICE_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
+        assert_noop!(GovernanceModule::vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountNotCountryMember);
     });
 }
 
 #[test]
-#[ignore]
 fn vote_more_than_once_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
+        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
+        assert_noop!(GovernanceModule::vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountAlreadyVoted);
     });
 }
 
 // Remove vote tests
 #[test]
-#[ignore]
 fn remove_vote_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
+        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
+        assert_ok!(GovernanceModule::remove_vote(Origin::signed(BOB), 0));
+        assert_eq!(Balances::free_balance(&BOB), 500);
+        assert_eq!(last_event(), Event::governance(crate::Event::VoteRemoved(BOB,0)));
     });
 }
 
 #[test]
-#[ignore]
 fn remove_vote_when_you_have_not_voted_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
+        assert_noop!(GovernanceModule::remove_vote(Origin::signed(BOB), 0), Error::<Runtime>::AccountHaveNotVoted);
     });
 }
 

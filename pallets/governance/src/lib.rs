@@ -158,7 +158,10 @@ pub mod pallet {
         DepositNotFound,
         ProposalIdOverflow,
         ReferendumIdOverflow,
-        ProposalQueueOverflow
+        ProposalQueueOverflow,
+        AccountHaveNotVoted,
+        AccountAlreadyVoted
+
     }
 
     #[pallet::call]
