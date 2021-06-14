@@ -32,6 +32,7 @@ fn create_new_proposal_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        assert_eq!(Balances::free_balance(&ALICE), 99400);
         assert_eq!(last_event(), Event::governance(crate::Event::ProposalSubmitted(ALICE, BOB_COUNTRY_ID, 0)));
     });
 }
@@ -98,6 +99,7 @@ fn cancel_proposal_work() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         assert_ok!(GovernanceModule::cancel_proposal(origin.clone(), 0, BOB_COUNTRY_ID));
+        assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(last_event(), Event::governance(crate::Event::ProposalCancelled(ALICE, BOB_COUNTRY_ID, 0)));
     });
 }
@@ -216,42 +218,46 @@ fn remove_vote_when_you_have_not_voted_does_not_work() {
 
 // Emergency canceling of referendum tests
 #[test]
-#[ignore]
 fn emergency_cancel_referendum_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
-        run_to_block(16);
+        ReferendumJuryOf::<Runtime>::insert(BOB_COUNTRY_ID,ALICE);
+        run_to_block(18);
+        assert_ok!(GovernanceModule::emergency_cancel_referendum(origin.clone(), 0));
+        assert_eq!(Balances::free_balance(&ALICE), 100000);
+        assert_eq!(last_event(), Event::governance(crate::Event::ReferendumCancelled(0)));
     });
 }
 
 #[test]
-#[ignore]
 fn emergency_cancel_non_existing_referendum_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
-        
+        assert_noop!(GovernanceModule::emergency_cancel_referendum(origin.clone(), 3), Error::<Runtime>::ReferendumDoesNotExist);
     });
 }
 
 #[test]
-#[ignore]
 fn emergency_cancel_referendum_when_not_having_privileges_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
-        run_to_block(16);
+        ReferendumJuryOf::<Runtime>::insert(BOB_COUNTRY_ID,ALICE);
+        run_to_block(17);
+        assert_noop!(GovernanceModule::emergency_cancel_referendum(Origin::signed(BOB), 0), Error::<Runtime>::InsufficientPrivileges);
     });
 }
 
 #[test]
-#[ignore]
 fn emergency_cancel_referendum_which_removes_privileges_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
-        run_to_block(16);
+        ReferendumJuryOf::<Runtime>::insert(BOB_COUNTRY_ID,ALICE);
+        let proposal_parameters = [CountryParameter::SetReferendumJury([1u8;32].into())].to_vec();
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, proposal_parameters, PROPOSAL_DESCRIPTION.to_vec()));
+        run_to_block(17);
+        assert_noop!(GovernanceModule::emergency_cancel_referendum(origin.clone(), 0), Error::<Runtime>::InsufficientPrivileges);
     });
 }
 

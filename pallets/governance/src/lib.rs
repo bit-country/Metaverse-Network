@@ -68,9 +68,13 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        /// Initialization
+        /// Initialisation
         fn on_initialize(now: T::BlockNumber) -> Weight {
-            for proposal
+            for (country_id,proposal_id, proposal_info) in <Proposals<T>>::iter() {
+                if proposal_info.referendum_launch_block == now {
+                    Self::start_referendum(country_id, proposal_id,now);
+                }
+            }
             0
         }
 
@@ -109,6 +113,10 @@ pub mod pallet {
     pub type ReferendumParametersOf<T: Config> = StorageMap<_, Twox64Concat, CountryId, ReferendumParameters<T::BlockNumber>, OptionQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn referendum_jury)]
+    pub type ReferendumJuryOf<T: Config> = StorageMap<_, Twox64Concat,  CountryId, T::AccountId, OptionQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn voting_record)]
     pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, VotingRecord<Balance>, ValueQuery>;
 
@@ -145,7 +153,11 @@ pub mod pallet {
         NotProposalCreator,
         InsufficientPrivileges,
         ReferendumDoesNotExist,
+        ReferendumIsOver,
+        JuryNotSelected,
+        DepositNotFound,
         ProposalIdOverflow,
+        ReferendumIdOverflow,
         ProposalQueueOverflow
     }
 
@@ -175,8 +187,9 @@ pub mod pallet {
             proposal_description: Vec<u8>
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
-            ensure!(Self::is_member(from,country),  Error::<T>::AccountNotCountryMember);
+            ensure!(Self::is_member(from.clone(),country),  Error::<T>::AccountNotCountryMember);
             ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
+            
             let current_block = <frame_system::Module<T>>::block_number();
             let mut launch_block: T::BlockNumber = current_block;
             match Self::referendum_parameters(country) {
@@ -196,7 +209,6 @@ pub mod pallet {
                     launch_block += T::DefaultProposalLaunchPeriod::get();
                 }, 
             }
-            
             let proposal_info = ProposalInfo {
                 proposed_by: from.clone(),
                 parameters: proposal_parameters,
@@ -206,6 +218,8 @@ pub mod pallet {
             let proposal_id = Self::get_next_proposal_id()?;         
             <Proposals<T>>::insert(country, proposal_id, proposal_info);
             Self::update_proposals_per_country_number(country,true);
+            T::Currency::reserve(&from, balance);
+            <DepositOf<T>>::insert(proposal_id, (&from, balance));
             Self::deposit_event(Event::ProposalSubmitted(from, country, proposal_id)); 
             Ok(().into())
         }
@@ -223,6 +237,8 @@ pub mod pallet {
             ensure!(proposal_info.referendum_launch_block > <frame_system::Module<T>>::block_number(), Error::<T>::ProposalIsReferendum);
             <Proposals<T>>::remove(country, proposal);
             Self::update_proposals_per_country_number(country,false);
+            T::Currency::unreserve(&from, Self::deposit(proposal).ok_or(Error::<T>::DepositNotFound)?.1); 
+            <DepositOf<T>>::remove(proposal);
             Self::deposit_event(Event::ProposalCancelled(from, country, proposal));
             Ok(().into())
         }
@@ -253,7 +269,7 @@ pub mod pallet {
             vote_aye: bool
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
-            ensure!(Self::is_member(from,country), Error::<T>::AccountNotCountryMember);
+            //ensure!(Self::is_member(from,country), Error::<T>::AccountNotCountryMember);
             Ok(().into())
         }
 
@@ -272,19 +288,77 @@ pub mod pallet {
             referendum:  ReferendumId,
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
+            let referendum_info = Self::referendum_info(referendum).ok_or(Error::<T>::ReferendumDoesNotExist)?;
+            match referendum_info {
+                ReferendumInfo::Ongoing(referendum_status) => {
+                    ensure!(from == Self::referendum_jury(referendum_status.country).ok_or(Error::<T>::JuryNotSelected)?,  Error::<T>::InsufficientPrivileges);
+                    ensure!(!Self::does_proposal_changes_jury(referendum_status.clone())?,  Error::<T>::InsufficientPrivileges);
+                    <Proposals<T>>::remove(referendum_status.country,referendum_status.proposal);
+                    <ReferendumInfoOf<T>>::remove(referendum);
+                    Self::update_proposals_per_country_number(referendum_status.country, false);
+                    T::Currency::unreserve(&from, Self::deposit(referendum_status.proposal).ok_or(Error::<T>::DepositNotFound)?.1); 
+                    <DepositOf<T>>::remove(referendum_status.proposal);
+                    Self::deposit_event(Event::ReferendumCancelled(referendum)); 
+                },
+                _ => (),
+            }
             Ok(().into())
         }
     }
 
     impl<T: Config> Pallet<T> {
-        fn is_member(country: CountryId, account: AccountId) -> bool {
+        fn start_referendum(country_id: CountryId, proposal_id: ProposalId, current_block: T::BlockNumber) -> Result<u64,DispatchError> {
+            let referendum_id = Self::get_next_referendum_id()?;
+            
+            let mut referendum_end = current_block;
+            let mut referendum_threshold = VoteThreshold::RelativeMajority;
+            match Self::referendum_parameters(country_id) {
+                Some(country_referendum_params) => {
+                    referendum_end += country_referendum_params.voting_period;
+                    match  country_referendum_params.voting_threshold {
+                        Some(defined_threshold) => referendum_threshold = defined_threshold,
+                        None => {},
+                    } 
+                },
+                None => referendum_end += T::DefaultVotingPeriod::get(),
+            }
+
+            let initial_tally = Tally{
+                ayes: Zero::zero(),
+                nays: Zero::zero(),
+                turnout: 0
+            };
+
+            let referendum_status = ReferendumStatus{
+                end: referendum_end,
+                country: country_id,
+                proposal: proposal_id,
+                tally: initial_tally, 
+                threshold: Some(referendum_threshold.clone())
+            };
+            let referendum_info = ReferendumInfo::Ongoing(referendum_status);
+            <ReferendumInfoOf<T>>::insert(referendum_id,referendum_info);
+            Self::deposit_event(Event::ReferendumStarted(referendum_id, referendum_threshold));
+            Ok(referendum_id)
+        }
+
+        fn is_member(account: T::AccountId, country: CountryId) -> bool {
             // ТO DO: finish implementation
             true
         }
+
         fn get_next_proposal_id() -> Result<ProposalId, DispatchError> {
             <NextProposalId<T>>::try_mutate(|next_id| -> Result<ProposalId, DispatchError> {
                 let current_id = *next_id;
                 *next_id = next_id.checked_add(1).ok_or(Error::<T>::ProposalIdOverflow)?;
+                Ok(current_id)
+            })
+        }
+
+        fn get_next_referendum_id() -> Result<ReferendumId, DispatchError> {
+            <NextReferendumId<T>>::try_mutate(|next_id| -> Result<ReferendumId, DispatchError> {
+                let current_id = *next_id;
+                *next_id = next_id.checked_add(1).ok_or(Error::<T>::ReferendumIdOverflow)?;
                 Ok(current_id)
             })
         }
@@ -299,6 +373,21 @@ pub mod pallet {
                 }
                 Ok(())
             })
+        }
+
+        fn does_proposal_changes_jury(referendum_status: ReferendumStatus<T::BlockNumber>) -> Result<bool, DispatchError> {
+            let proposal_parameters = Self::proposals(referendum_status.country,referendum_status.proposal).ok_or(Error::<T>::ProposalDoesNotExist)?.parameters;
+            let mut result = false;
+            for parameter in proposal_parameters.iter() {
+                match parameter {
+                    CountryParameter::SetReferendumJury(a) =>{
+                        result = true;
+                        break;
+                    },
+                    _ => continue,
+                }
+            }
+            Ok(result)
         }
 
         fn update_referendum_tally(referendum: ReferendumId, vote: Vote<Balance>, is_vote_removed: bool) -> DispatchResult {

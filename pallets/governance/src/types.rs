@@ -19,7 +19,7 @@ pub enum VoteThreshold {
 pub enum CountryParameter {
     MaxProposals(u8),
     MaxParametersPerProposal(u8),
-    SetReferendumReviewer(AccountId),
+    SetReferendumJury(AccountId),
 }
 
 #[derive(Encode, Decode, Default, Clone, RuntimeDebug, PartialEq, Eq)]
@@ -71,6 +71,7 @@ pub struct ReferendumStatus<BlockNumber> {
     pub(crate) country: CountryId,
     pub(crate) proposal: ProposalId,
     pub(crate) tally: Tally<Balance>,
+    pub(crate) threshold: Option<VoteThreshold>,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
