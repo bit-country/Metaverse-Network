@@ -353,7 +353,7 @@ impl pallet_indices::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = 1 * DOLLARS;
+	pub const ExistentialDeposit: Balance = 1 * MICROCENTS;
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	pub const MaxLocks: u32 = 50;
@@ -1059,7 +1059,7 @@ impl orml_nft::Config for Runtime {
     type TokenData = nft::NftAssetData<Balance>;
 }
 
-impl country::Config for Runtime {
+impl bitcountry::Config for Runtime {
     type Event = Event;
     type ModuleId = CountryFundModuleId;
 }
@@ -1093,7 +1093,7 @@ impl continuum::Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
-    type CountryInfoSource = CountryModule;
+    type CountryInfoSource = BitCountryModule;
 }
 
 impl tokenization::Config for Runtime {
@@ -1145,7 +1145,7 @@ construct_runtime!(
 		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>},
 
          //BitCountry pallets
-        CountryModule: country::{Module, Call, Storage, Event<T>},
+        BitCountryModule: bitcountry::{Module, Call, Storage, Event<T>},
         BlockModule: block::{Module, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Module, Storage},
         NftModule: nft::{Module, Call, Storage, Event<T>},

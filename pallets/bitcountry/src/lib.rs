@@ -42,8 +42,8 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
-    pub struct Pallet<T>(PhantomData<T>);   
-    
+    pub struct Pallet<T>(PhantomData<T>);
+
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -51,47 +51,47 @@ pub mod pallet {
         #[pallet::constant]
         type ModuleId: Get<ModuleId>;
     }
-    
+
     #[pallet::storage]
     #[pallet::getter(fn next_country_id)]
     pub type NextCountryId<T: Config> = StorageValue<_, CountryId, ValueQuery>;
-    
+
     #[pallet::storage]
     #[pallet::getter(fn get_country)]
-    pub type Countries<T: Config> = 
-        StorageMap<_, Twox64Concat, CountryId, Country<T::AccountId>, OptionQuery>;
-    
+    pub type Countries<T: Config> =
+    StorageMap<_, Twox64Concat, CountryId, Country<T::AccountId>, OptionQuery>;
+
     #[pallet::storage]
     #[pallet::getter(fn get_country_owner)]
-    pub type CountryOwner<T: Config> = 
-        StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, T::AccountId, (), OptionQuery>;
+    pub type CountryOwner<T: Config> =
+    StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, T::AccountId, (), OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn all_countries_count)]
     pub(super) type AllCountriesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
-    
+
     #[pallet::storage]
     #[pallet::getter(fn get_country_treasury)]
-    pub type CountryTresury<T: Config> = 
-        StorageMap<_, Twox64Concat, CountryId, CountryFund<T::AccountId, Balance>, OptionQuery>;
-    
+    pub type CountryTresury<T: Config> =
+    StorageMap<_, Twox64Concat, CountryId, CountryFund<T::AccountId, Balance>, OptionQuery>;
+
     #[pallet::storage]
     #[pallet::getter(fn get_freezing_country)]
-    pub(super) type FreezingCountries<T: Config> = 
-        StorageMap<_, Twox64Concat, CountryId, (), OptionQuery>;
+    pub(super) type FreezingCountries<T: Config> =
+    StorageMap<_, Twox64Concat, CountryId, (), OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn is_init)]
     pub(super) type Init<T: Config> = StorageValue<_, bool, ValueQuery>;
-    
+
     #[pallet::storage]
     #[pallet::getter(fn nonce)]
     pub(super) type Nonce<T: Config> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::event]
-    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata(T::AccountId = "AccountId")]
-    pub enum Event<T: Config> {        
+    pub enum Event<T: Config> {
         NewCountryCreated(CountryId),
         TransferredCountry(CountryId, T::AccountId, T::AccountId),
         CountryFreezed(CountryId),
@@ -100,7 +100,7 @@ pub mod pallet {
     }
 
     #[pallet::error]
-	pub enum Error<T> {
+    pub enum Error<T> {
         //Country Info not found
         CountryInfoNotFound,
         //Country Id not found
@@ -112,11 +112,9 @@ pub mod pallet {
     }
 
     #[pallet::call]
-	impl<T: Config> Pallet<T> {
-
+    impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
-        pub(super) fn create_country(origin: OriginFor<T>, metadata: Vec<u8>) -> DispatchResultWithPostInfo {
-
+        pub(super) fn create_bc(origin: OriginFor<T>, metadata: Vec<u8>) -> DispatchResultWithPostInfo {
             let owner = ensure_signed(origin)?;
 
             let country_id = Self::new_country(&owner, metadata)?;
@@ -129,7 +127,7 @@ pub mod pallet {
                 vault: fund_id,
                 value: 0,
                 backing: 0, //0 BCG backing for now,
-                currency_id: Default::default()
+                currency_id: Default::default(),
             };
             CountryTresury::<T>::insert(country_id, country_fund);
 
@@ -146,7 +144,6 @@ pub mod pallet {
 
         #[pallet::weight(10_000)]
         pub(super) fn transfer_country(origin: OriginFor<T>, to: T::AccountId, country_id: CountryId) -> DispatchResultWithPostInfo {
-
             let who = ensure_signed(origin)?;
             // Get owner of the bitcountry
             CountryOwner::<T>::try_mutate_exists(
@@ -160,7 +157,7 @@ pub mod pallet {
                     }
 
                     *country_by_owner = None;
-                    CountryOwner::<T>::insert(country_id.clone(),to.clone(), ());
+                    CountryOwner::<T>::insert(country_id.clone(), to.clone(), ());
 
                     Countries::<T>::try_mutate_exists(
                         &country_id,
@@ -170,9 +167,9 @@ pub mod pallet {
                             Self::deposit_event(Event::<T>::TransferredCountry(country_id, who.clone(), to.clone()));
 
                             Ok(().into())
-                        }
+                        },
                     )
-            })
+                })
         }
 
         #[pallet::weight(10_000)]
@@ -213,10 +210,10 @@ pub mod pallet {
                 Ok(().into())
             })
         }
-    }    
+    }
 
     #[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Module<T> {
@@ -252,7 +249,7 @@ impl<T: Config> BCCountry<T::AccountId> for Module<T>
 
     fn get_country(country_id: CountryId) -> Option<Country<T::AccountId>> {
         Self::get_country(country_id)
-    }    
+    }
 
     fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
         if let Some(country) = Self::get_country(country_id) {
