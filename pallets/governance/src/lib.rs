@@ -33,6 +33,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::OriginFor;
     use super::*;
 
+    
     pub(crate) type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
     #[pallet::config]
@@ -118,9 +119,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn voting_record)]
-    pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, VotingRecord<Balance>, ValueQuery>;
-
-   
+    pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, VotingRecord, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -134,7 +133,7 @@ pub mod pallet {
         ReferendumPassed(ReferendumId),
         ReferendumNotPassed(ReferendumId),
         ReferendumCancelled(ReferendumId),
-        VoteRecorded(T::AccountId,ReferendumId, Vote<Balance>),
+        VoteRecorded(T::AccountId,ReferendumId, bool),
         VoteRemoved(T::AccountId,ReferendumId),
 
     }
@@ -159,7 +158,8 @@ pub mod pallet {
         ProposalIdOverflow,
         ReferendumIdOverflow,
         ProposalQueueOverflow,
-        AccountHaveNotVoted,
+        TallyOverflow,
+        AccountHasNotVoted,
         AccountAlreadyVoted
 
     }
@@ -272,8 +272,31 @@ pub mod pallet {
             vote_aye: bool
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
-            //ensure!(Self::is_member(from,country), Error::<T>::AccountNotCountryMember);
-            Ok(().into())
+            let mut status = Self::referendum_status(referendum)?;
+            ensure!(Self::is_member(from.clone(),status.country), Error::<T>::AccountNotCountryMember);
+            <VotingOf<T>>::try_mutate(from.clone(),|mut voting_record| -> DispatchResultWithPostInfo {
+                let mut votes = &mut voting_record.votes;
+                match votes.binary_search_by_key(&referendum, |i| i.0) {
+                    Ok(i) => Err(Error::<T>::AccountAlreadyVoted.into()),
+                    Err(i) => {
+                        let vote = Vote {
+                            aye: vote_aye,
+                            //balance: T::Currency::free_balance(&from)
+                        };
+                        
+                        votes.insert(i, (referendum,vote.clone()));
+
+                        <ReferendumInfoOf<T>>::try_mutate(referendum,|referendum_info| -> DispatchResultWithPostInfo {
+                            status.tally.add(vote).ok_or(Error::<T>::TallyOverflow)?;
+                            *referendum_info = Some(ReferendumInfo::Ongoing(status));
+                            
+                            Ok(().into())
+                        });
+                        Self::deposit_event(Event::VoteRecorded(from, referendum, vote_aye));
+                        Ok(().into())
+                    }
+                }
+            })
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -282,7 +305,24 @@ pub mod pallet {
             referendum:  ReferendumId,
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
-            Ok(().into())
+            let mut status = Self::referendum_status(referendum)?;
+            <VotingOf<T>>::try_mutate(from.clone(),|mut voting_record| -> DispatchResultWithPostInfo {
+                let mut votes = &mut voting_record.votes;
+                match votes.binary_search_by_key(&referendum, |i| i.0) {
+                    Ok(i) => {
+                        let vote =  votes.remove(i).1;
+                        <ReferendumInfoOf<T>>::try_mutate(referendum,|referendum_info| -> DispatchResultWithPostInfo {
+                            status.tally.remove(vote).ok_or(Error::<T>::TallyOverflow)?;
+                            *referendum_info = Some(ReferendumInfo::Ongoing(status));
+                            
+                            Ok(().into())
+                        });
+                        Self::deposit_event(Event::VoteRemoved(from, referendum));
+                        Ok(().into())
+                    }
+                    Err(i) => Err(Error::<T>::AccountHasNotVoted.into()),
+                }
+            })
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -329,7 +369,7 @@ pub mod pallet {
             let initial_tally = Tally{
                 ayes: Zero::zero(),
                 nays: Zero::zero(),
-                turnout: 0
+                turnout: Zero::zero()
             };
 
             let referendum_status = ReferendumStatus{
@@ -366,9 +406,9 @@ pub mod pallet {
             })
         }
 
-        fn update_proposals_per_country_number(country: CountryId, is_value_added: bool) -> DispatchResult {
+        fn update_proposals_per_country_number(country: CountryId, is_proposal_added: bool) -> DispatchResult {
             <TotalProposalsPerCountry<T>>::try_mutate(country, |number_of_proposals| -> DispatchResult {
-                if is_value_added {
+                if is_proposal_added {
                     *number_of_proposals = number_of_proposals.checked_add(1).ok_or(Error::<T>::ProposalQueueOverflow)?;
                 }
                 else {
@@ -393,18 +433,21 @@ pub mod pallet {
             Ok(result)
         }
 
-        fn update_referendum_tally(referendum: ReferendumId, vote: Vote<Balance>, is_vote_removed: bool) -> DispatchResult {
-            
-            if is_vote_removed {
-
-            }
-            else {
-
-            }
-            
-            Ok(())
+        fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
+            let info = Self::referendum_info(referendum_id).ok_or(Error::<T>::ReferendumDoesNotExist)?;
+            Self::ensure_ongoing(info.into())
         }
-    
+
+        /// Ok if the given referendum is active, Err otherwise
+        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>)
+        -> Result<ReferendumStatus<T::BlockNumber>, DispatchError>
+        {
+             match r {
+                ReferendumInfo::Ongoing(s) => Ok(s),
+                _ => Err(Error::<T>::ReferendumIsOver.into()),
+            }
+        }
+
         fn enact_proposal(proposal: ProposalId) -> DispatchResult {
             Ok(())
         }
@@ -415,6 +458,3 @@ pub mod pallet {
     
     }
 }
-
-
-    

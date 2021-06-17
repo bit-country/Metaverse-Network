@@ -1,9 +1,11 @@
 use codec::{Encode, Decode};
 use sp_runtime::{RuntimeDebug, DispatchError};
+use sp_runtime::traits::{One,Zero, Bounded, CheckedAdd, CheckedSub, CheckedMul, CheckedDiv, Saturating};
 use sp_std::vec::Vec;
-use primitives::{CountryId, AccountId,BlockNumber,ProposalId, ReferendumId,Balance};
-use crate::*;
+use primitives::{Balance,CountryId, AccountId,BlockNumber,ProposalId, ReferendumId};
+use frame_support::traits::Currency;
 
+use crate::*;
 
 #[derive(Encode, Decode,  Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum VoteThreshold {
@@ -11,7 +13,7 @@ pub enum VoteThreshold {
     TwoThirdsSupermajority, // 66%+
     ThreeFifthsSupermajority, // 60%+
     ReinforcedQualifiedMajority, // 55%+ 65%+ representation
-    AbsoluteMajority, // 50%+
+    AbsoluteMajority, // 50%+s
     RelativeMajority, // Most votes
 }
 
@@ -36,24 +38,55 @@ pub struct ReferendumParameters<BlockNumber> {
 
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct Vote<Balance> {
-   // pub(crate) who: AccountId,
-    pub aye: bool,
-    pub balance: Balance,
+pub struct Vote {
+    pub(crate) aye: bool,
+    // pub(crate) who: AccountId,
+    // pub(crate) balance: Balance,
 }
 
 /// Tally Struct
 #[derive(Encode, Decode,Default, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct Tally<Balance> {
-    pub(crate) ayes: Balance,
-    pub(crate) nays: Balance,
-    pub(crate) turnout: u64,
+pub struct Tally {
+    pub(crate) ayes: u32,
+    pub(crate) nays: u32,
+    pub(crate) turnout: u32,
+}
+
+impl Tally {
+
+    /// Add an account's vote into the tally.
+    pub fn add(
+		&mut self,
+		vote: Vote,
+	) -> Option<()> {
+        match vote.aye {
+            true => self.ayes = self.ayes.checked_add(One::one())?,
+            false => self.nays = self.nays.checked_add(One::one())?,
+        }
+        self.turnout = self.ayes.checked_add(One::one())?;
+		Some(())
+	}
+
+    /// Add an account's vote into the tally.
+    pub fn remove(
+		&mut self,
+		vote: Vote,
+	) -> Option<()> {
+        match vote.aye {
+            true => self.ayes = self.ayes.checked_sub(One::one())?,
+            false => self.nays = self.nays.checked_sub(One::one())?,
+        }
+        self.turnout = self.ayes.checked_sub(One::one())?;
+		Some(())
+	}
+
+
 }
 
 
 #[derive(Encode, Decode, Default,  Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct VotingRecord<Balance>  {
-    pub(crate) votes: Vec<(ReferendumId,Vote<Balance>)>
+pub struct VotingRecord {
+    pub(crate) votes: Vec<(ReferendumId,Vote)>
 }
 
 
@@ -70,7 +103,7 @@ pub struct ReferendumStatus<BlockNumber> {
     pub(crate) end: BlockNumber,
     pub(crate) country: CountryId,
     pub(crate) proposal: ProposalId,
-    pub(crate) tally: Tally<Balance>,
+    pub(crate) tally: Tally,
     pub(crate) threshold: Option<VoteThreshold>,
 }
 
@@ -79,8 +112,3 @@ pub enum ReferendumInfo<BlockNumber> {
     Ongoing(ReferendumStatus<BlockNumber>),
     Finished{passed: bool, end: BlockNumber},
 }
-
-
-
-
-

@@ -171,11 +171,8 @@ fn vote_work() {
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
-        assert_eq!(Balances::free_balance(&BOB), 100);
-        assert_eq!(last_event(), Event::governance(crate::Event::VoteRecorded(BOB, 0, Vote {
-            aye: true,
-            balance: 400
-        })));
+       // assert_eq!(Balances::free_balance(&BOB), 100);
+        assert_eq!(last_event(), Event::governance(crate::Event::VoteRecorded(BOB, 0, true)));
     });
 }
 
@@ -220,7 +217,7 @@ fn remove_vote_when_you_have_not_voted_does_not_work() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_noop!(GovernanceModule::remove_vote(Origin::signed(BOB), 0), Error::<Runtime>::AccountHaveNotVoted);
+        assert_noop!(GovernanceModule::remove_vote(Origin::signed(BOB), 0), Error::<Runtime>::AccountHasNotVoted);
     });
 }
 
