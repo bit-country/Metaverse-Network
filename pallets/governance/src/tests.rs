@@ -268,3 +268,30 @@ fn emergency_cancel_referendum_which_removes_privileges_does_not_work() {
 }
 
 
+// Referendum Finalization Tests
+#[test]
+#[ignore]
+fn referendum_proposal_is_enacted() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        run_to_block(16);
+        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
+        run_to_block(30);
+        assert_eq!(Balances::free_balance(&ALICE), 100000);
+        assert_eq!(last_event(), Event::governance(crate::Event::ReferendumPassed(0)));
+    });
+}
+
+#[test]
+fn referendum_proposal_is_rejected() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        run_to_block(16);
+        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, false));
+        run_to_block(50);
+        assert_eq!(Balances::free_balance(&ALICE), 100000);
+        assert_eq!(last_event(), Event::governance(crate::Event::ReferendumNotPassed(0)));
+    });
+}

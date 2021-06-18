@@ -69,7 +69,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        /// Initialisation
+        /// Initialization
         fn on_initialize(now: T::BlockNumber) -> Weight {
             for (country_id,proposal_id, proposal_info) in <Proposals<T>>::iter() {
                 if proposal_info.referendum_launch_block == now {
@@ -81,7 +81,17 @@ pub mod pallet {
 
         /// Finalization
         fn on_finalize(now: T::BlockNumber)  {
-            
+            // to do: fix this to call  referendum info
+            for (referendum_id,referendum_info) in <ReferendumInfoOf<T>>::iter() {
+                match referendum_info {
+                    ReferendumInfo::Ongoing(status) => {
+                        if status.end == now {
+                            Self::finalize_vote(referendum_id,status);
+                        }
+                    }
+                    _ => (),
+                }
+            }
         }
     }
 
@@ -190,9 +200,8 @@ pub mod pallet {
             proposal_description: Vec<u8>
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
-            ensure!(Self::is_member(from.clone(),country),  Error::<T>::AccountNotCountryMember);
+            ensure!(T::CountryInfo::is_member(&from, &country), Error::<T>::AccountNotCountryMember);
             ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
-            
             let current_block = <frame_system::Module<T>>::block_number();
             let mut launch_block: T::BlockNumber = current_block;
             match Self::referendum_parameters(country) {
@@ -273,7 +282,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             let mut status = Self::referendum_status(referendum)?;
-            ensure!(Self::is_member(from.clone(),status.country), Error::<T>::AccountNotCountryMember);
+            ensure!(T::CountryInfo::is_member(&from, &status.country), Error::<T>::AccountNotCountryMember);
             <VotingOf<T>>::try_mutate(from.clone(),|mut voting_record| -> DispatchResultWithPostInfo {
                 let mut votes = &mut voting_record.votes;
                 match votes.binary_search_by_key(&referendum, |i| i.0) {
@@ -310,7 +319,7 @@ pub mod pallet {
                 let mut votes = &mut voting_record.votes;
                 match votes.binary_search_by_key(&referendum, |i| i.0) {
                     Ok(i) => {
-                        let vote =  votes.remove(i).1;
+                        let vote = votes.remove(i).1;
                         <ReferendumInfoOf<T>>::try_mutate(referendum,|referendum_info| -> DispatchResultWithPostInfo {
                             status.tally.remove(vote).ok_or(Error::<T>::TallyOverflow)?;
                             *referendum_info = Some(ReferendumInfo::Ongoing(status));
@@ -385,11 +394,6 @@ pub mod pallet {
             Ok(referendum_id)
         }
 
-        fn is_member(account: T::AccountId, country: CountryId) -> bool {
-            // ТO DO: finish implementation
-            true
-        }
-
         fn get_next_proposal_id() -> Result<ProposalId, DispatchError> {
             <NextProposalId<T>>::try_mutate(|next_id| -> Result<ProposalId, DispatchError> {
                 let current_id = *next_id;
@@ -439,8 +443,7 @@ pub mod pallet {
         }
 
         /// Ok if the given referendum is active, Err otherwise
-        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>)
-        -> Result<ReferendumStatus<T::BlockNumber>, DispatchError>
+        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError>
         {
              match r {
                 ReferendumInfo::Ongoing(s) => Ok(s),
@@ -448,13 +451,53 @@ pub mod pallet {
             }
         }
 
+        fn finalize_vote(referendum_id: ReferendumId, referendum_status: ReferendumStatus<T::BlockNumber>) -> DispatchResult {
+          
+            // Return deposit
+            let deposit_info = Self::deposit(referendum_status.proposal).ok_or(Error::<T>::InsufficientBalance)?;
+            <DepositOf<T>>::remove(referendum_status.proposal);
+            T::Currency::unreserve(&deposit_info.0, deposit_info.1); 
+
+            // Check if referendum passes
+            let mut does_referendum_passed = false;
+            match referendum_status.threshold {
+                Some(ref threshold_type) => {
+                    match threshold_type {
+                        VoteThreshold::StandardQualifiedMajority => does_referendum_passed = (referendum_status.tally.ayes as f64 / referendum_status.tally.turnout as f64) > 0.72, 
+                        VoteThreshold::TwoThirdsSupermajority => does_referendum_passed = (referendum_status.tally.ayes as f64 / referendum_status.tally.turnout as f64) > 0.6666, 
+                        VoteThreshold::ThreeFifthsSupermajority =>  does_referendum_passed = (referendum_status.tally.ayes as f64 / referendum_status.tally.turnout as f64) > 0.6, 
+                        VoteThreshold::ReinforcedQualifiedMajority =>  does_referendum_passed = (referendum_status.tally.ayes as f64 / referendum_status.tally.turnout as f64) > 0.55, 
+                        VoteThreshold::AbsoluteMajority =>  does_referendum_passed = (referendum_status.tally.ayes as f64 / referendum_status.tally.turnout as f64) > 0.5, 
+                        VoteThreshold::RelativeMajority => does_referendum_passed = referendum_status.tally.ayes > referendum_status.tally.nays,
+                    }
+                }
+                // If no threshold is selected, the proposal will pass with relative majority
+                None => does_referendum_passed = referendum_status.tally.ayes > referendum_status.tally.nays,    
+            }
+
+            // Update referendum info
+            <ReferendumInfoOf<T>>::try_mutate(referendum_id,|referendum_info| -> DispatchResult {
+                *referendum_info = Some(ReferendumInfo::Finished {
+                    passed: does_referendum_passed,
+                    end: referendum_status.end
+                });
+                
+                Ok(())
+            });
+
+            // Enact proposal if it passed the threshold
+            if does_referendum_passed {
+                Self::enact_proposal(referendum_status.proposal);
+                Self::deposit_event(Event::ReferendumPassed(referendum_id));
+            } else {
+                Self::deposit_event(Event::ReferendumNotPassed(referendum_id));
+            }
+            
+            Ok(()) 
+        }
         fn enact_proposal(proposal: ProposalId) -> DispatchResult {
+             // TO DO: update country parameters
             Ok(())
-        }
-    
-        fn update_country_parameters(new_parameters: Vec<u8>) -> DispatchResult {
-            Ok(())
-        }
-    
+        }    
     }
 }

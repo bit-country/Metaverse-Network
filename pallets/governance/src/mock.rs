@@ -100,6 +100,14 @@ impl BCCountry<AccountId> for CountryInfo {
     fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
         None
     }
+
+    fn is_member(who: &AccountId, country_id: &CountryId) -> bool {
+        match *country_id {
+            ALICE_COUNTRY_ID => *who == ALICE,
+            BOB_COUNTRY_ID =>   *who == ALICE || *who == BOB,
+            _ => false,
+        }
+    }
 }
 
 parameter_types! {
