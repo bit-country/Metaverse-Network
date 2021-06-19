@@ -186,6 +186,7 @@ pub fn last_event() -> Event {
 }
 
 fn next_block() {
+    GovernanceModule::on_finalize(System::block_number());
     System::set_block_number(System::block_number() + 1);
     GovernanceModule::on_initialize(System::block_number());
 }

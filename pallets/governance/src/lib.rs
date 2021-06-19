@@ -76,6 +76,7 @@ pub mod pallet {
                     Self::start_referendum(country_id, proposal_id,now);
                 }
             }
+
             0
         }
 
@@ -366,13 +367,13 @@ pub mod pallet {
             let mut referendum_threshold = VoteThreshold::RelativeMajority;
             match Self::referendum_parameters(country_id) {
                 Some(country_referendum_params) => {
-                    referendum_end += country_referendum_params.voting_period;
+                    referendum_end = current_block + country_referendum_params.voting_period;
                     match  country_referendum_params.voting_threshold {
                         Some(defined_threshold) => referendum_threshold = defined_threshold,
                         None => {},
                     } 
                 },
-                None => referendum_end += T::DefaultVotingPeriod::get(),
+                None => referendum_end = current_block + T::DefaultVotingPeriod::get(),
             }
 
             let initial_tally = Tally{
@@ -452,7 +453,7 @@ pub mod pallet {
         }
 
         fn finalize_vote(referendum_id: ReferendumId, referendum_status: ReferendumStatus<T::BlockNumber>) -> DispatchResult {
-          
+            Self::deposit_event(Event::ReferendumNotPassed(referendum_id));
             // Return deposit
             let deposit_info = Self::deposit(referendum_status.proposal).ok_or(Error::<T>::InsufficientBalance)?;
             <DepositOf<T>>::remove(referendum_status.proposal);

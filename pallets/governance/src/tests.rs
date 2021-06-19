@@ -277,8 +277,9 @@ fn referendum_proposal_is_enacted() {
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
-        run_to_block(30);
+        run_to_block(27);
         assert_eq!(Balances::free_balance(&ALICE), 100000);
+        assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: true, end: 26}));
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumPassed(0)));
     });
 }
@@ -289,9 +290,12 @@ fn referendum_proposal_is_rejected() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
+        assert_eq!(last_event(), Event::governance(crate::Event::ReferendumStarted(0,VoteThreshold::RelativeMajority)));
         assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, false));
-        run_to_block(50);
+
+        run_to_block(27);
         assert_eq!(Balances::free_balance(&ALICE), 100000);
+        assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: false, end: 26}));
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumNotPassed(0)));
     });
 }
