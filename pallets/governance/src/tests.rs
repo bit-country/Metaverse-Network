@@ -260,7 +260,7 @@ fn emergency_cancel_referendum_which_removes_privileges_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         ReferendumJuryOf::<Runtime>::insert(BOB_COUNTRY_ID,ALICE);
-        let proposal_parameters = [CountryParameter::SetReferendumJury([1u8;32].into())].to_vec();
+        let proposal_parameters = [CountryParameter::SetReferendumJury([1u8;32].into())].to_vec(); //[CountryParameter::SetReferendumJury(BOB)].to_vec();
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, proposal_parameters, PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(17);
         assert_noop!(GovernanceModule::emergency_cancel_referendum(origin.clone(), 0), Error::<Runtime>::InsufficientPrivileges);
@@ -270,7 +270,6 @@ fn emergency_cancel_referendum_which_removes_privileges_does_not_work() {
 
 // Referendum Finalization Tests
 #[test]
-#[ignore]
 fn referendum_proposal_is_enacted() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
@@ -281,6 +280,11 @@ fn referendum_proposal_is_enacted() {
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: true, end: 26}));
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumPassed(0)));
+        let parameters_rec = GovernanceModule::referendum_parameters(BOB_COUNTRY_ID);
+        assert_ne!(parameters_rec, None);
+        let parameters = parameters_rec.unwrap();
+        assert_eq!(parameters.max_proposals_per_country, 2);
+        assert_eq!(parameters.max_params_per_proposal, 2);
     });
 }
 
@@ -292,7 +296,6 @@ fn referendum_proposal_is_rejected() {
         run_to_block(16);
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumStarted(0,VoteThreshold::RelativeMajority)));
         assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, false));
-
         run_to_block(27);
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: false, end: 26}));

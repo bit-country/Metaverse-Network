@@ -1,11 +1,7 @@
 use codec::{Encode, Decode};
-use sp_runtime::{RuntimeDebug, DispatchError};
-use sp_runtime::traits::{One,Zero, Bounded, CheckedAdd, CheckedSub, CheckedMul, CheckedDiv, Saturating};
+use sp_runtime::{RuntimeDebug, traits::One};
 use sp_std::vec::Vec;
-use primitives::{Balance,CountryId, AccountId,BlockNumber,ProposalId, ReferendumId};
-use frame_support::traits::Currency;
-
-use crate::*;
+use primitives::{CountryId, ProposalId, ReferendumId,AccountId};
 
 #[derive(Encode, Decode,  Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum VoteThreshold {
@@ -33,9 +29,6 @@ pub struct ReferendumParameters<BlockNumber> {
     pub(crate) max_params_per_proposal: u8,
     pub(crate) max_proposals_per_country: u8,
 }
-
-
-
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Vote {

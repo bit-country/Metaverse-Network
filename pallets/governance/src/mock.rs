@@ -3,16 +3,14 @@
 use crate as governance;
 use super::*;
 use frame_support::{
-    construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
-    impl_outer_event, impl_outer_origin, impl_outer_dispatch, traits::EnsureOrigin,
+    construct_runtime, parameter_types,
 };
 
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
-use primitives::{CurrencyId, Amount};
-use frame_system::EnsureSignedBy;
-use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
+use primitives::CurrencyId;
+use bc_country::Country;
+use frame_support::pallet_prelude::Hooks;
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
@@ -27,8 +25,6 @@ pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const CLASS_ID: u32 = 0;
-pub const COLLECTION_ID: u64 = 0;
 pub const ALICE_COUNTRY_ID: CountryId = 1;
 pub const BOB_COUNTRY_ID: CountryId = 2;
 pub const PROPOSAL_DESCRIPTION: [u8;2] = [1,2];

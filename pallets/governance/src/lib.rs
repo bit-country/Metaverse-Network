@@ -1,21 +1,19 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::{Decode, Encode};
+//use codec::{Decode, Encode};
 use frame_support::{
-    dispatch::DispatchResult, ensure,
-    traits::{Get, Vec}, IterableStorageDoubleMap,
+    dispatch::DispatchResult, 
+    traits::Vec,
 };
-use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, ProposalId, ReferendumId};
-use sp_runtime::{traits::{AccountIdConversion, Zero, CheckedDiv, CheckedAdd}, DispatchError, ModuleId, RuntimeDebug};
+use frame_system::ensure_signed;
+use primitives::{CountryId, ProposalId, ReferendumId};
+use sp_runtime::traits::Zero;
 
 #[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-use sp_std::vec;
-use sp_std::alloc::System;
-use bc_country::{BCCountry, Country};
-use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
+use bc_country::BCCountry;
+use frame_support::traits::{Currency, ReservableCurrency};
+
 
 mod types;
 pub use types::*;
@@ -76,13 +74,11 @@ pub mod pallet {
                     Self::start_referendum(country_id, proposal_id,now);
                 }
             }
-
             0
         }
 
         /// Finalization
         fn on_finalize(now: T::BlockNumber)  {
-            // to do: fix this to call  referendum info
             for (referendum_id,referendum_info) in <ReferendumInfoOf<T>>::iter() {
                 match referendum_info {
                     ReferendumInfo::Ongoing(status) => {
@@ -157,6 +153,7 @@ pub mod pallet {
         InsufficientBalance,
         ProposalParametersOutOfScope,
         TooManyProposalParameters,
+        InvalidProposalParameters,
         ProposalQueueFull,
         ProposalDoesNotExist,
         ProposalIsReferendum,
@@ -171,7 +168,9 @@ pub mod pallet {
         ProposalQueueOverflow,
         TallyOverflow,
         AccountHasNotVoted,
-        AccountAlreadyVoted
+        AccountAlreadyVoted,
+        InvalidJuryAddress,
+        ReferendumParametersDoesNotExist
 
     }
 
@@ -285,7 +284,7 @@ pub mod pallet {
             let mut status = Self::referendum_status(referendum)?;
             ensure!(T::CountryInfo::is_member(&from, &status.country), Error::<T>::AccountNotCountryMember);
             <VotingOf<T>>::try_mutate(from.clone(),|mut voting_record| -> DispatchResultWithPostInfo {
-                let mut votes = &mut voting_record.votes;
+                let votes = &mut voting_record.votes;
                 match votes.binary_search_by_key(&referendum, |i| i.0) {
                     Ok(i) => Err(Error::<T>::AccountAlreadyVoted.into()),
                     Err(i) => {
@@ -316,7 +315,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             let mut status = Self::referendum_status(referendum)?;
-            <VotingOf<T>>::try_mutate(from.clone(),|mut voting_record| -> DispatchResultWithPostInfo {
+            <VotingOf<T>>::try_mutate(from.clone(),|voting_record| -> DispatchResultWithPostInfo {
                 let mut votes = &mut voting_record.votes;
                 match votes.binary_search_by_key(&referendum, |i| i.0) {
                     Ok(i) => {
@@ -488,7 +487,7 @@ pub mod pallet {
 
             // Enact proposal if it passed the threshold
             if does_referendum_passed {
-                Self::enact_proposal(referendum_status.proposal);
+                Self::enact_proposal(referendum_status.proposal, referendum_status.country);
                 Self::deposit_event(Event::ReferendumPassed(referendum_id));
             } else {
                 Self::deposit_event(Event::ReferendumNotPassed(referendum_id));
@@ -496,9 +495,54 @@ pub mod pallet {
             
             Ok(()) 
         }
-        fn enact_proposal(proposal: ProposalId) -> DispatchResult {
-             // TO DO: update country parameters
+
+        fn enact_proposal(proposal: ProposalId, country: CountryId) -> DispatchResult {
+            let proposal_parameters = Self::proposals(country,proposal).ok_or(Error::<T>::InvalidProposalParameters)?.parameters;
+            let mut are_referendum_params_updated = false;
+            let mut new_referendum_parameters: ReferendumParameters<T::BlockNumber>;
+            match Self::referendum_parameters(country) {
+                Some(current_params) => new_referendum_parameters = current_params,
+                None =>  {
+                    new_referendum_parameters = ReferendumParameters {
+                        voting_threshold: Some(VoteThreshold::RelativeMajority),
+                        min_proposal_launch_period: T::DefaultProposalLaunchPeriod::get(),
+                        voting_period: T::DefaultVotingPeriod::get(),
+                        enactment_period: T::DefaultEnactmentPeriod::get(),
+                        max_params_per_proposal: T::DefaultMaxParametersPerProposal::get(),
+                        max_proposals_per_country: T::DefaultMaxProposalsPerCountry::get()
+                    };
+                    are_referendum_params_updated = true;
+                }
+            };
+           
+            for parameter in proposal_parameters.iter() {
+                match parameter {
+                    CountryParameter::MaxProposals(new_max_proposals) => {
+                        new_referendum_parameters.max_proposals_per_country = *new_max_proposals;
+                        are_referendum_params_updated = true;
+                    },
+                    CountryParameter::MaxParametersPerProposal(new_max_params) => {
+                        new_referendum_parameters.max_params_per_proposal = *new_max_params;
+                        are_referendum_params_updated = true;
+                     },
+                    CountryParameter::SetReferendumJury(new_jury_address) => {
+                      //  <ReferendumJuryOf<T>>::try_mutate(country,|jury| -> DispatchResult {
+                           // let new_acc: AccountId = T::AccountId::decode(new_jury_address.as_mut()).expect("error");
+                           // *jury = Some(new_acc);
+                            // Ok(())
+                      //  });
+                    },//),
+                    _ => {}, // implement more options when new parameters are included
+                }
+            }
+            if are_referendum_params_updated  {
+                <ReferendumParametersOf<T>>::try_mutate(country,|referendum_params| -> DispatchResult {
+                    *referendum_params = Some(new_referendum_parameters);
+                    Ok(())
+                });
+            }
             Ok(())
-        }    
+        }
+
     }
 }
