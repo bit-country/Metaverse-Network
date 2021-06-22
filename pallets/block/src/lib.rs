@@ -18,108 +18,215 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{
-    decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResult, ensure,
-    traits::Randomness, StorageMap, StorageValue,
-};
-use frame_system::{self as system, ensure_signed};
-use sp_core::H256;
-use sp_runtime::traits::Hash;
+use frame_support::ensure;
+use frame_system::{ensure_root, ensure_signed};
+use primitives::{Balance, CountryId, LandId, CurrencyId};
+use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
+use bc_country::*;
 use sp_std::vec::Vec;
+use frame_support::pallet_prelude::*;
+use frame_system::pallet_prelude::*;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
-#[cfg_attr(feature = "std", derive(Debug))]
-pub struct Block<Hash> {
-    id: Hash,
-    country_id: Hash,
-}
 
+#[cfg(test)]
 mod mock;
+
+#[cfg(test)]
 mod tests;
 
-pub trait Config: system::Config {
-    type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
-    type RandomnessSource: Randomness<H256>;
-}
+pub use pallet::*;
 
-decl_storage! {
-    trait Store for Module<T: Config> as BlockModule {
+#[frame_support::pallet]
+pub mod pallet {
+    use super::*;
+    use frame_support::traits::{ReservableCurrency, LockableCurrency, Currency};
 
-        pub BlockOwner get(fn owner_of): map hasher(blake2_128_concat) T::Hash => Option<T::AccountId>;
-        pub Blocks get(fn get_block): map hasher(blake2_128_concat) T::Hash => Block<T::Hash>;
-        pub AllBlocksCount get(fn all_blocks_count): u64;
+    #[pallet::pallet]
+    #[pallet::generate_store(trait Store)]
+    pub struct Pallet<T>(PhantomData<T>);
 
-        Init get(fn is_init): bool;
-
-        Nonce get(fn nonce): u32;
+    #[pallet::config]
+    pub trait Config: frame_system::Config {
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        #[pallet::constant]
+        type LandTreasury: Get<ModuleId>;
+        /// Source of Country Info
+        type CountryInfoSource: BCCountry<Self::AccountId>;
+        /// Currency
+        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+        /// Minimum Land Price
+        type MinimumLandPrice: Get<BalanceOf<Self>>;
     }
-}
 
-decl_event!(
-    pub enum Event<T>
-    where
-        AccountId = <T as system::Config>::AccountId,
-    {
-        Initialized(AccountId),
-        RandomnessConsumed(H256, H256),
+    type BalanceOf<T> =
+    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+    #[pallet::storage]
+    #[pallet::getter(fn next_land_id)]
+    pub type NextLandId<T: Config> = StorageValue<_, LandId, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_land_owner)]
+    pub type LandOwner<T: Config> =
+    StorageDoubleMap<_, Twox64Concat, LandId, Twox64Concat, T::AccountId, (), OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_lands_by_owner)]
+    pub type LandByOwner<T: Config> =
+    StorageMap<_, Blake2_128Concat, T::AccountId, Vec<LandId>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn all_lands_count)]
+    pub(super) type AllLandsCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub (super) fn deposit_event)]
+    #[pallet::metadata(T::AccountId = "AccountId")]
+    pub enum Event<T: Config> {
+        NewLandCreated(LandId),
+        TransferredLand(LandId, T::AccountId, T::AccountId),
     }
-);
 
-decl_error! {
-    pub enum Error for Module<T: Config> {
-        /// Attempted to initialize the token after it had already been initialized.
-        AlreadyInitialized,
-        /// Attempted to transfer more funds than were available
-        InsufficientFunds,
+    #[pallet::error]
+    pub enum Error<T> {
+        //Land Info not found
+        LandInfoNotFound,
+        //Country Id not found
+        LandIdNotFound,
+        //No permission
+        NoPermission,
+        //No available bitcountry id
+        NoAvailableBitCountryId,
+        NoAvailableLandId,
+        InsufficientFund,
     }
-}
 
-decl_module! {
-    pub struct Module<T: Config> for enum Call where origin: T::Origin {
-        fn deposit_event() = default;
-
-        #[weight = 10_000]
-        fn create_block(origin, country_id: T::Hash) -> DispatchResult {
-
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000)]
+        pub(super) fn buy_land(origin: OriginFor<T>, bc_id: CountryId, quantity: u8) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            let random_str = Self::encode_and_update_nonce();
+            ensure!(T::CountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);
 
-            let random_seed = T::RandomnessSource::random_seed();
-            let random_result = T::RandomnessSource::random(&random_str);
-            let random_hash = (random_seed, &sender, random_result).using_encoded(<T as system::Config>::Hashing::hash);
+            let minimum_land_price = T::MinimumLandPrice::get();
+            let total_cost = minimum_land_price * Into::<BalanceOf<T>>::into(quantity);
+            ensure!(T::Currency::free_balance(&sender) > total_cost, Error::<T>::InsufficientFund);
+            let land_treasury = Self::account_id();
+            ensure!(T::Currency::transfer(&sender, &land_treasury, total_cost, ExistenceRequirement::KeepAlive), Error::<T>::InsufficientFund);
 
-            //Check only bitcountry owner can add new block
+            let mut new_land_ids: Vec<LandId> = Vec::new();
 
-            let new_block = Block{
-                id: random_hash,
-                country_id: country_id,
+            for _ in 0..quantity {
+                let land_id = Self::get_new_land_id()?;
+                new_land_ids.push(land_id);
+
+                if LandOwner::<T>::contains_key(land_id, &sender) {
+                    AssetsByOwner::<T>::try_mutate(
+                        &sender,
+                        |asset_ids| -> DispatchResult {
+                            // Check if the asset_id already in the owner
+                            ensure!(!asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
+                            asset_ids.push(asset_id);
+                            Ok(())
+                        },
+                    )?;
+                } else {
+                    let mut assets = Vec::<AssetId>::new();
+                    assets.push(asset_id);
+                    AssetsByOwner::<T>::insert(&sender, assets)
+                }
+            }
+            //Country treasury
+            let country_fund = CountryFund {
+                vault: fund_id,
+                value: 0,
+                backing: 0, //0 BCG backing for now,
+                currency_id: Default::default(),
             };
-            ensure!(!<Blocks<T>>::contains_key(random_hash), "Block already exists");
+            CountryTresury::<T>::insert(country_id, country_fund);
 
-            <BlockOwner<T>>::insert(random_hash, &sender);
-            <Blocks<T>>::insert(random_hash, new_block);
+            CountryOwner::<T>::insert(country_id, owner, ());
 
-            let all_blocks_count = Self::all_blocks_count();
+            let total_country_count = Self::all_countries_count();
 
-            let new_all_blocks_count = all_blocks_count.checked_add(1)
-                .ok_or("Overflow adding a new block to total supply")?;
+            let new_total_country_count = total_country_count.checked_add(One::one()).ok_or("Overflow adding new count to total bitcountry")?;
+            AllCountriesCount::<T>::put(new_total_country_count);
+            Self::deposit_event(Event::<T>::NewCountryCreated(country_id.clone()));
 
-            AllBlocksCount::put(new_all_blocks_count);
+            Ok(().into())
+        }
 
-            Self::deposit_event(RawEvent::RandomnessConsumed(random_seed, random_result));
+        #[pallet::weight(10_000)]
+        pub(super) fn transfer_land(origin: OriginFor<T>, to: T::AccountId, country_id: CountryId) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            // Get owner of the bitcountry
+            CountryOwner::<T>::try_mutate_exists(
+                &country_id, &who, |country_by_owner| -> DispatchResultWithPostInfo {
+                    //ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
+                    ensure!(country_by_owner.is_some(), Error::<T>::NoPermission);
 
-            Ok(())
+                    if who == to {
+                        // no change needed
+                        return Ok(().into());
+                    }
+
+                    *country_by_owner = None;
+                    CountryOwner::<T>::insert(country_id.clone(), to.clone(), ());
+
+                    Countries::<T>::try_mutate_exists(
+                        &country_id,
+                        |country| -> DispatchResultWithPostInfo{
+                            let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
+                            country_record.owner = to.clone();
+                            Self::deposit_event(Event::<T>::TransferredCountry(country_id, who.clone(), to.clone()));
+
+                            Ok(().into())
+                        },
+                    )
+                })
         }
     }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Module<T> {
     /// Reads the nonce from storage, increments the stored nonce, and returns
     /// the encoded nonce to the caller.
-    fn encode_and_update_nonce() -> Vec<u8> {
-        let nonce = Nonce::get();
-        Nonce::put(nonce.wrapping_add(1));
-        nonce.encode()
+
+    fn get_new_land_id() -> Result<LandId, DispatchError> {
+        let land_id = NextLandId::<T>::try_mutate(|id| -> Result<LandId, DispatchError> {
+            let current_id = *id;
+            *id = id
+                .checked_add(One::one())
+                .ok_or(Error::<T>::NoAvailableLandId)?;
+            Ok(current_id)
+        })?;
+        Ok(land_id)
+    }
+
+    fn account_id() -> T::AccountId {
+        T::LandTreasury::get().into_account()
+    }
+}
+
+impl<T: Config> BCCountry<T::AccountId> for Module<T>
+{
+    fn check_ownership(who: &T::AccountId, country_id: &CountryId) -> bool {
+        Self::get_country_owner(country_id, who) == Some(())
+    }
+
+    fn get_country(country_id: CountryId) -> Option<Country<T::AccountId>> {
+        Self::get_country(country_id)
+    }
+
+    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+        if let Some(country) = Self::get_country(country_id) {
+            return Some(country.currency_id);
+        }
+        None
     }
 }

@@ -48,7 +48,7 @@ pub struct NftClassData<Balance> {
     //Minimum balance to create a collection of Asset
     pub deposit: Balance,
     // Metadata from ipfs
-    pub properties: Vec<u8>,
+    pub metadata: Vec<u8>,
     pub token_type: TokenType,
     pub collection_type: CollectionType,
     pub total_supply: u64,
@@ -247,7 +247,7 @@ pub mod pallet {
         //Asset Id is already exist
         AssetIdAlreadyExist,
         //Asset Id is currently in an auction
-        AssetAlreadyInAuction
+        AssetAlreadyInAuction,
     }
 
     #[pallet::call]
@@ -275,14 +275,14 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
+        pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
             // TODO 
             ensure!(
                 GroupCollections::<T>::contains_key(collection_id), 
                 Error::<T>::CollectionIsNotExist
-            ); 
+            );
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
@@ -296,9 +296,9 @@ pub mod pallet {
             let class_data = NftClassData
             {
                 deposit: class_deposit,
-                properties,
                 token_type,
                 collection_type,
+                metadata: metadata.clone(),
                 total_supply: Default::default(),
                 initial_supply: Default::default(),
             };

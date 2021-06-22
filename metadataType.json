@@ -67,7 +67,7 @@
   },
   "TokenType": {
     "_enum": [
-      "Transferrable",
+      "Transferable",
       "BoundToAddress"
     ]
   },

@@ -109,7 +109,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
     }
 
     fn check_item_in_auction(asset_id: AssetId) -> bool {
-        return false
+        return false;
     }
 }
 

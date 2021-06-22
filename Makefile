@@ -2,10 +2,7 @@
 init:
 	./scripts/init.sh
 
-.PHONY: check
-check:
-	SKIP_WASM_BUILD= cargo check
-
+.PHONY: check scaredy-cat scaredy-cat
 .PHONY: test
 test:
 	SKIP_WASM_BUILD= cargo test --all
