@@ -21,7 +21,7 @@ pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const COUNTRY_ID: CountryId = 0;
+pub const COUNTRY_ID: CountryId = 1;
 pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
 pub const NUUM: CurrencyId = 0;
 pub const COUNTRY_FUND: CurrencyId = 1;
@@ -103,6 +103,7 @@ impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
+    type SocialTokenTreasury = CountryFundModuleId;
 }
 
 parameter_types! {

@@ -31,7 +31,7 @@ pub struct CountryFund<AccountId, Balance> {
 pub trait BCCountry<AccountId> {
     fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool;
 
-    fn get_country(country_id: CountryId) -> Option<Country<AccountId>>;    
+    fn get_country(country_id: CountryId) -> Option<Country<AccountId>>;
 
     fn get_country_token(country_id: CountryId) -> Option<CurrencyId>;
 }

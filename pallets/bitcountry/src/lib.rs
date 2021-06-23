@@ -71,11 +71,6 @@ pub mod pallet {
     pub(super) type AllCountriesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn get_country_treasury)]
-    pub type CountryTresury<T: Config> =
-    StorageMap<_, Twox64Concat, CountryId, CountryFund<T::AccountId, Balance>, OptionQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn get_freezing_country)]
     pub(super) type FreezingCountries<T: Config> =
     StorageMap<_, Twox64Concat, CountryId, (), OptionQuery>;
@@ -118,18 +113,6 @@ pub mod pallet {
             let owner = ensure_signed(origin)?;
 
             let country_id = Self::new_country(&owner, metadata)?;
-            //Static module fund, will change to dynamic with randomness
-            // let module_id: ModuleId = ModuleId(*b"Country!");
-            let fund_id = T::ModuleId::get().into_sub_account(country_id);
-
-            //Country treasury
-            let country_fund = CountryFund {
-                vault: fund_id,
-                value: 0,
-                backing: 0, //0 BCG backing for now,
-                currency_id: Default::default(),
-            };
-            CountryTresury::<T>::insert(country_id, country_fund);
 
             CountryOwner::<T>::insert(country_id, owner, ());
 
