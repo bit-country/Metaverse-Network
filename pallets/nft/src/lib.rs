@@ -10,7 +10,6 @@ use frame_support::{
     traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
     pallet_prelude::*,
 };
-use primitives::Balance;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +22,7 @@ use sp_runtime::{
     DispatchError, ModuleId,
 };
 use sp_std::vec::Vec;
+use auction_manager::{Auction};
 
 #[cfg(test)]
 mod mock;
@@ -48,7 +48,7 @@ pub struct NftClassData<Balance> {
     //Minimum balance to create a collection of Asset
     pub deposit: Balance,
     // Metadata from ipfs
-    pub properties: Vec<u8>,
+    pub metadata: Vec<u8>,
     pub token_type: TokenType,
     pub collection_type: CollectionType,
     pub total_supply: u64,
@@ -156,6 +156,9 @@ pub mod pallet {
         type ModuleId: Get<ModuleId>;
         // Weight info
         type WeightInfo: WeightInfo;
+        /// Auction Handler
+        type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber>;
+        type AssetsHandler: AssetHandler;
     }
 
     type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -243,6 +246,8 @@ pub mod pallet {
         NoAvailableAssetId,
         //Asset Id is already exist
         AssetIdAlreadyExist,
+        //Asset Id is currently in an auction
+        AssetAlreadyInAuction,
     }
 
     #[pallet::call]
@@ -270,14 +275,14 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
+        pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
             // TODO 
             ensure!(
                 GroupCollections::<T>::contains_key(collection_id), 
                 Error::<T>::CollectionIsNotExist
-            ); 
+            );
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
@@ -291,9 +296,9 @@ pub mod pallet {
             let class_data = NftClassData
             {
                 deposit: class_deposit,
-                properties,
                 token_type,
                 collection_type,
+                metadata: metadata.clone(),
                 total_supply: Default::default(),
                 initial_supply: Default::default(),
             };
@@ -370,7 +375,8 @@ pub mod pallet {
         pub fn transfer(origin: OriginFor<T>, to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            //FIXME asset transfer should be reverted once it's locked in Auction
+            ensure!(!T::AssetsHandler::check_item_in_auction(asset_id),Error::<T>::AssetAlreadyInAuction);
+
             let token_id = Self::do_transfer(&sender, &to, asset_id)?;
 
             Self::deposit_event(Event::<T>::TransferedNft(sender, to, token_id));
@@ -509,5 +515,23 @@ impl<T: Config> Module<T> {
         }
 
         return Ok(false);
+    }
+}
+
+
+pub trait AssetHandler {
+    //Checks if item is already in an auction
+    fn check_item_in_auction(
+        asset_id: AssetId,
+    ) -> bool;
+}
+
+impl<T: Config> AssetHandler
+for Module<T>
+{
+    fn check_item_in_auction(
+        asset_id: AssetId,
+    ) -> bool {
+        return T::AuctionHandler::check_item_in_auction(asset_id);
     }
 }

@@ -2,9 +2,7 @@
 
 set -e
 
-echo "*** Start Substrate node template ***"
+VERSION=$(git rev-parse --short HEAD)
 
-cd $(dirname ${BASH_SOURCE[0]})/..
-
-docker-compose down --remove-orphans
-docker-compose run --rm --service-ports dev $@
+docker build -f scripts/Dockerfile_dev . -t bitcountry/bitcountry-node:$VERSION --no-cache --build-arg GIT_COMMIT=${VERSION}
+docker push bitcountry/bitcountry-node:$VERSION

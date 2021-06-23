@@ -353,7 +353,7 @@ impl pallet_indices::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = 1 * DOLLARS;
+	pub const ExistentialDeposit: Balance = 1 * MICROCENTS;
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	pub const MaxLocks: u32 = 50;
@@ -662,6 +662,7 @@ parameter_types! {
     pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
     pub const NftModuleId: ModuleId = ModuleId(*b"bit/bnft");
     pub const ContinuumTreasuryModuleId: ModuleId = ModuleId(*b"bit/ctmu");
+    pub const LandTreasuryModuleId: ModuleId = ModuleId(*b"bit/land");
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -1048,6 +1049,8 @@ impl nft::Config for Runtime {
     type Currency = Balances;
     type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
     type ModuleId = NftModuleId;
+    type AuctionHandler = Auction;
+    type AssetsHandler = NftModule;
 }
 
 impl orml_nft::Config for Runtime {
@@ -1057,14 +1060,21 @@ impl orml_nft::Config for Runtime {
     type TokenData = nft::NftAssetData<Balance>;
 }
 
-impl country::Config for Runtime {
+impl bitcountry::Config for Runtime {
     type Event = Event;
     type ModuleId = CountryFundModuleId;
 }
 
+parameter_types! {
+    pub const MinimumLandPrice: Balance = 10 * DOLLARS;
+}
+
 impl block::Config for Runtime {
     type Event = Event;
-    type RandomnessSource = RandomnessCollectiveFlip;
+    type LandTreasury = LandTreasuryModuleId;
+    type CountryInfoSource = BitCountryModule;
+    type Currency = Balances;
+    type MinimumLandPrice = MinimumLandPrice;
 }
 
 parameter_types! {
@@ -1091,13 +1101,14 @@ impl continuum::Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
-    type CountryInfoSource = CountryModule;
+    type CountryInfoSource = BitCountryModule;
 }
 
 impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
+    type SocialTokenTreasury = CountryFundModuleId;
 }
 
 construct_runtime!(
@@ -1143,7 +1154,7 @@ construct_runtime!(
 		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>},
 
          //BitCountry pallets
-        CountryModule: country::{Module, Call, Storage, Event<T>},
+        BitCountryModule: bitcountry::{Module, Call, Storage, Event<T>},
         BlockModule: block::{Module, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Module, Storage},
         NftModule: nft::{Module, Call, Storage, Event<T>},

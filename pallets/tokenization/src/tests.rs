@@ -19,88 +19,106 @@ fn get_country_fund_balance() -> Balance {
         _ => 0
     }
 }
-//
-// #[test]
-// fn country_treasury_pool_should_work() {
-//     ExtBuilder::default().build().execute_with(|| {
-//         assert_eq!(get_country_fund_balance(), 0);
-//         assert_ok!(
-// 			TokenizationModule::mint_token(
-//                 COUNTRY_FUND,
-//                 &TokenizationModule::get_country_fund_id(COUNTRY_ID),
-//                 400
-//             )
-//         );
-//         assert_eq!(get_country_fund_balance(), 400);
-//     });
-// }
-//
-// #[test]
-// fn country_treasury_pool_withdraw_should_work() {
-//     ExtBuilder::default().build().execute_with(|| {
-//         assert_eq!(get_country_fund_balance(), 0);
-//         assert_ok!(
-// 			Currencies::deposit(
-//                 COUNTRY_FUND,
-//                 &TokenizationModule::get_country_fund_id(COUNTRY_ID),
-//                 400
-//             )
-//         );
-//         assert_eq!(get_country_fund_balance(), 400);
-//         assert_ok!(
-//             Currencies::withdraw(
-//                 COUNTRY_FUND,
-//                 &TokenizationModule::get_country_fund_id(COUNTRY_ID),
-//                 200
-//             )
-//         );
-//         assert_eq!(get_country_fund_balance(), 200);
-//     });
-// }
-//
-// #[test]
-// fn country_treasury_pool_withdraw_should_fail() {
-//     ExtBuilder::default().build().execute_with(|| {
-//         assert_eq!(get_country_fund_balance(), 0);
-//         assert_ok!(
-// 			Currencies::deposit(
-//                 COUNTRY_FUND,
-//                 &TokenizationModule::get_country_fund_id(COUNTRY_ID),
-//                 400
-//             )
-//         );
-//         assert_eq!(get_country_fund_balance(), 400);
-//         assert_noop!(
-//             Currencies::withdraw(
-//                 COUNTRY_FUND,
-//                 &ALICE,
-//                 200
-//             ),
-//             orml_tokens::Error::<Runtime>::BalanceTooLow
-//         );
-//     });
-// }
-//
-// #[test]
-// fn country_treasury_pool_transfer_should_work() {
-//     ExtBuilder::default().build().execute_with(|| {
-//         assert_eq!(get_country_fund_balance(), 0);
-//         assert_ok!(
-// 			Currencies::deposit(
-//                 COUNTRY_FUND,
-//                 &TokenizationModule::get_country_fund_id(COUNTRY_ID),
-//                 400
-//             )
-//         );
-//         assert_eq!(get_country_fund_balance(), 400);
-//         assert_ok!(
-// 			Currencies::transfer(
-//                 Origin::signed(TokenizationModule::get_country_fund_id(COUNTRY_ID)),
-//                 ALICE,
-//                 COUNTRY_FUND,
-//                 100
-//             )
-//         );
-//         assert_eq!(Currencies::free_balance(COUNTRY_FUND, &ALICE), 100);
-//     });
-// }
+
+#[test]
+fn country_treasury_pool_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+
+        assert_eq!(get_country_fund_balance(), 0);
+        assert_ok!(
+			TokenizationModule::mint_token(
+                origin,
+                vec![1],
+                COUNTRY_ID,
+                400
+            )
+        );
+        assert_eq!(get_country_fund_balance(), 400);
+    });
+}
+
+
+#[test]
+fn country_treasury_pool_withdraw_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+
+        assert_eq!(get_country_fund_balance(), 0);
+        assert_ok!(
+			TokenizationModule::mint_token(
+                origin,
+                vec![1],
+                COUNTRY_ID,
+                400
+            )
+        );
+        assert_ok!(
+			Currencies::deposit(
+                COUNTRY_FUND,
+                &TokenizationModule::get_country_fund_id(COUNTRY_ID),
+                400
+            )
+        );
+        assert_eq!(get_country_fund_balance(), 800);
+        assert_ok!(
+            Currencies::withdraw(
+                COUNTRY_FUND,
+                &TokenizationModule::get_country_fund_id(COUNTRY_ID),
+                200
+            )
+        );
+        assert_eq!(get_country_fund_balance(), 600);
+    });
+}
+
+#[test]
+fn country_treasury_pool_withdraw_should_fail() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+        assert_eq!(get_country_fund_balance(), 0);
+        assert_ok!(
+			TokenizationModule::mint_token(
+                origin,
+                vec![1],
+                COUNTRY_ID,
+                400
+            )
+        );
+        assert_eq!(get_country_fund_balance(), 400);
+        assert_noop!(
+            Currencies::withdraw(
+                COUNTRY_FUND,
+                &ALICE,
+                800
+            ),
+            orml_tokens::Error::<Runtime>::BalanceTooLow
+        );
+    });
+}
+
+#[test]
+fn country_treasury_pool_transfer_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+        assert_eq!(get_country_fund_balance(), 0);
+        assert_ok!(
+			TokenizationModule::mint_token(
+                origin,
+                vec![1],
+                COUNTRY_ID,
+                400
+            )
+        );
+        assert_eq!(get_country_fund_balance(), 400);
+        assert_ok!(
+			Currencies::transfer(
+                Origin::signed(TokenizationModule::get_country_fund_id(COUNTRY_ID)),
+                ALICE,
+                COUNTRY_FUND,
+                100
+            )
+        );
+        assert_eq!(Currencies::free_balance(COUNTRY_FUND, &ALICE), 100);
+    });
+}
