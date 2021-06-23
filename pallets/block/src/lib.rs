@@ -35,11 +35,12 @@ mod mock;
 mod tests;
 
 pub use pallet::*;
+use frame_support::dispatch::DispatchResult;
 
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::traits::{ReservableCurrency, LockableCurrency, Currency};
+    use frame_support::traits::{ReservableCurrency, LockableCurrency, Currency, ExistenceRequirement};
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
@@ -84,7 +85,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata(T::AccountId = "AccountId")]
     pub enum Event<T: Config> {
-        NewLandCreated(LandId),
+        NewLandCreated(Vec<LandId>),
         TransferredLand(LandId, T::AccountId, T::AccountId),
     }
 
@@ -100,6 +101,7 @@ pub mod pallet {
         NoAvailableBitCountryId,
         NoAvailableLandId,
         InsufficientFund,
+        LandIdAlreadyExist,
     }
 
     #[pallet::call]
@@ -114,7 +116,7 @@ pub mod pallet {
             let total_cost = minimum_land_price * Into::<BalanceOf<T>>::into(quantity);
             ensure!(T::Currency::free_balance(&sender) > total_cost, Error::<T>::InsufficientFund);
             let land_treasury = Self::account_id();
-            ensure!(T::Currency::transfer(&sender, &land_treasury, total_cost, ExistenceRequirement::KeepAlive), Error::<T>::InsufficientFund);
+            T::Currency::transfer(&sender, &land_treasury, total_cost, ExistenceRequirement::KeepAlive)?;
 
             let mut new_land_ids: Vec<LandId> = Vec::new();
 
@@ -122,69 +124,41 @@ pub mod pallet {
                 let land_id = Self::get_new_land_id()?;
                 new_land_ids.push(land_id);
 
-                if LandOwner::<T>::contains_key(land_id, &sender) {
-                    AssetsByOwner::<T>::try_mutate(
-                        &sender,
-                        |asset_ids| -> DispatchResult {
-                            // Check if the asset_id already in the owner
-                            ensure!(!asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
-                            asset_ids.push(asset_id);
-                            Ok(())
-                        },
-                    )?;
-                } else {
-                    let mut assets = Vec::<AssetId>::new();
-                    assets.push(asset_id);
-                    AssetsByOwner::<T>::insert(&sender, assets)
-                }
+                LandOwner::<T>::insert(land_id, &sender, ());
+
+                Self::add_land_to_new_owner(land_id, &sender);
             }
-            //Country treasury
-            let country_fund = CountryFund {
-                vault: fund_id,
-                value: 0,
-                backing: 0, //0 BCG backing for now,
-                currency_id: Default::default(),
-            };
-            CountryTresury::<T>::insert(country_id, country_fund);
 
-            CountryOwner::<T>::insert(country_id, owner, ());
+            let total_land_count = Self::all_lands_count();
 
-            let total_country_count = Self::all_countries_count();
-
-            let new_total_country_count = total_country_count.checked_add(One::one()).ok_or("Overflow adding new count to total bitcountry")?;
-            AllCountriesCount::<T>::put(new_total_country_count);
-            Self::deposit_event(Event::<T>::NewCountryCreated(country_id.clone()));
+            let new_total_land_count = total_land_count.checked_add(One::one()).ok_or("Overflow adding new count to total lands")?;
+            AllLandsCount::<T>::put(new_total_land_count);
+            Self::deposit_event(Event::<T>::NewLandCreated(new_land_ids.clone()));
 
             Ok(().into())
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn transfer_land(origin: OriginFor<T>, to: T::AccountId, country_id: CountryId) -> DispatchResultWithPostInfo {
+        pub(super) fn transfer_land(origin: OriginFor<T>, to: T::AccountId, land_id: LandId) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            // Get owner of the bitcountry
-            CountryOwner::<T>::try_mutate_exists(
-                &country_id, &who, |country_by_owner| -> DispatchResultWithPostInfo {
-                    //ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
-                    ensure!(country_by_owner.is_some(), Error::<T>::NoPermission);
+            // Get owner of the land
+            LandOwner::<T>::try_mutate_exists(
+                &land_id, &who, |land_by_owner| -> DispatchResultWithPostInfo {
+                    //ensure there is record of the land owner with land id, account id and delete them
+                    ensure!(land_by_owner.is_some(), Error::<T>::NoPermission);
 
                     if who == to {
                         // no change needed
                         return Ok(().into());
                     }
 
-                    *country_by_owner = None;
-                    CountryOwner::<T>::insert(country_id.clone(), to.clone(), ());
+                    *land_by_owner = None;
+                    LandOwner::<T>::insert(land_id.clone(), to.clone(), ());
 
-                    Countries::<T>::try_mutate_exists(
-                        &country_id,
-                        |country| -> DispatchResultWithPostInfo{
-                            let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
-                            country_record.owner = to.clone();
-                            Self::deposit_event(Event::<T>::TransferredCountry(country_id, who.clone(), to.clone()));
+                    Self::add_land_to_new_owner(land_id, &who);
+                    Self::deposit_event(Event::<T>::TransferredLand(land_id.clone(), who.clone(), to));
 
-                            Ok(().into())
-                        },
-                    )
+                    Ok(().into())
                 })
         }
     }
@@ -211,22 +185,23 @@ impl<T: Config> Module<T> {
     fn account_id() -> T::AccountId {
         T::LandTreasury::get().into_account()
     }
-}
 
-impl<T: Config> BCCountry<T::AccountId> for Module<T>
-{
-    fn check_ownership(who: &T::AccountId, country_id: &CountryId) -> bool {
-        Self::get_country_owner(country_id, who) == Some(())
-    }
-
-    fn get_country(country_id: CountryId) -> Option<Country<T::AccountId>> {
-        Self::get_country(country_id)
-    }
-
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
-        if let Some(country) = Self::get_country(country_id) {
-            return Some(country.currency_id);
+    fn add_land_to_new_owner(land_id: LandId, sender: &T::AccountId) -> DispatchResult {
+        if LandOwner::<T>::contains_key(land_id, &sender) {
+            LandByOwner::<T>::try_mutate(
+                &sender,
+                |land_ids| -> DispatchResult {
+                    // Check if the asset_id already in the owner
+                    ensure!(!land_ids.iter().any(|i| land_id == *i), Error::<T>::LandIdAlreadyExist);
+                    land_ids.push(land_id);
+                    Ok(())
+                },
+            )?;
+        } else {
+            let mut new_land_vec = Vec::<LandId>::new();
+            new_land_vec.push(land_id);
+            LandByOwner::<T>::insert(&sender, new_land_vec)
         }
-        None
+        Ok(())
     }
 }
