@@ -19,8 +19,8 @@ pub type Balance = u128;
 pub type CountryId = u64;
 pub type BlockNumber = u64;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
+pub const ALICE: AccountId = 4;
+pub const BOB: AccountId = 5;
 pub const COUNTRY_ID: CountryId = 1;
 pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
 pub const NUUM: CurrencyId = 0;

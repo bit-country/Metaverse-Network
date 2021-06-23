@@ -112,6 +112,13 @@ fn country_treasury_pool_transfer_should_work() {
         );
         assert_eq!(get_country_fund_balance(), 400);
         assert_ok!(
+			Currencies::deposit(
+                COUNTRY_FUND,
+                &TokenizationModule::get_country_fund_id(COUNTRY_ID),
+                400
+            )
+        );
+        assert_ok!(
 			Currencies::transfer(
                 Origin::signed(TokenizationModule::get_country_fund_id(COUNTRY_ID)),
                 ALICE,
@@ -119,6 +126,6 @@ fn country_treasury_pool_transfer_should_work() {
                 100
             )
         );
-        assert_eq!(Currencies::free_balance(COUNTRY_FUND, &ALICE), 100);
+        assert_eq!(Currencies::free_balance(COUNTRY_FUND, &ALICE), 500);
     });
 }
