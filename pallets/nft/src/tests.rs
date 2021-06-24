@@ -142,7 +142,7 @@ fn mint_asset_should_work() {
         assert_eq!(Nft::get_assets_by_owner(ALICE), vec![0]);
         assert_eq!(Nft::get_asset(0), Some((CLASS_ID, TOKEN_ID)));
 
-        let event = mock::Event::nft(crate::Event::NewNftMinted(0, 0, ALICE, CLASS_ID, 1));
+        let event = mock::Event::nft(crate::Event::NewNftMinted(0, 0, ALICE, CLASS_ID, 1, 0));
         assert_eq!(last_event(), event);
 
         //mint two assets
