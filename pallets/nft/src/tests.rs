@@ -30,8 +30,7 @@ fn init_test_nft(owner: Origin) {
     ));
     assert_ok!(Nft::create_class(
         owner.clone(),
-        vec![1],
-        vec![1],
+        vec![1],        
         COLLECTION_ID,
         TokenType::Transferable,
         CollectionType::Collectable,
@@ -91,8 +90,7 @@ fn create_class_should_work() {
         ));
         assert_ok!(Nft::create_class(
             origin.clone(),
-            vec![1],
-            vec![1],
+            vec![1],            
             COLLECTION_ID,
             TokenType::Transferable,
             CollectionType::Collectable,
@@ -101,7 +99,7 @@ fn create_class_should_work() {
         let class_data = NftClassData
         {
             deposit: 2,
-            properties: vec![1],
+            metadata: vec![1],
             token_type: TokenType::Transferable,
             collection_type: CollectionType::Collectable,
             total_supply: Default::default(),
@@ -176,8 +174,7 @@ fn mint_asset_should_fail() {
         ));
         assert_ok!(Nft::create_class(
             origin.clone(),
-            vec![1],
-            vec![1],
+            vec![1],            
             COLLECTION_ID,
             TokenType::Transferable,
             CollectionType::Collectable,
@@ -228,8 +225,7 @@ fn transfer_batch_should_work() {
         init_test_nft(origin.clone());
         assert_ok!(Nft::create_class(
             origin.clone(),
-            vec![1],
-            vec![1],
+            vec![1],            
             COLLECTION_ID,
             TokenType::Transferable,
             CollectionType::Collectable,
@@ -255,8 +251,7 @@ fn transfer_batch_should_fail() {
         init_test_nft(origin.clone());
         assert_ok!(Nft::create_class(
             origin.clone(),
-            vec![1],
-            vec![1],
+            vec![1],            
             COLLECTION_ID,
             TokenType::Transferable,
             CollectionType::Collectable,
@@ -324,8 +319,7 @@ fn do_transfer_should_fail() {
 
         assert_ok!(Nft::create_class(
             origin.clone(),
-            vec![1],
-            vec![1],
+            vec![1],            
             COLLECTION_ID,
             TokenType::BoundToAddress,
             CollectionType::Collectable,

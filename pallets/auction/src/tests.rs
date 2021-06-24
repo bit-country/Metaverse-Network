@@ -17,8 +17,7 @@ fn init_test_nft(owner: Origin) {
 
     assert_ok!(NFTModule::<Runtime>::create_class(
         owner.clone(),
-        vec![1],
-        vec![1],
+        vec![1],        
         COLLECTION_ID,
         TokenType::Transferable,
         CollectionType::Collectable,
@@ -60,8 +59,7 @@ fn create_auction_fail() {
 
         assert_ok!(NFTModule::<Runtime>::create_class(
             owner.clone(),
-            vec![1],
-            vec![1],
+            vec![1],            
             COLLECTION_ID,
             TokenType::Transferable,
             CollectionType::Collectable,
@@ -81,7 +79,6 @@ fn create_auction_fail() {
 
         assert_ok!(NFTModule::<Runtime>::create_class(
             owner.clone(),
-            vec![1],
             vec![1],
             COLLECTION_ID,
             TokenType::BoundToAddress,
