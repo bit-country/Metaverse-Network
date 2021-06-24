@@ -21,11 +21,11 @@ fn get_country_fund_balance() -> Balance {
 }
 
 #[test]
-fn country_treasury_pool_should_work() {
+fn mint_social_token_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(ALICE);
-
+        let origin = Origin::signed(ALICE);        
         assert_eq!(get_country_fund_balance(), 0);
+
         assert_ok!(
 			TokenizationModule::mint_token(
                 origin,
@@ -33,11 +33,60 @@ fn country_treasury_pool_should_work() {
                 COUNTRY_ID,
                 400
             )
-        );
+        );      
+
         assert_eq!(get_country_fund_balance(), 400);
+        
+        assert_eq!(
+            last_event(), 
+            Event::tokenization(
+                RawEvent::SocialTokenIssued(1, ALICE, country_fund_account(),  400)
+            )
+        );
     });
 }
 
+#[test]
+fn mint_social_token_should_fail_for_non_owner() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(BOB);
+
+        assert_noop!(
+			TokenizationModule::mint_token(
+                origin,
+                vec![1],
+                COUNTRY_ID,
+                0
+            ),
+            Error::<Runtime>::NoPermissionTokenIssuance
+        );        
+    });
+}
+
+#[test]
+fn mint_social_token_should_fail_if_already_exists() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+        assert_ok!(
+			TokenizationModule::mint_token(
+                origin.clone(),
+                vec![1],
+                COUNTRY_ID,
+                0
+            )
+        );        
+
+        assert_noop!(
+			TokenizationModule::mint_token(
+                origin,
+                vec![1],
+                COUNTRY_ID,
+                0
+            ),
+            Error::<Runtime>::SocialTokenAlreadyIssued
+        );        
+    });
+}
 
 #[test]
 fn country_treasury_pool_withdraw_should_work() {
