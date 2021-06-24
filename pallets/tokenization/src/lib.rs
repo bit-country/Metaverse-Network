@@ -88,7 +88,7 @@ decl_error! {
         /// No permission to issue token
         NoPermissionTokenIssuance,
         /// Country Currency already issued for this bitcountry
-        TokenAlreadyIssued,
+        SocialTokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
         //Country Is Not Available
@@ -107,9 +107,8 @@ decl_module! {
         #[weight = 10_000]
         fn mint_token(origin, ticker: Ticker, country_id: CountryId, total_supply: Balance) -> DispatchResult{
             let who = ensure_signed(origin)?;
-            //Check ownership
-            // ensure!(<CountryOwner<T>>::contains_key(&country_id, &who), Error::<T>::NoPermissionTokenIssuance);
-
+            ensure!(<CountryOwner<T>>::contains_key(&country_id, &who), Error::<T>::NoPermissionTokenIssuance);
+            ensure!(!CountryTreasury::<T>::contains_key(&country_id), Error::<T>::SocialTokenAlreadyIssued);
             //Generate new CurrencyId
             let currency_id = NextTokenId::mutate(|id| -> Result<CurrencyId, DispatchError>{
                 let current_id =*id;
@@ -123,14 +122,13 @@ decl_module! {
                     Ok(current_id)
                 }
             })?;
-
-            let fund_id = T::SocialTokenTreasury::get().into_sub_account(country_id);
+            let fund_id: T::AccountId = T::SocialTokenTreasury::get().into_sub_account(country_id);
 
             //Country treasury
             let country_fund = CountryFund {
                 vault: fund_id,
                 value: total_supply,
-                backing: 0, //0 BCG backing for now,
+                backing: 0, //0 NUUM backing for now,
                 currency_id: currency_id,
             };
 
@@ -144,9 +142,8 @@ decl_module! {
             CountryTreasury::<T>::insert(country_id, country_fund);
             //TODO Add initial LP
             T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
-
-            Self::deposit_event(RawEvent::Issued(who, total_supply));
-
+            let fund_address = Self::get_country_fund_id(country_id);
+            Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address ,total_supply));
             Ok(())
         }
 
@@ -172,11 +169,11 @@ decl_event! {
         CurrencyId = CurrencyId
     {
         /// Some assets were issued. \[asset_id, owner, total_supply\]
-        Issued(AccountId, Balance),
+        SocialTokenIssued(CurrencyId, AccountId, AccountId , u128),
         /// Some assets were transferred. \[asset_id, from, to, amount\]
-        Transferred(CurrencyId, AccountId, AccountId, Balance),
+        SocialTokenTransferred(CurrencyId, AccountId, AccountId, Balance),
         /// Some assets were destroyed. \[asset_id, owner, balance\]
-        Destroyed(CurrencyId, AccountId, Balance),
+        SocialTokenDestroyed(CurrencyId, AccountId, Balance),
     }
 }
 
@@ -193,7 +190,7 @@ impl<T: Config> Module<T> {
 
         T::CountryCurrency::transfer(currency_id, from, to, amount)?;
 
-        Self::deposit_event(RawEvent::Transferred(
+        Self::deposit_event(Event::<T>::SocialTokenTransferred(
             currency_id,
             from.clone(),
             to.clone(),
