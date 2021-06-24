@@ -19,7 +19,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use country::{CountryOwner};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
@@ -40,7 +39,7 @@ mod mock;
 mod tests;
 
 /// The module configuration trait.
-pub trait Config: system::Config + country::Config {
+pub trait Config: system::Config {
     /// The overarching event type.
     type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
     /// The arithmetic type of asset identifier.
@@ -51,6 +50,7 @@ pub trait Config: system::Config + country::Config {
         Balance=Balance,
     >;
     type SocialTokenTreasury: Get<ModuleId>;
+    type CountryInfoSource: BCCountry<Self::AccountId>;
 }
 
 /// A wrapper for a token name.
@@ -107,7 +107,7 @@ decl_module! {
         #[weight = 10_000]
         fn mint_token(origin, ticker: Ticker, country_id: CountryId, total_supply: Balance) -> DispatchResult{
             let who = ensure_signed(origin)?;
-            ensure!(<CountryOwner<T>>::contains_key(&country_id, &who), Error::<T>::NoPermissionTokenIssuance);
+            ensure!(T::CountryInfoSource::check_ownership(&who, &country_id), Error::<T>::NoPermissionTokenIssuance);
             ensure!(!CountryTreasury::<T>::contains_key(&country_id), Error::<T>::SocialTokenAlreadyIssued);
             //Generate new CurrencyId
             let currency_id = NextTokenId::mutate(|id| -> Result<CurrencyId, DispatchError>{
