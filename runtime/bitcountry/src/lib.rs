@@ -1109,6 +1109,7 @@ impl tokenization::Config for Runtime {
     type TokenId = u64;
     type CountryCurrency = Currencies;
     type SocialTokenTreasury = CountryFundModuleId;
+    type CountryInfoSource = BitCountryModule;
 }
 
 construct_runtime!(

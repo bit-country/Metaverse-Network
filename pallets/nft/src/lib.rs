@@ -215,7 +215,7 @@ pub mod pallet {
         //New NFT Collection/Class created
         NewNftClassCreated(<T as frame_system::Config>::AccountId, ClassIdOf<T>),
         //Emit event when new nft minted - show the first and last asset mint
-        NewNftMinted(AssetId, AssetId, <T as frame_system::Config>::AccountId, ClassIdOf<T>, u32),
+        NewNftMinted(AssetId, AssetId, <T as frame_system::Config>::AccountId, ClassIdOf<T>, u32, TokenIdOf<T>),
         //Successfully transfer NFT
         TransferedNft(<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, TokenIdOf<T>),
         //Signed on NFT
@@ -335,6 +335,7 @@ pub mod pallet {
             };
 
             let mut new_asset_ids: Vec<AssetId> = Vec::new();
+            let mut last_token_id: TokenIdOf<T> = Default::default();
 
             for _ in 0..quantity {
                 let asset_id = NextAssetId::<T>::try_mutate(|id| -> Result<AssetId, DispatchError> {
@@ -364,9 +365,10 @@ pub mod pallet {
 
                 let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
                 Assets::<T>::insert(asset_id, (class_id, token_id));
+                last_token_id = token_id;
             }
 
-            Self::deposit_event(Event::<T>::NewNftMinted(*new_asset_ids.first().unwrap(), *new_asset_ids.last().unwrap(), sender, class_id, quantity));
+            Self::deposit_event(Event::<T>::NewNftMinted(*new_asset_ids.first().unwrap(), *new_asset_ids.last().unwrap(), sender, class_id, quantity, last_token_id));
 
             Ok(().into())
         }

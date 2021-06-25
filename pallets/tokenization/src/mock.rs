@@ -99,11 +99,31 @@ impl orml_tokens::Config for Runtime {
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
+pub struct CountryInfoSource {}
+
+impl BCCountry<AccountId> for CountryInfoSource {
+    fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
+        match *who {
+            ALICE => true,
+            _ => false,
+        }
+    }
+
+    fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
+        None
+    }
+
+    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+        None
+    }
+}
+
 impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
     type SocialTokenTreasury = CountryFundModuleId;
+    type CountryInfoSource = CountryInfoSource;
 }
 
 parameter_types! {
@@ -118,11 +138,6 @@ impl orml_currencies::Config for Runtime {
     type WeightInfo = ();
 }
 
-impl country::Config for Runtime {
-    type Event = Event;
-    type ModuleId = CountryFundModuleId;
-}
-
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
@@ -133,8 +148,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        CountryModule: country::{Module, Call, Storage, Event<T>},
+		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},        
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
