@@ -9,7 +9,6 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 parity-scale-codec = { default-features = false, features = ['derive'], version = "2.0.0" }
-parking_lot = "0.10.0"
 alt_serde = { version = "1", default-features = false, features = ["derive"] }
 
 # Substrate packages

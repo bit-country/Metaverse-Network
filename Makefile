@@ -25,3 +25,7 @@ check-debug:
 .PHONY: build-docker
 build-docker:
 	./scripts/docker_run.sh
+
+.PHONY: run-dev
+run-dev:
+	./target/release/bitcountry-node --dev --tmp -lruntime=debug
