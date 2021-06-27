@@ -24,9 +24,9 @@ use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
 
 #[test]
-fn create_country_should_work() {
+fn create_bc_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));
@@ -44,10 +44,10 @@ fn create_country_should_work() {
 }
 
 #[test]
-fn create_country_should_fail() {
+fn create_bc_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(
-            CountryModule::create_country(Origin::none(), vec![1],),
+            CountryModule::create_bc(Origin::none(), vec![1],),
             BadOrigin
         );
     });
@@ -56,7 +56,7 @@ fn create_country_should_fail() {
 #[test]
 fn transfer_country_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));
@@ -81,7 +81,7 @@ fn transfer_country_should_work() {
 #[test]
 fn transfer_country_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));
@@ -95,7 +95,7 @@ fn transfer_country_should_fail() {
 #[test]
 fn freeze_country_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));
@@ -108,7 +108,7 @@ fn freeze_country_should_work() {
 #[test]
 fn freeze_country_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));
@@ -123,7 +123,7 @@ fn freeze_country_should_fail() {
 #[test]
 fn unfreeze_country_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));
@@ -139,7 +139,7 @@ fn unfreeze_country_should_work() {
 #[test]
 fn destroy_country_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));
@@ -152,7 +152,7 @@ fn destroy_country_should_work() {
 #[test]
 fn destroy_country_without_root_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));
@@ -166,7 +166,7 @@ fn destroy_country_without_root_should_fail() {
 #[test]
 fn destroy_country_with_no_id_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_country(
+        assert_ok!(CountryModule::create_bc(
             Origin::signed(ALICE),
             vec![1]
         ));

@@ -12,7 +12,7 @@ test:
 
 .PHONY: run
 run:
-	cargo run --release -- --dev --tmp -lruntime=debug 
+	cargo run --release -- --dev --tmp -lruntime=debug
 
 .PHONY: build
 build:
@@ -22,3 +22,10 @@ build:
 check-debug:
 	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check
 
+.PHONY: build-docker
+build-docker:
+	./scripts/docker_run.sh
+
+.PHONY: run-dev
+run-dev:
+	./target/release/bitcountry-node --dev --tmp -lruntime=debug

@@ -4,7 +4,8 @@ use super::*;
 use frame_support::{construct_runtime, parameter_types, pallet_prelude::Hooks};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{BlockNumber, AuctionId, continuum::Continuum};
+use primitives::{AuctionId, continuum::Continuum};
+use pallet_nft::{AssetHandler};
 
 use crate as auction;
 
@@ -14,6 +15,7 @@ parameter_types! {
 
 pub type AccountId = u128;
 pub type Balance = u64;
+pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -90,6 +92,16 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
     fn on_auction_ended(_id: AuctionId, _winner: Option<(AccountId, Balance)>) {}
 }
 
+pub struct NftAssetHandler;
+
+impl AssetHandler for NftAssetHandler {
+    fn check_item_in_auction(
+        asset_id: AssetId,
+    ) -> bool {
+        return MockAuctionManager::check_item_in_auction(asset_id);
+    }
+}
+
 parameter_types! {
     pub const AuctionTimeToClose: u64 = 100; //Test auction end within 100 blocks
 }
@@ -115,6 +127,8 @@ impl pallet_nft::Config for Runtime {
     type Currency = Balances;
     type ModuleId = NftModuleId;
     type WeightInfo = ();
+    type AuctionHandler = MockAuctionManager;
+    type AssetsHandler = NftAssetHandler;
 }
 
 impl orml_nft::Config for Runtime {
@@ -184,5 +198,39 @@ pub fn run_to_block(n: u64) {
         System::set_block_number(System::block_number() + 1);
         System::on_initialize(System::block_number());        
         NftAuctionModule::on_initialize(System::block_number());
+    }
+}
+
+pub struct MockAuctionManager;
+
+impl Auction<AccountId, BlockNumber> for MockAuctionManager {
+    type Balance = Balance;
+
+    fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+        todo!()
+    }
+
+    fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+        todo!()
+    }
+
+    fn new_auction(recipient: u128, initial_amount: Self::Balance, start: u64, end: Option<u64>) -> Result<u64, DispatchError> {
+        todo!()
+    }
+
+    fn create_auction(auction_type: AuctionType, item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64) -> Result<u64, DispatchError> {
+        todo!()
+    }
+
+    fn remove_auction(id: u64, item_id: ItemId) {
+        todo!()
+    }
+
+    fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
+        todo!()
+    }
+
+    fn check_item_in_auction(asset_id: AssetId) -> bool {
+        todo!()
     }
 }

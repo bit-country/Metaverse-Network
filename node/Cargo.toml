@@ -21,8 +21,6 @@ hex-literal = "0.3.1"
 log = "0.4.8"
 rand = "0.7.2"
 structopt = { version = "0.3.21" }
-parking_lot = "0.11.1"
-
 
 # primitives
 sp-authority-discovery = { version = "3.0.0" }

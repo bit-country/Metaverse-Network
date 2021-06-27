@@ -19,16 +19,18 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use country::{CountryOwner, CountryTresury};
 use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Balance, CountryId, CurrencyId};
 use sp_runtime::{
-    traits::{AtLeast32Bit, One, StaticLookup, Zero},
+    traits::{AtLeast32Bit, One, StaticLookup, Zero, AccountIdConversion},
     DispatchError, DispatchResult,
 };
 use sp_std::vec::Vec;
+use frame_support::sp_runtime::ModuleId;
+use bc_country::*;
+use frame_support::traits::{Get, Currency};
 
 #[cfg(test)]
 mod mock;
@@ -37,7 +39,7 @@ mod mock;
 mod tests;
 
 /// The module configuration trait.
-pub trait Config: system::Config + country::Config {
+pub trait Config: system::Config {
     /// The overarching event type.
     type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
     /// The arithmetic type of asset identifier.
@@ -47,6 +49,8 @@ pub trait Config: system::Config + country::Config {
         CurrencyId=CurrencyId,
         Balance=Balance,
     >;
+    type SocialTokenTreasury: Get<ModuleId>;
+    type CountryInfoSource: BCCountry<Self::AccountId>;
 }
 
 /// A wrapper for a token name.
@@ -62,12 +66,12 @@ pub struct Token<Balance> {
 
 decl_storage! {
     trait Store for Module<T: Config> as Assets {
-        CountryTokens get(fn get_country_token): map hasher(blake2_128_concat) CountryId => Option<CurrencyId>;
         /// The next asset identifier up for grabs.
         NextTokenId get(fn next_token_id): CurrencyId;
         /// Details of the token corresponding to the token id.
         /// (hash) -> Token details [returns Token struct]
-        Tokens get(fn token_details): map hasher(blake2_128_concat) CurrencyId => Token<Balance>;
+        SocialTokens get(fn token_details): map hasher(blake2_128_concat) CurrencyId => Token<Balance>;
+        CountryTreasury get(fn get_country_treasury): map hasher(blake2_128_concat) CountryId => Option<CountryFund<T::AccountId,Balance>>;
     }
 }
 
@@ -84,7 +88,7 @@ decl_error! {
         /// No permission to issue token
         NoPermissionTokenIssuance,
         /// Country Currency already issued for this bitcountry
-        TokenAlreadyIssued,
+        SocialTokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
         //Country Is Not Available
@@ -103,31 +107,43 @@ decl_module! {
         #[weight = 10_000]
         fn mint_token(origin, ticker: Ticker, country_id: CountryId, total_supply: Balance) -> DispatchResult{
             let who = ensure_signed(origin)?;
-            //Check ownership
-            ensure!(<CountryOwner<T>>::contains_key(&country_id, &who), Error::<T>::NoPermissionTokenIssuance);
-
+            ensure!(T::CountryInfoSource::check_ownership(&who, &country_id), Error::<T>::NoPermissionTokenIssuance);
+            ensure!(!CountryTreasury::<T>::contains_key(&country_id), Error::<T>::SocialTokenAlreadyIssued);
             //Generate new CurrencyId
             let currency_id = NextTokenId::mutate(|id| -> Result<CurrencyId, DispatchError>{
-
                 let current_id =*id;
-                *id = id.checked_add(One::one())
-                .ok_or(Error::<T>::NoAvailableTokenId)?;
-
-                Ok(current_id)
+                if current_id == 0 {
+                   *id = 2;
+                    Ok(One::one())
+                }
+                else{
+                    *id = id.checked_add(One::one())
+                    .ok_or(Error::<T>::NoAvailableTokenId)?;
+                    Ok(current_id)
+                }
             })?;
+            let fund_id: T::AccountId = T::SocialTokenTreasury::get().into_sub_account(country_id);
+
+            //Country treasury
+            let country_fund = CountryFund {
+                vault: fund_id,
+                value: total_supply,
+                backing: 0, //0 NUUM backing for now,
+                currency_id: currency_id,
+            };
 
             let token_info = Token{
                 ticker,
                 total_supply,
             };
+            //Store social token info
+            SocialTokens::insert(currency_id, token_info);
 
-            Tokens::insert(currency_id, token_info);
-            CountryTokens::insert(country_id, currency_id);
-
+            CountryTreasury::<T>::insert(country_id, country_fund);
+            //TODO Add initial LP
             T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
-
-            Self::deposit_event(RawEvent::Issued(who, total_supply));
-
+            let fund_address = Self::get_country_fund_id(country_id);
+            Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address ,total_supply));
             Ok(())
         }
 
@@ -153,11 +169,11 @@ decl_event! {
         CurrencyId = CurrencyId
     {
         /// Some assets were issued. \[asset_id, owner, total_supply\]
-        Issued(AccountId, Balance),
+        SocialTokenIssued(CurrencyId, AccountId, AccountId , u128),
         /// Some assets were transferred. \[asset_id, from, to, amount\]
-        Transferred(CurrencyId, AccountId, AccountId, Balance),
+        SocialTokenTransferred(CurrencyId, AccountId, AccountId, Balance),
         /// Some assets were destroyed. \[asset_id, owner, balance\]
-        Destroyed(CurrencyId, AccountId, Balance),
+        SocialTokenDestroyed(CurrencyId, AccountId, Balance),
     }
 }
 
@@ -174,7 +190,7 @@ impl<T: Config> Module<T> {
 
         T::CountryCurrency::transfer(currency_id, from, to, amount)?;
 
-        Self::deposit_event(RawEvent::Transferred(
+        Self::deposit_event(Event::<T>::SocialTokenTransferred(
             currency_id,
             from.clone(),
             to.clone(),
@@ -185,14 +201,14 @@ impl<T: Config> Module<T> {
 
     pub fn get_total_issuance(country_id: CountryId) -> Result<Balance, DispatchError> {
         let country_fund =
-            <CountryTresury<T>>::get(country_id).ok_or(Error::<T>::CountryFundIsNotAvailable)?;
+            CountryTreasury::<T>::get(country_id).ok_or(Error::<T>::CountryFundIsNotAvailable)?;
         let total_issuance = T::CountryCurrency::total_issuance(country_fund.currency_id);
 
         Ok(total_issuance)
     }
 
     pub fn get_country_fund_id(country_id: CountryId) -> T::AccountId {
-        match <CountryTresury<T>>::get(country_id) {
+        match CountryTreasury::<T>::get(country_id) {
             Some(fund) => fund.vault,
             _ => Default::default()
         }

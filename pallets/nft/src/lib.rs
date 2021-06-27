@@ -10,7 +10,6 @@ use frame_support::{
     traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
     pallet_prelude::*,
 };
-use primitives::Balance;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +22,7 @@ use sp_runtime::{
     DispatchError, ModuleId,
 };
 use sp_std::vec::Vec;
+use auction_manager::{Auction};
 
 #[cfg(test)]
 mod mock;
@@ -48,7 +48,7 @@ pub struct NftClassData<Balance> {
     //Minimum balance to create a collection of Asset
     pub deposit: Balance,
     // Metadata from ipfs
-    pub properties: Vec<u8>,
+    pub metadata: Vec<u8>,
     pub token_type: TokenType,
     pub collection_type: CollectionType,
     pub total_supply: u64,
@@ -156,6 +156,9 @@ pub mod pallet {
         type ModuleId: Get<ModuleId>;
         // Weight info
         type WeightInfo: WeightInfo;
+        /// Auction Handler
+        type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber>;
+        type AssetsHandler: AssetHandler;
     }
 
     type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -212,7 +215,7 @@ pub mod pallet {
         //New NFT Collection/Class created
         NewNftClassCreated(<T as frame_system::Config>::AccountId, ClassIdOf<T>),
         //Emit event when new nft minted - show the first and last asset mint
-        NewNftMinted(AssetId, AssetId, <T as frame_system::Config>::AccountId, ClassIdOf<T>, u32),
+        NewNftMinted(AssetId, AssetId, <T as frame_system::Config>::AccountId, ClassIdOf<T>, u32, TokenIdOf<T>),
         //Successfully transfer NFT
         TransferedNft(<T as frame_system::Config>::AccountId, <T as frame_system::Config>::AccountId, TokenIdOf<T>),
         //Signed on NFT
@@ -243,6 +246,8 @@ pub mod pallet {
         NoAvailableAssetId,
         //Asset Id is already exist
         AssetIdAlreadyExist,
+        //Asset Id is currently in an auction
+        AssetAlreadyInAuction,
     }
 
     #[pallet::call]
@@ -270,14 +275,14 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, properties: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
+        pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
             // TODO 
             ensure!(
                 GroupCollections::<T>::contains_key(collection_id), 
                 Error::<T>::CollectionIsNotExist
-            ); 
+            );
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
@@ -291,9 +296,9 @@ pub mod pallet {
             let class_data = NftClassData
             {
                 deposit: class_deposit,
-                properties,
                 token_type,
                 collection_type,
+                metadata: metadata.clone(),
                 total_supply: Default::default(),
                 initial_supply: Default::default(),
             };
@@ -330,6 +335,7 @@ pub mod pallet {
             };
 
             let mut new_asset_ids: Vec<AssetId> = Vec::new();
+            let mut last_token_id: TokenIdOf<T> = Default::default();
 
             for _ in 0..quantity {
                 let asset_id = NextAssetId::<T>::try_mutate(|id| -> Result<AssetId, DispatchError> {
@@ -359,9 +365,10 @@ pub mod pallet {
 
                 let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
                 Assets::<T>::insert(asset_id, (class_id, token_id));
+                last_token_id = token_id;
             }
 
-            Self::deposit_event(Event::<T>::NewNftMinted(*new_asset_ids.first().unwrap(), *new_asset_ids.last().unwrap(), sender, class_id, quantity));
+            Self::deposit_event(Event::<T>::NewNftMinted(*new_asset_ids.first().unwrap(), *new_asset_ids.last().unwrap(), sender, class_id, quantity, last_token_id));
 
             Ok(().into())
         }
@@ -370,7 +377,8 @@ pub mod pallet {
         pub fn transfer(origin: OriginFor<T>, to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            //FIXME asset transfer should be reverted once it's locked in Auction
+            ensure!(!T::AssetsHandler::check_item_in_auction(asset_id),Error::<T>::AssetAlreadyInAuction);
+
             let token_id = Self::do_transfer(&sender, &to, asset_id)?;
 
             Self::deposit_event(Event::<T>::TransferedNft(sender, to, token_id));
@@ -509,5 +517,23 @@ impl<T: Config> Module<T> {
         }
 
         return Ok(false);
+    }
+}
+
+
+pub trait AssetHandler {
+    //Checks if item is already in an auction
+    fn check_item_in_auction(
+        asset_id: AssetId,
+    ) -> bool;
+}
+
+impl<T: Config> AssetHandler
+for Module<T>
+{
+    fn check_item_in_auction(
+        asset_id: AssetId,
+    ) -> bool {
+        return T::AuctionHandler::check_item_in_auction(asset_id);
     }
 }

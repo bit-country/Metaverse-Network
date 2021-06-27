@@ -29,6 +29,7 @@ orml-currencies = { default-features = false, version = '0.4.0' }
 orml-tokens = { default-features = false, version = '0.4.0' }
 
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+bc-country = { path = "../../traits/bc-country", default-features = false }
 
 [dependencies.country]
 default-features = false

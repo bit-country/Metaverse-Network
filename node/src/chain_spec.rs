@@ -187,17 +187,7 @@ fn tewai_testnet_genesis() -> GenesisConfig {
 }
 
 pub fn tewai_testnet_config() -> Result<ChainSpec, String> {
-    Ok(ChainSpec::from_genesis(
-        "Bit.Country Tewai Chain",
-        "tewai_testnet",
-        ChainType::Live,
-        tewai_testnet_genesis,
-        vec![],
-        None,
-        None,
-        Some(bitcountry_properties()),
-        Default::default(),
-    ))
+    ChainSpec::from_json_bytes(&include_bytes!("../../node/res/tewaiChainNodeSpecRaw.json")[..])
 }
 
 /// Configure initial storage state for FRAME modules.

@@ -39,7 +39,6 @@ pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft'
 pallet-continuum = { default-features = false, package = 'pallet-continuum', path = '../continuum' }
 auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
 
-
 [features]
 default = ['std']
 std = [

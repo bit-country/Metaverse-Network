@@ -10,7 +10,7 @@ use frame_support::{traits::{Currency, ExistenceRequirement, ReservableCurrency,
 use frame_system::{self as system, ensure_signed};
 use pallet_continuum::Pallet as ContinuumModule;
 use pallet_nft::Module as NFTModule;
-use primitives::{ItemId, AuctionId, continuum::Continuum};
+use primitives::{ItemId, AuctionId, AssetId, continuum::Continuum};
 use sp_runtime::{traits::{One, Zero}, DispatchError, DispatchResult};
 pub use pallet::*;
 
@@ -56,6 +56,11 @@ pub mod pallet {
     #[pallet::getter(fn get_auction_item)]
     //Store asset with Auction
     pub(super) type AuctionItems<T: Config> = StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn assets_in_auction)]
+    /// Track which Assets are in auction
+    pub(super) type AssetsInAuction<T: Config> = StorageMap<_, Twox64Concat, AssetId, bool, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn auctions_index)]
@@ -147,7 +152,7 @@ pub mod pallet {
             ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
             ensure!(<T as Config>::Currency::free_balance(&from) >= value, Error::<T>::InsufficientFunds);
 
-            Self::remove_auction(auction_id.clone());
+            Self::remove_auction(auction_id.clone(), auction_item.item_id);
             //Transfer balance from buy it now user to asset owner
             let currency_transfer = <T as Config>::Currency::transfer(&from, &auction_item.recipient, value, ExistenceRequirement::KeepAlive);
             match currency_transfer {
@@ -157,6 +162,7 @@ pub mod pallet {
                     match auction_item.item_id {
                         ItemId::NFT(asset_id) => {
                             let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
+                            <AssetsInAuction<T>>::remove(asset_id);
                             match asset_transfer {
                                 Err(_) => (),
                                 Ok(_) => {
@@ -218,7 +224,7 @@ pub mod pallet {
             for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
                 if let Some(auction) = <Auctions<T>>::get(&auction_id) {
                     if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id) {
-                        Self::remove_auction(auction_id.clone());
+                        Self::remove_auction(auction_id.clone(), auction_item.item_id);
                         //Transfer balance from high bidder to asset owner
                         if let Some(current_bid) = auction.bid {
                             let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
@@ -233,6 +239,7 @@ pub mod pallet {
                                     match auction_item.item_id {
                                         ItemId::NFT(asset_id) => {
                                             let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &high_bidder, asset_id);
+                                            <AssetsInAuction<T>>::remove(asset_id);
                                             match asset_transfer {
                                                 Err(_) => continue,
                                                 Ok(_) => {
@@ -278,6 +285,7 @@ pub mod pallet {
         InvalidBuyItNowPrice,
         InsufficientFunds,
         InvalidAuctionType,
+        AssetAlreadyInAuction
     }
 
     impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
@@ -351,6 +359,7 @@ pub mod pallet {
                     ensure!(recipient == class_info.owner, Error::<T>::NoPermissionToCreateAuction);
                     let class_info_data = class_info.data;
                     ensure!(class_info_data.token_type.is_transferable(), Error::<T>::NoPermissionToCreateAuction);
+                    ensure!(Self::assets_in_auction(asset_id) == None, Error::<T>::AssetAlreadyInAuction);
 
                     let start_time = <system::Module<T>>::block_number();
                     let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
@@ -369,6 +378,11 @@ pub mod pallet {
                     <AuctionItems<T>>::insert(
                         auction_id,
                         new_auction_item,
+                    );
+
+                    <AssetsInAuction<T>>::insert(
+                        asset_id, 
+                        true
                     );
 
                     Self::deposit_event(Event::NewAuctionItem(auction_id, recipient, initial_amount, initial_amount));
@@ -404,11 +418,17 @@ pub mod pallet {
             }
         }
 
-        fn remove_auction(id: AuctionId) {
+        fn remove_auction(id: AuctionId, item_id: ItemId) {
             if let Some(auction) = <Auctions<T>>::get(&id) {
                 if let Some(end_block) = auction.end {
                     <AuctionEndTime<T>>::remove(end_block, id);
-                    <Auctions<T>>::remove(&id)
+                    <Auctions<T>>::remove(&id);
+                    match item_id {
+                        ItemId::NFT(asset_id) => {
+                             <AssetsInAuction<T>>::remove(asset_id);
+                        }
+                        _ => {}
+                    }
                 }
             }
         }
@@ -447,6 +467,13 @@ pub mod pallet {
 
         fn auction_info(id: AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
             Self::auctions(id)
+        }
+
+        fn check_item_in_auction(asset_id: AssetId) -> bool {
+            if Self::assets_in_auction(asset_id) == Some(true) {
+                return true
+            }
+            return false
         }
     }
 

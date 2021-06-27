@@ -655,6 +655,7 @@ parameter_types! {
     pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
     pub const NftModuleId: ModuleId = ModuleId(*b"bit/bnft");
     pub const ContinuumTreasuryModuleId: ModuleId = ModuleId(*b"bit/ctmu");
+    pub const LandTreasuryModuleId: ModuleId = ModuleId(*b"bit/land");
 }
 
 impl pallet_treasury::Config for Runtime {
@@ -1041,6 +1042,8 @@ impl nft::Config for Runtime {
     type Currency = Balances;
     type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
     type ModuleId = NftModuleId;
+    type AuctionHandler = Auction;
+    type AssetsHandler = NftModule;
 }
 
 impl orml_nft::Config for Runtime {
@@ -1055,9 +1058,16 @@ impl country::Config for Runtime {
     type ModuleId = CountryFundModuleId;
 }
 
+parameter_types! {
+    pub const MinimumLandPrice: Balance = 10 * DOLLARS;
+}
+
 impl block::Config for Runtime {
     type Event = Event;
-    type RandomnessSource = RandomnessCollectiveFlip;
+    type LandTreasury = LandTreasuryModuleId;
+    type CountryInfoSource = CountryModule;
+    type Currency = Balances;
+    type MinimumLandPrice = MinimumLandPrice;
 }
 
 parameter_types! {
@@ -1091,6 +1101,8 @@ impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
+    type SocialTokenTreasury = CountryFundModuleId;
+    type CountryInfoSource = CountryModule;
 }
 
 construct_runtime!(
