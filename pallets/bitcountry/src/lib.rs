@@ -199,7 +199,7 @@ pub mod pallet {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
     /// Reads the nonce from storage, increments the stored nonce, and returns
     /// the encoded nonce to the caller.
 

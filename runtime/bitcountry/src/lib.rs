@@ -81,6 +81,7 @@ pub mod constants;
 
 use constants::{time::*, currency::*};
 use sp_runtime::generic::Era;
+use orml_nft::Tokens;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -1107,7 +1108,7 @@ impl continuum::Config for Runtime {
 impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
-    type CountryCurrency = Currencies;
+    type CountryCurrency = Tokens;
     type SocialTokenTreasury = CountryFundModuleId;
     type CountryInfoSource = BitCountryModule;
 }
@@ -1160,7 +1161,7 @@ construct_runtime!(
         OrmlNFT: orml_nft::{Module, Storage},
         NftModule: nft::{Module, Call, Storage, Event<T>},
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
-        Auction: auction::{Module, Call ,Storage, Event<T>},
+        Auction: auction::{Module ,Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
