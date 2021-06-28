@@ -240,4 +240,5 @@ impl<T: Config> BCCountry<T::AccountId> for Module<T>
         }
         None
     }
+    fn is_member(account: &T::AccountId, country_id: &CountryId) -> bool { todo!() }
 }

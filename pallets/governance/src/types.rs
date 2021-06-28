@@ -2,6 +2,7 @@ use codec::{Encode, Decode};
 use sp_runtime::{RuntimeDebug, traits::One};
 use sp_std::vec::Vec;
 use primitives::{CountryId, ProposalId, ReferendumId,AccountId};
+use crate::*;
 
 #[derive(Encode, Decode,  Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum VoteThreshold {
@@ -9,27 +10,39 @@ pub enum VoteThreshold {
     TwoThirdsSupermajority, // 66%+
     ThreeFifthsSupermajority, // 60%+
     ReinforcedQualifiedMajority, // 55%+ 65%+ representation
-    AbsoluteMajority, // 50%+s
     RelativeMajority, // Most votes
 }
 
-#[derive(Encode, Decode,  Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum CountryParameter {
     MaxProposals(u8),
     MaxParametersPerProposal(u8),
     SetReferendumJury(AccountId),
 }
 
-#[derive(Encode, Decode, Default, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode,Default, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct ReferendumParameters<BlockNumber> {
     pub(crate) voting_threshold: Option<VoteThreshold>,
-    pub(crate) min_proposal_launch_period: BlockNumber,//ProposalLaunchPeriod, // number of blocks
-    pub(crate) voting_period: BlockNumber, // number of blocks
+    pub(crate) min_proposal_launch_period: BlockNumber,// number of blocks
+    pub(crate) voting_period: BlockNumber, // number of block
     pub(crate) enactment_period: BlockNumber, // number of blocks
     pub(crate) max_params_per_proposal: u8,
     pub(crate) max_proposals_per_country: u8,
 }
-
+/*
+impl<BlockNumber: From<u32> + Default> Default for ReferendumParameters<BlockNumber>{
+    fn default() -> Self {
+        ReferendumParameters {
+            voting_threshold: Some(VoteThreshold::RelativeMajority),
+            min_proposal_launch_period: T::Pallet::DefaultProposalLaunchPeriod::get(),
+            voting_period:  T::DefaultVotingPeriod::get(), 
+            enactment_period:  T::DefaultEnactmentPeriod::get(), 
+            max_params_per_proposal:  T::DefaultMaxParametersPerProposal::get(),
+            max_proposals_per_country: T::DefaultMaxProposalsPerCountry::get(),
+        }
+    }
+}
+*/
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Vote {
     pub(crate) aye: bool,

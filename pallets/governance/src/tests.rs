@@ -170,7 +170,7 @@ fn vote_work() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
        // assert_eq!(Balances::free_balance(&BOB), 100);
         assert_eq!(last_event(), Event::governance(crate::Event::VoteRecorded(BOB, 0, true)));
     });
@@ -182,7 +182,7 @@ fn vote_when_not_country_member_does_not_work() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), ALICE_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_noop!(GovernanceModule::vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountNotCountryMember);
+        assert_noop!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountNotCountryMember);
     });
 }
 
@@ -192,8 +192,8 @@ fn vote_more_than_once_does_not_work() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
-        assert_noop!(GovernanceModule::vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountAlreadyVoted);
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
+        assert_noop!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountAlreadyVoted);
     });
 }
 
@@ -204,8 +204,8 @@ fn remove_vote_work() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
-        assert_ok!(GovernanceModule::remove_vote(Origin::signed(BOB), 0));
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
+        assert_ok!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0));
         assert_eq!(Balances::free_balance(&BOB), 500);
         assert_eq!(last_event(), Event::governance(crate::Event::VoteRemoved(BOB,0)));
     });
@@ -217,7 +217,7 @@ fn remove_vote_when_you_have_not_voted_does_not_work() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_noop!(GovernanceModule::remove_vote(Origin::signed(BOB), 0), Error::<Runtime>::AccountHasNotVoted);
+        assert_noop!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0), Error::<Runtime>::AccountHasNotVoted);
     });
 }
 
@@ -275,7 +275,7 @@ fn referendum_proposal_is_enacted() {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, true));
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
         run_to_block(27);
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: true, end: 26}));
@@ -295,7 +295,7 @@ fn referendum_proposal_is_rejected() {
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumStarted(0,VoteThreshold::RelativeMajority)));
-        assert_ok!(GovernanceModule::vote(Origin::signed(BOB), 0, false));
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, false));
         run_to_block(27);
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: false, end: 26}));
