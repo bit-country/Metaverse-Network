@@ -83,6 +83,8 @@ pub type AuctionId = u64;
 pub type SpotId = u64;
 /// LandId
 pub type LandId = u64;
+/// BlindBox Id type
+pub type BlindBoxId = u32;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
