@@ -29,7 +29,6 @@ sp-core = { version = "3.0.0", default-features = false }
 sp-session = { version = "3.0.0", default-features = false }
 sp-version = { version = "3.0.0", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
-rand = {version = '0.8.0', default-features = false}
 
 # local packages
 bc-country = { path = "../../traits/bc-country", default-features = false }

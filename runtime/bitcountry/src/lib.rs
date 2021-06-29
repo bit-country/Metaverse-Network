@@ -1112,6 +1112,13 @@ impl tokenization::Config for Runtime {
     type CountryInfoSource = BitCountryModule;
 }
 
+impl blindbox::Config for Runtime {
+    type Event = Event;
+    type ModuleId = CountryFundModuleId;
+    type Randomness = RandomnessCollectiveFlip;
+    type MaxGenerateRandom = MaxGenerateRandom;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1152,7 +1159,7 @@ construct_runtime!(
 		Tips: pallet_tips::{Module, Call, Storage, Event<T>},
 		Assets: pallet_assets::{Module, Call, Storage, Event<T>},
 		Mmr: pallet_mmr::{Module, Storage},
-		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>},
+		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>}
 
          //BitCountry pallets
         BitCountryModule: bitcountry::{Module, Call, Storage, Event<T>},
@@ -1164,6 +1171,7 @@ construct_runtime!(
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
+        Blindbox: blindbox:: {Module, Call, Storage, Event<T>},
 	}
 );
 

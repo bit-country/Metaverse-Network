@@ -26,7 +26,6 @@ use bc_country::*;
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
-use rand::Rng;
 
 #[cfg(test)]
 mod mock;
@@ -70,7 +69,6 @@ pub mod pallet {
     #[pallet::getter(fn get_blindbox_rewards)]
     pub type BlindBoxRewards<T: Config> =
     StorageDoubleMap<_, Twox64Concat, BlindBoxId, Twox64Concat, T::AccountId, (), OptionQuery>;
-    // pub type BlindBoxRewards<T: Config> = StorageMap<_, Twox64Concat, BlindBoxId, T::AccountId, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_blindboxes)]

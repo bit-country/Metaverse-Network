@@ -100,29 +100,6 @@ fn generate_blindbox_ids_blindbox_still_available() {
 }
 
 #[test]
-fn open_blind_box_should_work() {
-    ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(BlindBoxModule::set_blindbox_caller(
-            Origin::root(),
-            ALICE
-        ));
-
-        assert_ok!(BlindBoxModule::generate_blindbox_ids(
-            Origin::signed(ALICE),
-            10
-        ));
-
-        // TODO: should retrieve a newly generate blindboxId
-        let lst_event = last_event();
-
-        let blindBoxes = BlindBoxModule::get_blindboxes(0);
-
-        let event = Event::blindbox(crate::Event::BlindBoxOpened(BLINDBOX_ID));
-        assert_eq!(last_event(), event);
-    });
-}
-
-#[test]
 fn open_blind_box_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
         assert_ok!(BlindBoxModule::set_blindbox_caller(
