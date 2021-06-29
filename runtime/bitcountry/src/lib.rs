@@ -1159,7 +1159,7 @@ construct_runtime!(
 		Tips: pallet_tips::{Module, Call, Storage, Event<T>},
 		Assets: pallet_assets::{Module, Call, Storage, Event<T>},
 		Mmr: pallet_mmr::{Module, Storage},
-		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>}
+		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>},
 
          //BitCountry pallets
         BitCountryModule: bitcountry::{Module, Call, Storage, Event<T>},
