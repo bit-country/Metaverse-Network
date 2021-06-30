@@ -20,4 +20,15 @@
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+
+dfgdfgdfg
+    pub struct Module<T: Config> for enum Call where origin: T::Origin {
+        /// Reward a validator
+        #[weight = 10_000]
+        pub fn reward_myself(origin) -> dispatch::DispatchResult {
+            let reported = ensure_signed(origin)?;
+            <staking::Pallet<T>>::reward_by_ids(vec![(reported, 10)]);
+            Ok(())
+        }
+    }
 }
