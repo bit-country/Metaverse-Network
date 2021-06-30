@@ -1,3 +1,5 @@
+cargo-features = ["edition2021"]
+
 [package]
 authors = ['Bit Country <https://github.com/bit-country>']
 description = 'Bit Country pallet for staking.'
@@ -56,4 +58,5 @@ std = [
     'orml-traits/std',
     'primitives/std',
     'country/std',
+
 ]
