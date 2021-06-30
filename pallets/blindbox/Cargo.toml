@@ -37,6 +37,7 @@ bc-country = { path = "../../traits/bc-country", default-features = false }
 orml-traits = { default-features = false, version = '0.4.0' }
 orml-currencies = { default-features = false, version = '0.4.0' }
 orml-tokens = { default-features = false, version = '0.4.0' }
+blindbox-manager = { default-features = false, package = 'blindbox-manager', path = '../../traits/blindbox-manager' }
 
 [dependencies.nft]
 default-features = false

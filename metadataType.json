@@ -138,5 +138,22 @@
       "Block": "u64"
     }
   },
-  "PoolId": "u32"
+  "PoolId": "u32",
+  "BlindBoxId": "u32",
+  "BlindBoxType": {
+    "_enum": [
+      "KSM",
+      "NUUM",
+      "MainnetNFTHat",
+      "MainnetNFTJacket",
+      "MainnetNFTPants",
+      "MainnetNFTShoes",
+      "CollectableNFT"
+    ]
+  },
+  "BlindBoxRewardItem": {
+    "recipient": "AccountId",
+    "amount": "u32",
+    "blindbox_type": "BlindBoxType"
+  }
 }
