@@ -21,7 +21,6 @@
 pub mod pallet {
     use super::*;
 
-dfgdfgdfg
     pub struct Module<T: Config> for enum Call where origin: T::Origin {
         /// Reward a validator
         #[weight = 10_000]
