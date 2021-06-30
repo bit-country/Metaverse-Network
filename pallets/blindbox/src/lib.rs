@@ -62,10 +62,6 @@ pub mod pallet {
     }
 
     #[pallet::storage]
-    #[pallet::getter(fn next_blindbox_id)]
-    pub type NextBlindBoxId<T: Config> = StorageValue<_, BlindBoxId, ValueQuery>;
-
-    #[pallet::storage]
     #[pallet::getter(fn get_blindbox_rewards)]
     pub type BlindBoxRewards<T: Config> =
     StorageDoubleMap<_, Twox64Concat, BlindBoxId, Twox64Concat, T::AccountId, (), OptionQuery>;
@@ -83,6 +79,10 @@ pub mod pallet {
     pub(super) type AvailableBlindBoxesCount<T: Config> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn all_unique_blindboxes_count)]
+    pub(super) type UniqueBlindBoxesCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+    #[pallet::storage]
     #[pallet::getter(fn is_init)]
     pub(super) type Init<T: Config> = StorageValue<_, bool, ValueQuery>;
 
@@ -96,10 +96,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         RandomnessConsumed(H256, H256),
         BlindBoxIdGenerated(Vec<u32>),
-        BlindBoxOpened(u32)
-        // ,
-        // BlindBoxDoesNotExist(u32),
-        // CallerNotAuthorized
+        BlindBoxOpened(u32),
+        BlindBoxGoodLuckNextTime(u32),
     }
 
     #[pallet::error]
@@ -142,18 +140,18 @@ pub mod pallet {
             let mut blindbox_vec = Vec::new();
 
             // Generate random blindbox id and store
-            for x in 1..number_blindboxes +1 {
-                // Generate blindbox Id
-                let mut blindbox_id = Self::generate_random_number();
+            let mut n= 0;
 
-                // Best effort attempt to remove bias from modulus operator.
-                for i in 1 .. T::MaxGenerateRandom::get() {
-                    blindbox_id = Self::generate_random_number();
+            while n < number_blindboxes {
+                let mut blindbox_id = Self::generate_random_number(n);
+
+                if !BlindBoxes::<T>::contains_key(blindbox_id) {
+                    // Push to Vec and save to storage
+                    blindbox_vec.push(blindbox_id);
+                    BlindBoxes::<T>::insert(blindbox_id, {});
+
+                    n += 1;
                 }
-
-                // Push to Vec and save to storage
-                blindbox_vec.push(blindbox_id);
-                BlindBoxes::<T>::insert(blindbox_id, {});
             }
 
             AvailableBlindBoxesCount::<T>::put(number_blindboxes);
@@ -173,23 +171,25 @@ pub mod pallet {
                 Error::<T>::BlindBoxDoesNotExist
             );
 
-            let mut random_number = Self::generate_random_number();
+            let mut random_number = Self::generate_random_number(0);
 
             // Best effort attempt to remove bias from modulus operator.
             for i in 1 .. T::MaxGenerateRandom::get() {
-                random_number = Self::generate_random_number();
+                random_number = Self::generate_random_number(i);
             }
 
             // 10% chance of winning
             if random_number % 10 == 0 {
                 Self::save_blindbox_reward(&owner, blindbox_id);
+                Self::deposit_event(Event::<T>::BlindBoxOpened(blindbox_id.clone()));
             }
             // 50% chance of winning
             else if random_number % 2 == 0 {
                 Self::save_blindbox_reward(&owner, blindbox_id);
+                Self::deposit_event(Event::<T>::BlindBoxOpened(blindbox_id.clone()));
+            } else{
+                Self::deposit_event(Event::<T>::BlindBoxGoodLuckNextTime(blindbox_id.clone()));
             }
-
-            Self::deposit_event(Event::<T>::BlindBoxOpened(blindbox_id.clone()));
 
             Ok(().into())
         }
@@ -205,8 +205,13 @@ impl<T: Config> Pallet<T> {
     }
 
     fn save_blindbox_reward(owner: &T::AccountId, blindbox_id: BlindBoxId) -> Result<BlindBoxId, DispatchError> {
+        // Remove from BlindBoxes
+        BlindBoxes::<T>::remove(blindbox_id);
+
+        // Add to BlindBoxRewards
         BlindBoxRewards::<T>::insert( blindbox_id, owner, ());
 
+        // Update AvailableBlindBoxesCount
         let available_blindbox_count = Self::all_blindboxes_count();
 
         let new_available_blindbox_count = available_blindbox_count.checked_sub(One::one()).ok_or("Overflow subtracting new count to available blindboxes")?;
@@ -219,11 +224,9 @@ impl<T: Config> Pallet<T> {
     // Note that there is potential bias introduced by using modulus operator.
     // You should call this function with different seed values until the random
     // number lies within `u32.Max`.
-    // TODO: deal with randomness freshness
     // https://github.com/paritytech/substrate/issues/8311
-    fn generate_random_number() -> u32 {
-        let seed = H256::random();
-        let random_seed = T::Randomness::random(&seed.encode());
+    fn generate_random_number(seed :u32) -> u32 {
+        let random_seed = T::Randomness::random(&("blindbox", seed).encode());
 
         let random_number = <u32>::decode(&mut random_seed.as_ref())
             .expect("secure hashes should always be bigger than u32; qed");

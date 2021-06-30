@@ -101,7 +101,8 @@ parameter_types! {
 impl Config for Runtime {
     type Event = Event;
     type ModuleId = CountryFundModuleId;
-    type Randomness = TestRandomness<Self>;
+    // type Randomness = TestRandomness<Self>;
+    type Randomness = CollectiveFlip;
     type MaxGenerateRandom = MaxGenerateRandom;
 }
 
