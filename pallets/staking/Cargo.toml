@@ -58,5 +58,4 @@ std = [
     'orml-traits/std',
     'primitives/std',
     'country/std',
-
 ]
