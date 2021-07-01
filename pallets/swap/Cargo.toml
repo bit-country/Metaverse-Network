@@ -1,10 +1,10 @@
 [package]
 authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for country logic.'
+description = 'Bit Country pallet for swapping bit country social token with NUUM.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'pallet-dex'
+name = 'pallet-swap'
 repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 

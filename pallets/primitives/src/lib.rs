@@ -98,11 +98,16 @@ pub enum ItemId {
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum SocialTokenCurrencyId {
+    NativeToken(TokenSymbol),
     SocialToken(TokenSymbol),
     DEXShare(TokenSymbol, TokenSymbol),
 }
 
 impl SocialTokenCurrencyId {
+    pub fn is_native_token_currency_id(&self) -> bool {
+        matches!(self, SocialTokenCurrencyId::NativeToken(_))
+    }
+
     pub fn is_social_token_currency_id(&self) -> bool {
         matches!(self, SocialTokenCurrencyId::SocialToken(_))
     }
@@ -122,7 +127,10 @@ impl SocialTokenCurrencyId {
 
     pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
         match (currency_id_0, currency_id_1) {
-            (SocialTokenCurrencyId::SocialToken(token_symbol_0), SocialTokenCurrencyId::SocialToken(token_symbol_1)) => {
+            (SocialTokenCurrencyId::NativeToken(token_symbol_0), SocialTokenCurrencyId::SocialToken(token_symbol_1)) => {
+                Some(SocialTokenCurrencyId::DEXShare(token_symbol_0, token_symbol_1))
+            }
+            (SocialTokenCurrencyId::SocialToken(token_symbol_0), SocialTokenCurrencyId::NativeToken(token_symbol_1)) => {
                 Some(SocialTokenCurrencyId::DEXShare(token_symbol_0, token_symbol_1))
             }
             _ => None,

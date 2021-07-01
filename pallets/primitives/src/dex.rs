@@ -3,6 +3,12 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use crate::SocialTokenCurrencyId;
+use sp_runtime::FixedU128;
+
+pub type Price = FixedU128;
+pub type ExchangeRate = FixedU128;
+pub type Ratio = FixedU128;
+pub type Rate = FixedU128;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -25,7 +31,10 @@ impl TradingPair {
         }
     }
 
-    pub fn get_dex_share_currency_id(&self) -> Option<SocialTokenCurrencyId> {
+    pub fn get_dex_share_social_currency_id(&self) -> Option<SocialTokenCurrencyId> {
         SocialTokenCurrencyId::join_dex_share_social_currency_id(self.0, self.1)
     }
 }
+
+
+
