@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-
+use blindbox_manager::{ BlindBoxType , BlindBoxRewardItem};
 use codec::{Decode, Encode};
 use frame_support::{ensure, decl_storage};
 use frame_system::{ensure_root, ensure_signed};
@@ -64,7 +64,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_blindbox_rewards)]
     pub type BlindBoxRewards<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, BlindBoxId, Twox64Concat, T::AccountId, (), OptionQuery>;
+    StorageDoubleMap<_, Twox64Concat, BlindBoxId, Twox64Concat, T::AccountId, BlindBoxRewardItem<T::AccountId>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_blindboxes)]
@@ -140,21 +140,23 @@ pub mod pallet {
             let mut blindbox_vec = Vec::new();
 
             // Generate random blindbox id and store
-            let mut n= 0;
-
-            while n < number_blindboxes {
-                let mut blindbox_id = Self::generate_random_number(n);
+            let mut number_blindboxes_generated = 0;
+            let mut i = 0;
+            while number_blindboxes_generated < number_blindboxes && i < number_blindboxes + 10 {
+                let mut blindbox_id = Self::generate_random_number(i);
 
                 if !BlindBoxes::<T>::contains_key(blindbox_id) {
                     // Push to Vec and save to storage
                     blindbox_vec.push(blindbox_id);
                     BlindBoxes::<T>::insert(blindbox_id, {});
 
-                    n += 1;
+                    number_blindboxes_generated += 1;
                 }
+
+                i += 1;
             }
 
-            AvailableBlindBoxesCount::<T>::put(number_blindboxes);
+            AvailableBlindBoxesCount::<T>::put(number_blindboxes_generated);
 
             Self::deposit_event(Event::BlindBoxIdGenerated(blindbox_vec));
 
@@ -166,28 +168,21 @@ pub mod pallet {
             let owner = ensure_signed(origin)?;
 
             // Ensure the specified blindbox id exist in storage
-            ensure!(
-                BlindBoxes::<T>::contains_key(blindbox_id),
-                Error::<T>::BlindBoxDoesNotExist
-            );
+            // ensure!(
+            //     BlindBoxes::<T>::contains_key(blindbox_id),
+            //     Error::<T>::BlindBoxDoesNotExist
+            // );
 
-            let mut random_number = Self::generate_random_number(0);
+            let max_number = 10000;
+            // Generate a random number between 1 and 100000
+            let mut random_number = Self::generate_random_number(u32::MAX) % max_number + 1;
 
-            // Best effort attempt to remove bias from modulus operator.
-            for i in 1 .. T::MaxGenerateRandom::get() {
-                random_number = Self::generate_random_number(i);
-            }
+            let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, max_number, random_number);
 
-            // 10% chance of winning
-            if random_number % 10 == 0 {
-                Self::save_blindbox_reward(&owner, blindbox_id);
+            if is_winning {
+                Self::save_blindbox_reward(&owner, blindbox_id, blindbox_reward_item);
                 Self::deposit_event(Event::<T>::BlindBoxOpened(blindbox_id.clone()));
-            }
-            // 50% chance of winning
-            else if random_number % 2 == 0 {
-                Self::save_blindbox_reward(&owner, blindbox_id);
-                Self::deposit_event(Event::<T>::BlindBoxOpened(blindbox_id.clone()));
-            } else{
+            } else {
                 Self::deposit_event(Event::<T>::BlindBoxGoodLuckNextTime(blindbox_id.clone()));
             }
 
@@ -200,16 +195,26 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-    fn check_blindbox_exist(blindbox_id: BlindBoxId) -> bool{
-        Self::get_blindboxes(blindbox_id) == Some(())
+    // Generate a random number from a given seed.
+    // Note that there is potential bias introduced by using modulus operator.
+    // You should call this function with different seed values until the random
+    // number lies within `u32.Max`.
+    // https://github.com/paritytech/substrate/issues/8311
+    fn generate_random_number(seed :u32) -> u32 {
+        let ran = H256::random();
+        let random_seed = T::Randomness::random(&(ran, seed).encode());
+
+        let random_number = <u32>::decode(&mut random_seed.as_ref())
+            .expect("secure hashes should always be bigger than u32; qed");
+        random_number
     }
 
-    fn save_blindbox_reward(owner: &T::AccountId, blindbox_id: BlindBoxId) -> Result<BlindBoxId, DispatchError> {
+    fn save_blindbox_reward(owner: &T::AccountId, blindbox_id: BlindBoxId, blindbox_reward_item :BlindBoxRewardItem<T::AccountId>) -> Result<BlindBoxId, DispatchError> {
         // Remove from BlindBoxes
         BlindBoxes::<T>::remove(blindbox_id);
 
         // Add to BlindBoxRewards
-        BlindBoxRewards::<T>::insert( blindbox_id, owner, ());
+        BlindBoxRewards::<T>::insert( blindbox_id, owner, blindbox_reward_item);
 
         // Update AvailableBlindBoxesCount
         let available_blindbox_count = Self::all_blindboxes_count();
@@ -220,16 +225,53 @@ impl<T: Config> Pallet<T> {
         Ok(blindbox_id)
     }
 
-    // Generate a random number from a given seed.
-    // Note that there is potential bias introduced by using modulus operator.
-    // You should call this function with different seed values until the random
-    // number lies within `u32.Max`.
-    // https://github.com/paritytech/substrate/issues/8311
-    fn generate_random_number(seed :u32) -> u32 {
-        let random_seed = T::Randomness::random(&("blindbox", seed).encode());
+    fn check_winner (owner: &T::AccountId, max_number: u32, random_number: u32) -> (bool, BlindBoxRewardItem<T::AccountId>) {
+        let mut blindbox_reward_item = BlindBoxRewardItem {
+            recipient: owner.clone(),
+            amount: 0,
+            blindbox_type: BlindBoxType::NUUM
+        };
 
-        let random_number = <u32>::decode(&mut random_seed.as_ref())
-            .expect("secure hashes should always be bigger than u32; qed");
-        random_number
+        let mut is_winning = true;
+        let max_nuum_amount = 20;
+        let single_ksm_amount = 500; // 0.05 KSM
+
+        if random_number % max_number == 0 {
+            // 1/10000 chance of winning collectable NFT
+
+            blindbox_reward_item.blindbox_type = BlindBoxType::CollectableNFT;
+        } else if random_number % 10 == 0 {
+            // 10% chance of winning
+            let reminder = Self::generate_random_number(random_number) % 4;
+            if reminder == 0 {
+                // 10% chance of winning KSM
+                blindbox_reward_item.amount = single_ksm_amount; // 500 = 0.05 KSM
+                blindbox_reward_item.blindbox_type = BlindBoxType::KSM;
+
+                //TODO: deduct from capped KSM
+            } else if reminder == 1 {
+                // 10% chance of winning wearable NFTs Jacket
+                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTJacket;
+            } else if reminder == 2 {
+                // 10% chance of winning wearable NFTs shoes
+                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTShoes;
+            } else{
+                // 10% chance of winning wearable NFTs pants
+                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTPants;
+            }
+        } else if random_number % 5 == 0 {
+            // 20% chance of winning wearable NFTs hat
+            blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTHat;
+        } else if random_number % 4 == 0 {
+            // 25% testnet nuum
+
+            let nuum_amount = Self::generate_random_number(random_number) % max_nuum_amount + 1;
+            blindbox_reward_item.amount = nuum_amount*10000; // 10000 = 1 NUUM
+            blindbox_reward_item.blindbox_type = BlindBoxType::NUUM;
+        } else{
+            is_winning = false;
+        }
+
+        (is_winning, blindbox_reward_item)
     }
 }
