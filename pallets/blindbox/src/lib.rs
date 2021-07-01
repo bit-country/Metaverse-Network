@@ -79,8 +79,8 @@ pub mod pallet {
     pub(super) type AvailableBlindBoxesCount<T: Config> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn all_unique_blindboxes_count)]
-    pub(super) type UniqueBlindBoxesCount<T: Config> = StorageValue<_, u32, ValueQuery>;
+    #[pallet::getter(fn get_available_ksm)]
+    pub(super) type AvailableKSM<T: Config> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn is_init)]
@@ -142,6 +142,8 @@ pub mod pallet {
             // Generate random blindbox id and store
             let mut number_blindboxes_generated = 0;
             let mut i = 0;
+
+            // Add safe check in case of infinite loop, running extra 10 loops to generate unique blindbox id
             while number_blindboxes_generated < number_blindboxes && i < number_blindboxes + 10 {
                 let mut blindbox_id = Self::generate_random_number(i);
 
@@ -157,6 +159,7 @@ pub mod pallet {
             }
 
             AvailableBlindBoxesCount::<T>::put(number_blindboxes_generated);
+            AvailableKSM::<T>::put(200000); // 20KSM
 
             Self::deposit_event(Event::BlindBoxIdGenerated(blindbox_vec));
 
@@ -168,16 +171,16 @@ pub mod pallet {
             let owner = ensure_signed(origin)?;
 
             // Ensure the specified blindbox id exist in storage
-            // ensure!(
-            //     BlindBoxes::<T>::contains_key(blindbox_id),
-            //     Error::<T>::BlindBoxDoesNotExist
-            // );
+            ensure!(
+                BlindBoxes::<T>::contains_key(blindbox_id),
+                Error::<T>::BlindBoxDoesNotExist
+            );
 
-            let max_number = 10000;
+            let max_range = 10000;
             // Generate a random number between 1 and 100000
-            let mut random_number = Self::generate_random_number(u32::MAX) % max_number + 1;
+            let mut random_number = Self::generate_random_number(u32::MAX) % max_range + 1;
 
-            let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, max_number, random_number);
+            let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, max_range, random_number);
 
             if is_winning {
                 Self::save_blindbox_reward(&owner, blindbox_id, blindbox_reward_item);
@@ -234,7 +237,7 @@ impl<T: Config> Pallet<T> {
 
         let mut is_winning = true;
         let max_nuum_amount = 20;
-        let single_ksm_amount = 500; // 0.05 KSM
+        let distribute_ksm_amount = 500; // 0.05 KSM
 
         if random_number % max_number == 0 {
             // 1/10000 chance of winning collectable NFT
@@ -245,10 +248,19 @@ impl<T: Config> Pallet<T> {
             let reminder = Self::generate_random_number(random_number) % 4;
             if reminder == 0 {
                 // 10% chance of winning KSM
-                blindbox_reward_item.amount = single_ksm_amount; // 500 = 0.05 KSM
-                blindbox_reward_item.blindbox_type = BlindBoxType::KSM;
 
-                //TODO: deduct from capped KSM
+                // If available KSM is less than the distribute amount, then stop
+                let available_ksm = Self::get_available_ksm();
+                if available_ksm < distribute_ksm_amount {
+                    is_winning = false;
+                } else {
+                    // Deduct distribute amount from available KSM and update
+                    let new_available_ksm = available_ksm - distribute_ksm_amount;
+                    AvailableKSM::<T>::put(new_available_ksm);
+
+                    blindbox_reward_item.amount = distribute_ksm_amount; // 500 = 0.05 KSM
+                    blindbox_reward_item.blindbox_type = BlindBoxType::KSM;
+                }
             } else if reminder == 1 {
                 // 10% chance of winning wearable NFTs Jacket
                 blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTJacket;
