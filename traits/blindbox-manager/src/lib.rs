@@ -15,6 +15,7 @@ use sp_std::{
 };
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use primitives::AccountId;
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

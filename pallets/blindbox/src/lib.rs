@@ -96,7 +96,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         RandomnessConsumed(H256, H256),
         BlindBoxIdGenerated(Vec<u32>),
-        BlindBoxOpened(u32),
+        BlindBoxOpened(T::AccountId, BlindBoxType, u32),
         BlindBoxGoodLuckNextTime(u32),
     }
 
@@ -183,8 +183,8 @@ pub mod pallet {
             let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, max_range, random_number);
 
             if is_winning {
-                Self::save_blindbox_reward(&owner, blindbox_id, blindbox_reward_item);
-                Self::deposit_event(Event::<T>::BlindBoxOpened(blindbox_id.clone()));
+                Self::save_blindbox_reward(&owner, blindbox_id, blindbox_reward_item.clone());
+                Self::deposit_event(Event::<T>::BlindBoxOpened(owner, blindbox_reward_item.blindbox_type, blindbox_reward_item.amount));
             } else {
                 Self::deposit_event(Event::<T>::BlindBoxGoodLuckNextTime(blindbox_id.clone()));
             }
@@ -204,8 +204,7 @@ impl<T: Config> Pallet<T> {
     // number lies within `u32.Max`.
     // https://github.com/paritytech/substrate/issues/8311
     fn generate_random_number(seed :u32) -> u32 {
-        let ran = H256::random();
-        let random_seed = T::Randomness::random(&(ran, seed).encode());
+        let random_seed = T::Randomness::random(&("pallet-blindbox", seed).encode());
 
         let random_number = <u32>::decode(&mut random_seed.as_ref())
             .expect("secure hashes should always be bigger than u32; qed");
