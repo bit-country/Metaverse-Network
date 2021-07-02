@@ -137,6 +137,12 @@ pub mod pallet {
         InvalidLiquidityIncrement,
         //Invalid trading currency
         InvalidTradingCurrency,
+        //Insufficient Liquidity in the pool
+        InsufficientLiquidity,
+        //Insufficient Target Amount
+        InsufficientTargetAmount,
+        //Too much Supply Amount
+        TooMuchSupplyAmount,
     }
 
     #[pallet::call]
@@ -165,6 +171,48 @@ pub mod pallet {
                 TradingPairStatus::NotEnabled => Err(Error::<T>::NotEnabledTradingPair.into())
             }?;
 
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[transactional]
+        pub fn remove_liquidity(
+            origin: OriginFor<T>,
+            currency_id_1: SocialTokenCurrencyId,
+            currency_id_2: SocialTokenCurrencyId,
+            remove_amount: Balance,
+            by_withdraw: bool,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            Self::do_remove_liquidity(&who, currency_id_1, currency_id_2, remove_amount, by_withdraw)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[transactional]
+        pub fn swap_native_token_with_exact_supply(
+            origin: OriginFor<T>,
+            supply_currency: SocialTokenCurrencyId,
+            target_currency: SocialTokenCurrencyId,
+            #[pallet::compact] supply_amount: Balance,
+            #[pallet::compact] min_target_amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            let _ = Self::do_swap_exact_token_for_native_token(&who, supply_currency, supply_amount, target_currency, min_target_amount)?;
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        #[transactional]
+        pub fn swap_social_token_with_exact_native_token(
+            origin: OriginFor<T>,
+            supply_currency: SocialTokenCurrencyId,
+            target_currency: SocialTokenCurrencyId,
+            #[pallet::compact] target_amount: Balance,
+            #[pallet::compact] max_supply_amount: Balance,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            let _ = Self::do_swap_token_for_exact_native_token(&who, supply_currency, target_currency, target_amount, max_supply_amount)?;
             Ok(().into())
         }
     }
@@ -381,15 +429,17 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    /// Swap with exact supply
-    fn swap_social_token_for_exact_NUUM(
+    /// Swap with exact social token with native token
+    #[transactional]
+    fn do_swap_exact_token_for_native_token(
         who: &T::AccountId,
         supply_currency: SocialTokenCurrencyId,
-        supply_amount: Balance,
+        amount_in: Balance,
         target_currency: SocialTokenCurrencyId,
-        min_target_amount: Balance,
+        amount_out_min: Balance,
     ) -> Result<Balance, DispatchError> {
-        ensure!(target_currency.is_native_token_currency_id(), Error::<T>::InvalidTradingCurrency);
+        ensure!(supply_currency.is_native_token_currency_id(), Error::<T>::InvalidTradingCurrency);
+        ensure!(target_currency.is_social_token_currency_id(), Error::<T>::InvalidTradingCurrency);
 
         ensure!(
             matches!(
@@ -398,5 +448,107 @@ impl<T: Config> Pallet<T> {
             ),
             Error::<T>::TradingPairMustBeEnabled
         );
+
+        let (supply_pool, target_pool) = Self::get_liquidity(supply_currency, target_currency);
+        ensure!(
+            !supply_pool.is_zero() && !target_pool.is_zero(),
+            Error::<T>::InsufficientLiquidity
+        );
+
+        let native_token_amount_out = Self::get_amount_out(supply_pool, target_pool, amount_in);
+        ensure!(!native_token_amount_out.is_zero(), Error::<T>::InsufficientLiquidity);
+
+        ensure!(
+            native_token_amount_out >= amount_out_min,
+            Error::<T>::InsufficientTargetAmount
+        );
+
+        let dex_module_account_id = Self::account_id();
+
+        T::SocialTokenCurrency::transfer(supply_currency, who, &dex_module_account_id, amount_in)?;
+        Self::_swap(
+            supply_currency,
+            target_currency,
+            amount_in,
+            native_token_amount_out,
+        );
+        T::NativeCurrency::transfer(&dex_module_account_id, who, native_token_amount_out, ExistenceRequirement::KeepAlive)?;
+
+        Self::deposit_event(
+            Event::Swap(
+                who.clone(),
+                vec![supply_currency, target_currency],
+                amount_in,
+                native_token_amount_out,
+            )
+        );
+
+        Ok(native_token_amount_out)
+    }
+
+    /// Swap with social token with exact native token
+    #[transactional]
+    fn do_swap_token_for_exact_native_token(
+        who: &T::AccountId,
+        supply_currency: SocialTokenCurrencyId,
+        target_currency: SocialTokenCurrencyId,
+        amount_out: Balance,
+        amount_in_max: Balance,
+    ) -> Result<Balance, DispatchError> {
+        ensure!(supply_currency.is_social_token_currency_id(), Error::<T>::InvalidTradingCurrency);
+        ensure!(target_currency.is_native_token_currency_id(), Error::<T>::InvalidTradingCurrency);
+
+        ensure!(
+            matches!(
+                Self::trading_pair_statuses(TradingPair::new(supply_currency, target_currency)),
+				TradingPairStatus::<_, _>::Enabled
+            ),
+            Error::<T>::TradingPairMustBeEnabled
+        );
+
+        let (supply_pool, target_pool) = Self::get_liquidity(supply_currency, target_currency);
+        ensure!(
+            !supply_pool.is_zero() && !target_pool.is_zero(),
+            Error::<T>::InsufficientLiquidity
+        );
+        let supply_amount_in = Self::get_amount_in(supply_pool, target_pool, amount_out);
+        ensure!(!supply_amount_in.is_zero(), Error::<T>::InsufficientLiquidity);
+
+        ensure!(supply_amount_in <= amount_in_max, Error::<T>::TooMuchSupplyAmount);
+        let dex_module_account_id = Self::account_id();
+
+        T::SocialTokenCurrency::transfer(supply_currency, &who, &dex_module_account_id, supply_amount_in)?;
+        Self::_swap(supply_currency, target_currency, supply_amount_in, amount_out)?;
+        T::NativeCurrency::transfer(&dex_module_account_id, &who, amount_out, ExistenceRequirement::KeepAlive)?;
+
+        Self::deposit_event(
+            Event::Swap(
+                who.clone(),
+                vec![supply_currency, target_currency],
+                supply_amount_in,
+                amount_out,
+            )
+        )
+
+        Ok(supply_amount_in)
+    }
+
+    fn _swap(
+        supply_currency_id: SocialTokenCurrencyId,
+        target_currency_id: SocialTokenCurrencyId,
+        supply_incr: Balance,
+        target_decr: Balance,
+    ) {
+        if let Some(trading_pair) = TradingPair::from_token_currency_ids(supply_currency_id, target_currency_id) {
+            LiquidityPool::<T>::mutate(trading_pair, |(pool_0, pool_1)| {
+                if supply_currency_id == trading_pair.0 {
+                    *pool_0 = pool_0.saturating_add(supply_incr);
+                    *pool_1 = pool_1.saturating_sub(target_decr);
+                } else {
+                    *pool_0 = pool_0.saturating_sub(target_decr);
+                    *pool_1 = pool_1.saturating_add(supply_incr);
+                }
+            });
+        }
     }
 }
