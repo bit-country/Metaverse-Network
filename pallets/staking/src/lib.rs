@@ -15,19 +15,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use frame_support::{decl_module, dispatch};
-use frame_system::ensure_signed;
-use pallet_staking::{self as staking};
+use support::{decl_module, decl_event, decl_storage, StorageValue, StorageMap};
+use system::ensure_signed;
 
-pub trait Config: staking::Config {}
+pub trait Config: system::Config {
+    // The traits the `Event` type used in this pallet has.
+    type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
+}
 
-#![cfg(test)]
+decl_event!{
+    pub enum Event<T> where
+        AccountId = <T as system::Config>::AccountId,
+    {
+        RewardGet(AccountId, u64),
+    }
+}
 
-#[frame_support::pallet]
-pub mod pallet {
-    use super::*;
+decl_storage! {
+    trait Store for Module<T: Config> as Example {
+    }
+}
 
+decl_module! {
     pub struct Module<T: Config> for enum Call where origin: T::Origin {
+        // A default function for depositing events in our runtime
+        fn deposit_event() = default;
+
         /// Reward a validator
         #[weight = 10_000]
         pub fn reward_myself(origin) -> dispatch::DispatchResult {
