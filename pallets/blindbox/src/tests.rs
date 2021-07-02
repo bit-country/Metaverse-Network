@@ -23,6 +23,35 @@ use mock::{Event, *};
 use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
 
+#[test]
+fn set_available_ksm_should_work(){
+    ExtBuilder::default().build().execute_with(|| {
+       assert_ok!(BlindBoxModule::set_available_ksm(
+           Origin::root(),
+           100000
+       ));
+    });
+}
+
+#[test]
+fn set_available_ksm_should_fail() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(BlindBoxModule::set_available_ksm(
+            Origin::signed(ALICE),
+            100000
+        ), BadOrigin);
+    });
+}
+
+#[test]
+fn set_available_ksm_should_fail_exceeds_max_allowed() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(
+            BlindBoxModule::set_available_ksm(Origin::root(), 200001),
+            Error::<Runtime>::ExceedsMaxKSMAllowed
+        );
+    });
+}
 
 #[test]
 fn set_blindbox_caller_should_work() {

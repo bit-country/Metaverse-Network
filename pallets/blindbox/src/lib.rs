@@ -58,7 +58,11 @@ pub mod pallet {
         /// Something that provides randomness in the runtime.
         type Randomness: Randomness<Self::Hash>;
 
-        type MaxGenerateRandom: Get<u32>;
+        // Maximum number of blindboxes allowed
+        type MaxNumberOfBlindBox: Get<u32>;
+
+        // Maximum number of KSMs allowed
+        type MaxKSMAllowed: Get<u32>;
     }
 
     #[pallet::storage]
@@ -94,7 +98,6 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata(T::AccountId = "AccountId")]
     pub enum Event<T: Config> {
-        RandomnessConsumed(H256, H256),
         BlindBoxIdGenerated(Vec<u32>),
         BlindBoxOpened(T::AccountId, BlindBoxType, u32),
         BlindBoxGoodLuckNextTime(u32),
@@ -107,16 +110,37 @@ pub mod pallet {
         // BlindBox does not exist
         BlindBoxDoesNotExist,
         // BlindBoxes still available, only allow to create once all the blindboxes have been used
-        BlindBoxesStillAvailable
+        BlindBoxesStillAvailable,
+        // Exceeds the maximum amount of KSM allowed
+        ExceedsMaxKSMAllowed
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
+        pub(super) fn set_available_ksm(origin: OriginFor<T>, available_ksm: u32 ) -> DispatchResultWithPostInfo {
+            let _ = ensure_root(origin)?;
+
+            println!("available_ksm: {}", available_ksm);
+            println!("T::MaxKSMAllowed::get(): {}", T::MaxKSMAllowed::get());
+
+            // Ensure the authorized caller can call this func
+            ensure!(
+                available_ksm <= T::MaxKSMAllowed::get(),
+                Error::<T>::ExceedsMaxKSMAllowed
+            );
+
+            // max KSM allowed
+            AvailableKSM::<T>::put(available_ksm); // 200000 = 20KSM
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
         pub(super) fn set_blindbox_caller(origin: OriginFor<T>, account_id: T::AccountId ) -> DispatchResultWithPostInfo {
             let _ = ensure_root(origin)?;
 
-            BlindBoxesCreators::<T>::insert(account_id, {});
+            BlindBoxesCreators::<T>::insert(account_id, ());
 
             Ok(().into())
         }
@@ -133,7 +157,7 @@ pub mod pallet {
 
             // Ensure caller can only generate blindboxes once all the available blindboxes have been used
             ensure!(
-                AvailableBlindBoxesCount::<T>::get() <= 0,
+                AvailableBlindBoxesCount::<T>::get() == 0,
                 Error::<T>::BlindBoxesStillAvailable
             );
 
@@ -144,22 +168,21 @@ pub mod pallet {
             let mut i = 0;
 
             // Add safe check in case of infinite loop, running extra 10 loops to generate unique blindbox id
-            while number_blindboxes_generated < number_blindboxes && i < number_blindboxes + 10 {
+            while number_blindboxes_generated < number_blindboxes && i < T::MaxNumberOfBlindBox::get() {
                 let mut blindbox_id = Self::generate_random_number(i);
 
                 if !BlindBoxes::<T>::contains_key(blindbox_id) {
                     // Push to Vec and save to storage
                     blindbox_vec.push(blindbox_id);
-                    BlindBoxes::<T>::insert(blindbox_id, {});
+                    BlindBoxes::<T>::insert(blindbox_id, ());
 
-                    number_blindboxes_generated += 1;
+                    number_blindboxes_generated = number_blindboxes_generated.checked_add(1).ok_or("Overflow")?;
                 }
 
-                i += 1;
+                i = i.checked_add(1).ok_or("Overflow")?;
             }
 
             AvailableBlindBoxesCount::<T>::put(number_blindboxes_generated);
-            AvailableKSM::<T>::put(200000); // 20KSM
 
             Self::deposit_event(Event::BlindBoxIdGenerated(blindbox_vec));
 
@@ -178,7 +201,7 @@ pub mod pallet {
 
             let max_range = 10000;
             // Generate a random number between 1 and 100000
-            let mut random_number = Self::generate_random_number(u32::MAX) % max_range + 1;
+            let mut random_number = Self::generate_random_number(blindbox_id) % max_range + 1;
 
             let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, max_range, random_number);
 

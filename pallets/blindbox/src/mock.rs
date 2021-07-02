@@ -95,15 +95,16 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
-    pub const MaxGenerateRandom: u32 = 50;
+    pub const MaxNumberOfBlindBox: u32 = 50;
+    pub const MaxKSMAllowed: u32 = 200000;
 }
 
 impl Config for Runtime {
     type Event = Event;
     type ModuleId = CountryFundModuleId;
     type Randomness = TestRandomness<Self>;
-    // type Randomness = CollectiveFlip;
-    type MaxGenerateRandom = MaxGenerateRandom;
+    type MaxNumberOfBlindBox = MaxNumberOfBlindBox;
+    type MaxKSMAllowed = MaxKSMAllowed;
 }
 
 construct_runtime!(
