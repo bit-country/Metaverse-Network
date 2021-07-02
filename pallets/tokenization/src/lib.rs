@@ -19,18 +19,23 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::{decl_error, decl_event, decl_module, decl_storage, ensure, Parameter};
+use frame_support::{
+    dispatch::{DispatchResultWithPostInfo, DispatchResult},
+    decl_error, decl_event, decl_module, decl_storage, ensure, Parameter,
+    pallet_prelude::*
+};
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 use primitives::{Balance, CountryId, CurrencyId};
 use sp_runtime::{
     traits::{AtLeast32Bit, One, StaticLookup, Zero, AccountIdConversion},
-    DispatchError, DispatchResult,
+    DispatchError
 };
 use sp_std::vec::Vec;
 use frame_support::sp_runtime::ModuleId;
 use bc_country::*;
 use frame_support::traits::{Get, Currency};
+use frame_system::pallet_prelude::*;
 
 #[cfg(test)]
 mod mock;
@@ -38,23 +43,9 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-/// The module configuration trait.
-pub trait Config: system::Config {
-    /// The overarching event type.
-    type Event: From<Event<Self>> + Into<<Self as system::Config>::Event>;
-    /// The arithmetic type of asset identifier.
-    type TokenId: Parameter + AtLeast32Bit + Default + Copy;
-    type CountryCurrency: MultiCurrencyExtended<
-        Self::AccountId,
-        CurrencyId=CurrencyId,
-        Balance=Balance,
-    >;
-    type SocialTokenTreasury: Get<ModuleId>;
-    type CountryInfoSource: BCCountry<Self::AccountId>;
-}
-
 /// A wrapper for a token name.
 pub type TokenName = Vec<u8>;
+    
 /// A wrapper for a ticker name.
 pub type Ticker = Vec<u8>;
 
@@ -64,53 +55,97 @@ pub struct Token<Balance> {
     pub total_supply: Balance,
 }
 
-decl_storage! {
-    trait Store for Module<T: Config> as Assets {
-        /// The next asset identifier up for grabs.
-        NextTokenId get(fn next_token_id): CurrencyId;
-        /// Details of the token corresponding to the token id.
-        /// (hash) -> Token details [returns Token struct]
-        SocialTokens get(fn token_details): map hasher(blake2_128_concat) CurrencyId => Token<Balance>;
-        CountryTreasury get(fn get_country_treasury): map hasher(blake2_128_concat) CountryId => Option<CountryFund<T::AccountId,Balance>>;
+pub use pallet::*;
+
+#[frame_support::pallet]
+pub mod pallet {
+    use super::*;
+
+    #[pallet::pallet]
+    pub struct Pallet<T>(PhantomData<T>);
+
+    #[pallet::config]
+    pub trait Config: frame_system::Config {
+
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        
+        /// The arithmetic type of asset identifier.
+        type TokenId: Parameter + AtLeast32Bit + Default + Copy;
+        
+        type CountryCurrency: MultiCurrencyExtended<
+            Self::AccountId,
+            CurrencyId=CurrencyId,
+            Balance=Balance,
+        >;
+        
+        type SocialTokenTreasury: Get<ModuleId>;
+        
+        type CountryInfoSource: BCCountry<Self::AccountId>;
     }
-}
 
-decl_error! {
-    pub enum Error for Module<T: Config> {
-        /// Transfer amount should be non-zero
-        AmountZero,
-        /// Account balance must be greater than or equal to the transfer amount
-        BalanceLow,
-        /// Balance should be non-zero
-        BalanceZero,
-        ///Insufficient balance
-        InsufficientBalance,
-        /// No permission to issue token
-        NoPermissionTokenIssuance,
-        /// Country Currency already issued for this bitcountry
-        SocialTokenAlreadyIssued,
-        /// No available next token id
-        NoAvailableTokenId,
-        //Country Is Not Available
-        CountryFundIsNotAvailable
+    #[pallet::storage]
+    #[pallet::getter(fn next_token_id)]
+    /// The next asset identifier up for grabs.
+    pub(super) type NextTokenId<T: Config> = StorageValue<_, CurrencyId, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn token_details)]
+    /// Details of the token corresponding to the token id.
+    /// (hash) -> Token details [returns Token struct]
+    pub(super) type SocialTokens<T: Config> = 
+        StorageMap<_, Blake2_128Concat, CurrencyId, Token<Balance>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_country_treasury)]
+    /// Details of the token corresponding to the token id.
+    /// (hash) -> Token details [returns Token struct]
+    pub(super) type CountryTreasury<T: Config> = 
+        StorageMap<_, Blake2_128Concat, CountryId, CountryFund<T::AccountId,Balance>, OptionQuery>;
+
+    #[pallet::error]
+    pub enum Error<T> {
+         /// Transfer amount should be non-zero
+         AmountZero,
+         /// Account balance must be greater than or equal to the transfer amount
+         BalanceLow,
+         /// Balance should be non-zero
+         BalanceZero,
+         ///Insufficient balance
+         InsufficientBalance,
+         /// No permission to issue token
+         NoPermissionTokenIssuance,
+         /// Country Currency already issued for this bitcountry
+         SocialTokenAlreadyIssued,
+         /// No available next token id
+         NoAvailableTokenId,
+         //Country Is Not Available
+         CountryFundIsNotAvailable
     }
-}
 
-decl_module! {
-    pub struct Module<T: Config> for enum Call where origin: T::Origin {
-        type Error = Error<T>;
-
-        fn deposit_event() = default;
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
         /// Issue a new class of fungible assets for bitcountry. There are, and will only ever be, `total`
         /// such assets and they'll all belong to the `origin` initially. It will have an
         /// identifier `TokenId` instance: this will be specified in the `Issued` event.
-        #[weight = 10_000]
-        fn mint_token(origin, ticker: Ticker, country_id: CountryId, total_supply: Balance) -> DispatchResult{
+        #[pallet::weight(10_000)]
+        pub fn mint_token(
+            origin: OriginFor<T>, 
+            ticker: Ticker, 
+            country_id: CountryId, 
+            total_supply: Balance
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            ensure!(T::CountryInfoSource::check_ownership(&who, &country_id), Error::<T>::NoPermissionTokenIssuance);
-            ensure!(!CountryTreasury::<T>::contains_key(&country_id), Error::<T>::SocialTokenAlreadyIssued);
+            ensure!(
+                T::CountryInfoSource::check_ownership(&who, &country_id), 
+                Error::<T>::NoPermissionTokenIssuance
+            );
+            ensure!(
+                !CountryTreasury::<T>::contains_key(&country_id), 
+                Error::<T>::SocialTokenAlreadyIssued
+            );
+
             //Generate new CurrencyId
-            let currency_id = NextTokenId::mutate(|id| -> Result<CurrencyId, DispatchError>{
+            let currency_id = NextTokenId::<T>::mutate(|id| -> Result<CurrencyId, DispatchError>{
                 let current_id =*id;
                 if current_id == 0 {
                    *id = 2;
@@ -137,44 +172,52 @@ decl_module! {
                 total_supply,
             };
             //Store social token info
-            SocialTokens::insert(currency_id, token_info);
+            SocialTokens::<T>::insert(currency_id, token_info);
 
             CountryTreasury::<T>::insert(country_id, country_fund);
             //TODO Add initial LP
             T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
             let fund_address = Self::get_country_fund_id(country_id);
             Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address ,total_supply));
-            Ok(())
+            
+            Ok(().into())
         }
 
-        #[weight = 10_000]
-        fn transfer(
-            origin,
+        #[pallet::weight(10_000)]
+        pub fn transfer(
+            origin: OriginFor<T>, 
             dest: <T::Lookup as StaticLookup>::Source,
             currency_id: CurrencyId,
-            #[compact] amount: Balance
-        ) {
+            // #[compact] amount: Balance
+            amount: Balance
+        ) -> DispatchResultWithPostInfo {
 
             let from = ensure_signed(origin)?;
             let to = T::Lookup::lookup(dest)?;
             Self::transfer_from(currency_id, &from, &to, amount)?;
+
+            Ok(().into())
         }
     }
-}
 
-decl_event! {
-    pub enum Event<T> where
-        <T as system::Config>::AccountId,
-        Balance = Balance,
-        CurrencyId = CurrencyId
-    {
+    #[pallet::event]
+    #[pallet::generate_deposit(pub (super) fn deposit_event)]
+    #[pallet::metadata(
+        <T as frame_system::Config >::AccountId = "AccountId",
+        Balance = "Balance",
+        CurrencyId = "CurrencyId"
+    )]
+    pub enum Event<T: Config> {
         /// Some assets were issued. \[asset_id, owner, total_supply\]
-        SocialTokenIssued(CurrencyId, AccountId, AccountId , u128),
+        SocialTokenIssued(CurrencyId, T::AccountId, T::AccountId , u128),
         /// Some assets were transferred. \[asset_id, from, to, amount\]
-        SocialTokenTransferred(CurrencyId, AccountId, AccountId, Balance),
+        SocialTokenTransferred(CurrencyId, T::AccountId, T::AccountId, Balance),
         /// Some assets were destroyed. \[asset_id, owner, balance\]
-        SocialTokenDestroyed(CurrencyId, AccountId, Balance),
+        SocialTokenDestroyed(CurrencyId, T::AccountId, Balance),
     }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Module<T> {
@@ -214,3 +257,5 @@ impl<T: Config> Module<T> {
         }
     }
 }
+
+
