@@ -37,12 +37,11 @@ fn mint_social_token_should_work() {
 
         assert_eq!(get_country_fund_balance(), 400);
         
-        assert_eq!(
-            last_event(), 
-            Event::tokenization(
-                RawEvent::SocialTokenIssued(1, ALICE, country_fund_account(),  400)
-            )
+        let event = mock::Event::tokenization(
+            crate::Event::SocialTokenIssued(1, ALICE, country_fund_account(),  400)
         );
+
+        assert_eq!(last_event(), event);
     });
 }
 
