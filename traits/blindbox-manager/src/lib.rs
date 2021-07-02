@@ -22,10 +22,14 @@ use primitives::AccountId;
 pub enum BlindBoxType {
     KSM,
     NUUM,
-    MainnetNFTHat,
-    MainnetNFTJacket,
-    MainnetNFTPants,
-    MainnetNFTShoes,
+    MainnetNFTHat1,
+    MainnetNFTJacket1,
+    MainnetNFTPants1,
+    MainnetNFTShoes1,
+    MainnetNFTHat2,
+    MainnetNFTJacket2,
+    MainnetNFTPants2,
+    MainnetNFTShoes2,
     CollectableNFT
 }
 

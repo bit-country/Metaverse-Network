@@ -260,14 +260,22 @@ impl<T: Config> Pallet<T> {
 
         if random_number % max_number == 0 {
             // 1/10000 chance of winning collectable NFT
-
             blindbox_reward_item.blindbox_type = BlindBoxType::CollectableNFT;
+        } else if random_number % 20 == 0 {
+            // 5% chance of winning
+            let rand = Self::generate_random_number(random_number);
+            if rand % 2 == 0 {
+                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTShoes1;
+            } else {
+                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTShoes2;
+            }
         } else if random_number % 10 == 0 {
             // 10% chance of winning
-            let reminder = Self::generate_random_number(random_number) % 4;
+            let rand = Self::generate_random_number(random_number);
+
+            let reminder = rand % 3;
             if reminder == 0 {
                 // 10% chance of winning KSM
-
                 // If available KSM is less than the distribute amount, then stop
                 let available_ksm = Self::get_available_ksm();
                 if available_ksm < distribute_ksm_amount {
@@ -282,20 +290,31 @@ impl<T: Config> Pallet<T> {
                 }
             } else if reminder == 1 {
                 // 10% chance of winning wearable NFTs Jacket
-                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTJacket;
+                let new_rand = Self::generate_random_number(reminder);
+                if new_rand % 2 == 0 {
+                    blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTJacket1;
+                }else{
+                    blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTJacket2;
+                }
             } else if reminder == 2 {
                 // 10% chance of winning wearable NFTs shoes
-                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTShoes;
-            } else{
-                // 10% chance of winning wearable NFTs pants
-                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTPants;
+                let new_rand = Self::generate_random_number(reminder);
+                if new_rand % 2 == 0 {
+                    blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTPants1;
+                } else {
+                    blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTPants2;
+                }
             }
         } else if random_number % 5 == 0 {
             // 20% chance of winning wearable NFTs hat
-            blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTHat;
+            let new_rand = Self::generate_random_number(random_number) % 2;
+            if new_rand % 2 == 0 {
+                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTHat1;
+            } else {
+                blindbox_reward_item.blindbox_type = BlindBoxType::MainnetNFTHat2;
+            }
         } else if random_number % 4 == 0 {
             // 25% testnet nuum
-
             let nuum_amount = Self::generate_random_number(random_number) % max_nuum_amount + 1;
             blindbox_reward_item.amount = nuum_amount*10000; // 10000 = 1 NUUM
             blindbox_reward_item.blindbox_type = BlindBoxType::NUUM;
