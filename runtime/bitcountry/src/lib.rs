@@ -81,7 +81,6 @@ pub mod constants;
 
 use constants::{time::*, currency::*};
 use sp_runtime::generic::Era;
-use orml_nft::Tokens;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -1113,6 +1112,19 @@ impl tokenization::Config for Runtime {
     type CountryInfoSource = BitCountryModule;
 }
 
+parameter_types! {
+    pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
+    pub const SwapFee: (u32, u32) = (5, 1000); //0.5%
+}
+
+impl swap::Config for Runtime {
+    type Event = Event;
+    type ModuleId = SwapModuleId;
+    type SocialTokenCurrency = Tokens;
+    type NativeCurrency = Balances;
+    type GetSwapFee = SwapFee;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1165,6 +1177,7 @@ construct_runtime!(
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
+        Swap: swap:: {Module, Call, Storage, Event<T>},
 	}
 );
 

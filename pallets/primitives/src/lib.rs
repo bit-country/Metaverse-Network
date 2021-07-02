@@ -59,7 +59,6 @@ pub type Hash = sp_core::H256;
 /// `u64` is enough to represent a duration of half a billion years, when the
 /// time scale is milliseconds.
 pub type Timestamp = u64;
-
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 /// Header type.
@@ -98,9 +97,9 @@ pub enum ItemId {
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum SocialTokenCurrencyId {
-    NativeToken(TokenSymbol),
-    SocialToken(TokenSymbol),
-    DEXShare(TokenSymbol, TokenSymbol),
+    NativeToken(CurrencyId),
+    SocialToken(CurrencyId),
+    DEXShare(CurrencyId, CurrencyId),
 }
 
 impl SocialTokenCurrencyId {
@@ -118,8 +117,8 @@ impl SocialTokenCurrencyId {
 
     pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
         match self {
-            SocialTokenCurrencyId::DEXShare(token_symbol_0, token_symbol_1) => {
-                Some((SocialTokenCurrencyId::SocialToken(*token_symbol_0), SocialTokenCurrencyId::SocialToken(*token_symbol_1)))
+            SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1) => {
+                Some((SocialTokenCurrencyId::SocialToken(*token_currency_id_0), SocialTokenCurrencyId::SocialToken(*token_currency_id_1)))
             }
             _ => None,
         }
@@ -127,11 +126,11 @@ impl SocialTokenCurrencyId {
 
     pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
         match (currency_id_0, currency_id_1) {
-            (SocialTokenCurrencyId::NativeToken(token_symbol_0), SocialTokenCurrencyId::SocialToken(token_symbol_1)) => {
-                Some(SocialTokenCurrencyId::DEXShare(token_symbol_0, token_symbol_1))
+            (SocialTokenCurrencyId::NativeToken(token_currency_id_0), SocialTokenCurrencyId::SocialToken(token_currency_id_1)) => {
+                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
             }
-            (SocialTokenCurrencyId::SocialToken(token_symbol_0), SocialTokenCurrencyId::NativeToken(token_symbol_1)) => {
-                Some(SocialTokenCurrencyId::DEXShare(token_symbol_0, token_symbol_1))
+            (SocialTokenCurrencyId::SocialToken(token_currency_id_0), SocialTokenCurrencyId::NativeToken(token_currency_id_1)) => {
+                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
             }
             _ => None,
         }

@@ -4,11 +4,16 @@
 
 use crate::SocialTokenCurrencyId;
 use sp_runtime::FixedU128;
+use codec::{Decode, Encode};
+use sp_runtime::{RuntimeDebug};
 
 pub type Price = FixedU128;
 pub type ExchangeRate = FixedU128;
 pub type Ratio = FixedU128;
 pub type Rate = FixedU128;
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
