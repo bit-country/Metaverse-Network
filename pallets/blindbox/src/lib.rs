@@ -121,9 +121,6 @@ pub mod pallet {
         pub(super) fn set_available_ksm(origin: OriginFor<T>, available_ksm: u32 ) -> DispatchResultWithPostInfo {
             let _ = ensure_root(origin)?;
 
-            println!("available_ksm: {}", available_ksm);
-            println!("T::MaxKSMAllowed::get(): {}", T::MaxKSMAllowed::get());
-
             // Ensure the authorized caller can call this func
             ensure!(
                 available_ksm <= T::MaxKSMAllowed::get(),

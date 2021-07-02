@@ -968,6 +968,8 @@ parameter_types! {
 	pub const LotteryModuleId: ModuleId = ModuleId(*b"py/lotto");
 	pub const MaxCalls: usize = 10;
 	pub const MaxGenerateRandom: u32 = 10;
+	pub const MaxNumberOfBlindBox: u32 = 100;
+	pub const MaxKSMAllowed: u32 = 200000; // 20KSM
 }
 
 impl pallet_lottery::Config for Runtime {
@@ -1116,7 +1118,8 @@ impl blindbox::Config for Runtime {
     type Event = Event;
     type ModuleId = CountryFundModuleId;
     type Randomness = RandomnessCollectiveFlip;
-    type MaxGenerateRandom = MaxGenerateRandom;
+    type MaxNumberOfBlindBox = MaxNumberOfBlindBox;
+    type MaxKSMAllowed = MaxKSMAllowed;
 }
 
 construct_runtime!(
