@@ -968,6 +968,8 @@ parameter_types! {
 	pub const LotteryModuleId: ModuleId = ModuleId(*b"py/lotto");
 	pub const MaxCalls: usize = 10;
 	pub const MaxGenerateRandom: u32 = 10;
+	pub const MaxNumberOfBlindBox: u32 = 100;
+	pub const MaxKSMAllowed: u32 = 200000; // 20KSM
 }
 
 impl pallet_lottery::Config for Runtime {
@@ -1112,6 +1114,14 @@ impl tokenization::Config for Runtime {
     type CountryInfoSource = BitCountryModule;
 }
 
+impl blindbox::Config for Runtime {
+    type Event = Event;
+    type ModuleId = CountryFundModuleId;
+    type Randomness = RandomnessCollectiveFlip;
+    type MaxNumberOfBlindBox = MaxNumberOfBlindBox;
+    type MaxKSMAllowed = MaxKSMAllowed;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1164,6 +1174,7 @@ construct_runtime!(
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
+        Blindbox: blindbox:: {Module, Call, Storage, Event<T>},
 	}
 );
 
