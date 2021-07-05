@@ -2,7 +2,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-use orml_currencies::BasicCurrencyAdapter;
+use social_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 use sp_std::prelude::*;
 use frame_support::{
@@ -28,7 +28,7 @@ use sp_core::{
     OpaqueMetadata,
 };
 pub use primitives::{AccountId, Signature};
-use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount};
+use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount, SocialTokenCurrencyId};
 use sp_api::impl_runtime_apis;
 use sp_runtime::{
     Permill, Perbill, Perquintill, Percent, ApplyExtrinsicResult,
@@ -1006,7 +1006,7 @@ impl pallet_assets::Config for Runtime {
 }
 
 parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+    pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
         Zero::zero()
     };
 }
@@ -1019,22 +1019,21 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = CurrencyId;
+    type CurrencyId = SocialTokenCurrencyId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = 0;
+    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
 }
 
-impl orml_currencies::Config for Runtime {
+impl social_currencies::Config for Runtime {
     type Event = Event;
-    type MultiCurrency = Tokens;
+    type MultiSocialCurrency = Tokens;
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -1174,7 +1173,7 @@ construct_runtime!(
         NftModule: nft::{Module, Call, Storage, Event<T>},
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
         Auction: auction::{Module ,Storage, Event<T>},
-        Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
+        Currencies: social_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
         Swap: swap:: {Module, Call, Storage, Event<T>},
