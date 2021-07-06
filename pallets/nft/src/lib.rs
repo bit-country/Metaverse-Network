@@ -24,6 +24,8 @@ use sp_runtime::{
 use sp_std::vec::Vec;
 use auction_manager::{Auction};
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
