@@ -65,7 +65,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use primitives::SocialTokenCurrencyId;
+    use primitives::{SocialTokenCurrencyId, TokenId};
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -91,7 +91,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn next_token_id)]
     /// The next asset identifier up for grabs.
-    pub(super) type NextTokenId<T: Config> = StorageValue<_, CurrencyId, ValueQuery>;
+    pub(super) type NextTokenId<T: Config> = StorageValue<_, TokenId, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn token_details)]
@@ -149,7 +149,7 @@ pub mod pallet {
                 Error::<T>::SocialTokenAlreadyIssued
             );
 
-            //Generate new CurrencyId
+            //Generate new TokenId
             let currency_id = NextTokenId::<T>::mutate(|id| -> Result<SocialTokenCurrencyId, DispatchError>{
                 let current_id = *id;
                 if current_id == 0 {
@@ -180,6 +180,7 @@ pub mod pallet {
 
             CountryTreasury::<T>::insert(country_id, country_fund);
             //TODO Add initial LP
+            //Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
             T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
             let fund_address = Self::get_country_fund_id(country_id);
             Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address, total_supply));

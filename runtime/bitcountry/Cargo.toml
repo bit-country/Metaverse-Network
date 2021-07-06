@@ -213,4 +213,5 @@ runtime-benchmarks = [
     "pallet-session-benchmarking",
     "frame-system-benchmarking",
     "hex-literal",
+    "nft/runtime-benchmarks"
 ]

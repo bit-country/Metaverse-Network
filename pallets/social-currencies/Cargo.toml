@@ -29,12 +29,6 @@ orml-traits = { default-features = false, version = '0.4.0' }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 bc-country = { path = "../../traits/bc-country", default-features = false }
 
-[dependencies.country]
-default-features = false
-package = 'pallet-country'
-path = '../bitcountry'
-version = '2.0.0-rc6'
-
 [dev-dependencies]
 #sp-io = { version = "3.0.0", default-features = false }
 
@@ -51,5 +45,4 @@ std = [
     'sp-std/std',
     'orml-traits/std',
     'primitives/std',
-    'country/std',
 ]
