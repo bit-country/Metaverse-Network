@@ -44,7 +44,6 @@
   "CountryId": "u64",
   "CollectionId": "u64",
   "ClassId": "u32",
-  "TokenId": "u64",
   "ClassInfoOf": {
     "metadata": "Vec<u8>",
     "total_issuance": "TokenId",
@@ -100,11 +99,7 @@
       "Executable"
     ]
   },
-  "CurrencyId": {
-    "_enum": {
-      "Token": "TokenSymbol"
-    }
-  },
+  "CurrencyId": "SocialTokenCurrencyId",
   "TokenSymbol": {
     "_enum": [
       "NUUM",
@@ -114,7 +109,7 @@
     ]
   },
   "CountryCurrencyId": "u32",
-  "CurrencyIdOf": "CurrencyId",
+  "CurrencyIdOf": "SocialTokenCurrencyId",
   "BalanceIdOf": "Balance",
   "ChainId": {
     "_enum": {
@@ -138,5 +133,37 @@
       "Block": "u64"
     }
   },
-  "PoolId": "u32"
+  "PoolId": "u32",
+  "SocialTokenCurrencyId": {
+    "_enum": {
+      "NativeToken": "TokenId",
+      "SocialToken": "TokenId",
+      "DEXShare": "(TokenId, TokenId)"
+    }
+  },
+  "TradingPairStatus": {
+    "_enum": [
+      "NotEnabled",
+      "Enabled"
+    ]
+  },
+  "TradingPair": "(SocialTokenCurrencyId,SocialTokenCurrencyId)",
+  "Country": {
+    "owner": "AccountId",
+    "metadata": "Text",
+    "currency_id": "SocialTokenCurrencyId"
+  },
+  "Ticker": "Vec<u8>",
+  "Token": {
+    "ticker": "Ticker",
+    "total_supply": "Balance"
+  },
+  "CountryFund": {
+    "vault": "AccountId",
+    "value": "u128",
+    "backing": "u128",
+    "currency_id": "SocialTokenCurrencyId"
+  },
+  "LandId": "u64",
+  "TokenId": "u64"
 }

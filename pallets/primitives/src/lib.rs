@@ -83,6 +83,8 @@ pub type AuctionId = u64;
 pub type SpotId = u64;
 /// LandId
 pub type LandId = u64;
+/// Social Token Id type
+pub type TokenId = u64;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -97,9 +99,9 @@ pub enum ItemId {
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum SocialTokenCurrencyId {
-    NativeToken(CurrencyId),
-    SocialToken(CurrencyId),
-    DEXShare(CurrencyId, CurrencyId),
+    NativeToken(TokenId),
+    SocialToken(TokenId),
+    DEXShare(TokenId, TokenId),
 }
 
 impl SocialTokenCurrencyId {

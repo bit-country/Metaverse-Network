@@ -18,6 +18,7 @@ sp-runtime = { version = "3.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
 frame-system = { version = "3.0.0", default-features = false }
 frame-support = { version = "3.0.0", default-features = false }
+frame-benchmarking = { version = "3.0.0", default-features = false, optional = true }
 pallet-balances = { version = "3.0.0", default-features = false }
 pallet-randomness-collective-flip = { version = "3.0.0", default-features = false }
 pallet-sudo = { version = "3.0.0", default-features = false }
@@ -59,4 +60,10 @@ std = [
     "orml-tokens/std",
     'nft/std',
     'primitives/std'
+]
+
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
 ]
