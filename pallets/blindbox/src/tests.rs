@@ -147,3 +147,63 @@ fn open_blind_box_should_fail() {
         );
     });
 }
+
+#[test]
+fn set_available_nuum_should_work(){
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(BlindBoxModule::set_available_nuum(
+           Origin::root(),
+           9999
+       ));
+    });
+}
+
+#[test]
+fn set_available_nuum_should_fail() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(BlindBoxModule::set_available_nuum(
+            Origin::signed(ALICE),
+            100000
+        ), BadOrigin);
+    });
+}
+
+#[test]
+fn set_available_nuum_should_fail_exceeds_max_allowed() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(
+            BlindBoxModule::set_available_nuum(Origin::root(), 100001),
+            Error::<Runtime>::ExceedsMaxNUUMAllowed
+        );
+    });
+}
+
+#[test]
+fn set_available_collectable_nft_should_work(){
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(BlindBoxModule::set_available_collectable_nft(
+           Origin::root(),
+           3
+       ));
+    });
+}
+
+#[test]
+fn set_available_collectable_nft_should_fail() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(BlindBoxModule::set_available_collectable_nft(
+            Origin::signed(ALICE),
+            1
+        ), BadOrigin);
+    });
+}
+
+#[test]
+fn set_available_collectable_nft_should_fail_exceeds_max_allowed() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(
+            BlindBoxModule::set_available_collectable_nft(Origin::root(), 6),
+            Error::<Runtime>::ExceedsMaxCollectableNFTAllowed
+        );
+    });
+}
