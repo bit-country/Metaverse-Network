@@ -1126,6 +1126,12 @@ impl blindbox::Config for Runtime {
     type Randomness = RandomnessCollectiveFlip;
     type MaxNumberOfBlindBox = MaxNumberOfBlindBox;
     type MaxKSMAllowed = MaxKSMAllowed;
+    type MaxNUUMAllowed = MaxNUUMAllowed;
+    type MaxCollectableNFTAllowed = MaxCollectableNFTAllowed;
+    type MaxNFTHatAllowed = MaxNFTHatAllowed;
+    type MaxNFTJacketAllowed = MaxNFTJacketAllowed;
+    type MaxNFTPantAllowed = MaxNFTPantAllowed;
+    type MaxNFTShoesAllowed = MaxNFTShoesAllowed;
 }
 
 construct_runtime!(

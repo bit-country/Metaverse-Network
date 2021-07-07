@@ -86,7 +86,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_blindbox_rewards)]
     pub type BlindBoxRewards<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, BlindBoxId, Twox64Concat, T::AccountId, BlindBoxRewardItem<T::AccountId>, OptionQuery>;
+    StorageDoubleMap<_, Twox64Concat, BlindBoxId, Twox64Concat, T::AccountId, BlindBoxRewardItem<T::AccountId, BlindBoxId>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_blindboxes)]
@@ -141,8 +141,8 @@ pub mod pallet {
     #[pallet::metadata(T::AccountId = "AccountId")]
     pub enum Event<T: Config> {
         BlindBoxIdGenerated(Vec<u32>),
-        BlindBoxOpened(T::AccountId, BlindBoxType, u32),
-        BlindBoxGoodLuckNextTime(u32),
+        BlindBoxOpened(T::AccountId, BlindBoxId,  BlindBoxType, u32),
+        BlindBoxGoodLuckNextTime(T::AccountId, BlindBoxId)
     }
 
     #[pallet::error]
@@ -349,13 +349,13 @@ pub mod pallet {
             // Generate a random number between 1 and 100000
             let mut random_number = Self::generate_random_number(blindbox_id) % max_range + 1;
 
-            let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, max_range, random_number);
+            let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, blindbox_id, max_range, random_number);
 
             if is_winning {
                 Self::save_blindbox_reward(&owner, blindbox_id, blindbox_reward_item.clone());
-                Self::deposit_event(Event::<T>::BlindBoxOpened(owner, blindbox_reward_item.blindbox_type, blindbox_reward_item.amount));
+                Self::deposit_event(Event::<T>::BlindBoxOpened(owner, blindbox_id.clone(), blindbox_reward_item.blindbox_type, blindbox_reward_item.amount));
             } else {
-                Self::deposit_event(Event::<T>::BlindBoxGoodLuckNextTime(blindbox_id.clone()));
+                Self::deposit_event(Event::<T>::BlindBoxGoodLuckNextTime(owner, blindbox_id.clone()));
             }
 
             Ok(().into())
@@ -380,7 +380,7 @@ impl<T: Config> Pallet<T> {
         random_number
     }
 
-    fn save_blindbox_reward(owner: &T::AccountId, blindbox_id: BlindBoxId, blindbox_reward_item :BlindBoxRewardItem<T::AccountId>) -> Result<BlindBoxId, DispatchError> {
+    fn save_blindbox_reward(owner: &T::AccountId, blindbox_id: BlindBoxId, blindbox_reward_item :BlindBoxRewardItem<T::AccountId, BlindBoxId>) -> Result<BlindBoxId, DispatchError> {
         // Remove from BlindBoxes
         BlindBoxes::<T>::remove(blindbox_id);
 
@@ -465,11 +465,12 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn check_winner (owner: &T::AccountId, max_number: u32, random_number: u32) -> (bool, BlindBoxRewardItem<T::AccountId>) {
+    fn check_winner (owner: &T::AccountId, blindbox_id: BlindBoxId, max_number: u32, random_number: u32) -> (bool, BlindBoxRewardItem<T::AccountId, BlindBoxId>) {
         let mut blindbox_reward_item = BlindBoxRewardItem {
             recipient: owner.clone(),
             amount: 0,
-            blindbox_type: BlindBoxType::NUUM
+            blindbox_type: BlindBoxType::NUUM,
+            blindBoxId: blindbox_id
         };
 
         let mut is_winning = false;
@@ -555,9 +556,10 @@ impl<T: Config> Pallet<T> {
         } else if random_number % 4 == 0 {
             // 25% testnet nuum
             let nuum_amount = Self::generate_random_number(random_number) % max_nuum_amount + 1;
-            let available = Self::check_and_deduct_rewards_availability(BlindBoxType::NUUM, nuum_amount);
+            let distributed_amount = nuum_amount*10000;
+            let available = Self::check_and_deduct_rewards_availability(BlindBoxType::NUUM, distributed_amount);
             if available {
-                blindbox_reward_item.amount = nuum_amount*10000; // 10000 = 1 NUUM
+                blindbox_reward_item.amount = distributed_amount; // 10000 = 1 NUUM
                 blindbox_reward_item.blindbox_type = BlindBoxType::NUUM;
                 is_winning = true;
             }

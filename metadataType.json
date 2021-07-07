@@ -157,6 +157,7 @@
   },
   "BlindBoxRewardItem": {
     "recipient": "AccountId",
+    "blindBoxId": "BlindBoxId",
     "amount": "u32",
     "blindbox_type": "BlindBoxType"
   }
