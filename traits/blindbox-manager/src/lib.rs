@@ -16,6 +16,7 @@ use sp_std::{
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use primitives::AccountId;
+use primitives::BlindBoxId;
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -35,8 +36,9 @@ pub enum BlindBoxType {
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug)]
-pub struct BlindBoxRewardItem<AccountId> {
+pub struct BlindBoxRewardItem<AccountId, BlindBoxId> {
     pub recipient: AccountId,
+    pub blindBoxId: BlindBoxId,
     /// amount for blindbox
     pub amount: u32,
     /// BlindBox type
