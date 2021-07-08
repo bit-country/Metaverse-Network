@@ -345,17 +345,34 @@ pub mod pallet {
                 Error::<T>::BlindBoxDoesNotExist
             );
 
+            // Remove from BlindBoxes
+            BlindBoxes::<T>::remove(blindbox_id);
+
+            // Update AvailableBlindBoxesCount
+            let available_blindbox_count = Self::all_blindboxes_count();
+
+            let new_available_blindbox_count = available_blindbox_count.checked_sub(One::one()).ok_or("Overflow subtracting new count to available blindboxes")?;
+            AvailableBlindBoxesCount::<T>::put(new_available_blindbox_count);
+
             let max_range = 10000;
             // Generate a random number between 1 and 100000
             let mut random_number = Self::generate_random_number(blindbox_id) % max_range + 1;
 
-            let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, blindbox_id, max_range, random_number);
-
-            if is_winning {
-                Self::save_blindbox_reward(&owner, blindbox_id, blindbox_reward_item.clone());
-                Self::deposit_event(Event::<T>::BlindBoxOpened(owner, blindbox_id.clone(), blindbox_reward_item.blindbox_type, blindbox_reward_item.amount));
-            } else {
+            if random_number % 5 == 0 {
+                // 20% chance has no winning
                 Self::deposit_event(Event::<T>::BlindBoxGoodLuckNextTime(owner, blindbox_id.clone()));
+            } else{
+                // 80% chance has winning, generate a new random number
+                random_number = Self::generate_random_number(random_number) % max_range + 1;
+
+                let (is_winning, blindbox_reward_item) = Self::check_winner(&owner, blindbox_id, max_range, random_number);
+
+                if is_winning {
+                    Self::save_blindbox_reward(&owner, blindbox_id, blindbox_reward_item.clone());
+                    Self::deposit_event(Event::<T>::BlindBoxOpened(owner, blindbox_id.clone(), blindbox_reward_item.blindbox_type, blindbox_reward_item.amount));
+                } else {
+                    Self::deposit_event(Event::<T>::BlindBoxGoodLuckNextTime(owner, blindbox_id.clone()));
+                }
             }
 
             Ok(().into())
@@ -381,17 +398,8 @@ impl<T: Config> Pallet<T> {
     }
 
     fn save_blindbox_reward(owner: &T::AccountId, blindbox_id: BlindBoxId, blindbox_reward_item :BlindBoxRewardItem<T::AccountId, BlindBoxId>) -> Result<BlindBoxId, DispatchError> {
-        // Remove from BlindBoxes
-        BlindBoxes::<T>::remove(blindbox_id);
-
         // Add to BlindBoxRewards
         BlindBoxRewards::<T>::insert( blindbox_id, owner, blindbox_reward_item);
-
-        // Update AvailableBlindBoxesCount
-        let available_blindbox_count = Self::all_blindboxes_count();
-
-        let new_available_blindbox_count = available_blindbox_count.checked_sub(One::one()).ok_or("Overflow subtracting new count to available blindboxes")?;
-        AvailableBlindBoxesCount::<T>::put(new_available_blindbox_count);
 
         Ok(blindbox_id)
     }
@@ -479,7 +487,6 @@ impl<T: Config> Pallet<T> {
 
         if random_number % max_number == 0 {
             // 1/10000 chance of winning collectable NFT
-
             let available = Self::check_and_deduct_rewards_availability(BlindBoxType::CollectableNFT, 1);
             if available {
                 blindbox_reward_item.blindbox_type = BlindBoxType::CollectableNFT;
