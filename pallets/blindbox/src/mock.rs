@@ -117,6 +117,7 @@ impl Config for Runtime {
     type MaxNFTJacketAllowed = MaxNFTJacketAllowed;
     type MaxNFTPantAllowed = MaxNFTPantAllowed;
     type MaxNFTShoesAllowed = MaxNFTShoesAllowed;
+    type Currency = Balances;
 }
 
 construct_runtime!(

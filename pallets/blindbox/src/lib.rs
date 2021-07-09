@@ -19,9 +19,11 @@
 use blindbox_manager::{ BlindBoxType , BlindBoxRewardItem};
 use codec::{Decode, Encode};
 use frame_support::{ensure, decl_storage};
+use frame_support::{traits::{Currency, ExistenceRequirement, ReservableCurrency, LockableCurrency}};
 use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, CountryId, CurrencyId, BlindBoxId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
+use sp_runtime::SaturatedConversion;
 use bc_country::*;
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
@@ -47,6 +49,10 @@ pub mod pallet {
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
     pub struct Pallet<T>(PhantomData<T>);
+
+    pub(super) type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+    pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -81,6 +87,9 @@ pub mod pallet {
 
         // Maximum number of NFT shoes allowed
         type MaxNFTShoesAllowed: Get<u32>;
+
+        type Currency: ReservableCurrency<Self::AccountId>
+        + LockableCurrency<Self::AccountId, Moment=Self::BlockNumber>;
     }
 
     #[pallet::storage]
@@ -93,8 +102,8 @@ pub mod pallet {
     pub type BlindBoxes<T: Config> = StorageMap<_, Twox64Concat, BlindBoxId, (), OptionQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn get_blindboxescreators)]
-    pub type BlindBoxesCreators<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, (), OptionQuery>;
+    #[pallet::getter(fn get_blindboxescreator)]
+    pub type BlindBoxesCreator<T: Config> = StorageValue<_, T::AccountId, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn all_blindboxes_count)]
@@ -286,7 +295,7 @@ pub mod pallet {
         pub(super) fn set_blindbox_caller(origin: OriginFor<T>, account_id: T::AccountId ) -> DispatchResultWithPostInfo {
             let _ = ensure_root(origin)?;
 
-            BlindBoxesCreators::<T>::insert(account_id, ());
+            BlindBoxesCreator::<T>::put(account_id);
 
             Ok(().into())
         }
@@ -297,7 +306,7 @@ pub mod pallet {
 
             // Ensure the authorized caller can call this func
             ensure!(
-                BlindBoxesCreators::<T>::contains_key(&caller),
+                BlindBoxesCreator::<T>::get() == caller,
                 Error::<T>::NoPermission
             );
 
@@ -569,9 +578,30 @@ impl<T: Config> Pallet<T> {
                 blindbox_reward_item.amount = distributed_amount; // 10000 = 1 NUUM
                 blindbox_reward_item.blindbox_type = BlindBoxType::NUUM;
                 is_winning = true;
+
+                Self::transfer_nuum(&owner, nuum_amount);
             }
         }
 
         (is_winning, blindbox_reward_item)
+    }
+
+    fn u128_to_balance(input: u128) -> BalanceOf<T> {
+        input.saturated_into()
+    }
+
+    fn transfer_nuum(owner: &T::AccountId, nuum_amount: u32) {
+        let caller = BlindBoxesCreator::<T>::get();
+
+        let newAmount = u128::from(nuum_amount);
+        let balance = Self::u128_to_balance(newAmount*DOLLARS);
+        //Transfer balance from buy it now user to asset owner
+        let currency_transfer = <T as Config>::Currency::transfer(&caller, &owner, balance, ExistenceRequirement::KeepAlive);
+
+        match currency_transfer {
+            Err(_e) => {}
+            Ok(_v) => {
+            }
+        }
     }
 }
