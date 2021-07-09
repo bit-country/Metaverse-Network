@@ -64,8 +64,8 @@ pub mod pallet {
         // Maximum number of KSM allowed
         type MaxKSMAllowed: Get<u32>;
 
-        // Maximum number of NUUM allowed
-        type MaxNUUMAllowed: Get<u32>;
+        // Maximum number of NUUM boxes allowed
+        type MaxNUUMBoxAllowed: Get<u32>;
 
         // Maximum number of collectable NFT allowed
         type MaxCollectableNFTAllowed: Get<u32>;
@@ -192,7 +192,7 @@ pub mod pallet {
 
             // Ensure the authorized caller can call this func
             ensure!(
-                proposed_amount <= T::MaxNUUMAllowed::get(),
+                proposed_amount <= T::MaxNUUMBoxAllowed::get(),
                 Error::<T>::ExceedsMaxNUUMAllowed
             );
 
@@ -361,7 +361,7 @@ pub mod pallet {
             if random_number % 5 == 0 {
                 // 20% chance has no winning
                 Self::deposit_event(Event::<T>::BlindBoxGoodLuckNextTime(owner, blindbox_id.clone()));
-            } else{
+            } else {
                 // 80% chance has winning, generate a new random number
                 random_number = Self::generate_random_number(random_number) % max_range + 1;
 
@@ -418,7 +418,7 @@ impl<T: Config> Pallet<T> {
             }
             BlindBoxType::NUUM=>{
                 let available_amount = Self::get_available_nuum();
-                if available_amount >= distributed_amount{
+                if available_amount >= distributed_amount {
                     let new_available_amount = available_amount - distributed_amount;
                     AvailableNUUM::<T>::put(new_available_amount);
                     return true;
@@ -564,7 +564,7 @@ impl<T: Config> Pallet<T> {
             // 25% testnet nuum
             let nuum_amount = Self::generate_random_number(random_number) % max_nuum_amount + 1;
             let distributed_amount = nuum_amount*10000;
-            let available = Self::check_and_deduct_rewards_availability(BlindBoxType::NUUM, distributed_amount);
+            let available = Self::check_and_deduct_rewards_availability(BlindBoxType::NUUM, 1);
             if available {
                 blindbox_reward_item.amount = distributed_amount; // 10000 = 1 NUUM
                 blindbox_reward_item.blindbox_type = BlindBoxType::NUUM;

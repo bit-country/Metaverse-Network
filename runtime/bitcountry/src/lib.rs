@@ -970,7 +970,7 @@ parameter_types! {
 	pub const MaxGenerateRandom: u32 = 10;
 	pub const MaxNumberOfBlindBox: u32 = 100;
 	pub const MaxKSMAllowed: u32 = 200000; // 20KSM
-    pub const MaxNUUMAllowed: u32 = 15120000; // 1512 NUUM
+    pub const MaxNUUMAllowed: u32 = 1512; // 1512 NUUM boxes
     pub const MaxCollectableNFTAllowed: u32 = 15;
     pub const MaxNFTHatAllowed: u32 = 9072;
     pub const MaxNFTJacketAllowed: u32 = 6013;
@@ -1126,7 +1126,7 @@ impl blindbox::Config for Runtime {
     type Randomness = RandomnessCollectiveFlip;
     type MaxNumberOfBlindBox = MaxNumberOfBlindBox;
     type MaxKSMAllowed = MaxKSMAllowed;
-    type MaxNUUMAllowed = MaxNUUMAllowed;
+    type MaxNUUMBoxAllowed = MaxNUUMAllowed;
     type MaxCollectableNFTAllowed = MaxCollectableNFTAllowed;
     type MaxNFTHatAllowed = MaxNFTHatAllowed;
     type MaxNFTJacketAllowed = MaxNFTJacketAllowed;
