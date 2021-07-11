@@ -199,7 +199,7 @@ pub mod pallet {
             #[pallet::compact] min_target_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            let _ = Self::do_swap_exact_token_for_native_token(&who, supply_currency, supply_amount, target_currency, min_target_amount)?;
+            let _ = Self::do_swap_native_token_for_social_token(&who, supply_currency, supply_amount, target_currency, min_target_amount)?;
             Ok(().into())
         }
 
@@ -315,6 +315,7 @@ impl<T: Config> Pallet<T> {
                 let pool_1_incr_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(pool_1_increment).unwrap_or_default();
                 T::NativeCurrency::transfer(who, &dex_module_account_id, pool_1_incr_balance, ExistenceRequirement::KeepAlive)?;
             } else {
+                debug::info!("Pool 1 increment {}", pool_1_increment);
                 T::SocialTokenCurrency::transfer(trading_pair.1, who, &dex_module_account_id, pool_1_increment)?;
             }
 
@@ -443,18 +444,18 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    /// Swap with exact social token for native token.
-    /// Exact social token in, Native token out
+    /// Swap native token for social token
+    /// Exact native token in, social token out
     #[transactional]
-    fn do_swap_exact_token_for_native_token(
+    fn do_swap_native_token_for_social_token(
         who: &T::AccountId,
         supply_currency: SocialTokenCurrencyId,
         amount_in: Balance,
         target_currency: SocialTokenCurrencyId,
         amount_out_min: Balance,
     ) -> Result<Balance, DispatchError> {
-        ensure!(supply_currency.is_social_token_currency_id(), Error::<T>::InvalidTradingCurrency);
-        ensure!(target_currency.is_native_token_currency_id(), Error::<T>::InvalidTradingCurrency);
+        ensure!(supply_currency.is_native_token_currency_id(), Error::<T>::InvalidTradingCurrency);
+        ensure!(target_currency.is_social_token_currency_id(), Error::<T>::InvalidTradingCurrency);
 
         ensure!(
             matches!(
@@ -470,40 +471,40 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InsufficientLiquidity
         );
 
+        let social_token_out = Self::get_amount_out(supply_pool, target_pool, amount_in);
+        ensure!(!social_token_out.is_zero(), Error::<T>::InsufficientLiquidity);
 
-        let native_token_amount_out = Self::get_amount_out(supply_pool, target_pool, amount_in);
-        ensure!(!native_token_amount_out.is_zero(), Error::<T>::InsufficientLiquidity);
-
-        debug::info!("native_token_amount_out {}", native_token_amount_out);
         ensure!(
-            native_token_amount_out >= amount_out_min,
+            social_token_out >= amount_out_min,
             Error::<T>::InsufficientTargetAmount
         );
 
         let dex_module_account_id = Self::account_id();
 
-        T::SocialTokenCurrency::transfer(supply_currency, who, &dex_module_account_id, amount_in)?;
+        //Transfer native token in
+        let native_token_amount_in_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(amount_in).unwrap_or_default();
+        T::NativeCurrency::transfer(who, &dex_module_account_id, native_token_amount_in_balance, ExistenceRequirement::KeepAlive)?;
 
         Self::_swap(
             supply_currency,
             target_currency,
             amount_in,
-            native_token_amount_out,
+            social_token_out,
         );
 
-        let native_token_amount_out_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(native_token_amount_out).unwrap_or_default();
-        T::NativeCurrency::transfer(&dex_module_account_id, who, native_token_amount_out_balance, ExistenceRequirement::KeepAlive)?;
+        // Transfer out the social token
+        T::SocialTokenCurrency::transfer(target_currency, &dex_module_account_id, who, amount_in)?;
 
         Self::deposit_event(
             Event::Swap(
                 who.clone(),
                 vec![supply_currency, target_currency],
                 amount_in,
-                native_token_amount_out,
+                social_token_out,
             )
         );
 
-        Ok(native_token_amount_out)
+        Ok(social_token_out)
     }
 
     /// Swap social token with exact target native token

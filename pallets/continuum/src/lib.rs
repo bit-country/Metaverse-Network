@@ -227,8 +227,8 @@ pub mod pallet {
     pub type NextContinuumSpotId<T: Config> = StorageValue<_, SpotId, ValueQuery>;
 
     #[pallet::storage]
-    #[pallet::getter(fn allow_buy_now)]
-    pub type AllowBuyNow<T: Config> = StorageValue<_, bool, ValueQuery>;
+#[pallet::getter(fn allow_buy_now)]
+pub type AllowBuyNow<T: Config> = StorageValue<_, bool, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn initial_spot_price)]

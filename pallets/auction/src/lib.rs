@@ -285,7 +285,7 @@ pub mod pallet {
         InvalidBuyItNowPrice,
         InsufficientFunds,
         InvalidAuctionType,
-        AssetAlreadyInAuction
+        AssetAlreadyInAuction,
     }
 
     impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
@@ -381,8 +381,8 @@ pub mod pallet {
                     );
 
                     <AssetsInAuction<T>>::insert(
-                        asset_id, 
-                        true
+                        asset_id,
+                        true,
                     );
 
                     Self::deposit_event(Event::NewAuctionItem(auction_id, recipient, initial_amount, initial_amount));
@@ -425,7 +425,7 @@ pub mod pallet {
                     <Auctions<T>>::remove(&id);
                     match item_id {
                         ItemId::NFT(asset_id) => {
-                             <AssetsInAuction<T>>::remove(asset_id);
+                            <AssetsInAuction<T>>::remove(asset_id);
                         }
                         _ => {}
                     }
@@ -471,9 +471,9 @@ pub mod pallet {
 
         fn check_item_in_auction(asset_id: AssetId) -> bool {
             if Self::assets_in_auction(asset_id) == Some(true) {
-                return true
+                return true;
             }
-            return false
+            return false;
         }
     }
 

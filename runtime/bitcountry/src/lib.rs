@@ -590,7 +590,7 @@ parameter_types! {
 	// additional data per vote is 32 bytes (account id).
 	pub const VotingBondFactor: Balance = deposit(0, 32);
 	pub const TermDuration: BlockNumber = 7 * DAYS;
-	pub const DesiredMembers: u32 = 13;
+	pub const DesiredMembers: u32 = 3;
 	pub const DesiredRunnersUp: u32 = 7;
 	pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
 }
@@ -621,7 +621,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 parameter_types! {
 	pub const TechnicalMotionDuration: BlockNumber = 5 * DAYS;
 	pub const TechnicalMaxProposals: u32 = 100;
-	pub const TechnicalMaxMembers: u32 = 100;
+	pub const TechnicalMaxMembers: u32 = 2;
 }
 
 type TechnicalCollective = pallet_collective::Instance2;
@@ -1113,7 +1113,7 @@ impl tokenization::Config for Runtime {
 
 parameter_types! {
     pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
-    pub const SwapFee: (u32, u32) = (5, 1000); //0.5%
+    pub const SwapFee: (u32, u32) = (1, 20); //0.005%
 }
 
 impl swap::Config for Runtime {
@@ -1173,7 +1173,7 @@ construct_runtime!(
         NftModule: nft::{Module, Call, Storage, Event<T>},
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
         Auction: auction::{Module ,Storage, Event<T>},
-        Currencies: social_currencies::{ Module, Storage, Call, Event<T>},
+        SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
         Swap: swap:: {Module, Call, Storage, Event<T>},
