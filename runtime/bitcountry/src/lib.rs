@@ -1187,7 +1187,7 @@ construct_runtime!(
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
-        Blindbox: blindbox:: {Module, Call, Storage, Event<T>},
+        Blindbox: blindbox:: {Module, Call, Event<T>},
 	}
 );
 
