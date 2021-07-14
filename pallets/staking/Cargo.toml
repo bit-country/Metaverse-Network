@@ -1,5 +1,5 @@
 [package]
-name = "staking"
+name = "pallet-staking"
 version = "1.0.0"
 edition = "2018"
 authors = ['Bit Country Developer']
