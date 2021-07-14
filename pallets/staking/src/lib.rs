@@ -61,7 +61,7 @@ pub mod pallet {
 		
         /// Locks the specified amount of tokens
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub(super) fn lock_capital(
+		pub(super) fn set_lock(
 			origin: OriginFor<T>,
 			#[pallet::compact] amount: BalanceOf<T>
 		) -> DispatchResultWithPostInfo {
@@ -100,7 +100,7 @@ pub mod pallet {
 
         /// Releases all locked tokens
 		#[pallet::weight(1_000)]
-		pub(super) fn unlock_all(
+		pub(super) fn remove_lock(
 			origin: OriginFor<T>,
 		) -> DispatchResultWithPostInfo {
 			let user = ensure_signed(origin)?;
