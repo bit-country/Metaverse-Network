@@ -250,15 +250,28 @@ fn buy_now_work() {
         //buy now successful
         assert_ok!(NftAuctionModule::buy_now(buyer.clone(), 0, 150));
 
+        assert_ok!(NFTModule::<Runtime>::mint(
+            owner.clone(),
+            CLASS_ID,
+            vec![1],
+            vec![1],
+            vec![1],
+            1
+        ));    
+
+        assert_ok!(NftAuctionModule::create_auction(AuctionType::BuyNow, ItemId::NFT(1), None, BOB, 150, 0));
+
+        assert_ok!(NftAuctionModule::buy_now(buyer.clone(), 1, 150));
+
         assert_eq!(NftAuctionModule::auctions(0), None);
         // check account received asset
-        assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
+        assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0,1]);
         // check balances were transferred
-        assert_eq!(Balances::free_balance(ALICE), 99850);
-        assert_eq!(Balances::free_balance(BOB), 647);
+        assert_eq!(Balances::free_balance(ALICE), 99700);
+        assert_eq!(Balances::free_balance(BOB), 796);
 
         //event was triggered
-        let event = mock::Event::auction(crate::Event::BuyNowFinalised(0, ALICE, 150));
+        let event = mock::Event::auction(crate::Event::BuyNowFinalised(1, ALICE, 150));
         assert_eq!(last_event(), event);
 
         //Check that auction is over

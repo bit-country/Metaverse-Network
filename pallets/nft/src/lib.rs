@@ -468,7 +468,7 @@ impl<T: Config> Module<T> {
             AssetsByOwner::<T>::try_mutate(&to, |asset_ids| -> DispatchResult {
                 // Check if the asset_id already in the owner
                 ensure!(
-                    asset_ids.iter().any(|i| asset_id == *i),
+                    !asset_ids.iter().any(|i| asset_id == *i),
                     Error::<T>::AssetIdAlreadyExist
                 );
                 asset_ids.push(asset_id);
