@@ -120,7 +120,7 @@ impl SocialTokenCurrencyId {
     pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
         match self {
             SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1) => {
-                Some((SocialTokenCurrencyId::SocialToken(*token_currency_id_0), SocialTokenCurrencyId::SocialToken(*token_currency_id_1)))
+                Some((SocialTokenCurrencyId::NativeToken(*token_currency_id_0), SocialTokenCurrencyId::SocialToken(*token_currency_id_1)))
             }
             _ => None,
         }
