@@ -30,7 +30,7 @@ use sp_runtime::{traits::{AccountIdConversion, One, Zero, CheckedDiv, CheckedAdd
 use serde::{Deserialize, Serialize};
 use sp_std::vec;
 
-use auction_manager::{Auction, AuctionType};
+use auction_manager::{Auction, AuctionType, ListingLevel};
 use bc_country::{BCCountry, Country};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
 use sp_arithmetic::Perbill;
@@ -227,8 +227,8 @@ pub mod pallet {
     pub type NextContinuumSpotId<T: Config> = StorageValue<_, SpotId, ValueQuery>;
 
     #[pallet::storage]
-#[pallet::getter(fn allow_buy_now)]
-pub type AllowBuyNow<T: Config> = StorageValue<_, bool, ValueQuery>;
+    #[pallet::getter(fn allow_buy_now)]
+    pub type AllowBuyNow<T: Config> = StorageValue<_, bool, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn initial_spot_price)]
@@ -282,11 +282,11 @@ pub type AllowBuyNow<T: Config> = StorageValue<_, bool, ValueQuery>;
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn buy_continuum_spot(
-            origin: OriginFor<T>, 
-            coordinate: (i32, i32), 
-            country_id: CountryId
+            origin: OriginFor<T>,
+            coordinate: (i32, i32),
+            country_id: CountryId,
         ) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin)?;            
+            let sender = ensure_signed(origin)?;
             ensure!(T::CountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
             ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
@@ -476,7 +476,7 @@ impl<T: Config> Pallet<T>
                 }
                 let treasury = Self::account_id();
                 //From treasury spot
-                T::AuctionHandler::create_auction(AuctionType::Auction, ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now)?;
+                T::AuctionHandler::create_auction(AuctionType::Auction, ItemId::Spot(recent_slot.spot_id, Default::default()), Some(now + T::AuctionDuration::get()), treasury, Default::default(), now, ListingLevel::Global)?;
                 //TODO Emit event
             }
         }
