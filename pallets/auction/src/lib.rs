@@ -356,10 +356,12 @@ pub mod pallet {
                     let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
                     //Check ownership
                     let class_info = orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
-                    ensure!(recipient == class_info.owner, Error::<T>::NoPermissionToCreateAuction);
                     let class_info_data = class_info.data;
+                    let token_info =  orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
+                    ensure!(recipient == token_info.owner, Error::<T>::NoPermissionToCreateAuction);
                     ensure!(class_info_data.token_type.is_transferable(), Error::<T>::NoPermissionToCreateAuction);
                     ensure!(Self::assets_in_auction(asset_id) == None, Error::<T>::AssetAlreadyInAuction);
+
 
                     let start_time = <system::Module<T>>::block_number();
                     let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
