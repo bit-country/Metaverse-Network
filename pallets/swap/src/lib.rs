@@ -493,7 +493,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // Transfer out the social token
-        T::SocialTokenCurrency::transfer(target_currency, &dex_module_account_id, who, amount_in)?;
+        T::SocialTokenCurrency::transfer(target_currency, &dex_module_account_id, who, social_token_out)?;
 
         Self::deposit_event(
             Event::Swap(
