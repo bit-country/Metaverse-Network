@@ -2,15 +2,17 @@
 
 use crate as governance;
 use super::*;
+use codec::Encode;
 use frame_support::{
     construct_runtime, parameter_types,
 };
 
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{Perbill, testing::Header, traits::IdentityLookup};
 use primitives::CurrencyId;
 use bc_country::Country;
-use frame_support::pallet_prelude::Hooks;
+use frame_support::{pallet_prelude::Hooks, weights::Weight};
+use frame_system::{EnsureSignedBy, EnsureRoot};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
@@ -18,7 +20,7 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 }
 
-pub type AccountId = u128;
+pub type AccountId = u64;
 pub type Balance = u64;
 pub type CountryId = u64;
 pub type BlockNumber = u64;
@@ -78,6 +80,20 @@ impl pallet_balances::Config for Runtime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = 128;
+}
+impl pallet_scheduler::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = ();
+	type WeightInfo = ();
+}
+
 pub struct CountryInfo {}
 
 impl BCCountry<AccountId> for CountryInfo {
@@ -108,7 +124,7 @@ impl BCCountry<AccountId> for CountryInfo {
 
 parameter_types! {
     pub const DefaultVotingPeriod: BlockNumber = 10; 
-    pub const DefaultEnactmentPeriod: BlockNumber = 5; 
+    pub const DefaultEnactmentPeriod: BlockNumber = 2; 
     pub const DefaultProposalLaunchPeriod: BlockNumber = 15; 
     pub const DefaultMaxParametersPerProposal: u8 = 3;
     pub const DefaultMaxProposalsPerCountry: u8 = 2;
@@ -125,6 +141,9 @@ impl Config for Runtime {
     type OneBlock = OneBlock;
     type Currency = Balances;
     type CountryInfo = CountryInfo;
+    type PalletsOrigin = OriginCaller;
+    type Proposal = Call;
+    type Scheduler = Scheduler;
 }
 
 pub type GovernanceModule = Pallet<Runtime>;
@@ -140,6 +159,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+        Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
         Governance: governance::{Module, Call ,Storage, Event<T>},
 	}
 );

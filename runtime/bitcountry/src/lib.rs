@@ -1131,6 +1131,9 @@ impl governance::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
     type CountryInfo = BitCountryModule;
+    type PalletsOrigin = OriginCaller;
+    type Proposal = Call;
+    type Scheduler = Scheduler;
 }
 
 construct_runtime!(

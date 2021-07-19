@@ -2,15 +2,17 @@
 #![allow(clippy::unused_unit)]
 
 //use codec::{Decode, Encode};
-use frame_support::{
-    dispatch::DispatchResult, 
-    traits::Vec,
-};
+
 use frame_system::ensure_signed;
 use primitives::{CountryId, ProposalId, ReferendumId};
-use sp_runtime::traits::Zero;
+use sp_std::prelude::*;
+use sp_runtime::traits::{Zero, Dispatchable};
 use bc_country::BCCountry;
-use frame_support::traits::{Currency, ReservableCurrency};
+use frame_support::{
+    ensure, weights::Weight,
+    traits::{Currency, ReservableCurrency, LockIdentifier, Vec, schedule::{Named as ScheduleNamed, DispatchTime} },
+    dispatch::DispatchResult,
+};
 
 
 mod types;
@@ -21,14 +23,18 @@ mod tests;
 #[cfg(test)]
 mod mock;
 
-//const GOVERNANCE_ID: LockIdentifier = *b"bcgovern";
+const GOVERNANCE_ID: LockIdentifier = *b"bcgovern";
 
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
-    use frame_system::pallet_prelude::*;
+    use sp_runtime::DispatchResult;
+    use frame_support::{
+		pallet_prelude::*, Parameter,
+		weights::{DispatchClass, Pays}, traits::EnsureOrigin, dispatch::DispatchResultWithPostInfo,
+	};
+	use frame_system::{pallet_prelude::*, ensure_signed, ensure_root};
     use super::*;
 
     
@@ -60,13 +66,20 @@ pub mod pallet {
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
         type CountryInfo: BCCountry<Self::AccountId>;
+
+        /// Overarching type of all pallets origins.
+		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
+
+        type Proposal: Parameter + Dispatchable<Origin=Self::Origin> + From<Call<Self>>;
+
+        /// The Scheduler.
+		type Scheduler: ScheduleNamed<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
     }
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
    
-
     #[pallet::storage]
     #[pallet::getter(fn proposals)]
     pub type Proposals<T: Config> = StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, ProposalId, ProposalInfo<T::AccountId,T::BlockNumber,CountryParameter>, OptionQuery>;
@@ -111,6 +124,7 @@ pub mod pallet {
         ProposalSubmitted(T::AccountId, CountryId, ProposalId),
         ProposalCancelled(T::AccountId, CountryId, ProposalId),
         ProposalFastTracked(T::AccountId, CountryId, ProposalId),
+        ProposalEnacted(CountryId, ProposalId),
         ReferendumStarted(ReferendumId, VoteThreshold),
         ReferendumPassed(ReferendumId),
         ReferendumNotPassed(ReferendumId),
@@ -332,6 +346,19 @@ pub mod pallet {
             }
             Ok(().into())
         }
+        
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+        pub fn enact_proposal(
+			origin: OriginFor<T>,
+			proposal: ProposalId,
+			country: CountryId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+			Self::do_enact_proposal(proposal, country);
+            Self::deposit_event(Event::ProposalEnacted(country, proposal));
+            Ok(().into())
+		}
+
     }
 
     #[pallet::hooks]
@@ -500,9 +527,26 @@ pub mod pallet {
 
             // Enact proposal if it passed the threshold
             if does_referendum_passed {
-                Self::enact_proposal(referendum_status.proposal, referendum_status.country);
-                // TO-DO: Add scheduler  and enacted proposal after the set enactment period is over
-                Self::deposit_event(Event::ReferendumPassed(referendum_id));
+                //Self::do_enact_proposal(referendum_status.proposal, referendum_status.country
+                let mut when = referendum_status.end;
+                match Self::referendum_parameters(referendum_status.country) {
+                    Some(current_params) =>  when += current_params.enactment_period ,
+                    None =>  when += T::DefaultEnactmentPeriod::get(),
+                }
+				if T::Scheduler::schedule_named(
+					(GOVERNANCE_ID, referendum_id).encode(),
+					DispatchTime::At(when),
+					None,
+					63,
+					frame_system::RawOrigin::Root.into(),
+					Call::enact_proposal(referendum_status.proposal, referendum_status.country).into(),
+				).is_err() {
+					frame_support::print("LOGIC ERROR: bake_referendum/schedule_named failed");
+				}
+                else {
+                    Self::deposit_event(Event::ReferendumPassed(referendum_id));
+                }
+
             } else {
                 Self::deposit_event(Event::ReferendumNotPassed(referendum_id));
             }
@@ -510,7 +554,7 @@ pub mod pallet {
             Ok(()) 
         }
 
-        fn enact_proposal(proposal: ProposalId, country: CountryId) -> DispatchResult {
+        fn do_enact_proposal(proposal: ProposalId, country: CountryId) -> DispatchResult {
             let proposal_parameters = Self::proposals(country,proposal).ok_or(Error::<T>::InvalidProposalParameters)?.parameters;
             let mut are_referendum_params_updated = false;
             let mut new_referendum_parameters: ReferendumParameters<T::BlockNumber>;

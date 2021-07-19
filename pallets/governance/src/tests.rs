@@ -270,7 +270,7 @@ fn emergency_cancel_referendum_which_removes_privileges_does_not_work() {
 
 // Referendum Finalization Tests
 #[test]
-fn referendum_proposal_is_enacted() {
+fn referendum_proposal_passes() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
@@ -280,11 +280,6 @@ fn referendum_proposal_is_enacted() {
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: true, end: 26}));
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumPassed(0)));
-        let parameters_rec = GovernanceModule::referendum_parameters(BOB_COUNTRY_ID);
-        assert_ne!(parameters_rec, None);
-        let parameters = parameters_rec.unwrap();
-        assert_eq!(parameters.max_proposals_per_country, 2);
-        assert_eq!(parameters.max_params_per_proposal, 2);
     });
 }
 
@@ -300,5 +295,21 @@ fn referendum_proposal_is_rejected() {
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: false, end: 26}));
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumNotPassed(0)));
+    });
+}
+
+#[test]
+fn referendum_proposal_is_enacted() {
+    ExtBuilder::default().build().execute_with(|| {
+        let root = Origin::root();
+        let proposer = Origin::signed(ALICE);
+        assert_ok!(GovernanceModule::propose(proposer.clone(), BOB_COUNTRY_ID, 600, PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        assert_ok!(GovernanceModule::enact_proposal(root.clone(), 0, BOB_COUNTRY_ID));
+        assert_eq!(last_event(), Event::governance(crate::Event::ProposalEnacted(BOB_COUNTRY_ID,0)));
+        let parameters_rec = GovernanceModule::referendum_parameters(BOB_COUNTRY_ID);
+        assert_ne!(parameters_rec, None);
+        let parameters = parameters_rec.unwrap();
+        assert_eq!(parameters.max_proposals_per_country, 2);
+        assert_eq!(parameters.max_params_per_proposal, 2);
     });
 }
