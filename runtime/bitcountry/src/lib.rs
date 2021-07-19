@@ -1089,6 +1089,8 @@ impl auction::Config for Runtime {
     type Handler = Auction;
     type Currency = Balances;
     type ContinuumHandler = Continuum;
+    type SocialTokenCurrency = Tokens;
+    type CountryInfoSource = BitCountryModule;
 }
 
 impl continuum::Config for Runtime {

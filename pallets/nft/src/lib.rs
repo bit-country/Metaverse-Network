@@ -204,6 +204,11 @@ pub mod pallet {
     #[pallet::getter(fn next_asset_id)]
     pub(super) type NextAssetId<T: Config> = StorageValue<_, AssetId, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn get_asset_supporters)]
+    pub(super) type AssetSupporters<T: Config> =
+    StorageMap<_, Blake2_128Concat, AssetId, Vec<T::AccountId>, OptionQuery>;
+
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata(
@@ -250,6 +255,8 @@ pub mod pallet {
         AssetIdAlreadyExist,
         //Asset Id is currently in an auction
         AssetAlreadyInAuction,
+        //Sign your own Asset
+        SignOwnAsset,
     }
 
     #[pallet::call]
@@ -414,6 +421,28 @@ pub mod pallet {
             }
 
             Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        pub fn sign_asset(origin: OriginFor<T>, asset_id: AssetId) -> DispatchResultWithPostInfo {
+            let sender = ensure_signed(origin)?;
+
+            let asset_by_owner: Vec<AssetId> = Self::get_assets_by_owner(&sender);
+            ensure!(!asset_by_owner.contains(&asset_id), Error::<T>::SignOwnAsset);
+
+            if AssetSupporters::<T>::contains_key(&asset_id) {
+                AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult{
+                    let mut supporters = supporters.as_mut().ok_or("Empty supporters")?;
+                    supporters.push(sender);
+                    Ok(())
+                });
+                Ok(().into())
+            } else {
+                let mut new_supporters = Vec::new();
+                new_supporters.push(sender);
+                AssetSupporters::<T>::insert(asset_id, new_supporters);
+                Ok(().into())
+            }
         }
     }
 
