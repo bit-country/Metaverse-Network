@@ -132,7 +132,7 @@ impl SocialTokenCurrencyId {
                 Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
             }
             (SocialTokenCurrencyId::SocialToken(token_currency_id_0), SocialTokenCurrencyId::NativeToken(token_currency_id_1)) => {
-                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
+                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_1, token_currency_id_0))
             }
             _ => None,
         }

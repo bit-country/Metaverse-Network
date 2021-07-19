@@ -45,6 +45,12 @@ package = 'pallet-nft'
 path = '../nft'
 version = '2.0.0-rc6'
 
+[dev-dependencies.social-currencies]
+default-features = false
+package = "social-currencies" 
+path = "../social-currencies"
+version = '2.0.0-rc6'
+
 [features]
 default = ['std']
 std = [
