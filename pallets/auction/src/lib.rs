@@ -32,6 +32,7 @@ pub mod pallet {
     use primitives::{SocialTokenCurrencyId, Balance, CountryId};
     use orml_traits::{MultiCurrencyExtended, MultiReservableCurrency, MultiCurrency};
     use bc_country::BCCountry;
+    use frame_support::sp_runtime::traits::{CheckedSub, CheckedAdd};
 
     #[pallet::pallet]
     #[pallet::generate_store(pub (super) trait Store)]
@@ -53,6 +54,7 @@ pub mod pallet {
         type ContinuumHandler: Continuum<Self::AccountId>;
         type SocialTokenCurrency: MultiReservableCurrency<Self::AccountId, CurrencyId=SocialTokenCurrencyId, Balance=Balance>;
         type CountryInfoSource: BCCountry<Self::AccountId>;
+        type MinimumAuctionDuration: Get<Self::BlockNumber>;
     }
 
     #[pallet::storage]
@@ -307,11 +309,15 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub(super) fn create_new_auction(origin: OriginFor<T>, item_id: ItemId, value: BalanceOf<T>, listing_level: ListingLevel) -> DispatchResultWithPostInfo {
+        pub(super) fn create_new_auction(origin: OriginFor<T>, item_id: ItemId, value: BalanceOf<T>, end_time: T::BlockNumber, listing_level: ListingLevel) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
 
             let start_time: T::BlockNumber = <system::Module<T>>::block_number();
-            let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+
+            let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or("Overflow")?;
+
+            ensure!(remaining_time >= T::MinimumAuctionDuration::get(),
+            Error::<T>::AuctionEndIsLessThanMinimumDuration);
 
             let auction_id = Self::create_auction(AuctionType::Auction, item_id, Some(end_time), from.clone(), value.clone(), start_time, listing_level)?;
             Self::deposit_event(Event::NewAuctionItem(auction_id, from, value, value));
@@ -320,11 +326,14 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub(super) fn create_new_buy_now(origin: OriginFor<T>, item_id: ItemId, value: BalanceOf<T>, listing_level: ListingLevel) -> DispatchResultWithPostInfo {
+        pub(super) fn create_new_buy_now(origin: OriginFor<T>, item_id: ItemId, value: BalanceOf<T>, end_time: T::BlockNumber, listing_level: ListingLevel) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
 
             let start_time: T::BlockNumber = <system::Module<T>>::block_number();
-            let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+            let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or("Overflow")?;
+
+            ensure!(remaining_time >= T::MinimumAuctionDuration::get(),
+            Error::<T>::AuctionEndIsLessThanMinimumDuration);
 
             let auction_id = Self::create_auction(AuctionType::BuyNow, item_id, Some(end_time), from.clone(), value.clone(), start_time, listing_level)?;
             Self::deposit_event(Event::NewAuctionItem(auction_id, from, value, value));
@@ -449,6 +458,8 @@ pub mod pallet {
         WrongListingLevel,
         // Social Token Currency is not exist
         SocialTokenCurrencyNotFound,
+        // Minimum Duration Is Too Low
+        AuctionEndIsLessThanMinimumDuration,
     }
 
     impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
@@ -521,11 +532,10 @@ pub mod pallet {
                     //Check ownership
                     let class_info = orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
                     let class_info_data = class_info.data;
-                    let token_info =  orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
+                    let token_info = orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
                     ensure!(recipient == token_info.owner, Error::<T>::NoPermissionToCreateAuction);
                     ensure!(class_info_data.token_type.is_transferable(), Error::<T>::NoPermissionToCreateAuction);
                     ensure!(Self::assets_in_auction(asset_id) == None, Error::<T>::AssetAlreadyInAuction);
-
 
                     let start_time = <system::Module<T>>::block_number();
                     let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction

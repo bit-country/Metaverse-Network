@@ -33,6 +33,7 @@ primitives = { package = "bit-country-primitives", path = "../primitives", defau
 
 # local packages
 bc-country = { path = "../../traits/bc-country", default-features = false }
+auction-manager = { path = "../../traits/auction-manager", default-features = false }
 
 # Orml packages
 orml-traits = { default-features = false, version = '0.4.0' }
@@ -47,7 +48,7 @@ version = '2.0.0-rc6'
 
 [dev-dependencies.social-currencies]
 default-features = false
-package = "social-currencies" 
+package = "social-currencies"
 path = "../social-currencies"
 version = '2.0.0-rc6'
 
@@ -65,7 +66,7 @@ std = [
     "orml-traits/std",
     "orml-tokens/std",
     'nft/std',
-    'primitives/std'
+    'primitives/std',
 ]
 
 runtime-benchmarks = [

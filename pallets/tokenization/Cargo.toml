@@ -30,6 +30,7 @@ orml-tokens = { default-features = false, version = '0.4.0' }
 
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 bc-country = { path = "../../traits/bc-country", default-features = false }
+auction-manager = { path = "../../traits/auction-manager", default-features = false }
 
 [dependencies.country]
 default-features = false

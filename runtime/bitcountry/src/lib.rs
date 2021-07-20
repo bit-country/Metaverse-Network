@@ -1080,8 +1080,8 @@ parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
     pub const ContinuumSessionDuration: BlockNumber = 43200; //Default 43200 Blocks
     pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
+    pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
 }
-
 
 impl auction::Config for Runtime {
     type Event = Event;
@@ -1091,6 +1091,7 @@ impl auction::Config for Runtime {
     type ContinuumHandler = Continuum;
     type SocialTokenCurrency = Tokens;
     type CountryInfoSource = BitCountryModule;
+    type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
 impl continuum::Config for Runtime {
@@ -1111,6 +1112,7 @@ impl tokenization::Config for Runtime {
     type CountryCurrency = Tokens;
     type SocialTokenTreasury = CountryFundModuleId;
     type CountryInfoSource = BitCountryModule;
+    type LiquidityPoolManager = Swap;
 }
 
 parameter_types! {
