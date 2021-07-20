@@ -21,9 +21,10 @@
 use codec::{Decode, Encode};
 use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, SocialTokenCurrencyId};
+use primitives::{Balance, CountryId, SocialTokenCurrencyId, CurrencyId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug, DispatchResult};
 use bc_country::*;
+use auction_manager::{SwapManager};
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
@@ -574,5 +575,22 @@ impl<T: Config> Pallet<T> {
                 }
             });
         }
+    }
+}
+
+impl<T: Config> SwapManager<T::AccountId, SocialTokenCurrencyId, Balance> for Pallet<T> {
+    fn add_liquidity(
+        who: &T::AccountId,
+        token_id_a: SocialTokenCurrencyId,
+        token_id_b: SocialTokenCurrencyId,
+        max_amount_a: Balance,
+        max_amount_b: Balance) -> DispatchResult {
+        Self::do_add_liquidity(
+            who,
+            token_id_a,
+            token_id_b,
+            max_amount_a,
+            max_amount_b,
+        )
     }
 }

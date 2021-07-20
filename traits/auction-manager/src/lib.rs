@@ -149,3 +149,14 @@ pub trait AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> {
     fn on_auction_ended(id: AuctionId, winner: Option<(AccountId, Balance)>);
 }
 
+/// Swap manager to use swap functionality in different traits
+pub trait SwapManager<AccountId, CurrencyId, Balance> {
+    fn add_liquidity(
+        who: &AccountId,
+        token_id_a: SocialTokenCurrencyId,
+        token_id_b: SocialTokenCurrencyId,
+        max_amount_a: Balance,
+        max_amount_b: Balance,
+    ) -> DispatchResult;
+}
+

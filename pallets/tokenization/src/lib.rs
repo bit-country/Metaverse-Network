@@ -39,6 +39,7 @@ use sp_runtime::{
 use sp_std::vec::Vec;
 use frame_support::sp_runtime::ModuleId;
 use bc_country::*;
+use auction_manager::{SwapManager};
 use frame_support::traits::{Get, Currency};
 use frame_system::pallet_prelude::*;
 
@@ -66,6 +67,7 @@ pub use pallet::*;
 pub mod pallet {
     use super::*;
     use primitives::{SocialTokenCurrencyId, TokenId};
+    use frame_support::sp_runtime::SaturatedConversion;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -73,19 +75,16 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
         /// The arithmetic type of asset identifier.
         type TokenId: Parameter + AtLeast32Bit + Default + Copy;
-
         type CountryCurrency: MultiCurrencyExtended<
             Self::AccountId,
             CurrencyId=SocialTokenCurrencyId,
             Balance=Balance,
         >;
-
         type SocialTokenTreasury: Get<ModuleId>;
-
         type CountryInfoSource: BCCountry<Self::AccountId>;
+        type LiquidityPoolManager: SwapManager<Self::AccountId, SocialTokenCurrencyId, Balance>;
     }
 
     #[pallet::storage]
@@ -123,8 +122,10 @@ pub mod pallet {
         SocialTokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
-        //Country Is Not Available
+        /// Country Fund Not Available
         CountryFundIsNotAvailable,
+        /// Initial Social Token Supply is too low
+        InitialSocialTokenSupplyIsTooLow,
     }
 
     #[pallet::call]
@@ -138,6 +139,8 @@ pub mod pallet {
             ticker: Ticker,
             country_id: CountryId,
             total_supply: Balance,
+            initial_lp: (u32, u32),
+            initial_backing: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(
@@ -148,6 +151,19 @@ pub mod pallet {
                 !CountryTreasury::<T>::contains_key(&country_id), 
                 Error::<T>::SocialTokenAlreadyIssued
             );
+
+            let initial_pool_numerator = total_supply.saturating_mul(initial_lp.0.saturated_into());
+            let initial_pool_supply = initial_pool_numerator.checked_div(initial_lp.1.saturated_into()).unwrap_or(0);
+
+            let initial_supply_ratio = initial_pool_supply.checked_div(total_supply).unwrap_or(0);
+            let supply_percent = initial_supply_ratio.saturating_mul(100);
+
+            ensure!(
+                supply_percent > 0 && supply_percent >= 20,
+                Error::<T>::InitialSocialTokenSupplyIsTooLow
+            );
+
+            let owner_supply = total_supply.saturating_sub(initial_pool_supply);
 
             //Generate new TokenId
             let currency_id = NextTokenId::<T>::mutate(|id| -> Result<SocialTokenCurrencyId, DispatchError>{
@@ -167,7 +183,7 @@ pub mod pallet {
             let country_fund = CountryFund {
                 vault: fund_id,
                 value: total_supply,
-                backing: 0, //0 NUUM backing for now,
+                backing: initial_backing,
                 currency_id: currency_id,
             };
 
@@ -179,9 +195,9 @@ pub mod pallet {
             SocialTokens::<T>::insert(currency_id, token_info);
 
             CountryTreasury::<T>::insert(country_id, country_fund);
-            //TODO Add initial LP
             //Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
-            T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
+            T::LiquidityPoolManager::add_liquidity(&who, SocialTokenCurrencyId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
+            T::CountryCurrency::deposit(currency_id, &who, owner_supply)?;
             let fund_address = Self::get_country_fund_id(country_id);
             Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address, total_supply));
 
