@@ -309,6 +309,9 @@ fn buy_now_should_fail() {
         assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 150),Error::<Runtime>::AuctionNotStarted);
         System::set_block_number(101);
         assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 150),Error::<Runtime>::AuctionIsExpired);
+        System::set_block_number(1);
+        assert_ok!(NftAuctionModule::buy_now(buyer.clone(), 0, 150));
+        assert_noop!(NftAuctionModule::create_auction(AuctionType::BuyNow, ItemId::NFT(0), None, BOB, 150, 0),Error::<Runtime>::NoPermissionToCreateAuction);
     });
 }
 
