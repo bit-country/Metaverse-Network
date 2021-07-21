@@ -7,11 +7,12 @@ use frame_support::{
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::{IdentityLookup, AccountIdConversion}, ModuleId, Perbill};
-use primitives::{CurrencyId, Amount};
+use primitives::{CurrencyId, Amount, SocialTokenCurrencyId};
 use frame_system::{EnsureSignedBy, EnsureRoot};
 use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use orml_traits::parameter_type_with_key;
+use primitives::SocialTokenCurrencyId::SocialToken;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -24,7 +25,7 @@ pub const BOB: AccountId = 5;
 pub const COUNTRY_ID: CountryId = 1;
 pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
 pub const NUUM: CurrencyId = 0;
-pub const COUNTRY_FUND: CurrencyId = 1;
+pub const COUNTRY_FUND: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1);
 
 
 // Configure a mock runtime to test the pallet.
@@ -76,7 +77,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
 		Default::default()
 	};
 }
@@ -91,7 +92,7 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = CurrencyId;
+    type CurrencyId = SocialTokenCurrencyId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
@@ -113,8 +114,16 @@ impl BCCountry<AccountId> for CountryInfoSource {
         None
     }
 
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
         None
+    }
+}
+
+pub struct DEXManager {}
+
+impl SwapManager<AccountId, SocialTokenCurrencyId, Balance> for DEXManager {
+    fn add_liquidity(who: &AccountId, token_id_a: SocialTokenCurrencyId, token_id_b: SocialTokenCurrencyId, max_amount_a: Balance, max_amount_b: Balance) -> DispatchResult {
+        Ok(())
     }
 }
 
@@ -124,10 +133,11 @@ impl Config for Runtime {
     type CountryCurrency = Currencies;
     type SocialTokenTreasury = CountryFundModuleId;
     type CountryInfoSource = CountryInfoSource;
+    type LiquidityPoolManager = DEXManager;
 }
 
 parameter_types! {
-	pub const GetNativeCurrencyId: CurrencyId = NUUM;
+	pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
 }
 
 impl orml_currencies::Config for Runtime {

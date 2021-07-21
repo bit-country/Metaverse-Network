@@ -67,7 +67,9 @@ pub use pallet::*;
 pub mod pallet {
     use super::*;
     use primitives::{SocialTokenCurrencyId, TokenId};
-    use frame_support::sp_runtime::SaturatedConversion;
+    use frame_support::sp_runtime::{SaturatedConversion, FixedPointNumber};
+    use primitives::dex::Price;
+    use frame_support::sp_runtime::traits::Saturating;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
@@ -154,17 +156,17 @@ pub mod pallet {
 
             let initial_pool_numerator = total_supply.saturating_mul(initial_lp.0.saturated_into());
             let initial_pool_supply = initial_pool_numerator.checked_div(initial_lp.1.saturated_into()).unwrap_or(0);
-
-            let initial_supply_ratio = initial_pool_supply.checked_div(total_supply).unwrap_or(0);
-            let supply_percent = initial_supply_ratio.saturating_mul(100);
-
+            debug::info!("initial_pool_supply: {})", initial_pool_supply);
+            let initial_supply_ratio = Price::checked_from_rational(initial_pool_supply, total_supply).unwrap_or_default();
+            let supply_percent: u128 = initial_supply_ratio.saturating_mul_int(100.saturated_into());
+            debug::info!("supply_percent: {})", supply_percent);
             ensure!(
-                supply_percent > 0 && supply_percent >= 20,
+                supply_percent > 0u128 && supply_percent >= 20u128,
                 Error::<T>::InitialSocialTokenSupplyIsTooLow
             );
 
             let owner_supply = total_supply.saturating_sub(initial_pool_supply);
-
+            debug::info!("owner_supply: {})", owner_supply);
             //Generate new TokenId
             let currency_id = NextTokenId::<T>::mutate(|id| -> Result<SocialTokenCurrencyId, DispatchError>{
                 let current_id = *id;
@@ -195,9 +197,9 @@ pub mod pallet {
             SocialTokens::<T>::insert(currency_id, token_info);
 
             CountryTreasury::<T>::insert(country_id, country_fund);
+            T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
             //Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
             T::LiquidityPoolManager::add_liquidity(&who, SocialTokenCurrencyId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
-            T::CountryCurrency::deposit(currency_id, &who, owner_supply)?;
             let fund_address = Self::get_country_fund_id(country_id);
             Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address, total_supply));
 
