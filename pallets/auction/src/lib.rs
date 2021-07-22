@@ -88,7 +88,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// A bid is placed. [auction_id, bidder, bidding_amount]
         Bid(AuctionId, T::AccountId, BalanceOf<T>),
-        NewAuctionItem(AuctionId, T::AccountId, BalanceOf<T>, BalanceOf<T>),
+        NewAuctionItem(AuctionId, T::AccountId, ListingLevel, BalanceOf<T>, BalanceOf<T>),
         AuctionFinalized(AuctionId, T::AccountId, BalanceOf<T>),
         BuyNowFinalised(AuctionId, T::AccountId, BalanceOf<T>),
     }
@@ -320,7 +320,7 @@ pub mod pallet {
             Error::<T>::AuctionEndIsLessThanMinimumDuration);
 
             let auction_id = Self::create_auction(AuctionType::Auction, item_id, Some(end_time), from.clone(), value.clone(), start_time, listing_level)?;
-            Self::deposit_event(Event::NewAuctionItem(auction_id, from, value, value));
+            Self::deposit_event(Event::NewAuctionItem(auction_id, from, listing_level, value, value));
 
             Ok(().into())
         }
@@ -336,7 +336,7 @@ pub mod pallet {
             Error::<T>::AuctionEndIsLessThanMinimumDuration);
 
             let auction_id = Self::create_auction(AuctionType::BuyNow, item_id, Some(end_time), from.clone(), value.clone(), start_time, listing_level)?;
-            Self::deposit_event(Event::NewAuctionItem(auction_id, from, value, value));
+            Self::deposit_event(Event::NewAuctionItem(auction_id, from, listing_level, value, value));
 
             Ok(().into())
         }
@@ -567,7 +567,7 @@ pub mod pallet {
                         true,
                     );
 
-                    Self::deposit_event(Event::NewAuctionItem(auction_id, recipient, initial_amount, initial_amount));
+                    Self::deposit_event(Event::NewAuctionItem(auction_id, recipient, listing_level, initial_amount, initial_amount));
 
                     Ok(auction_id)
                 }
@@ -594,7 +594,7 @@ pub mod pallet {
                         new_auction_item,
                     );
 
-                    Self::deposit_event(Event::NewAuctionItem(auction_id, recipient, initial_amount, initial_amount));
+                    Self::deposit_event(Event::NewAuctionItem(auction_id, recipient, listing_level, initial_amount, initial_amount));
 
                     Ok(auction_id)
                 }

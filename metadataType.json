@@ -165,5 +165,11 @@
     "currency_id": "SocialTokenCurrencyId"
   },
   "LandId": "u64",
-  "TokenId": "u64"
+  "TokenId": "u64",
+  "ListingLevel":  {
+    "_enum": {
+      "Global": "Null",
+      "Local": "CountryId"
+    }
+  }
 }
