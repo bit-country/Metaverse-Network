@@ -1126,6 +1126,7 @@ impl swap::Config for Runtime {
     type SocialTokenCurrency = Tokens;
     type NativeCurrency = Balances;
     type GetSwapFee = SwapFee;
+<<<<<<< HEAD
 }
 
 parameter_types! {
@@ -1150,6 +1151,8 @@ impl governance::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Proposal = Call;
     type Scheduler = Scheduler;
+=======
+>>>>>>> 84c062f35155a50d5b6c3507e6284519b7210f37
 }
 
 construct_runtime!(
@@ -1200,10 +1203,9 @@ construct_runtime!(
         OrmlNFT: orml_nft::{Module, Storage},
         NftModule: nft::{Module, Call, Storage, Event<T>},
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
-        Auction: auction::{Module, Call ,Storage, Event<T>},
-        GovernanceModule: governance::{Module, Call, Storage, Event<T>},
-        Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
+        Auction: auction::{Module ,Storage, Event<T>},
         SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
+        GovernanceModule: governance::{Module, Call, Storage, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
         Swap: swap:: {Module, Call, Storage ,Event<T>},

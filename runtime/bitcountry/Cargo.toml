@@ -178,12 +178,10 @@ std = [
     'block/std',
     'nft/std',
     'continuum/std',
-<<<<<<< HEAD
     'governance/std',
-=======
     'social-currencies/std',
     'swap/std',
->>>>>>> 84c062f35155a50d5b6c3507e6284519b7210f37
+
 ]
 runtime-benchmarks = [
     "frame-benchmarking",

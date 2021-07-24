@@ -4,7 +4,6 @@ use super::*;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 use pallet_nft::{TokenType, CollectionType};
-use primitives::BlockNumber;
 use auction_manager::ListingLevel;
 
 
