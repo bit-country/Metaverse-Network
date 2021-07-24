@@ -182,6 +182,22 @@ impl ExtBuilder {
     }
 }
 
+// Build genesis storage according to the mock runtime.
+pub fn new_test_ext() -> sp_io::TestExternalities {
+    let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+
+    pallet_balances::GenesisConfig::<Test> {
+        balances: vec![(200, 500)],
+    }.assimilate_storage(&mut t).unwrap();
+
+    crate::GenesisConfig::default().assimilate_storage::<Test>(&mut t).unwrap();
+
+    let mut t: sp_io::TestExternalities = t.into();
+
+    t.execute_with(|| System::set_block_number(1));
+    t
+}
+
 pub fn last_event() -> Event {
     frame_system::Module::<Runtime>::events()
         .pop()

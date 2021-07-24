@@ -10,4 +10,4 @@ if [ -z $CI_PROJECT_NAME ] ; then
 fi
 
 rustup target add wasm32-unknown-unknown --toolchain nightly-2021-03-01
-rustup default nightly
+rustup default nightly-2021-03-01

@@ -2,7 +2,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-use orml_currencies::BasicCurrencyAdapter;
+use social_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 use sp_std::prelude::*;
 use frame_support::{
@@ -28,7 +28,7 @@ use sp_core::{
     OpaqueMetadata,
 };
 pub use primitives::{AccountId, Signature};
-use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount};
+use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount, SocialTokenCurrencyId};
 use sp_api::impl_runtime_apis;
 use sp_runtime::{
     Permill, Perbill, Perquintill, Percent, ApplyExtrinsicResult,
@@ -621,7 +621,7 @@ impl pallet_elections_phragmen::Config for Runtime {
 parameter_types! {
 	pub const TechnicalMotionDuration: BlockNumber = 5 * DAYS;
 	pub const TechnicalMaxProposals: u32 = 100;
-	pub const TechnicalMaxMembers: u32 = 100;
+	pub const TechnicalMaxMembers: u32 = 2;
 }
 
 type TechnicalCollective = pallet_collective::Instance2;
@@ -1006,7 +1006,7 @@ impl pallet_assets::Config for Runtime {
 }
 
 parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+    pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
         Zero::zero()
     };
 }
@@ -1019,22 +1019,21 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = CurrencyId;
+    type CurrencyId = SocialTokenCurrencyId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = 0;
+    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
 }
 
-impl orml_currencies::Config for Runtime {
+impl social_currencies::Config for Runtime {
     type Event = Event;
-    type MultiCurrency = Tokens;
+    type MultiSocialCurrency = Tokens;
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -1081,8 +1080,8 @@ parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
     pub const ContinuumSessionDuration: BlockNumber = 43200; //Default 43200 Blocks
     pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
+    pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
 }
-
 
 impl auction::Config for Runtime {
     type Event = Event;
@@ -1090,6 +1089,9 @@ impl auction::Config for Runtime {
     type Handler = Auction;
     type Currency = Balances;
     type ContinuumHandler = Continuum;
+    type SocialTokenCurrency = Tokens;
+    type CountryInfoSource = BitCountryModule;
+    type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
 impl continuum::Config for Runtime {
@@ -1107,9 +1109,23 @@ impl continuum::Config for Runtime {
 impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
-    type CountryCurrency = Currencies;
+    type CountryCurrency = Tokens;
     type SocialTokenTreasury = CountryFundModuleId;
     type CountryInfoSource = BitCountryModule;
+    type LiquidityPoolManager = Swap;
+}
+
+parameter_types! {
+    pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
+    pub const SwapFee: (u32, u32) = (1, 20); //0.005%
+}
+
+impl swap::Config for Runtime {
+    type Event = Event;
+    type ModuleId = SwapModuleId;
+    type SocialTokenCurrency = Tokens;
+    type NativeCurrency = Balances;
+    type GetSwapFee = SwapFee;
 }
 
 parameter_types! {
@@ -1187,8 +1203,10 @@ construct_runtime!(
         Auction: auction::{Module, Call ,Storage, Event<T>},
         GovernanceModule: governance::{Module, Call, Storage, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
+        SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
+        Swap: swap:: {Module, Call, Storage ,Event<T>},
 	}
 );
 
@@ -1485,6 +1503,9 @@ impl_runtime_apis! {
 			impl pallet_offences_benchmarking::Config for Runtime {}
 			impl frame_system_benchmarking::Config for Runtime {}
 
+            use nft::benchmarking::NFTModule as NftBench;
+			impl nft::benchmarking::Config for Runtime {}
+
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
 				hex_literal::hex!("26aa394eea5630e07c48ae0c9558cef702a5c1b19ab7a04f536c519aca4983ac").to_vec().into(),
@@ -1529,7 +1550,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_treasury, Treasury);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, pallet_vesting, Vesting);
-
+			add_benchmark!(params, batches, nft, NftModule);
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)
 		}

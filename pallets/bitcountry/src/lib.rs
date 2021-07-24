@@ -20,7 +20,7 @@
 use codec::{Decode, Encode};
 use frame_support::ensure;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, CurrencyId};
+use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
 use bc_country::*;
 use sp_std::vec::Vec;
@@ -199,7 +199,7 @@ pub mod pallet {
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
     /// Reads the nonce from storage, increments the stored nonce, and returns
     /// the encoded nonce to the caller.
 
@@ -214,7 +214,7 @@ impl<T: Config> Module<T> {
 
         let country_info = Country {
             owner: owner.clone(),
-            currency_id: Default::default(),
+            currency_id: SocialTokenCurrencyId::SocialToken(0),
             metadata,
         };
 
@@ -234,7 +234,7 @@ impl<T: Config> BCCountry<T::AccountId> for Module<T>
         Self::get_country(country_id)
     }
 
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
         if let Some(country) = Self::get_country(country_id) {
             return Some(country.currency_id);
         }

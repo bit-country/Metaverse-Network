@@ -28,6 +28,7 @@ use sp_runtime::RuntimeDebug;
 use serde::{Deserialize, Serialize};
 
 pub mod continuum;
+pub mod dex;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -60,7 +61,6 @@ pub type Hash = sp_core::H256;
 /// `u64` is enough to represent a duration of half a billion years, when the
 /// time scale is milliseconds.
 pub type Timestamp = u64;
-
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 /// Header type.
@@ -89,6 +89,8 @@ pub type ProposalId = u64;
 pub type ReferendumId = u64;
 /// LandId
 pub type LandId = u64;
+/// Social Token Id type
+pub type TokenId = u64;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -98,6 +100,49 @@ pub enum ItemId {
     Spot(u64, CountryId),
     Country(CountryId),
     Block(u64),
+}
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum SocialTokenCurrencyId {
+    NativeToken(TokenId),
+    SocialToken(TokenId),
+    DEXShare(TokenId, TokenId),
+}
+
+impl SocialTokenCurrencyId {
+    pub fn is_native_token_currency_id(&self) -> bool {
+        matches!(self, SocialTokenCurrencyId::NativeToken(_))
+    }
+
+    pub fn is_social_token_currency_id(&self) -> bool {
+        matches!(self, SocialTokenCurrencyId::SocialToken(_))
+    }
+
+    pub fn is_dex_share_social_token_currency_id(&self) -> bool {
+        matches!(self, SocialTokenCurrencyId::DEXShare(_, _))
+    }
+
+    pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
+        match self {
+            SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1) => {
+                Some((SocialTokenCurrencyId::NativeToken(*token_currency_id_0), SocialTokenCurrencyId::SocialToken(*token_currency_id_1)))
+            }
+            _ => None,
+        }
+    }
+
+    pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
+        match (currency_id_0, currency_id_1) {
+            (SocialTokenCurrencyId::NativeToken(token_currency_id_0), SocialTokenCurrencyId::SocialToken(token_currency_id_1)) => {
+                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
+            }
+            (SocialTokenCurrencyId::SocialToken(token_currency_id_0), SocialTokenCurrencyId::NativeToken(token_currency_id_1)) => {
+                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_1, token_currency_id_0))
+            }
+            _ => None,
+        }
+    }
 }
 
 /// App-specific crypto used for reporting equivocation/misbehavior in BABE and

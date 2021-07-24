@@ -16,7 +16,7 @@ use sp_std::{
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-use primitives::{AuctionId, ItemId, AssetId};
+use primitives::{AuctionId, ItemId, AssetId, CountryId, SocialTokenCurrencyId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
@@ -33,6 +33,13 @@ pub enum AuctionType {
     BuyNow,
 }
 
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum ListingLevel {
+    Global,
+    Local(CountryId),
+}
+
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug)]
 pub struct AuctionItem<AccountId, BlockNumber, Balance> {
@@ -45,6 +52,8 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
     pub start_time: BlockNumber,
     pub end_time: BlockNumber,
     pub auction_type: AuctionType,
+    pub listing_level: ListingLevel,
+    pub currency_id: SocialTokenCurrencyId,
 }
 
 /// Auction info.
@@ -89,6 +98,7 @@ pub trait Auction<AccountId, BlockNumber> {
         recipient: AccountId,
         initial_amount: Self::Balance,
         start: BlockNumber,
+        listing_level: ListingLevel,
     ) -> Result<AuctionId, DispatchError>;
 
     /// Remove auction by `id`
@@ -100,6 +110,15 @@ pub trait Auction<AccountId, BlockNumber> {
         new_bid: (AccountId, Self::Balance),
         last_bid: Option<(AccountId, Self::Balance)>,
     ) -> DispatchResult;
+
+    fn local_auction_bid_handler(
+        _now: BlockNumber,
+        id: AuctionId,
+        new_bid: (AccountId, Self::Balance),
+        last_bid: Option<(AccountId, Self::Balance)>,
+        social_currency_id: SocialTokenCurrencyId,
+    ) -> DispatchResult;
+
 
     fn check_item_in_auction(
         asset_id: AssetId
@@ -128,5 +147,16 @@ pub trait AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> {
     ) -> OnNewBidResult<BlockNumber>;
     /// End an auction with `winner`
     fn on_auction_ended(id: AuctionId, winner: Option<(AccountId, Balance)>);
+}
+
+/// Swap manager to use swap functionality in different traits
+pub trait SwapManager<AccountId, CurrencyId, Balance> {
+    fn add_liquidity(
+        who: &AccountId,
+        token_id_a: SocialTokenCurrencyId,
+        token_id_b: SocialTokenCurrencyId,
+        max_amount_a: Balance,
+        max_amount_b: Balance,
+    ) -> DispatchResult;
 }
 
