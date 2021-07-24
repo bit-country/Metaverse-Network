@@ -2,7 +2,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-use orml_currencies::BasicCurrencyAdapter;
+use social_currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 use sp_std::prelude::*;
 use frame_support::{
@@ -28,7 +28,7 @@ use sp_core::{
     OpaqueMetadata,
 };
 pub use primitives::{AccountId, Signature};
-use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount};
+use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount, SocialTokenCurrencyId};
 use sp_api::impl_runtime_apis;
 use sp_runtime::{
     Permill, Perbill, Perquintill, Percent, ApplyExtrinsicResult,
@@ -103,7 +103,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // and set impl_version to 0. If only runtime
     // implementation changes and behavior does not, then leave spec_version as
     // is and increment impl_version.
-    spec_version: 264,
+    spec_version: 265,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -353,7 +353,7 @@ impl pallet_indices::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = 1 * DOLLARS;
+	pub const ExistentialDeposit: Balance = 1 * MICROCENTS;
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	pub const MaxLocks: u32 = 50;
@@ -405,6 +405,13 @@ impl pallet_authorship::Config for Runtime {
     type FilterUncle = ();
     type EventHandler = (Staking, ImOnline);
 }
+
+/// The BABE epoch configuration at genesis.
+pub const BABE_GENESIS_EPOCH_CONFIG: sp_consensus_babe::BabeEpochConfiguration =
+    sp_consensus_babe::BabeEpochConfiguration {
+        c: PRIMARY_PROBABILITY,
+        allowed_slots: sp_consensus_babe::AllowedSlots::PrimaryAndSecondaryPlainSlots,
+    };
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -999,7 +1006,7 @@ impl pallet_assets::Config for Runtime {
 }
 
 parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+    pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
         Zero::zero()
     };
 }
@@ -1012,22 +1019,21 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = CurrencyId;
+    type CurrencyId = SocialTokenCurrencyId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: CurrencyId = 0;
+    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
 }
 
-impl orml_currencies::Config for Runtime {
+impl social_currencies::Config for Runtime {
     type Event = Event;
-    type MultiCurrency = Tokens;
+    type MultiSocialCurrency = Tokens;
     type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
     type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
 }
 
 parameter_types! {
@@ -1053,7 +1059,7 @@ impl orml_nft::Config for Runtime {
     type TokenData = nft::NftAssetData<Balance>;
 }
 
-impl country::Config for Runtime {
+impl bitcountry::Config for Runtime {
     type Event = Event;
     type ModuleId = CountryFundModuleId;
 }
@@ -1065,7 +1071,7 @@ parameter_types! {
 impl block::Config for Runtime {
     type Event = Event;
     type LandTreasury = LandTreasuryModuleId;
-    type CountryInfoSource = CountryModule;
+    type CountryInfoSource = BitCountryModule;
     type Currency = Balances;
     type MinimumLandPrice = MinimumLandPrice;
 }
@@ -1074,6 +1080,7 @@ parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
     pub const ContinuumSessionDuration: BlockNumber = 43200; //Default 43200 Blocks
     pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
+    pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
 }
 
 
@@ -1083,6 +1090,9 @@ impl auction::Config for Runtime {
     type Handler = Auction;
     type Currency = Balances;
     type ContinuumHandler = Continuum;
+    type SocialTokenCurrency = Tokens;
+    type CountryInfoSource = BitCountryModule;
+    type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
 impl continuum::Config for Runtime {
@@ -1094,15 +1104,29 @@ impl continuum::Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
-    type CountryInfoSource = CountryModule;
+    type CountryInfoSource = BitCountryModule;
 }
 
 impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
-    type CountryCurrency = Currencies;
+    type CountryCurrency = Tokens;
     type SocialTokenTreasury = CountryFundModuleId;
-    type CountryInfoSource = CountryModule;
+    type CountryInfoSource = BitCountryModule;
+    type LiquidityPoolManager = Swap;
+}
+
+parameter_types! {
+    pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
+    pub const SwapFee: (u32, u32) = (5, 1000); //0.5%
+}
+
+impl swap::Config for Runtime {
+    type Event = Event;
+    type ModuleId = SwapModuleId;
+    type SocialTokenCurrency = Tokens;
+    type NativeCurrency = Balances;
+    type GetSwapFee = SwapFee;
 }
 
 construct_runtime!(
@@ -1148,15 +1172,16 @@ construct_runtime!(
 		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>},
 
          //BitCountry pallets
-        CountryModule: country::{Module, Call, Storage, Event<T>},
+        BitCountryModule: bitcountry::{Module, Call, Storage, Event<T>},
         BlockModule: block::{Module, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Module, Storage},
         NftModule: nft::{Module, Call, Storage, Event<T>},
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
-        Auction: auction::{Module, Call ,Storage, Event<T>},
-        Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
+        Auction: auction::{Module ,Storage, Event<T>},
+        Currencies: social_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
+        Swap: swap:: {Module, Call, Storage, Event<T>},
 	}
 );
 

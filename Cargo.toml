@@ -3,8 +3,8 @@ panic = 'unwind'
 
 [workspace]
 members = [
-#    'pallets/*',
-    #    'traits/*',
+    'pallets/*',
+    'traits/*',
     'node',
     'runtime/bitcountry',
     'runtime/tewai',

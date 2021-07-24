@@ -99,6 +99,9 @@ nft = { package = "pallet-nft", path = "../../pallets/nft", version = '2.0.0-rc6
 continuum = { package = "pallet-continuum", path = "../../pallets/continuum", version = '0.0.1', default-features = false }
 auction = { package = "pallet-auction", path = "../../pallets/auction", version = '2.0.0-rc6', default-features = false }
 governance = {package = "pallet-governance", path = "../../pallets/governance", version = '2.0.0-rc6', default-features = false }
+social-currencies = { package = "social-currencies", path = "../../pallets/social-currencies", version = '2.0.0-rc6', default-features = false }
+swap = { package = "pallet-swap", path = "../../pallets/swap", version = '2.0.0-rc6', default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = "4.0.0"
 
@@ -175,7 +178,12 @@ std = [
     'block/std',
     'nft/std',
     'continuum/std',
+<<<<<<< HEAD
     'governance/std',
+=======
+    'social-currencies/std',
+    'swap/std',
+>>>>>>> 84c062f35155a50d5b6c3507e6284519b7210f37
 ]
 runtime-benchmarks = [
     "frame-benchmarking",
@@ -210,4 +218,5 @@ runtime-benchmarks = [
     "pallet-session-benchmarking",
     "frame-system-benchmarking",
     "hex-literal",
+    "nft/runtime-benchmarks"
 ]
