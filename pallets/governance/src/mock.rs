@@ -9,7 +9,7 @@ use frame_support::{
 
 use sp_core::H256;
 use sp_runtime::{Perbill, testing::Header, traits::IdentityLookup};
-use primitives::CurrencyId;
+use primitives::SocialTokenCurrencyId;
 use bc_country::Country;
 use frame_support::{pallet_prelude::Hooks, weights::Weight};
 use frame_system::{EnsureSignedBy, EnsureRoot};
@@ -109,7 +109,7 @@ impl BCCountry<AccountId> for CountryInfo {
         None
     }
 
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
         None
     }
 
