@@ -37,7 +37,10 @@ sp-transaction-pool = { version = "3.0.0", default-features = false }
 sp-version = { version = "3.0.0", default-features = false }
 # local packages
 bc-country = { path = "../../traits/bc-country", default-features = false }
+bc-land = { path = "../../traits/bc-land", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+
+
 
 [dev-dependencies]
 sp-core = { version = "3.0.0", default-features = false }
@@ -51,4 +54,5 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
+
 ]

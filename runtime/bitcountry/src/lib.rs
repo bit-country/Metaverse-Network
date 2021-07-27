@@ -1061,6 +1061,7 @@ impl orml_nft::Config for Runtime {
 
 impl bitcountry::Config for Runtime {
     type Event = Event;
+    type LandInfoSource = BlockModule;
     type ModuleId = CountryFundModuleId;
 }
 
@@ -1135,6 +1136,7 @@ parameter_types! {
     pub const DefaultMaxParametersPerProposal: u8 = 3; //Default 3 parameters
     pub const DefaultMaxProposalsPerCountry: u8 = 4; //Default 4 parameters
     pub const OneBlock: BlockNumber = 1;
+    pub const MinimumProposalDeposit: Balance = 10 * DOLLARS;
 }
 
 impl governance::Config for Runtime {
@@ -1143,6 +1145,7 @@ impl governance::Config for Runtime {
     type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
     type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
     type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
+    type MinimumProposalDeposit = MinimumProposalDeposit;
     type OneBlock = OneBlock;
     type Event = Event;
     type Currency = Balances;

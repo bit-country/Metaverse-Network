@@ -47,6 +47,15 @@ fn create_new_proposal_when_not_enough_funds_does_not_work() {
 }
 
 #[test]
+fn create_new_proposal_when_too_small_deposit_does_not_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(BOB);
+        assert_noop!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 40
+            ,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::DepositTooLow);
+    });
+}
+
+#[test]
 fn create_new_proposal_when_not_country_member_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(GovernanceModule::propose(Origin::signed(5).clone(), ALICE_COUNTRY_ID, 400

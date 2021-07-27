@@ -163,16 +163,6 @@ fn destroy_country_without_root_should_fail() {
     })
 }
 
-#[test]
-fn destroy_country_with_no_id_should_fail() {
-    ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
-            Origin::signed(ALICE),
-            vec![1]
-        ));
-        assert_noop!(
-            CountryModule::destroy_country(Origin::root(), COUNTRY_ID_NOT_EXIST),
-            Error::<Runtime>::CountryInfoNotFound
-        );
-    })
-}
+
+
+

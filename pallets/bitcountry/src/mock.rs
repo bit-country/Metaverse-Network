@@ -75,11 +75,25 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
+    pub const MinimumLandPrice: Balance = 10;
+    pub const LandTreasuryModuleId: ModuleId = ModuleId(*b"bit/land");
+}
+
+impl block::Config for Runtime {
+    type Event = Event;
+    type LandTreasury = LandTreasuryModuleId;
+    type CountryInfoSource = BitCountryModule;
+    type Currency = Balances;
+    type MinimumLandPrice = MinimumLandPrice;
+}
+
+parameter_types! {
 	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
 }
 
 impl Config for Runtime {
     type Event = Event;
+    type LandInfoSource = Land;
     type ModuleId = CountryFundModuleId;
 }
 
@@ -96,6 +110,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+        Land: block::{Module, Call, Storage, Event<T>},
         Country: bitcountry::{Module, Call ,Storage, Event<T>},
 	}
 );

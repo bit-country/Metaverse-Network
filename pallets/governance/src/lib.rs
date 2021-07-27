@@ -63,6 +63,9 @@ pub mod pallet {
         #[pallet::constant]
         type DefaultMaxProposalsPerCountry: Get<u8>;
 
+        #[pallet::constant]
+        type MinimumProposalDeposit: Get<BalanceOf<Self>>;
+
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
         type CountryInfo: BCCountry<Self::AccountId>;
@@ -140,6 +143,7 @@ pub mod pallet {
         AccountNotCountryOwner,
         ReferendumParametersOutOfScope,
         InsufficientBalance,
+        DepositTooLow,
         ProposalParametersOutOfScope,
         TooManyProposalParameters,
         InvalidProposalParameters,
@@ -191,6 +195,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             ensure!(T::CountryInfo::is_member(&from, &country), Error::<T>::AccountNotCountryMember);
+            ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
             ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
             let current_block = <frame_system::Module<T>>::block_number();
             let mut launch_block: T::BlockNumber = current_block;

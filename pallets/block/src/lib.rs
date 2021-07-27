@@ -23,6 +23,7 @@ use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, CountryId, LandId, CurrencyId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
 use bc_country::*;
+use bc_land::*;
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
@@ -73,8 +74,14 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn get_lands_by_owner)]
-    pub type LandByOwner<T: Config> =
+    pub(super) type LandByOwner<T: Config> =
     StorageMap<_, Blake2_128Concat, T::AccountId, Vec<LandId>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_lands_by_country)]
+    pub(super) type LandByCountry<T: Config> =
+    StorageMap<_, Twox64Concat, CountryId, Vec<LandId>, ValueQuery>;
+    
 
     #[pallet::storage]
     #[pallet::getter(fn all_lands_count)]
@@ -127,6 +134,7 @@ pub mod pallet {
                 LandOwner::<T>::insert(land_id, &sender, ());
 
                 Self::add_land_to_new_owner(land_id, &sender);
+                Self::add_land_to_country(land_id, bc_id);
             }
 
             let total_land_count = Self::all_lands_count();
@@ -204,4 +212,29 @@ impl<T: Config> Module<T> {
         }
         Ok(())
     }
+
+    fn add_land_to_country(land: LandId, country: CountryId) -> DispatchResult {
+        LandByCountry::<T>::try_mutate(
+            &country,
+            |land_ids| -> DispatchResult {
+                // Check if the asset_id already in the country
+                ensure!(!land_ids.iter().any(|i| land == *i), Error::<T>::LandIdAlreadyExist);
+                land_ids.push(land);
+                Ok(())
+            },
+        )?;
+        Ok(())
+    }
 }
+
+impl<T: Config> BCLand<T::AccountId, CountryId> for Module<T>
+{
+    fn get_owner_lands(owner: &T::AccountId) -> Vec<LandId> {
+        Self::get_lands_by_owner(owner)
+    }
+
+    fn get_lands_in_country(country: &CountryId) -> Vec<LandId> {
+        Self::get_lands_by_country(country)
+    }
+}
+
