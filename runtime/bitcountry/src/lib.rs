@@ -1176,7 +1176,7 @@ construct_runtime!(
         OrmlNFT: orml_nft::{Module, Storage},
         NftModule: nft::{Module, Call, Storage, Event<T>},
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
-        Auction: auction::{Module ,Storage, Event<T>},
+        Auction: auction::{Module, Call, Storage, Event<T>},
         SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
