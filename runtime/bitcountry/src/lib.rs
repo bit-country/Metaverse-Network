@@ -103,7 +103,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // and set impl_version to 0. If only runtime
     // implementation changes and behavior does not, then leave spec_version as
     // is and increment impl_version.
-    spec_version: 265,
+    spec_version: 276,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -1176,7 +1176,7 @@ construct_runtime!(
         OrmlNFT: orml_nft::{Module, Storage},
         NftModule: nft::{Module, Call, Storage, Event<T>},
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
-        Auction: auction::{Module, Call, Storage, Event<T>},
+        Auction: auction::{Module, Call ,Storage, Event<T>},
         SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},

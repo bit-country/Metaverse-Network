@@ -128,6 +128,8 @@ pub mod pallet {
         CountryFundIsNotAvailable,
         /// Initial Social Token Supply is too low
         InitialSocialTokenSupplyIsTooLow,
+        /// Failed on updating social token for this bitcountry
+        FailedOnUpdateingSocialToken,
     }
 
     #[pallet::call]
@@ -193,6 +195,10 @@ pub mod pallet {
                 ticker,
                 total_supply,
             };
+
+            //Update currency id in BC
+            T::CountryInfoSource::update_country_token(country_id.clone(), currency_id.clone())?;
+
             //Store social token info
             SocialTokens::<T>::insert(currency_id, token_info);
 

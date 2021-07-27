@@ -153,6 +153,8 @@ impl BCCountry<AccountId> for CountryInfoSource {
     fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
         None
     }
+
+    fn update_country_token(country_id: u64, currency_id: SocialTokenCurrencyId) -> Result<(), DispatchError> { Ok(()) }
 }
 
 impl Config for Runtime {

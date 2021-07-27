@@ -34,4 +34,6 @@ pub trait BCCountry<AccountId> {
     fn get_country(country_id: CountryId) -> Option<Country<AccountId>>;
 
     fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId>;
+
+    fn update_country_token(country_id: CountryId, currency_id: SocialTokenCurrencyId) -> Result<(), DispatchError>;
 }
