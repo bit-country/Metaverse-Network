@@ -1061,6 +1061,7 @@ impl orml_nft::Config for Runtime {
 
 impl bitcountry::Config for Runtime {
     type Event = Event;
+    type LandInfoSource = BlockModule;
     type ModuleId = CountryFundModuleId;
 }
 

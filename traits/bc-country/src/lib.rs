@@ -34,4 +34,7 @@ pub trait BCCountry<AccountId> {
     fn get_country(country_id: CountryId) -> Option<Country<AccountId>>;
 
     fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId>;
+
+    fn is_member(who: &AccountId, country_id: &CountryId) -> bool;
+
 }

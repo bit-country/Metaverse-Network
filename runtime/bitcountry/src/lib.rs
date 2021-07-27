@@ -1061,6 +1061,7 @@ impl orml_nft::Config for Runtime {
 
 impl bitcountry::Config for Runtime {
     type Event = Event;
+    type LandInfoSource = BlockModule;
     type ModuleId = CountryFundModuleId;
 }
 
@@ -1128,6 +1129,33 @@ impl swap::Config for Runtime {
     type GetSwapFee = SwapFee;
 }
 
+parameter_types! {
+    pub const DefaultVotingPeriod: BlockNumber = 100800; //Default 100800 Blocks
+    pub const DefaultEnactmentPeriod: BlockNumber = 72000; //Default 72000 Blocks
+    pub const DefaultProposalLaunchPeriod: BlockNumber = 172800; //Default 43200 Blocks
+    pub const DefaultMaxParametersPerProposal: u8 = 3; //Default 3 parameters
+    pub const DefaultMaxProposalsPerCountry: u8 = 4; //Default 4 parameters
+    pub const OneBlock: BlockNumber = 1;
+    pub const MinimumProposalDeposit: Balance = 10 * DOLLARS;
+}
+
+impl governance::Config for Runtime {
+    type DefaultVotingPeriod = DefaultVotingPeriod;
+    type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+    type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+    type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
+    type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
+    type MinimumProposalDeposit = MinimumProposalDeposit;
+    type OneBlock = OneBlock;
+    type Event = Event;
+    type Currency = Balances;
+    type CountryInfo = BitCountryModule;
+    type PalletsOrigin = OriginCaller;
+    type Proposal = Call;
+    type Scheduler = Scheduler;
+
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -1178,6 +1206,7 @@ construct_runtime!(
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
         Auction: auction::{Module ,Storage, Event<T>},
         SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
+        GovernanceModule: governance::{Module, Call, Storage, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
         Swap: swap:: {Module, Call, Storage ,Event<T>},

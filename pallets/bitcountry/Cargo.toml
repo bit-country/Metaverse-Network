@@ -32,6 +32,7 @@ primitives = { package = "bit-country-primitives", path = "../primitives", defau
 
 # local packages
 bc-country = { path = "../../traits/bc-country", default-features = false }
+bc-land = { path = "../../traits/bc-land", default-features = false }
 
 # Orml packages
 orml-traits = { default-features = false, version = '0.4.0' }
@@ -42,6 +43,12 @@ orml-tokens = { default-features = false, version = '0.4.0' }
 default-features = false
 package = 'pallet-nft'
 path = '../nft'
+version = '2.0.0-rc6'
+
+[dependencies.block]
+default-features = false
+package = 'pallet-block'
+path = '../block'
 version = '2.0.0-rc6'
 
 [features]
@@ -58,5 +65,6 @@ std = [
     "orml-traits/std",
     "orml-tokens/std",
     'nft/std',
+    'block/std',
     'primitives/std'
 ]

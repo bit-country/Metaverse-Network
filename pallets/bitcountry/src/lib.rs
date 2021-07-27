@@ -20,9 +20,10 @@
 use codec::{Decode, Encode};
 use frame_support::ensure;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
+use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId, LandId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
 use bc_country::*;
+use bc_land::*;
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
@@ -39,6 +40,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
+    use bc_land::BCLand;
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
@@ -47,6 +49,8 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+        type LandInfoSource: BCLand<Self::AccountId, CountryId>;
 
         #[pallet::constant]
         type ModuleId: Get<ModuleId>;
@@ -222,6 +226,7 @@ impl<T: Config> Pallet<T> {
 
         Ok(country_id)
     }
+
 }
 
 impl<T: Config> BCCountry<T::AccountId> for Module<T>
@@ -239,5 +244,22 @@ impl<T: Config> BCCountry<T::AccountId> for Module<T>
             return Some(country.currency_id);
         }
         None
+    }
+
+    fn is_member(account: &T::AccountId, country_id: &CountryId) -> bool { 
+        if Self::get_country_owner(country_id, account) == Some(()) {
+            return true;
+        }
+        else {
+           let account_lands = T::LandInfoSource::get_owner_lands(account);
+           let country_lands = T::LandInfoSource::get_lands_in_country(country_id);
+           for land in account_lands.iter() {
+                match country_lands.binary_search(land) {
+                    Ok(i) => return true,
+                    Err(i) => continue,
+                }
+           }
+        }
+        false
     }
 }
