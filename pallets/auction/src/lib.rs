@@ -186,7 +186,7 @@ pub mod pallet {
 
                 ensure!(T::SocialTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(), "You don't have enough free balance for this bid");
 
-                Self::auction_bid_handler(block_number, id, (from.clone(), value), auction.bid.clone())?;
+                Self::local_auction_bid_handler(block_number, id, (from.clone(), value), auction.bid.clone(), social_currency_id)?;
 
                 auction.bid = Some((from.clone(), value));
                 Self::deposit_event(Event::Bid(id, from, value));
