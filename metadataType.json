@@ -21,7 +21,9 @@
     "amount": "Balance",
     "start_time": "u32",
     "end_time": "u32",
-    "auction_type": "AuctionType"
+    "auction_type": "AuctionType",
+    "listing_level": "ListingLevel",
+    "currency_id": "SocialTokenCurrencyId"
   },
   "AuctionInfo": {
     "bid": "Option<(AccountId,Balance)>",
@@ -166,10 +168,11 @@
   },
   "LandId": "u64",
   "TokenId": "u64",
-  "ListingLevel":  {
+  "ListingLevel": {
     "_enum": {
       "Global": "Null",
       "Local": "CountryId"
     }
-  }
+  },
+  "AmountOf": "Balance"
 }

@@ -207,7 +207,7 @@ pub mod pallet {
             //Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
             T::LiquidityPoolManager::add_liquidity(&who, SocialTokenCurrencyId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
             let fund_address = Self::get_country_fund_id(country_id);
-            Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address, total_supply));
+            Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address, total_supply, country_id));
 
             Ok(().into())
         }
@@ -237,7 +237,7 @@ pub mod pallet {
     )]
     pub enum Event<T: Config> {
         /// Some assets were issued. \[asset_id, owner, total_supply\]
-        SocialTokenIssued(SocialTokenCurrencyId, T::AccountId, T::AccountId, u128),
+        SocialTokenIssued(SocialTokenCurrencyId, T::AccountId, T::AccountId, u128, u64),
         /// Some assets were transferred. \[asset_id, from, to, amount\]
         SocialTokenTransferred(SocialTokenCurrencyId, T::AccountId, T::AccountId, Balance),
         /// Some assets were destroyed. \[asset_id, owner, balance\]
