@@ -538,7 +538,11 @@ pub mod pallet {
                     ensure!(Self::assets_in_auction(asset_id) == None, Error::<T>::AssetAlreadyInAuction);
 
                     let start_time = <system::Module<T>>::block_number();
-                    let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction
+
+                    let mut end_time = start_time + T::AuctionTimeToClose::get(); //add 7 days block for default auction ;
+                    if let Some(_end_block) = _end {
+                        end_time = _end_block
+                    }
                     let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
                     let mut currency_id: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
                     if let ListingLevel::Local(bc_id) = listing_level {
