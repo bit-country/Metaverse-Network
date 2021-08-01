@@ -91,6 +91,7 @@ pub mod pallet {
         NewAuctionItem(AuctionId, T::AccountId, ListingLevel, BalanceOf<T>, BalanceOf<T>),
         AuctionFinalized(AuctionId, T::AccountId, BalanceOf<T>),
         BuyNowFinalised(AuctionId, T::AccountId, BalanceOf<T>),
+        AuctionFinalizedNoBid(AuctionId),
     }
 
     #[pallet::call]
@@ -426,6 +427,8 @@ pub mod pallet {
                                     }
                                 }
                             }
+                        } else {
+                            Self::deposit_event(Event::AuctionFinalizedNoBid(auction_id));
                         }
                     }
                 }
