@@ -29,10 +29,12 @@ impl TradingPair {
     }
 
     pub fn from_token_currency_ids(currency_id_0: SocialTokenCurrencyId, currency_id_1: SocialTokenCurrencyId) -> Option<Self> {
-        match currency_id_0.is_social_token_currency_id() && currency_id_1.is_social_token_currency_id() {
-            true if currency_id_0 > currency_id_1 => Some(TradingPair(currency_id_1, currency_id_0)),
-            true if currency_id_0 < currency_id_1 => Some(TradingPair(currency_id_0, currency_id_1)),
-            _ => None,
+        if currency_id_0.is_native_token_currency_id() && currency_id_1.is_social_token_currency_id() {
+            Some(TradingPair(currency_id_0, currency_id_1))
+        } else if currency_id_0.is_social_token_currency_id() && currency_id_1.is_native_token_currency_id() {
+            Some(TradingPair(currency_id_1, currency_id_0))
+        } else {
+            None
         }
     }
 

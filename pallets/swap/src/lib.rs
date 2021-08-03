@@ -21,13 +21,14 @@
 use codec::{Decode, Encode};
 use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
+use primitives::{Balance, CountryId, SocialTokenCurrencyId, CurrencyId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug, DispatchResult};
 use bc_country::*;
+use auction_manager::{SwapManager};
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
-
+use sp_std::vec;
 
 #[cfg(test)]
 mod mock;
@@ -38,9 +39,9 @@ mod tests;
 /// Status for TradingPair
 #[derive(Clone, Copy, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
 pub enum TradingPairStatus {
-    /// Default status,
     /// can withdraw liquidity, re-enable and list this trading pair.
     NotEnabled,
+    /// Default status,
     /// TradingPair is Enabled,
     /// can add/remove liquidity, trading and disable this trading pair.
     Enabled,
@@ -48,7 +49,7 @@ pub enum TradingPairStatus {
 
 impl Default for TradingPairStatus {
     fn default() -> Self {
-        Self::NotEnabled
+        Self::Enabled
     }
 }
 
@@ -68,6 +69,8 @@ pub mod pallet {
     use frame_support::traits::Currency;
     use primitives::dex::TradingPair;
     use primitives::SocialTokenCurrencyId;
+    use sp_std::vec::Vec;
+    use crate::pallet::vec;
 
     pub(super) type BalanceOf<T> = <<T as Config>::NativeCurrency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -78,7 +81,6 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
         /// The DEX's module id, keep all assets in DEX.
         #[pallet::constant]
         type ModuleId: Get<ModuleId>;
@@ -198,7 +200,7 @@ pub mod pallet {
             #[pallet::compact] min_target_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            let _ = Self::do_swap_exact_token_for_native_token(&who, supply_currency, supply_amount, target_currency, min_target_amount)?;
+            let _ = Self::do_swap_native_token_for_social_token(&who, supply_currency, supply_amount, target_currency, min_target_amount)?;
             Ok(().into())
         }
 
@@ -251,51 +253,51 @@ impl<T: Config> Pallet<T> {
             } else {
                 (max_amount_b, max_amount_a)
             };
-            let (pool_0_increment, pool_1_increment, share_increment): (Balance, Balance, Balance) = (0, 0, 0);
-            //First LP - Initial pool without any share token
-            if total_shares.is_zero() {
-                //Calculate share amount
-                let share_amount = if max_amount_0 > max_amount_1 {
-                    //Token 0 > Token 1
-                    //Find the price token 1 of token 0
-                    let initial_price_1_in_0 =
-                        Price::checked_from_rational(max_amount_0, max_amount_1).unwrap_or_default();
-                    initial_price_1_in_0
-                        .saturating_mul_int(max_amount_1)
-                        .saturating_add(max_amount_0)
-                } else {
-                    //Token 0 < Token 1
-                    //Find the price token 0 of token 1
-                    let initial_price_0_in_1: Price =
-                        Price::checked_from_rational(max_amount_1, max_amount_0).unwrap_or_default();
-                    initial_price_0_in_1
-                        .saturating_mul_int(max_amount_0)
-                        .saturating_add(max_amount_1)
-                };
+            let (pool_0_increment, pool_1_increment, share_increment): (Balance, Balance, Balance) =
+                //First LP - Initial pool without any share token
+                if total_shares.is_zero() {
+                    //Calculate share amount
+                    let share_amount = if max_amount_0 > max_amount_1 {
+                        //Token 0 > Token 1
+                        //Find the price token 1 of token 0
+                        let initial_price_1_in_0 =
+                            Price::checked_from_rational(max_amount_0, max_amount_1).unwrap_or_default();
+                        initial_price_1_in_0
+                            .saturating_mul_int(max_amount_1)
+                            .saturating_add(max_amount_0)
+                    } else {
+                        //Token 0 < Token 1
+                        //Find the price token 0 of token 1
+                        let initial_price_0_in_1: Price =
+                            Price::checked_from_rational(max_amount_1, max_amount_0).unwrap_or_default();
+                        initial_price_0_in_1
+                            .saturating_mul_int(max_amount_0)
+                            .saturating_add(max_amount_1)
+                    };
 
-                (max_amount_0, max_amount_1, share_amount)
-            } else { // pools already exists then adding to existing share pool
-                let price_0_1 = Price::checked_from_rational(*pool_1, *pool_0).unwrap_or_default();
-                let input_price_0_1 = Price::checked_from_rational(max_amount_1, max_amount_0).unwrap_or_default();
-                // input_price_0_1 is more than actual price 0 1 in the pool, calculate the actual amount 0
-                if input_price_0_1 <= price_0_1 {
-                    // existing price 1 / 0 of the pool
-                    let price_1_0 = Price::checked_from_rational(*pool_0, *pool_1).unwrap_or_default();
-                    let amount_0 = price_1_0.saturating_mul_int(max_amount_1);
-                    let share_increment = Ratio::checked_from_rational(amount_0, *pool_0)
-                        .and_then(|n| n.checked_mul_int(total_shares))
-                        .unwrap_or_default();
-                    (amount_0, max_amount_1, share_increment)
-                } else {
-                    // existing price 0 / 1 of the pool
-                    // input_price_1_0 is more than actual price 1 0 in the pool, calculate the actual amount 1
-                    let amount_1 = price_0_1.saturating_mul_int(max_amount_0);
-                    let share_increment = Ratio::checked_from_rational(amount_1, *pool_1)
-                        .and_then(|n| n.checked_mul_int(total_shares))
-                        .unwrap_or_default();
-                    (max_amount_0, amount_1, share_increment)
-                }
-            };
+                    (max_amount_0, max_amount_1, share_amount)
+                } else { // pools already exists then adding to existing share pool
+                    let price_0_1 = Price::checked_from_rational(*pool_1, *pool_0).unwrap_or_default();
+                    let input_price_0_1 = Price::checked_from_rational(max_amount_1, max_amount_0).unwrap_or_default();
+                    // input_price_0_1 is more than actual price 0 1 in the pool, calculate the actual amount 0
+                    if input_price_0_1 <= price_0_1 {
+                        // existing price 1 / 0 of the pool
+                        let price_1_0 = Price::checked_from_rational(*pool_0, *pool_1).unwrap_or_default();
+                        let amount_0 = price_1_0.saturating_mul_int(max_amount_1);
+                        let share_increment = Ratio::checked_from_rational(amount_0, *pool_0)
+                            .and_then(|n| n.checked_mul_int(total_shares))
+                            .unwrap_or_default();
+                        (amount_0, max_amount_1, share_increment)
+                    } else {
+                        // existing price 0 / 1 of the pool
+                        // input_price_1_0 is more than actual price 1 0 in the pool, calculate the actual amount 1
+                        let amount_1 = price_0_1.saturating_mul_int(max_amount_0);
+                        let share_increment = Ratio::checked_from_rational(amount_1, *pool_1)
+                            .and_then(|n| n.checked_mul_int(total_shares))
+                            .unwrap_or_default();
+                        (max_amount_0, amount_1, share_increment)
+                    }
+                };
 
             ensure!(
 				!share_increment.is_zero() && !pool_0_increment.is_zero() && !pool_1_increment.is_zero(),
@@ -314,6 +316,7 @@ impl<T: Config> Pallet<T> {
                 let pool_1_incr_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(pool_1_increment).unwrap_or_default();
                 T::NativeCurrency::transfer(who, &dex_module_account_id, pool_1_incr_balance, ExistenceRequirement::KeepAlive)?;
             } else {
+                debug::info!("Pool 1 increment {}", pool_1_increment);
                 T::SocialTokenCurrency::transfer(trading_pair.1, who, &dex_module_account_id, pool_1_increment)?;
             }
 
@@ -442,9 +445,10 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    /// Swap with exact social token with native token
+    /// Swap native token for social token
+    /// Exact native token in, social token out
     #[transactional]
-    fn do_swap_exact_token_for_native_token(
+    fn do_swap_native_token_for_social_token(
         who: &T::AccountId,
         supply_currency: SocialTokenCurrencyId,
         amount_in: Balance,
@@ -468,40 +472,44 @@ impl<T: Config> Pallet<T> {
             Error::<T>::InsufficientLiquidity
         );
 
-        let native_token_amount_out = Self::get_amount_out(supply_pool, target_pool, amount_in);
-        ensure!(!native_token_amount_out.is_zero(), Error::<T>::InsufficientLiquidity);
+        let social_token_out = Self::get_amount_out(supply_pool, target_pool, amount_in);
+        ensure!(!social_token_out.is_zero(), Error::<T>::InsufficientLiquidity);
 
         ensure!(
-            native_token_amount_out >= amount_out_min,
+            social_token_out >= amount_out_min,
             Error::<T>::InsufficientTargetAmount
         );
 
         let dex_module_account_id = Self::account_id();
 
-        T::SocialTokenCurrency::transfer(supply_currency, who, &dex_module_account_id, amount_in)?;
+        //Transfer native token in
+        let native_token_amount_in_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(amount_in).unwrap_or_default();
+        T::NativeCurrency::transfer(who, &dex_module_account_id, native_token_amount_in_balance, ExistenceRequirement::KeepAlive)?;
+
         Self::_swap(
             supply_currency,
             target_currency,
             amount_in,
-            native_token_amount_out,
+            social_token_out,
         );
 
-        let native_token_amount_out_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(native_token_amount_out).unwrap_or_default();
-        T::NativeCurrency::transfer(&dex_module_account_id, who, native_token_amount_out_balance, ExistenceRequirement::KeepAlive)?;
+        // Transfer out the social token
+        T::SocialTokenCurrency::transfer(target_currency, &dex_module_account_id, who, social_token_out)?;
 
         Self::deposit_event(
             Event::Swap(
                 who.clone(),
                 vec![supply_currency, target_currency],
                 amount_in,
-                native_token_amount_out,
+                social_token_out,
             )
         );
 
-        Ok(native_token_amount_out)
+        Ok(social_token_out)
     }
 
-    /// Swap with social token with exact native token
+    /// Swap social token with exact target native token
+    //  Social token in, Exact native token out
     #[transactional]
     fn do_swap_token_for_exact_native_token(
         who: &T::AccountId,
@@ -567,5 +575,22 @@ impl<T: Config> Pallet<T> {
                 }
             });
         }
+    }
+}
+
+impl<T: Config> SwapManager<T::AccountId, SocialTokenCurrencyId, Balance> for Pallet<T> {
+    fn add_liquidity(
+        who: &T::AccountId,
+        token_id_a: SocialTokenCurrencyId,
+        token_id_b: SocialTokenCurrencyId,
+        max_amount_a: Balance,
+        max_amount_b: Balance) -> DispatchResult {
+        Self::do_add_liquidity(
+            who,
+            token_id_a,
+            token_id_b,
+            max_amount_a,
+            max_amount_b,
+        )
     }
 }

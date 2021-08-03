@@ -23,7 +23,7 @@ fn get_country_fund_balance() -> Balance {
 #[test]
 fn mint_social_token_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(ALICE);
+        let origin = Origin::signed(ALICE);        
         assert_eq!(get_country_fund_balance(), 0);
 
         assert_ok!(
@@ -31,16 +31,14 @@ fn mint_social_token_should_work() {
                 origin,
                 vec![1],
                 COUNTRY_ID,
-                400 * 1_000_000_000_000_000_000,
-                (3,10),
-                10 * 1_000_000_000_000_000_000
+                400
             )
-        );
+        );      
 
-        assert_eq!(get_country_fund_balance(), 280);
-
+        assert_eq!(get_country_fund_balance(), 400);
+        
         let event = mock::Event::tokenization(
-            crate::Event::SocialTokenIssued(SocialTokenCurrencyId::SocialToken(1), ALICE, country_fund_account(), 400)
+            crate::Event::SocialTokenIssued(1, ALICE, country_fund_account(),  400)
         );
 
         assert_eq!(last_event(), event);
@@ -57,12 +55,10 @@ fn mint_social_token_should_fail_for_non_owner() {
                 origin,
                 vec![1],
                 COUNTRY_ID,
-                0,
-                (3,10),
-                10
+                0
             ),
             Error::<Runtime>::NoPermissionTokenIssuance
-        );
+        );        
     });
 }
 
@@ -75,23 +71,19 @@ fn mint_social_token_should_fail_if_already_exists() {
                 origin.clone(),
                 vec![1],
                 COUNTRY_ID,
-                0,
-                (3,10),
-                10
+                0
             )
-        );
+        );        
 
         assert_noop!(
 			TokenizationModule::mint_token(
                 origin,
                 vec![1],
                 COUNTRY_ID,
-                0,
-                (3,10),
-                10
+                0
             ),
             Error::<Runtime>::SocialTokenAlreadyIssued
-        );
+        );        
     });
 }
 
@@ -106,9 +98,7 @@ fn country_treasury_pool_withdraw_should_work() {
                 origin,
                 vec![1],
                 COUNTRY_ID,
-                400,
-                (3,10),
-                10
+                400
             )
         );
         assert_ok!(
@@ -140,9 +130,7 @@ fn country_treasury_pool_withdraw_should_fail() {
                 origin,
                 vec![1],
                 COUNTRY_ID,
-                400,
-                (3,10),
-                10
+                400
             )
         );
         assert_eq!(get_country_fund_balance(), 400);
@@ -150,7 +138,7 @@ fn country_treasury_pool_withdraw_should_fail() {
             Currencies::withdraw(
                 COUNTRY_FUND,
                 &ALICE,
-                800,
+                800
             ),
             orml_tokens::Error::<Runtime>::BalanceTooLow
         );
@@ -167,9 +155,7 @@ fn country_treasury_pool_transfer_should_work() {
                 origin,
                 vec![1],
                 COUNTRY_ID,
-                400,
-                (3,10),
-                10
+                400
             )
         );
         assert_eq!(get_country_fund_balance(), 400);

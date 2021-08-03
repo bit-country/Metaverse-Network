@@ -16,12 +16,14 @@ use sc_executor::native_executor_instance;
 native_executor_instance!(
     pub BitCountryExecutor,
     tewai_runtime::api::dispatch,
-    tewai_runtime::native_version
+    tewai_runtime::native_version,
+    frame_benchmarking::benchmarking::HostFunctions,
 );
 
 #[cfg(feature = "with-bitcountry-runtime")]
 native_executor_instance!(
     pub BitCountryExecutor,
     bitcountry_runtime::api::dispatch,
-    bitcountry_runtime::native_version
+    bitcountry_runtime::native_version,
+    frame_benchmarking::benchmarking::HostFunctions,
 );

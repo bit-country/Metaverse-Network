@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate as bitcountry;
+use crate as swap;
 use super::*;
 use frame_support::{
     construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
@@ -12,20 +12,30 @@ use primitives::{CurrencyId, Amount};
 use frame_system::{EnsureSignedBy, EnsureRoot};
 use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
+use orml_traits::parameter_type_with_key;
+use social_currencies::BasicCurrencyAdapter;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
-pub type Balance = u64;
+pub type Balance = u128;
 pub type CountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const COUNTRY_ID: CountryId = 0;
-pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
-pub const NUUM: CurrencyId = 0;
+pub const DEX: AccountId = 34780150990899770580028125037;
 
-// Configure a mock runtime to test the pallet.
+pub const NUUM_SOC: TradingPair = TradingPair (NUUM, SOC);
+pub const NUUM: SocialTokenCurrencyId =  SocialTokenCurrencyId::NativeToken(0);
+pub const SOC: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1); // Social
+pub const SOC_2: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1);
+pub const SHARE: SocialTokenCurrencyId = SocialTokenCurrencyId::DEXShare(0, 1);
+
+impl From<AccountId> for Origin {
+    fn from(item: AccountId) -> Self {
+        Origin::signed(item)
+    }
+}
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -33,6 +43,7 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
+
 
 
 impl frame_system::Config for Runtime {
@@ -75,15 +86,50 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
+    pub const SwapFee: (u32, u32) = (1, 20); //0.005%
 }
 
-impl Config for Runtime {
+impl swap::Config for Runtime {
     type Event = Event;
-    type ModuleId = CountryFundModuleId;
+    type ModuleId = SwapModuleId;
+    type SocialTokenCurrency = Tokens;
+    type NativeCurrency = Balances;
+    type GetSwapFee = SwapFee;
 }
 
-pub type CountryModule = Module<Runtime>;
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
+		Default::default()
+	};
+}
+
+parameter_types! {
+    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
+    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
+    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+}
+
+impl orml_tokens::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type Amount = Amount;
+    type CurrencyId = SocialTokenCurrencyId;
+    type WeightInfo = ();
+    type ExistentialDeposits = ExistentialDeposits;
+    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+}
+
+parameter_types! {
+    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
+}
+
+impl social_currencies::Config for Runtime {
+    type Event = Event;
+    type MultiSocialCurrency = Tokens;
+    type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+    type GetNativeCurrencyId = GetNativeCurrencyId;
+}
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -96,7 +142,9 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        Country: bitcountry::{Module, Call ,Storage, Event<T>},
+        SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
+        Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
+        SwapModule: swap::{Module, Call ,Storage, Event<T>},
 	}
 );
 
@@ -108,14 +156,20 @@ impl Default for ExtBuilder {
     }
 }
 
-impl ExtBuilder {
+impl ExtBuilder {    
     pub fn build(self) -> sp_io::TestExternalities {
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
             .unwrap();
 
         pallet_balances::GenesisConfig::<Runtime> {
-            balances: vec![(ALICE, 100000)],
+            balances: vec![(ALICE, 100), (BOB, 100)],
+        }
+            .assimilate_storage(&mut t)
+            .unwrap();
+
+        orml_tokens::GenesisConfig::<Runtime> {
+            endowed_accounts: vec![(ALICE, SOC, 100), (BOB, SOC, 100)],
         }
             .assimilate_storage(&mut t)
             .unwrap();

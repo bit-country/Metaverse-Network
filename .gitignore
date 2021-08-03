@@ -44,3 +44,4 @@ para-666-genesis
 /.dockerignore
 /customNewTewaiChainRaw.json
 /newTewai*
+/blindbox-target/

@@ -6,7 +6,7 @@ use sp_runtime::{
     DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::vec::Vec;
-use primitives::{Balance, CountryId, CurrencyId};
+use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct CountryAssetData {
@@ -17,7 +17,7 @@ pub struct CountryAssetData {
 pub struct Country<AccountId> {
     pub owner: AccountId,
     pub metadata: Vec<u8>,
-    pub currency_id: CurrencyId,
+    pub currency_id: SocialTokenCurrencyId,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
@@ -25,7 +25,7 @@ pub struct CountryFund<AccountId, Balance> {
     pub vault: AccountId,
     pub value: Balance,
     pub backing: Balance,
-    pub currency_id: CurrencyId,
+    pub currency_id: SocialTokenCurrencyId,
 }
 
 pub trait BCCountry<AccountId> {
@@ -33,5 +33,7 @@ pub trait BCCountry<AccountId> {
 
     fn get_country(country_id: CountryId) -> Option<Country<AccountId>>;
 
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId>;
+    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId>;
+
+    fn update_country_token(country_id: CountryId, currency_id: SocialTokenCurrencyId) -> Result<(), DispatchError>;
 }

@@ -16,7 +16,7 @@ run:
 
 .PHONY: build
 build:
-	cargo build --release
+	cargo build --release  --features with-bitcountry-runtime
 
 .PHONY: check-debug
 check-debug:

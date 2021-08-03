@@ -20,8 +20,8 @@
 use codec::{Decode, Encode};
 use frame_support::ensure;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, CurrencyId};
-use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
+use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
+use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug, DispatchResult};
 use bc_country::*;
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
@@ -92,6 +92,7 @@ pub mod pallet {
         CountryFreezed(CountryId),
         CountryDestroyed(CountryId),
         CountryUnFreezed(CountryId),
+        CountryMintedNewCurrency(CountryId, SocialTokenCurrencyId),
     }
 
     #[pallet::error]
@@ -104,6 +105,7 @@ pub mod pallet {
         NoPermission,
         //No available bitcountry id
         NoAvailableCountryId,
+        SocialTokenAlreadyIssued,
     }
 
     #[pallet::call]
@@ -214,7 +216,7 @@ impl<T: Config> Pallet<T> {
 
         let country_info = Country {
             owner: owner.clone(),
-            currency_id: Default::default(),
+            currency_id: SocialTokenCurrencyId::SocialToken(0),
             metadata,
         };
 
@@ -234,10 +236,25 @@ impl<T: Config> BCCountry<T::AccountId> for Module<T>
         Self::get_country(country_id)
     }
 
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
         if let Some(country) = Self::get_country(country_id) {
             return Some(country.currency_id);
         }
         None
+    }
+
+    fn update_country_token(country_id: CountryId, currency_id: SocialTokenCurrencyId) -> Result<(), DispatchError> {
+        Countries::<T>::try_mutate_exists(
+            &country_id,
+            |country| {
+                let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
+
+                ensure!(country_record.currency_id == SocialTokenCurrencyId::SocialToken(0), Error::<T>::SocialTokenAlreadyIssued);
+
+                country_record.currency_id = currency_id.clone();
+                Self::deposit_event(Event::<T>::CountryMintedNewCurrency(country_id, currency_id));
+                Ok(())
+            },
+        )
     }
 }

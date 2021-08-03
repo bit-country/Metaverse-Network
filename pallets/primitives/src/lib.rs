@@ -83,6 +83,8 @@ pub type AuctionId = u64;
 pub type SpotId = u64;
 /// LandId
 pub type LandId = u64;
+/// Social Token Id type
+pub type TokenId = u64;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -97,9 +99,9 @@ pub enum ItemId {
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum SocialTokenCurrencyId {
-    NativeToken(CurrencyId),
-    SocialToken(CurrencyId),
-    DEXShare(CurrencyId, CurrencyId),
+    NativeToken(TokenId),
+    SocialToken(TokenId),
+    DEXShare(TokenId, TokenId),
 }
 
 impl SocialTokenCurrencyId {
@@ -118,7 +120,7 @@ impl SocialTokenCurrencyId {
     pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
         match self {
             SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1) => {
-                Some((SocialTokenCurrencyId::SocialToken(*token_currency_id_0), SocialTokenCurrencyId::SocialToken(*token_currency_id_1)))
+                Some((SocialTokenCurrencyId::NativeToken(*token_currency_id_0), SocialTokenCurrencyId::SocialToken(*token_currency_id_1)))
             }
             _ => None,
         }
@@ -130,7 +132,7 @@ impl SocialTokenCurrencyId {
                 Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
             }
             (SocialTokenCurrencyId::SocialToken(token_currency_id_0), SocialTokenCurrencyId::NativeToken(token_currency_id_1)) => {
-                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
+                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_1, token_currency_id_0))
             }
             _ => None,
         }

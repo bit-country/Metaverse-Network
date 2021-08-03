@@ -4,23 +4,30 @@ use super::*;
 use frame_support::{construct_runtime, parameter_types, pallet_prelude::Hooks};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{AuctionId, continuum::Continuum};
+use primitives::{AuctionId, continuum::Continuum, SocialTokenCurrencyId, CurrencyId, Amount};
 use pallet_nft::{AssetHandler};
+use orml_traits::parameter_type_with_key;
+use sp_runtime::traits::AccountIdConversion;
 
 use crate as auction;
+use auction_manager::ListingLevel;
+use bc_country::{BCCountry, Country};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
 }
 
 pub type AccountId = u128;
-pub type Balance = u64;
+pub type Balance = u128;
 pub type BlockNumber = u64;
+pub type CountryId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
+pub const ALICE_COUNTRY_ID: CountryId = 1;
+pub const BOB_COUNTRY_ID: CountryId = 2;
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -48,16 +55,15 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+	pub const BalanceExistentialDeposit: u64 = 1;
     pub const SpotId: u64 = 1;
-    pub const CountryId: u64 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
     type Balance = Balance;
     type Event = Event;
     type DustRemoval = ();
-    type ExistentialDeposit = ExistentialDeposit;
+    type ExistentialDeposit = BalanceExistentialDeposit;
     type AccountStore = System;
     type MaxLocks = ();
     type WeightInfo = ();
@@ -102,8 +108,53 @@ impl AssetHandler for NftAssetHandler {
     }
 }
 
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
+		Default::default()
+	};
+}
+
+parameter_types! {
+    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
+    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
+    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+}
+
+impl orml_tokens::Config for Runtime {
+    type Event = Event;
+    type Balance = Balance;
+    type Amount = Amount;
+    type CurrencyId = SocialTokenCurrencyId;
+    type WeightInfo = ();
+    type ExistentialDeposits = ExistentialDeposits;
+    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+}
+
 parameter_types! {
     pub const AuctionTimeToClose: u64 = 100; //Test auction end within 100 blocks
+    pub const MinimumAuctionDuration: u64 = 10; //Test auction end within 100 blocks
+}
+
+pub struct CountryInfoSource {}
+
+impl BCCountry<AccountId> for CountryInfoSource {
+    fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
+        match *who {
+            ALICE => *country_id == ALICE_COUNTRY_ID,
+            BOB => *country_id == BOB_COUNTRY_ID,
+            _ => false,
+        }
+    }
+
+    fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
+        None
+    }
+
+    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
+        None
+    }
+
+    fn update_country_token(country_id: u64, currency_id: SocialTokenCurrencyId) -> Result<(), DispatchError> { Ok(()) }
 }
 
 impl Config for Runtime {
@@ -112,6 +163,9 @@ impl Config for Runtime {
     type Handler = Handler;
     type Currency = Balances;
     type ContinuumHandler = Continuumm;
+    type SocialTokenCurrency = Tokens;
+    type CountryInfoSource = CountryInfoSource;
+    type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
 parameter_types! {
@@ -149,6 +203,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+        Tokens: orml_tokens::{Module, Call, Storage, Config<T>, Event<T>},
         NFTModule: pallet_nft::{Module, Storage ,Call, Event<T>},
         OrmlNft: orml_nft::{Module, Storage, Config<T>},
         NftAuctionModule: auction::{Module, Call, Storage, Event<T>},
@@ -164,7 +219,7 @@ impl Default for ExtBuilder {
 
 impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
-       self.build_with_block_number(1)
+        self.build_with_block_number(1)
     }
 
     pub fn build_with_block_number(self, block_number: u64) -> sp_io::TestExternalities {
@@ -196,7 +251,7 @@ pub fn run_to_block(n: u64) {
         NftAuctionModule::on_finalize(System::block_number());
         System::on_finalize(System::block_number());
         System::set_block_number(System::block_number() + 1);
-        System::on_initialize(System::block_number());        
+        System::on_initialize(System::block_number());
         NftAuctionModule::on_initialize(System::block_number());
     }
 }
@@ -218,7 +273,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn create_auction(auction_type: AuctionType, item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64) -> Result<u64, DispatchError> {
+    fn create_auction(auction_type: AuctionType, item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64, listing_level: ListingLevel) -> Result<u64, DispatchError> {
         todo!()
     }
 
@@ -227,6 +282,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
     }
 
     fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
+        todo!()
+    }
+
+    fn local_auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>, social_currency_id: SocialTokenCurrencyId) -> DispatchResult {
         todo!()
     }
 
