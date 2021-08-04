@@ -88,7 +88,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_land_info)]
     pub type LandInfo<T: Config> =
-    StorageMap<_, Twox64Concat, LandId, (CountryId, (i32, i32)), ValueQuery>;
+    StorageMap<_, Blake2_128Concat, LandId, (CountryId, (i32, i32)), ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -101,10 +101,6 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        //Land Info not found
-        LandInfoNotFound,
-        //Country Id not found
-        LandIdNotFound,
         //No permission
         NoPermission,
         //No available bitcountry id
