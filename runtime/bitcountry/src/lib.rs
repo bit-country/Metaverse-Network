@@ -1074,6 +1074,7 @@ impl block::Config for Runtime {
     type CountryInfoSource = BitCountryModule;
     type Currency = Balances;
     type MinimumLandPrice = MinimumLandPrice;
+    type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 }
 
 parameter_types! {

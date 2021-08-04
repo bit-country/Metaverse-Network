@@ -57,6 +57,8 @@ pub mod pallet {
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
         /// Minimum Land Price
         type MinimumLandPrice: Get<BalanceOf<Self>>;
+        /// Council origin which allows to update max bound
+        type CouncilOrigin: EnsureOrigin<Self::Origin>;
     }
 
     type BalanceOf<T> =
@@ -88,7 +90,12 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_land_info)]
     pub type LandInfo<T: Config> =
-    StorageMap<_, Blake2_128Concat, LandId, (CountryId, (i32, i32)), ValueQuery>;
+    StorageMap<_, Blake2_128Concat, LandId, (CountryId, (i32, i32)), OptionQuery>;
+
+    /// Get max bound
+    #[pallet::storage]
+    #[pallet::getter(fn get_max_bound)]
+    pub type MaxBound<T: Config> = StorageValue<_, (i32, i32), ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -96,7 +103,8 @@ pub mod pallet {
     pub enum Event<T: Config> {
         NewLandCreated(Vec<LandId>),
         TransferredLand(LandId, T::AccountId, T::AccountId),
-        NewLandBlockPurchased(LandId, CountryId, (i32, i32))
+        NewLandBlockPurchased(LandId, CountryId, (i32, i32)),
+        NewMaxBoundSet((i32, i32))
     }
 
     #[pallet::error]
@@ -112,6 +120,17 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000)]
+        pub(super) fn set_max_bounds(origin: OriginFor<T>, new_bound: (i32, i32)) -> DispatchResultWithPostInfo {
+            // Only execute by governance
+            T::CouncilOrigin::ensure_origin(origin)?;
+
+            MaxBound::<T>::set(new_bound);
+            Self::deposit_event(Event::<T>::NewMaxBoundSet(new_bound));
+
+            Ok(().into())
+        }
+
         #[pallet::weight(10_000)]
         pub(super) fn buy_land_block(origin: OriginFor<T>, bc_id: CountryId, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             // Check ownership
