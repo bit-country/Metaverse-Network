@@ -80,6 +80,15 @@ pub mod pallet {
     #[pallet::getter(fn all_lands_count)]
     pub(super) type AllLandsCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn get_land_blocks)]
+    pub type LandBlocks<T: Config> =
+    StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, (i32, i32), (), OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_land_info)]
+    pub type LandInfo<T: Config> =
+    StorageMap<_, Twox64Concat, LandId, (CountryId, (i32, i32)), ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -87,6 +96,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         NewLandCreated(Vec<LandId>),
         TransferredLand(LandId, T::AccountId, T::AccountId),
+        NewLandBlockPurchased(LandId, CountryId, (i32, i32))
     }
 
     #[pallet::error]
@@ -106,6 +116,42 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::weight(10_000)]
+        pub(super) fn buy_land_block(origin: OriginFor<T>, bc_id: CountryId, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
+            // Check ownership
+            let sender = ensure_signed(origin)?;
+
+            ensure!(T::CountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);
+
+            // Check minimum balance and transfer
+            let minimum_land_price = T::MinimumLandPrice::get();
+            ensure!(T::Currency::free_balance(&sender) > minimum_land_price, Error::<T>::InsufficientFund);
+            let land_treasury = Self::account_id();
+            T::Currency::transfer(&sender, &land_treasury, minimum_land_price, ExistenceRequirement::KeepAlive)?;
+
+            // Generate new land id
+            let new_land_id = Self::get_new_land_id()?;
+
+            // Add to land owners
+            LandOwner::<T>::insert(new_land_id, &sender, ());
+            Self::add_land_to_new_owner(new_land_id, &sender);
+
+            // Update total land count
+            let total_land_count = Self::all_lands_count();
+            let new_total_land_count = total_land_count.checked_add(One::one()).ok_or("Overflow adding new count to total lands")?;
+            AllLandsCount::<T>::put(new_total_land_count);
+
+            // Update land info
+            LandInfo::<T>::insert(new_land_id, (bc_id, coordinate));
+
+            // Update land blocks
+            LandBlocks::<T>::insert(bc_id, coordinate, ());
+
+            Self::deposit_event(Event::<T>::NewLandBlockPurchased(new_land_id.clone(), bc_id, coordinate));
+
+            Ok(().into())
+        }
+
         #[pallet::weight(10_000)]
         pub(super) fn buy_land(origin: OriginFor<T>, bc_id: CountryId, quantity: u8) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
