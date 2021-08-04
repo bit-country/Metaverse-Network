@@ -173,7 +173,7 @@ pub mod pallet {
 
             let total_land_count = Self::all_lands_count();
 
-            let new_total_land_count = total_land_count.checked_add(One::one()).ok_or("Overflow adding new count to total lands")?;
+            let new_total_land_count = total_land_count.checked_add(quantity.into()).ok_or("Overflow adding new count to total lands")?;
             AllLandsCount::<T>::put(new_total_land_count);
             Self::deposit_event(Event::<T>::NewLandCreated(new_land_ids.clone()));
 
