@@ -145,11 +145,13 @@ pub mod pallet {
 
             ensure!(T::CountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);
 
+            // Check whether the coordinate is exists
             ensure!(
                 !LandBlocks::<T>::contains_key(bc_id, coordinate),
                 Error::<T>::LandBlockIsNotAvailable
             );
 
+            // Check whether the coordinate is within the bound
             let max_bound = MaxBound::<T>::get();
             ensure!(
                 ( coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0) && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
