@@ -109,13 +109,20 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        //No permission
+        // No permission
         NoPermission,
-        //No available bitcountry id
+        // No available bitcountry id
         NoAvailableBitCountryId,
+        // No available land id
         NoAvailableLandId,
+        // Insufficient fund
         InsufficientFund,
+        // Land id already exist
         LandIdAlreadyExist,
+        // Land block is not available
+        LandBlockIsNotAvailable,
+        // Land block is out of bound
+        LandBlockIsOutOfBound
     }
 
     #[pallet::call]
@@ -137,6 +144,17 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
 
             ensure!(T::CountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);
+
+            ensure!(
+                !LandBlocks::<T>::contains_key(bc_id, coordinate),
+                Error::<T>::LandBlockIsNotAvailable
+            );
+
+            let max_bound = MaxBound::<T>::get();
+            ensure!(
+                ( coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0) && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
+                Error::<T>::LandBlockIsOutOfBound
+            );
 
             // Check minimum balance and transfer
             let minimum_land_price = T::MinimumLandPrice::get();
