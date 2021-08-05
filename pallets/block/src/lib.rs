@@ -130,7 +130,8 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         pub(super) fn set_max_bounds(origin: OriginFor<T>, new_bound: (i32, i32)) -> DispatchResultWithPostInfo {
             // Only execute by governance
-            T::CouncilOrigin::ensure_origin(origin)?;
+            // T::CouncilOrigin::ensure_origin(origin)?;
+            ensure_root(origin)?;
 
             MaxBound::<T>::set(new_bound);
             Self::deposit_event(Event::<T>::NewMaxBoundSet(new_bound));
