@@ -1,5 +1,5 @@
 // This file is part of Bit.Country.
-
+// Extension of orml vesting schedule to support multi-currencies vesting.
 // Copyright (C) 2020-2021 Bit.Country.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -23,6 +23,7 @@ use frame_support::{
     dispatch::{DispatchResultWithPostInfo, DispatchResult},
     decl_error, decl_event, decl_module, decl_storage, ensure, Parameter,
     pallet_prelude::*,
+    transactional,
 };
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
@@ -40,7 +41,7 @@ use sp_std::vec::Vec;
 use frame_support::sp_runtime::ModuleId;
 use bc_country::*;
 use auction_manager::{SwapManager};
-use frame_support::traits::{Get, Currency};
+use frame_support::traits::{Get, Currency, WithdrawReasons};
 use frame_system::pallet_prelude::*;
 
 #[cfg(test)]
@@ -63,16 +64,31 @@ pub struct Token<Balance> {
 
 pub use pallet::*;
 
+/// The maximum number of vesting schedules an account can have.
+pub const MAX_VESTINGS: usize = 20;
+
+pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use primitives::{SocialTokenCurrencyId, TokenId};
+    use primitives::{SocialTokenCurrencyId, TokenId, VestingSchedule};
     use frame_support::sp_runtime::{SaturatedConversion, FixedPointNumber};
     use primitives::dex::Price;
     use frame_support::sp_runtime::traits::Saturating;
+    use sp_std::convert::TryInto;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
+
+    pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
+    pub type ScheduledItem<T> = (
+        <T as frame_system::Config>::AccountId,
+        <T as frame_system::Config>::BlockNumber,
+        <T as frame_system::Config>::BlockNumber,
+        u32,
+        Balance,
+    );
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -83,10 +99,15 @@ pub mod pallet {
             Self::AccountId,
             CurrencyId=SocialTokenCurrencyId,
             Balance=Balance,
-        >;
+        > + MultiLockableCurrency<Self::AccountId>;
         type SocialTokenTreasury: Get<ModuleId>;
         type CountryInfoSource: BCCountry<Self::AccountId>;
         type LiquidityPoolManager: SwapManager<Self::AccountId, SocialTokenCurrencyId, Balance>;
+        #[pallet::constant]
+        /// The minimum amount transferred to call `vested_transfer`.
+        type MinVestedTransfer: Get<Balance>;
+        /// Required origin for vested transfer.
+        type VestedTransferOrigin: EnsureOrigin<Self::Origin, Success=Self::AccountId>;
     }
 
     #[pallet::storage]
@@ -107,6 +128,12 @@ pub mod pallet {
     /// (hash) -> Token details [returns Token struct]
     pub(super) type CountryTreasury<T: Config> =
     StorageMap<_, Blake2_128Concat, CountryId, CountryFund<T::AccountId, Balance>, OptionQuery>;
+
+    /// Vesting schedules of an account.
+    #[pallet::storage]
+    #[pallet::getter(fn vesting_schedules)]
+    pub type VestingSchedules<T: Config> =
+    StorageMap<_, Blake2_128Concat, T::AccountId, Vec<VestingScheduleOf<T>>, ValueQuery>;
 
     #[pallet::error]
     pub enum Error<T> {
@@ -130,6 +157,18 @@ pub mod pallet {
         InitialSocialTokenSupplyIsTooLow,
         /// Failed on updating social token for this bitcountry
         FailedOnUpdateingSocialToken,
+        /// Vesting period is zero
+        ZeroVestingPeriod,
+        /// Number of vests is zero
+        ZeroVestingPeriodCount,
+        /// Arithmetic calculation overflow
+        NumOverflow,
+        /// Insufficient amount of balance to lock
+        InsufficientBalanceToLock,
+        /// This account have too many vesting schedules
+        TooManyVestingSchedules,
+        /// Invalid vesting schedule
+        InvalidVestingSchedule,
     }
 
     #[pallet::call]
@@ -166,7 +205,7 @@ pub mod pallet {
                 supply_percent > 0u128 && supply_percent >= 20u128,
                 Error::<T>::InitialSocialTokenSupplyIsTooLow
             );
-
+            //Remaning balance for bc owner
             let owner_supply = total_supply.saturating_sub(initial_pool_supply);
             debug::info!("owner_supply: {})", owner_supply);
             //Generate new TokenId
@@ -203,9 +242,29 @@ pub mod pallet {
             SocialTokens::<T>::insert(currency_id, token_info);
 
             CountryTreasury::<T>::insert(country_id, country_fund);
-            T::CountryCurrency::deposit(currency_id, &who, total_supply)?;
+            //Deposit fund into bit country treasury
+            T::CountryCurrency::deposit(currency_id, &fund_id, total_supply)?;
+
             //Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
-            T::LiquidityPoolManager::add_liquidity(&who, SocialTokenCurrencyId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
+            T::LiquidityPoolManager::add_liquidity(&fund_id, SocialTokenCurrencyId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
+
+            //The remaining token will be vested gradually 12 months.
+            let now = <frame_system::Pallet<T>>::block_number();
+            let vested_per_period = owner_supply.checked_div(12).ok_or("Overflow")?;
+            let period_block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into(28800u64).unwrap_or_default();
+
+            let vesting_schedule = VestingSchedule {
+                token: currency_id,
+                start: now,
+                period: period_block_number,
+                period_count: 12,
+                per_period: vested_per_period,
+            };
+
+            T::CountryCurrency::transfer(currency_id, &fund_id, &who, owner_supply)?;
+            T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, &who, owner_supply);
+            <VestingSchedules<T>>::append(who, vesting_schedule);
+
             let fund_address = Self::get_country_fund_id(country_id);
             Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address, total_supply, country_id));
 
@@ -226,6 +285,46 @@ pub mod pallet {
 
             Ok(().into())
         }
+
+        #[pallet::weight(100_000)]
+        pub fn claim(origin: OriginFor<T>, currency_id: SocialTokenCurrencyId) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            let locked_amount = Self::do_claim(&who, currency_id);
+
+            Self::deposit_event(Event::Claimed(currency_id.clone(), who, locked_amount));
+            Ok(().into())
+        }
+
+        #[pallet::weight(100_000)]
+        pub fn vested_transfer(
+            origin: OriginFor<T>,
+            dest: <T::Lookup as StaticLookup>::Source,
+            schedule: VestingScheduleOf<T>,
+        ) -> DispatchResultWithPostInfo {
+            let from = ensure_signed(origin)?;
+            let to = T::Lookup::lookup(dest)?;
+            let currency_id = schedule.token;
+            Self::do_vested_transfer(&from, &to, currency_id.clone(), schedule.clone())?;
+
+            Self::deposit_event(Event::VestingScheduleAdded(currency_id, from, to, schedule));
+            Ok(().into())
+        }
+
+        #[pallet::weight(100_000)]
+        pub fn update_vesting_schedules(
+            origin: OriginFor<T>,
+            who: <T::Lookup as StaticLookup>::Source,
+            currency_id: SocialTokenCurrencyId,
+            vesting_schedules: Vec<VestingScheduleOf<T>>,
+        ) -> DispatchResultWithPostInfo {
+            ensure_root(origin)?;
+
+            let account = T::Lookup::lookup(who)?;
+            Self::do_update_vesting_schedules(&account, currency_id.clone(), vesting_schedules)?;
+
+            Self::deposit_event(Event::VestingSchedulesUpdated(currency_id, account));
+            Ok(().into())
+        }
     }
 
     #[pallet::event]
@@ -242,6 +341,12 @@ pub mod pallet {
         SocialTokenTransferred(SocialTokenCurrencyId, T::AccountId, T::AccountId, Balance),
         /// Some assets were destroyed. \[asset_id, owner, balance\]
         SocialTokenDestroyed(SocialTokenCurrencyId, T::AccountId, Balance),
+        /// Added new vesting schedule. [token, from, to, vesting_schedule]
+        VestingScheduleAdded(SocialTokenCurrencyId, T::AccountId, T::AccountId, VestingScheduleOf<T>),
+        /// Claimed vesting. [token, who, locked_amount]
+        Claimed(SocialTokenCurrencyId, T::AccountId, Balance),
+        /// Updated vesting schedules. [token, who]
+        VestingSchedulesUpdated(SocialTokenCurrencyId, T::AccountId),
     }
 
     #[pallet::hooks]
@@ -283,6 +388,95 @@ impl<T: Config> Module<T> {
             Some(fund) => fund.vault,
             _ => Default::default()
         }
+    }
+
+    fn do_claim(who: &T::AccountId, currency_id: SocialTokenCurrencyId) -> Balance {
+        let locked = Self::locked_balance(who, currency_id.clone());
+        if locked.is_zero() {
+            T::CountryCurrency::remove_lock(VESTING_LOCK_ID, currency_id, who);
+        } else {
+            T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, locked);
+        }
+        locked
+    }
+
+    /// Returns locked balance of any social token based on current block number.
+    fn locked_balance(who: &T::AccountId, currency_id: SocialTokenCurrencyId) -> Balance {
+        let now = <frame_system::Pallet<T>>::block_number();
+        <VestingSchedules<T>>::mutate_exists(who, |maybe_schedules| {
+            let total = if let Some(schedules) = maybe_schedules.as_mut() {
+                let mut total: Balance = Zero::zero();
+                schedules.retain(|s| {
+                    if s.token == currency_id
+                    {
+                        let amount = s.locked_amount(now);
+                        total = total.saturating_add(amount);
+                        !amount.is_zero()
+                    } else {
+                        false
+                    }
+                });
+                total
+            } else {
+                Zero::zero()
+            };
+            if total.is_zero() {
+                *maybe_schedules = None;
+            }
+            total
+        })
+    }
+
+    #[transactional]
+    fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, currency_id: SocialTokenCurrencyId, schedule: VestingScheduleOf<T>) -> DispatchResult {
+        let schedule_amount = Self::ensure_valid_vesting_schedule(&currency_id, &schedule)?;
+
+        ensure!(
+			<VestingSchedules<T>>::decode_len(to).unwrap_or(0) < MAX_VESTINGS,
+			Error::<T>::TooManyVestingSchedules
+		);
+
+        let total_amount = Self::locked_balance(to, schedule.token)
+            .checked_add(schedule_amount)
+            .ok_or(Error::<T>::NumOverflow)?;
+
+        T::CountryCurrency::transfer(schedule.token, from, to, schedule_amount)?;
+        T::CountryCurrency::set_lock(VESTING_LOCK_ID, schedule.token, to, total_amount);
+        <VestingSchedules<T>>::append(to, schedule);
+        Ok(())
+    }
+
+    fn do_update_vesting_schedules(who: &T::AccountId, currency_id: SocialTokenCurrencyId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
+        let total_amount = schedules.iter().try_fold::<_, _, Result<Balance, Error<T>>>(
+            Zero::zero(),
+            |acc_amount, schedule| {
+                let amount = Self::ensure_valid_vesting_schedule(&currency_id, schedule)?;
+                Ok(acc_amount + amount)
+            },
+        )?;
+        ensure!(
+			T::CountryCurrency::free_balance(currency_id.clone(),who) >= total_amount,
+			Error::<T>::InsufficientBalanceToLock,
+		);
+
+        T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, total_amount);
+        <VestingSchedules<T>>::insert(who, schedules);
+
+        Ok(())
+    }
+
+    /// Returns `Ok(amount)` if valid schedule, or error.
+    fn ensure_valid_vesting_schedule(currency_id: &SocialTokenCurrencyId, schedule: &VestingScheduleOf<T>) -> Result<Balance, Error<T>> {
+        ensure!(schedule.token == *currency_id, Error::<T>::InvalidVestingSchedule);
+        ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
+        ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
+        ensure!(schedule.end().is_some(), Error::<T>::NumOverflow);
+
+        let total = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
+
+        ensure!(total >= T::MinVestedTransfer::get(), Error::<T>::BalanceLow);
+
+        Ok(total)
     }
 }
 

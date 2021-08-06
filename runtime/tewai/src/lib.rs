@@ -16,11 +16,8 @@ use frame_support::{
         U128CurrencyToVote,
     },
 };
-use frame_system::{
-    EnsureRoot, EnsureOneOf,
-    limits::{BlockWeights, BlockLength},
-};
-use frame_support::traits::InstanceFilter;
+use frame_system::{EnsureRoot, EnsureOneOf, limits::{BlockWeights, BlockLength}, RawOrigin};
+use frame_support::traits::{InstanceFilter, EnsureOrigin};
 use codec::{Encode, Decode};
 use sp_core::{
     crypto::KeyTypeId,
@@ -947,6 +944,31 @@ parameter_types! {
 	pub const MinVestedTransfer: Balance = 100 * DOLLARS;
 }
 
+pub struct EnsureRootOrBCTreasury;
+
+impl EnsureOrigin<Origin> for EnsureRootOrBCTreasury {
+    type Success = AccountId;
+
+    fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
+        Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
+            RawOrigin::Root => Ok(BitCountryTreasuryModuleId::get().into_account()),
+            RawOrigin::Signed(caller) => {
+                if caller == BitCountryTreasuryModuleId::get().into_account() {
+                    Ok(caller)
+                } else {
+                    Err(Origin::from(Some(caller)))
+                }
+            }
+            r => Err(Origin::from(r)),
+        })
+    }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    fn successful_origin() -> Origin {
+        Origin::from(RawOrigin::Signed(Default::default()))
+    }
+}
+
 impl pallet_vesting::Config for Runtime {
     type Event = Event;
     type Currency = Balances;
@@ -1114,6 +1136,8 @@ impl tokenization::Config for Runtime {
     type SocialTokenTreasury = CountryFundModuleId;
     type CountryInfoSource = BitCountryModule;
     type LiquidityPoolManager = Swap;
+    type MinVestedTransfer = MinVestedTransfer;
+    type VestedTransferOrigin = EnsureRootOrBCTreasury;
 }
 
 parameter_types! {
