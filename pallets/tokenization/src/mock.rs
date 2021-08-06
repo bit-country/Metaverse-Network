@@ -27,6 +27,9 @@ pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
 pub const NUUM: CurrencyId = 0;
 pub const COUNTRY_FUND: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1);
 
+ord_parameter_types! {
+    pub const One: AccountId = ALICE;
+}
 
 // Configure a mock runtime to test the pallet.
 
@@ -63,7 +66,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+	pub const ExistentialDeposit: u64 = 0;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -98,7 +101,7 @@ impl orml_tokens::Config for Runtime {
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
-pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+pub type AdaptedBasicCurrency = social_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 pub struct CountryInfoSource {}
 
@@ -131,25 +134,44 @@ impl SwapManager<AccountId, SocialTokenCurrencyId, Balance> for DEXManager {
     }
 }
 
+parameter_types! {
+    pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
+    pub const SwapFee: (u32, u32) = (1, 20); //0.005%
+}
+
+impl swap::Config for Runtime {
+    type Event = Event;
+    type ModuleId = SwapModuleId;
+    type SocialTokenCurrency = Tokens;
+    type NativeCurrency = Balances;
+    type GetSwapFee = SwapFee;
+}
+
+
+parameter_types! {
+    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
+}
+
+impl social_currencies::Config for Runtime {
+    type Event = Event;
+    type MultiSocialCurrency = Tokens;
+    type NativeCurrency = AdaptedBasicCurrency;
+    type GetNativeCurrencyId = GetNativeCurrencyId;
+}
+
+parameter_types! {
+	pub const MinVestedTransfer: Balance = 100;
+}
+
 impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
     type SocialTokenTreasury = CountryFundModuleId;
     type CountryInfoSource = CountryInfoSource;
-    type LiquidityPoolManager = DEXManager;
-}
-
-parameter_types! {
-	pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
-}
-
-impl orml_currencies::Config for Runtime {
-    type Event = Event;
-    type MultiCurrency = Tokens;
-    type NativeCurrency = AdaptedBasicCurrency;
-    type GetNativeCurrencyId = GetNativeCurrencyId;
-    type WeightInfo = ();
+    type LiquidityPoolManager = SwapModule;
+    type MinVestedTransfer = MinVestedTransfer;
+    type VestedTransferOrigin = EnsureSignedBy<One, AccountId>;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -163,8 +185,9 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},        
-        Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
+        Currencies: social_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
+        SwapModule: swap::{Module, Call ,Storage, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
 	}
 );

@@ -174,5 +174,13 @@
       "Local": "CountryId"
     }
   },
-  "AmountOf": "Balance"
+  "AmountOf": "Balance",
+  "VestingSchedule": {
+    "token": "SocialTokenCurrencyId",
+    "start": "BlockNumber",
+    "period": "BlockNumber",
+    "period_count": "u32",
+    "per_period": "Balance"
+  },
+  "VestingScheduleOf": "VestingSchedule"
 }
