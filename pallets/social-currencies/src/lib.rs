@@ -84,7 +84,8 @@ pub mod pallet {
         + MultiCurrencyExtended<Self::AccountId, CurrencyId=SocialTokenCurrencyId>
         + MultiLockableCurrency<Self::AccountId, CurrencyId=SocialTokenCurrencyId>
         + MultiReservableCurrency<Self::AccountId, CurrencyId=SocialTokenCurrencyId>;
-        type NativeCurrency: BasicCurrencyExtended<Self::AccountId, Balance=BalanceOf<Self>, Amount=AmountOf<Self>>;
+        type NativeCurrency: BasicCurrencyExtended<Self::AccountId, Balance=BalanceOf<Self>, Amount=AmountOf<Self>>
+        + BasicLockableCurrency<Self::AccountId, Balance=BalanceOf<Self>>;
         #[pallet::constant]
         /// The native currency id
         type GetNativeCurrencyId: Get<SocialTokenCurrencyId>;
@@ -287,6 +288,44 @@ impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
         }
         Self::deposit_event(Event::BalanceUpdated(currency_id, who.clone(), by_amount));
         Ok(())
+    }
+}
+
+impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
+    type Moment = T::BlockNumber;
+
+    fn set_lock(
+        lock_id: LockIdentifier,
+        currency_id: Self::CurrencyId,
+        who: &T::AccountId,
+        amount: Self::Balance,
+    ) -> DispatchResult {
+        if currency_id == T::GetNativeCurrencyId::get() {
+            T::NativeCurrency::set_lock(lock_id, who, amount)
+        } else {
+            T::MultiSocialCurrency::set_lock(lock_id, currency_id, who, amount)
+        }
+    }
+
+    fn extend_lock(
+        lock_id: LockIdentifier,
+        currency_id: Self::CurrencyId,
+        who: &T::AccountId,
+        amount: Self::Balance,
+    ) -> DispatchResult {
+        if currency_id == T::GetNativeCurrencyId::get() {
+            T::NativeCurrency::extend_lock(lock_id, who, amount)
+        } else {
+            T::MultiSocialCurrency::extend_lock(lock_id, currency_id, who, amount)
+        }
+    }
+
+    fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) -> DispatchResult {
+        if currency_id == T::GetNativeCurrencyId::get() {
+            T::NativeCurrency::remove_lock(lock_id, who)
+        } else {
+            T::MultiSocialCurrency::remove_lock(lock_id, currency_id, who)
+        }
     }
 }
 
