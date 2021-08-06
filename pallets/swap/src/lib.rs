@@ -307,14 +307,14 @@ impl<T: Config> Pallet<T> {
             let dex_module_account_id = Self::account_id();
             if trading_pair.0.is_native_token_currency_id() {
                 let pool_0_incr_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(pool_0_increment).unwrap_or_default();
-                T::NativeCurrency::transfer(who, &dex_module_account_id, pool_0_incr_balance, ExistenceRequirement::KeepAlive)?;
+                T::NativeCurrency::transfer(who, &dex_module_account_id, pool_0_incr_balance, ExistenceRequirement::AllowDeath)?;
             } else {
                 T::SocialTokenCurrency::transfer(trading_pair.0, who, &dex_module_account_id, pool_0_increment)?;
             }
 
             if trading_pair.1.is_native_token_currency_id() {
                 let pool_1_incr_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(pool_1_increment).unwrap_or_default();
-                T::NativeCurrency::transfer(who, &dex_module_account_id, pool_1_incr_balance, ExistenceRequirement::KeepAlive)?;
+                T::NativeCurrency::transfer(who, &dex_module_account_id, pool_1_incr_balance, ExistenceRequirement::AllowDeath)?;
             } else {
                 debug::info!("Pool 1 increment {}", pool_1_increment);
                 T::SocialTokenCurrency::transfer(trading_pair.1, who, &dex_module_account_id, pool_1_increment)?;
