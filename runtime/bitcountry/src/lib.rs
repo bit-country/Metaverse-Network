@@ -1131,7 +1131,7 @@ impl continuum::Config for Runtime {
 impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
-    type CountryCurrency = Tokens;
+    type CountryCurrency = SocialCurrencies;
     type SocialTokenTreasury = CountryFundModuleId;
     type CountryInfoSource = BitCountryModule;
     type LiquidityPoolManager = Swap;

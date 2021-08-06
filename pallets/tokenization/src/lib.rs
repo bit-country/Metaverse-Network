@@ -99,7 +99,7 @@ pub mod pallet {
             Self::AccountId,
             CurrencyId=SocialTokenCurrencyId,
             Balance=Balance,
-        > + MultiLockableCurrency<Self::AccountId>;
+        > + MultiLockableCurrency<Self::AccountId, CurrencyId=SocialTokenCurrencyId>;
         type SocialTokenTreasury: Get<ModuleId>;
         type CountryInfoSource: BCCountry<Self::AccountId>;
         type LiquidityPoolManager: SwapManager<Self::AccountId, SocialTokenCurrencyId, Balance>;
@@ -224,7 +224,7 @@ pub mod pallet {
 
             //Country treasury
             let country_fund = CountryFund {
-                vault: fund_id,
+                vault: fund_id.clone(),
                 value: total_supply,
                 backing: initial_backing,
                 currency_id: currency_id,
@@ -241,10 +241,10 @@ pub mod pallet {
             //Store social token info
             SocialTokens::<T>::insert(currency_id, token_info);
 
-            CountryTreasury::<T>::insert(country_id, country_fund);
+            CountryTreasury::<T>::insert(country_id.clone(), country_fund);
             //Deposit fund into bit country treasury
-            T::CountryCurrency::deposit(currency_id, &fund_id, total_supply)?;
-
+            T::CountryCurrency::transfer(SocialTokenCurrencyId::NativeToken(0), &who, &fund_id, initial_backing.clone())?;
+            T::CountryCurrency::deposit(currency_id, &fund_id, total_supply.clone())?;
             //Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
             T::LiquidityPoolManager::add_liquidity(&fund_id, SocialTokenCurrencyId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
 
@@ -261,12 +261,13 @@ pub mod pallet {
                 per_period: vested_per_period,
             };
 
-            T::CountryCurrency::transfer(currency_id, &fund_id, &who, owner_supply)?;
+            T::CountryCurrency::transfer(currency_id, &fund_id, &who, owner_supply.clone())?;
             T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, &who, owner_supply);
-            <VestingSchedules<T>>::append(who, vesting_schedule);
+            <VestingSchedules<T>>::append(who.clone(), vesting_schedule.clone());
+            Self::deposit_event(Event::VestingScheduleAdded(currency_id, fund_id, who.clone(), vesting_schedule));
 
             let fund_address = Self::get_country_fund_id(country_id);
-            Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who, fund_address, total_supply, country_id));
+            Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who.clone(), fund_address, total_supply, country_id));
 
             Ok(().into())
         }
@@ -335,7 +336,7 @@ pub mod pallet {
     CurrencyId = "CurrencyId"
     )]
     pub enum Event<T: Config> {
-        /// Some assets were issued. \[asset_id, owner, total_supply\]
+        /// Some assets were issued. \[asset_id, owner, fund_id ,total_supply\]
         SocialTokenIssued(SocialTokenCurrencyId, T::AccountId, T::AccountId, u128, u64),
         /// Some assets were transferred. \[asset_id, from, to, amount\]
         SocialTokenTransferred(SocialTokenCurrencyId, T::AccountId, T::AccountId, Balance),
