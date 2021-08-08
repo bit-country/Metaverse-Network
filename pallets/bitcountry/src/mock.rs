@@ -27,6 +27,12 @@ pub const COUNTRY_ID: CountryId = 0;
 pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
 pub const NUUM: CurrencyId = 0;
 
+pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
+pub const CLASS_ID_NOT_EXIST: <Runtime as orml_nft::Config>::ClassId = 1;
+pub const TOKEN_ID: <Runtime as orml_nft::Config>::TokenId = 0;
+pub const TOKEN_ID_NOT_EXIST: <Runtime as orml_nft::Config>::TokenId = 1;
+pub const COLLECTION_ID: u64 = 0;
+
 // Configure a mock runtime to test the pallet.
 
 parameter_types! {
@@ -126,6 +132,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         CountryModule: bitcountry::{Module, Call ,Storage, Event<T>},    
         Nft: pallet_nft::{Module, Call, Event<T>},		
+        OrmlNft: orml_nft::{Module, Storage, Config<T>},
 	}
 );
 

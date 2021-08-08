@@ -22,6 +22,32 @@ use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
+use pallet_nft::CollectionType;
+use ownership_manager::TokenType;
+
+fn init_nft_collection(owner: Origin) {
+    assert_ok!(Nft::create_group(
+        Origin::root(),
+        vec![1],
+        vec![1],
+    ));
+    assert_ok!(Nft::create_class(
+        owner.clone(),
+        vec![1],        
+        COLLECTION_ID,
+        TokenType::Transferable,
+        CollectionType::Collectable,
+    ));
+    // assert_ok!(Nft::mint(
+    //     owner.clone(),
+    //     CLASS_ID,
+    //     vec![1],
+    //     vec![1],
+    //     vec![1],
+    //     1
+    // ));
+}
+
 
 #[test]
 fn create_bc_should_work() {
@@ -77,6 +103,43 @@ fn transfer_country_should_work() {
         assert_eq!(last_event(), event);
     })
 }
+
+
+#[test]
+fn transfer_tokenized_country_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        init_nft_collection(Origin::signed(ALICE));        
+        assert_ok!(CountryModule::create_bc(Origin::signed(ALICE), vec![1]));
+        assert_ok!(CountryModule::tokenize_ownership(Origin::signed(ALICE), COUNTRY_ID));
+        assert_ok!(CountryModule::transfer_country(Origin::signed(ALICE), BOB, COUNTRY_ID));        
+        
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Token(COUNTRY_ID)),
+            Some(())
+        );
+
+        assert_eq!(CountryModule::check_ownership(&BOB, &COUNTRY_ID), true);
+
+        let event = Event::bitcountry(crate::Event::TransferredCountry(COUNTRY_ID, ALICE, BOB));
+        assert_eq!(last_event(), event);
+        //Make sure 2 ways transfer works
+        assert_ok!(CountryModule::transfer_country(
+            Origin::signed(BOB),
+            ALICE,
+            COUNTRY_ID
+        ));
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Token(COUNTRY_ID)),
+            Some(())
+        );
+        
+        assert_eq!(CountryModule::check_ownership(&ALICE, &COUNTRY_ID), true);
+        let event = Event::bitcountry(crate::Event::TransferredCountry(COUNTRY_ID, BOB, ALICE));
+        assert_eq!(last_event(), event);
+    })
+}
+
+
 
 #[test]
 fn transfer_country_should_fail() {
@@ -173,6 +236,137 @@ fn destroy_country_with_no_id_should_fail() {
         assert_noop!(
             CountryModule::destroy_country(Origin::root(), COUNTRY_ID_NOT_EXIST),
             Error::<Runtime>::CountryInfoNotFound
+        );
+    })
+}
+
+
+#[test]
+fn tokenize_ownership_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Setup & verify standard ownership
+        init_nft_collection(Origin::signed(ALICE));
+        assert_ok!(CountryModule::create_bc(
+            Origin::signed(ALICE),
+            vec![1]
+        ));
+        assert_eq!(CountryModule::check_ownership(&ALICE, &COUNTRY_ID), true);
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Standard(ALICE)),
+            Some(())
+        );
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Token(COUNTRY_ID)),
+            None
+        );
+        let country = CountryModule::get_country(COUNTRY_ID);
+        assert_eq!(country.unwrap().ownership_id, OwnershipId::Standard(1));
+
+        // Verify tokenized ownership
+        assert_ok!(CountryModule::tokenize_ownership(Origin::signed(ALICE), COUNTRY_ID));
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Token(COUNTRY_ID)),
+            Some(())
+        );
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Standard(ALICE)),
+            None
+        );
+        let country = CountryModule::get_country(COUNTRY_ID);
+        assert_eq!(country.unwrap().ownership_id, OwnershipId::Token(TOKEN_ID));
+
+        let event = Event::bitcountry(crate::Event::CountryOwnershipTokenized(COUNTRY_ID, OwnershipId::Token(TOKEN_ID)));        
+        assert_eq!(last_event(), event);
+        assert_eq!(CountryModule::check_ownership(&ALICE, &COUNTRY_ID), true);
+    })
+}
+
+#[test]
+fn detokenize_ownership_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        // Setup, tokenize, & verify ownership
+        init_nft_collection(Origin::signed(ALICE));
+        assert_ok!(CountryModule::create_bc(Origin::signed(ALICE), vec![1]));
+        assert_ok!(CountryModule::tokenize_ownership(Origin::signed(ALICE), COUNTRY_ID));
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Standard(ALICE)),
+            None
+        );
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Token(COUNTRY_ID)),
+            Some(())
+        );
+        let country = CountryModule::get_country(COUNTRY_ID);
+        assert_eq!(country.unwrap().ownership_id, OwnershipId::Token(TOKEN_ID));
+
+        // Detokenize & verify ownership
+        assert_ok!(CountryModule::detokenize_ownership(Origin::signed(ALICE), COUNTRY_ID));
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Standard(ALICE)),
+            Some(())
+        );
+        assert_eq!(
+            CountryModule::get_country_owner(COUNTRY_ID, OwnershipId::Token(COUNTRY_ID)),
+            None
+        );
+        let country = CountryModule::get_country(COUNTRY_ID);
+        assert_eq!(country.unwrap().ownership_id, OwnershipId::Standard(ALICE));
+
+        let event = Event::bitcountry(crate::Event::CountryOwnershipDetokenized(COUNTRY_ID, OwnershipId::Standard(ALICE)));        
+        assert_eq!(last_event(), event);
+        assert_eq!(CountryModule::check_ownership(&ALICE, &COUNTRY_ID), true);
+    })
+}
+
+#[test]
+fn tokenize_ownership_should_fail() {
+    ExtBuilder::default().build().execute_with(|| {
+        init_nft_collection(Origin::signed(ALICE));
+        // Country doesn't exist yet:
+        assert_noop!(
+            CountryModule::tokenize_ownership(Origin::signed(ALICE), COUNTRY_ID),
+            Error::<Runtime>::CountryNotExists
+        );
+
+        assert_ok!(CountryModule::create_bc(Origin::signed(ALICE), vec![1]));
+        
+        // Bob not owner:
+        assert_noop!(
+            CountryModule::tokenize_ownership(Origin::signed(BOB), COUNTRY_ID),
+            Error::<Runtime>::NoPermission
+        );
+
+        // Already tokenized:
+        assert_ok!(CountryModule::tokenize_ownership(Origin::signed(ALICE), COUNTRY_ID));
+        assert_noop!(
+            CountryModule::tokenize_ownership(Origin::signed(ALICE), COUNTRY_ID),
+            Error::<Runtime>::OwnershipAlreadyTokenized
+        );
+    })
+}
+
+#[test]
+fn detokenize_ownership_should_fail() {
+    ExtBuilder::default().build().execute_with(|| {
+        init_nft_collection(Origin::signed(ALICE));
+        // Country doesn't exist yet:
+        assert_noop!(
+            CountryModule::detokenize_ownership(Origin::signed(ALICE), COUNTRY_ID),
+            Error::<Runtime>::CountryNotExists
+        );
+
+        assert_ok!(CountryModule::create_bc(Origin::signed(ALICE), vec![1]));
+        
+        // Bob not owner:
+        assert_noop!(
+            CountryModule::detokenize_ownership(Origin::signed(BOB), COUNTRY_ID),
+            Error::<Runtime>::NoPermission
+        );
+
+        // Already detokenized /standard:        
+        assert_noop!(
+            CountryModule::detokenize_ownership(Origin::signed(ALICE), COUNTRY_ID),
+            Error::<Runtime>::OwnershipAlreadyDeTokenized
         );
     })
 }
