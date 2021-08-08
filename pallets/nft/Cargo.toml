@@ -32,6 +32,12 @@ social-currencies = { package = "social-currencies", path = "../social-currencie
 ownership-manager = { package = "ownership-manager", path = "../../traits/ownership-manager", default-features = false }
 bc-country = { package = "bc-country", path = "../../traits/bc-country", default-features = false }
 
+[dev-dependencies.pallet-country]
+default-features = false
+package = 'pallet-country'
+path = '../bitcountry'
+version = '2.0.0-rc6'
+
 [features]
 default = ['std']
 std = [

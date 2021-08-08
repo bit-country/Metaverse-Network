@@ -184,9 +184,7 @@ pub mod pallet {
                 Ok(().into())
             })
         }
-
-        // - New storage read to fetch country
-        // - Potentially needs to check storage on NFT pallet to determine ownership
+        
         // TODO - What to do when country frozen?
         #[pallet::weight(10_000)]
         pub(super) fn tokenize_ownership(origin: OriginFor<T>, country_id: CountryId) -> DispatchResultWithPostInfo {            
@@ -203,7 +201,7 @@ pub mod pallet {
 
                     // Update CountryOwner                    
                     let minted_ownership_token_id = T::OwnershipTokenManager::mint_ownership_token(&owner, &country_id)?;
-                    let new_ownership_id = OwnershipId::Token(minted_ownership_token_id);
+                    let new_ownership_id: OwnershipId<T::AccountId> = OwnershipId::Token(minted_ownership_token_id);
                     CountryOwner::<T>::insert(country_id.clone(), new_ownership_id.clone(), ());
                     
                     Self::do_update_ownership_id(country_id, new_ownership_id.clone())?;
@@ -217,7 +215,7 @@ pub mod pallet {
             // TODO - What if country is frozen?
             
             let owner = ensure_signed(origin)?;
-            let country = Countries::<T>::get(country_id).ok_or(Error::<T>::NoPermission)?;
+            let country = Countries::<T>::get(country_id).ok_or(Error::<T>::CountryNotExists)?;
 
             // Check Ownership
             ensure!(Self::check_ownership_given_country(&owner, &country), Error::<T>::NoPermission);
@@ -299,10 +297,15 @@ impl<T: Config> BCCountry<T::AccountId> for Module<T>
         }
     }
 
-    fn check_ownership_given_country(owner: &T::AccountId, country: &Country<T::AccountId>) -> bool {
-        // Self::get_country_owner(country_id, owner) == Some(())
-        // TODO - match on ownership type
-        false
+    fn check_ownership_given_country(who: &T::AccountId, country: &Country<T::AccountId>) -> bool {
+        match &country.ownership_id {
+            OwnershipId::Standard(country_owner) => {
+                who == country_owner
+            }, 
+            OwnershipId::Token(asset_id) => {
+                T::OwnershipTokenManager::is_token_owner(who, asset_id)
+            }
+        }
     }
 
     fn get_country(country_id: CountryId) -> Option<Country<T::AccountId>> {
@@ -338,36 +341,43 @@ impl<T: Config> BCCountry<T::AccountId> for Module<T>
         
         // 1. Fetch Country        
         let country = Self::get_country(country_id).ok_or(Error::<T>::CountryNotExists)?;
-        let old_ownership_id = country.ownership_id;
+        let ownership_id = &country.ownership_id;
 
         // 2. Confirm owner
-        ensure!(Self::check_ownership(from, &country_id), Error::<T>::NoPermission);
-    
-        // Get owner of the bitcountry
-        CountryOwner::<T>::try_mutate_exists(
-            &country_id, &old_ownership_id, |country_by_owner| -> DispatchResult {
-                //ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
-                ensure!(country_by_owner.is_some(), Error::<T>::NoPermission);
-                *country_by_owner = None;
+        ensure!(Self::check_ownership_given_country(&from, &country), Error::<T>::NoPermission);
 
-                let new_ownership_id = OwnershipId::Standard(to.clone());
-                CountryOwner::<T>::insert(country_id.clone(), new_ownership_id.clone(), ());
+        match ownership_id {
+            OwnershipId::Standard(_)  => {
+                // Get owner of the bitcountry
+                CountryOwner::<T>::try_mutate_exists(
+                    &country_id, &ownership_id, |country_by_owner| -> DispatchResult {
+                        //ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
+                        ensure!(country_by_owner.is_some(), Error::<T>::NoPermission);
+                        *country_by_owner = None;
 
-                Countries::<T>::try_mutate_exists(
-                    &country_id,
-                    |country| -> DispatchResult {
-                        let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
-                        country_record.ownership_id = new_ownership_id.clone();
-                        Self::deposit_event(Event::<T>::TransferredCountry(country_id, from.clone(), to.clone()));
+                        let new_ownership_id = OwnershipId::Standard(to.clone());
+                        CountryOwner::<T>::insert(country_id.clone(), new_ownership_id.clone(), ());
 
-                        // Dispatch event to notify that ownership has been de-tokenized
-                        if let OwnershipId::Token(asset_id) = old_ownership_id {                            
-                            T::OwnershipTokenManager::burn_ownership_token(from, &asset_id)?;
-                            Self::deposit_event(Event::<T>::CountryOwnershipDetokenized(country_id, new_ownership_id));
-                        }
+                        Countries::<T>::try_mutate_exists(
+                            &country_id,
+                            |country| -> DispatchResult {
+                                let mut country_record = country.as_mut().ok_or(Error::<T>::NoPermission)?;
+                                country_record.ownership_id = new_ownership_id.clone();
+                                Self::deposit_event(Event::<T>::TransferredCountry(country_id, from.clone(), to.clone()));
 
-                        Ok(())
+                                Ok(())
+                        })
                 })
-        })
+            }, 
+            OwnershipId::Token(asset_id) => {
+                T::OwnershipTokenManager::transfer_ownership_token(&from, &to, *asset_id)?;
+                Self::deposit_event(Event::<T>::TransferredCountry(country_id, from.clone(), to.clone()));
+                Ok(())
+           }
+        }
+
+        
+    
+        
     }    
 }

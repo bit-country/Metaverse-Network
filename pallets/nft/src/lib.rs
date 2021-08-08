@@ -623,6 +623,12 @@ impl<T: Config> OwnershipTokenManager<T::AccountId> for Module<T> {
         }
     }
 
+    fn transfer_ownership_token(from: &T::AccountId, to: &T::AccountId, asset_id: AssetId) -> DispatchResult {
+        ensure!(!T::AssetsHandler::check_item_in_auction(asset_id),Error::<T>::AssetAlreadyInAuction);
+        let _ = Self::do_transfer(&from, &to, asset_id)?;
+        Ok(())
+    }
+
     fn is_token_owner(who: &T::AccountId, asset_id: &AssetId) -> bool {
         Self::check_nft_ownership(who, asset_id).unwrap_or(false)
     }

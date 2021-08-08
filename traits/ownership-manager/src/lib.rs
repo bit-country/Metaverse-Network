@@ -40,5 +40,7 @@ pub trait OwnershipTokenManager<AccountId> {
 
     fn burn_ownership_token(owner: &AccountId, asset_id: &AssetId) -> DispatchResult;
 
+    fn transfer_ownership_token(from: &AccountId, to: &AccountId, asset_id: AssetId) -> DispatchResult;
+
     fn is_token_owner(who: &AccountId, asset_id: &AssetId) -> bool;
 }
