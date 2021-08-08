@@ -352,9 +352,7 @@ pub mod pallet {
             let sender = ensure_signed(origin)?;
 
             ensure!(!T::AssetsHandler::check_item_in_auction(asset_id),Error::<T>::AssetAlreadyInAuction);
-
             let token_id = Self::do_transfer(&sender, &to, asset_id)?;
-
             Self::deposit_event(Event::<T>::TransferedNft(sender, to, token_id));
 
             Ok(().into())
@@ -366,28 +364,11 @@ pub mod pallet {
 
             for (_i, x) in tos.iter().enumerate() {
                 let (to, asset_id) = &x;
-                // let item = &x;
-                let owner = &sender.clone();
-
+                let owner = sender.clone();
                 let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
-
-                let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
-                let data = class_info.data;
-
-                // Self::do_transfer_helper(sender, to, asset_id, asset)?;
-                match data.token_type {
-                    TokenType::Transferable => {
-                        let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
-                        ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
-                        let _ = Self::handle_asset_ownership_transfer(&owner, &to, *asset_id);
-                        NftModule::<T>::transfer(&owner, &to, (asset.0, asset.1))?;
-                        Self::deposit_event(Event::<T>::TransferedNft(owner.clone(), to.clone(), asset.1.clone()));
-                    },
-                    TokenType::Ownership(country_id) => {
-                        // TODO handle batch transfer of ownership tokens
-                    },
-                    _ => ()
-                };
+                
+                let token_id = Self::do_transfer(&owner, &to, *asset_id)?;
+                Self::deposit_event(Event::<T>::TransferedNft(owner, to.clone(), token_id));
             }
 
             Ok(().into())
@@ -508,16 +489,12 @@ impl<T: Config> Module<T> {
         let data = class_info.data;
 
         match data.token_type {
-            TokenType::Transferable => {
+            TokenType::BoundToAddress => Err(Error::<T>::NonTransferable.into()),
+            _ => {
+                // Both TokenType::Transferrable and TokenType::Ownership(CountryId) work the same
                 Self::do_transfer_helper(sender, to, asset_id, asset)?;
                 Ok(asset.1)
-            },
-            TokenType::Ownership(country_id) => {
-                Self::do_transfer_helper(sender, to, asset_id, asset)?;
-                T::CountryOwnershipSource::transfer_ownership(sender, to, country_id)?; 
-                Ok(asset.1)
-            },            
-            TokenType::BoundToAddress => Err(Error::<T>::NonTransferable.into())
+            },                        
         }
     }
 
