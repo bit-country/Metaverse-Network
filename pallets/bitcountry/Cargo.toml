@@ -38,10 +38,20 @@ orml-traits = { default-features = false, version = '0.4.0' }
 orml-currencies = { default-features = false, version = '0.4.0' }
 orml-tokens = { default-features = false, version = '0.4.0' }
 
-[dependencies.nft]
+[dev-dependencies.pallet-nft]
 default-features = false
 package = 'pallet-nft'
 path = '../nft'
+version = '2.0.0-rc6'
+
+[dev-dependencies]
+orml-nft = { default-features = false, version = '0.4.0' }
+auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
+
+[dependencies.ownership-manager]
+default-features = false
+package = 'ownership-manager'
+path = '../../traits/ownership-manager'
 version = '2.0.0-rc6'
 
 [features]
@@ -53,10 +63,13 @@ std = [
     'frame-support/std',
     'frame-system/std',
     'sp-io/std',
+    'sp-api/std',
     'sp-core/std',
-    "sp-std/std",
-    "orml-traits/std",
-    "orml-tokens/std",
-    'nft/std',
-    'primitives/std'
+    "sp-std/std",    
+    "pallet-sudo/std", 
+    "pallet-nft/std",   
+    "primitives/std",
+    "ownership-manager/std",
+    "pallet-timestamp/std",
+    "pallet-balances/std",
 ]

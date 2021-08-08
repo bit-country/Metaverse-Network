@@ -33,9 +33,9 @@ fn create_bc_should_work() {
         assert_eq!(
             CountryModule::get_country(&COUNTRY_ID),
             Some(Country {
-                owner: ALICE,
+                ownership_id: OwnershipId::Standard(ALICE),
                 metadata: vec![1],
-                currency_id: Default::default(),
+                currency_id: SocialTokenCurrencyId::SocialToken(0),
             })
         );
         let event = Event::bitcountry(crate::Event::NewCountryCreated(COUNTRY_ID));

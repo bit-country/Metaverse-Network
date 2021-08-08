@@ -29,6 +29,8 @@ sp-core = { version = "3.0.0", default-features = false }
 pallet-balances = { version = "3.0.0", default-features = false }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 social-currencies = { package = "social-currencies", path = "../social-currencies", default-features = false }
+ownership-manager = { package = "ownership-manager", path = "../../traits/ownership-manager", default-features = false }
+bc-country = { package = "bc-country", path = "../../traits/bc-country", default-features = false }
 
 [features]
 default = ['std']
@@ -47,7 +49,9 @@ std = [
     'pallet-balances/std',
     'pallet-timestamp/std',
     'auction-manager/std',
-    'social-currencies/std'
+    'social-currencies/std',
+    'ownership-manager/std',
+    'bc-country/std',
 ]
 
 runtime-benchmarks = [

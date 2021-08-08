@@ -79,8 +79,6 @@ parameter_types! {
     pub const GetNativeCurrencyId: CurrencyId = 0;
 }
 
-pub struct MockAuctionManager;
-
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
     type Balance = Balance;
 
@@ -96,7 +94,25 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn create_auction(auction_type: AuctionType, item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64) -> Result<u64, DispatchError> {
+    fn create_auction(
+        auction_type: AuctionType,
+        item_id: ItemId,
+        end: Option<BlockNumber>,
+        recipient: AccountId,
+        initial_amount: Self::Balance,
+        start: BlockNumber,
+        listing_level: ListingLevel,
+    ) -> Result<AuctionId, DispatchError> {
+        todo!()
+    }
+
+    fn local_auction_bid_handler(
+        _now: BlockNumber,
+        id: AuctionId,
+        new_bid: (AccountId, Self::Balance),
+        last_bid: Option<(AccountId, Self::Balance)>,
+        social_currency_id: SocialTokenCurrencyId,
+    ) -> DispatchResult {
         todo!()
     }
 
