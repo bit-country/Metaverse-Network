@@ -31,16 +31,16 @@ fn mint_social_token_should_work() {
                 origin,
                 vec![1],
                 COUNTRY_ID,
-                400 * 1_000_000_000_000_000_000,
+                400,
                 (3,10),
-                10 * 1_000_000_000_000_000_000
+                10
             )
         );
 
-        assert_eq!(get_country_fund_balance(), 280);
+        assert_eq!(get_country_fund_balance(), 400);
 
         let event = mock::Event::tokenization(
-            crate::Event::SocialTokenIssued(SocialTokenCurrencyId::SocialToken(1), ALICE, country_fund_account(), 400)
+            crate::Event::SocialTokenIssued(SocialTokenCurrencyId::SocialToken(1), ALICE, country_fund_account(), 400, COUNTRY_ID)
         );
 
         assert_eq!(last_event(), event);

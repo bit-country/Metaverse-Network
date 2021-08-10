@@ -16,11 +16,8 @@ use frame_support::{
         U128CurrencyToVote,
     },
 };
-use frame_system::{
-    EnsureRoot, EnsureOneOf,
-    limits::{BlockWeights, BlockLength},
-};
-use frame_support::traits::InstanceFilter;
+use frame_system::{EnsureRoot, EnsureOneOf, limits::{BlockWeights, BlockLength}, RawOrigin};
+use frame_support::traits::{InstanceFilter, EnsureOrigin};
 use codec::{Encode, Decode};
 use sp_core::{
     crypto::KeyTypeId,
@@ -103,7 +100,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // and set impl_version to 0. If only runtime
     // implementation changes and behavior does not, then leave spec_version as
     // is and increment impl_version.
-    spec_version: 276,
+    spec_version: 278,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
@@ -943,6 +940,31 @@ impl pallet_society::Config for Runtime {
     type ChallengePeriod = ChallengePeriod;
 }
 
+pub struct EnsureRootOrBCTreasury;
+
+impl EnsureOrigin<Origin> for EnsureRootOrBCTreasury {
+    type Success = AccountId;
+
+    fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
+        Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
+            RawOrigin::Root => Ok(BitCountryTreasuryModuleId::get().into_account()),
+            RawOrigin::Signed(caller) => {
+                if caller == BitCountryTreasuryModuleId::get().into_account() {
+                    Ok(caller)
+                } else {
+                    Err(Origin::from(Some(caller)))
+                }
+            }
+            r => Err(Origin::from(r)),
+        })
+    }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    fn successful_origin() -> Origin {
+        Origin::from(RawOrigin::Signed(Default::default()))
+    }
+}
+
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 100 * DOLLARS;
 }
@@ -1110,10 +1132,12 @@ impl continuum::Config for Runtime {
 impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
-    type CountryCurrency = Tokens;
+    type CountryCurrency = SocialCurrencies;
     type SocialTokenTreasury = CountryFundModuleId;
     type CountryInfoSource = BitCountryModule;
     type LiquidityPoolManager = Swap;
+    type MinVestedTransfer = MinVestedTransfer;
+    type VestedTransferOrigin = EnsureRootOrBCTreasury;
 }
 
 parameter_types! {
