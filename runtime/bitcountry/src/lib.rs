@@ -49,6 +49,7 @@ pub use pallet_transaction_payment::{Multiplier, TargetedFeeAdjustment, Currency
 use pallet_session::{historical as pallet_session_historical};
 use sp_inherents::{InherentData, CheckInherentsResult};
 use static_assertions::const_assert;
+use hex_literal::hex;
 
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -350,7 +351,7 @@ impl pallet_indices::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: Balance = 1 * MICROCENTS;
+	pub const ExistentialDeposit: Balance = 0;
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	pub const MaxLocks: u32 = 50;
@@ -1152,59 +1153,87 @@ impl swap::Config for Runtime {
     type GetSwapFee = SwapFee;
 }
 
+parameter_types! {
+	pub const LocalChainId: chainbridge::ChainId = 1;
+	pub const ProposalLifetime: BlockNumber = 15 * MINUTES;
+}
+
+impl chainbridge::Config for Runtime {
+    type Event = Event;
+    type AdminOrigin = EnsureRoot<AccountId>;
+    type Proposal = Call;
+    type ChainId = LocalChainId;
+    type ProposalLifetime = ProposalLifetime;
+}
+
+parameter_types! {
+    //Testing ERC 20 Resource Id
+    pub const BridgeTokenId: [u8; 32] = hex_literal::hex!("000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00");
+}
+
+impl modules_chainsafe::Config for Runtime {
+    type Event = Event;
+    type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
+    type Currency = Balances;
+    type BridgeTokenId = BridgeTokenId;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
 		NodeBlock = primitives::Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Utility: pallet_utility::{Module, Call, Event},
-		Babe: pallet_babe::{Module, Call, Storage, Config, Inherent, ValidateUnsigned},
-		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-		Authorship: pallet_authorship::{Module, Call, Storage, Inherent},
-		Indices: pallet_indices::{Module, Call, Storage, Config<T>, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		TransactionPayment: pallet_transaction_payment::{Module, Storage},
-		Staking: pallet_staking::{Module, Call, Config<T>, Storage, Event<T>, ValidateUnsigned},
-		Session: pallet_session::{Module, Call, Storage, Event, Config<T>},
-		Democracy: pallet_democracy::{Module, Call, Storage, Config, Event<T>},
-		Council: pallet_collective::<Instance1>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		TechnicalCommittee: pallet_collective::<Instance2>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>},
-		Elections: pallet_elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>},
-		Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event, ValidateUnsigned},
-		Treasury: pallet_treasury::{Module, Call, Storage, Config, Event<T>},
-		Contracts: pallet_contracts::{Module, Call, Config<T>, Storage, Event<T>},
-		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		ImOnline: pallet_im_online::{Module, Call, Storage, Event<T>, ValidateUnsigned, Config<T>},
-		AuthorityDiscovery: pallet_authority_discovery::{Module, Call, Config},
-		Offences: pallet_offences::{Module, Call, Storage, Event},
-		Historical: pallet_session_historical::{Module},
-		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
-		Identity: pallet_identity::{Module, Call, Storage, Event<T>},
-		Society: pallet_society::{Module, Call, Storage, Event<T>, Config<T>},
-		Recovery: pallet_recovery::{Module, Call, Storage, Event<T>},
-		Vesting: pallet_vesting::{Module, Call, Storage, Event<T>, Config<T>},
-		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
-		Proxy: pallet_proxy::{Module, Call, Storage, Event<T>},
-		Multisig: pallet_multisig::{Module, Call, Storage, Event<T>},
-		Bounties: pallet_bounties::{Module, Call, Storage, Event<T>},
-		Tips: pallet_tips::{Module, Call, Storage, Event<T>},
-		Assets: pallet_assets::{Module, Call, Storage, Event<T>},
-		Mmr: pallet_mmr::{Module, Storage},
-		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>},
+		System: frame_system::{Module, Call, Config, Storage, Event<T>} = 0,
+		Utility: pallet_utility::{Module, Call, Event} = 1,
+		Babe: pallet_babe::{Module, Call, Storage, Config, Inherent, ValidateUnsigned} = 2,
+		Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent} = 3,
+		Authorship: pallet_authorship::{Module, Call, Storage, Inherent} = 4,
+		Indices: pallet_indices::{Module, Call, Storage, Config<T>, Event<T>} = 5,
+		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>} = 6,
+		TransactionPayment: pallet_transaction_payment::{Module, Storage} = 7,
+		Staking: pallet_staking::{Module, Call, Config<T>, Storage, Event<T>, ValidateUnsigned} = 8,
+		Session: pallet_session::{Module, Call, Storage, Event, Config<T>} = 9,
+		Democracy: pallet_democracy::{Module, Call, Storage, Config, Event<T>} = 10,
+		Council: pallet_collective::<Instance1>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>} = 11,
+		TechnicalCommittee: pallet_collective::<Instance2>::{Module, Call, Storage, Origin<T>, Event<T>, Config<T>} = 12,
+		Elections: pallet_elections_phragmen::{Module, Call, Storage, Event<T>, Config<T>} = 13,
+		Grandpa: pallet_grandpa::{Module, Call, Storage, Config, Event, ValidateUnsigned} = 14,
+		Treasury: pallet_treasury::{Module, Call, Storage, Config, Event<T>} = 15,
+		Contracts: pallet_contracts::{Module, Call, Config<T>, Storage, Event<T>} = 16,
+		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>} = 17,
+		ImOnline: pallet_im_online::{Module, Call, Storage, Event<T>, ValidateUnsigned, Config<T>} = 18,
+		AuthorityDiscovery: pallet_authority_discovery::{Module, Call, Config} = 19,
+		Offences: pallet_offences::{Module, Call, Storage, Event} = 20,
+		Historical: pallet_session_historical::{Module} = 21,
+		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage} = 22,
+		Identity: pallet_identity::{Module, Call, Storage, Event<T>} = 23,
+		Society: pallet_society::{Module, Call, Storage, Event<T>, Config<T>} = 24,
+		Recovery: pallet_recovery::{Module, Call, Storage, Event<T>} = 25,
+		Vesting: pallet_vesting::{Module, Call, Storage, Event<T>, Config<T>} = 26,
+		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>} = 27,
+		Proxy: pallet_proxy::{Module, Call, Storage, Event<T>} = 28,
+		Multisig: pallet_multisig::{Module, Call, Storage, Event<T>} = 29,
+		Bounties: pallet_bounties::{Module, Call, Storage, Event<T>} = 30,
+		Tips: pallet_tips::{Module, Call, Storage, Event<T>} = 31,
+		Assets: pallet_assets::{Module, Call, Storage, Event<T>} = 32,
+		Mmr: pallet_mmr::{Module, Storage} = 33,
+		Lottery: pallet_lottery::{Module, Call, Storage, Event<T>} = 34,
 
          //BitCountry pallets
-        BitCountryModule: bitcountry::{Module, Call, Storage, Event<T>},
-        BlockModule: block::{Module, Call, Storage, Event<T>},
-        OrmlNFT: orml_nft::{Module, Storage},
-        NftModule: nft::{Module, Call, Storage, Event<T>},
-        Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>},
-        Auction: auction::{Module, Call ,Storage, Event<T>},
-        SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
-        Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
-        TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
-        Swap: swap:: {Module, Call, Storage ,Event<T>},
+        BitCountryModule: bitcountry::{Module, Call, Storage, Event<T>} = 35,
+        BlockModule: block::{Module, Call, Storage, Event<T>} = 36,
+        OrmlNFT: orml_nft::{Module, Storage} = 37,
+        NftModule: nft::{Module, Call, Storage, Event<T>} = 38,
+        Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>} = 39,
+        Auction: auction::{Module, Call ,Storage, Event<T>} = 40,
+        SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>} = 41,
+        Tokens: orml_tokens::{ Module, Storage, Call, Event<T>} = 42,
+        TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>} = 43,
+        Swap: swap:: {Module, Call, Storage ,Event<T>} = 44,
+
+        ChainBridge: chainbridge::{Module, Call, Storage, Event<T>} = 45,
+        BridgeTransfer: modules_chainsafe::{Module, Call, Event<T>, Storage} = 46,
 	}
 );
 
