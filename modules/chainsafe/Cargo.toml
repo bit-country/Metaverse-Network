@@ -1,0 +1,49 @@
+[package]
+authors = ['Bit Country <https://github.com/bit-country>']
+description = 'Bit Country pallet bridge balance transfer.'
+edition = '2018'
+homepage = 'https://bit.country'
+license = 'Unlicense'
+name = 'modules-chainsafe'
+repository = 'https://github.com/bit-country'
+version = '0.0.1'
+
+[dependencies]
+# third-party dependencies
+codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
+serde = { version = "1.0.101", optional = true }
+
+# primitives
+sp-std = { version = "3.0.0", default-features = false }
+sp-runtime = { version = "3.0.0", default-features = false }
+sp-io = { version = "3.0.0", default-features = false }
+sp-core = { version = "3.0.0", default-features = false }
+sp-arithmetic = { version = "3.0.0", default-features = false }
+
+# frame dependencies
+frame-support = { version = "3.0.0", default-features = false }
+frame-system = { version = "3.0.0", default-features = false }
+
+chainbridge = { git = "https://github.com/justinphamnz/chainbridge-substrate", default-features = false }
+hex = { version = "0.4", default-features = false }
+
+[dev-dependencies]
+blake2-rfc = { version = "0.2.18", default-features = false }
+hex-literal = "0.3"
+pallet-balances = { version = "3.0.0", default-features = false }
+pallet-timestamp = { version = "3.0.0", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "serde",
+    "sp-std/std",
+    "sp-runtime/std",
+    "sp-io/std",
+    "sp-core/std",
+    "sp-arithmetic/std",
+    "frame-support/std",
+    "frame-system/std",
+    "chainbridge/std",
+]
