@@ -4,7 +4,7 @@ description = 'Bit Country pallet for block logic.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'bc-country'
+name = 'ownership-manager'
 repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
@@ -13,9 +13,7 @@ serde = { version = "1.0.119", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 sp-runtime = { version = "3.0.0", default-features = false }
 sp-std = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
 frame-support = { version = "3.0.0", default-features = false }
-frame-system = { version = "3.0.0", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../pallets/primitives", default-features = false }
 
 [features]
@@ -23,9 +21,7 @@ default = ['std']
 std = [
     'serde',
     'codec/std',
-    'sp-runtime/std',
-    'sp-io/std',
+    'sp-runtime/std',    
     'sp-std/std',
     'frame-support/std',
-    'frame-system/std',
 ]
