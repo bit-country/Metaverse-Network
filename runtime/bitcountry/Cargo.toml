@@ -102,6 +102,7 @@ auction = { package = 'pallet-auction', path = '../../pallets/auction', version 
 social-currencies = { package = 'social-currencies', path = '../../pallets/social-currencies', version = '2.0.0-rc6', default-features = false }
 swap = { package = 'pallet-swap', path = '../../pallets/swap', version = '2.0.0-rc6', default-features = false }
 modules-chainsafe = { package = 'modules-chainsafe', path = '../../modules/chainsafe', version = '0.0.1', default-features = false }
+mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '2.0.0-rc6', default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = '4.0.0'
@@ -182,7 +183,8 @@ std = [
     'social-currencies/std',
     'swap/std',
     'chainbridge/std',
-    'modules-chainsafe/std'
+    'modules-chainsafe/std',
+    'mining/std',
 ]
 runtime-benchmarks = [
     'frame-benchmarking',
