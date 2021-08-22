@@ -3,7 +3,7 @@
 #![recursion_limit = "256"]
 
 use social_currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, MultiCurrencyExtended};
 use sp_std::prelude::*;
 use frame_support::{
     construct_runtime, parameter_types, debug, RuntimeDebug,
@@ -16,7 +16,7 @@ use frame_support::{
         U128CurrencyToVote,
     },
 };
-use frame_system::{EnsureRoot, EnsureOneOf, limits::{BlockWeights, BlockLength}, RawOrigin};
+use frame_system::{EnsureRoot, EnsureOneOf, limits::{BlockWeights, BlockLength}, RawOrigin, Config};
 use frame_support::traits::{InstanceFilter, EnsureOrigin};
 use codec::{Encode, Decode};
 use sp_core::{
@@ -79,6 +79,7 @@ pub mod constants;
 
 use constants::{time::*, currency::*};
 use sp_runtime::generic::Era;
+use frame_benchmarking::frame_support::pallet_prelude::Get;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -1143,7 +1144,7 @@ impl tokenization::Config for Runtime {
 
 parameter_types! {
     pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
-    pub const SwapFee: (u32, u32) = (1, 20); //0.005%
+    pub const SwapFee: (u32, u32) = (1, 20); //0.05%
 }
 
 impl swap::Config for Runtime {
@@ -1177,6 +1178,20 @@ impl modules_chainsafe::Config for Runtime {
     type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
     type Currency = Balances;
     type BridgeTokenId = BridgeTokenId;
+}
+
+parameter_types! {
+    //Mining Resource Currenct Id
+    pub const MiningResourceCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::MiningResource(0);
+    pub const BitMiningTreasury: ModuleId = ModuleId(*b"cb/minig");
+}
+
+impl mining::Config for Runtime {
+    type Event = Event;
+    type MiningCurrency = SocialCurrencies;
+    type BitMiningTreasury = BitMiningTreasury;
+    type BitMiningResourceId = MiningResourceCurrencyId;
+    type AdminOrigin = EnsureRootOrBCTreasury;
 }
 
 construct_runtime!(
@@ -1232,9 +1247,10 @@ construct_runtime!(
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>} = 42,
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>} = 43,
         Swap: swap:: {Module, Call, Storage ,Event<T>} = 44,
+        Mining: mining:: {Module, Call, Storage ,Event<T>} = 45,
 
-        ChainBridge: chainbridge::{Module, Call, Storage, Event<T>} = 45,
-        BridgeTransfer: modules_chainsafe::{Module, Call, Event<T>, Storage} = 46,
+        ChainBridge: chainbridge::{Module, Call, Storage, Event<T>} = 46,
+        BridgeTransfer: modules_chainsafe::{Module, Call, Event<T>, Storage} = 47,
 	}
 );
 

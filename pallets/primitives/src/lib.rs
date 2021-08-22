@@ -103,6 +103,7 @@ pub enum SocialTokenCurrencyId {
     NativeToken(TokenId),
     SocialToken(TokenId),
     DEXShare(TokenId, TokenId),
+    MiningResource(TokenId),
 }
 
 impl SocialTokenCurrencyId {
@@ -116,6 +117,10 @@ impl SocialTokenCurrencyId {
 
     pub fn is_dex_share_social_token_currency_id(&self) -> bool {
         matches!(self, SocialTokenCurrencyId::DEXShare(_, _))
+    }
+
+    pub fn is_mining_resource_currency(&self) -> bool {
+        matches!(self, SocialTokenCurrencyId::MiningResource(_))
     }
 
     pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
