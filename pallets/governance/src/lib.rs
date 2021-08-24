@@ -6,7 +6,7 @@
 use frame_system::ensure_signed;
 use primitives::{CountryId, ProposalId, ReferendumId};
 use sp_std::prelude::*;
-use sp_runtime::traits::{Zero, Dispatchable};
+use sp_runtime::traits::{Zero, Dispatchable, Hash};
 use bc_country::BCCountry;
 use frame_support::{
     ensure, weights::Weight,
@@ -82,10 +82,13 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
-   
+    #[pallet::storage]
+	pub type Preimages<T: Config> = StorageMap< _, Identity, T::Hash, 
+        PreimageStatus<T::AccountId, BalanceOf<T>, T::BlockNumber>,>;
+
     #[pallet::storage]
     #[pallet::getter(fn proposals)]
-    pub type Proposals<T: Config> = StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, ProposalId, ProposalInfo<T::AccountId,T::BlockNumber,CountryParameter>, OptionQuery>;
+    pub type Proposals<T: Config> = StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, ProposalId, ProposalInfo<T::AccountId,T::BlockNumber,CountryParameter,T::Hash>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn next_proposal)]
@@ -164,7 +167,8 @@ pub mod pallet {
         AccountAlreadyVoted,
         InvalidJuryAddress,
         InvalidReferendumOutcome,
-        ReferendumParametersDoesNotExist
+        ReferendumParametersDoesNotExist,
+        PreimageMissing
 
     }
 
@@ -190,35 +194,19 @@ pub mod pallet {
             origin: OriginFor<T>, 
             country: CountryId, 
             balance: BalanceOf<T>,
-            proposal_parameters: Vec<CountryParameter>,
+            proposal_hash: T::Hash, 
+            proposal_parameters: Vec<CountryParameter>, // to be replaced with proposal hash
             proposal_description: Vec<u8>
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             ensure!(T::CountryInfo::is_member(&from, &country), Error::<T>::AccountNotCountryMember);
             ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
             ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
-            let current_block = <frame_system::Module<T>>::block_number();
-            let mut launch_block: T::BlockNumber = current_block;
-            match Self::referendum_parameters(country) {
-                Some(country_referendum_params) => {
-                    ensure!(Self::proposals_per_country(country) < country_referendum_params.max_proposals_per_country, Error::<T>::ProposalQueueFull);
-                    ensure!(proposal_parameters.len() <= country_referendum_params.max_params_per_proposal.into(), Error::<T>::TooManyProposalParameters);   
-                    if country_referendum_params.min_proposal_launch_period.is_zero() {
-                        launch_block += country_referendum_params.min_proposal_launch_period;
-                    }
-                    else {
-                        launch_block += T::DefaultProposalLaunchPeriod::get();
-                    }
-                },
-                None => {
-                    ensure!(Self::proposals_per_country(country) < T::DefaultMaxProposalsPerCountry::get(), Error::<T>::ProposalQueueFull);
-                    ensure!(proposal_parameters.len() <= T::DefaultMaxParametersPerProposal::get().into(), Error::<T>::TooManyProposalParameters);   
-                    launch_block += T::DefaultProposalLaunchPeriod::get();
-                }, 
-            }
+            let launch_block: T::BlockNumber = Self::get_proposal_launch_block(country,proposal_parameters.clone())?;
             let proposal_info = ProposalInfo {
                 proposed_by: from.clone(),
                 parameters: proposal_parameters,
+                hash: proposal_hash,
                 description: proposal_description,
                 referendum_launch_block: launch_block,
             };
@@ -446,6 +434,59 @@ pub mod pallet {
             })
         }
 
+        fn get_proposal_launch_block(country: CountryId, proposal_parameters: Vec<CountryParameter>) -> Result<T::BlockNumber, DispatchError> {
+            let current_block = <frame_system::Module<T>>::block_number();
+            match Self::referendum_parameters(country) {
+                Some(country_referendum_params) => {
+                    ensure!(Self::proposals_per_country(country) < country_referendum_params.max_proposals_per_country, Error::<T>::ProposalQueueFull);
+                    ensure!(proposal_parameters.len() <= country_referendum_params.max_params_per_proposal.into(), Error::<T>::TooManyProposalParameters);   
+                    if country_referendum_params.min_proposal_launch_period.is_zero() {
+                        
+                        Ok(current_block + country_referendum_params.min_proposal_launch_period)
+                    }
+                    else {
+                        Ok(current_block + T::DefaultProposalLaunchPeriod::get())
+                    }
+                },
+                None => {
+                    ensure!(Self::proposals_per_country(country) < T::DefaultMaxProposalsPerCountry::get(), Error::<T>::ProposalQueueFull);
+                    ensure!(proposal_parameters.len() <= T::DefaultMaxParametersPerProposal::get().into(), Error::<T>::TooManyProposalParameters);   
+                    Ok(current_block + T::DefaultProposalLaunchPeriod::get())
+                }, 
+            }
+        }
+         
+     /*    fn pre_image_data_len(proposal_hash: T::Hash) -> Result<u32, DispatchError> {
+            // To decode the `data` field of Available variant we need:
+            // * one byte for the variant
+            // * at most 5 bytes to decode a `Compact<u32>`
+            let mut buf = [0u8; 6];
+            let key = <Preimages<T>>::hashed_key_for(proposal_hash);
+            let bytes =
+                sp_io::storage::read(&key, &mut buf, 0).ok_or_else(|| Error::<T>::PreimageMissing)?;
+            // The value may be smaller that 6 bytes.
+            let mut input = &buf[0..buf.len().min(bytes as usize)];
+    
+            match input.read_byte() {
+                Ok(1) => (), // Check that input exists and is second variant.
+                Ok(0) => return Err(Error::<T>::PreimageMissing.into()),
+                _ => {
+                    sp_runtime::print("Failed to decode `PreimageStatus` variant");
+                    return Err(Error::<T>::PreimageMissing.into())
+                },
+            }
+    
+            // Decode the length of the vector.
+            let len = codec::Compact::<u32>::decode(&mut input)
+                .map_err(|_| {
+                    sp_runtime::print("Failed to decode `PreimageStatus` variant");
+                    DispatchError::from(Error::<T>::PreimageMissing)
+                })?
+                .0;
+    
+            Ok(len)
+        } */
+
         fn update_proposals_per_country_number(country: CountryId, is_proposal_added: bool) -> DispatchResult {
             <TotalProposalsPerCountry<T>>::try_mutate(country, |number_of_proposals| -> DispatchResult {
                 if is_proposal_added {
@@ -479,8 +520,7 @@ pub mod pallet {
         }
 
         /// Ok if the given referendum is active, Err otherwise
-        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError>
-        {
+        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
              match r {
                 ReferendumInfo::Ongoing(s) => Ok(s),
                 _ => Err(Error::<T>::ReferendumIsOver.into()),

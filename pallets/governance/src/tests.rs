@@ -31,7 +31,8 @@ fn update_country_referendum_parameters_when_not_country_owner_does_not_work() {
 fn create_new_proposal_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         assert_eq!(Balances::free_balance(&ALICE), 99400);
         assert_eq!(last_event(), Event::governance(crate::Event::ProposalSubmitted(ALICE, BOB_COUNTRY_ID, 0)));
     });
@@ -41,8 +42,9 @@ fn create_new_proposal_work() {
 fn create_new_proposal_when_not_enough_funds_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(BOB);
+        let hash = set_balance_proposal_hash(4);
         assert_noop!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600
-            ,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::InsufficientBalance);
+            , hash.clone(), PROPOSAL_PARAMETERS.to_vec(),  PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::InsufficientBalance);
     });
 }
 
@@ -50,16 +52,18 @@ fn create_new_proposal_when_not_enough_funds_does_not_work() {
 fn create_new_proposal_when_too_small_deposit_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(BOB);
+        let hash = set_balance_proposal_hash(4);
         assert_noop!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 40
-            ,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::DepositTooLow);
+            , hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::DepositTooLow);
     });
 }
 
 #[test]
 fn create_new_proposal_when_not_country_member_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
+        let hash = set_balance_proposal_hash(4);
         assert_noop!(GovernanceModule::propose(Origin::signed(5).clone(), ALICE_COUNTRY_ID, 400
-            ,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::AccountNotCountryMember);
+            , hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::AccountNotCountryMember);
     });
 }
 
@@ -67,6 +71,7 @@ fn create_new_proposal_when_not_country_member_does_not_work() {
 fn create_new_proposal_when_queue_full_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(BOB);
+        let hash = set_balance_proposal_hash(4);
         let parameters = ReferendumParameters {
             voting_threshold:  Some(VoteThreshold::RelativeMajority),
             min_proposal_launch_period: 12,
@@ -77,7 +82,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
         };  
         assert_ok!(GovernanceModule::update_referendum_parameters(origin.clone(), BOB_COUNTRY_ID, parameters));
         assert_noop!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 400
-            ,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::ProposalQueueFull);
+            , hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::ProposalQueueFull);
         
     });
 }
@@ -86,6 +91,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 fn create_new_proposal_with_too_many_parameters_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(BOB);
+        let hash = set_balance_proposal_hash(4);
         let parameters = ReferendumParameters {
             voting_threshold:  Some(VoteThreshold::RelativeMajority),
             min_proposal_launch_period: 12,
@@ -96,7 +102,7 @@ fn create_new_proposal_with_too_many_parameters_does_not_work() {
         };  
         assert_ok!(GovernanceModule::update_referendum_parameters(origin.clone(), BOB_COUNTRY_ID, parameters));
         assert_noop!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 400
-            ,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::TooManyProposalParameters);
+            , hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()), Error::<Runtime>::TooManyProposalParameters);
         
     });
 }
@@ -106,7 +112,8 @@ fn create_new_proposal_with_too_many_parameters_does_not_work() {
 fn cancel_proposal_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         assert_ok!(GovernanceModule::cancel_proposal(origin.clone(), 0, BOB_COUNTRY_ID));
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(last_event(), Event::governance(crate::Event::ProposalCancelled(ALICE, BOB_COUNTRY_ID, 0)));
@@ -125,7 +132,8 @@ fn cancel_non_existing_proposal_does_not_work() {
 fn cancel_proposal_that_you_have_not_submitted_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         assert_noop!(GovernanceModule::cancel_proposal(Origin::signed(BOB), 0, BOB_COUNTRY_ID), Error::<Runtime>::NotProposalCreator);
     });
 }
@@ -134,7 +142,8 @@ fn cancel_proposal_that_you_have_not_submitted_does_not_work() {
 fn cancel_proposal_that_is_a_referendum_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_noop!(GovernanceModule::cancel_proposal(origin.clone(), 0, BOB_COUNTRY_ID), Error::<Runtime>::ProposalIsReferendum);
     });
@@ -146,7 +155,8 @@ fn cancel_proposal_that_is_a_referendum_does_not_work() {
 fn fast_track_proposal_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         assert_ok!(GovernanceModule::fast_track_proposal(Origin::signed(BOB), 0, BOB_COUNTRY_ID));
         assert_eq!(last_event(), Event::governance(crate::Event::ProposalFastTracked(BOB, BOB_COUNTRY_ID, 0)));
     });
@@ -156,7 +166,8 @@ fn fast_track_proposal_work() {
 fn fast_track_proposal_when_not_country_owner_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         assert_noop!(GovernanceModule::fast_track_proposal(origin.clone(), 0, BOB_COUNTRY_ID), Error::<Runtime>::AccountNotCountryOwner);
     });
 }
@@ -165,7 +176,8 @@ fn fast_track_proposal_when_not_country_owner_does_not_work() {
 fn fast_track_proposal_that_is_a_referendum_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(),PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_noop!(GovernanceModule::fast_track_proposal(Origin::signed(BOB), 0, BOB_COUNTRY_ID), Error::<Runtime>::ProposalIsReferendum);
     });
@@ -177,7 +189,8 @@ fn fast_track_proposal_that_is_a_referendum_does_not_work() {
 fn vote_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
        // assert_eq!(Balances::free_balance(&BOB), 100);
@@ -189,7 +202,8 @@ fn vote_work() {
 fn vote_when_not_country_member_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), ALICE_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), ALICE_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_noop!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountNotCountryMember);
     });
@@ -199,7 +213,8 @@ fn vote_when_not_country_member_does_not_work() {
 fn vote_more_than_once_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
         assert_noop!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountAlreadyVoted);
@@ -211,7 +226,8 @@ fn vote_more_than_once_does_not_work() {
 fn remove_vote_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
         assert_ok!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0));
@@ -224,7 +240,8 @@ fn remove_vote_work() {
 fn remove_vote_when_you_have_not_voted_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_noop!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0), Error::<Runtime>::AccountHasNotVoted);
     });
@@ -236,7 +253,8 @@ fn remove_vote_when_you_have_not_voted_does_not_work() {
 fn emergency_cancel_referendum_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         ReferendumJuryOf::<Runtime>::insert(BOB_COUNTRY_ID,ALICE);
         run_to_block(18);
         assert_ok!(GovernanceModule::emergency_cancel_referendum(origin.clone(), 0));
@@ -257,7 +275,8 @@ fn emergency_cancel_non_existing_referendum_does_not_work() {
 fn emergency_cancel_referendum_when_not_having_privileges_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         ReferendumJuryOf::<Runtime>::insert(BOB_COUNTRY_ID,ALICE);
         run_to_block(17);
         assert_noop!(GovernanceModule::emergency_cancel_referendum(Origin::signed(BOB), 0), Error::<Runtime>::InsufficientPrivileges);
@@ -268,9 +287,10 @@ fn emergency_cancel_referendum_when_not_having_privileges_does_not_work() {
 fn emergency_cancel_referendum_which_removes_privileges_does_not_work() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
+        let hash = set_balance_proposal_hash(4);
         ReferendumJuryOf::<Runtime>::insert(BOB_COUNTRY_ID,ALICE);
         let proposal_parameters = [CountryParameter::SetReferendumJury([1u8;32].into())].to_vec(); //[CountryParameter::SetReferendumJury(BOB)].to_vec();
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, proposal_parameters, PROPOSAL_DESCRIPTION.to_vec()));
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), proposal_parameters, PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(17);
         assert_noop!(GovernanceModule::emergency_cancel_referendum(origin.clone(), 0), Error::<Runtime>::InsufficientPrivileges);
     });
@@ -282,7 +302,8 @@ fn emergency_cancel_referendum_which_removes_privileges_does_not_work() {
 fn referendum_proposal_passes() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
         run_to_block(27);
@@ -296,7 +317,8 @@ fn referendum_proposal_passes() {
 fn referendum_proposal_is_rejected() {
     ExtBuilder::default().build().execute_with(|| {
         let origin = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600,PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumStarted(0,VoteThreshold::RelativeMajority)));
         assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, false));
@@ -312,7 +334,8 @@ fn referendum_proposal_is_enacted() {
     ExtBuilder::default().build().execute_with(|| {
         let root = Origin::root();
         let proposer = Origin::signed(ALICE);
-        assert_ok!(GovernanceModule::propose(proposer.clone(), BOB_COUNTRY_ID, 600, PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
+        let hash = set_balance_proposal_hash(4);
+        assert_ok!(GovernanceModule::propose(proposer.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_PARAMETERS.to_vec(), PROPOSAL_DESCRIPTION.to_vec()));
         assert_ok!(GovernanceModule::enact_proposal(root.clone(), 0, BOB_COUNTRY_ID));
         assert_eq!(last_event(), Event::governance(crate::Event::ProposalEnacted(BOB_COUNTRY_ID,0)));
         let parameters_rec = GovernanceModule::referendum_parameters(BOB_COUNTRY_ID);
