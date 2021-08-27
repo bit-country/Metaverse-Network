@@ -83,12 +83,13 @@ pub mod pallet {
     pub struct Pallet<T>(PhantomData<T>);
 
     #[pallet::storage]
+    #[pallet::getter(fn preimages)]
 	pub type Preimages<T: Config> = StorageMap< _, Identity, T::Hash, 
         PreimageStatus<T::AccountId, BalanceOf<T>, T::BlockNumber>,>;
 
     #[pallet::storage]
     #[pallet::getter(fn proposals)]
-    pub type Proposals<T: Config> = StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, ProposalId, ProposalInfo<T::AccountId,T::BlockNumber,CountryParameter,T::Hash>, OptionQuery>;
+    pub type Proposals<T: Config> = StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, ProposalId, ProposalInfo<T::AccountId,T::BlockNumber,T::Hash>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn next_proposal)]
@@ -126,6 +127,10 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata()]
     pub enum Event<T: Config> {
+        PreimageInvalid(CountryId, T::Hash, ProposalId),
+        PreimageMissing(CountryId, T::Hash, ProposalId),
+        PreimageUsed(T::Hash, T::AccountId, BalanceOf<T>),
+        PreimageEnacted(CountryId, T::Hash, DispatchResult),
         ReferendumParametersUpdated(CountryId),
         ProposalSubmitted(T::AccountId, CountryId, ProposalId),
         ProposalCancelled(T::AccountId, CountryId, ProposalId),
@@ -148,7 +153,6 @@ pub mod pallet {
         InsufficientBalance,
         DepositTooLow,
         ProposalParametersOutOfScope,
-        TooManyProposalParameters,
         InvalidProposalParameters,
         ProposalQueueFull,
         ProposalDoesNotExist,
@@ -168,8 +172,8 @@ pub mod pallet {
         InvalidJuryAddress,
         InvalidReferendumOutcome,
         ReferendumParametersDoesNotExist,
-        PreimageMissing
-
+        PreimageMissing,
+        PreimageInvalid
     }
 
     #[pallet::call]
@@ -195,17 +199,17 @@ pub mod pallet {
             country: CountryId, 
             balance: BalanceOf<T>,
             proposal_hash: T::Hash, 
-            proposal_parameters: Vec<CountryParameter>, // to be replaced with proposal hash
+           // proposal_parameter: CountryParameter, // to be replaced with proposal hash
             proposal_description: Vec<u8>
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             ensure!(T::CountryInfo::is_member(&from, &country), Error::<T>::AccountNotCountryMember);
             ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
             ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
-            let launch_block: T::BlockNumber = Self::get_proposal_launch_block(country,proposal_parameters.clone())?;
+            let launch_block: T::BlockNumber = Self::get_proposal_launch_block(country)?;
             let proposal_info = ProposalInfo {
                 proposed_by: from.clone(),
-                parameters: proposal_parameters,
+              //  parameter: proposal_parameter,
                 hash: proposal_hash,
                 description: proposal_description,
                 referendum_launch_block: launch_block,
@@ -434,12 +438,11 @@ pub mod pallet {
             })
         }
 
-        fn get_proposal_launch_block(country: CountryId, proposal_parameters: Vec<CountryParameter>) -> Result<T::BlockNumber, DispatchError> {
+        fn get_proposal_launch_block(country: CountryId) -> Result<T::BlockNumber, DispatchError> {
             let current_block = <frame_system::Module<T>>::block_number();
             match Self::referendum_parameters(country) {
                 Some(country_referendum_params) => {
-                    ensure!(Self::proposals_per_country(country) < country_referendum_params.max_proposals_per_country, Error::<T>::ProposalQueueFull);
-                    ensure!(proposal_parameters.len() <= country_referendum_params.max_params_per_proposal.into(), Error::<T>::TooManyProposalParameters);   
+                    ensure!(Self::proposals_per_country(country) < country_referendum_params.max_proposals_per_country, Error::<T>::ProposalQueueFull); 
                     if country_referendum_params.min_proposal_launch_period.is_zero() {
                         
                         Ok(current_block + country_referendum_params.min_proposal_launch_period)
@@ -450,7 +453,6 @@ pub mod pallet {
                 },
                 None => {
                     ensure!(Self::proposals_per_country(country) < T::DefaultMaxProposalsPerCountry::get(), Error::<T>::ProposalQueueFull);
-                    ensure!(proposal_parameters.len() <= T::DefaultMaxParametersPerProposal::get().into(), Error::<T>::TooManyProposalParameters);   
                     Ok(current_block + T::DefaultProposalLaunchPeriod::get())
                 }, 
             }
@@ -499,19 +501,14 @@ pub mod pallet {
             })
         }
 
+         // TO DO: Check proposal hash instead of parameter
         fn does_proposal_changes_jury(referendum_status: ReferendumStatus<T::BlockNumber>) -> Result<bool, DispatchError> {
-            let proposal_parameters = Self::proposals(referendum_status.country,referendum_status.proposal).ok_or(Error::<T>::ProposalDoesNotExist)?.parameters;
-            let mut result = false;
-            for parameter in proposal_parameters.iter() {
-                match parameter {
-                    CountryParameter::SetReferendumJury(a) =>{
-                        result = true;
-                        break;
-                    },
-                    _ => continue,
-                }
-            }
-            Ok(result)
+            let proposal_hash = Self::proposals(referendum_status.country,referendum_status.proposal).ok_or(Error::<T>::ProposalDoesNotExist)?.hash;
+            let preimage_status = Self::preimages(proposal_hash).ok_or(Error::<T>::PreimageMissing)?;
+            match preimage_status  {
+                PreimageStatus::Available{ data, does_update_jury, provider, deposit, since, expiry } => return Ok(does_update_jury),
+                PreimageStatus::Missing(expiry) => return Err(Error::<T>::PreimageMissing.into()),
+            }   
         }
 
         fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
@@ -599,8 +596,38 @@ pub mod pallet {
             Ok(()) 
         }
 
-        fn do_enact_proposal(proposal: ProposalId, country: CountryId) -> DispatchResult {
-            let proposal_parameters = Self::proposals(country,proposal).ok_or(Error::<T>::InvalidProposalParameters)?.parameters;
+       
+        fn do_enact_proposal(proposal_id: ProposalId, country: CountryId) -> DispatchResult {
+            let proposal_info = Self::proposals(country,proposal_id).ok_or(Error::<T>::InvalidProposalParameters)?;
+            let preimage = <Preimages<T>>::take(&proposal_info.hash);
+            if let Some(PreimageStatus::Available { data, provider, deposit, .. }) = preimage {
+                if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
+                    Self::deposit_event(Event::<T>::PreimageUsed(proposal_info.hash, provider, deposit));
+                    let result = proposal
+                        .dispatch(frame_system::RawOrigin::Root.into())
+                        .map(|_| ())
+                        .map_err(|e| e.error);
+
+                    Self::deposit_event(Event::<T>::PreimageEnacted(country, proposal_info.hash, result));
+
+                    Ok(())
+
+                } else {
+                    //T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
+                    Self::deposit_event(Event::<T>::PreimageInvalid(country, proposal_info.hash, proposal_id));
+                    Err(Error::<T>::PreimageInvalid.into())
+              
+                }
+            }
+            else {
+                Self::deposit_event(Event::<T>::PreimageMissing(country, proposal_info.hash, proposal_id));
+                Err(Error::<T>::PreimageMissing.into())
+            }
+            
+
+            // parameters implementation
+            /*
+            let proposal_parameters = proposal_info.parameters;
             let mut are_referendum_params_updated = false;
             let mut new_referendum_parameters: ReferendumParameters<T::BlockNumber>;
             match Self::referendum_parameters(country) {
@@ -646,6 +673,7 @@ pub mod pallet {
                 });
             }
             Ok(())
+             */
         }
 
     }
