@@ -165,5 +165,73 @@
     "currency_id": "SocialTokenCurrencyId"
   },
   "LandId": "u64",
-  "TokenId": "u64"
+  "TokenId": "u64",
+  "PreimageStatus": {
+    "_enum": {
+      "Missing": "BlockNumber",
+      "Available": {
+        "data": "Vec<u8>", 
+        "provider": "AccountId", 
+        "deposit": "Balance",
+        "since": "BlockNumber", 
+        "expiry": "Option<BlockNumber>"
+      }
+    }
+  },
+  "VoteThreshold": {
+    "_enum": [
+      "StandardQualifiedMajority",
+      "TwoThirdsSupermajority",
+      "ThreeFifthsSupermajority",
+      "ReinforcedQualifiedMajority",
+      "RelativeMajority"
+    ]
+  },
+  "ProposalId": "u64",
+  "CountryParameter": {
+    "_enum": {
+      "MaxProposals": "u8",
+      "SetReferendumJury": "AccountId"
+    }
+  },
+  "ReferendumParameters": {
+    "voting_threshold": "Option<VoteThreshold>",
+    "min_proposal_launch_period": "BlockNumber",
+    "voting_period": "BlockNumber",
+    "enactment_period": "BlockNumber",
+    "max_proposals_per_country": "u8"
+  },
+  "Vote": {
+    "aye": "bool"
+  },
+  "Tally": {
+    "ayes": "u32",
+    "nays": "u32",
+    "turnout": "u32"
+  },
+  "VotingRecord": {
+    "votes": "Vec<(ReferendumId,Vote)>"
+  },
+  "ProposalInfo": {
+    "proposed_by": "AccountId",
+    "hash": "Hash",
+    "description": "Vec<u8>",
+    "referendum_launch_block": "BlockNumber"
+  },
+  "ReferendumStatus": {
+    "end": "BlockNumber",
+    "country": "CountryId",
+    "proposal": "ProposalId",
+    "tally": "Tally",
+    "threshold": "Option<VoteThreshold>"
+  },
+  "ReferendumInfo": {
+    "_enum": {
+      "Ongoing": "ReferendumStatus",
+      "Finished": {
+        "passed": "bool",
+        "end": "BlockNumber"
+      }
+    }
+  }
 }

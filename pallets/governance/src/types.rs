@@ -44,7 +44,6 @@ pub enum VoteThreshold {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum CountryParameter {
     MaxProposals(u8),
-    MaxParametersPerProposal(u8),
     SetReferendumJury(AccountId),
 }
 

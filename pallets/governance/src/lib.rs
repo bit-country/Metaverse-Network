@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-//use codec::{Decode, Encode};
+use codec::{Decode, Encode, Input};
 
 use frame_system::ensure_signed;
 use primitives::{CountryId, ProposalId, ReferendumId};
@@ -458,7 +458,7 @@ pub mod pallet {
             }
         }
          
-     /*    fn pre_image_data_len(proposal_hash: T::Hash) -> Result<u32, DispatchError> {
+     fn pre_image_data_len(proposal_hash: T::Hash) -> Result<u32, DispatchError> {
             // To decode the `data` field of Available variant we need:
             // * one byte for the variant
             // * at most 5 bytes to decode a `Compact<u32>`
@@ -487,7 +487,7 @@ pub mod pallet {
                 .0;
     
             Ok(len)
-        } */
+        } 
 
         fn update_proposals_per_country_number(country: CountryId, is_proposal_added: bool) -> DispatchResult {
             <TotalProposalsPerCountry<T>>::try_mutate(country, |number_of_proposals| -> DispatchResult {
@@ -501,7 +501,6 @@ pub mod pallet {
             })
         }
 
-         // TO DO: Check proposal hash instead of parameter
         fn does_proposal_changes_jury(referendum_status: ReferendumStatus<T::BlockNumber>) -> Result<bool, DispatchError> {
             let proposal_hash = Self::proposals(referendum_status.country,referendum_status.proposal).ok_or(Error::<T>::ProposalDoesNotExist)?.hash;
             let preimage_status = Self::preimages(proposal_hash).ok_or(Error::<T>::PreimageMissing)?;
@@ -623,57 +622,6 @@ pub mod pallet {
                 Self::deposit_event(Event::<T>::PreimageMissing(country, proposal_info.hash, proposal_id));
                 Err(Error::<T>::PreimageMissing.into())
             }
-            
-
-            // parameters implementation
-            /*
-            let proposal_parameters = proposal_info.parameters;
-            let mut are_referendum_params_updated = false;
-            let mut new_referendum_parameters: ReferendumParameters<T::BlockNumber>;
-            match Self::referendum_parameters(country) {
-                Some(current_params) => new_referendum_parameters = current_params,
-                None =>  {
-                        new_referendum_parameters = ReferendumParameters {
-                        voting_threshold: Some(VoteThreshold::RelativeMajority),
-                        min_proposal_launch_period: T::DefaultProposalLaunchPeriod::get(),
-                        voting_period: T::DefaultVotingPeriod::get(),
-                        enactment_period: T::DefaultEnactmentPeriod::get(),
-                        max_params_per_proposal: T::DefaultMaxParametersPerProposal::get(),
-                        max_proposals_per_country: T::DefaultMaxProposalsPerCountry::get()
-                    };
-                    are_referendum_params_updated = true;
-                }
-            };
-           
-            for parameter in proposal_parameters.iter() {
-                match parameter {
-                    CountryParameter::MaxProposals(new_max_proposals) => {
-                        new_referendum_parameters.max_proposals_per_country = *new_max_proposals;
-                        are_referendum_params_updated = true;
-                    },
-                    CountryParameter::MaxParametersPerProposal(new_max_params) => {
-                        new_referendum_parameters.max_params_per_proposal = *new_max_params;
-                        are_referendum_params_updated = true;
-                     },
-                    CountryParameter::SetReferendumJury(new_jury_address) => {
-                        // TO DO: Finish Implementation
-                        //  <ReferendumJuryOf<T>>::try_mutate(country,|jury| -> DispatchResult {
-                           // let new_acc: AccountId = T::AccountId::decode(new_jury_address.as_mut()).expect("error");
-                           // *jury = Some(new_acc);
-                            // Ok(())
-                      //  });
-                    },//),
-                    _ => {}, // implement more options when new parameters are included
-                }
-            }
-            if are_referendum_params_updated  {
-                <ReferendumParametersOf<T>>::try_mutate(country,|referendum_params| -> DispatchResult {
-                    *referendum_params = Some(new_referendum_parameters);
-                    Ok(())
-                });
-            }
-            Ok(())
-             */
         }
 
     }
