@@ -129,6 +129,7 @@ parameter_types! {
     pub const DefaultMaxProposalsPerCountry: u8 = 2;
     pub const OneBlock: BlockNumber = 1;
     pub const MinimumProposalDeposit: Balance = 50;
+    pub const DefaultPreimageByteDeposit: Balance = 1;
 }
 
 impl Config for Runtime {
@@ -138,6 +139,7 @@ impl Config for Runtime {
     type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
     type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
     type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
+    type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
     type MinimumProposalDeposit = MinimumProposalDeposit;
     type OneBlock = OneBlock;
     type Currency = Balances;

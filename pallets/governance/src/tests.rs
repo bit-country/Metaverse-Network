@@ -26,6 +26,20 @@ fn update_country_referendum_parameters_when_not_country_owner_does_not_work() {
 }
 
 
+// Creating preimage tests
+#[test]
+fn create_new_preimage_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        let origin = Origin::signed(ALICE);
+        let encoded_proposal = set_balance_proposal(4);
+        assert_ok!(GovernanceModule::note_preimage(origin.clone(), encoded_proposal));
+        assert_eq!(Balances::free_balance(&ALICE), 99987);
+        let hash = set_balance_proposal_hash(4);
+        assert_eq!(last_event(), Event::governance(crate::Event::PreimageNoted(hash, ALICE, 13)));
+    });
+}
+
+
 // Creating proposal tests
 #[test]
 fn create_new_proposal_work() {

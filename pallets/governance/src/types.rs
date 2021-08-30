@@ -53,7 +53,6 @@ pub struct ReferendumParameters<BlockNumber> {
     pub(crate) min_proposal_launch_period: BlockNumber,// number of blocks
     pub(crate) voting_period: BlockNumber, // number of block
     pub(crate) enactment_period: BlockNumber, // number of blocks
-    //pub(crate) max_params_per_proposal: u8,
     pub(crate) max_proposals_per_country: u8,
 }
 /*
@@ -126,7 +125,6 @@ pub struct VotingRecord {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct ProposalInfo<AccountId,BlockNumber,Hash> {
     pub(crate) proposed_by: AccountId,
-    //pub(crate) parameter: CountryParameter,
     pub(crate) hash: Hash,
     pub(crate) description: Vec<u8>, // link to proposal description
     pub(crate) referendum_launch_block: BlockNumber,

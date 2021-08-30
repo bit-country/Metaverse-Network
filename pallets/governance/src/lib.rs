@@ -6,7 +6,7 @@ use codec::{Decode, Encode, Input};
 use frame_system::ensure_signed;
 use primitives::{CountryId, ProposalId, ReferendumId};
 use sp_std::prelude::*;
-use sp_runtime::traits::{Zero, Dispatchable, Hash};
+use sp_runtime::traits::{Zero, Dispatchable, Hash, Saturating};
 use bc_country::BCCountry;
 use frame_support::{
     ensure, weights::Weight,
@@ -65,6 +65,9 @@ pub mod pallet {
 
         #[pallet::constant]
         type MinimumProposalDeposit: Get<BalanceOf<Self>>;
+
+        #[pallet::constant]
+        type DefaultPreimageByteDeposit: Get<BalanceOf<Self>>;
 
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
@@ -127,6 +130,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata()]
     pub enum Event<T: Config> {
+        PreimageNoted(T::Hash, T::AccountId, BalanceOf<T>),
         PreimageInvalid(CountryId, T::Hash, ProposalId),
         PreimageMissing(CountryId, T::Hash, ProposalId),
         PreimageUsed(T::Hash, T::AccountId, BalanceOf<T>),
@@ -173,7 +177,9 @@ pub mod pallet {
         InvalidReferendumOutcome,
         ReferendumParametersDoesNotExist,
         PreimageMissing,
-        PreimageInvalid
+        PreimageInvalid,
+        PreimageCallsOutOfScope,
+        DuplicatePreimage
     }
 
     #[pallet::call]
@@ -194,12 +200,20 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResultWithPostInfo {
+            let from = ensure_signed(origin)?;
+            let does_update_jury = Self::does_preimage_updates_jury(encoded_proposal.clone())?;
+            ensure!(Self::is_preimage_valid(encoded_proposal.clone())?, Error::<T>::PreimageCallsOutOfScope);
+			Self::note_preimage_inner(from, encoded_proposal.clone(), does_update_jury)?;
+            Ok(().into())
+		}
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn propose(
             origin: OriginFor<T>, 
             country: CountryId, 
             balance: BalanceOf<T>,
             preimage_hash: T::Hash, 
-           // proposal_parameter: CountryParameter, // to be replaced with proposal hash
             proposal_description: Vec<u8>
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
@@ -388,10 +402,42 @@ pub mod pallet {
     }
     
     impl<T: Config> Pallet<T> {
-        fn is_preimage_hash_valid(preimage_hash: T::Hash) -> Result<bool, DispatchError> {
-            //TO DO: Add check whether preimage contains valid functions
+
+        // See `note_preimage`
+	    fn note_preimage_inner(who: T::AccountId, encoded_proposal: Vec<u8>, does_preimage_updates_jury: bool) -> DispatchResult {
+            let proposal_hash = T::Hashing::hash(&encoded_proposal[..]);
+            ensure!(!<Preimages<T>>::contains_key(&proposal_hash), Error::<T>::DuplicatePreimage);
+
+            let deposit = <BalanceOf<T>>::from(encoded_proposal.len() as u32)
+                .saturating_mul(T::DefaultPreimageByteDeposit::get());
+            T::Currency::reserve(&who, deposit)?;
+
+            let now = <frame_system::Pallet<T>>::block_number();
+            let a = PreimageStatus::Available {
+                data: encoded_proposal,
+                provider: who.clone(),
+                does_update_jury: does_preimage_updates_jury,
+                deposit,
+                since: now,
+                expiry: None,
+            };
+            <Preimages<T>>::insert(proposal_hash, a);
+
+            Self::deposit_event(Event::<T>::PreimageNoted(proposal_hash, who, deposit));
+
+            Ok(())
+	    }
+
+        fn is_preimage_valid(encoded_proposal: Vec<u8>) -> Result<bool, DispatchError> {
+            //TO DO: check whether preimage function calls are within a defined scope
             Ok(true)
         }
+
+        fn does_preimage_updates_jury(encoded_proposal: Vec<u8>) -> Result<bool, DispatchError> {
+            //TO DO: Check whether preimage updates jury
+            Ok(false)
+        }
+
         fn start_referendum(country_id: CountryId, proposal_id: ProposalId, current_block: T::BlockNumber) -> Result<u64,DispatchError> {
             let referendum_id = Self::get_next_referendum_id()?;
             
