@@ -198,7 +198,7 @@ pub mod pallet {
             origin: OriginFor<T>, 
             country: CountryId, 
             balance: BalanceOf<T>,
-            proposal_hash: T::Hash, 
+            preimage_hash: T::Hash, 
            // proposal_parameter: CountryParameter, // to be replaced with proposal hash
             proposal_description: Vec<u8>
         ) -> DispatchResultWithPostInfo {
@@ -206,11 +206,12 @@ pub mod pallet {
             ensure!(T::CountryInfo::is_member(&from, &country), Error::<T>::AccountNotCountryMember);
             ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
             ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
+            ensure!(<Preimages<T>>::contains_key(preimage_hash), Error::<T>::PreimageInvalid);
             let launch_block: T::BlockNumber = Self::get_proposal_launch_block(country)?;
             let proposal_info = ProposalInfo {
                 proposed_by: from.clone(),
               //  parameter: proposal_parameter,
-                hash: proposal_hash,
+                hash: preimage_hash,
                 description: proposal_description,
                 referendum_launch_block: launch_block,
             };
@@ -387,6 +388,10 @@ pub mod pallet {
     }
     
     impl<T: Config> Pallet<T> {
+        fn is_preimage_hash_valid(preimage_hash: T::Hash) -> Result<bool, DispatchError> {
+            //TO DO: Add check whether preimage contains valid functions
+            Ok(true)
+        }
         fn start_referendum(country_id: CountryId, proposal_id: ProposalId, current_block: T::BlockNumber) -> Result<u64,DispatchError> {
             let referendum_id = Self::get_next_referendum_id()?;
             
@@ -458,12 +463,12 @@ pub mod pallet {
             }
         }
          
-     fn pre_image_data_len(proposal_hash: T::Hash) -> Result<u32, DispatchError> {
+        fn pre_image_data_len(preimage_hash: T::Hash) -> Result<u32, DispatchError> {
             // To decode the `data` field of Available variant we need:
             // * one byte for the variant
             // * at most 5 bytes to decode a `Compact<u32>`
             let mut buf = [0u8; 6];
-            let key = <Preimages<T>>::hashed_key_for(proposal_hash);
+            let key = <Preimages<T>>::hashed_key_for(preimage_hash);
             let bytes =
                 sp_io::storage::read(&key, &mut buf, 0).ok_or_else(|| Error::<T>::PreimageMissing)?;
             // The value may be smaller that 6 bytes.
@@ -595,7 +600,6 @@ pub mod pallet {
             Ok(()) 
         }
 
-       
         fn do_enact_proposal(proposal_id: ProposalId, country: CountryId) -> DispatchResult {
             let proposal_info = Self::proposals(country,proposal_id).ok_or(Error::<T>::InvalidProposalParameters)?;
             let preimage = <Preimages<T>>::take(&proposal_info.hash);

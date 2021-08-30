@@ -221,3 +221,16 @@ pub fn set_balance_proposal(value: u64) -> Vec<u8> {
 pub fn set_balance_proposal_hash(value: u64) -> H256 {
     BlakeTwo256::hash(&set_balance_proposal(value)[..])
 }
+
+pub fn add_preimage(hash: H256, does_preimage_updates_jury: bool) {
+    let preimage_status = PreimageStatus::Available {
+        data: set_balance_proposal(4),
+        does_update_jury: does_preimage_updates_jury,
+        provider: ALICE,
+        deposit: 200,
+        since: 1,
+        /// None if it's not imminent.
+        expiry: Some(150),
+    };
+    Preimages::<Runtime>::insert(hash,preimage_status);
+}
