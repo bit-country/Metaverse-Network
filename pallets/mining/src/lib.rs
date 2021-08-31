@@ -190,9 +190,9 @@ pub mod pallet {
 
         /// Deposit Mining Resource from address to mining treasury
         #[pallet::weight(100_000)]
-        pub fn deposit(origin: OriginFor<T>, from: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+        pub fn deposit(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            Self::do_deposit(who, from, amount)?;
+            Self::do_deposit(who, amount)?;
             Ok(().into())
         }
 
@@ -295,27 +295,21 @@ impl<T: Config> Module<T> {
 
     fn do_deposit(
         who: T::AccountId,
-        from: T::AccountId,
         amount: Balance,
     ) -> DispatchResult {
         if amount.is_zero() {
             return Ok(());
         }
 
-        ensure!(
-            Self::is_mining_origin(&who),
-            Error::<T>::NoPermission
-        );
-
         let mining_treasury = Self::bit_mining_resource_account_id();
         ensure!(
-            T::MiningCurrency::free_balance(Self::bit_mining_resource_currency_id(), &from) >= amount,
+            T::MiningCurrency::free_balance(Self::bit_mining_resource_currency_id(), &who) >= amount,
             Error::<T>::BalanceLow
         );
 
-        T::MiningCurrency::transfer(Self::bit_mining_resource_currency_id(), &from, &mining_treasury, amount)?;
+        T::MiningCurrency::transfer(Self::bit_mining_resource_currency_id(), &who, &mining_treasury, amount)?;
 
-        Self::deposit_event(Event::DepositMiningResource(from, amount.clone()));
+        Self::deposit_event(Event::DepositMiningResource(who, amount.clone()));
 
         Ok(())
     }

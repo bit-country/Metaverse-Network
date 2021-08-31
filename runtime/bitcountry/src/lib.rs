@@ -79,7 +79,7 @@ pub mod constants;
 
 use constants::{time::*, currency::*};
 use sp_runtime::generic::Era;
-use frame_benchmarking::frame_support::pallet_prelude::Get;
+
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -102,7 +102,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // and set impl_version to 0. If only runtime
     // implementation changes and behavior does not, then leave spec_version as
     // is and increment impl_version.
-    spec_version: 278,
+    spec_version: 279,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 2,
