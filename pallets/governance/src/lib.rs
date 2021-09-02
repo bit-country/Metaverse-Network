@@ -1,12 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-//use codec::{Decode, Encode};
+use codec::{Decode, Encode, Input};
 
 use frame_system::ensure_signed;
 use primitives::{CountryId, ProposalId, ReferendumId};
 use sp_std::prelude::*;
-use sp_runtime::traits::{Zero, Dispatchable};
+use sp_runtime::traits::{Zero, Dispatchable, Hash, Saturating};
 use bc_country::BCCountry;
 use frame_support::{
     ensure, weights::Weight,
@@ -66,6 +66,9 @@ pub mod pallet {
         #[pallet::constant]
         type MinimumProposalDeposit: Get<BalanceOf<Self>>;
 
+        #[pallet::constant]
+        type DefaultPreimageByteDeposit: Get<BalanceOf<Self>>;
+
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
         type CountryInfo: BCCountry<Self::AccountId>;
@@ -82,10 +85,14 @@ pub mod pallet {
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
-   
+    #[pallet::storage]
+    #[pallet::getter(fn preimages)]
+	pub type Preimages<T: Config> = StorageMap< _, Identity, T::Hash, 
+        PreimageStatus<T::AccountId, BalanceOf<T>, T::BlockNumber>,>;
+
     #[pallet::storage]
     #[pallet::getter(fn proposals)]
-    pub type Proposals<T: Config> = StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, ProposalId, ProposalInfo<T::AccountId,T::BlockNumber,CountryParameter>, OptionQuery>;
+    pub type Proposals<T: Config> = StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, ProposalId, ProposalInfo<T::AccountId,T::BlockNumber,T::Hash>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn next_proposal)]
@@ -123,6 +130,11 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata()]
     pub enum Event<T: Config> {
+        PreimageNoted(T::Hash, T::AccountId, BalanceOf<T>),
+        PreimageInvalid(CountryId, T::Hash, ProposalId),
+        PreimageMissing(CountryId, T::Hash, ProposalId),
+        PreimageUsed(T::Hash, T::AccountId, BalanceOf<T>),
+        PreimageEnacted(CountryId, T::Hash, DispatchResult),
         ReferendumParametersUpdated(CountryId),
         ProposalSubmitted(T::AccountId, CountryId, ProposalId),
         ProposalCancelled(T::AccountId, CountryId, ProposalId),
@@ -145,7 +157,6 @@ pub mod pallet {
         InsufficientBalance,
         DepositTooLow,
         ProposalParametersOutOfScope,
-        TooManyProposalParameters,
         InvalidProposalParameters,
         ProposalQueueFull,
         ProposalDoesNotExist,
@@ -164,8 +175,11 @@ pub mod pallet {
         AccountAlreadyVoted,
         InvalidJuryAddress,
         InvalidReferendumOutcome,
-        ReferendumParametersDoesNotExist
-
+        ReferendumParametersDoesNotExist,
+        PreimageMissing,
+        PreimageInvalid,
+        PreimageCallsOutOfScope,
+        DuplicatePreimage
     }
 
     #[pallet::call]
@@ -186,39 +200,32 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResultWithPostInfo {
+            let from = ensure_signed(origin)?;
+            let does_update_jury = Self::does_preimage_updates_jury(encoded_proposal.clone())?;
+            ensure!(Self::is_preimage_valid(encoded_proposal.clone())?, Error::<T>::PreimageCallsOutOfScope);
+			Self::note_preimage_inner(from, encoded_proposal.clone(), does_update_jury)?;
+            Ok(().into())
+		}
+
+        #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn propose(
             origin: OriginFor<T>, 
             country: CountryId, 
             balance: BalanceOf<T>,
-            proposal_parameters: Vec<CountryParameter>,
+            preimage_hash: T::Hash, 
             proposal_description: Vec<u8>
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             ensure!(T::CountryInfo::is_member(&from, &country), Error::<T>::AccountNotCountryMember);
             ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
             ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
-            let current_block = <frame_system::Module<T>>::block_number();
-            let mut launch_block: T::BlockNumber = current_block;
-            match Self::referendum_parameters(country) {
-                Some(country_referendum_params) => {
-                    ensure!(Self::proposals_per_country(country) < country_referendum_params.max_proposals_per_country, Error::<T>::ProposalQueueFull);
-                    ensure!(proposal_parameters.len() <= country_referendum_params.max_params_per_proposal.into(), Error::<T>::TooManyProposalParameters);   
-                    if country_referendum_params.min_proposal_launch_period.is_zero() {
-                        launch_block += country_referendum_params.min_proposal_launch_period;
-                    }
-                    else {
-                        launch_block += T::DefaultProposalLaunchPeriod::get();
-                    }
-                },
-                None => {
-                    ensure!(Self::proposals_per_country(country) < T::DefaultMaxProposalsPerCountry::get(), Error::<T>::ProposalQueueFull);
-                    ensure!(proposal_parameters.len() <= T::DefaultMaxParametersPerProposal::get().into(), Error::<T>::TooManyProposalParameters);   
-                    launch_block += T::DefaultProposalLaunchPeriod::get();
-                }, 
-            }
+            ensure!(<Preimages<T>>::contains_key(preimage_hash), Error::<T>::PreimageInvalid);
+            let launch_block: T::BlockNumber = Self::get_proposal_launch_block(country)?;
             let proposal_info = ProposalInfo {
                 proposed_by: from.clone(),
-                parameters: proposal_parameters,
+              //  parameter: proposal_parameter,
+                hash: preimage_hash,
                 description: proposal_description,
                 referendum_launch_block: launch_block,
             };
@@ -395,6 +402,42 @@ pub mod pallet {
     }
     
     impl<T: Config> Pallet<T> {
+
+        // See `note_preimage`
+	    fn note_preimage_inner(who: T::AccountId, encoded_proposal: Vec<u8>, does_preimage_updates_jury: bool) -> DispatchResult {
+            let proposal_hash = T::Hashing::hash(&encoded_proposal[..]);
+            ensure!(!<Preimages<T>>::contains_key(&proposal_hash), Error::<T>::DuplicatePreimage);
+
+            let deposit = <BalanceOf<T>>::from(encoded_proposal.len() as u32)
+                .saturating_mul(T::DefaultPreimageByteDeposit::get());
+            T::Currency::reserve(&who, deposit)?;
+
+            let now = <frame_system::Pallet<T>>::block_number();
+            let a = PreimageStatus::Available {
+                data: encoded_proposal,
+                provider: who.clone(),
+                does_update_jury: does_preimage_updates_jury,
+                deposit,
+                since: now,
+                expiry: None,
+            };
+            <Preimages<T>>::insert(proposal_hash, a);
+
+            Self::deposit_event(Event::<T>::PreimageNoted(proposal_hash, who, deposit));
+
+            Ok(())
+	    }
+
+        fn is_preimage_valid(encoded_proposal: Vec<u8>) -> Result<bool, DispatchError> {
+            //TO DO: check whether preimage function calls are within a defined scope
+            Ok(true)
+        }
+
+        fn does_preimage_updates_jury(encoded_proposal: Vec<u8>) -> Result<bool, DispatchError> {
+            //TO DO: Check whether preimage updates jury
+            Ok(false)
+        }
+
         fn start_referendum(country_id: CountryId, proposal_id: ProposalId, current_block: T::BlockNumber) -> Result<u64,DispatchError> {
             let referendum_id = Self::get_next_referendum_id()?;
             
@@ -446,6 +489,57 @@ pub mod pallet {
             })
         }
 
+        fn get_proposal_launch_block(country: CountryId) -> Result<T::BlockNumber, DispatchError> {
+            let current_block = <frame_system::Module<T>>::block_number();
+            match Self::referendum_parameters(country) {
+                Some(country_referendum_params) => {
+                    ensure!(Self::proposals_per_country(country) < country_referendum_params.max_proposals_per_country, Error::<T>::ProposalQueueFull); 
+                    if country_referendum_params.min_proposal_launch_period.is_zero() {
+                        
+                        Ok(current_block + country_referendum_params.min_proposal_launch_period)
+                    }
+                    else {
+                        Ok(current_block + T::DefaultProposalLaunchPeriod::get())
+                    }
+                },
+                None => {
+                    ensure!(Self::proposals_per_country(country) < T::DefaultMaxProposalsPerCountry::get(), Error::<T>::ProposalQueueFull);
+                    Ok(current_block + T::DefaultProposalLaunchPeriod::get())
+                }, 
+            }
+        }
+         
+        fn pre_image_data_len(preimage_hash: T::Hash) -> Result<u32, DispatchError> {
+            // To decode the `data` field of Available variant we need:
+            // * one byte for the variant
+            // * at most 5 bytes to decode a `Compact<u32>`
+            let mut buf = [0u8; 6];
+            let key = <Preimages<T>>::hashed_key_for(preimage_hash);
+            let bytes =
+                sp_io::storage::read(&key, &mut buf, 0).ok_or_else(|| Error::<T>::PreimageMissing)?;
+            // The value may be smaller that 6 bytes.
+            let mut input = &buf[0..buf.len().min(bytes as usize)];
+    
+            match input.read_byte() {
+                Ok(1) => (), // Check that input exists and is second variant.
+                Ok(0) => return Err(Error::<T>::PreimageMissing.into()),
+                _ => {
+                    sp_runtime::print("Failed to decode `PreimageStatus` variant");
+                    return Err(Error::<T>::PreimageMissing.into())
+                },
+            }
+    
+            // Decode the length of the vector.
+            let len = codec::Compact::<u32>::decode(&mut input)
+                .map_err(|_| {
+                    sp_runtime::print("Failed to decode `PreimageStatus` variant");
+                    DispatchError::from(Error::<T>::PreimageMissing)
+                })?
+                .0;
+    
+            Ok(len)
+        } 
+
         fn update_proposals_per_country_number(country: CountryId, is_proposal_added: bool) -> DispatchResult {
             <TotalProposalsPerCountry<T>>::try_mutate(country, |number_of_proposals| -> DispatchResult {
                 if is_proposal_added {
@@ -459,18 +553,12 @@ pub mod pallet {
         }
 
         fn does_proposal_changes_jury(referendum_status: ReferendumStatus<T::BlockNumber>) -> Result<bool, DispatchError> {
-            let proposal_parameters = Self::proposals(referendum_status.country,referendum_status.proposal).ok_or(Error::<T>::ProposalDoesNotExist)?.parameters;
-            let mut result = false;
-            for parameter in proposal_parameters.iter() {
-                match parameter {
-                    CountryParameter::SetReferendumJury(a) =>{
-                        result = true;
-                        break;
-                    },
-                    _ => continue,
-                }
-            }
-            Ok(result)
+            let proposal_hash = Self::proposals(referendum_status.country,referendum_status.proposal).ok_or(Error::<T>::ProposalDoesNotExist)?.hash;
+            let preimage_status = Self::preimages(proposal_hash).ok_or(Error::<T>::PreimageMissing)?;
+            match preimage_status  {
+                PreimageStatus::Available{ data, does_update_jury, provider, deposit, since, expiry } => return Ok(does_update_jury),
+                PreimageStatus::Missing(expiry) => return Err(Error::<T>::PreimageMissing.into()),
+            }   
         }
 
         fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
@@ -479,8 +567,7 @@ pub mod pallet {
         }
 
         /// Ok if the given referendum is active, Err otherwise
-        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError>
-        {
+        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
              match r {
                 ReferendumInfo::Ongoing(s) => Ok(s),
                 _ => Err(Error::<T>::ReferendumIsOver.into()),
@@ -559,53 +646,32 @@ pub mod pallet {
             Ok(()) 
         }
 
-        fn do_enact_proposal(proposal: ProposalId, country: CountryId) -> DispatchResult {
-            let proposal_parameters = Self::proposals(country,proposal).ok_or(Error::<T>::InvalidProposalParameters)?.parameters;
-            let mut are_referendum_params_updated = false;
-            let mut new_referendum_parameters: ReferendumParameters<T::BlockNumber>;
-            match Self::referendum_parameters(country) {
-                Some(current_params) => new_referendum_parameters = current_params,
-                None =>  {
-                        new_referendum_parameters = ReferendumParameters {
-                        voting_threshold: Some(VoteThreshold::RelativeMajority),
-                        min_proposal_launch_period: T::DefaultProposalLaunchPeriod::get(),
-                        voting_period: T::DefaultVotingPeriod::get(),
-                        enactment_period: T::DefaultEnactmentPeriod::get(),
-                        max_params_per_proposal: T::DefaultMaxParametersPerProposal::get(),
-                        max_proposals_per_country: T::DefaultMaxProposalsPerCountry::get()
-                    };
-                    are_referendum_params_updated = true;
-                }
-            };
-           
-            for parameter in proposal_parameters.iter() {
-                match parameter {
-                    CountryParameter::MaxProposals(new_max_proposals) => {
-                        new_referendum_parameters.max_proposals_per_country = *new_max_proposals;
-                        are_referendum_params_updated = true;
-                    },
-                    CountryParameter::MaxParametersPerProposal(new_max_params) => {
-                        new_referendum_parameters.max_params_per_proposal = *new_max_params;
-                        are_referendum_params_updated = true;
-                     },
-                    CountryParameter::SetReferendumJury(new_jury_address) => {
-                        // TO DO: Finish Implementation
-                        //  <ReferendumJuryOf<T>>::try_mutate(country,|jury| -> DispatchResult {
-                           // let new_acc: AccountId = T::AccountId::decode(new_jury_address.as_mut()).expect("error");
-                           // *jury = Some(new_acc);
-                            // Ok(())
-                      //  });
-                    },//),
-                    _ => {}, // implement more options when new parameters are included
-                }
-            }
-            if are_referendum_params_updated  {
-                <ReferendumParametersOf<T>>::try_mutate(country,|referendum_params| -> DispatchResult {
-                    *referendum_params = Some(new_referendum_parameters);
+        fn do_enact_proposal(proposal_id: ProposalId, country: CountryId) -> DispatchResult {
+            let proposal_info = Self::proposals(country,proposal_id).ok_or(Error::<T>::InvalidProposalParameters)?;
+            let preimage = <Preimages<T>>::take(&proposal_info.hash);
+            if let Some(PreimageStatus::Available { data, provider, deposit, .. }) = preimage {
+                if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
+                    Self::deposit_event(Event::<T>::PreimageUsed(proposal_info.hash, provider, deposit));
+                    let result = proposal
+                        .dispatch(frame_system::RawOrigin::Root.into())
+                        .map(|_| ())
+                        .map_err(|e| e.error);
+
+                    Self::deposit_event(Event::<T>::PreimageEnacted(country, proposal_info.hash, result));
+
                     Ok(())
-                });
+
+                } else {
+                    //T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
+                    Self::deposit_event(Event::<T>::PreimageInvalid(country, proposal_info.hash, proposal_id));
+                    Err(Error::<T>::PreimageInvalid.into())
+              
+                }
             }
-            Ok(())
+            else {
+                Self::deposit_event(Event::<T>::PreimageMissing(country, proposal_info.hash, proposal_id));
+                Err(Error::<T>::PreimageMissing.into())
+            }
         }
 
     }

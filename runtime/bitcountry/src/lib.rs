@@ -1137,6 +1137,7 @@ parameter_types! {
     pub const DefaultMaxProposalsPerCountry: u8 = 4; //Default 4 parameters
     pub const OneBlock: BlockNumber = 1;
     pub const MinimumProposalDeposit: Balance = 10 * DOLLARS;
+    pub const DefaultPreimageByteDeposit: Balance = 1 * DOLLARS;
 }
 
 impl governance::Config for Runtime {
@@ -1146,6 +1147,7 @@ impl governance::Config for Runtime {
     type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
     type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
     type MinimumProposalDeposit = MinimumProposalDeposit;
+    type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
     type OneBlock = OneBlock;
     type Event = Event;
     type Currency = Balances;

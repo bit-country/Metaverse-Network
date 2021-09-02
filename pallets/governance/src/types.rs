@@ -1,8 +1,36 @@
 use codec::{Encode, Decode};
-use sp_runtime::{RuntimeDebug, traits::One};
+use sp_runtime::{RuntimeDebug, traits::{One,Hash}};
 use sp_std::vec::Vec;
 use primitives::{CountryId, ProposalId, ReferendumId,AccountId};
 use crate::*;
+
+
+#[derive(Clone, Encode, Decode, RuntimeDebug)]
+pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
+	/// The preimage is imminently needed at the argument.
+	Missing(BlockNumber),
+	/// The preimage is available.
+	Available {
+		data: Vec<u8>,
+        does_update_jury: bool,
+		provider: AccountId,
+		deposit: Balance,
+		since: BlockNumber,
+		/// None if it's not imminent.
+		expiry: Option<BlockNumber>,
+	},
+}
+
+impl<AccountId, Balance, BlockNumber> PreimageStatus<AccountId, Balance, BlockNumber> {
+	fn to_missing_expiry(self) -> Option<BlockNumber> {
+		match self {
+			PreimageStatus::Missing(expiry) => Some(expiry),
+			_ => None,
+		}
+	}
+}
+
+
 
 #[derive(Encode, Decode,  Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum VoteThreshold {
@@ -16,7 +44,6 @@ pub enum VoteThreshold {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum CountryParameter {
     MaxProposals(u8),
-    MaxParametersPerProposal(u8),
     SetReferendumJury(AccountId),
 }
 
@@ -26,7 +53,6 @@ pub struct ReferendumParameters<BlockNumber> {
     pub(crate) min_proposal_launch_period: BlockNumber,// number of blocks
     pub(crate) voting_period: BlockNumber, // number of block
     pub(crate) enactment_period: BlockNumber, // number of blocks
-    pub(crate) max_params_per_proposal: u8,
     pub(crate) max_proposals_per_country: u8,
 }
 /*
@@ -37,7 +63,7 @@ impl<BlockNumber: From<u32> + Default> Default for ReferendumParameters<BlockNum
             min_proposal_launch_period: T::Pallet::DefaultProposalLaunchPeriod::get(),
             voting_period:  T::DefaultVotingPeriod::get(), 
             enactment_period:  T::DefaultEnactmentPeriod::get(), 
-            max_params_per_proposal:  T::DefaultMaxParametersPerProposal::get(),
+          //  max_params_per_proposal:  T::DefaultMaxParametersPerProposal::get(),
             max_proposals_per_country: T::DefaultMaxProposalsPerCountry::get(),
         }
     }
@@ -97,9 +123,9 @@ pub struct VotingRecord {
 
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct ProposalInfo<AccountId,BlockNumber,CountryParameter> {
+pub struct ProposalInfo<AccountId,BlockNumber,Hash> {
     pub(crate) proposed_by: AccountId,
-    pub(crate) parameters: Vec<CountryParameter>,
+    pub(crate) hash: Hash,
     pub(crate) description: Vec<u8>, // link to proposal description
     pub(crate) referendum_launch_block: BlockNumber,
 }

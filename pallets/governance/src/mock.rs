@@ -8,7 +8,7 @@ use frame_support::{
 };
 
 use sp_core::H256;
-use sp_runtime::{Perbill, testing::Header, traits::IdentityLookup};
+use sp_runtime::{Perbill, testing::Header, traits::{IdentityLookup,Hash, BlakeTwo256}};
 use primitives::SocialTokenCurrencyId;
 use bc_country::Country;
 use frame_support::{pallet_prelude::Hooks, weights::Weight};
@@ -30,13 +30,12 @@ pub const BOB: AccountId = 2;
 pub const ALICE_COUNTRY_ID: CountryId = 1;
 pub const BOB_COUNTRY_ID: CountryId = 2;
 pub const PROPOSAL_DESCRIPTION: [u8;2] = [1,2];
-pub const PROPOSAL_PARAMETERS: [CountryParameter;2] = [CountryParameter::MaxProposals(2), CountryParameter::MaxParametersPerProposal(2)];
+//pub const PROPOSAL_PARAMETER: CountryParameter = CountryParameter::MaxParametersPerProposal(2);
 pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumParameters {
     voting_threshold: Some(VoteThreshold::RelativeMajority),
     min_proposal_launch_period: 12,
     voting_period:5, 
     enactment_period: 10, 
-    max_params_per_proposal: 2,
     max_proposals_per_country: 1,
 };  
 
@@ -130,6 +129,7 @@ parameter_types! {
     pub const DefaultMaxProposalsPerCountry: u8 = 2;
     pub const OneBlock: BlockNumber = 1;
     pub const MinimumProposalDeposit: Balance = 50;
+    pub const DefaultPreimageByteDeposit: Balance = 1;
 }
 
 impl Config for Runtime {
@@ -139,6 +139,7 @@ impl Config for Runtime {
     type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
     type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
     type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
+    type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
     type MinimumProposalDeposit = MinimumProposalDeposit;
     type OneBlock = OneBlock;
     type Currency = Balances;
@@ -213,4 +214,25 @@ pub fn run_to_block(n: u64) {
     while System::block_number() < n {
         next_block();
     }
+}
+
+pub fn set_balance_proposal(value: u64) -> Vec<u8> {
+	Call::Balances(pallet_balances::Call::set_balance(BOB, value, 100)).encode()
+}
+
+pub fn set_balance_proposal_hash(value: u64) -> H256 {
+    BlakeTwo256::hash(&set_balance_proposal(value)[..])
+}
+
+pub fn add_preimage(hash: H256, does_preimage_updates_jury: bool) {
+    let preimage_status = PreimageStatus::Available {
+        data: set_balance_proposal(4),
+        does_update_jury: does_preimage_updates_jury,
+        provider: ALICE,
+        deposit: 200,
+        since: 1,
+        /// None if it's not imminent.
+        expiry: Some(150),
+    };
+    Preimages::<Runtime>::insert(hash,preimage_status);
 }
