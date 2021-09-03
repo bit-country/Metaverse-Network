@@ -140,7 +140,8 @@
     "_enum": {
       "NativeToken": "TokenId",
       "SocialToken": "TokenId",
-      "DEXShare": "(TokenId, TokenId)"
+      "DEXShare": "(TokenId, TokenId)",
+      "MiningResource": "TokenId"
     }
   },
   "TradingPairStatus": {
