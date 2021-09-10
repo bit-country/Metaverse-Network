@@ -11,7 +11,7 @@
 
 ## A Decentralized World - Create a decentralized bit country of your own.
 
-[![Substrate version](https://img.shields.io/badge/Substrate-2.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.dev/)
+[![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.dev/)
 [![Twitter URL](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2Fbitdotcountry)](https://twitter.com/bitdotcountry)
 [![Medium](https://img.shields.io/badge/Medium-BitCountry-brightgreen?logo=medium)](https://medium.com/@bitcountry)
 
