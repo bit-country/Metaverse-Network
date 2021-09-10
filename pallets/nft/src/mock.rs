@@ -10,9 +10,9 @@ use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
-use orml_currencies::BasicCurrencyAdapter;
-use primitives::{CurrencyId, Amount, ItemId};
-use auction_manager::{AuctionHandler, AuctionType, OnNewBidResult, Change, AuctionInfo, Auction};
+// use orml_currencies::BasicCurrencyAdapter;
+use primitives::{CurrencyId, Amount, ItemId, SocialTokenCurrencyId};
+use auction_manager::{AuctionHandler, AuctionType, OnNewBidResult, Change, AuctionInfo, Auction, ListingLevel};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
@@ -21,6 +21,7 @@ parameter_types! {
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
+pub type AuctionId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -96,7 +97,25 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn create_auction(auction_type: AuctionType, item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64) -> Result<u64, DispatchError> {
+    fn create_auction(
+        auction_type: AuctionType,
+        item_id: ItemId,
+        end: Option<BlockNumber>,
+        recipient: AccountId,
+        initial_amount: Self::Balance,
+        start: BlockNumber,
+        listing_level: ListingLevel,
+    ) -> Result<AuctionId, DispatchError> {
+        todo!()
+    }
+
+    fn local_auction_bid_handler(
+        _now: BlockNumber,
+        id: AuctionId,
+        new_bid: (AccountId, Self::Balance),
+        last_bid: Option<(AccountId, Self::Balance)>,
+        social_currency_id: SocialTokenCurrencyId,
+    ) -> DispatchResult {
         todo!()
     }
 
@@ -117,6 +136,7 @@ parameter_types! {
     pub CreateClassDeposit: Balance = 2;
     pub CreateAssetDeposit: Balance = 1;
     pub NftModuleId: ModuleId = ModuleId(*b"bit/bNFT");
+    pub OwnershipTokenClassId: u32 = 0;  
 }
 
 impl Config for Runtime {
@@ -128,6 +148,8 @@ impl Config for Runtime {
     type AuctionHandler = MockAuctionManager;
     type WeightInfo = ();
     type AssetsHandler = Handler;
+    type OwnershipTokenClass = OwnershipTokenClassId;
+    type CountryOwnershipSource = CountryModule;
 }
 
 impl orml_nft::Config for Runtime {
@@ -142,6 +164,16 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 
+parameter_types! {
+	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+}
+
+impl pallet_country::Config for Runtime {
+    type Event = Event;
+    type ModuleId = CountryFundModuleId;
+    type OwnershipTokenManager = Nft;
+}
+
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -152,6 +184,7 @@ construct_runtime!(
 		Nft: nft::{Module, Call, Event<T>},
 		OrmlNft: orml_nft::{Module, Storage, Config<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+        CountryModule: pallet_country::{Module, Call ,Storage, Event<T>},
 	}
 );
 
@@ -184,13 +217,13 @@ impl ExtBuilder {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+    let mut t = frame_system::GenesisConfig::default().build_storage::<Runtime>().unwrap();
 
-    pallet_balances::GenesisConfig::<Test> {
+    pallet_balances::GenesisConfig::<Runtime> {
         balances: vec![(200, 500)],
     }.assimilate_storage(&mut t).unwrap();
 
-    crate::GenesisConfig::default().assimilate_storage::<Test>(&mut t).unwrap();
+    // crate::GenesisConfig::default().assimilate_storage::<Runtime>(&mut t).unwrap();
 
     let mut t: sp_io::TestExternalities = t.into();
 
