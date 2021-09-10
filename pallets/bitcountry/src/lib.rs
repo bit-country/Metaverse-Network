@@ -216,7 +216,7 @@ impl<T: Config> Pallet<T> {
 
         let country_info = Country {
             owner: owner.clone(),
-            currency_id: SocialTokenCurrencyId::SocialToken(0),
+            currency_id: SocialTokenCurrencyId::NativeToken(0),
             metadata,
         };
 
