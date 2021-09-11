@@ -10,11 +10,11 @@ use sp_runtime::traits::BadOrigin;
 use sp_core::blake2_256;
 
 fn country_fund_account() -> AccountId {
-    TokenizationModule::get_country_fund_id(COUNTRY_ID)
+    TokenizationModule::get_country_fund_id(BITCOUNTRY_ID)
 }
 
 fn get_country_fund_balance() -> Balance {
-    match TokenizationModule::get_total_issuance(COUNTRY_ID) {
+    match TokenizationModule::get_total_issuance(BITCOUNTRY_ID) {
         Ok(balance) => balance,
         _ => 0
     }
@@ -30,7 +30,7 @@ fn mint_social_token_should_work() {
 			TokenizationModule::mint_token(
                 origin,
                 vec![1],
-                COUNTRY_ID,
+                BITCOUNTRY_ID,
                 400
             )
         );      
@@ -54,7 +54,7 @@ fn mint_social_token_should_fail_for_non_owner() {
 			TokenizationModule::mint_token(
                 origin,
                 vec![1],
-                COUNTRY_ID,
+                BITCOUNTRY_ID,
                 0
             ),
             Error::<Runtime>::NoPermissionTokenIssuance
@@ -70,7 +70,7 @@ fn mint_social_token_should_fail_if_already_exists() {
 			TokenizationModule::mint_token(
                 origin.clone(),
                 vec![1],
-                COUNTRY_ID,
+                BITCOUNTRY_ID,
                 0
             )
         );        
@@ -79,7 +79,7 @@ fn mint_social_token_should_fail_if_already_exists() {
 			TokenizationModule::mint_token(
                 origin,
                 vec![1],
-                COUNTRY_ID,
+                BITCOUNTRY_ID,
                 0
             ),
             Error::<Runtime>::SocialTokenAlreadyIssued
@@ -97,14 +97,14 @@ fn country_treasury_pool_withdraw_should_work() {
 			TokenizationModule::mint_token(
                 origin,
                 vec![1],
-                COUNTRY_ID,
+                BITCOUNTRY_ID,
                 400
             )
         );
         assert_ok!(
 			Currencies::deposit(
                 COUNTRY_FUND,
-                &TokenizationModule::get_country_fund_id(COUNTRY_ID),
+                &TokenizationModule::get_country_fund_id(BITCOUNTRY_ID),
                 400
             )
         );
@@ -112,7 +112,7 @@ fn country_treasury_pool_withdraw_should_work() {
         assert_ok!(
             Currencies::withdraw(
                 COUNTRY_FUND,
-                &TokenizationModule::get_country_fund_id(COUNTRY_ID),
+                &TokenizationModule::get_country_fund_id(BITCOUNTRY_ID),
                 200
             )
         );
@@ -129,7 +129,7 @@ fn country_treasury_pool_withdraw_should_fail() {
 			TokenizationModule::mint_token(
                 origin,
                 vec![1],
-                COUNTRY_ID,
+                BITCOUNTRY_ID,
                 400
             )
         );
@@ -154,7 +154,7 @@ fn country_treasury_pool_transfer_should_work() {
 			TokenizationModule::mint_token(
                 origin,
                 vec![1],
-                COUNTRY_ID,
+                BITCOUNTRY_ID,
                 400
             )
         );
@@ -162,13 +162,13 @@ fn country_treasury_pool_transfer_should_work() {
         assert_ok!(
 			Currencies::deposit(
                 COUNTRY_FUND,
-                &TokenizationModule::get_country_fund_id(COUNTRY_ID),
+                &TokenizationModule::get_country_fund_id(BITCOUNTRY_ID),
                 400
             )
         );
         assert_ok!(
 			Currencies::transfer(
-                Origin::signed(TokenizationModule::get_country_fund_id(COUNTRY_ID)),
+                Origin::signed(TokenizationModule::get_country_fund_id(BITCOUNTRY_ID)),
                 ALICE,
                 COUNTRY_FUND,
                 100

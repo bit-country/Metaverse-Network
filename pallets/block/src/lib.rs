@@ -20,9 +20,9 @@
 use codec::{Decode, Encode};
 use frame_support::ensure;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, LandId, CurrencyId};
+use primitives::{Balance, BitCountryId, LandId, CurrencyId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug};
-use bc_country::*;
+use bit_country::*;
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
@@ -85,12 +85,12 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_land_blocks)]
     pub type LandBlocks<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, CountryId, Twox64Concat, (i32, i32), (), OptionQuery>;
+    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, (i32, i32), (), OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_land_info)]
     pub type LandInfo<T: Config> =
-    StorageMap<_, Blake2_128Concat, LandId, (CountryId, (i32, i32)), OptionQuery>;
+    StorageMap<_, Blake2_128Concat, LandId, (BitCountryId, (i32, i32)), OptionQuery>;
 
     /// Get max bound
     #[pallet::storage]
@@ -103,7 +103,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         NewLandCreated(Vec<LandId>),
         TransferredLand(LandId, T::AccountId, T::AccountId),
-        NewLandBlockPurchased(LandId, CountryId, (i32, i32)),
+        NewLandBlockPurchased(LandId, BitCountryId, (i32, i32)),
         NewMaxBoundSet((i32, i32))
     }
 
@@ -140,7 +140,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn buy_land_block(origin: OriginFor<T>, bc_id: CountryId, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
+        pub(super) fn buy_land_block(origin: OriginFor<T>, bc_id: BitCountryId, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             // Check ownership
             let sender = ensure_signed(origin)?;
 
@@ -189,7 +189,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn buy_land(origin: OriginFor<T>, bc_id: CountryId, quantity: u8) -> DispatchResultWithPostInfo {
+        pub(super) fn buy_land(origin: OriginFor<T>, bc_id: BitCountryId, quantity: u8) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
             ensure!(T::CountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);

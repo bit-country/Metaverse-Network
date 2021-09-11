@@ -6,7 +6,7 @@ use sp_runtime::{
     DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::vec::Vec;
-use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
+use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct CountryAssetData {
@@ -17,7 +17,7 @@ pub struct CountryAssetData {
 pub struct Country<AccountId> {
     pub owner: AccountId,
     pub metadata: Vec<u8>,
-    pub currency_id: SocialTokenCurrencyId,
+    pub currency_id: FungibleTokenId,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
@@ -25,15 +25,15 @@ pub struct CountryFund<AccountId, Balance> {
     pub vault: AccountId,
     pub value: Balance,
     pub backing: Balance,
-    pub currency_id: SocialTokenCurrencyId,
+    pub currency_id: FungibleTokenId,
 }
 
 pub trait BCCountry<AccountId> {
-    fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool;
+    fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool;
 
-    fn get_country(country_id: CountryId) -> Option<Country<AccountId>>;
+    fn get_country(country_id: BitCountryId) -> Option<Country<AccountId>>;
 
-    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId>;
+    fn get_country_token(country_id: BitCountryId) -> Option<FungibleTokenId>;
 
-    fn update_country_token(country_id: CountryId, currency_id: SocialTokenCurrencyId) -> Result<(), DispatchError>;
+    fn update_country_token(country_id: BitCountryId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
 }

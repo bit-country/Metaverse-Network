@@ -18,7 +18,7 @@ use social_currencies::BasicCurrencyAdapter;
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
@@ -26,10 +26,10 @@ pub const BOB: AccountId = 2;
 pub const DEX: AccountId = 34780150990899770580028125037;
 
 pub const NUUM_SOC: TradingPair = TradingPair (NUUM, SOC);
-pub const NUUM: SocialTokenCurrencyId =  SocialTokenCurrencyId::NativeToken(0);
-pub const SOC: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1); // Social
-pub const SOC_2: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1);
-pub const SHARE: SocialTokenCurrencyId = SocialTokenCurrencyId::DEXShare(0, 1);
+pub const NUUM: FungibleTokenId =  FungibleTokenId::NativeToken(0);
+pub const SOC: FungibleTokenId = FungibleTokenId::SocialToken(1); // Social
+pub const SOC_2: FungibleTokenId = FungibleTokenId::SocialToken(1);
+pub const SHARE: FungibleTokenId = FungibleTokenId::DEXShare(0, 1);
 
 impl From<AccountId> for Origin {
     fn from(item: AccountId) -> Self {
@@ -99,7 +99,7 @@ impl swap::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
 	};
 }
@@ -114,14 +114,14 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = SocialTokenCurrencyId;
+    type CurrencyId = FungibleTokenId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
+    pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 }
 
 impl social_currencies::Config for Runtime {

@@ -21,9 +21,9 @@
 use codec::{Decode, Encode};
 use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, SocialTokenCurrencyId, CurrencyId};
+use primitives::{Balance, BitCountryId, FungibleTokenId, CurrencyId};
 use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug, DispatchResult};
-use bc_country::*;
+use bit_country::*;
 use auction_manager::{SwapManager};
 use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
@@ -68,7 +68,7 @@ pub mod pallet {
     use orml_traits::MultiCurrencyExtended;
     use frame_support::traits::Currency;
     use primitives::dex::TradingPair;
-    use primitives::SocialTokenCurrencyId;
+    use primitives::FungibleTokenId;
     use sp_std::vec::Vec;
     use crate::pallet::vec;
 
@@ -85,7 +85,7 @@ pub mod pallet {
         #[pallet::constant]
         type ModuleId: Get<ModuleId>;
         /// Social token currency system
-        type SocialTokenCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId=SocialTokenCurrencyId, Balance=Balance>;
+        type SocialTokenCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId=FungibleTokenId, Balance=Balance>;
         /// Native currency system
         type NativeCurrency: Currency<Self::AccountId>;
         /// Exchange fee
@@ -106,18 +106,18 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata(T::AccountId = "AccountId")]
     pub enum Event<T: Config> {
-        NewCountryCreated(CountryId),
-        TransferredCountry(CountryId, T::AccountId, T::AccountId),
+        NewCountryCreated(BitCountryId),
+        TransferredCountry(BitCountryId, T::AccountId, T::AccountId),
         /// Add liquidity success. \[who, currency_id_0, pool_0_increment,
         /// currency_id_1, pool_1_increment, share_increment\]
-        AddLiquidity(T::AccountId, SocialTokenCurrencyId, Balance, SocialTokenCurrencyId, Balance, Balance),
+        AddLiquidity(T::AccountId, FungibleTokenId, Balance, FungibleTokenId, Balance, Balance),
         /// Remove liquidity from the trading pool success. \[who,
         /// currency_id_0, pool_0_decrement, currency_id_1, pool_1_decrement,
         /// share_decrement\]
-        RemoveLiquidity(T::AccountId, SocialTokenCurrencyId, Balance, SocialTokenCurrencyId, Balance, Balance),
+        RemoveLiquidity(T::AccountId, FungibleTokenId, Balance, FungibleTokenId, Balance, Balance),
         /// Use supply currency to swap target currency. \[trader, trading_path,
         /// supply_currency_amount, target_currency_amount\]
-        Swap(T::AccountId, Vec<SocialTokenCurrencyId>, Balance, Balance),
+        Swap(T::AccountId, Vec<FungibleTokenId>, Balance, Balance),
     }
 
     #[pallet::error]
@@ -154,8 +154,8 @@ pub mod pallet {
         #[transactional]
         pub fn add_liquidity(
             origin: OriginFor<T>,
-            token_id_a: SocialTokenCurrencyId,
-            token_id_b: SocialTokenCurrencyId,
+            token_id_a: FungibleTokenId,
+            token_id_b: FungibleTokenId,
             #[pallet::compact] max_amount_a: Balance,
             #[pallet::compact] max_amount_b: Balance,
         ) -> DispatchResultWithPostInfo {
@@ -181,8 +181,8 @@ pub mod pallet {
         #[transactional]
         pub fn remove_liquidity(
             origin: OriginFor<T>,
-            currency_id_1: SocialTokenCurrencyId,
-            currency_id_2: SocialTokenCurrencyId,
+            currency_id_1: FungibleTokenId,
+            currency_id_2: FungibleTokenId,
             remove_amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
@@ -194,8 +194,8 @@ pub mod pallet {
         #[transactional]
         pub fn swap_native_token_with_exact_supply(
             origin: OriginFor<T>,
-            supply_currency: SocialTokenCurrencyId,
-            target_currency: SocialTokenCurrencyId,
+            supply_currency: FungibleTokenId,
+            target_currency: FungibleTokenId,
             #[pallet::compact] supply_amount: Balance,
             #[pallet::compact] min_target_amount: Balance,
         ) -> DispatchResultWithPostInfo {
@@ -208,8 +208,8 @@ pub mod pallet {
         #[transactional]
         pub fn swap_social_token_with_exact_native_token(
             origin: OriginFor<T>,
-            supply_currency: SocialTokenCurrencyId,
-            target_currency: SocialTokenCurrencyId,
+            supply_currency: FungibleTokenId,
+            target_currency: FungibleTokenId,
             #[pallet::compact] target_amount: Balance,
             #[pallet::compact] max_supply_amount: Balance,
         ) -> DispatchResultWithPostInfo {
@@ -230,8 +230,8 @@ impl<T: Config> Pallet<T> {
 
     fn do_add_liquidity(
         who: &T::AccountId,
-        currency_id_a: SocialTokenCurrencyId,
-        currency_id_b: SocialTokenCurrencyId,
+        currency_id_a: FungibleTokenId,
+        currency_id_b: FungibleTokenId,
         max_amount_a: Balance,
         max_amount_b: Balance,
     ) -> DispatchResult {
@@ -341,8 +341,8 @@ impl<T: Config> Pallet<T> {
     #[transactional]
     fn do_remove_liquidity(
         who: &T::AccountId,
-        currency_id_a: SocialTokenCurrencyId,
-        currency_id_b: SocialTokenCurrencyId,
+        currency_id_a: FungibleTokenId,
+        currency_id_b: FungibleTokenId,
         remove_share: Balance,
     ) -> DispatchResult {
         if remove_share.is_zero() {
@@ -435,7 +435,7 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn get_liquidity(currency_id_a: SocialTokenCurrencyId, currency_id_b: SocialTokenCurrencyId) -> (Balance, Balance) {
+    fn get_liquidity(currency_id_a: FungibleTokenId, currency_id_b: FungibleTokenId) -> (Balance, Balance) {
         let trading_pair = TradingPair::new(currency_id_a, currency_id_b);
         let (pool_0, pool_1) = Self::liquidity_pool(trading_pair);
         if currency_id_a == trading_pair.0 {
@@ -450,9 +450,9 @@ impl<T: Config> Pallet<T> {
     #[transactional]
     fn do_swap_native_token_for_social_token(
         who: &T::AccountId,
-        supply_currency: SocialTokenCurrencyId,
+        supply_currency: FungibleTokenId,
         amount_in: Balance,
-        target_currency: SocialTokenCurrencyId,
+        target_currency: FungibleTokenId,
         amount_out_min: Balance,
     ) -> Result<Balance, DispatchError> {
         ensure!(supply_currency.is_native_token_currency_id(), Error::<T>::InvalidTradingCurrency);
@@ -513,8 +513,8 @@ impl<T: Config> Pallet<T> {
     #[transactional]
     fn do_swap_token_for_exact_native_token(
         who: &T::AccountId,
-        supply_currency: SocialTokenCurrencyId,
-        target_currency: SocialTokenCurrencyId,
+        supply_currency: FungibleTokenId,
+        target_currency: FungibleTokenId,
         amount_out: Balance,
         amount_in_max: Balance,
     ) -> Result<Balance, DispatchError> {
@@ -559,8 +559,8 @@ impl<T: Config> Pallet<T> {
     }
 
     fn _swap(
-        supply_currency_id: SocialTokenCurrencyId,
-        target_currency_id: SocialTokenCurrencyId,
+        supply_currency_id: FungibleTokenId,
+        target_currency_id: FungibleTokenId,
         supply_incr: Balance,
         target_decr: Balance,
     ) {
@@ -578,11 +578,11 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> SwapManager<T::AccountId, SocialTokenCurrencyId, Balance> for Pallet<T> {
+impl<T: Config> SwapManager<T::AccountId, FungibleTokenId, Balance> for Pallet<T> {
     fn add_liquidity(
         who: &T::AccountId,
-        token_id_a: SocialTokenCurrencyId,
-        token_id_b: SocialTokenCurrencyId,
+        token_id_a: FungibleTokenId,
+        token_id_b: FungibleTokenId,
         max_amount_a: Balance,
         max_amount_b: Balance) -> DispatchResult {
         Self::do_add_liquidity(

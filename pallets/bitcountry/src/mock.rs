@@ -16,13 +16,13 @@ use frame_support::sp_runtime::traits::AtLeast32Bit;
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u64;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const COUNTRY_ID: CountryId = 0;
-pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
+pub const BITCOUNTRY_ID: BitCountryId = 0;
+pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
 pub const NUUM: CurrencyId = 0;
 
 // Configure a mock runtime to test the pallet.
@@ -83,7 +83,7 @@ impl Config for Runtime {
     type ModuleId = CountryFundModuleId;
 }
 
-pub type CountryModule = Module<Runtime>;
+pub type BitCountryModule = Module<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;

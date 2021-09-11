@@ -7,25 +7,25 @@ use frame_support::{
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::{IdentityLookup, AccountIdConversion}, ModuleId, Perbill};
-use primitives::{CurrencyId, Amount, SocialTokenCurrencyId};
+use primitives::{CurrencyId, Amount, FungibleTokenId};
 use frame_system::{EnsureSignedBy, EnsureRoot};
 use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use orml_traits::parameter_type_with_key;
-use primitives::SocialTokenCurrencyId::SocialToken;
+use primitives::FungibleTokenId::SocialToken;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 4;
 pub const BOB: AccountId = 5;
-pub const COUNTRY_ID: CountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
+pub const BITCOUNTRY_ID: BitCountryId = 1;
+pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
 pub const NUUM: CurrencyId = 0;
-pub const COUNTRY_FUND: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1);
+pub const COUNTRY_FUND: FungibleTokenId = FungibleTokenId::SocialToken(1);
 
 ord_parameter_types! {
     pub const One: AccountId = ALICE;
@@ -80,7 +80,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
 	};
 }
@@ -95,7 +95,7 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = SocialTokenCurrencyId;
+    type CurrencyId = FungibleTokenId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
@@ -106,30 +106,30 @@ pub type AdaptedBasicCurrency = social_currencies::BasicCurrencyAdapter<Runtime,
 pub struct CountryInfoSource {}
 
 impl BCCountry<AccountId> for CountryInfoSource {
-    fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
+    fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
         match *who {
             ALICE => true,
             _ => false,
         }
     }
 
-    fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
+    fn get_country(country_id: BitCountryId) -> Option<Country<AccountId>> {
         None
     }
 
-    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
+    fn get_country_token(country_id: BitCountryId) -> Option<FungibleTokenId> {
         None
     }
 
-    fn update_country_token(country_id: u64, currency_id: SocialTokenCurrencyId) -> Result<(), DispatchError> {
+    fn update_country_token(country_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
         Ok(())
     }
 }
 
 pub struct DEXManager {}
 
-impl SwapManager<AccountId, SocialTokenCurrencyId, Balance> for DEXManager {
-    fn add_liquidity(who: &AccountId, token_id_a: SocialTokenCurrencyId, token_id_b: SocialTokenCurrencyId, max_amount_a: Balance, max_amount_b: Balance) -> DispatchResult {
+impl SwapManager<AccountId, FungibleTokenId, Balance> for DEXManager {
+    fn add_liquidity(who: &AccountId, token_id_a: FungibleTokenId, token_id_b: FungibleTokenId, max_amount_a: Balance, max_amount_b: Balance) -> DispatchResult {
         Ok(())
     }
 }
@@ -149,7 +149,7 @@ impl swap::Config for Runtime {
 
 
 parameter_types! {
-    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
+    pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 }
 
 impl social_currencies::Config for Runtime {

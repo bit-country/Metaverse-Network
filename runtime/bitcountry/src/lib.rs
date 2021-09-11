@@ -25,7 +25,7 @@ use sp_core::{
     OpaqueMetadata,
 };
 pub use primitives::{AccountId, Signature};
-use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount, SocialTokenCurrencyId};
+use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount, FungibleTokenId};
 use sp_api::impl_runtime_apis;
 use sp_runtime::{
     Permill, Perbill, Perquintill, Percent, ApplyExtrinsicResult,
@@ -1030,7 +1030,7 @@ impl pallet_assets::Config for Runtime {
 }
 
 parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
+    pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
         Zero::zero()
     };
 }
@@ -1043,14 +1043,14 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = SocialTokenCurrencyId;
+    type CurrencyId = FungibleTokenId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
+    pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 }
 
 impl social_currencies::Config for Runtime {
@@ -1182,7 +1182,7 @@ impl modules_chainsafe::Config for Runtime {
 
 parameter_types! {
     //Mining Resource Currenct Id
-    pub const MiningResourceCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::MiningResource(0);
+    pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
     pub const BitMiningTreasury: ModuleId = ModuleId(*b"cb/minig");
 }
 

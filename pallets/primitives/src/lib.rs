@@ -69,7 +69,7 @@ pub type Block = generic::Block<Header, OpaqueExtrinsic>;
 /// Block ID.
 pub type BlockId = generic::BlockId<Block>;
 /// Country Id
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 /// Amount for transaction type
 pub type Amount = i128;
 /// Currency Id type
@@ -92,41 +92,41 @@ pub type TokenId = u64;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
     NFT(AssetId),
-    Spot(u64, CountryId),
-    Country(CountryId),
+    Spot(u64, BitCountryId),
+    Country(BitCountryId),
     Block(u64),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum SocialTokenCurrencyId {
+pub enum FungibleTokenId {
     NativeToken(TokenId),
     SocialToken(TokenId),
     DEXShare(TokenId, TokenId),
     MiningResource(TokenId),
 }
 
-impl SocialTokenCurrencyId {
+impl FungibleTokenId {
     pub fn is_native_token_currency_id(&self) -> bool {
-        matches!(self, SocialTokenCurrencyId::NativeToken(_))
+        matches!(self, FungibleTokenId::NativeToken(_))
     }
 
     pub fn is_social_token_currency_id(&self) -> bool {
-        matches!(self, SocialTokenCurrencyId::SocialToken(_))
+        matches!(self, FungibleTokenId::SocialToken(_))
     }
 
     pub fn is_dex_share_social_token_currency_id(&self) -> bool {
-        matches!(self, SocialTokenCurrencyId::DEXShare(_, _))
+        matches!(self, FungibleTokenId::DEXShare(_, _))
     }
 
     pub fn is_mining_resource_currency(&self) -> bool {
-        matches!(self, SocialTokenCurrencyId::MiningResource(_))
+        matches!(self, FungibleTokenId::MiningResource(_))
     }
 
     pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
         match self {
-            SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1) => {
-                Some((SocialTokenCurrencyId::NativeToken(*token_currency_id_0), SocialTokenCurrencyId::SocialToken(*token_currency_id_1)))
+            FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1) => {
+                Some((FungibleTokenId::NativeToken(*token_currency_id_0), FungibleTokenId::SocialToken(*token_currency_id_1)))
             }
             _ => None,
         }
@@ -134,11 +134,11 @@ impl SocialTokenCurrencyId {
 
     pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
         match (currency_id_0, currency_id_1) {
-            (SocialTokenCurrencyId::NativeToken(token_currency_id_0), SocialTokenCurrencyId::SocialToken(token_currency_id_1)) => {
-                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
+            (FungibleTokenId::NativeToken(token_currency_id_0), FungibleTokenId::SocialToken(token_currency_id_1)) => {
+                Some(FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1))
             }
-            (SocialTokenCurrencyId::SocialToken(token_currency_id_0), SocialTokenCurrencyId::NativeToken(token_currency_id_1)) => {
-                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_1, token_currency_id_0))
+            (FungibleTokenId::SocialToken(token_currency_id_0), FungibleTokenId::NativeToken(token_currency_id_1)) => {
+                Some(FungibleTokenId::DEXShare(token_currency_id_1, token_currency_id_0))
             }
             _ => None,
         }
@@ -183,7 +183,7 @@ pub mod report {
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
 pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
     /// Vesting token
-    pub token: SocialTokenCurrencyId,
+    pub token: FungibleTokenId,
     /// Vesting starting block
     pub start: BlockNumber,
     /// Number of blocks between vest

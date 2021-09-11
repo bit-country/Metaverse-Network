@@ -23,7 +23,7 @@
     "end_time": "u32",
     "auction_type": "AuctionType",
     "listing_level": "ListingLevel",
-    "currency_id": "SocialTokenCurrencyId"
+    "currency_id": "FungibleTokenId"
   },
   "AuctionInfo": {
     "bid": "Option<(AccountId,Balance)>",
@@ -43,7 +43,7 @@
     "end": "Option<BlockNumber>",
     "price_per_block": "Balance"
   },
-  "CountryId": "u64",
+  "BitCountryId": "u64",
   "CollectionId": "u64",
   "ClassId": "u32",
   "ClassInfoOf": {
@@ -101,7 +101,7 @@
       "Executable"
     ]
   },
-  "CurrencyId": "SocialTokenCurrencyId",
+  "CurrencyId": "FungibleTokenId",
   "TokenSymbol": {
     "_enum": [
       "NUUM",
@@ -111,7 +111,7 @@
     ]
   },
   "CountryCurrencyId": "u32",
-  "CurrencyIdOf": "SocialTokenCurrencyId",
+  "CurrencyIdOf": "FungibleTokenId",
   "BalanceIdOf": "Balance",
   "ChainId": {
     "_enum": {
@@ -130,13 +130,13 @@
   "ItemId": {
     "_enum": {
       "NFT": "AssetId",
-      "Spot": "(u64, CountryId)",
-      "Country": "CountryId",
+      "Spot": "(u64, BitCountryId)",
+      "Country": "BitCountryId",
       "Block": "u64"
     }
   },
   "PoolId": "u32",
-  "SocialTokenCurrencyId": {
+  "FungibleTokenId": {
     "_enum": {
       "NativeToken": "TokenId",
       "SocialToken": "TokenId",
@@ -149,11 +149,11 @@
       "Enabled"
     ]
   },
-  "TradingPair": "(SocialTokenCurrencyId,SocialTokenCurrencyId)",
+  "TradingPair": "(FungibleTokenId,FungibleTokenId)",
   "Country": {
     "owner": "AccountId",
     "metadata": "Text",
-    "currency_id": "SocialTokenCurrencyId"
+    "currency_id": "FungibleTokenId"
   },
   "Ticker": "Vec<u8>",
   "Token": {
@@ -164,19 +164,19 @@
     "vault": "AccountId",
     "value": "u128",
     "backing": "u128",
-    "currency_id": "SocialTokenCurrencyId"
+    "currency_id": "FungibleTokenId"
   },
   "LandId": "u64",
   "TokenId": "u64",
   "ListingLevel": {
     "_enum": {
       "Global": "Null",
-      "Local": "CountryId"
+      "Local": "BitCountryId"
     }
   },
   "AmountOf": "Balance",
   "VestingSchedule": {
-    "token": "SocialTokenCurrencyId",
+    "token": "FungibleTokenId",
     "start": "BlockNumber",
     "period": "BlockNumber",
     "period_count": "u32",
