@@ -57,7 +57,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn get_bitcountry)]
-    pub type Countries<T: Config> =
+    pub type BitCountries<T: Config> =
     StorageMap<_, Twox64Concat, BitCountryId, Country<T::AccountId>, OptionQuery>;
 
     #[pallet::storage]
@@ -67,7 +67,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn all_bitcountries_count)]
-    pub(super) type AllCountriesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+    pub(super) type AllBitCountriesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_freezing_country)]
@@ -121,7 +121,7 @@ pub mod pallet {
             let total_bitcountry_count = Self::all_bitcountries_count();
 
             let new_total_bitcountry_count = total_bitcountry_count.checked_add(One::one()).ok_or("Overflow adding new count to new_total_bitcountry_count")?;
-            AllCountriesCount::<T>::put(new_total_bitcountry_count);
+            AllBitCountriesCount::<T>::put(new_total_bitcountry_count);
             Self::deposit_event(Event::<T>::NewBitCountryCreated(bitcountry_id.clone()));
 
             Ok(().into())
@@ -144,7 +144,7 @@ pub mod pallet {
                     *bitcountry_by_owner = None;
                     BitCountryOwner::<T>::insert(bitcountry_id.clone(), to.clone(), ());
 
-                    Countries::<T>::try_mutate_exists(
+                    BitCountries::<T>::try_mutate_exists(
                         &bitcountry_id,
                         |bitcountry| -> DispatchResultWithPostInfo{
                             let mut bitcountry_record = bitcountry.as_mut().ok_or(Error::<T>::NoPermission)?;
@@ -186,7 +186,7 @@ pub mod pallet {
             // Only Council can destroy a bitcountry
             ensure_root(origin)?;
 
-            Countries::<T>::try_mutate(bitcountry_id, |bitcountry_info| -> DispatchResultWithPostInfo{
+            BitCountries::<T>::try_mutate(bitcountry_id, |bitcountry_info| -> DispatchResultWithPostInfo{
                 let t = bitcountry_info.take().ok_or(Error::<T>::BitCountryInfoNotFound)?;
 
                 BitCountryOwner::<T>::remove(&bitcountry_id, t.owner.clone());
@@ -220,7 +220,7 @@ impl<T: Config> Pallet<T> {
             metadata,
         };
 
-        Countries::<T>::insert(bitcountry_id, country_info);
+        BitCountries::<T>::insert(bitcountry_id, country_info);
 
         Ok(bitcountry_id)
     }
@@ -244,7 +244,7 @@ impl<T: Config> BitCountry<T::AccountId> for Module<T>
     }
 
     fn update_bitcountry_token(bitcountry_id: BitCountryId, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
-        Countries::<T>::try_mutate_exists(
+        BitCountries::<T>::try_mutate_exists(
             &bitcountry_id,
             |bitcountry| {
                 let mut bitcountry_record = bitcountry.as_mut().ok_or(Error::<T>::NoPermission)?;
