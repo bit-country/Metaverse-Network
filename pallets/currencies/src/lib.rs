@@ -114,7 +114,7 @@ pub mod pallet {
         /// No permission to issue token
         NoPermissionTokenIssuance,
         /// Country Currency already issued for this bitcountry
-        FungileTokenAlreadyIssued,
+        FungibleTokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
         //Country Is Not Available

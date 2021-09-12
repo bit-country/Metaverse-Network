@@ -302,7 +302,7 @@ impl<T: Config> BitCountryTrait<T::AccountId> for Module<T> {
             let mut bitcountry_record = bitcountry.as_mut().ok_or(Error::<T>::NoPermission)?;
 
             ensure!(
-                bitcountry_record.currency_id == FungibleTokenId::FungileToken(0),
+                bitcountry_record.currency_id == FungibleTokenId::FungibleToken(0),
                 Error::<T>::FungibleTokenAlreadyIssued
             );
 

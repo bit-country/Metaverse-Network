@@ -40,7 +40,7 @@ fn mint_social_token_should_work() {
         assert_eq!(get_country_fund_balance(), 400);
 
         let event = mock::Event::tokenization(
-            crate::Event::FungileTokenIssued(FungibleTokenId::FungileToken(1), ALICE, country_fund_account(), 400, BITCOUNTRY_ID)
+            crate::Event::FungibleTokenIssued(FungibleTokenId::FungibleToken(1), ALICE, country_fund_account(), 400, BITCOUNTRY_ID)
         );
 
         assert_eq!(last_event(), event);
@@ -90,7 +90,7 @@ fn mint_social_token_should_fail_if_already_exists() {
                 (3,10),
                 10
             ),
-            Error::<Runtime>::FungileTokenAlreadyIssued
+            Error::<Runtime>::FungibleTokenAlreadyIssued
         );
     });
 }

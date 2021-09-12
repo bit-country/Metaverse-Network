@@ -27,8 +27,8 @@ pub const DEX: AccountId = 34780150990899770580028125037;
 
 pub const NUUM_SOC: TradingPair = TradingPair (NUUM, SOC);
 pub const NUUM: FungibleTokenId =  FungibleTokenId::NativeToken(0);
-pub const SOC: FungibleTokenId = FungibleTokenId::FungileToken(1);/// Social
-pub const SOC_2: FungibleTokenId = FungibleTokenId::FungileToken(1);
+pub const SOC: FungibleTokenId = FungibleTokenId::FungibleToken(1);/// Social
+pub const SOC_2: FungibleTokenId = FungibleTokenId::FungibleToken(1);
 pub const SHARE: FungibleTokenId = FungibleTokenId::DEXShare(0, 1);
 
 impl From<AccountId> for Origin {
@@ -93,7 +93,7 @@ parameter_types! {
 impl swap::Config for Runtime {
     type Event = Event;
     type ModuleId = SwapModuleId;
-    type FungileTokenCurrency = Tokens;
+    type FungibleTokenCurrency = Tokens;
     type NativeCurrency = Balances;
     type GetSwapFee = SwapFee;
 }

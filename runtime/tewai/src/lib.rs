@@ -1113,7 +1113,7 @@ impl auction::Config for Runtime {
     type Handler = Auction;
     type Currency = Balances;
     type ContinuumHandler = Continuum;
-    type FungileTokenCurrency = Tokens;
+    type FungibleTokenCurrency = Tokens;
     type BitCountryInfoSource = BitCountryModule;
     type MinimumAuctionDuration = MinimumAuctionDuration;
 }
@@ -1134,7 +1134,7 @@ impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Tokens;
-    type FungileTokenTreasury = CountryFundModuleId;
+    type FungibleTokenTreasury = CountryFundModuleId;
     type BitCountryInfoSource = BitCountryModule;
     type LiquidityPoolManager = Swap;
     type MinVestedTransfer = MinVestedTransfer;
@@ -1149,7 +1149,7 @@ parameter_types! {
 impl swap::Config for Runtime {
     type Event = Event;
     type ModuleId = SwapModuleId;
-    type FungileTokenCurrency = Tokens;
+    type FungibleTokenCurrency = Tokens;
     type NativeCurrency = Balances;
     type GetSwapFee = SwapFee;
 }

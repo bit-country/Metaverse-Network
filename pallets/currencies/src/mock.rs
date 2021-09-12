@@ -122,7 +122,7 @@ impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
-    type FungileTokenTreasury = CountryFundModuleId;
+    type FungibleTokenTreasury = CountryFundModuleId;
     type BitCountryInfoSource = BitCountryInfoSource;
 }
 

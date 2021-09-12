@@ -58,7 +58,7 @@ pub mod pallet {
         type Currency: ReservableCurrency<Self::AccountId>
             + LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
         type ContinuumHandler: Continuum<Self::AccountId>;
-        type FungileTokenCurrency: MultiReservableCurrency<
+        type FungibleTokenCurrency: MultiReservableCurrency<
             Self::AccountId,
             CurrencyId = FungibleTokenId,
             Balance = Balance,
@@ -260,7 +260,7 @@ pub mod pallet {
                 ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 
                 ensure!(
-                    T::FungileTokenCurrency::free_balance(social_currency_id, &from)
+                    T::FungibleTokenCurrency::free_balance(social_currency_id, &from)
                         >= value.saturated_into(),
                     "You don't have enough free balance for this bid"
                 );
@@ -409,7 +409,7 @@ pub mod pallet {
                 Error::<T>::InvalidBuyItNowPrice
             );
             ensure!(
-                T::FungileTokenCurrency::free_balance(social_currency_id, &from)
+                T::FungibleTokenCurrency::free_balance(social_currency_id, &from)
                     >= value.saturated_into(),
                 Error::<T>::InsufficientFunds
             );
@@ -417,7 +417,7 @@ pub mod pallet {
             Self::remove_auction(auction_id.clone(), auction_item.item_id);
             // Transfer balance from buy it now user to asset owner
 
-            let social_currency_transfer = T::FungileTokenCurrency::transfer(
+            let social_currency_transfer = T::FungibleTokenCurrency::transfer(
                 social_currency_id,
                 &from,
                 &auction_item.recipient,
@@ -622,12 +622,12 @@ pub mod pallet {
                             } else {
                                 // Handle local bit country social token transfer
                                 let social_currency_id = auction_item.currency_id.clone();
-                                T::FungileTokenCurrency::unreserve(
+                                T::FungibleTokenCurrency::unreserve(
                                     social_currency_id,
                                     &high_bidder,
                                     high_bid_price.saturated_into(),
                                 );
-                                let social_currency_transfer = T::FungileTokenCurrency::transfer(
+                                let social_currency_transfer = T::FungibleTokenCurrency::transfer(
                                     social_currency_id,
                                     &high_bidder,
                                     &auction_item.recipient,
@@ -718,7 +718,7 @@ pub mod pallet {
         /// Wrong Listing Level
         WrongListingLevel,
         /// Social Token Currency is not exist
-        FungileTokenCurrencyNotFound,
+        FungibleTokenCurrencyNotFound,
         /// Minimum Duration Is Too Low
         AuctionEndIsLessThanMinimumDuration,
     }
@@ -823,7 +823,7 @@ pub mod pallet {
                     let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
                     if let ListingLevel::Local(bc_id) = listing_level {
                         currency_id = T::BitCountryInfoSource::get_bitcountry_token(bc_id)
-                            .ok_or(Error::<T>::FungileTokenCurrencyNotFound)?;
+                            .ok_or(Error::<T>::FungibleTokenCurrencyNotFound)?;
                     }
 
                     let new_auction_item = AuctionItem {
@@ -960,7 +960,7 @@ pub mod pallet {
                     // unlock reserve amount
                     if !last_bid_price.is_zero() {
                         // Un-reserve balance of last bidder
-                        T::FungileTokenCurrency::unreserve(
+                        T::FungibleTokenCurrency::unreserve(
                             social_currency_id,
                             &last_bidder,
                             last_bid_price.saturated_into(),
@@ -970,7 +970,7 @@ pub mod pallet {
 
                 // Lock fund of new bidder
                 // Reserve balance
-                T::FungileTokenCurrency::reserve(
+                T::FungibleTokenCurrency::reserve(
                     social_currency_id,
                     &new_bidder,
                     new_bid_price.saturated_into(),

@@ -139,7 +139,7 @@
   "FungibleTokenId": {
     "_enum": {
       "NativeToken": "TokenId",
-      "FungileToken": "TokenId",
+      "FungibleToken": "TokenId",
       "DEXShare": "(TokenId, TokenId)"
     }
   },

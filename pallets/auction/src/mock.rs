@@ -163,7 +163,7 @@ impl Config for Runtime {
     type Handler = Handler;
     type Currency = Balances;
     type ContinuumHandler = Continuumm;
-    type FungileTokenCurrency = Tokens;
+    type FungibleTokenCurrency = Tokens;
     type BitCountryInfoSource = BitCountryInfoSource;
     type MinimumAuctionDuration = MinimumAuctionDuration;
 }

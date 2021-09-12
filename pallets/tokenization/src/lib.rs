@@ -100,7 +100,7 @@ pub mod pallet {
         type TokenId: Parameter + AtLeast32Bit + Default + Copy;
         type CountryCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>
             + MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
-        type FungileTokenTreasury: Get<ModuleId>;
+        type FungibleTokenTreasury: Get<ModuleId>;
         type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
         type LiquidityPoolManager: SwapManager<Self::AccountId, FungibleTokenId, Balance>;
         #[pallet::constant]
@@ -119,7 +119,7 @@ pub mod pallet {
     #[pallet::getter(fn token_details)]
     /// Details of the token corresponding to the token id.
     /// (hash) -> Token details [returns Token struct]
-    pub(super) type FungileTokens<T: Config> =
+    pub(super) type FungibleTokens<T: Config> =
         StorageMap<_, Blake2_128Concat, FungibleTokenId, Token<Balance>, ValueQuery>;
 
     #[pallet::storage]
@@ -153,15 +153,15 @@ pub mod pallet {
         /// No permission to issue token
         NoPermissionTokenIssuance,
         /// Country Currency already issued for this bitcountry
-        FungileTokenAlreadyIssued,
+        FungibleTokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
         /// Country Fund Not Available
         BitCountryFundIsNotAvailable,
         /// Initial Social Token Supply is too low
-        InitialFungileTokenSupplyIsTooLow,
+        InitialFungibleTokenSupplyIsTooLow,
         /// Failed on updating social token for this bitcountry
-        FailedOnUpdateingFungileToken,
+        FailedOnUpdateingFungibleToken,
         /// Vesting period is zero
         ZeroVestingPeriod,
         /// Number of vests is zero
@@ -197,7 +197,7 @@ pub mod pallet {
             );
             ensure!(
                 !CountryTreasury::<T>::contains_key(&country_id),
-                Error::<T>::FungileTokenAlreadyIssued
+                Error::<T>::FungibleTokenAlreadyIssued
             );
 
             let initial_pool_numerator = total_supply.saturating_mul(initial_lp.0.saturated_into());
@@ -212,7 +212,7 @@ pub mod pallet {
             debug::info!("supply_percent: {})", supply_percent);
             ensure!(
                 supply_percent > 0u128 && supply_percent >= 20u128,
-                Error::<T>::InitialFungileTokenSupplyIsTooLow
+                Error::<T>::InitialFungibleTokenSupplyIsTooLow
             );
             // Remaining balance for bc owner
             let owner_supply = total_supply.saturating_sub(initial_pool_supply);
@@ -223,15 +223,15 @@ pub mod pallet {
                     let current_id = *id;
                     if current_id == 0 {
                         *id = 2;
-                        Ok(FungibleTokenId::FungileToken(One::one()))
+                        Ok(FungibleTokenId::FungibleToken(One::one()))
                     } else {
                         *id = id
                             .checked_add(One::one())
                             .ok_or(Error::<T>::NoAvailableTokenId)?;
-                        Ok(FungibleTokenId::FungileToken(current_id))
+                        Ok(FungibleTokenId::FungibleToken(current_id))
                     }
                 })?;
-            let fund_id: T::AccountId = T::FungileTokenTreasury::get().into_sub_account(country_id);
+            let fund_id: T::AccountId = T::FungibleTokenTreasury::get().into_sub_account(country_id);
 
             // Bit Country treasury
             let country_fund = BitCountryFund {
@@ -253,7 +253,7 @@ pub mod pallet {
             )?;
 
             // Store social token info
-            FungileTokens::<T>::insert(currency_id, token_info);
+            FungibleTokens::<T>::insert(currency_id, token_info);
 
             CountryTreasury::<T>::insert(country_id.clone(), country_fund);
             // Deposit fund into bit country treasury
@@ -298,7 +298,7 @@ pub mod pallet {
             ));
 
             let fund_address = Self::get_country_fund_id(country_id);
-            Self::deposit_event(Event::<T>::FungileTokenIssued(
+            Self::deposit_event(Event::<T>::FungibleTokenIssued(
                 currency_id.clone(),
                 who.clone(),
                 fund_address,
@@ -376,11 +376,11 @@ pub mod pallet {
     )]
     pub enum Event<T: Config> {
         /// Some assets were issued. \[asset_id, owner, fund_id ,total_supply\]
-        FungileTokenIssued(FungibleTokenId, T::AccountId, T::AccountId, u128, u64),
+        FungibleTokenIssued(FungibleTokenId, T::AccountId, T::AccountId, u128, u64),
         /// Some assets were transferred. \[asset_id, from, to, amount\]
-        FungileTokenTransferred(FungibleTokenId, T::AccountId, T::AccountId, Balance),
+        FungibleTokenTransferred(FungibleTokenId, T::AccountId, T::AccountId, Balance),
         /// Some assets were destroyed. \[asset_id, owner, balance\]
-        FungileTokenDestroyed(FungibleTokenId, T::AccountId, Balance),
+        FungibleTokenDestroyed(FungibleTokenId, T::AccountId, Balance),
         /// Added new vesting schedule. [token, from, to, vesting_schedule]
         VestingScheduleAdded(
             FungibleTokenId,
@@ -411,7 +411,7 @@ impl<T: Config> Module<T> {
 
         T::CountryCurrency::transfer(currency_id, from, to, amount)?;
 
-        Self::deposit_event(Event::<T>::FungileTokenTransferred(
+        Self::deposit_event(Event::<T>::FungibleTokenTransferred(
             currency_id,
             from.clone(),
             to.clone(),
