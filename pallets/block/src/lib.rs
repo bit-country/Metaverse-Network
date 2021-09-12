@@ -51,8 +51,8 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         #[pallet::constant]
         type LandTreasury: Get<ModuleId>;
-        /// Source of Country Info
-        type CountryInfoSource: BCCountry<Self::AccountId>;
+        /// Source of Bit Country Info
+        type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
         /// Currency
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
         /// Minimum Land Price
@@ -144,7 +144,7 @@ pub mod pallet {
             // Check ownership
             let sender = ensure_signed(origin)?;
 
-            ensure!(T::CountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);
+            ensure!(T::BitCountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);
 
             // Check whether the coordinate is exists
             ensure!(
@@ -192,7 +192,7 @@ pub mod pallet {
         pub(super) fn buy_land(origin: OriginFor<T>, bc_id: BitCountryId, quantity: u8) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
 
-            ensure!(T::CountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);
+            ensure!(T::BitCountryInfoSource::check_ownership(&sender, &bc_id), Error::<T>::NoPermission);
 
             let minimum_land_price = T::MinimumLandPrice::get();
             let total_cost = minimum_land_price * Into::<BalanceOf<T>>::into(quantity);

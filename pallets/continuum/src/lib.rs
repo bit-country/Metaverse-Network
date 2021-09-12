@@ -31,7 +31,7 @@ use serde::{Deserialize, Serialize};
 use sp_std::vec;
 
 use auction_manager::{Auction, AuctionType, ListingLevel};
-use bit_country::{BCCountry, Country};
+use bit_country::{BitCountryTrait, Country};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
 use sp_arithmetic::Perbill;
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
@@ -110,8 +110,8 @@ pub mod pallet {
         /// Currency
         type Currency: ReservableCurrency<Self::AccountId>
         + LockableCurrency<Self::AccountId, Moment=Self::BlockNumber>;
-        /// Source of Country Info
-        type CountryInfoSource: BCCountry<Self::AccountId>;
+        /// Source of Bit Country Info
+        type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
     }
 
     #[pallet::genesis_config]
@@ -287,7 +287,7 @@ pub mod pallet {
             country_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            ensure!(T::CountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
+            ensure!(T::BitCountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
             ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
             let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
@@ -313,7 +313,7 @@ pub mod pallet {
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn register_interest(origin: OriginFor<T>, country_id: BitCountryId, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            ensure!(T::CountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
+            ensure!(T::BitCountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
             let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
             // Get current active session

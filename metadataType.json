@@ -131,7 +131,7 @@
     "_enum": {
       "NFT": "AssetId",
       "Spot": "(u64, BitCountryId)",
-      "Country": "BitCountryId",
+      "BitCountry": "BitCountryId",
       "Block": "u64"
     }
   },
@@ -139,7 +139,7 @@
   "FungibleTokenId": {
     "_enum": {
       "NativeToken": "TokenId",
-      "SocialToken": "TokenId",
+      "FungileToken": "TokenId",
       "DEXShare": "(TokenId, TokenId)"
     }
   },
@@ -150,7 +150,7 @@
     ]
   },
   "TradingPair": "(FungibleTokenId,FungibleTokenId)",
-  "Country": {
+  "BitCountry": {
     "owner": "AccountId",
     "metadata": "Text",
     "currency_id": "FungibleTokenId"
@@ -160,7 +160,7 @@
     "ticker": "Ticker",
     "total_supply": "Balance"
   },
-  "CountryFund": {
+  "BitCountryFund": {
     "vault": "AccountId",
     "value": "u128",
     "backing": "u128",

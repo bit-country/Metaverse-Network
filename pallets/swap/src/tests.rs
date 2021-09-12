@@ -27,11 +27,11 @@ fn add_liquidity_should_fail_with_invalid_pair() {
         // As written code requires NUUM_SOC begins w/ native token (NUUM)
         assert_noop!(
             SwapModule::add_liquidity(ALICE.into(), SOC, SOC_2, 10, 10),
-            Error::<Runtime>::InvalidSocialTokenIds
+            Error::<Runtime>::InvalidFungileTokenIds
         );
         // assert_noop!(
         //     SwapModule::add_liquidity(ALICE.into(), SOC, NUUM, 10, 10),
-        //     Error::<Runtime>::InvalidSocialTokenIds
+        //     Error::<Runtime>::InvalidFungileTokenIds
         // );
         // TODO - test NUUM_SOC not enabled
     });
@@ -144,11 +144,11 @@ fn remove_liquidity_should_fail_with_invalid_pair() {
         // As written code requires NUUM_SOC begins w/ native token (NUUM)
         assert_noop!(
             SwapModule::remove_liquidity(ALICE.into(), SOC, SOC_2, 10),
-            Error::<Runtime>::InvalidSocialTokenIds
+            Error::<Runtime>::InvalidFungileTokenIds
         );
         // assert_noop!(
         //     SwapModule::remove_liquidity(ALICE.into(), SOC, NUUM, 10),
-        //     Error::<Runtime>::InvalidSocialTokenIds
+        //     Error::<Runtime>::InvalidFungileTokenIds
         // );
         // TODO - Test NUUM_SOC not enabled        
     });

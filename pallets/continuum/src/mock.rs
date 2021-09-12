@@ -139,9 +139,9 @@ parameter_types! {
     pub const SpotAuctionChillingDuration: BlockNumber = 10; //Default 43200 Blocks
 }
 
-pub struct CountryInfoSource {}
+pub struct BitCountryInfoSource {}
 
-impl BCCountry<AccountId> for CountryInfoSource {
+impl BitCountryTrait<AccountId> for BitCountryInfoSource {
     fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
         match *who {
             ALICE => *country_id == ALICE_COUNTRY_ID,
@@ -150,7 +150,7 @@ impl BCCountry<AccountId> for CountryInfoSource {
         }
     }
 
-    fn get_country(country_id: BitCountryId) -> Option<Country<AccountId>> {
+    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
         None
     }
 
@@ -168,7 +168,7 @@ impl Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
-    type CountryInfoSource = CountryInfoSource;
+    type BitCountryInfoSource = BitCountryInfoSource;
 }
 
 pub type ContinuumModule = Pallet<Runtime>;

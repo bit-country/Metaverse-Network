@@ -31,7 +31,7 @@ pub mod pallet {
     use auction_manager::ListingLevel;
     use primitives::{FungibleTokenId, Balance, BitCountryId};
     use orml_traits::{MultiCurrencyExtended, MultiReservableCurrency, MultiCurrency};
-    use bit_country::BCCountry;
+    use bit_country::BitCountryTrait;
     use frame_support::sp_runtime::traits::{CheckedSub, CheckedAdd};
 
     #[pallet::pallet]
@@ -52,8 +52,8 @@ pub mod pallet {
         type Currency: ReservableCurrency<Self::AccountId>
         + LockableCurrency<Self::AccountId, Moment=Self::BlockNumber>;
         type ContinuumHandler: Continuum<Self::AccountId>;
-        type SocialTokenCurrency: MultiReservableCurrency<Self::AccountId, CurrencyId=FungibleTokenId, Balance=Balance>;
-        type CountryInfoSource: BCCountry<Self::AccountId>;
+        type FungileTokenCurrency: MultiReservableCurrency<Self::AccountId, CurrencyId=FungibleTokenId, Balance=Balance>;
+        type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
         type MinimumAuctionDuration: Get<Self::BlockNumber>;
     }
 
@@ -185,7 +185,7 @@ pub mod pallet {
 
                 ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 
-                ensure!(T::SocialTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(), "You don't have enough free balance for this bid");
+                ensure!(T::FungileTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(), "You don't have enough free balance for this bid");
 
                 Self::local_auction_bid_handler(block_number, id, (from.clone(), value), auction.bid.clone(), social_currency_id)?;
 
@@ -245,7 +245,7 @@ pub mod pallet {
                                 }
                             }
                         }
-                        _ => {} //Future implementation for Spot, Country
+                        _ => {} //Future implementation for Spot, BitCountry
                     }
                 }
             }
@@ -272,12 +272,12 @@ pub mod pallet {
             let social_currency_id = auction_item.currency_id;
 
             ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
-            ensure!(T::SocialTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(), Error::<T>::InsufficientFunds);
+            ensure!(T::FungileTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(), Error::<T>::InsufficientFunds);
 
             Self::remove_auction(auction_id.clone(), auction_item.item_id);
             //Transfer balance from buy it now user to asset owner
 
-            let social_currency_transfer = T::SocialTokenCurrency::transfer(social_currency_id, &from, &auction_item.recipient, value.saturated_into());
+            let social_currency_transfer = T::FungileTokenCurrency::transfer(social_currency_id, &from, &auction_item.recipient, value.saturated_into());
             match social_currency_transfer {
                 Err(_e) => {}
                 Ok(_v) => {
@@ -302,7 +302,7 @@ pub mod pallet {
                                 }
                             }
                         }
-                        _ => {} //Future implementation for Spot, Country
+                        _ => {} //Future implementation for Spot, BitCountry
                     }
                 }
             }
@@ -388,14 +388,14 @@ pub mod pallet {
                                                     }
                                                 }
                                             }
-                                            _ => {} //Future implementation for Spot, Country
+                                            _ => {} //Future implementation for Spot, BitCountry
                                         }
                                     }
                                 }
                             } else { // Handle local bit country social token transfer
                                 let social_currency_id = auction_item.currency_id.clone();
-                                T::SocialTokenCurrency::unreserve(social_currency_id, &high_bidder, high_bid_price.saturated_into());
-                                let social_currency_transfer = T::SocialTokenCurrency::transfer(social_currency_id, &high_bidder, &auction_item.recipient, high_bid_price.saturated_into());
+                                T::FungileTokenCurrency::unreserve(social_currency_id, &high_bidder, high_bid_price.saturated_into());
+                                let social_currency_transfer = T::FungileTokenCurrency::transfer(social_currency_id, &high_bidder, &auction_item.recipient, high_bid_price.saturated_into());
                                 match social_currency_transfer {
                                     Err(_e) => continue,
                                     Ok(_v) => {
@@ -422,7 +422,7 @@ pub mod pallet {
                                                     }
                                                 }
                                             }
-                                            _ => {} //Future implementation for Spot, Country
+                                            _ => {} //Future implementation for Spot, BitCountry
                                         }
                                     }
                                 }
@@ -460,7 +460,7 @@ pub mod pallet {
         // Wrong Listing Level
         WrongListingLevel,
         // Social Token Currency is not exist
-        SocialTokenCurrencyNotFound,
+        FungileTokenCurrencyNotFound,
         // Minimum Duration Is Too Low
         AuctionEndIsLessThanMinimumDuration,
     }
@@ -549,7 +549,7 @@ pub mod pallet {
                     let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
                     let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
                     if let ListingLevel::Local(bc_id) = listing_level {
-                        currency_id = T::CountryInfoSource::get_country_token(bc_id).ok_or(Error::<T>::SocialTokenCurrencyNotFound)?;
+                        currency_id = T::BitCountryInfoSource::get_country_token(bc_id).ok_or(Error::<T>::FungileTokenCurrencyNotFound)?;
                     }
 
                     let new_auction_item = AuctionItem {
@@ -676,13 +676,13 @@ pub mod pallet {
                     //unlock reserve amount
                     if !last_bid_price.is_zero() {
                         //Un-reserve balance of last bidder
-                        T::SocialTokenCurrency::unreserve(social_currency_id, &last_bidder, last_bid_price.saturated_into());
+                        T::FungileTokenCurrency::unreserve(social_currency_id, &last_bidder, last_bid_price.saturated_into());
                     }
                 }
 
                 //Lock fund of new bidder
                 //Reserve balance
-                T::SocialTokenCurrency::reserve(social_currency_id, &new_bidder, new_bid_price.saturated_into())?;
+                T::FungileTokenCurrency::reserve(social_currency_id, &new_bidder, new_bid_price.saturated_into())?;
                 auction_item.amount = new_bid_price.clone();
 
                 Ok(())

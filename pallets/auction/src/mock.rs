@@ -11,7 +11,7 @@ use sp_runtime::traits::AccountIdConversion;
 
 use crate as auction;
 use auction_manager::ListingLevel;
-use bit_country::{BCCountry, Country};
+use bit_country::{BitCountryTrait, Country};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
@@ -135,9 +135,9 @@ parameter_types! {
     pub const MinimumAuctionDuration: u64 = 10; //Test auction end within 100 blocks
 }
 
-pub struct CountryInfoSource {}
+pub struct BitCountryInfoSource {}
 
-impl BCCountry<AccountId> for CountryInfoSource {
+impl BitCountryTrait<AccountId> for BitCountryInfoSource {
     fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
         match *who {
             ALICE => *country_id == ALICE_COUNTRY_ID,
@@ -146,7 +146,7 @@ impl BCCountry<AccountId> for CountryInfoSource {
         }
     }
 
-    fn get_country(country_id: BitCountryId) -> Option<Country<AccountId>> {
+    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
         None
     }
 
@@ -163,8 +163,8 @@ impl Config for Runtime {
     type Handler = Handler;
     type Currency = Balances;
     type ContinuumHandler = Continuumm;
-    type SocialTokenCurrency = Tokens;
-    type CountryInfoSource = CountryInfoSource;
+    type FungileTokenCurrency = Tokens;
+    type BitCountryInfoSource = BitCountryInfoSource;
     type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 

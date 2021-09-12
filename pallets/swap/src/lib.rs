@@ -85,7 +85,7 @@ pub mod pallet {
         #[pallet::constant]
         type ModuleId: Get<ModuleId>;
         /// Social token currency system
-        type SocialTokenCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId=FungibleTokenId, Balance=Balance>;
+        type FungileTokenCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId=FungibleTokenId, Balance=Balance>;
         /// Native currency system
         type NativeCurrency: Currency<Self::AccountId>;
         /// Exchange fee
@@ -131,7 +131,7 @@ pub mod pallet {
         //No available bitcountry id
         NoAvailableCountryId,
         //Social Token is not valid
-        InvalidSocialTokenIds,
+        InvalidFungileTokenIds,
         //Trading pair is in NotEnabled status
         NotEnabledTradingPair,
         //Trading pair must be Enabled
@@ -161,7 +161,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let trading_pair = TradingPair::from_token_currency_ids(token_id_a, token_id_b)
-                .ok_or(Error::<T>::InvalidSocialTokenIds)?;
+                .ok_or(Error::<T>::InvalidFungileTokenIds)?;
 
             match Self::trading_pair_statuses(trading_pair) {
                 TradingPairStatus::Enabled => Self::do_add_liquidity(
@@ -236,7 +236,7 @@ impl<T: Config> Pallet<T> {
         max_amount_b: Balance,
     ) -> DispatchResult {
         let trading_pair = TradingPair::new(currency_id_a, currency_id_b);
-        let lp_share_social_token_id = trading_pair.get_dex_share_social_currency_id().ok_or(Error::<T>::InvalidSocialTokenIds)?;
+        let lp_share_social_token_id = trading_pair.get_dex_share_social_currency_id().ok_or(Error::<T>::InvalidFungileTokenIds)?;
 
         ensure!(
 			matches!(
@@ -247,7 +247,7 @@ impl<T: Config> Pallet<T> {
 		);
 
         LiquidityPool::<T>::try_mutate(trading_pair, |(pool_0, pool_1)| -> DispatchResult{
-            let total_shares = T::SocialTokenCurrency::total_issuance(lp_share_social_token_id);
+            let total_shares = T::FungileTokenCurrency::total_issuance(lp_share_social_token_id);
             let (max_amount_0, max_amount_1) = if currency_id_a == trading_pair.0 {
                 (max_amount_a, max_amount_b)
             } else {
@@ -309,7 +309,7 @@ impl<T: Config> Pallet<T> {
                 let pool_0_incr_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(pool_0_increment).unwrap_or_default();
                 T::NativeCurrency::transfer(who, &dex_module_account_id, pool_0_incr_balance, ExistenceRequirement::AllowDeath)?;
             } else {
-                T::SocialTokenCurrency::transfer(trading_pair.0, who, &dex_module_account_id, pool_0_increment)?;
+                T::FungileTokenCurrency::transfer(trading_pair.0, who, &dex_module_account_id, pool_0_increment)?;
             }
 
             if trading_pair.1.is_native_token_currency_id() {
@@ -317,10 +317,10 @@ impl<T: Config> Pallet<T> {
                 T::NativeCurrency::transfer(who, &dex_module_account_id, pool_1_incr_balance, ExistenceRequirement::AllowDeath)?;
             } else {
                 debug::info!("Pool 1 increment {}", pool_1_increment);
-                T::SocialTokenCurrency::transfer(trading_pair.1, who, &dex_module_account_id, pool_1_increment)?;
+                T::FungileTokenCurrency::transfer(trading_pair.1, who, &dex_module_account_id, pool_1_increment)?;
             }
 
-            T::SocialTokenCurrency::deposit(lp_share_social_token_id, who, share_increment)?;
+            T::FungileTokenCurrency::deposit(lp_share_social_token_id, who, share_increment)?;
 
             *pool_0 = pool_0.saturating_add(pool_0_increment);
             *pool_1 = pool_1.saturating_add(pool_1_increment);
@@ -348,33 +348,33 @@ impl<T: Config> Pallet<T> {
         if remove_share.is_zero() {
             return Ok(());
         }
-        let trading_pair = TradingPair::from_token_currency_ids(currency_id_a, currency_id_b).ok_or(Error::<T>::InvalidSocialTokenIds)?;
+        let trading_pair = TradingPair::from_token_currency_ids(currency_id_a, currency_id_b).ok_or(Error::<T>::InvalidFungileTokenIds)?;
         let lp_share_currency_id = trading_pair
             .get_dex_share_social_currency_id()
-            .ok_or(Error::<T>::InvalidSocialTokenIds)?;
+            .ok_or(Error::<T>::InvalidFungileTokenIds)?;
 
         LiquidityPool::<T>::try_mutate(trading_pair, |(pool_0, pool_1)| -> DispatchResult{
-            let total_shares = T::SocialTokenCurrency::total_issuance(lp_share_currency_id);
+            let total_shares = T::FungileTokenCurrency::total_issuance(lp_share_currency_id);
             let proportion = Ratio::checked_from_rational(remove_share, total_shares).unwrap_or_default();
 
             let pool_0_decrement = proportion.saturating_mul_int(*pool_0);
             let pool_1_decrement = proportion.saturating_mul_int(*pool_1);
             let dex_module_account_id = Self::account_id();
 
-            T::SocialTokenCurrency::withdraw(lp_share_currency_id, &who, remove_share)?;
+            T::FungileTokenCurrency::withdraw(lp_share_currency_id, &who, remove_share)?;
 
             if trading_pair.0.is_native_token_currency_id() {
                 let pool_0_decr_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(pool_0_decrement).unwrap_or_default();
                 T::NativeCurrency::transfer(&dex_module_account_id, &who, pool_0_decr_balance, ExistenceRequirement::KeepAlive)?;
             } else {
-                T::SocialTokenCurrency::transfer(trading_pair.0, &dex_module_account_id, who, pool_0_decrement)?;
+                T::FungileTokenCurrency::transfer(trading_pair.0, &dex_module_account_id, who, pool_0_decrement)?;
             }
 
             if trading_pair.1.is_native_token_currency_id() {
                 let pool_1_decr_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(pool_1_decrement).unwrap_or_default();
                 T::NativeCurrency::transfer(&dex_module_account_id, &who, pool_1_decr_balance, ExistenceRequirement::KeepAlive)?;
             } else {
-                T::SocialTokenCurrency::transfer(trading_pair.1, &dex_module_account_id, who, pool_1_decrement)?;
+                T::FungileTokenCurrency::transfer(trading_pair.1, &dex_module_account_id, who, pool_1_decrement)?;
             }
 
             *pool_0 = pool_0.saturating_sub(pool_0_decrement);
@@ -494,7 +494,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // Transfer out the social token
-        T::SocialTokenCurrency::transfer(target_currency, &dex_module_account_id, who, social_token_out)?;
+        T::FungileTokenCurrency::transfer(target_currency, &dex_module_account_id, who, social_token_out)?;
 
         Self::deposit_event(
             Event::Swap(
@@ -540,7 +540,7 @@ impl<T: Config> Pallet<T> {
         ensure!(supply_amount_in <= amount_in_max, Error::<T>::TooMuchSupplyAmount);
         let dex_module_account_id = Self::account_id();
 
-        T::SocialTokenCurrency::transfer(supply_currency, &who, &dex_module_account_id, supply_amount_in)?;
+        T::FungileTokenCurrency::transfer(supply_currency, &who, &dex_module_account_id, supply_amount_in)?;
         Self::_swap(supply_currency, target_currency, supply_amount_in, amount_out);
 
         let amount_out_balance: BalanceOf<T> = TryInto::<BalanceOf<T>>::try_into(amount_out).unwrap_or_default();

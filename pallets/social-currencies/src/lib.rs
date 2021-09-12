@@ -106,11 +106,11 @@ pub mod pallet {
         /// No permission to issue token
         NoPermissionTokenIssuance,
         /// Country Currency already issued for this bitcountry
-        SocialTokenAlreadyIssued,
+        FungileTokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
         //Country Is Not Available
-        CountryFundIsNotAvailable,
+        BitCountryFundIsNotAvailable,
         AmountIntoBalanceFailed,
     }
 

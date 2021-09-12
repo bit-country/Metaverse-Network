@@ -12,7 +12,7 @@ use frame_system::{EnsureSignedBy, EnsureRoot};
 use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use orml_traits::parameter_type_with_key;
-use primitives::FungibleTokenId::SocialToken;
+use primitives::FungibleTokenId::FungileToken;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -25,7 +25,7 @@ pub const BOB: AccountId = 5;
 pub const BITCOUNTRY_ID: BitCountryId = 1;
 pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
 pub const NUUM: CurrencyId = 0;
-pub const COUNTRY_FUND: FungibleTokenId = FungibleTokenId::SocialToken(1);
+pub const COUNTRY_FUND: FungibleTokenId = FungibleTokenId::FungileToken(1);
 
 ord_parameter_types! {
     pub const One: AccountId = ALICE;

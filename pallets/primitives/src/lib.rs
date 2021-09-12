@@ -101,7 +101,7 @@ pub enum ItemId {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum FungibleTokenId {
     NativeToken(TokenId),
-    SocialToken(TokenId),
+    FungileToken(TokenId),
     DEXShare(TokenId, TokenId),
     MiningResource(TokenId),
 }
@@ -112,7 +112,7 @@ impl FungibleTokenId {
     }
 
     pub fn is_social_token_currency_id(&self) -> bool {
-        matches!(self, FungibleTokenId::SocialToken(_))
+        matches!(self, FungibleTokenId::FungileToken(_))
     }
 
     pub fn is_dex_share_social_token_currency_id(&self) -> bool {
@@ -126,7 +126,7 @@ impl FungibleTokenId {
     pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
         match self {
             FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1) => {
-                Some((FungibleTokenId::NativeToken(*token_currency_id_0), FungibleTokenId::SocialToken(*token_currency_id_1)))
+                Some((FungibleTokenId::NativeToken(*token_currency_id_0), FungibleTokenId::FungileToken(*token_currency_id_1)))
             }
             _ => None,
         }
@@ -134,10 +134,10 @@ impl FungibleTokenId {
 
     pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
         match (currency_id_0, currency_id_1) {
-            (FungibleTokenId::NativeToken(token_currency_id_0), FungibleTokenId::SocialToken(token_currency_id_1)) => {
+            (FungibleTokenId::NativeToken(token_currency_id_0), FungibleTokenId::FungileToken(token_currency_id_1)) => {
                 Some(FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1))
             }
-            (FungibleTokenId::SocialToken(token_currency_id_0), FungibleTokenId::NativeToken(token_currency_id_1)) => {
+            (FungibleTokenId::FungileToken(token_currency_id_0), FungibleTokenId::NativeToken(token_currency_id_1)) => {
                 Some(FungibleTokenId::DEXShare(token_currency_id_1, token_currency_id_0))
             }
             _ => None,

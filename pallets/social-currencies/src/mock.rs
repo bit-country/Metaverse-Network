@@ -99,9 +99,9 @@ impl orml_tokens::Config for Runtime {
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
-pub struct CountryInfoSource {}
+pub struct BitCountryInfoSource {}
 
-impl BCCountry<AccountId> for CountryInfoSource {
+impl BitCountryTrait<AccountId> for BitCountryInfoSource {
     fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
         match *who {
             ALICE => true,
@@ -109,7 +109,7 @@ impl BCCountry<AccountId> for CountryInfoSource {
         }
     }
 
-    fn get_country(country_id: BitCountryId) -> Option<Country<AccountId>> {
+    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
         None
     }
 
@@ -122,8 +122,8 @@ impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
-    type SocialTokenTreasury = CountryFundModuleId;
-    type CountryInfoSource = CountryInfoSource;
+    type FungileTokenTreasury = CountryFundModuleId;
+    type BitCountryInfoSource = BitCountryInfoSource;
 }
 
 parameter_types! {
