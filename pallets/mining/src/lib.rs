@@ -39,7 +39,7 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 use frame_support::sp_runtime::ModuleId;
-use bit_country::*;
+use bc_primitives::*;
 use auction_manager::{SwapManager};
 use frame_support::traits::{Get, Currency, WithdrawReasons};
 use frame_system::pallet_prelude::*;

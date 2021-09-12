@@ -98,10 +98,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("bitcountry-node"),
     impl_name: create_runtime_str!("bitcountry-node"),
     authoring_version: 10,
-    // Per convention: if the runtime behavior changes, increment spec_version
-    // and set impl_version to 0. If only runtime
-    // implementation changes and behavior does not, then leave spec_version as
-    // is and increment impl_version.
+   /// Per convention: if the runtime behavior changes, increment spec_version
+   /// and set impl_version to 0. If only runtime
+   /// implementation changes and behavior does not, then leave spec_version as
+   /// is and increment impl_version.
     spec_version: 279,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
@@ -124,10 +124,10 @@ pub struct DealWithFees;
 impl OnUnbalanced<NegativeImbalance> for DealWithFees {
     fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item=NegativeImbalance>) {
         if let Some(fees) = fees_then_tips.next() {
-            // for fees, 80% to treasury, 20% to author
+           /// for fees, 80% to treasury, 20% to author
             let mut split = fees.ration(80, 20);
             if let Some(tips) = fees_then_tips.next() {
-                // for tips, if any, 80% to treasury, 20% to author (though this can be anything)
+               /// for tips, if any, 80% to treasury, 20% to author (though this can be anything)
                 tips.ration_merge_into(80, 20, &mut split);
             }
             Treasury::on_unbalanced(split.0);
@@ -457,7 +457,7 @@ pallet_staking_reward_curve::build! {
 parameter_types! {
 	pub const SessionsPerEra: sp_staking::SessionIndex = 6;
 	pub const BondingDuration: pallet_staking::EraIndex = 24 * 28;
-	pub const SlashDeferDuration: pallet_staking::EraIndex = 24 * 7; // 1/4 the bonding duration.
+	pub const SlashDeferDuration: pallet_staking::EraIndex = 24 * 7;/// 1/4 the bonding duration.
 	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
 	pub const MaxNominatorRewardedPerValidator: u32 = 256;
 	pub const ElectionLookahead: BlockNumber = EPOCH_DURATION_IN_BLOCKS / 4;
@@ -477,9 +477,9 @@ impl pallet_staking::Config for Runtime {
     type RewardRemainder = Treasury;
     type Event = Event;
     type Slash = Treasury;
-    // send the slashed funds to the treasury.
+   /// send the slashed funds to the treasury.
     type Reward = ();
-    // rewards are minted from the void
+   /// rewards are minted from the void
     type SessionsPerEra = SessionsPerEra;
     type BondingDuration = BondingDuration;
     type SlashDeferDuration = SlashDeferDuration;
@@ -498,8 +498,8 @@ impl pallet_staking::Config for Runtime {
     type MinSolutionScoreBump = MinSolutionScoreBump;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type UnsignedPriority = StakingUnsignedPriority;
-    // The unsigned solution weight targeted by the OCW. We set it to the maximum possible value of
-    // a single extrinsic.
+   /// The unsigned solution weight targeted by the OCW. We set it to the maximum possible value of
+   /// a single extrinsic.
     type OffchainSolutionWeightLimit = OffchainSolutionWeightLimit;
     type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
 }
@@ -539,18 +539,18 @@ impl pallet_democracy::Config for Runtime {
     type InstantOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>;
     type InstantAllowed = InstantAllowed;
     type FastTrackVotingPeriod = FastTrackVotingPeriod;
-    // To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+   /// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
     type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
-    // To cancel a proposal before it has been passed, the technical committee must be unanimous or
-    // Root must agree.
+   /// To cancel a proposal before it has been passed, the technical committee must be unanimous or
+   /// Root must agree.
     type CancelProposalOrigin = EnsureOneOf<
         AccountId,
         EnsureRoot<AccountId>,
         pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCollective>,
     >;
     type BlacklistOrigin = EnsureRoot<AccountId>;
-    // Any single technical committee member may veto a coming council proposal, however they can
-    // only do it once and it lasts only for the cooloff period.
+   /// Any single technical committee member may veto a coming council proposal, however they can
+   /// only do it once and it lasts only for the cooloff period.
     type VetoOrigin = pallet_collective::EnsureMember<AccountId, TechnicalCollective>;
     type CooloffPeriod = CooloffPeriod;
     type PreimageByteDeposit = PreimageByteDeposit;
@@ -602,8 +602,8 @@ impl pallet_elections_phragmen::Config for Runtime {
     type ModuleId = ElectionsPhragmenModuleId;
     type Currency = Balances;
     type ChangeMembers = Council;
-    // NOTE: this implies that council's genesis members cannot be set directly and must come from
-    // this module.
+   /// NOTE: this implies that council's genesis members cannot be set directly and must come from
+   /// this module.
     type InitializeMembers = Council;
     type CurrencyToVote = U128CurrencyToVote;
     type CandidacyBond = CandidacyBond;
@@ -782,15 +782,15 @@ impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for R
         nonce: Index,
     ) -> Option<(Call, <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload)> {
         let tip = 0;
-        // take the biggest period possible.
+       /// take the biggest period possible.
         let period = BlockHashCount::get()
             .checked_next_power_of_two()
             .map(|c| c / 2)
             .unwrap_or(2) as u64;
         let current_block = System::block_number()
             .saturated_into::<u64>()
-            // The `System::block_number` is initialized with `n+1`,
-            // so the actual block number is `n`.
+           /// The `System::block_number` is initialized with `n+1`,
+           /// so the actual block number is `n`.
             .saturating_sub(1);
         let era = Era::mortal(period, current_block);
         let extra = (
@@ -874,9 +874,9 @@ impl pallet_grandpa::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BasicDeposit: Balance = 10 * DOLLARS;       // 258 bytes on-chain
-	pub const FieldDeposit: Balance = 250 * CENTS;        // 66 bytes on-chain
-	pub const SubAccountDeposit: Balance = 2 * DOLLARS;   // 53 bytes on-chain
+	pub const BasicDeposit: Balance = 10 * DOLLARS;      /// 258 bytes on-chain
+	pub const FieldDeposit: Balance = 250 * CENTS;       /// 66 bytes on-chain
+	pub const SubAccountDeposit: Balance = 2 * DOLLARS;  /// 53 bytes on-chain
 	pub const MaxSubAccounts: u32 = 100;
 	pub const MaxAdditionalFields: u32 = 100;
 	pub const MaxRegistrars: u32 = 20;
@@ -1105,7 +1105,7 @@ parameter_types! {
     pub const AuctionTimeToClose: u32 = 100800; //Default 100800 Blocks
     pub const ContinuumSessionDuration: BlockNumber = 43200; //Default 43200 Blocks
     pub const SpotAuctionChillingDuration: BlockNumber = 43200; //Default 43200 Blocks
-    pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
+    pub const MinimumAuctionDuration: BlockNumber = 300;/// Minimum duration is 300 blocks
 }
 
 impl auction::Config for Runtime {

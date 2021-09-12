@@ -184,11 +184,11 @@ fn asset_transfers_after_auction() {
         let owner = Origin::signed(BOB);
         let bidder = Origin::signed(ALICE);
 
-        // Make sure balances start off as we expect
+       /// Make sure balances start off as we expect
         assert_eq!(Balances::free_balance(BOB), 500);
         assert_eq!(Balances::free_balance(ALICE), 100000);
 
-        // Setup NFT and verify that BOB has ownership
+       /// Setup NFT and verify that BOB has ownership
         init_test_nft(owner.clone());
         assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), [0]);
 
@@ -199,17 +199,17 @@ fn asset_transfers_after_auction() {
 
         run_to_block(102);
 
-        // Verify asset transfers to alice after end of auction
+       /// Verify asset transfers to alice after end of auction
         assert_eq!(
             last_event(),
             Event::auction(crate::Event::AuctionFinalized(0, 1, 200))
         );
 
-        // Verify transfer of funs (minus gas)
+       /// Verify transfer of funs (minus gas)
         assert_eq!(Balances::free_balance(BOB), 697);
         assert_eq!(Balances::free_balance(ALICE), 99800);
 
-        // Verify Alice has the NFT and Bob doesn't
+       /// Verify Alice has the NFT and Bob doesn't
         assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
         assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), Vec::<u64>::new());
     });
@@ -243,7 +243,7 @@ fn buy_now_work() {
         let buyer = Origin::signed(ALICE);
         init_test_nft(owner.clone());
 
-        // call create_auction
+       /// call create_auction
         assert_ok!(NftAuctionModule::create_auction(AuctionType::BuyNow, ItemId::NFT(0), None, BOB, 150, 0, ListingLevel::Global));
 
         //buy now successful
@@ -263,9 +263,9 @@ fn buy_now_work() {
         assert_ok!(NftAuctionModule::buy_now(buyer.clone(), 1, 150));
 
         assert_eq!(NftAuctionModule::auctions(0), None);
-        // check account received asset
+       /// check account received asset
         assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0, 1]);
-        // check balances were transferred
+       /// check balances were transferred
         assert_eq!(Balances::free_balance(ALICE), 99700);
         assert_eq!(Balances::free_balance(BOB), 796);
 
@@ -284,22 +284,22 @@ fn buy_now_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
         let owner = Origin::signed(BOB);
         let buyer = Origin::signed(ALICE);
-        // we need this to test auction not started scenario
+       /// we need this to test auction not started scenario
         System::set_block_number(1);
         init_test_nft(owner.clone());
 
-        // call create_auction
+       /// call create_auction
         assert_ok!(NftAuctionModule::create_auction(AuctionType::BuyNow, ItemId::NFT(0), None, BOB, 150, 0, ListingLevel::Global));
 
-        // no auction id 
+       /// no auction id
         assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 1, 150),Error::<Runtime>::AuctionNotExist);
-        // user is seller
+       /// user is seller
         assert_noop!(NftAuctionModule::buy_now(owner.clone(), 0, 150),Error::<Runtime>::CannotBidOnOwnAuction);
         //buy it now value is less than buy_now_amount
         assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 100),Error::<Runtime>::InvalidBuyItNowPrice);
         //buy it now value is more than buy_now_amount
         assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 200),Error::<Runtime>::InvalidBuyItNowPrice);
-        // user does not have enough balance in wallet
+       /// user does not have enough balance in wallet
         assert_ok!(Balances::reserve(&ALICE, 100000));
         assert_noop!(NftAuctionModule::buy_now(buyer.clone(), 0, 150),Error::<Runtime>::InsufficientFunds);
         assert_eq!(Balances::unreserve(&ALICE, 100000), 0);
@@ -341,9 +341,9 @@ fn on_finalize_should_work() {
         assert_ok!(NftAuctionModule::bid(bidder, 0, 100));
         run_to_block(102);
         assert_eq!(NftAuctionModule::auctions(0), None);
-        // check account received asset
+       /// check account received asset
         assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
-        // check balances were transferred
+       /// check balances were transferred
         assert_eq!(Balances::free_balance(ALICE), 99900);
         assert_eq!(Balances::free_balance(BOB), 597);
         //asset is not longer in auction

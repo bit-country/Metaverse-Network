@@ -228,11 +228,11 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 
         let babe = sc_consensus_babe::start_babe(babe_config)?;
 
-        // the BABE authoring task is considered essential, i.e. if it
-        // fails we take down the service with it.
+       /// the BABE authoring task is considered essential, i.e. if it
+       /// fails we take down the service with it.
         task_manager.spawn_essential_handle().spawn_blocking("babe", babe);
 
-        // Authority discovery: this module runs to promise authorities' connection
+       /// Authority discovery: this module runs to promise authorities' connection
         use sc_network::Event;
         use futures::StreamExt;
 
@@ -241,7 +241,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
                 keystore_container.keystore(),
             )
         } else {
-            // don't publish our addresses when we're only a collator
+           /// don't publish our addresses when we're only a collator
             sc_authority_discovery::Role::Discover
         };
         let dht_event_stream = network.event_stream("authority-discovery")
@@ -262,8 +262,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         task_manager.spawn_handle().spawn("authority-discovery-worker", worker.run());
     }
 
-    // if the node isn't actively participating in consensus then it doesn't
-    // need a keystore, regardless of which protocol we use below.
+   /// if the node isn't actively participating in consensus then it doesn't
+   /// need a keystore, regardless of which protocol we use below.
     let keystore = if role.is_authority() {
         Some(keystore_container.sync_keystore())
     } else {
@@ -271,7 +271,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     };
 
     let grandpa_config = sc_finality_grandpa::Config {
-        // FIXME: [Substrate]substrate/issues#1578 make this available through chain spec
+       /// FIXME: [Substrate]substrate/issues#1578 make this available through chain spec
         gossip_duration: Duration::from_millis(1000),
         justification_period: 512,
         name: Some(name),
@@ -281,16 +281,16 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     };
 
     if !disable_grandpa {
-        // start the full GRANDPA voter
-        // NOTE: unlike in substrate we are currently running the full
-        // GRANDPA voter protocol for all full nodes (regardless of whether
-        // they're validators or not). at this point the full voter should
-        // provide better guarantees of block and vote data availability than
-        // the observer.
+       /// start the full GRANDPA voter
+       /// NOTE: unlike in substrate we are currently running the full
+       /// GRANDPA voter protocol for all full nodes (regardless of whether
+       /// they're validators or not). at this point the full voter should
+       /// provide better guarantees of block and vote data availability than
+       /// the observer.
 
-        // add a custom voting rule to temporarily stop voting for new blocks
-        // after the given pause block is finalized and restarting after the
-        // given delay.
+       /// add a custom voting rule to temporarily stop voting for new blocks
+       /// after the given pause block is finalized and restarting after the
+       /// given delay.
         let grandpa_config = sc_finality_grandpa::GrandpaParams {
             config: grandpa_config,
             link: grandpa_link,
@@ -301,8 +301,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             shared_voter_state,
         };
 
-        // the GRANDPA voter task is considered infallible, i.e.
-        // if it fails we take down the service with it.
+       /// the GRANDPA voter task is considered infallible, i.e.
+       /// if it fails we take down the service with it.
         task_manager.spawn_essential_handle().spawn_blocking(
             "grandpa-voter",
             sc_finality_grandpa::run_grandpa_voter(grandpa_config)?,
@@ -345,7 +345,7 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
     )?;
     let inherent_data_providers = InherentDataProviders::new();
 
-    // FIXME: pruning task isn't started since light client doesn't do `AuthoritySetup`.
+   /// FIXME: pruning task isn't started since light client doesn't do `AuthoritySetup`.
     let import_queue = sc_consensus_babe::import_queue(
         babe_link,
         babe_block_import,
@@ -405,8 +405,8 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
 }
 
 // fn remote_keystore(_url: &String) -> Result<Arc<LocalKeystore>, &'static str> {
-//     // FIXME: here would the concrete keystore be built,
-//     //        must return a concrete type (NOT `LocalKeystore`) that
-//     //        implements `CryptoStore` and `SyncCryptoStore`
+//    /// FIXME: here would the concrete keystore be built,
+//    ///        must return a concrete type (NOT `LocalKeystore`) that
+//    ///        implements `CryptoStore` and `SyncCryptoStore`
 //     Err("Remote Keystore not supported.")
 // }

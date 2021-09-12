@@ -44,9 +44,9 @@ pub const UNSIGNED_TXS_PRIORITY: u64 = 100;
 pub const HTTP_REMOTE_REQUEST: &str = "https://api.bit.coutrny/getBlockNumber";
 pub const HTTP_HEADER_USER_AGENT: &str = "application/json";
 
-pub const FETCH_TIMEOUT_PERIOD: u64 = 3000; // in milli-seconds
-pub const LOCK_TIMEOUT_EXPIRATION: u64 = FETCH_TIMEOUT_PERIOD + 1000; // in milli-seconds
-pub const LOCK_BLOCK_EXPIRATION: u32 = 3; // in block number
+pub const FETCH_TIMEOUT_PERIOD: u64 = 3000;/// in milli-seconds
+pub const LOCK_TIMEOUT_EXPIRATION: u64 = FETCH_TIMEOUT_PERIOD + 1000;/// in milli-seconds
+pub const LOCK_BLOCK_EXPIRATION: u32 = 3;/// in block number
 
 /// Based on the above `KeyTypeId` we need to generate a pallet-specific crypto type wrapper.
 /// We can utilize the supported crypto kinds (`sr25519`, `ed25519` and `ecdsa`) and augment
@@ -60,14 +60,14 @@ pub mod crypto {
     app_crypto!(sr25519, KEY_TYPE);
 
     pub struct TestAuthId;
-    // implemented for ocw-runtime
+   /// implemented for ocw-runtime
     impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
         type RuntimeAppPublic = Public;
         type GenericSignature = sp_core::sr25519::Signature;
         type GenericPublic = sp_core::sr25519::Public;
     }
 
-    // implemented for mock runtime in test
+   /// implemented for mock runtime in test
     impl frame_system::offchain::AppCrypto<<Sr25519Signature as Verify>::Signer, Sr25519Signature>
         for TestAuthId
     {
@@ -119,20 +119,20 @@ decl_event!(
 
 decl_error! {
     pub enum Error for Module<T: Config> {
-        // Error returned when not sure which ocw function to executed
+       /// Error returned when not sure which ocw function to executed
         UnknownOffchainMux,
 
-        // Error returned when making signed transactions in off-chain worker
+       /// Error returned when making signed transactions in off-chain worker
         NoLocalAcctForSigning,
         OffchainSignedTxError,
 
-        // Error returned when making unsigned transactions in off-chain worker
+       /// Error returned when making unsigned transactions in off-chain worker
         OffchainUnsignedTxError,
 
-        // Error returned when making unsigned transactions with signed payloads in off-chain worker
+       /// Error returned when making unsigned transactions with signed payloads in off-chain worker
         OffchainUnsignedTxSignedPayloadError,
 
-        // Error returned when fetching github info
+       /// Error returned when fetching github info
         HttpFetchingError,
     }
 }
@@ -166,8 +166,8 @@ decl_module! {
             _signature: T::Signature) -> DispatchResult
         {
             let _ = ensure_none(origin)?;
-            // we don't need to verify the signature here because it has been verified in
-            //   `validate_unsigned` function when sending out the unsigned tx.
+           /// we don't need to verify the signature here because it has been verified in
+           ///   `validate_unsigned` function when sending out the unsigned tx.
             let Payload { number, public } = payload;
             debug::info!("submit_number_unsigned_with_signed_payload: ({}, {:?})", number, public);
             Self::append_or_replace_number(number);
@@ -196,13 +196,13 @@ impl<T: Config> Module<T> {
     }
 
     fn offchain_unsigned_tx(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
-        // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+       /// let number: u64 = block_number.try_into().unwrap_or(0) as u64;
 
         let number: u64 = 0 as u64;
         let call = Call::submit_number_unsigned(number);
 
-        // `submit_unsigned_transaction` returns a type of `Result<(), ()>`
-        //   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.SubmitTransaction.html#method.submit_unsigned_transaction
+       /// `submit_unsigned_transaction` returns a type of `Result<(), ()>`
+       ///   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.SubmitTransaction.html#method.submit_unsigned_transaction
         SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into()).map_err(|_| {
             debug::error!("Failed in offchain_unsigned_tx");
             <Error<T>>::OffchainUnsignedTxError
@@ -210,17 +210,17 @@ impl<T: Config> Module<T> {
     }
 
     fn offchain_unsigned_tx_signed_payload(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
-        // Retrieve the signer to sign the payload
+       /// Retrieve the signer to sign the payload
         let signer = Signer::<T, T::AuthorityId>::any_account();
 
-        // let number: u64 = block_number.try_into().unwrap_or(0) as u64;
+       /// let number: u64 = block_number.try_into().unwrap_or(0) as u64;
         let number: u64 = 0 as u64;
 
-        // `send_unsigned_transaction` is returning a type of `Option<(Account<T>, Result<(), ()>)>`.
-        //   Similar to `send_signed_transaction`, they account for:
-        //   - `None`: no account is available for sending transaction
-        //   - `Some((account, Ok(())))`: transaction is successfully sent
-        //   - `Some((account, Err(())))`: error occured when sending the transaction
+       /// `send_unsigned_transaction` is returning a type of `Option<(Account<T>, Result<(), ()>)>`.
+       ///   Similar to `send_signed_transaction`, they account for:
+       ///   - `None`: no account is available for sending transaction
+       ///   - `Some((account, Ok(())))`: transaction is successfully sent
+       ///   - `Some((account, Err(())))`: error occured when sending the transaction
         if let Some((_, res)) = signer.send_unsigned_transaction(
             |acct| Payload {
                 number,
@@ -234,7 +234,7 @@ impl<T: Config> Module<T> {
             });
         }
 
-        // The case of `None`: no account is available for sending
+       /// The case of `None`: no account is available for sending
         debug::error!("No local account available");
         Err(<Error<T>>::NoLocalAcctForSigning)
     }

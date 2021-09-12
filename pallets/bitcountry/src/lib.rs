@@ -17,15 +17,18 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::ensure;
-use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
-use sp_runtime::{traits::{AccountIdConversion, One}, DispatchError, ModuleId, RuntimeDebug, DispatchResult};
-use bc_country::*;
-use sp_std::vec::Vec;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
+use frame_system::{ensure_root, ensure_signed};
+use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
+use sp_runtime::{
+    traits::{AccountIdConversion, One},
+    DispatchError, DispatchResult, ModuleId, RuntimeDebug,
+};
+use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -33,6 +36,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+use bc_primitives::{BitCountryStruct, BitCountryTrait};
 pub use pallet::*;
 
 #[frame_support::pallet]
@@ -58,12 +62,19 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_bitcountry)]
     pub type BitCountries<T: Config> =
-    StorageMap<_, Twox64Concat, BitCountryId, BitCountryStruct<T::AccountId>, OptionQuery>;
+        StorageMap<_, Twox64Concat, BitCountryId, BitCountryStruct<T::AccountId>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_bitcountry_owner)]
-    pub type BitCountryOwner<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, T::AccountId, (), OptionQuery>;
+    pub type BitCountryOwner<T: Config> = StorageDoubleMap<
+        _,
+        Twox64Concat,
+        BitCountryId,
+        Twox64Concat,
+        T::AccountId,
+        (),
+        OptionQuery,
+    >;
 
     #[pallet::storage]
     #[pallet::getter(fn all_bitcountries_count)]
@@ -72,7 +83,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_freezing_bitcountry)]
     pub(super) type FreezedBitCountries<T: Config> =
-    StorageMap<_, Twox64Concat, BitCountryId, (), OptionQuery>;
+        StorageMap<_, Twox64Concat, BitCountryId, (), OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn is_init)]
@@ -96,31 +107,36 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        // BitCountry info not found
+       /// BitCountry info not found
         BitCountryInfoNotFound,
-        // BitCountry Id not found
+       /// BitCountry Id not found
         BitCountryIdNotFound,
-        // No permission
+       /// No permission
         NoPermission,
-        // No available BitCountry id
+       /// No available BitCountry id
         NoAvailableBitCountryId,
-        // Fungible token already issued
+       /// Fungible token already issued
         FungibleTokenAlreadyIssued,
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
-        pub(super) fn create_bitcountry(origin: OriginFor<T>, metadata: Vec<u8>) -> DispatchResultWithPostInfo {
+        pub(super) fn create_bitcountry(
+            origin: OriginFor<T>,
+            metadata: Vec<u8>,
+        ) -> DispatchResultWithPostInfo {
             let owner = ensure_signed(origin)?;
 
             let bitcountry_id = Self::new_bitcountry(&owner, metadata)?;
 
-            BitCountryOwner::<T>::insert(bc_id, owner, ());
+            BitCountryOwner::<T>::insert(bitcountry_id, owner, ());
 
             let total_bitcountry_count = Self::all_bitcountries_count();
 
-            let new_total_bitcountry_count = total_bitcountry_count.checked_add(One::one()).ok_or("Overflow adding new count to new_total_bitcountry_count")?;
+            let new_total_bitcountry_count = total_bitcountry_count
+                .checked_add(One::one())
+                .ok_or("Overflow adding new count to new_total_bitcountry_count")?;
             AllBitCountriesCount::<T>::put(new_total_bitcountry_count);
             Self::deposit_event(Event::<T>::NewBitCountryCreated(bitcountry_id.clone()));
 
@@ -128,16 +144,22 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn transfer_bitcountry(origin: OriginFor<T>, to: T::AccountId, bitcountry_id: BitCountryId) -> DispatchResultWithPostInfo {
+        pub(super) fn transfer_bitcountry(
+            origin: OriginFor<T>,
+            to: T::AccountId,
+            bitcountry_id: BitCountryId,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            // Get owner of the bitcountry
+           /// Get owner of the bitcountry
             BitCountryOwner::<T>::try_mutate_exists(
-                &bitcountry_id, &who, |bitcountry_by_owner| -> DispatchResultWithPostInfo {
-                    // Ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
+                &bitcountry_id,
+                &who,
+                |bitcountry_by_owner| -> DispatchResultWithPostInfo {
+                   /// Ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
                     ensure!(bitcountry_by_owner.is_some(), Error::<T>::NoPermission);
 
                     if who == to {
-                        // No change needed
+                       /// No change needed
                         return Ok(().into());
                     }
 
@@ -146,20 +168,29 @@ pub mod pallet {
 
                     BitCountries::<T>::try_mutate_exists(
                         &bitcountry_id,
-                        |bitcountry| -> DispatchResultWithPostInfo{
-                            let mut bitcountry_record = bitcountry.as_mut().ok_or(Error::<T>::NoPermission)?;
+                        |bitcountry| -> DispatchResultWithPostInfo {
+                            let mut bitcountry_record =
+                                bitcountry.as_mut().ok_or(Error::<T>::NoPermission)?;
                             bitcountry_record.owner = to.clone();
-                            Self::deposit_event(Event::<T>::TransferredBitCountry(bitcountry_id, who.clone(), to.clone()));
+                            Self::deposit_event(Event::<T>::TransferredBitCountry(
+                                bitcountry_id,
+                                who.clone(),
+                                to.clone(),
+                            ));
 
                             Ok(().into())
                         },
                     )
-                })
+                },
+            )
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn freeze_bitcountry(origin: OriginFor<T>, bitcountry_id: BitCountryId) -> DispatchResultWithPostInfo {
-            // Only Council can free a bitcountry
+        pub(super) fn freeze_bitcountry(
+            origin: OriginFor<T>,
+            bitcountry_id: BitCountryId,
+        ) -> DispatchResultWithPostInfo {
+           /// Only Council can free a bitcountry
             ensure_root(origin)?;
 
             FreezedBitCountries::<T>::insert(bitcountry_id, ());
@@ -169,31 +200,48 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn unfreeze_bitcountry(origin: OriginFor<T>, bitcountry_id: BitCountryId) -> DispatchResultWithPostInfo {
-            // Only Council can free a bitcountry
+        pub(super) fn unfreeze_bitcountry(
+            origin: OriginFor<T>,
+            bitcountry_id: BitCountryId,
+        ) -> DispatchResultWithPostInfo {
+           /// Only Council can free a bitcountry
             ensure_root(origin)?;
 
-            FreezedBitCountries::<T>::try_mutate(bitcountry_id, |freeze_bitcountry| -> DispatchResultWithPostInfo{
-                ensure!(freeze_bitcountry.take().is_some(), Error::<T>::BitCountryInfoNotFound);
+            FreezedBitCountries::<T>::try_mutate(
+                bitcountry_id,
+                |freeze_bitcountry| -> DispatchResultWithPostInfo {
+                    ensure!(
+                        freeze_bitcountry.take().is_some(),
+                        Error::<T>::BitCountryInfoNotFound
+                    );
 
-                Self::deposit_event(Event::<T>::BitCountryUnfreezed(bitcountry_id));
-                Ok(().into())
-            })
+                    Self::deposit_event(Event::<T>::BitCountryUnfreezed(bitcountry_id));
+                    Ok(().into())
+                },
+            )
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn destroy_bitcountry(origin: OriginFor<T>, bitcountry_id: BitCountryId) -> DispatchResultWithPostInfo {
-            // Only Council can destroy a bitcountry
+        pub(super) fn destroy_bitcountry(
+            origin: OriginFor<T>,
+            bitcountry_id: BitCountryId,
+        ) -> DispatchResultWithPostInfo {
+           /// Only Council can destroy a bitcountry
             ensure_root(origin)?;
 
-            BitCountries::<T>::try_mutate(bitcountry_id, |bitcountry_info| -> DispatchResultWithPostInfo{
-                let t = bitcountry_info.take().ok_or(Error::<T>::BitCountryInfoNotFound)?;
+            BitCountries::<T>::try_mutate(
+                bitcountry_id,
+                |bitcountry_info| -> DispatchResultWithPostInfo {
+                    let t = bitcountry_info
+                        .take()
+                        .ok_or(Error::<T>::BitCountryInfoNotFound)?;
 
-                BitCountryOwner::<T>::remove(&bitcountry_id, t.owner.clone());
-                Self::deposit_event(Event::<T>::BitCountryDestroyed(bitcountry_id));
+                    BitCountryOwner::<T>::remove(&bitcountry_id, t.owner.clone());
+                    Self::deposit_event(Event::<T>::BitCountryDestroyed(bitcountry_id));
 
-                Ok(().into())
-            })
+                    Ok(().into())
+                },
+            )
         }
     }
 
@@ -205,14 +253,18 @@ impl<T: Config> Pallet<T> {
     /// Reads the nonce from storage, increments the stored nonce, and returns
     /// the encoded nonce to the caller.
 
-    fn new_bitcountry(owner: &T::AccountId, metadata: Vec<u8>) -> Result<BitCountryId, DispatchError> {
-        let bitcountry_id = NextBitCountryId::<T>::try_mutate(|id| -> Result<BitCountryId, DispatchError> {
-            let current_id = *id;
-            *id = id
-                .checked_add(One::one())
-                .ok_or(Error::<T>::NoAvailableBitCountryId)?;
-            Ok(current_id)
-        })?;
+    fn new_bitcountry(
+        owner: &T::AccountId,
+        metadata: Vec<u8>,
+    ) -> Result<BitCountryId, DispatchError> {
+        let bitcountry_id =
+            NextBitCountryId::<T>::try_mutate(|id| -> Result<BitCountryId, DispatchError> {
+                let current_id = *id;
+                *id = id
+                    .checked_add(One::one())
+                    .ok_or(Error::<T>::NoAvailableBitCountryId)?;
+                Ok(current_id)
+            })?;
 
         let bitcountry_info = BitCountryStruct {
             owner: owner.clone(),
@@ -226,8 +278,7 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> BitCountryStruct<T::AccountId> for Module<T>
-{
+impl<T: Config> BitCountryTrait<T::AccountId> for Module<T> {
     fn check_ownership(who: &T::AccountId, bitcountry_id: &BitCountryId) -> bool {
         Self::get_bitcountry_owner(bitcountry_id, who) == Some(())
     }
@@ -243,18 +294,24 @@ impl<T: Config> BitCountryStruct<T::AccountId> for Module<T>
         None
     }
 
-    fn update_bitcountry_token(bitcountry_id: BitCountryId, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
-        BitCountries::<T>::try_mutate_exists(
-            &bitcountry_id,
-            |bitcountry| {
-                let mut bitcountry_record = bitcountry.as_mut().ok_or(Error::<T>::NoPermission)?;
+    fn update_bitcountry_token(
+        bitcountry_id: BitCountryId,
+        currency_id: FungibleTokenId,
+    ) -> Result<(), DispatchError> {
+        BitCountries::<T>::try_mutate_exists(&bitcountry_id, |bitcountry| {
+            let mut bitcountry_record = bitcountry.as_mut().ok_or(Error::<T>::NoPermission)?;
 
-                ensure!(bitcountry_record.currency_id == FungibleTokenId::FungileToken(0), Error::<T>::FungibleTokenAlreadyIssued);
+            ensure!(
+                bitcountry_record.currency_id == FungibleTokenId::FungileToken(0),
+                Error::<T>::FungibleTokenAlreadyIssued
+            );
 
-                bitcountry_record.currency_id = currency_id.clone();
-                Self::deposit_event(Event::<T>::BitCountryMintedNewCurrency(bitcountry_id, currency_id));
-                Ok(())
-            },
-        )
+            bitcountry_record.currency_id = currency_id.clone();
+            Self::deposit_event(Event::<T>::BitCountryMintedNewCurrency(
+                bitcountry_id,
+                currency_id,
+            ));
+            Ok(())
+        })
     }
 }

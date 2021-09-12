@@ -40,7 +40,7 @@ pub use default_weight::WeightInfo;
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct NftGroupCollectionData {
     pub name: Vec<u8>,
-    // Metadata from ipfs
+   /// Metadata from ipfs
     pub properties: Vec<u8>,
 }
 
@@ -49,7 +49,7 @@ pub struct NftGroupCollectionData {
 pub struct NftClassData<Balance> {
     //Minimum balance to create a collection of Asset
     pub deposit: Balance,
-    // Metadata from ipfs
+   /// Metadata from ipfs
     pub metadata: Vec<u8>,
     pub token_type: TokenType,
     pub collection_type: CollectionType,
@@ -151,12 +151,12 @@ pub mod pallet {
         /// The minimum balance to create token
         #[pallet::constant]
         type CreateAssetDeposit: Get<BalanceOf<Self>>;
-        // Currency type for reserve/unreserve balance
+       /// Currency type for reserve/unreserve balance
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
         //NFT Module Id
         #[pallet::constant]
         type ModuleId: Get<ModuleId>;
-        // Weight info
+       /// Weight info
         type WeightInfo: WeightInfo;
         /// Auction Handler
         type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber>;
@@ -287,7 +287,7 @@ pub mod pallet {
         pub fn create_class(origin: OriginFor<T>, metadata: Vec<u8>, collection_id: GroupCollectionId, token_type: TokenType, collection_type: CollectionType) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
             let next_class_id = NftModule::<T>::next_class_id();
-            // TODO 
+           /// TODO
             ensure!(
                 GroupCollections::<T>::contains_key(collection_id), 
                 Error::<T>::CollectionIsNotExist
@@ -295,9 +295,9 @@ pub mod pallet {
             //Class fund
             let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
 
-            // Secure deposit of token class owner -- TODO - support customise deposit
+           /// Secure deposit of token class owner -- TODO - support customise deposit
             let class_deposit = T::CreateClassDeposit::get();
-            // Transfer fund to pot
+           /// Transfer fund to pot
             <T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
 
             <T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
@@ -360,7 +360,7 @@ pub mod pallet {
                     AssetsByOwner::<T>::try_mutate(
                         &sender,
                         |asset_ids| -> DispatchResult {
-                            // Check if the asset_id already in the owner
+                           /// Check if the asset_id already in the owner
                             ensure!(!asset_ids.iter().any(|i| asset_id == *i), Error::<T>::AssetIdAlreadyExist);
                             asset_ids.push(asset_id);
                             Ok(())
@@ -484,7 +484,7 @@ impl<T: Config> Module<T> {
     ) -> DispatchResult {
         //Remove asset from sender
         AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
-            // Check if the asset_id already in the owner
+           /// Check if the asset_id already in the owner
             let asset_index = asset_ids.iter().position(|x| *x == asset_id).unwrap();
             asset_ids.remove(asset_index);
 
@@ -495,7 +495,7 @@ impl<T: Config> Module<T> {
 
         if AssetsByOwner::<T>::contains_key(to) {
             AssetsByOwner::<T>::try_mutate(&to, |asset_ids| -> DispatchResult {
-                // Check if the asset_id already in the owner
+               /// Check if the asset_id already in the owner
                 ensure!(
                     !asset_ids.iter().any(|i| asset_id == *i),
                     Error::<T>::AssetIdAlreadyExist

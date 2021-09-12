@@ -45,10 +45,10 @@ package = 'auction-manager'
 path = '../../traits/auction-manager'
 version = '2.0.0-rc6'
 
-[dependencies.bc-country]
+[dependencies.bc-primitives]
 default-features = false
-package = 'bc-country'
-path = '../../traits/bc-country'
+package = 'bc-primitives'
+path = '../../traits/bc-primitives'
 version = '2.0.0-rc6'
 
 [features]

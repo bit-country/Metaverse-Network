@@ -31,7 +31,7 @@ sp-version = { version = "3.0.0", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 
 # local packages
-bc-country = { path = "../../traits/bc-country", default-features = false }
+bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 
 # Orml packages
 orml-traits = { default-features = false, version = '0.4.0' }

@@ -11,7 +11,7 @@ use sp_runtime::traits::AccountIdConversion;
 
 use crate as auction;
 use auction_manager::ListingLevel;
-use bit_country::{BitCountryTrait, Country};
+use bc_primitives::{BitCountryTrait, Country};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;

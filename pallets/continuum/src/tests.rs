@@ -154,7 +154,7 @@ fn rotate_session_should_work() {
         match finalised_votes {
             Some(v) => {
                 assert_eq!(v[0].participants.len(), 1); //Only BOB is eligible
-                assert_eq!(v[0].participants[0], BOB); // Confirm if it's BOB
+                assert_eq!(v[0].participants[0], BOB);/// Confirm if it's BOB
             }
             _ => {}
         }

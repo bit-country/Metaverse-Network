@@ -20,18 +20,29 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::upper_case_acronyms)]
 
-use codec::{Decode, Encode, Codec};
+use bc_primitives::*;
+use codec::{Codec, Decode, Encode};
+use frame_support::sp_runtime::ModuleId;
 use frame_support::{
-    dispatch::{DispatchResultWithPostInfo},
-    decl_error, decl_event, decl_module, decl_storage, ensure, Parameter,
-    pallet_prelude::*,
+    decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResultWithPostInfo,
+    ensure, pallet_prelude::*, Parameter,
 };
+use frame_support::{
+    pallet_prelude::*,
+    traits::{
+        Currency as PalletCurrency, ExistenceRequirement, Get,
+        LockableCurrency as PalletLockableCurrency, ReservableCurrency as PalletReservableCurrency,
+        WithdrawReasons,
+    },
+};
+use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
     account::MergeAccount,
     arithmetic::{Signed, SimpleArithmetic},
-    BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-    LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+    BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
+    BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
+    MultiLockableCurrency, MultiReservableCurrency,
 };
 use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
@@ -44,16 +55,6 @@ use sp_std::{
     marker, result,
     vec::Vec,
 };
-use frame_support::sp_runtime::ModuleId;
-use bit_country::*;
-use frame_support::{
-    pallet_prelude::*,
-    traits::{
-        Currency as PalletCurrency, ExistenceRequirement, Get, LockableCurrency as PalletLockableCurrency,
-        ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
-    },
-};
-use frame_system::pallet_prelude::*;
 
 // #[cfg(test)]
 // mod mock;
@@ -63,12 +64,16 @@ use frame_system::pallet_prelude::*;
 
 pub use pallet::*;
 
-type BalanceOf<T> = <<T as Config>::MultiSocialCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
-type CurrencyIdOf<T> =
-<<T as Config>::MultiSocialCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::CurrencyId;
+type BalanceOf<T> = <<T as Config>::MultiSocialCurrency as MultiCurrency<
+    <T as frame_system::Config>::AccountId,
+>>::Balance;
+type CurrencyIdOf<T> = <<T as Config>::MultiSocialCurrency as MultiCurrency<
+    <T as frame_system::Config>::AccountId,
+>>::CurrencyId;
 
-type AmountOf<T> =
-<<T as Config>::MultiSocialCurrency as MultiCurrencyExtended<<T as frame_system::Config>::AccountId>>::Amount;
+type AmountOf<T> = <<T as Config>::MultiSocialCurrency as MultiCurrencyExtended<
+    <T as frame_system::Config>::AccountId,
+>>::Amount;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -81,11 +86,14 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type MultiSocialCurrency: MergeAccount<Self::AccountId>
-        + MultiCurrencyExtended<Self::AccountId, CurrencyId=FungibleTokenId>
-        + MultiLockableCurrency<Self::AccountId, CurrencyId=FungibleTokenId>
-        + MultiReservableCurrency<Self::AccountId, CurrencyId=FungibleTokenId>;
-        type NativeCurrency: BasicCurrencyExtended<Self::AccountId, Balance=BalanceOf<Self>, Amount=AmountOf<Self>>
-        + BasicLockableCurrency<Self::AccountId, Balance=BalanceOf<Self>>;
+            + MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId>
+            + MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>
+            + MultiReservableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
+        type NativeCurrency: BasicCurrencyExtended<
+                Self::AccountId,
+                Balance = BalanceOf<Self>,
+                Amount = AmountOf<Self>,
+            > + BasicLockableCurrency<Self::AccountId, Balance = BalanceOf<Self>>;
         #[pallet::constant]
         /// The native currency id
         type GetNativeCurrencyId: Get<FungibleTokenId>;
@@ -143,7 +151,12 @@ pub mod pallet {
             let to = T::Lookup::lookup(dest)?;
             T::NativeCurrency::transfer(&from, &to, amount)?;
 
-            Self::deposit_event(Event::Transferred(T::GetNativeCurrencyId::get(), from, to, amount));
+            Self::deposit_event(Event::Transferred(
+                T::GetNativeCurrencyId::get(),
+                from,
+                to,
+                amount,
+            ));
             Ok(().into())
         }
 
@@ -159,7 +172,11 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
             let dest = T::Lookup::lookup(who)?;
-            <Self as MultiCurrencyExtended<T::AccountId>>::update_balance(currency_id, &dest, amount)?;
+            <Self as MultiCurrencyExtended<T::AccountId>>::update_balance(
+                currency_id,
+                &dest,
+                amount,
+            )?;
             Ok(().into())
         }
     }
@@ -213,9 +230,15 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
         }
     }
 
-    fn ensure_can_withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+    fn ensure_can_withdraw(
+        currency_id: Self::CurrencyId,
+        who: &T::AccountId,
+        amount: Self::Balance,
+    ) -> DispatchResult {
         match currency_id {
-            id if id == T::GetNativeCurrencyId::get() => T::NativeCurrency::ensure_can_withdraw(who, amount),
+            id if id == T::GetNativeCurrencyId::get() => {
+                T::NativeCurrency::ensure_can_withdraw(who, amount)
+            }
             _ => T::MultiSocialCurrency::ensure_can_withdraw(currency_id, who, amount),
         }
     }
@@ -231,15 +254,26 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
         }
 
         match currency_id {
-            id if id == T::GetNativeCurrencyId::get() => T::NativeCurrency::transfer(from, to, amount)?,
+            id if id == T::GetNativeCurrencyId::get() => {
+                T::NativeCurrency::transfer(from, to, amount)?
+            }
             _ => T::MultiSocialCurrency::transfer(currency_id, from, to, amount)?,
         }
 
-        Self::deposit_event(Event::Transferred(currency_id, from.clone(), to.clone(), amount));
+        Self::deposit_event(Event::Transferred(
+            currency_id,
+            from.clone(),
+            to.clone(),
+            amount,
+        ));
         Ok(())
     }
 
-    fn deposit(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+    fn deposit(
+        currency_id: Self::CurrencyId,
+        who: &T::AccountId,
+        amount: Self::Balance,
+    ) -> DispatchResult {
         if amount.is_zero() {
             return Ok(());
         }
@@ -251,7 +285,11 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
         Ok(())
     }
 
-    fn withdraw(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> DispatchResult {
+    fn withdraw(
+        currency_id: Self::CurrencyId,
+        who: &T::AccountId,
+        amount: Self::Balance,
+    ) -> DispatchResult {
         if amount.is_zero() {
             return Ok(());
         }
@@ -270,7 +308,11 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
         }
     }
 
-    fn slash(currency_id: Self::CurrencyId, who: &T::AccountId, amount: Self::Balance) -> Self::Balance {
+    fn slash(
+        currency_id: Self::CurrencyId,
+        who: &T::AccountId,
+        amount: Self::Balance,
+    ) -> Self::Balance {
         match currency_id {
             id if id == T::GetNativeCurrencyId::get() => T::NativeCurrency::slash(who, amount),
             _ => T::MultiSocialCurrency::slash(currency_id, who, amount),
@@ -281,9 +323,15 @@ impl<T: Config> MultiCurrency<T::AccountId> for Pallet<T> {
 impl<T: Config> MultiCurrencyExtended<T::AccountId> for Pallet<T> {
     type Amount = AmountOf<T>;
 
-    fn update_balance(currency_id: Self::CurrencyId, who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
+    fn update_balance(
+        currency_id: Self::CurrencyId,
+        who: &T::AccountId,
+        by_amount: Self::Amount,
+    ) -> DispatchResult {
         match currency_id {
-            id if id == T::GetNativeCurrencyId::get() => T::NativeCurrency::update_balance(who, by_amount)?,
+            id if id == T::GetNativeCurrencyId::get() => {
+                T::NativeCurrency::update_balance(who, by_amount)?
+            }
             _ => T::MultiSocialCurrency::update_balance(currency_id, who, by_amount)?,
         }
         Self::deposit_event(Event::BalanceUpdated(currency_id, who.clone(), by_amount));
@@ -320,7 +368,11 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
         }
     }
 
-    fn remove_lock(lock_id: LockIdentifier, currency_id: Self::CurrencyId, who: &T::AccountId) -> DispatchResult {
+    fn remove_lock(
+        lock_id: LockIdentifier,
+        currency_id: Self::CurrencyId,
+        who: &T::AccountId,
+    ) -> DispatchResult {
         if currency_id == T::GetNativeCurrencyId::get() {
             T::NativeCurrency::remove_lock(lock_id, who)
         } else {
@@ -332,9 +384,9 @@ impl<T: Config> MultiLockableCurrency<T::AccountId> for Pallet<T> {
 pub struct Currency<T, GetCurrencyId>(marker::PhantomData<T>, marker::PhantomData<GetCurrencyId>);
 
 impl<T, GetCurrencyId> BasicCurrency<T::AccountId> for Currency<T, GetCurrencyId>
-    where
-        T: Config,
-        GetCurrencyId: Get<CurrencyIdOf<T>>,
+where
+    T: Config,
+    GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
     type Balance = BalanceOf<T>;
 
@@ -380,28 +432,34 @@ impl<T, GetCurrencyId> BasicCurrency<T::AccountId> for Currency<T, GetCurrencyId
 }
 
 impl<T, GetCurrencyId> BasicCurrencyExtended<T::AccountId> for Currency<T, GetCurrencyId>
-    where
-        T: Config,
-        GetCurrencyId: Get<CurrencyIdOf<T>>,
+where
+    T: Config,
+    GetCurrencyId: Get<CurrencyIdOf<T>>,
 {
     type Amount = AmountOf<T>;
 
     fn update_balance(who: &T::AccountId, by_amount: Self::Amount) -> DispatchResult {
-        <Pallet<T> as MultiCurrencyExtended<T::AccountId>>::update_balance(GetCurrencyId::get(), who, by_amount)
+        <Pallet<T> as MultiCurrencyExtended<T::AccountId>>::update_balance(
+            GetCurrencyId::get(),
+            who,
+            by_amount,
+        )
     }
 }
 
 /// Adapt other currency traits implementation to `BasicCurrency`.
-pub struct BasicCurrencyAdapter<T, Currency, Amount, Moment>(marker::PhantomData<(T, Currency, Amount, Moment)>);
+pub struct BasicCurrencyAdapter<T, Currency, Amount, Moment>(
+    marker::PhantomData<(T, Currency, Amount, Moment)>,
+);
 
 type PalletBalanceOf<A, Currency> = <Currency as PalletCurrency<A>>::Balance;
 
 // Adapt `frame_support::traits::Currency`
 impl<T, AccountId, Currency, Amount, Moment> BasicCurrency<AccountId>
-for BasicCurrencyAdapter<T, Currency, Amount, Moment>
-    where
-        Currency: PalletCurrency<AccountId>,
-        T: Config,
+    for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+    Currency: PalletCurrency<AccountId>,
+    T: Config,
 {
     type Balance = PalletBalanceOf<AccountId, Currency>;
 
@@ -439,7 +497,13 @@ for BasicCurrencyAdapter<T, Currency, Amount, Moment>
     }
 
     fn withdraw(who: &AccountId, amount: Self::Balance) -> DispatchResult {
-        Currency::withdraw(who, amount, WithdrawReasons::all(), ExistenceRequirement::AllowDeath).map(|_| ())
+        Currency::withdraw(
+            who,
+            amount,
+            WithdrawReasons::all(),
+            ExistenceRequirement::AllowDeath,
+        )
+        .map(|_| ())
     }
 
     fn can_slash(who: &AccountId, amount: Self::Balance) -> bool {
@@ -454,9 +518,9 @@ for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 
 // Adapt `frame_support::traits::Currency`
 impl<T, AccountId, Currency, Amount, Moment> BasicCurrencyExtended<AccountId>
-for BasicCurrencyAdapter<T, Currency, Amount, Moment>
-    where
-        Amount: Signed
+    for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+    Amount: Signed
         + TryInto<PalletBalanceOf<AccountId, Currency>>
         + TryFrom<PalletBalanceOf<AccountId, Currency>>
         + SimpleArithmetic
@@ -465,8 +529,8 @@ for BasicCurrencyAdapter<T, Currency, Amount, Moment>
         + MaybeSerializeDeserialize
         + Debug
         + Default,
-        Currency: PalletCurrency<AccountId>,
-        T: Config,
+    Currency: PalletCurrency<AccountId>,
+    T: Config,
 {
     type Amount = Amount;
 
@@ -485,10 +549,10 @@ for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 
 // Adapt `frame_support::traits::LockableCurrency`
 impl<T, AccountId, Currency, Amount, Moment> BasicLockableCurrency<AccountId>
-for BasicCurrencyAdapter<T, Currency, Amount, Moment>
-    where
-        Currency: PalletLockableCurrency<AccountId>,
-        T: Config,
+    for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+    Currency: PalletLockableCurrency<AccountId>,
+    T: Config,
 {
     type Moment = Moment;
 
@@ -497,7 +561,11 @@ for BasicCurrencyAdapter<T, Currency, Amount, Moment>
         Ok(())
     }
 
-    fn extend_lock(lock_id: LockIdentifier, who: &AccountId, amount: Self::Balance) -> DispatchResult {
+    fn extend_lock(
+        lock_id: LockIdentifier,
+        who: &AccountId,
+        amount: Self::Balance,
+    ) -> DispatchResult {
         Currency::extend_lock(lock_id, who, amount, WithdrawReasons::all());
         Ok(())
     }
@@ -510,10 +578,10 @@ for BasicCurrencyAdapter<T, Currency, Amount, Moment>
 
 // Adapt `frame_support::traits::ReservableCurrency`
 impl<T, AccountId, Currency, Amount, Moment> BasicReservableCurrency<AccountId>
-for BasicCurrencyAdapter<T, Currency, Amount, Moment>
-    where
-        Currency: PalletReservableCurrency<AccountId>,
-        T: Config,
+    for BasicCurrencyAdapter<T, Currency, Amount, Moment>
+where
+    Currency: PalletReservableCurrency<AccountId>,
+    T: Config,
 {
     fn can_reserve(who: &AccountId, value: Self::Balance) -> bool {
         Currency::can_reserve(who, value)

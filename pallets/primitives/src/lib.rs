@@ -198,7 +198,7 @@ pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
 impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSchedule<BlockNumber, Balance> {
     /// Returns the end of all periods, `None` if calculation overflows.
     pub fn end(&self) -> Option<BlockNumber> {
-        // period * period_count + start
+       /// period * period_count + start
         self.period
             .checked_mul(&self.period_count.into())?
             .checked_add(&self.start)
@@ -214,9 +214,9 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
     /// Note this func assumes schedule is a valid one(non-zero period and
     /// non-overflow total amount), and it should be guaranteed by callers.
     pub fn locked_amount(&self, time: BlockNumber) -> Balance {
-        // full = (time - start) / period
-        // unrealized = period_count - full
-        // per_period * unrealized
+       /// full = (time - start) / period
+       /// unrealized = period_count - full
+       /// per_period * unrealized
         let full = time
             .saturating_sub(self.start)
             .checked_div(&self.period)

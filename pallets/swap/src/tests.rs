@@ -24,33 +24,33 @@ use mock::{Event, *};
 #[test]
 fn add_liquidity_should_fail_with_invalid_pair() {
     ExtBuilder::default().build().execute_with(|| {        
-        // As written code requires NUUM_SOC begins w/ native token (NUUM)
+       /// As written code requires NUUM_SOC begins w/ native token (NUUM)
         assert_noop!(
             SwapModule::add_liquidity(ALICE.into(), SOC, SOC_2, 10, 10),
             Error::<Runtime>::InvalidFungileTokenIds
         );
-        // assert_noop!(
-        //     SwapModule::add_liquidity(ALICE.into(), SOC, NUUM, 10, 10),
-        //     Error::<Runtime>::InvalidFungileTokenIds
-        // );
-        // TODO - test NUUM_SOC not enabled
+       /// assert_noop!(
+       ///     SwapModule::add_liquidity(ALICE.into(), SOC, NUUM, 10, 10),
+       ///     Error::<Runtime>::InvalidFungileTokenIds
+       /// );
+       /// TODO - test NUUM_SOC not enabled
     });
 }
 
 #[test]
 fn add_liquidity_should_fail_with_insufficient_balances() {
     ExtBuilder::default().build().execute_with(|| {      
-        // NUUM balance too low
+       /// NUUM balance too low
         assert_noop!(
             SwapModule::add_liquidity(ALICE.into(), NUUM, SOC, 1000, 10),
             pallet_balances::Error::<Runtime>::InsufficientBalance
         );
-        // SOC balance too low
+       /// SOC balance too low
         assert_noop!(
             SwapModule::add_liquidity(ALICE.into(), NUUM, SOC, 10, 1000),
             orml_tokens::Error::<Runtime>::BalanceTooLow
         );
-        // Below existential deposit
+       /// Below existential deposit
         assert_noop!(
             SwapModule::add_liquidity(ALICE.into(), NUUM, SOC, 100, 10),
             pallet_balances::Error::<Runtime>::KeepAlive
@@ -61,7 +61,7 @@ fn add_liquidity_should_fail_with_insufficient_balances() {
 #[test]
 fn add_liquidity_should_not_work_with_zero_liquidity_increment() {
     ExtBuilder::default().build().execute_with(|| {      
-        // Invalid Liquidity Increment
+       /// Invalid Liquidity Increment
         assert_noop!(
             SwapModule::add_liquidity(ALICE.into(), NUUM, SOC, 0, 10),
             Error::<Runtime>::InvalidLiquidityIncrement
@@ -141,16 +141,16 @@ fn add_liquidity_should_work_when_share_issuance_greater_than_zero() {
 #[test]
 fn remove_liquidity_should_fail_with_invalid_pair() {
     ExtBuilder::default().build().execute_with(|| {        
-        // As written code requires NUUM_SOC begins w/ native token (NUUM)
+       /// As written code requires NUUM_SOC begins w/ native token (NUUM)
         assert_noop!(
             SwapModule::remove_liquidity(ALICE.into(), SOC, SOC_2, 10),
             Error::<Runtime>::InvalidFungileTokenIds
         );
-        // assert_noop!(
-        //     SwapModule::remove_liquidity(ALICE.into(), SOC, NUUM, 10),
-        //     Error::<Runtime>::InvalidFungileTokenIds
-        // );
-        // TODO - Test NUUM_SOC not enabled        
+       /// assert_noop!(
+       ///     SwapModule::remove_liquidity(ALICE.into(), SOC, NUUM, 10),
+       ///     Error::<Runtime>::InvalidFungileTokenIds
+       /// );
+       /// TODO - Test NUUM_SOC not enabled
     });
 }
 
@@ -161,17 +161,17 @@ fn remove_liquidity_should_fail_with_insufficient_balances () {
             SwapModule::add_liquidity(ALICE.into(), NUUM_SOC.0, NUUM_SOC.1, 1, 1)
         );            
 
-        // ALICE attempts to take more shares than she owns:
+       /// ALICE attempts to take more shares than she owns:
         assert_noop!(
             SwapModule::remove_liquidity(ALICE.into(), NUUM, SOC, 10),
             orml_tokens::Error::<Runtime>::BalanceTooLow
         );        
-        // ALICE's drops dex account below existential deposit
+       /// ALICE's drops dex account below existential deposit
         assert_noop!(
             SwapModule::remove_liquidity(ALICE.into(), NUUM, SOC, 2),
             pallet_balances::Error::<Runtime>::KeepAlive
         );
-        // Make sure state unchanged
+       /// Make sure state unchanged
         assert_eq!(SwapModule::liquidity_pool(NUUM_SOC), (1, 1));        
         assert_eq!(SocialCurrencies::total_balance(NUUM_SOC.0, &ALICE), 99); 
         assert_eq!(SocialCurrencies::total_balance(NUUM_SOC.1, &ALICE), 99); 
@@ -215,7 +215,7 @@ fn swap_native_token_with_exact_supply_should_fail() {
             SwapModule::swap_native_token_with_exact_supply(ALICE.into(), NUUM, SOC, 5, 10),
             Error::<Runtime>::InsufficientTargetAmount
         );        
-        // TODO - Test NUUM_SOC not enabled 
+       /// TODO - Test NUUM_SOC not enabled
     });
 }
 

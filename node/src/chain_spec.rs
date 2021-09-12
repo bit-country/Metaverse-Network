@@ -169,7 +169,7 @@ fn tewai_testnet_genesis() -> GenesisConfig {
                   hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
                   hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
               )];
-    // generated with secret: subkey inspect "$secret"/fir
+   /// generated with secret: subkey inspect "$secret"/fir
     let root_key: AccountId = hex![
 		// 5Dqy8KtwmGJd6Tkar8Va3Uw7xvX4RQAhrygUk3T8vUxDXf2a
 		"4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"
@@ -223,14 +223,14 @@ fn testnet_genesis(
         ]
     });
 
-    // endow all authorities and nominators.
+   /// endow all authorities and nominators.
     initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
         if !endowed_accounts.contains(&x) {
             endowed_accounts.push(x.clone())
         }
     });
 
-    // stakers: all validators and nominators.
+   /// stakers: all validators and nominators.
     let mut rng = rand::thread_rng();
     let stakers = initial_authorities
         .iter()
@@ -303,7 +303,7 @@ fn testnet_genesis(
         }),
         pallet_contracts: Some(ContractsConfig {
             current_schedule: pallet_contracts::Schedule {
-                enable_println, // this should only be enabled on development chains
+                enable_println,/// this should only be enabled on development chains
                 ..Default::default()
             },
         }),
@@ -338,9 +338,9 @@ fn testnet_genesis(
             initial_max_bound: (-100, 100),
             spot_price: 5 * DOLLARS,
         }),
-        // tokenization: Some(TokenConfig {
-        // 	init_token_id: 0
-        // })
+       /// tokenization: Some(TokenConfig {
+       /// 	init_token_id: 0
+       /// })
     }
 }
 

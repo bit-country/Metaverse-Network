@@ -99,7 +99,7 @@ tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokeniza
 nft = { package = 'pallet-nft', path = '../../pallets/nft', version = '2.0.0-rc6', default-features = false }
 continuum = { package = 'pallet-continuum', path = '../../pallets/continuum', version = '0.0.1', default-features = false }
 auction = { package = 'pallet-auction', path = '../../pallets/auction', version = '2.0.0-rc6', default-features = false }
-social-currencies = { package = 'social-currencies', path = '../../pallets/social-currencies', version = '2.0.0-rc6', default-features = false }
+currencies = { package = 'currencies', path = '../../pallets/currencies', version = '2.0.0-rc6', default-features = false }
 swap = { package = 'pallet-swap', path = '../../pallets/swap', version = '2.0.0-rc6', default-features = false }
 modules-chainsafe = { package = 'modules-chainsafe', path = '../../modules/chainsafe', version = '0.0.1', default-features = false }
 mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '2.0.0-rc6', default-features = false }
@@ -180,7 +180,7 @@ std = [
     'block/std',
     'nft/std',
     'continuum/std',
-    'social-currencies/std',
+    'currencies/std',
     'swap/std',
     'chainbridge/std',
     'modules-chainsafe/std',

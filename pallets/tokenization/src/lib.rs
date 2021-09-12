@@ -18,31 +18,33 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use auction_manager::SwapManager;
+use bc_primitives::*;
 use codec::{Decode, Encode};
+use frame_support::sp_runtime::ModuleId;
+use frame_support::traits::{Currency, Get, WithdrawReasons};
 use frame_support::{
-    dispatch::{DispatchResultWithPostInfo, DispatchResult},
-    decl_error, decl_event, decl_module, decl_storage, ensure, Parameter,
+    decl_error, decl_event, decl_module, decl_storage,
+    dispatch::{DispatchResult, DispatchResultWithPostInfo},
+    ensure,
     pallet_prelude::*,
-    transactional,
+    transactional, Parameter,
 };
+use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
     account::MergeAccount,
     arithmetic::{Signed, SimpleArithmetic},
-    BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-    LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+    BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
+    BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
+    MultiLockableCurrency, MultiReservableCurrency,
 };
 use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
-    traits::{AtLeast32Bit, One, StaticLookup, Zero, AccountIdConversion},
+    traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
     DispatchError,
 };
 use sp_std::vec::Vec;
-use frame_support::sp_runtime::ModuleId;
-use bit_country::*;
-use auction_manager::{SwapManager};
-use frame_support::traits::{Get, Currency, WithdrawReasons};
-use frame_system::pallet_prelude::*;
 
 #[cfg(test)]
 mod mock;
@@ -72,16 +74,17 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use primitives::{FungibleTokenId, TokenId, VestingSchedule};
-    use frame_support::sp_runtime::{SaturatedConversion, FixedPointNumber};
-    use primitives::dex::Price;
     use frame_support::sp_runtime::traits::Saturating;
+    use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
+    use primitives::dex::Price;
+    use primitives::{FungibleTokenId, TokenId, VestingSchedule};
     use sp_std::convert::TryInto;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
-    pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
+    pub(crate) type VestingScheduleOf<T> =
+        VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
     pub type ScheduledItem<T> = (
         <T as frame_system::Config>::AccountId,
         <T as frame_system::Config>::BlockNumber,
@@ -95,11 +98,8 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         /// The arithmetic type of asset identifier.
         type TokenId: Parameter + AtLeast32Bit + Default + Copy;
-        type CountryCurrency: MultiCurrencyExtended<
-            Self::AccountId,
-            CurrencyId=FungibleTokenId,
-            Balance=Balance,
-        > + MultiLockableCurrency<Self::AccountId, CurrencyId=FungibleTokenId>;
+        type CountryCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>
+            + MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
         type FungileTokenTreasury: Get<ModuleId>;
         type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
         type LiquidityPoolManager: SwapManager<Self::AccountId, FungibleTokenId, Balance>;
@@ -107,7 +107,7 @@ pub mod pallet {
         /// The minimum amount transferred to call `vested_transfer`.
         type MinVestedTransfer: Get<Balance>;
         /// Required origin for vested transfer.
-        type VestedTransferOrigin: EnsureOrigin<Self::Origin, Success=Self::AccountId>;
+        type VestedTransferOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
     }
 
     #[pallet::storage]
@@ -120,20 +120,25 @@ pub mod pallet {
     /// Details of the token corresponding to the token id.
     /// (hash) -> Token details [returns Token struct]
     pub(super) type FungileTokens<T: Config> =
-    StorageMap<_, Blake2_128Concat, FungibleTokenId, Token<Balance>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, FungibleTokenId, Token<Balance>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_country_treasury)]
     /// Details of the token corresponding to the token id.
     /// (hash) -> Token details [returns Token struct]
-    pub(super) type CountryTreasury<T: Config> =
-    StorageMap<_, Blake2_128Concat, BitCountryId, BitCountryFund<T::AccountId, Balance>, OptionQuery>;
+    pub(super) type CountryTreasury<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        BitCountryId,
+        BitCountryFund<T::AccountId, Balance>,
+        OptionQuery,
+    >;
 
     /// Vesting schedules of an account.
     #[pallet::storage]
     #[pallet::getter(fn vesting_schedules)]
     pub type VestingSchedules<T: Config> =
-    StorageMap<_, Blake2_128Concat, T::AccountId, Vec<VestingScheduleOf<T>>, ValueQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, Vec<VestingScheduleOf<T>>, ValueQuery>;
 
     #[pallet::error]
     pub enum Error<T> {
@@ -187,42 +192,48 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(
-                T::BitCountryInfoSource::check_ownership(&who, &country_id), 
+                T::BitCountryInfoSource::check_ownership(&who, &country_id),
                 Error::<T>::NoPermissionTokenIssuance
             );
             ensure!(
-                !CountryTreasury::<T>::contains_key(&country_id), 
+                !CountryTreasury::<T>::contains_key(&country_id),
                 Error::<T>::FungileTokenAlreadyIssued
             );
 
             let initial_pool_numerator = total_supply.saturating_mul(initial_lp.0.saturated_into());
-            let initial_pool_supply = initial_pool_numerator.checked_div(initial_lp.1.saturated_into()).unwrap_or(0);
+            let initial_pool_supply = initial_pool_numerator
+                .checked_div(initial_lp.1.saturated_into())
+                .unwrap_or(0);
             debug::info!("initial_pool_supply: {})", initial_pool_supply);
-            let initial_supply_ratio = Price::checked_from_rational(initial_pool_supply, total_supply).unwrap_or_default();
-            let supply_percent: u128 = initial_supply_ratio.saturating_mul_int(100.saturated_into());
+            let initial_supply_ratio =
+                Price::checked_from_rational(initial_pool_supply, total_supply).unwrap_or_default();
+            let supply_percent: u128 =
+                initial_supply_ratio.saturating_mul_int(100.saturated_into());
             debug::info!("supply_percent: {})", supply_percent);
             ensure!(
                 supply_percent > 0u128 && supply_percent >= 20u128,
                 Error::<T>::InitialFungileTokenSupplyIsTooLow
             );
-            //Remaning balance for bc owner
+            // Remaining balance for bc owner
             let owner_supply = total_supply.saturating_sub(initial_pool_supply);
             debug::info!("owner_supply: {})", owner_supply);
-            //Generate new TokenId
-            let currency_id = NextTokenId::<T>::mutate(|id| -> Result<FungibleTokenId, DispatchError>{
-                let current_id = *id;
-                if current_id == 0 {
-                    *id = 2;
-                    Ok(FungibleTokenId::FungileToken(One::one()))
-                } else {
-                    *id = id.checked_add(One::one())
-                        .ok_or(Error::<T>::NoAvailableTokenId)?;
-                    Ok(FungibleTokenId::FungileToken(current_id))
-                }
-            })?;
+            // Generate new TokenId
+            let currency_id =
+                NextTokenId::<T>::mutate(|id| -> Result<FungibleTokenId, DispatchError> {
+                    let current_id = *id;
+                    if current_id == 0 {
+                        *id = 2;
+                        Ok(FungibleTokenId::FungileToken(One::one()))
+                    } else {
+                        *id = id
+                            .checked_add(One::one())
+                            .ok_or(Error::<T>::NoAvailableTokenId)?;
+                        Ok(FungibleTokenId::FungileToken(current_id))
+                    }
+                })?;
             let fund_id: T::AccountId = T::FungileTokenTreasury::get().into_sub_account(country_id);
 
-            //Country treasury
+            // Bit Country treasury
             let country_fund = BitCountryFund {
                 vault: fund_id.clone(),
                 value: total_supply,
@@ -235,23 +246,38 @@ pub mod pallet {
                 total_supply,
             };
 
-            //Update currency id in BC
-            T::BitCountryInfoSource::update_country_token(country_id.clone(), currency_id.clone())?;
+            // Update currency id in BC
+            T::BitCountryInfoSource::update_bitcountry_token(
+                country_id.clone(),
+                currency_id.clone(),
+            )?;
 
-            //Store social token info
+            // Store social token info
             FungileTokens::<T>::insert(currency_id, token_info);
 
             CountryTreasury::<T>::insert(country_id.clone(), country_fund);
-            //Deposit fund into bit country treasury
-            T::CountryCurrency::transfer(FungibleTokenId::NativeToken(0), &who, &fund_id, initial_backing.clone())?;
+            // Deposit fund into bit country treasury
+            T::CountryCurrency::transfer(
+                FungibleTokenId::NativeToken(0),
+                &who,
+                &fund_id,
+                initial_backing.clone(),
+            )?;
             T::CountryCurrency::deposit(currency_id, &fund_id, total_supply.clone())?;
-            //Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
-            T::LiquidityPoolManager::add_liquidity(&fund_id, FungibleTokenId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
+            // Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
+            T::LiquidityPoolManager::add_liquidity(
+                &fund_id,
+                FungibleTokenId::NativeToken(0),
+                currency_id,
+                initial_backing,
+                initial_pool_supply,
+            )?;
 
-            //The remaining token will be vested gradually 12 months.
+            // The remaining token will be vested gradually 12 months.
             let now = <frame_system::Pallet<T>>::block_number();
             let vested_per_period = owner_supply.checked_div(12).ok_or("Overflow")?;
-            let period_block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into(28800u64).unwrap_or_default();
+            let period_block_number: T::BlockNumber =
+                TryInto::<T::BlockNumber>::try_into(28800u64).unwrap_or_default();
 
             let vesting_schedule = VestingSchedule {
                 token: currency_id,
@@ -264,10 +290,21 @@ pub mod pallet {
             T::CountryCurrency::transfer(currency_id, &fund_id, &who, owner_supply.clone())?;
             T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, &who, owner_supply);
             <VestingSchedules<T>>::append(who.clone(), vesting_schedule.clone());
-            Self::deposit_event(Event::VestingScheduleAdded(currency_id, fund_id, who.clone(), vesting_schedule));
+            Self::deposit_event(Event::VestingScheduleAdded(
+                currency_id,
+                fund_id,
+                who.clone(),
+                vesting_schedule,
+            ));
 
             let fund_address = Self::get_country_fund_id(country_id);
-            Self::deposit_event(Event::<T>::FungileTokenIssued(currency_id.clone(), who.clone(), fund_address, total_supply, country_id));
+            Self::deposit_event(Event::<T>::FungileTokenIssued(
+                currency_id.clone(),
+                who.clone(),
+                fund_address,
+                total_supply,
+                country_id,
+            ));
 
             Ok(().into())
         }
@@ -277,8 +314,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             dest: <T::Lookup as StaticLookup>::Source,
             currency_id: FungibleTokenId,
-            // #[compact] amount: Balance
-            amount: Balance,
+            /// #[compact] amount: Balance amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             let to = T::Lookup::lookup(dest)?;
@@ -288,7 +324,10 @@ pub mod pallet {
         }
 
         #[pallet::weight(100_000)]
-        pub fn claim(origin: OriginFor<T>, currency_id: FungibleTokenId) -> DispatchResultWithPostInfo {
+        pub fn claim(
+            origin: OriginFor<T>,
+            currency_id: FungibleTokenId,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let locked_amount = Self::do_claim(&who, currency_id);
 
@@ -343,7 +382,12 @@ pub mod pallet {
         /// Some assets were destroyed. \[asset_id, owner, balance\]
         FungileTokenDestroyed(FungibleTokenId, T::AccountId, Balance),
         /// Added new vesting schedule. [token, from, to, vesting_schedule]
-        VestingScheduleAdded(FungibleTokenId, T::AccountId, T::AccountId, VestingScheduleOf<T>),
+        VestingScheduleAdded(
+            FungibleTokenId,
+            T::AccountId,
+            T::AccountId,
+            VestingScheduleOf<T>,
+        ),
         /// Claimed vesting. [token, who, locked_amount]
         Claimed(FungibleTokenId, T::AccountId, Balance),
         /// Updated vesting schedules. [token, who]
@@ -377,8 +421,8 @@ impl<T: Config> Module<T> {
     }
 
     pub fn get_total_issuance(country_id: BitCountryId) -> Result<Balance, DispatchError> {
-        let country_fund =
-            CountryTreasury::<T>::get(country_id).ok_or(Error::<T>::BitCountryFundIsNotAvailable)?;
+        let country_fund = CountryTreasury::<T>::get(country_id)
+            .ok_or(Error::<T>::BitCountryFundIsNotAvailable)?;
         let total_issuance = T::CountryCurrency::total_issuance(country_fund.currency_id);
 
         Ok(total_issuance)
@@ -387,7 +431,7 @@ impl<T: Config> Module<T> {
     pub fn get_country_fund_id(country_id: BitCountryId) -> T::AccountId {
         match CountryTreasury::<T>::get(country_id) {
             Some(fund) => fund.vault,
-            _ => Default::default()
+            _ => Default::default(),
         }
     }
 
@@ -408,8 +452,7 @@ impl<T: Config> Module<T> {
             let total = if let Some(schedules) = maybe_schedules.as_mut() {
                 let mut total: Balance = Zero::zero();
                 schedules.retain(|s| {
-                    if s.token == currency_id
-                    {
+                    if s.token == currency_id {
                         let amount = s.locked_amount(now);
                         total = total.saturating_add(amount);
                         !amount.is_zero()
@@ -429,13 +472,18 @@ impl<T: Config> Module<T> {
     }
 
     #[transactional]
-    fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, currency_id: FungibleTokenId, schedule: VestingScheduleOf<T>) -> DispatchResult {
+    fn do_vested_transfer(
+        from: &T::AccountId,
+        to: &T::AccountId,
+        currency_id: FungibleTokenId,
+        schedule: VestingScheduleOf<T>,
+    ) -> DispatchResult {
         let schedule_amount = Self::ensure_valid_vesting_schedule(&currency_id, &schedule)?;
 
         ensure!(
-			<VestingSchedules<T>>::decode_len(to).unwrap_or(0) < MAX_VESTINGS,
-			Error::<T>::TooManyVestingSchedules
-		);
+            <VestingSchedules<T>>::decode_len(to).unwrap_or(0) < MAX_VESTINGS,
+            Error::<T>::TooManyVestingSchedules
+        );
 
         let total_amount = Self::locked_balance(to, schedule.token)
             .checked_add(schedule_amount)
@@ -447,18 +495,21 @@ impl<T: Config> Module<T> {
         Ok(())
     }
 
-    fn do_update_vesting_schedules(who: &T::AccountId, currency_id: FungibleTokenId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
-        let total_amount = schedules.iter().try_fold::<_, _, Result<Balance, Error<T>>>(
-            Zero::zero(),
-            |acc_amount, schedule| {
+    fn do_update_vesting_schedules(
+        who: &T::AccountId,
+        currency_id: FungibleTokenId,
+        schedules: Vec<VestingScheduleOf<T>>,
+    ) -> DispatchResult {
+        let total_amount = schedules
+            .iter()
+            .try_fold::<_, _, Result<Balance, Error<T>>>(Zero::zero(), |acc_amount, schedule| {
                 let amount = Self::ensure_valid_vesting_schedule(&currency_id, schedule)?;
                 Ok(acc_amount + amount)
-            },
-        )?;
+            })?;
         ensure!(
-			T::CountryCurrency::free_balance(currency_id.clone(),who) >= total_amount,
-			Error::<T>::InsufficientBalanceToLock,
-		);
+            T::CountryCurrency::free_balance(currency_id.clone(), who) >= total_amount,
+            Error::<T>::InsufficientBalanceToLock,
+        );
 
         T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, total_amount);
         <VestingSchedules<T>>::insert(who, schedules);
@@ -467,10 +518,19 @@ impl<T: Config> Module<T> {
     }
 
     /// Returns `Ok(amount)` if valid schedule, or error.
-    fn ensure_valid_vesting_schedule(currency_id: &FungibleTokenId, schedule: &VestingScheduleOf<T>) -> Result<Balance, Error<T>> {
-        ensure!(schedule.token == *currency_id, Error::<T>::InvalidVestingSchedule);
+    fn ensure_valid_vesting_schedule(
+        currency_id: &FungibleTokenId,
+        schedule: &VestingScheduleOf<T>,
+    ) -> Result<Balance, Error<T>> {
+        ensure!(
+            schedule.token == *currency_id,
+            Error::<T>::InvalidVestingSchedule
+        );
         ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
-        ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);
+        ensure!(
+            !schedule.period_count.is_zero(),
+            Error::<T>::ZeroVestingPeriodCount
+        );
         ensure!(schedule.end().is_some(), Error::<T>::NumOverflow);
 
         let total = schedule.total_amount().ok_or(Error::<T>::NumOverflow)?;
@@ -480,5 +540,3 @@ impl<T: Config> Module<T> {
         Ok(total)
     }
 }
-
-
