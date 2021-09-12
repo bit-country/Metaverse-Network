@@ -1,13 +1,13 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, parameter_types, pallet_prelude::Hooks};
-use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{AuctionId, continuum::Continuum, FungibleTokenId, CurrencyId, Amount};
-use pallet_nft::{AssetHandler};
+use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types};
 use orml_traits::parameter_type_with_key;
+use pallet_nft::AssetHandler;
+use primitives::{continuum::Continuum, Amount, AuctionId, CurrencyId, FungibleTokenId};
+use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
 
 use crate as auction;
 use auction_manager::ListingLevel;
@@ -55,7 +55,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BalanceExistentialDeposit: u64 = 1;
+    pub const BalanceExistentialDeposit: u64 = 1;
     pub const SpotId: u64 = 1;
 }
 
@@ -72,7 +72,11 @@ impl pallet_balances::Config for Runtime {
 pub struct Continuumm;
 
 impl Continuum<u128> for Continuumm {
-    fn transfer_spot(spot_id: u64, from: &AccountId, to: &(AccountId, u64)) -> Result<u64, DispatchError> {
+    fn transfer_spot(
+        spot_id: u64,
+        from: &AccountId,
+        to: &(AccountId, u64),
+    ) -> Result<u64, DispatchError> {
         Ok(1)
     }
 }
@@ -80,7 +84,12 @@ impl Continuum<u128> for Continuumm {
 pub struct Handler;
 
 impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
-    fn on_new_bid(now: BlockNumber, id: AuctionId, new_bid: (AccountId, Balance), last_bid: Option<(AccountId, Balance)>) -> OnNewBidResult<BlockNumber> {
+    fn on_new_bid(
+        now: BlockNumber,
+        id: AuctionId,
+        new_bid: (AccountId, Balance),
+        last_bid: Option<(AccountId, Balance)>,
+    ) -> OnNewBidResult<BlockNumber> {
         //Test with Alice bid
         if new_bid.0 == ALICE {
             OnNewBidResult {
@@ -101,17 +110,15 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 pub struct NftAssetHandler;
 
 impl AssetHandler for NftAssetHandler {
-    fn check_item_in_auction(
-        asset_id: AssetId,
-    ) -> bool {
+    fn check_item_in_auction(asset_id: AssetId) -> bool {
         return MockAuctionManager::check_item_in_auction(asset_id);
     }
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
-		Default::default()
-	};
+    pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
+        Default::default()
+    };
 }
 
 parameter_types! {
@@ -154,7 +161,12 @@ impl BitCountryTrait<AccountId> for BitCountryInfoSource {
         None
     }
 
-    fn update_country_token(country_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> { Ok(()) }
+    fn update_country_token(
+        country_id: u64,
+        currency_id: FungibleTokenId,
+    ) -> Result<(), DispatchError> {
+        Ok(())
+    }
 }
 
 impl Config for Runtime {
@@ -196,18 +208,18 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: frame_system::{Module, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         Tokens: orml_tokens::{Module, Call, Storage, Config<T>, Event<T>},
         NFTModule: pallet_nft::{Module, Storage ,Call, Event<T>},
         OrmlNft: orml_nft::{Module, Storage, Config<T>},
         NftAuctionModule: auction::{Module, Call, Storage, Event<T>},
-	}
+    }
 );
 pub struct ExtBuilder;
 
@@ -230,8 +242,8 @@ impl ExtBuilder {
         pallet_balances::GenesisConfig::<Runtime> {
             balances: vec![(ALICE, 100000), (BOB, 500)],
         }
-            .assimilate_storage(&mut t)
-            .unwrap();
+        .assimilate_storage(&mut t)
+        .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| System::set_block_number(block_number));
@@ -269,11 +281,24 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn new_auction(recipient: u128, initial_amount: Self::Balance, start: u64, end: Option<u64>) -> Result<u64, DispatchError> {
+    fn new_auction(
+        recipient: u128,
+        initial_amount: Self::Balance,
+        start: u64,
+        end: Option<u64>,
+    ) -> Result<u64, DispatchError> {
         todo!()
     }
 
-    fn create_auction(auction_type: AuctionType, item_id: ItemId, end: Option<u64>, recipient: u128, initial_amount: Self::Balance, start: u64, listing_level: ListingLevel) -> Result<u64, DispatchError> {
+    fn create_auction(
+        auction_type: AuctionType,
+        item_id: ItemId,
+        end: Option<u64>,
+        recipient: u128,
+        initial_amount: Self::Balance,
+        start: u64,
+        listing_level: ListingLevel,
+    ) -> Result<u64, DispatchError> {
         todo!()
     }
 
@@ -281,11 +306,22 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>) -> DispatchResult {
+    fn auction_bid_handler(
+        _now: u64,
+        id: u64,
+        new_bid: (u128, Self::Balance),
+        last_bid: Option<(u128, Self::Balance)>,
+    ) -> DispatchResult {
         todo!()
     }
 
-    fn local_auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>, social_currency_id: FungibleTokenId) -> DispatchResult {
+    fn local_auction_bid_handler(
+        _now: u64,
+        id: u64,
+        new_bid: (u128, Self::Balance),
+        last_bid: Option<(u128, Self::Balance)>,
+        social_currency_id: FungibleTokenId,
+    ) -> DispatchResult {
         todo!()
     }
 

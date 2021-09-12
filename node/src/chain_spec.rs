@@ -1,26 +1,29 @@
-use sc_chain_spec::ChainSpecExtension;
-use sp_core::{Pair, Public, crypto::UncheckedInto, sr25519};
-use serde::{Serialize, Deserialize};
-use bitcountry_runtime::{
-    AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContractsConfig, CouncilConfig,
-    DemocracyConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
-    StakingConfig, ElectionsConfig, IndicesConfig, SocietyConfig, SudoConfig, SystemConfig,
-    ContinuumConfig, TechnicalCommitteeConfig, wasm_binary_unwrap, BABE_GENESIS_EPOCH_CONFIG,
-};
-use bitcountry_runtime::Block;
 use bitcountry_runtime::constants::currency::*;
-use sc_service::ChainType;
+use bitcountry_runtime::Block;
+use bitcountry_runtime::{
+    wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContinuumConfig,
+    ContractsConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
+    ImOnlineConfig, IndicesConfig, SessionConfig, SessionKeys, SocietyConfig, StakerStatus,
+    StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, BABE_GENESIS_EPOCH_CONFIG,
+};
 use hex_literal::hex;
-use sc_telemetry::TelemetryEndpoints;
-use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_consensus_babe::{AuthorityId as BabeId};
-use pallet_im_online::sr25519::{AuthorityId as ImOnlineId};
-use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
-use sp_runtime::{Perbill, traits::{Verify, IdentifyAccount}};
+use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+use sc_chain_spec::ChainSpecExtension;
 use sc_chain_spec::Properties;
+use sc_service::ChainType;
+use sc_telemetry::TelemetryEndpoints;
+use serde::{Deserialize, Serialize};
+use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
+use sp_consensus_babe::AuthorityId as BabeId;
+use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
+use sp_finality_grandpa::AuthorityId as GrandpaId;
+use sp_runtime::{
+    traits::{IdentifyAccount, Verify},
+    Perbill,
+};
 
-pub use primitives::{AccountId, Balance, Signature};
 pub use bitcountry_runtime::GenesisConfig;
+pub use primitives::{AccountId, Balance, Signature};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -41,10 +44,7 @@ pub struct Extensions {
 }
 
 /// Specialized `ChainSpec`.
-pub type ChainSpec = sc_service::GenericChainSpec<
-    GenesisConfig,
-    Extensions,
->;
+pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
 fn session_keys(
     grandpa: GrandpaId,
@@ -52,9 +52,13 @@ fn session_keys(
     im_online: ImOnlineId,
     authority_discovery: AuthorityDiscoveryId,
 ) -> SessionKeys {
-    SessionKeys { grandpa, babe, im_online, authority_discovery }
+    SessionKeys {
+        grandpa,
+        babe,
+        im_online,
+        authority_discovery,
+    }
 }
-
 
 /// Helper function to generate a crypto pair from seed
 pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
@@ -65,14 +69,16 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 
 /// Generate an account ID from seed.
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-    where
-        AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+where
+    AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
 /// Helper function to generate stash, controller and session key from seed
-pub fn authority_keys_from_seed(seed: &str) -> (
+pub fn authority_keys_from_seed(
+    seed: &str,
+) -> (
     AccountId,
     AccountId,
     GrandpaId,
@@ -92,9 +98,7 @@ pub fn authority_keys_from_seed(seed: &str) -> (
 
 fn development_config_genesis() -> GenesisConfig {
     testnet_genesis(
-        vec![
-            authority_keys_from_seed("Alice"),
-        ],
+        vec![authority_keys_from_seed("Alice")],
         vec![],
         get_account_id_from_seed::<sr25519::Public>("Alice"),
         None,
@@ -152,28 +156,40 @@ fn tewai_testnet_genesis() -> GenesisConfig {
         BabeId,
         ImOnlineId,
         AuthorityDiscoveryId,
-    )> = vec![(
-                  //5FpqLqqbFyYWgYtgQS11HvTkaripk1nPFFti6CwDaMj8cSvu
-                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].into(),
-                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].into(),
-                  hex!["2098c0df8dd97903bf2203bda7ba5aa6afaf3b5e353f60bc42000dca351c6a20"].unchecked_into(),
-                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].unchecked_into(),
-                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].unchecked_into(),
-                  hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].unchecked_into(),
-              ), (
-                  //5EUXjqNx3Rsh3wtDJAPBzEvJdGVD3QmxmMUjrfARNr4uh7pq
-                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].into(),
-                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].into(),
-                  hex!["ed0524b8e41b652c36381c0d77ab80129c39070a808ab53586177804291acc79"].unchecked_into(),
-                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
-                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
-                  hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
-              )];
-   /// generated with secret: subkey inspect "$secret"/fir
+    )> = vec![
+        (
+            // 5FpqLqqbFyYWgYtgQS11HvTkaripk1nPFFti6CwDaMj8cSvu
+            hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].into(),
+            hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].into(),
+            hex!["2098c0df8dd97903bf2203bda7ba5aa6afaf3b5e353f60bc42000dca351c6a20"]
+                .unchecked_into(),
+            hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"]
+                .unchecked_into(),
+            hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"]
+                .unchecked_into(),
+            hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"]
+                .unchecked_into(),
+        ),
+        (
+            // 5EUXjqNx3Rsh3wtDJAPBzEvJdGVD3QmxmMUjrfARNr4uh7pq
+            hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].into(),
+            hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].into(),
+            hex!["ed0524b8e41b652c36381c0d77ab80129c39070a808ab53586177804291acc79"]
+                .unchecked_into(),
+            hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"]
+                .unchecked_into(),
+            hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"]
+                .unchecked_into(),
+            hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"]
+                .unchecked_into(),
+        ),
+    ];
+    // generated with secret: subkey inspect "$secret"/fir
     let root_key: AccountId = hex![
-		// 5Dqy8KtwmGJd6Tkar8Va3Uw7xvX4RQAhrygUk3T8vUxDXf2a
-		"4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"
-	].into();
+        // 5Dqy8KtwmGJd6Tkar8Va3Uw7xvX4RQAhrygUk3T8vUxDXf2a
+        "4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"
+    ]
+    .into();
 
     let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
 
@@ -205,7 +221,7 @@ fn testnet_genesis(
     endowed_accounts: Option<Vec<AccountId>>,
     enable_println: bool,
 ) -> bitcountry_runtime::GenesisConfig {
-    //Initial endowned if no endowned accounts
+    // Initial endowned if no endowned accounts
     let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
         vec![
             get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -223,14 +239,18 @@ fn testnet_genesis(
         ]
     });
 
-   /// endow all authorities and nominators.
-    initial_authorities.iter().map(|x| &x.0).chain(initial_nominators.iter()).for_each(|x| {
-        if !endowed_accounts.contains(&x) {
-            endowed_accounts.push(x.clone())
-        }
-    });
+    // endow all authorities and nominators.
+    initial_authorities
+        .iter()
+        .map(|x| &x.0)
+        .chain(initial_nominators.iter())
+        .for_each(|x| {
+            if !endowed_accounts.contains(&x) {
+                endowed_accounts.push(x.clone())
+            }
+        });
 
-   /// stakers: all validators and nominators.
+    // stakers: all validators and nominators.
     let mut rng = rand::thread_rng();
     let stakers = initial_authorities
         .iter()
@@ -245,7 +265,12 @@ fn testnet_genesis(
                 .into_iter()
                 .map(|choice| choice.0.clone())
                 .collect::<Vec<_>>();
-            (x.clone(), x.clone(), STASH, StakerStatus::Nominator(nominations))
+            (
+                x.clone(),
+                x.clone(),
+                STASH,
+                StakerStatus::Nominator(nominations),
+            )
         }))
         .collect::<Vec<_>>();
 
@@ -260,22 +285,24 @@ fn testnet_genesis(
             changes_trie_config: Default::default(),
         }),
         pallet_balances: Some(BalancesConfig {
-            balances: endowed_accounts.iter().cloned()
+            balances: endowed_accounts
+                .iter()
+                .cloned()
                 .map(|x| (x, ENDOWMENT))
-                .collect()
+                .collect(),
         }),
-        pallet_indices: Some(IndicesConfig {
-            indices: vec![],
-        }),
+        pallet_indices: Some(IndicesConfig { indices: vec![] }),
         pallet_session: Some(SessionConfig {
-            keys: initial_authorities.iter().map(|x| {
-                (x.0.clone(), x.0.clone(), session_keys(
-                    x.2.clone(),
-                    x.3.clone(),
-                    x.4.clone(),
-                    x.5.clone(),
-                ))
-            }).collect::<Vec<_>>(),
+            keys: initial_authorities
+                .iter()
+                .map(|x| {
+                    (
+                        x.0.clone(),
+                        x.0.clone(),
+                        session_keys(x.2.clone(), x.3.clone(), x.4.clone(), x.5.clone()),
+                    )
+                })
+                .collect::<Vec<_>>(),
         }),
         pallet_staking: Some(StakingConfig {
             validator_count: initial_authorities.len() as u32 * 2,
@@ -287,7 +314,8 @@ fn testnet_genesis(
         }),
         pallet_democracy: Some(DemocracyConfig::default()),
         pallet_elections_phragmen: Some(ElectionsConfig {
-            members: endowed_accounts.iter()
+            members: endowed_accounts
+                .iter()
                 .take((num_endowed_accounts + 1) / 2)
                 .cloned()
                 .map(|member| (member, STASH))
@@ -295,7 +323,8 @@ fn testnet_genesis(
         }),
         pallet_collective_Instance1: Some(CouncilConfig::default()),
         pallet_collective_Instance2: Some(TechnicalCommitteeConfig {
-            members: endowed_accounts.iter()
+            members: endowed_accounts
+                .iter()
                 .take((num_endowed_accounts + 1) / 2)
                 .cloned()
                 .collect(),
@@ -303,28 +332,23 @@ fn testnet_genesis(
         }),
         pallet_contracts: Some(ContractsConfig {
             current_schedule: pallet_contracts::Schedule {
-                enable_println,/// this should only be enabled on development chains
+                enable_println, // this should only be enabled on development chains
                 ..Default::default()
             },
         }),
-        pallet_sudo: Some(SudoConfig {
-            key: root_key,
-        }),
+        pallet_sudo: Some(SudoConfig { key: root_key }),
         pallet_babe: Some(BabeConfig {
-            authorities: vec![]
+            authorities: vec![],
         }),
-        pallet_im_online: Some(ImOnlineConfig {
-            keys: vec![],
-        }),
-        pallet_authority_discovery: Some(AuthorityDiscoveryConfig {
-            keys: vec![],
-        }),
+        pallet_im_online: Some(ImOnlineConfig { keys: vec![] }),
+        pallet_authority_discovery: Some(AuthorityDiscoveryConfig { keys: vec![] }),
         pallet_grandpa: Some(GrandpaConfig {
-            authorities: vec![]
+            authorities: vec![],
         }),
         pallet_treasury: Some(Default::default()),
         pallet_society: Some(SocietyConfig {
-            members: endowed_accounts.iter()
+            members: endowed_accounts
+                .iter()
                 .take((num_endowed_accounts + 1) / 2)
                 .cloned()
                 .collect(),
@@ -338,9 +362,6 @@ fn testnet_genesis(
             initial_max_bound: (-100, 100),
             spot_price: 5 * DOLLARS,
         }),
-       /// tokenization: Some(TokenConfig {
-       /// 	init_token_id: 0
-       /// })
     }
 }
 

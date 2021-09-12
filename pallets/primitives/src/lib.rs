@@ -17,12 +17,13 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-
-use sp_runtime::{
-    generic, traits::{Verify, BlakeTwo256, IdentifyAccount}, OpaqueExtrinsic, MultiSignature,
-};
 use codec::{Decode, Encode, HasCompact};
 use sp_runtime::RuntimeDebug;
+use sp_runtime::{
+    generic,
+    traits::{BlakeTwo256, IdentifyAccount, Verify},
+    MultiSignature, OpaqueExtrinsic,
+};
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -125,21 +126,33 @@ impl FungibleTokenId {
 
     pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
         match self {
-            FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1) => {
-                Some((FungibleTokenId::NativeToken(*token_currency_id_0), FungibleTokenId::FungibleToken(*token_currency_id_1)))
-            }
+            FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1) => Some((
+                FungibleTokenId::NativeToken(*token_currency_id_0),
+                FungibleTokenId::FungibleToken(*token_currency_id_1),
+            )),
             _ => None,
         }
     }
 
-    pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
+    pub fn join_dex_share_social_currency_id(
+        currency_id_0: Self,
+        currency_id_1: Self,
+    ) -> Option<Self> {
         match (currency_id_0, currency_id_1) {
-            (FungibleTokenId::NativeToken(token_currency_id_0), FungibleTokenId::FungibleToken(token_currency_id_1)) => {
-                Some(FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1))
-            }
-            (FungibleTokenId::FungibleToken(token_currency_id_0), FungibleTokenId::NativeToken(token_currency_id_1)) => {
-                Some(FungibleTokenId::DEXShare(token_currency_id_1, token_currency_id_0))
-            }
+            (
+                FungibleTokenId::NativeToken(token_currency_id_0),
+                FungibleTokenId::FungibleToken(token_currency_id_1),
+            ) => Some(FungibleTokenId::DEXShare(
+                token_currency_id_0,
+                token_currency_id_1,
+            )),
+            (
+                FungibleTokenId::FungibleToken(token_currency_id_0),
+                FungibleTokenId::NativeToken(token_currency_id_1),
+            ) => Some(FungibleTokenId::DEXShare(
+                token_currency_id_1,
+                token_currency_id_0,
+            )),
             _ => None,
         }
     }
@@ -195,10 +208,12 @@ pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
     pub per_period: Balance,
 }
 
-impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSchedule<BlockNumber, Balance> {
+impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy>
+    VestingSchedule<BlockNumber, Balance>
+{
     /// Returns the end of all periods, `None` if calculation overflows.
     pub fn end(&self) -> Option<BlockNumber> {
-       /// period * period_count + start
+        // period * period_count + start
         self.period
             .checked_mul(&self.period_count.into())?
             .checked_add(&self.start)
@@ -214,17 +229,18 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
     /// Note this func assumes schedule is a valid one(non-zero period and
     /// non-overflow total amount), and it should be guaranteed by callers.
     pub fn locked_amount(&self, time: BlockNumber) -> Balance {
-       /// full = (time - start) / period
-       /// unrealized = period_count - full
-       /// per_period * unrealized
+        // full = (time - start) / period
+        // unrealized = period_count - full
+        // per_period * unrealized
         let full = time
             .saturating_sub(self.start)
             .checked_div(&self.period)
             .expect("ensured non-zero period; qed");
-        let unrealized = self.period_count.saturating_sub(full.unique_saturated_into());
+        let unrealized = self
+            .period_count
+            .saturating_sub(full.unique_saturated_into());
         self.per_period
             .checked_mul(&unrealized.into())
             .expect("ensured non-overflow total amount; qed")
     }
 }
-

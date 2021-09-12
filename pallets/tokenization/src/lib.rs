@@ -98,7 +98,7 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         /// The arithmetic type of asset identifier.
         type TokenId: Parameter + AtLeast32Bit + Default + Copy;
-        type CountryCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>
+        type BCMultiCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>
             + MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
         type FungibleTokenTreasury: Get<ModuleId>;
         type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
@@ -161,7 +161,7 @@ pub mod pallet {
         /// Initial Social Token Supply is too low
         InitialFungibleTokenSupplyIsTooLow,
         /// Failed on updating social token for this bitcountry
-        FailedOnUpdateingFungibleToken,
+        FailedOnUpdatingFungibleToken,
         /// Vesting period is zero
         ZeroVestingPeriod,
         /// Number of vests is zero
@@ -231,7 +231,8 @@ pub mod pallet {
                         Ok(FungibleTokenId::FungibleToken(current_id))
                     }
                 })?;
-            let fund_id: T::AccountId = T::FungibleTokenTreasury::get().into_sub_account(country_id);
+            let fund_id: T::AccountId =
+                T::FungibleTokenTreasury::get().into_sub_account(country_id);
 
             // Bit Country treasury
             let country_fund = BitCountryFund {
@@ -257,13 +258,13 @@ pub mod pallet {
 
             CountryTreasury::<T>::insert(country_id.clone(), country_fund);
             // Deposit fund into bit country treasury
-            T::CountryCurrency::transfer(
+            T::BCMultiCurrency::transfer(
                 FungibleTokenId::NativeToken(0),
                 &who,
                 &fund_id,
                 initial_backing.clone(),
             )?;
-            T::CountryCurrency::deposit(currency_id, &fund_id, total_supply.clone())?;
+            T::BCMultiCurrency::deposit(currency_id, &fund_id, total_supply.clone())?;
             // Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
             T::LiquidityPoolManager::add_liquidity(
                 &fund_id,
@@ -287,8 +288,8 @@ pub mod pallet {
                 per_period: vested_per_period,
             };
 
-            T::CountryCurrency::transfer(currency_id, &fund_id, &who, owner_supply.clone())?;
-            T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, &who, owner_supply);
+            T::BCMultiCurrency::transfer(currency_id, &fund_id, &who, owner_supply.clone())?;
+            T::BCMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, &who, owner_supply);
             <VestingSchedules<T>>::append(who.clone(), vesting_schedule.clone());
             Self::deposit_event(Event::VestingScheduleAdded(
                 currency_id,
@@ -314,7 +315,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             dest: <T::Lookup as StaticLookup>::Source,
             currency_id: FungibleTokenId,
-            /// #[compact] amount: Balance amount: Balance,
+            amount: Balance,
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             let to = T::Lookup::lookup(dest)?;
@@ -409,7 +410,7 @@ impl<T: Config> Module<T> {
             return Ok(());
         }
 
-        T::CountryCurrency::transfer(currency_id, from, to, amount)?;
+        T::BCMultiCurrency::transfer(currency_id, from, to, amount)?;
 
         Self::deposit_event(Event::<T>::FungibleTokenTransferred(
             currency_id,
@@ -423,7 +424,7 @@ impl<T: Config> Module<T> {
     pub fn get_total_issuance(country_id: BitCountryId) -> Result<Balance, DispatchError> {
         let country_fund = CountryTreasury::<T>::get(country_id)
             .ok_or(Error::<T>::BitCountryFundIsNotAvailable)?;
-        let total_issuance = T::CountryCurrency::total_issuance(country_fund.currency_id);
+        let total_issuance = T::BCMultiCurrency::total_issuance(country_fund.currency_id);
 
         Ok(total_issuance)
     }
@@ -438,9 +439,9 @@ impl<T: Config> Module<T> {
     fn do_claim(who: &T::AccountId, currency_id: FungibleTokenId) -> Balance {
         let locked = Self::locked_balance(who, currency_id.clone());
         if locked.is_zero() {
-            T::CountryCurrency::remove_lock(VESTING_LOCK_ID, currency_id, who);
+            T::BCMultiCurrency::remove_lock(VESTING_LOCK_ID, currency_id, who);
         } else {
-            T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, locked);
+            T::BCMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, locked);
         }
         locked
     }
@@ -489,8 +490,8 @@ impl<T: Config> Module<T> {
             .checked_add(schedule_amount)
             .ok_or(Error::<T>::NumOverflow)?;
 
-        T::CountryCurrency::transfer(schedule.token, from, to, schedule_amount)?;
-        T::CountryCurrency::set_lock(VESTING_LOCK_ID, schedule.token, to, total_amount);
+        T::BCMultiCurrency::transfer(schedule.token, from, to, schedule_amount)?;
+        T::BCMultiCurrency::set_lock(VESTING_LOCK_ID, schedule.token, to, total_amount);
         <VestingSchedules<T>>::append(to, schedule);
         Ok(())
     }
@@ -507,11 +508,11 @@ impl<T: Config> Module<T> {
                 Ok(acc_amount + amount)
             })?;
         ensure!(
-            T::CountryCurrency::free_balance(currency_id.clone(), who) >= total_amount,
+            T::BCMultiCurrency::free_balance(currency_id.clone(), who) >= total_amount,
             Error::<T>::InsufficientBalanceToLock,
         );
 
-        T::CountryCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, total_amount);
+        T::BCMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, total_amount);
         <VestingSchedules<T>>::insert(who, schedules);
 
         Ok(())
