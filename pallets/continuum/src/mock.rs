@@ -41,7 +41,7 @@ parameter_types! {
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u64;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
@@ -49,8 +49,8 @@ pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
-pub const ALICE_COUNTRY_ID: CountryId = 1;
-pub const BOB_COUNTRY_ID: CountryId = 2;
+pub const ALICE_COUNTRY_ID: BitCountryId = 1;
+pub const BOB_COUNTRY_ID: BitCountryId = 2;
 
 ord_parameter_types! {
     pub const One: AccountId = ALICE;
@@ -139,10 +139,10 @@ parameter_types! {
     pub const SpotAuctionChillingDuration: BlockNumber = 10; //Default 43200 Blocks
 }
 
-pub struct CountryInfoSource {}
+pub struct BitCountryInfoSource {}
 
-impl BCCountry<AccountId> for CountryInfoSource {
-    fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
+impl BitCountryTrait<AccountId> for BitCountryInfoSource {
+    fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
         match *who {
             ALICE => *country_id == ALICE_COUNTRY_ID,
             BOB => *country_id == BOB_COUNTRY_ID,
@@ -150,11 +150,11 @@ impl BCCountry<AccountId> for CountryInfoSource {
         }
     }
 
-    fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
+    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
         None
     }
 
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+    fn get_country_token(country_id: BitCountryId) -> Option<CurrencyId> {
         None
     }
 }
@@ -168,7 +168,7 @@ impl Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
-    type CountryInfoSource = CountryInfoSource;
+    type BitCountryInfoSource = BitCountryInfoSource;
 }
 
 pub type ContinuumModule = Pallet<Runtime>;

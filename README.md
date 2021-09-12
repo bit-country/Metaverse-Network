@@ -7,7 +7,7 @@
 </p>
 
 <div align="center">
-<h1>Bit.Country</h1>
+<h1>Bit.BitCountryStruct</h1>
 
 ## A Decentralized World - Create a decentralized bit country of your own.
 

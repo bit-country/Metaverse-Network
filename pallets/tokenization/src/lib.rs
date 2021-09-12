@@ -32,14 +32,14 @@ use orml_traits::{
     BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
     LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
+use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
     traits::{AtLeast32Bit, One, StaticLookup, Zero, AccountIdConversion},
     DispatchError,
 };
 use sp_std::vec::Vec;
 use frame_support::sp_runtime::ModuleId;
-use bc_country::*;
+use bit_country::*;
 use auction_manager::{SwapManager};
 use frame_support::traits::{Get, Currency, WithdrawReasons};
 use frame_system::pallet_prelude::*;
@@ -72,7 +72,7 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use primitives::{SocialTokenCurrencyId, TokenId, VestingSchedule};
+    use primitives::{FungibleTokenId, TokenId, VestingSchedule};
     use frame_support::sp_runtime::{SaturatedConversion, FixedPointNumber};
     use primitives::dex::Price;
     use frame_support::sp_runtime::traits::Saturating;
@@ -97,12 +97,12 @@ pub mod pallet {
         type TokenId: Parameter + AtLeast32Bit + Default + Copy;
         type CountryCurrency: MultiCurrencyExtended<
             Self::AccountId,
-            CurrencyId=SocialTokenCurrencyId,
+            CurrencyId=FungibleTokenId,
             Balance=Balance,
-        > + MultiLockableCurrency<Self::AccountId, CurrencyId=SocialTokenCurrencyId>;
-        type SocialTokenTreasury: Get<ModuleId>;
-        type CountryInfoSource: BCCountry<Self::AccountId>;
-        type LiquidityPoolManager: SwapManager<Self::AccountId, SocialTokenCurrencyId, Balance>;
+        > + MultiLockableCurrency<Self::AccountId, CurrencyId=FungibleTokenId>;
+        type FungileTokenTreasury: Get<ModuleId>;
+        type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
+        type LiquidityPoolManager: SwapManager<Self::AccountId, FungibleTokenId, Balance>;
         #[pallet::constant]
         /// The minimum amount transferred to call `vested_transfer`.
         type MinVestedTransfer: Get<Balance>;
@@ -119,15 +119,15 @@ pub mod pallet {
     #[pallet::getter(fn token_details)]
     /// Details of the token corresponding to the token id.
     /// (hash) -> Token details [returns Token struct]
-    pub(super) type SocialTokens<T: Config> =
-    StorageMap<_, Blake2_128Concat, SocialTokenCurrencyId, Token<Balance>, ValueQuery>;
+    pub(super) type FungileTokens<T: Config> =
+    StorageMap<_, Blake2_128Concat, FungibleTokenId, Token<Balance>, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_country_treasury)]
     /// Details of the token corresponding to the token id.
     /// (hash) -> Token details [returns Token struct]
     pub(super) type CountryTreasury<T: Config> =
-    StorageMap<_, Blake2_128Concat, CountryId, CountryFund<T::AccountId, Balance>, OptionQuery>;
+    StorageMap<_, Blake2_128Concat, BitCountryId, BitCountryFund<T::AccountId, Balance>, OptionQuery>;
 
     /// Vesting schedules of an account.
     #[pallet::storage]
@@ -148,15 +148,15 @@ pub mod pallet {
         /// No permission to issue token
         NoPermissionTokenIssuance,
         /// Country Currency already issued for this bitcountry
-        SocialTokenAlreadyIssued,
+        FungileTokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
         /// Country Fund Not Available
-        CountryFundIsNotAvailable,
+        BitCountryFundIsNotAvailable,
         /// Initial Social Token Supply is too low
-        InitialSocialTokenSupplyIsTooLow,
+        InitialFungileTokenSupplyIsTooLow,
         /// Failed on updating social token for this bitcountry
-        FailedOnUpdateingSocialToken,
+        FailedOnUpdateingFungileToken,
         /// Vesting period is zero
         ZeroVestingPeriod,
         /// Number of vests is zero
@@ -180,19 +180,19 @@ pub mod pallet {
         pub fn mint_token(
             origin: OriginFor<T>,
             ticker: Ticker,
-            country_id: CountryId,
+            country_id: BitCountryId,
             total_supply: Balance,
             initial_lp: (u32, u32),
             initial_backing: Balance,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             ensure!(
-                T::CountryInfoSource::check_ownership(&who, &country_id), 
+                T::BitCountryInfoSource::check_ownership(&who, &country_id), 
                 Error::<T>::NoPermissionTokenIssuance
             );
             ensure!(
                 !CountryTreasury::<T>::contains_key(&country_id), 
-                Error::<T>::SocialTokenAlreadyIssued
+                Error::<T>::FungileTokenAlreadyIssued
             );
 
             let initial_pool_numerator = total_supply.saturating_mul(initial_lp.0.saturated_into());
@@ -203,27 +203,27 @@ pub mod pallet {
             debug::info!("supply_percent: {})", supply_percent);
             ensure!(
                 supply_percent > 0u128 && supply_percent >= 20u128,
-                Error::<T>::InitialSocialTokenSupplyIsTooLow
+                Error::<T>::InitialFungileTokenSupplyIsTooLow
             );
             //Remaning balance for bc owner
             let owner_supply = total_supply.saturating_sub(initial_pool_supply);
             debug::info!("owner_supply: {})", owner_supply);
             //Generate new TokenId
-            let currency_id = NextTokenId::<T>::mutate(|id| -> Result<SocialTokenCurrencyId, DispatchError>{
+            let currency_id = NextTokenId::<T>::mutate(|id| -> Result<FungibleTokenId, DispatchError>{
                 let current_id = *id;
                 if current_id == 0 {
                     *id = 2;
-                    Ok(SocialTokenCurrencyId::SocialToken(One::one()))
+                    Ok(FungibleTokenId::FungileToken(One::one()))
                 } else {
                     *id = id.checked_add(One::one())
                         .ok_or(Error::<T>::NoAvailableTokenId)?;
-                    Ok(SocialTokenCurrencyId::SocialToken(current_id))
+                    Ok(FungibleTokenId::FungileToken(current_id))
                 }
             })?;
-            let fund_id: T::AccountId = T::SocialTokenTreasury::get().into_sub_account(country_id);
+            let fund_id: T::AccountId = T::FungileTokenTreasury::get().into_sub_account(country_id);
 
             //Country treasury
-            let country_fund = CountryFund {
+            let country_fund = BitCountryFund {
                 vault: fund_id.clone(),
                 value: total_supply,
                 backing: initial_backing,
@@ -236,17 +236,17 @@ pub mod pallet {
             };
 
             //Update currency id in BC
-            T::CountryInfoSource::update_country_token(country_id.clone(), currency_id.clone())?;
+            T::BitCountryInfoSource::update_country_token(country_id.clone(), currency_id.clone())?;
 
             //Store social token info
-            SocialTokens::<T>::insert(currency_id, token_info);
+            FungileTokens::<T>::insert(currency_id, token_info);
 
             CountryTreasury::<T>::insert(country_id.clone(), country_fund);
             //Deposit fund into bit country treasury
-            T::CountryCurrency::transfer(SocialTokenCurrencyId::NativeToken(0), &who, &fund_id, initial_backing.clone())?;
+            T::CountryCurrency::transfer(FungibleTokenId::NativeToken(0), &who, &fund_id, initial_backing.clone())?;
             T::CountryCurrency::deposit(currency_id, &fund_id, total_supply.clone())?;
             //Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
-            T::LiquidityPoolManager::add_liquidity(&fund_id, SocialTokenCurrencyId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
+            T::LiquidityPoolManager::add_liquidity(&fund_id, FungibleTokenId::NativeToken(0), currency_id, initial_backing, initial_pool_supply)?;
 
             //The remaining token will be vested gradually 12 months.
             let now = <frame_system::Pallet<T>>::block_number();
@@ -267,7 +267,7 @@ pub mod pallet {
             Self::deposit_event(Event::VestingScheduleAdded(currency_id, fund_id, who.clone(), vesting_schedule));
 
             let fund_address = Self::get_country_fund_id(country_id);
-            Self::deposit_event(Event::<T>::SocialTokenIssued(currency_id.clone(), who.clone(), fund_address, total_supply, country_id));
+            Self::deposit_event(Event::<T>::FungileTokenIssued(currency_id.clone(), who.clone(), fund_address, total_supply, country_id));
 
             Ok(().into())
         }
@@ -276,7 +276,7 @@ pub mod pallet {
         pub fn transfer(
             origin: OriginFor<T>,
             dest: <T::Lookup as StaticLookup>::Source,
-            currency_id: SocialTokenCurrencyId,
+            currency_id: FungibleTokenId,
             // #[compact] amount: Balance
             amount: Balance,
         ) -> DispatchResultWithPostInfo {
@@ -288,7 +288,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(100_000)]
-        pub fn claim(origin: OriginFor<T>, currency_id: SocialTokenCurrencyId) -> DispatchResultWithPostInfo {
+        pub fn claim(origin: OriginFor<T>, currency_id: FungibleTokenId) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let locked_amount = Self::do_claim(&who, currency_id);
 
@@ -315,7 +315,7 @@ pub mod pallet {
         pub fn update_vesting_schedules(
             origin: OriginFor<T>,
             who: <T::Lookup as StaticLookup>::Source,
-            currency_id: SocialTokenCurrencyId,
+            currency_id: FungibleTokenId,
             vesting_schedules: Vec<VestingScheduleOf<T>>,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
@@ -337,17 +337,17 @@ pub mod pallet {
     )]
     pub enum Event<T: Config> {
         /// Some assets were issued. \[asset_id, owner, fund_id ,total_supply\]
-        SocialTokenIssued(SocialTokenCurrencyId, T::AccountId, T::AccountId, u128, u64),
+        FungileTokenIssued(FungibleTokenId, T::AccountId, T::AccountId, u128, u64),
         /// Some assets were transferred. \[asset_id, from, to, amount\]
-        SocialTokenTransferred(SocialTokenCurrencyId, T::AccountId, T::AccountId, Balance),
+        FungileTokenTransferred(FungibleTokenId, T::AccountId, T::AccountId, Balance),
         /// Some assets were destroyed. \[asset_id, owner, balance\]
-        SocialTokenDestroyed(SocialTokenCurrencyId, T::AccountId, Balance),
+        FungileTokenDestroyed(FungibleTokenId, T::AccountId, Balance),
         /// Added new vesting schedule. [token, from, to, vesting_schedule]
-        VestingScheduleAdded(SocialTokenCurrencyId, T::AccountId, T::AccountId, VestingScheduleOf<T>),
+        VestingScheduleAdded(FungibleTokenId, T::AccountId, T::AccountId, VestingScheduleOf<T>),
         /// Claimed vesting. [token, who, locked_amount]
-        Claimed(SocialTokenCurrencyId, T::AccountId, Balance),
+        Claimed(FungibleTokenId, T::AccountId, Balance),
         /// Updated vesting schedules. [token, who]
-        VestingSchedulesUpdated(SocialTokenCurrencyId, T::AccountId),
+        VestingSchedulesUpdated(FungibleTokenId, T::AccountId),
     }
 
     #[pallet::hooks]
@@ -356,7 +356,7 @@ pub mod pallet {
 
 impl<T: Config> Module<T> {
     fn transfer_from(
-        currency_id: SocialTokenCurrencyId,
+        currency_id: FungibleTokenId,
         from: &T::AccountId,
         to: &T::AccountId,
         amount: Balance,
@@ -367,7 +367,7 @@ impl<T: Config> Module<T> {
 
         T::CountryCurrency::transfer(currency_id, from, to, amount)?;
 
-        Self::deposit_event(Event::<T>::SocialTokenTransferred(
+        Self::deposit_event(Event::<T>::FungileTokenTransferred(
             currency_id,
             from.clone(),
             to.clone(),
@@ -376,22 +376,22 @@ impl<T: Config> Module<T> {
         Ok(())
     }
 
-    pub fn get_total_issuance(country_id: CountryId) -> Result<Balance, DispatchError> {
+    pub fn get_total_issuance(country_id: BitCountryId) -> Result<Balance, DispatchError> {
         let country_fund =
-            CountryTreasury::<T>::get(country_id).ok_or(Error::<T>::CountryFundIsNotAvailable)?;
+            CountryTreasury::<T>::get(country_id).ok_or(Error::<T>::BitCountryFundIsNotAvailable)?;
         let total_issuance = T::CountryCurrency::total_issuance(country_fund.currency_id);
 
         Ok(total_issuance)
     }
 
-    pub fn get_country_fund_id(country_id: CountryId) -> T::AccountId {
+    pub fn get_country_fund_id(country_id: BitCountryId) -> T::AccountId {
         match CountryTreasury::<T>::get(country_id) {
             Some(fund) => fund.vault,
             _ => Default::default()
         }
     }
 
-    fn do_claim(who: &T::AccountId, currency_id: SocialTokenCurrencyId) -> Balance {
+    fn do_claim(who: &T::AccountId, currency_id: FungibleTokenId) -> Balance {
         let locked = Self::locked_balance(who, currency_id.clone());
         if locked.is_zero() {
             T::CountryCurrency::remove_lock(VESTING_LOCK_ID, currency_id, who);
@@ -402,7 +402,7 @@ impl<T: Config> Module<T> {
     }
 
     /// Returns locked balance of any social token based on current block number.
-    fn locked_balance(who: &T::AccountId, currency_id: SocialTokenCurrencyId) -> Balance {
+    fn locked_balance(who: &T::AccountId, currency_id: FungibleTokenId) -> Balance {
         let now = <frame_system::Pallet<T>>::block_number();
         <VestingSchedules<T>>::mutate_exists(who, |maybe_schedules| {
             let total = if let Some(schedules) = maybe_schedules.as_mut() {
@@ -429,7 +429,7 @@ impl<T: Config> Module<T> {
     }
 
     #[transactional]
-    fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, currency_id: SocialTokenCurrencyId, schedule: VestingScheduleOf<T>) -> DispatchResult {
+    fn do_vested_transfer(from: &T::AccountId, to: &T::AccountId, currency_id: FungibleTokenId, schedule: VestingScheduleOf<T>) -> DispatchResult {
         let schedule_amount = Self::ensure_valid_vesting_schedule(&currency_id, &schedule)?;
 
         ensure!(
@@ -447,7 +447,7 @@ impl<T: Config> Module<T> {
         Ok(())
     }
 
-    fn do_update_vesting_schedules(who: &T::AccountId, currency_id: SocialTokenCurrencyId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
+    fn do_update_vesting_schedules(who: &T::AccountId, currency_id: FungibleTokenId, schedules: Vec<VestingScheduleOf<T>>) -> DispatchResult {
         let total_amount = schedules.iter().try_fold::<_, _, Result<Balance, Error<T>>>(
             Zero::zero(),
             |acc_amount, schedule| {
@@ -467,7 +467,7 @@ impl<T: Config> Module<T> {
     }
 
     /// Returns `Ok(amount)` if valid schedule, or error.
-    fn ensure_valid_vesting_schedule(currency_id: &SocialTokenCurrencyId, schedule: &VestingScheduleOf<T>) -> Result<Balance, Error<T>> {
+    fn ensure_valid_vesting_schedule(currency_id: &FungibleTokenId, schedule: &VestingScheduleOf<T>) -> Result<Balance, Error<T>> {
         ensure!(schedule.token == *currency_id, Error::<T>::InvalidVestingSchedule);
         ensure!(!schedule.period.is_zero(), Error::<T>::ZeroVestingPeriod);
         ensure!(!schedule.period_count.is_zero(), Error::<T>::ZeroVestingPeriodCount);

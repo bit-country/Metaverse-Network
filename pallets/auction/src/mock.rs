@@ -4,14 +4,14 @@ use super::*;
 use frame_support::{construct_runtime, parameter_types, pallet_prelude::Hooks};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
-use primitives::{AuctionId, continuum::Continuum, SocialTokenCurrencyId, CurrencyId, Amount};
+use primitives::{AuctionId, continuum::Continuum, FungibleTokenId, CurrencyId, Amount};
 use pallet_nft::{AssetHandler};
 use orml_traits::parameter_type_with_key;
 use sp_runtime::traits::AccountIdConversion;
 
 use crate as auction;
 use auction_manager::ListingLevel;
-use bc_country::{BCCountry, Country};
+use bit_country::{BitCountryTrait, Country};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
@@ -20,14 +20,14 @@ parameter_types! {
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
-pub const ALICE_COUNTRY_ID: CountryId = 1;
-pub const BOB_COUNTRY_ID: CountryId = 2;
+pub const ALICE_COUNTRY_ID: BitCountryId = 1;
+pub const BOB_COUNTRY_ID: BitCountryId = 2;
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -109,7 +109,7 @@ impl AssetHandler for NftAssetHandler {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
 	};
 }
@@ -124,7 +124,7 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = SocialTokenCurrencyId;
+    type CurrencyId = FungibleTokenId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
@@ -135,10 +135,10 @@ parameter_types! {
     pub const MinimumAuctionDuration: u64 = 10; //Test auction end within 100 blocks
 }
 
-pub struct CountryInfoSource {}
+pub struct BitCountryInfoSource {}
 
-impl BCCountry<AccountId> for CountryInfoSource {
-    fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
+impl BitCountryTrait<AccountId> for BitCountryInfoSource {
+    fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
         match *who {
             ALICE => *country_id == ALICE_COUNTRY_ID,
             BOB => *country_id == BOB_COUNTRY_ID,
@@ -146,15 +146,15 @@ impl BCCountry<AccountId> for CountryInfoSource {
         }
     }
 
-    fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
+    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
         None
     }
 
-    fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
+    fn get_country_token(country_id: BitCountryId) -> Option<FungibleTokenId> {
         None
     }
 
-    fn update_country_token(country_id: u64, currency_id: SocialTokenCurrencyId) -> Result<(), DispatchError> { Ok(()) }
+    fn update_country_token(country_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> { Ok(()) }
 }
 
 impl Config for Runtime {
@@ -163,8 +163,8 @@ impl Config for Runtime {
     type Handler = Handler;
     type Currency = Balances;
     type ContinuumHandler = Continuumm;
-    type SocialTokenCurrency = Tokens;
-    type CountryInfoSource = CountryInfoSource;
+    type FungileTokenCurrency = Tokens;
+    type BitCountryInfoSource = BitCountryInfoSource;
     type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
@@ -285,7 +285,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         todo!()
     }
 
-    fn local_auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>, social_currency_id: SocialTokenCurrencyId) -> DispatchResult {
+    fn local_auction_bid_handler(_now: u64, id: u64, new_bid: (u128, Self::Balance), last_bid: Option<(u128, Self::Balance)>, social_currency_id: FungibleTokenId) -> DispatchResult {
         todo!()
     }
 

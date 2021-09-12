@@ -24,14 +24,14 @@ use frame_support::{
     traits::{Get, Vec},
 };
 use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{Balance, CountryId, CurrencyId, SpotId, ItemId, continuum::Continuum};
+use primitives::{Balance, BitCountryId, CurrencyId, SpotId, ItemId, continuum::Continuum};
 use sp_runtime::{traits::{AccountIdConversion, One, Zero, CheckedDiv, CheckedAdd}, DispatchError, ModuleId, RuntimeDebug, FixedPointNumber};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_std::vec;
 
 use auction_manager::{Auction, AuctionType, ListingLevel};
-use bc_country::{BCCountry, Country};
+use bit_country::{BitCountryTrait, Country};
 use frame_support::traits::{Currency, ReservableCurrency, LockableCurrency};
 use sp_arithmetic::Perbill;
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
@@ -110,8 +110,8 @@ pub mod pallet {
         /// Currency
         type Currency: ReservableCurrency<Self::AccountId>
         + LockableCurrency<Self::AccountId, Moment=Self::BlockNumber>;
-        /// Source of Country Info
-        type CountryInfoSource: BCCountry<Self::AccountId>;
+        /// Source of Bit Country Info
+        type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
     }
 
     #[pallet::genesis_config]
@@ -284,10 +284,10 @@ pub mod pallet {
         pub fn buy_continuum_spot(
             origin: OriginFor<T>,
             coordinate: (i32, i32),
-            country_id: CountryId,
+            country_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            ensure!(T::CountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
+            ensure!(T::BitCountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
             ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
             let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
@@ -311,9 +311,9 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn register_interest(origin: OriginFor<T>, country_id: CountryId, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
+        pub fn register_interest(origin: OriginFor<T>, country_id: BitCountryId, coordinate: (i32, i32)) -> DispatchResultWithPostInfo {
             let sender = ensure_signed(origin)?;
-            ensure!(T::CountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
+            ensure!(T::BitCountryInfoSource::check_ownership(&sender, &country_id), Error::<T>::NoPermission);
             let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
             let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
             // Get current active session
@@ -628,7 +628,7 @@ impl<T: Config> Pallet<T>
         ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound.into())
     }
 
-    pub fn do_transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
+    pub fn do_transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, BitCountryId)) -> Result<SpotId, DispatchError> {
         Self::transfer_spot(spot_id, from, to)
     }
 
@@ -672,7 +672,7 @@ impl<T: Config> Pallet<T>
 }
 
 impl<T: Config> Continuum<T::AccountId> for Pallet<T> {
-    fn transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, CountryId)) -> Result<SpotId, DispatchError> {
+    fn transfer_spot(spot_id: SpotId, from: &T::AccountId, to: &(T::AccountId, BitCountryId)) -> Result<SpotId, DispatchError> {
         ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError> {
             let treasury = Self::account_id();
             if *from != treasury {

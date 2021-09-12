@@ -33,7 +33,7 @@ use orml_traits::{
     BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
     LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
+use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
     traits::{CheckedSub, MaybeSerializeDeserialize, Saturating, StaticLookup, Zero},
     DispatchError, DispatchResult,
@@ -45,7 +45,7 @@ use sp_std::{
     vec::Vec,
 };
 use frame_support::sp_runtime::ModuleId;
-use bc_country::*;
+use bit_country::*;
 use frame_support::{
     pallet_prelude::*,
     traits::{
@@ -81,14 +81,14 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type MultiSocialCurrency: MergeAccount<Self::AccountId>
-        + MultiCurrencyExtended<Self::AccountId, CurrencyId=SocialTokenCurrencyId>
-        + MultiLockableCurrency<Self::AccountId, CurrencyId=SocialTokenCurrencyId>
-        + MultiReservableCurrency<Self::AccountId, CurrencyId=SocialTokenCurrencyId>;
+        + MultiCurrencyExtended<Self::AccountId, CurrencyId=FungibleTokenId>
+        + MultiLockableCurrency<Self::AccountId, CurrencyId=FungibleTokenId>
+        + MultiReservableCurrency<Self::AccountId, CurrencyId=FungibleTokenId>;
         type NativeCurrency: BasicCurrencyExtended<Self::AccountId, Balance=BalanceOf<Self>, Amount=AmountOf<Self>>
         + BasicLockableCurrency<Self::AccountId, Balance=BalanceOf<Self>>;
         #[pallet::constant]
         /// The native currency id
-        type GetNativeCurrencyId: Get<SocialTokenCurrencyId>;
+        type GetNativeCurrencyId: Get<FungibleTokenId>;
     }
 
     #[pallet::error]
@@ -106,11 +106,11 @@ pub mod pallet {
         /// No permission to issue token
         NoPermissionTokenIssuance,
         /// Country Currency already issued for this bitcountry
-        SocialTokenAlreadyIssued,
+        FungileTokenAlreadyIssued,
         /// No available next token id
         NoAvailableTokenId,
         //Country Is Not Available
-        CountryFundIsNotAvailable,
+        BitCountryFundIsNotAvailable,
         AmountIntoBalanceFailed,
     }
 

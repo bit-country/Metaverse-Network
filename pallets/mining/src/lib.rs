@@ -32,14 +32,14 @@ use orml_traits::{
     BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
     LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, CountryId, CurrencyId, SocialTokenCurrencyId};
+use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
     traits::{AtLeast32Bit, One, StaticLookup, Zero, AccountIdConversion},
     DispatchError,
 };
 use sp_std::vec::Vec;
 use frame_support::sp_runtime::ModuleId;
-use bc_country::*;
+use bit_country::*;
 use auction_manager::{SwapManager};
 use frame_support::traits::{Get, Currency, WithdrawReasons};
 use frame_system::pallet_prelude::*;
@@ -72,7 +72,7 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use primitives::{SocialTokenCurrencyId, TokenId, VestingSchedule};
+    use primitives::{FungibleTokenId, TokenId, VestingSchedule};
     use frame_support::sp_runtime::{SaturatedConversion, FixedPointNumber};
     use primitives::dex::Price;
     use frame_support::sp_runtime::traits::Saturating;
@@ -97,12 +97,12 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type MiningCurrency: MultiCurrencyExtended<
             Self::AccountId,
-            CurrencyId=SocialTokenCurrencyId,
+            CurrencyId=FungibleTokenId,
             Balance=Balance,
         >;
         #[pallet::constant]
         type BitMiningTreasury: Get<ModuleId>;
-        type BitMiningResourceId: Get<SocialTokenCurrencyId>;
+        type BitMiningResourceId: Get<FungibleTokenId>;
         /// Origin used to administer the pallet
         type AdminOrigin: EnsureOrigin<Self::Origin, Success=Self::AccountId>;
     }
@@ -230,7 +230,7 @@ impl<T: Config> Module<T> {
         T::BitMiningTreasury::get().into_account()
     }
 
-    fn bit_mining_resource_currency_id() -> SocialTokenCurrencyId {
+    fn bit_mining_resource_currency_id() -> FungibleTokenId {
         T::BitMiningResourceId::get()
     }
 

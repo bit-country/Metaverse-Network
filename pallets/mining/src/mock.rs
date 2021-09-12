@@ -7,25 +7,25 @@ use frame_support::{
 };
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::{IdentityLookup, AccountIdConversion}, ModuleId, Perbill};
-use primitives::{CurrencyId, Amount, SocialTokenCurrencyId};
+use primitives::{CurrencyId, Amount, FungibleTokenId};
 use frame_system::{EnsureSignedBy, EnsureRoot};
 use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use orml_traits::parameter_type_with_key;
-use primitives::SocialTokenCurrencyId::SocialToken;
+use primitives::FungibleTokenId::FungileToken;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
-pub const COUNTRY_ID: CountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
+pub const BITCOUNTRY_ID: BitCountryId = 1;
+pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
 pub const NUUM: CurrencyId = 0;
-pub const COUNTRY_FUND: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1);
+pub const COUNTRY_FUND: FungibleTokenId = FungibleTokenId::FungileToken(1);
 
 ord_parameter_types! {
     pub const One: AccountId = ALICE;
@@ -80,7 +80,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
 	};
 }
@@ -95,7 +95,7 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = SocialTokenCurrencyId;
+    type CurrencyId = FungibleTokenId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
@@ -104,8 +104,8 @@ impl orml_tokens::Config for Runtime {
 pub type AdaptedBasicCurrency = social_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 parameter_types! {
-    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
-    pub const MiningCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::MiningResource(0);
+    pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+    pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 }
 
 impl social_currencies::Config for Runtime {

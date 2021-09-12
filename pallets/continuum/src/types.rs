@@ -21,7 +21,7 @@ use codec::{Encode, Decode};
 use sp_runtime::{RuntimeDebug, DispatchError};
 use sp_runtime::traits::{Zero, Bounded, CheckedAdd, CheckedSub, CheckedMul, CheckedDiv, Saturating, One};
 use crate::{Vote, AccountVote};
-use primitives::{CountryId, SpotId};
+use primitives::{BitCountryId, SpotId};
 use sp_std::vec;
 use sp_std::vec::Vec;
 
@@ -32,7 +32,7 @@ pub type ReferendumIndex = u64;
 pub struct ContinuumSpot {
     pub(crate) x: i32,
     pub(crate) y: i32,
-    pub(crate) country: CountryId,
+    pub(crate) country: BitCountryId,
 }
 
 impl ContinuumSpot {

@@ -25,7 +25,7 @@ use sp_core::{
     OpaqueMetadata,
 };
 pub use primitives::{AccountId, Signature};
-use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount, SocialTokenCurrencyId};
+use primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment, CurrencyId, Amount, FungibleTokenId};
 use sp_api::impl_runtime_apis;
 use sp_runtime::{
     Permill, Perbill, Perquintill, Percent, ApplyExtrinsicResult,
@@ -1028,7 +1028,7 @@ impl pallet_assets::Config for Runtime {
 }
 
 parameter_type_with_key! {
-    pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
+    pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
         Zero::zero()
     };
 }
@@ -1041,14 +1041,14 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = SocialTokenCurrencyId;
+    type CurrencyId = FungibleTokenId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
+    pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 }
 
 impl social_currencies::Config for Runtime {
@@ -1093,7 +1093,7 @@ parameter_types! {
 impl block::Config for Runtime {
     type Event = Event;
     type LandTreasury = LandTreasuryModuleId;
-    type CountryInfoSource = BitCountryModule;
+    type BitCountryInfoSource = BitCountryModule;
     type Currency = Balances;
     type MinimumLandPrice = MinimumLandPrice;
     type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
@@ -1113,8 +1113,8 @@ impl auction::Config for Runtime {
     type Handler = Auction;
     type Currency = Balances;
     type ContinuumHandler = Continuum;
-    type SocialTokenCurrency = Tokens;
-    type CountryInfoSource = BitCountryModule;
+    type FungileTokenCurrency = Tokens;
+    type BitCountryInfoSource = BitCountryModule;
     type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
@@ -1127,15 +1127,15 @@ impl continuum::Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryModuleId;
     type Currency = Balances;
-    type CountryInfoSource = BitCountryModule;
+    type BitCountryInfoSource = BitCountryModule;
 }
 
 impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Tokens;
-    type SocialTokenTreasury = CountryFundModuleId;
-    type CountryInfoSource = BitCountryModule;
+    type FungileTokenTreasury = CountryFundModuleId;
+    type BitCountryInfoSource = BitCountryModule;
     type LiquidityPoolManager = Swap;
     type MinVestedTransfer = MinVestedTransfer;
     type VestedTransferOrigin = EnsureRootOrBCTreasury;
@@ -1149,7 +1149,7 @@ parameter_types! {
 impl swap::Config for Runtime {
     type Event = Event;
     type ModuleId = SwapModuleId;
-    type SocialTokenCurrency = Tokens;
+    type FungileTokenCurrency = Tokens;
     type NativeCurrency = Balances;
     type GetSwapFee = SwapFee;
 }
