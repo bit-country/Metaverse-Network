@@ -214,22 +214,22 @@ impl<T: Config> Pallet<T> {
             Ok(current_id)
         })?;
 
-        let country_info = Country {
+        let bitcountry_info = BitCountryStruct {
             owner: owner.clone(),
             currency_id: FungibleTokenId::NativeToken(0),
             metadata,
         };
 
-        BitCountries::<T>::insert(bitcountry_id, country_info);
+        BitCountries::<T>::insert(bitcountry_id, bitcountry_info);
 
         Ok(bitcountry_id)
     }
 }
 
-impl<T: Config> BitCountry<T::AccountId> for Module<T>
+impl<T: Config> BitCountryStruct<T::AccountId> for Module<T>
 {
     fn check_ownership(who: &T::AccountId, bitcountry_id: &BitCountryId) -> bool {
-        Self::get_country_owner(bitcountry_id, who) == Some(())
+        Self::get_bitcountry_owner(bitcountry_id, who) == Some(())
     }
 
     fn get_bitcountry(bitcountry_id: BitCountryId) -> Option<BitCountryStruct<T::AccountId>> {
