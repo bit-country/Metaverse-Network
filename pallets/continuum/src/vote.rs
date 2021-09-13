@@ -1,9 +1,12 @@
-use sp_std::{prelude::*, result::Result, convert::TryFrom};
-use codec::{Encode, EncodeLike, Decode, Output, Input};
-use sp_runtime::{RuntimeDebug, traits::{Saturating, Zero}};
-use crate::{ContinuumSpotTally};
-use primitives::{SpotId};
+use crate::ContinuumSpotTally;
+use codec::{Decode, Encode, EncodeLike, Input, Output};
 use frame_support::sp_runtime::traits::AccountIdConversion;
+use primitives::SpotId;
+use sp_runtime::{
+    traits::{Saturating, Zero},
+    RuntimeDebug,
+};
+use sp_std::{convert::TryFrom, prelude::*, result::Result};
 // use crate::mock::AccountId;
 
 /// Struct of every Continuum vote
@@ -25,7 +28,7 @@ impl<AccountId: From<u32> + Default> Default for Vote<AccountId> {
 /// Keep track of voting activities of an account
 #[derive(Encode, Decode, Clone, Eq, PartialEq, Default, RuntimeDebug)]
 pub struct Voting<AccountId> {
-    pub votes: Vec<(SpotId, AccountVote<AccountId>)>
+    pub votes: Vec<(SpotId, AccountVote<AccountId>)>,
 }
 
 /// A vote for a referendum of a particular account.
@@ -44,12 +47,7 @@ pub enum AccountVote<AccountId> {
 impl<AccountId> AccountVote<AccountId> {
     pub fn vote_who(self) -> Vote<AccountId> {
         match self {
-            AccountVote::Standard {
-                vote
-            } => vote
+            AccountVote::Standard { vote } => vote,
         }
     }
 }
-
-
-

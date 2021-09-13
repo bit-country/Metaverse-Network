@@ -1,12 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
+use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
     traits::{AtLeast32Bit, MaybeSerializeDeserialize},
     DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::vec::Vec;
-use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct BitCountryAssetData {
@@ -35,5 +35,8 @@ pub trait BitCountryTrait<AccountId> {
 
     fn get_bitcountry_token(bitcountry_id: BitCountryId) -> Option<FungibleTokenId>;
 
-    fn update_bitcountry_token(bitcountry_id: BitCountryId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
+    fn update_bitcountry_token(
+        bitcountry_id: BitCountryId,
+        currency_id: FungibleTokenId,
+    ) -> Result<(), DispatchError>;
 }

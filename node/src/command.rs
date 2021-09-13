@@ -15,11 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{chain_spec, service};
 use crate::cli::{Cli, Subcommand};
-use sc_cli::{SubstrateCli, RuntimeVersion, Role, ChainSpec};
-use sc_service::PartialComponents;
+use crate::{chain_spec, service};
 use bitcountry_runtime::Block;
+use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
+use sc_service::PartialComponents;
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
@@ -46,10 +46,14 @@ impl SubstrateCli for Cli {
         2020
     }
 
-
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
         Ok(match id {
-            "" => return Err("Please specify which chain you want to run, e.g. --dev or --chain=tewai".into()),
+            "" => {
+                return Err(
+                    "Please specify which chain you want to run, e.g. --dev or --chain=tewai"
+                        .into(),
+                )
+            }
             "dev" => Box::new(chain_spec::development_config()),
             "local" => Box::new(chain_spec::local_testnet_config()),
             "tewai" => Box::new(chain_spec::tewai_testnet_config()?),
@@ -76,32 +80,46 @@ pub fn run() -> sc_cli::Result<()> {
         Some(Subcommand::CheckBlock(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents { client, task_manager, import_queue, .. }
-                    = service::new_partial(&config)?;
+                let PartialComponents {
+                    client,
+                    task_manager,
+                    import_queue,
+                    ..
+                } = service::new_partial(&config)?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
         Some(Subcommand::ExportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents { client, task_manager, .. }
-                    = service::new_partial(&config)?;
+                let PartialComponents {
+                    client,
+                    task_manager,
+                    ..
+                } = service::new_partial(&config)?;
                 Ok((cmd.run(client, config.database), task_manager))
             })
         }
         Some(Subcommand::ExportState(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents { client, task_manager, .. }
-                    = service::new_partial(&config)?;
+                let PartialComponents {
+                    client,
+                    task_manager,
+                    ..
+                } = service::new_partial(&config)?;
                 Ok((cmd.run(client, config.chain_spec), task_manager))
             })
         }
         Some(Subcommand::ImportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents { client, task_manager, import_queue, .. }
-                    = service::new_partial(&config)?;
+                let PartialComponents {
+                    client,
+                    task_manager,
+                    import_queue,
+                    ..
+                } = service::new_partial(&config)?;
                 Ok((cmd.run(client, import_queue), task_manager))
             })
         }
@@ -112,8 +130,12 @@ pub fn run() -> sc_cli::Result<()> {
         Some(Subcommand::Revert(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents { client, task_manager, backend, .. }
-                    = service::new_partial(&config)?;
+                let PartialComponents {
+                    client,
+                    task_manager,
+                    backend,
+                    ..
+                } = service::new_partial(&config)?;
                 Ok((cmd.run(client, backend), task_manager))
             })
         }
@@ -124,7 +146,8 @@ pub fn run() -> sc_cli::Result<()> {
                 runner.sync_run(|config| cmd.run::<Block, service::BitCountryExecutor>(config))
             } else {
                 Err("Benchmarking wasn't enabled when building the node. \
-				You can enable it with `--features runtime-benchmarks`.".into())
+				You can enable it with `--features runtime-benchmarks`."
+                    .into())
             }
         }
         None => {
@@ -133,7 +156,8 @@ pub fn run() -> sc_cli::Result<()> {
                 match config.role {
                     Role::Light => service::new_light(config),
                     _ => service::new_full(config),
-                }.map_err(sc_cli::Error::Service)
+                }
+                .map_err(sc_cli::Error::Service)
             })
         }
     }

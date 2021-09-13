@@ -18,31 +18,33 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use auction_manager::SwapManager;
+use bc_primitives::*;
 use codec::{Decode, Encode};
+use frame_support::sp_runtime::ModuleId;
+use frame_support::traits::{Currency, Get, WithdrawReasons};
 use frame_support::{
-    dispatch::{DispatchResultWithPostInfo, DispatchResult},
-    decl_error, decl_event, decl_module, decl_storage, ensure, Parameter,
+    decl_error, decl_event, decl_module, decl_storage,
+    dispatch::{DispatchResult, DispatchResultWithPostInfo},
+    ensure,
     pallet_prelude::*,
-    transactional,
+    transactional, Parameter,
 };
+use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
     account::MergeAccount,
     arithmetic::{Signed, SimpleArithmetic},
-    BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-    LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+    BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
+    BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
+    MultiLockableCurrency, MultiReservableCurrency,
 };
 use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
-    traits::{AtLeast32Bit, One, StaticLookup, Zero, AccountIdConversion},
+    traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
     DispatchError,
 };
 use sp_std::vec::Vec;
-use frame_support::sp_runtime::ModuleId;
-use bc_primitives::*;
-use auction_manager::{SwapManager};
-use frame_support::traits::{Get, Currency, WithdrawReasons};
-use frame_system::pallet_prelude::*;
 
 #[cfg(test)]
 mod mock;
@@ -72,18 +74,19 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use primitives::{FungibleTokenId, TokenId, VestingSchedule};
-    use frame_support::sp_runtime::{SaturatedConversion, FixedPointNumber};
-    use primitives::dex::Price;
     use frame_support::sp_runtime::traits::Saturating;
-    use sp_std::convert::TryInto;
+    use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
     use frame_support::traits::OnUnbalanced;
     use pallet_balances::NegativeImbalance;
+    use primitives::dex::Price;
+    use primitives::{FungibleTokenId, TokenId, VestingSchedule};
+    use sp_std::convert::TryInto;
 
     #[pallet::pallet]
     pub struct Pallet<T>(PhantomData<T>);
 
-    pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
+    pub(crate) type VestingScheduleOf<T> =
+        VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
     pub type ScheduledItem<T> = (
         <T as frame_system::Config>::AccountId,
         <T as frame_system::Config>::BlockNumber,
@@ -97,21 +100,21 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type MiningCurrency: MultiCurrencyExtended<
             Self::AccountId,
-            CurrencyId=FungibleTokenId,
-            Balance=Balance,
+            CurrencyId = FungibleTokenId,
+            Balance = Balance,
         >;
         #[pallet::constant]
         type BitMiningTreasury: Get<ModuleId>;
         type BitMiningResourceId: Get<FungibleTokenId>;
         /// Origin used to administer the pallet
-        type AdminOrigin: EnsureOrigin<Self::Origin, Success=Self::AccountId>;
+        type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
     }
 
     /// Minting origins
     #[pallet::storage]
     #[pallet::getter(fn minting_origin)]
     pub type MintingOrigins<T: Config> =
-    StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
+        StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -162,10 +165,7 @@ pub mod pallet {
         /// such assets and they'll all belong to the `origin` initially. It will have an
         /// identifier `TokenId` instance: this will be specified in the `Issued` event.
         #[pallet::weight(10_000)]
-        pub fn mint(
-            origin: OriginFor<T>,
-            amount: Balance,
-        ) -> DispatchResultWithPostInfo {
+        pub fn mint(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             Self::do_mint(who, amount)?;
@@ -177,10 +177,7 @@ pub mod pallet {
         /// such assets and they'll all belong to the `origin` initially. It will have an
         /// identifier `TokenId` instance: this will be specified in the `Issued` event.
         #[pallet::weight(10_000)]
-        pub fn burn(
-            origin: OriginFor<T>,
-            amount: Balance,
-        ) -> DispatchResultWithPostInfo {
+        pub fn burn(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             Self::do_burn(who, amount)?;
@@ -198,7 +195,11 @@ pub mod pallet {
 
         /// Withdraw Mining Resource from mining engine to destination wallet
         #[pallet::weight(100_000)]
-        pub fn withdraw(origin: OriginFor<T>, dest: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+        pub fn withdraw(
+            origin: OriginFor<T>,
+            dest: T::AccountId,
+            amount: Balance,
+        ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             Self::do_withdraw(who, dest, amount)?;
             Ok(().into())
@@ -206,7 +207,10 @@ pub mod pallet {
 
         /// Add new Minting Origin to Mining Resource
         #[pallet::weight(100_000)]
-        pub fn add_minting_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
+        pub fn add_minting_origin(
+            origin: OriginFor<T>,
+            who: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
             T::AdminOrigin::ensure_origin(origin)?;
             Self::do_add_minting_origin(who)?;
             Ok(().into())
@@ -214,7 +218,10 @@ pub mod pallet {
 
         /// Remove Minting Origin to Mining Resource
         #[pallet::weight(100_000)]
-        pub fn remove_minting_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
+        pub fn remove_minting_origin(
+            origin: OriginFor<T>,
+            who: T::AccountId,
+        ) -> DispatchResultWithPostInfo {
             T::AdminOrigin::ensure_origin(origin)?;
             Self::do_remove_minting_origin(who)?;
             Ok(().into())
@@ -246,103 +253,106 @@ impl<T: Config> Module<T> {
         Ok(())
     }
 
-    fn do_mint(
-        who: T::AccountId,
-        amount: Balance,
-    ) -> DispatchResult {
+    fn do_mint(who: T::AccountId, amount: Balance) -> DispatchResult {
         if amount.is_zero() {
             return Ok(());
         }
 
-        ensure!(
-            Self::is_mining_origin(&who),
-            Error::<T>::NoPermission
-        );
+        ensure!(Self::is_mining_origin(&who), Error::<T>::NoPermission);
 
         let mining_treasury = Self::bit_mining_resource_account_id();
         //Deposit Bit mining to mining treasury
-        T::MiningCurrency::deposit(Self::bit_mining_resource_currency_id(), &mining_treasury, amount)?;
+        T::MiningCurrency::deposit(
+            Self::bit_mining_resource_currency_id(),
+            &mining_treasury,
+            amount,
+        )?;
 
         Self::deposit_event(Event::<T>::MiningResourceMinted(amount));
 
         Ok(())
     }
 
-    fn do_burn(
-        who: T::AccountId,
-        amount: Balance,
-    ) -> DispatchResult {
+    fn do_burn(who: T::AccountId, amount: Balance) -> DispatchResult {
         if amount.is_zero() {
             return Ok(());
         }
-        ensure!(
-            Self::is_mining_origin(&who),
-            Error::<T>::NoPermission
-        );
+        ensure!(Self::is_mining_origin(&who), Error::<T>::NoPermission);
 
         let mining_treasury = Self::bit_mining_resource_account_id();
         ensure!(
-            T::MiningCurrency::can_slash(Self::bit_mining_resource_currency_id(), &mining_treasury, amount),
+            T::MiningCurrency::can_slash(
+                Self::bit_mining_resource_currency_id(),
+                &mining_treasury,
+                amount
+            ),
             Error::<T>::BalanceZero
         );
         //Deposit Bit mining to mining treasury
-        T::MiningCurrency::slash(Self::bit_mining_resource_currency_id(), &mining_treasury, amount);
+        T::MiningCurrency::slash(
+            Self::bit_mining_resource_currency_id(),
+            &mining_treasury,
+            amount,
+        );
 
         Self::deposit_event(Event::<T>::MiningResourceBurned(amount));
 
         Ok(())
     }
 
-    fn do_deposit(
-        who: T::AccountId,
-        amount: Balance,
-    ) -> DispatchResult {
+    fn do_deposit(who: T::AccountId, amount: Balance) -> DispatchResult {
         if amount.is_zero() {
             return Ok(());
         }
 
         let mining_treasury = Self::bit_mining_resource_account_id();
         ensure!(
-            T::MiningCurrency::free_balance(Self::bit_mining_resource_currency_id(), &who) >= amount,
+            T::MiningCurrency::free_balance(Self::bit_mining_resource_currency_id(), &who)
+                >= amount,
             Error::<T>::BalanceLow
         );
 
-        T::MiningCurrency::transfer(Self::bit_mining_resource_currency_id(), &who, &mining_treasury, amount)?;
+        T::MiningCurrency::transfer(
+            Self::bit_mining_resource_currency_id(),
+            &who,
+            &mining_treasury,
+            amount,
+        )?;
 
         Self::deposit_event(Event::DepositMiningResource(who, amount.clone()));
 
         Ok(())
     }
 
-    fn do_withdraw(
-        who: T::AccountId,
-        dest: T::AccountId,
-        amount: Balance,
-    ) -> DispatchResult {
+    fn do_withdraw(who: T::AccountId, dest: T::AccountId, amount: Balance) -> DispatchResult {
         if amount.is_zero() || who == dest {
             return Ok(());
         }
 
-        ensure!(
-            Self::is_mining_origin(&who),
-            Error::<T>::NoPermission);
+        ensure!(Self::is_mining_origin(&who), Error::<T>::NoPermission);
 
         let mining_treasury = Self::bit_mining_resource_account_id();
         ensure!(
-            T::MiningCurrency::free_balance(Self::bit_mining_resource_currency_id(), &mining_treasury) >= amount,
+            T::MiningCurrency::free_balance(
+                Self::bit_mining_resource_currency_id(),
+                &mining_treasury
+            ) >= amount,
             Error::<T>::BalanceLow
         );
 
-        T::MiningCurrency::transfer(Self::bit_mining_resource_currency_id(), &mining_treasury, &dest, amount)?;
+        T::MiningCurrency::transfer(
+            Self::bit_mining_resource_currency_id(),
+            &mining_treasury,
+            &dest,
+            amount,
+        )?;
 
         Self::deposit_event(Event::WithdrawMiningResource(dest, amount.clone()));
 
         Ok(())
     }
 
-    fn do_add_minting_origin(
-        who: T::AccountId
-    ) -> DispatchResult {
+    fn do_add_minting_origin(who: T::AccountId) -> DispatchResult {
         ensure!(
             !Self::is_mining_origin(&who),
             Error::<T>::OriginsAlreadyExist
@@ -353,18 +363,11 @@ impl<T: Config> Module<T> {
         Ok(())
     }
 
-    fn do_remove_minting_origin(
-        who: T::AccountId
-    ) -> DispatchResult {
-        ensure!(
-            Self::is_mining_origin(&who),
-            Error::<T>::OriginsIsNotExist
-        );
+    fn do_remove_minting_origin(who: T::AccountId) -> DispatchResult {
+        ensure!(Self::is_mining_origin(&who), Error::<T>::OriginsIsNotExist);
 
         MintingOrigins::<T>::remove(who.clone());
         Self::deposit_event(Event::RemoveMiningOrigin(who));
         Ok(())
     }
 }
-
-

@@ -5,6 +5,8 @@
 
 use codec::FullCodec;
 use codec::{Decode, Encode};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{AtLeast32Bit, MaybeSerializeDeserialize},
     DispatchError, DispatchResult, RuntimeDebug,
@@ -13,10 +15,8 @@ use sp_std::{
     cmp::{Eq, PartialEq},
     fmt::Debug,
 };
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 
-use primitives::{AuctionId, ItemId, AssetId, BitCountryId, FungibleTokenId};
+use primitives::{AssetId, AuctionId, BitCountryId, FungibleTokenId, ItemId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
@@ -74,9 +74,7 @@ pub trait Auction<AccountId, BlockNumber> {
     type Balance: AtLeast32Bit + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
     /// The auction info of `id`
-    fn auction_info(
-        id: AuctionId,
-    ) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
+    fn auction_info(id: AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
     /// Update the auction info of `id` with `info`
     fn update_auction(
         id: AuctionId,
@@ -119,10 +117,7 @@ pub trait Auction<AccountId, BlockNumber> {
         social_currency_id: FungibleTokenId,
     ) -> DispatchResult;
 
-
-    fn check_item_in_auction(
-        asset_id: AssetId
-    ) -> bool;
+    fn check_item_in_auction(asset_id: AssetId) -> bool;
 }
 
 /// The result of bid handling.
@@ -159,4 +154,3 @@ pub trait SwapManager<AccountId, CurrencyId, Balance> {
         max_amount_b: Balance,
     ) -> DispatchResult;
 }
-

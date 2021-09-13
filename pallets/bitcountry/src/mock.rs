@@ -1,17 +1,17 @@
 #![cfg(test)]
 
-use crate as bitcountry;
 use super::*;
+use crate as bitcountry;
+use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
+use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{
-    construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
-    impl_outer_event, impl_outer_origin, impl_outer_dispatch, traits::EnsureOrigin,
+    construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin,
+    ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight,
 };
+use frame_system::{EnsureRoot, EnsureSignedBy};
+use primitives::{Amount, CurrencyId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId, Perbill};
-use primitives::{CurrencyId, Amount};
-use frame_system::{EnsureSignedBy, EnsureRoot};
-use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -28,12 +28,11 @@ pub const NUUM: CurrencyId = 0;
 // Configure a mock runtime to test the pallet.
 
 parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
+    pub const BlockHashCount: u64 = 250;
+    pub const MaximumBlockWeight: u32 = 1024;
+    pub const MaximumBlockLength: u32 = 2 * 1024;
+    pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
-
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -61,7 +60,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+    pub const ExistentialDeposit: u64 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -75,7 +74,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
 }
 
 impl Config for Runtime {
@@ -89,15 +88,15 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: frame_system::{Module, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         Country: bitcountry::{Module, Call ,Storage, Event<T>},
-	}
+    }
 );
 
 pub struct ExtBuilder;
@@ -117,8 +116,8 @@ impl ExtBuilder {
         pallet_balances::GenesisConfig::<Runtime> {
             balances: vec![(ALICE, 100000)],
         }
-            .assimilate_storage(&mut t)
-            .unwrap();
+        .assimilate_storage(&mut t)
+        .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| System::set_block_number(1));
