@@ -106,14 +106,14 @@ impl orml_tokens::Config for Runtime {
 }
 
 pub type AdaptedBasicCurrency =
-    social_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+    currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 parameter_types! {
     pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
     pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 }
 
-impl social_currencies::Config for Runtime {
+impl currencies::Config for Runtime {
     type Event = Event;
     type MultiSocialCurrency = Tokens;
     type NativeCurrency = AdaptedBasicCurrency;
@@ -143,7 +143,7 @@ construct_runtime!(
     {
         System: frame_system::{Module, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        Currencies: social_currencies::{ Module, Storage, Call, Event<T>},
+        Currencies: currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         MiningModule: mining:: {Module, Call, Storage, Event<T>},
     }

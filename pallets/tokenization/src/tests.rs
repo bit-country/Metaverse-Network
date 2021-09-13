@@ -69,13 +69,13 @@ fn mint_social_token_should_fail_if_already_exists() {
             origin.clone(),
             vec![1],
             BITCOUNTRY_ID,
-            0,
+            100,
             (3, 10),
             10
         ));
 
         assert_noop!(
-            TokenizationModule::mint_token(origin, vec![1], BITCOUNTRY_ID, 0, (3, 10), 10),
+            TokenizationModule::mint_token(origin, vec![1], BITCOUNTRY_ID, 100, (3, 10), 10),
             Error::<Runtime>::FungibleTokenAlreadyIssued
         );
     });
@@ -156,6 +156,6 @@ fn country_treasury_pool_transfer_should_work() {
             COUNTRY_FUND,
             100
         ));
-        assert_eq!(Currencies::free_balance(COUNTRY_FUND, &ALICE), 500);
+        assert_eq!(Currencies::free_balance(COUNTRY_FUND, &ALICE), 380); // 120 has been vested
     });
 }

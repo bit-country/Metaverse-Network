@@ -99,11 +99,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
     type Balance = Balance;
 
     fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
-        todo!()
+        None
     }
 
     fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
-        todo!()
+        None
     }
 
     fn new_auction(
@@ -112,7 +112,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         start: u64,
         end: Option<u64>,
     ) -> Result<u64, DispatchError> {
-        todo!()
+        None
     }
 
     fn create_auction(
@@ -124,11 +124,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         start: u64,
         listing_level: ListingLevel,
     ) -> Result<u64, DispatchError> {
-        todo!()
+        None
     }
 
     fn remove_auction(id: u64, item_id: ItemId) {
-        todo!()
+        None
     }
 
     fn auction_bid_handler(
@@ -137,7 +137,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         new_bid: (u128, Self::Balance),
         last_bid: Option<(u128, Self::Balance)>,
     ) -> DispatchResult {
-        todo!()
+        None
     }
 
     fn local_auction_bid_handler(
@@ -147,11 +147,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         last_bid: Option<(u128, Self::Balance)>,
         social_currency_id: FungibleTokenId,
     ) -> DispatchResult {
-        todo!()
+        None
     }
 
     fn check_item_in_auction(asset_id: AssetId) -> bool {
-        todo!()
+        None
     }
 }
 
@@ -174,7 +174,7 @@ impl BitCountryTrait<AccountId> for BitCountryInfoSource {
     }
 
     fn get_bitcountry(bitcountry_id: u64) -> Option<BitCountryStruct<u128>> {
-        todo!()
+        None
     }
 
     fn get_bitcountry_token(bitcountry_id: u64) -> Option<FungibleTokenId> {
@@ -185,7 +185,7 @@ impl BitCountryTrait<AccountId> for BitCountryInfoSource {
         bitcountry_id: u64,
         currency_id: FungibleTokenId,
     ) -> Result<(), DispatchError> {
-        todo!()
+        None
     }
 }
 

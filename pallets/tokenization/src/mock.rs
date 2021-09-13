@@ -106,7 +106,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 pub type AdaptedBasicCurrency =
-    social_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+    currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 pub struct BitCountryInfoSource {}
 
@@ -118,16 +118,16 @@ impl BitCountryTrait<AccountId> for BitCountryInfoSource {
         }
     }
 
-    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
+    fn get_bitcountry(bitcountry_id: u64) -> Option<BitCountryStruct<u128>> {
         None
     }
 
-    fn get_country_token(country_id: BitCountryId) -> Option<FungibleTokenId> {
+    fn get_bitcountry_token(bitcountry_id: u64) -> Option<FungibleTokenId> {
         None
     }
 
-    fn update_country_token(
-        country_id: u64,
+    fn update_bitcountry_token(
+        bitcountry_id: u64,
         currency_id: FungibleTokenId,
     ) -> Result<(), DispatchError> {
         Ok(())
@@ -165,7 +165,7 @@ parameter_types! {
     pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 }
 
-impl social_currencies::Config for Runtime {
+impl currencies::Config for Runtime {
     type Event = Event;
     type MultiSocialCurrency = Tokens;
     type NativeCurrency = AdaptedBasicCurrency;
@@ -179,7 +179,7 @@ parameter_types! {
 impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
-    type CountryCurrency = Currencies;
+    type BCMultiCurrency = Currencies;
     type FungibleTokenTreasury = CountryFundModuleId;
     type BitCountryInfoSource = BitCountryInfoSource;
     type LiquidityPoolManager = SwapModule;
@@ -198,7 +198,7 @@ construct_runtime!(
     {
         System: frame_system::{Module, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        Currencies: social_currencies::{ Module, Storage, Call, Event<T>},
+        Currencies: currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         SwapModule: swap::{Module, Call ,Storage, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
