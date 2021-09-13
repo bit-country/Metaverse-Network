@@ -24,7 +24,7 @@ use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeseriali
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, weights::Weight};
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use primitives::{Amount, AssetId, CurrencyId};
+use primitives::{Amount, AssetId, CurrencyId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
 
@@ -122,6 +122,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
         recipient: u128,
         initial_amount: Self::Balance,
         start: u64,
+        listing_level: ListingLevel,
     ) -> Result<u64, DispatchError> {
         todo!()
     }
@@ -138,6 +139,17 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
     ) -> DispatchResult {
         todo!()
     }
+
+    fn local_auction_bid_handler(
+        _now: u64,
+        id: u64,
+        new_bid: (u128, Self::Balance),
+        last_bid: Option<(u128, Self::Balance)>,
+        social_currency_id: FungibleTokenId,
+    ) -> DispatchResult {
+        todo!()
+    }
+
     fn check_item_in_auction(asset_id: AssetId) -> bool {
         todo!()
     }
@@ -161,12 +173,19 @@ impl BitCountryTrait<AccountId> for BitCountryInfoSource {
         }
     }
 
-    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
+    fn get_bitcountry(bitcountry_id: u64) -> Option<BitCountryStruct<u128>> {
+        todo!()
+    }
+
+    fn get_bitcountry_token(bitcountry_id: u64) -> Option<FungibleTokenId> {
         None
     }
 
-    fn get_country_token(country_id: BitCountryId) -> Option<CurrencyId> {
-        None
+    fn update_bitcountry_token(
+        bitcountry_id: u64,
+        currency_id: FungibleTokenId,
+    ) -> Result<(), DispatchError> {
+        todo!()
     }
 }
 
