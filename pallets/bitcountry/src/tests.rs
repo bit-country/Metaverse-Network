@@ -32,10 +32,10 @@ fn create_bitcountry_should_work() {
         ));
         assert_eq!(
             BitCountryModule::get_bitcountry(&BITCOUNTRY_ID),
-            Some(Country {
+            Some(BitCountryStruct {
                 owner: ALICE,
                 metadata: vec![1],
-                currency_id: Default::default(),
+                currency_id: FungibleTokenId::NativeToken(0),
             })
         );
         let event = Event::bitcountry(crate::Event::NewBitCountryCreated(BITCOUNTRY_ID));
@@ -65,15 +65,23 @@ fn transfer_bitcountry_should_work() {
             BOB,
             BITCOUNTRY_ID
         ));
-        let event = Event::bitcountry(crate::Event::TransferredBitCountry(BITCOUNTRY_ID, ALICE, BOB));
+        let event = Event::bitcountry(crate::Event::TransferredBitCountry(
+            BITCOUNTRY_ID,
+            ALICE,
+            BOB,
+        ));
         assert_eq!(last_event(), event);
-        //Make sure 2 ways transfer works
+        // Make sure 2 ways transfer works
         assert_ok!(BitCountryModule::transfer_bitcountry(
             Origin::signed(BOB),
             ALICE,
             BITCOUNTRY_ID
         ));
-        let event = Event::bitcountry(crate::Event::TransferredBitCountry(BITCOUNTRY_ID, BOB, ALICE));
+        let event = Event::bitcountry(crate::Event::TransferredBitCountry(
+            BITCOUNTRY_ID,
+            BOB,
+            ALICE,
+        ));
         assert_eq!(last_event(), event);
     })
 }
@@ -86,7 +94,7 @@ fn transfer_bitcountry_should_fail() {
             vec![1]
         ));
         assert_noop!(
-            BitCountryModule::transfer_country(Origin::signed(BOB), ALICE, BITCOUNTRY_ID),
+            BitCountryModule::transfer_bitcountry(Origin::signed(BOB), ALICE, BITCOUNTRY_ID),
             Error::<Runtime>::NoPermission
         );
     })
@@ -99,7 +107,10 @@ fn freeze_bitcountry_should_work() {
             Origin::signed(ALICE),
             vec![1]
         ));
-        assert_ok!(BitCountryModule::freeze_bitcountry(Origin::root(), BITCOUNTRY_ID));
+        assert_ok!(BitCountryModule::freeze_bitcountry(
+            Origin::root(),
+            BITCOUNTRY_ID
+        ));
         let event = Event::bitcountry(crate::Event::BitCountryFreezed(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
     })
@@ -127,10 +138,16 @@ fn unfreeze_bitcountry_should_work() {
             Origin::signed(ALICE),
             vec![1]
         ));
-        assert_ok!(BitCountryModule::freeze_country(Origin::root(), BITCOUNTRY_ID));
+        assert_ok!(BitCountryModule::freeze_bitcountry(
+            Origin::root(),
+            BITCOUNTRY_ID
+        ));
         let event = Event::bitcountry(crate::Event::BitCountryFreezed(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
-        assert_ok!(BitCountryModule::unfreeze_country(Origin::root(), BITCOUNTRY_ID));
+        assert_ok!(BitCountryModule::unfreeze_bitcountry(
+            Origin::root(),
+            BITCOUNTRY_ID
+        ));
         let event = Event::bitcountry(crate::Event::BitCountryUnfreezed(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
     })
@@ -143,7 +160,10 @@ fn destroy_bitcountry_should_work() {
             Origin::signed(ALICE),
             vec![1]
         ));
-        assert_ok!(BitCountryModule::destroy_bitcountry(Origin::root(), BITCOUNTRY_ID));
+        assert_ok!(BitCountryModule::destroy_bitcountry(
+            Origin::root(),
+            BITCOUNTRY_ID
+        ));
         let event = Event::bitcountry(crate::Event::BitCountryDestroyed(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
     })
@@ -172,7 +192,7 @@ fn destroy_bitcountry_with_no_id_should_fail() {
         ));
         assert_noop!(
             BitCountryModule::destroy_bitcountry(Origin::root(), COUNTRY_ID_NOT_EXIST),
-            Error::<Runtime>::CountryInfoNotFound
+            Error::<Runtime>::BitCountryInfoNotFound
         );
     })
 }

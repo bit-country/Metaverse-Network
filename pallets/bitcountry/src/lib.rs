@@ -107,15 +107,15 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-       /// BitCountry info not found
+        /// BitCountry info not found
         BitCountryInfoNotFound,
-       /// BitCountry Id not found
+        /// BitCountry Id not found
         BitCountryIdNotFound,
-       /// No permission
+        /// No permission
         NoPermission,
-       /// No available BitCountry id
+        /// No available BitCountry id
         NoAvailableBitCountryId,
-       /// Fungible token already issued
+        /// Fungible token already issued
         FungibleTokenAlreadyIssued,
     }
 
@@ -150,16 +150,16 @@ pub mod pallet {
             bitcountry_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-           /// Get owner of the bitcountry
+            /// Get owner of the bitcountry
             BitCountryOwner::<T>::try_mutate_exists(
                 &bitcountry_id,
                 &who,
                 |bitcountry_by_owner| -> DispatchResultWithPostInfo {
-                   /// Ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
+                    /// Ensure there is record of the bitcountry owner with bitcountry id, account id and delete them
                     ensure!(bitcountry_by_owner.is_some(), Error::<T>::NoPermission);
 
                     if who == to {
-                       /// No change needed
+                        /// No change needed
                         return Ok(().into());
                     }
 
@@ -190,7 +190,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             bitcountry_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {
-           /// Only Council can free a bitcountry
+            /// Only Council can free a bitcountry
             ensure_root(origin)?;
 
             FreezedBitCountries::<T>::insert(bitcountry_id, ());
@@ -204,7 +204,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             bitcountry_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {
-           /// Only Council can free a bitcountry
+            /// Only Council can free a bitcountry
             ensure_root(origin)?;
 
             FreezedBitCountries::<T>::try_mutate(
@@ -226,7 +226,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             bitcountry_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {
-           /// Only Council can destroy a bitcountry
+            /// Only Council can destroy a bitcountry
             ensure_root(origin)?;
 
             BitCountries::<T>::try_mutate(
@@ -278,7 +278,7 @@ impl<T: Config> Pallet<T> {
     }
 }
 
-impl<T: Config> BitCountryTrait<T::AccountId> for Module<T> {
+impl<T: Config> BitCountryTrait<T::AccountId> for Pallet<T> {
     fn check_ownership(who: &T::AccountId, bitcountry_id: &BitCountryId) -> bool {
         Self::get_bitcountry_owner(bitcountry_id, who) == Some(())
     }
