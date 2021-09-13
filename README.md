@@ -35,13 +35,7 @@ Bit.Country is an EVM-enabled blockchain network for user-created metaverses and
 
 Everyone can start their own metaverse for their people with the 3D world, NFTs, play-to-earn & build communities to earn, and takes community engagement to a new dimension on web3.0.
 
-# 2. Overview
-
-Bit.Country provides a new way to socialize with a game feel, while also being driven by real economics.
-
-Our network supports Ethereum-compatible smart contracts, developers can deploy their existing Dapps or build brand new ones for bit countries.
-
-# 3. Build
+# 2. Build
 
 Install Rust:
 
@@ -61,7 +55,7 @@ Build Wasm and native code:
 cargo build --release
 ```
 
-# 4. Run
+# 3. Run
 
 ### Single Node Development Chain
 
