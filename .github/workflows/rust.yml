@@ -29,10 +29,10 @@ jobs:
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           source ~/.cargo/env
           rustup default stable
-          rustup update nightly
           rustup update nightly-2021-03-01
           rustup update stable
           rustup target add wasm32-unknown-unknown --toolchain nightly-2021-03-01
+          rustup default nightly-2021-03-01
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release
