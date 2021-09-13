@@ -31,6 +31,8 @@ jobs:
           rustup update nightly-2021-03-01
           rustup target add wasm32-unknown-unknown --toolchain nightly-2021-03-01
           rustup default nightly-2021-03-01
+      - name: Check Rust version
+        run: rustup show
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release

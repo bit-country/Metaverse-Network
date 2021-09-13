@@ -91,7 +91,7 @@ pallet-grandpa = { version = "3.0.0" }
 wasm-bindgen = { version = "0.2.73", optional = true }
 wasm-bindgen-futures = { version = "0.4.18", optional = true }
 browser-utils = { package = "substrate-browser-utils", optional = true, version = "0.9.0" }
-libp2p-wasm-ext = { version = "0.28", features = ["websocket"], optional = true }
+libp2p-wasm-ext = { version = "0.29", features = ["websocket"], optional = true }
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
 bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime/bitcountry", optional = true }
 tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
