@@ -24,7 +24,7 @@ sp-arithmetic = { version = "3.0.0", default-features = false }
 frame-support = { version = "3.0.0", default-features = false }
 frame-system = { version = "3.0.0", default-features = false }
 
-chainbridge = { git = "https://github.com/ChainSafe/chainbridge-substrate/", default-features = false }
+chainbridge = { git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
 hex = { version = "0.4", default-features = false }
 
 [dev-dependencies]
