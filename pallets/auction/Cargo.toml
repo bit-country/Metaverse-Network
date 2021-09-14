@@ -12,31 +12,31 @@ version = '2.0.0-rc6'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-serde = { version = "1.0.119", optional = true }
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-sp-std = { version = "3.0.0", default-features = false }
-sp-runtime = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
-frame-support = { version = "3.0.0", default-features = false }
-frame-system = { version = "3.0.0", default-features = false }
+serde = { version = "1.0.124", optional = true }
+codec = { package = "parity-scale-codec", version = "2.2.0", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
-pallet-balances = { version = "3.0.0", default-features = false }
-pallet-timestamp = { version = "3.0.0", default-features = false }
-pallet-transaction-payment = { version = "3.0.0", default-features = false }
-frame-executive = { version = "3.0.0", default-features = false }
-sp-api = { version = "3.0.0", default-features = false }
-sp-core = { version = "3.0.0", default-features = false }
-sp-version = { version = "3.0.0", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-executive = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 # Used for the node's RPCs
-frame-system-rpc-runtime-api = { version = "3.0.0", default-features = false }
-pallet-transaction-payment-rpc-runtime-api = { version = "3.0.0", default-features = false }
+frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 
 # orml packages
-orml-nft = { default-features = false, version = '0.4.0' }
-orml-traits = { default-features = false, version = '0.4.0' }
-orml-tokens = { default-features = false, version = '0.4.0' }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
 pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft' }
 pallet-continuum = { default-features = false, package = 'pallet-continuum', path = '../continuum' }
 auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }

@@ -1181,30 +1181,30 @@ impl swap::Config for Runtime {
     type GetSwapFee = SwapFee;
 }
 
-parameter_types! {
-    pub const LocalChainId: chainbridge::ChainId = 1;
-    pub const ProposalLifetime: BlockNumber = 15 * MINUTES;
-}
+//parameter_types! {
+//    pub const LocalChainId: chainbridge::ChainId = 1;
+//    pub const ProposalLifetime: BlockNumber = 15 * MINUTES;
+//}
+//
+//impl chainbridge::Config for Runtime {
+//    type Event = Event;
+//    type AdminOrigin = EnsureRoot<AccountId>;
+//    type Proposal = Call;
+//    type ChainId = LocalChainId;
+//    type ProposalLifetime = ProposalLifetime;
+//}
+//
+//parameter_types! {
+//    //Testing ERC 20 Resource Id
+//    pub const BridgeTokenId: [u8; 32] = hex_literal::hex!("000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00");
+//}
 
-impl chainbridge::Config for Runtime {
-    type Event = Event;
-    type AdminOrigin = EnsureRoot<AccountId>;
-    type Proposal = Call;
-    type ChainId = LocalChainId;
-    type ProposalLifetime = ProposalLifetime;
-}
-
-parameter_types! {
-    //Testing ERC 20 Resource Id
-    pub const BridgeTokenId: [u8; 32] = hex_literal::hex!("000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00");
-}
-
-impl modules_chainsafe::Config for Runtime {
-    type Event = Event;
-    type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
-    type Currency = Balances;
-    type BridgeTokenId = BridgeTokenId;
-}
+//impl modules_chainsafe::Config for Runtime {
+//    type Event = Event;
+//    type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
+//    type Currency = Balances;
+//    type BridgeTokenId = BridgeTokenId;
+//}
 
 parameter_types! {
     //Mining Resource Currenct Id
@@ -1275,8 +1275,8 @@ construct_runtime!(
         Swap: swap:: {Module, Call, Storage ,Event<T>} = 44,
         Mining: mining:: {Module, Call, Storage ,Event<T>} = 45,
 
-        ChainBridge: chainbridge::{Module, Call, Storage, Event<T>} = 46,
-        BridgeTransfer: modules_chainsafe::{Module, Call, Event<T>, Storage} = 47,
+//        ChainBridge: chainbridge::{Module, Call, Storage, Event<T>} = 46,
+//        BridgeTransfer: modules_chainsafe::{Module, Call, Event<T>, Storage} = 47,
     }
 );
 

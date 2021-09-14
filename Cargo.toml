@@ -8,10 +8,11 @@ members = [
     'node',
     'runtime/bitcountry',
     'runtime/tewai',
-    'modules/*'
+    #    'modules/*'
 ]
 exclude = [
     '/dapps/luckydraw',
     '/dapps/airdrop',
-    '/dapps/countrytoken'
+    '/dapps/countrytoken',
+    'pallets/oracle',
 ]
