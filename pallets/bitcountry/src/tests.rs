@@ -24,155 +24,175 @@ use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
 
 #[test]
-fn create_bc_should_work() {
+fn create_bitcountry_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
         assert_eq!(
-            CountryModule::get_country(&COUNTRY_ID),
-            Some(Country {
+            BitCountryModule::get_bitcountry(&BITCOUNTRY_ID),
+            Some(BitCountryStruct {
                 owner: ALICE,
                 metadata: vec![1],
-                currency_id: Default::default(),
+                currency_id: FungibleTokenId::NativeToken(0),
             })
         );
-        let event = Event::bitcountry(crate::Event::NewCountryCreated(COUNTRY_ID));
+        let event = Event::bitcountry(crate::Event::NewBitCountryCreated(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
     });
 }
 
 #[test]
-fn create_bc_should_fail() {
+fn create_bitcountry_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
         assert_noop!(
-            CountryModule::create_bc(Origin::none(), vec![1],),
+            BitCountryModule::create_bitcountry(Origin::none(), vec![1],),
             BadOrigin
         );
     });
 }
 
 #[test]
-fn transfer_country_should_work() {
+fn transfer_bitcountry_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
-        assert_ok!(CountryModule::transfer_country(
+        assert_ok!(BitCountryModule::transfer_bitcountry(
             Origin::signed(ALICE),
             BOB,
-            COUNTRY_ID
+            BITCOUNTRY_ID
         ));
-        let event = Event::bitcountry(crate::Event::TransferredCountry(COUNTRY_ID, ALICE, BOB));
+        let event = Event::bitcountry(crate::Event::TransferredBitCountry(
+            BITCOUNTRY_ID,
+            ALICE,
+            BOB,
+        ));
         assert_eq!(last_event(), event);
-        //Make sure 2 ways transfer works
-        assert_ok!(CountryModule::transfer_country(
+        // Make sure 2 ways transfer works
+        assert_ok!(BitCountryModule::transfer_bitcountry(
             Origin::signed(BOB),
             ALICE,
-            COUNTRY_ID
+            BITCOUNTRY_ID
         ));
-        let event = Event::bitcountry(crate::Event::TransferredCountry(COUNTRY_ID, BOB, ALICE));
+        let event = Event::bitcountry(crate::Event::TransferredBitCountry(
+            BITCOUNTRY_ID,
+            BOB,
+            ALICE,
+        ));
         assert_eq!(last_event(), event);
     })
 }
 
 #[test]
-fn transfer_country_should_fail() {
+fn transfer_bitcountry_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
         assert_noop!(
-            CountryModule::transfer_country(Origin::signed(BOB), ALICE, COUNTRY_ID),
+            BitCountryModule::transfer_bitcountry(Origin::signed(BOB), ALICE, BITCOUNTRY_ID),
             Error::<Runtime>::NoPermission
         );
     })
 }
 
 #[test]
-fn freeze_country_should_work() {
+fn freeze_bitcountry_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
-        assert_ok!(CountryModule::freeze_country(Origin::root(), COUNTRY_ID));
-        let event = Event::bitcountry(crate::Event::CountryFreezed(COUNTRY_ID));
+        assert_ok!(BitCountryModule::freeze_bitcountry(
+            Origin::root(),
+            BITCOUNTRY_ID
+        ));
+        let event = Event::bitcountry(crate::Event::BitCountryFreezed(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }
 
 #[test]
-fn freeze_country_should_fail() {
+fn freeze_bitcountry_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
         //Country owner tries to freeze their own bitcountry
         assert_noop!(
-            CountryModule::freeze_country(Origin::signed(ALICE), COUNTRY_ID),
+            BitCountryModule::freeze_bitcountry(Origin::signed(ALICE), BITCOUNTRY_ID),
             BadOrigin
         );
     })
 }
 
 #[test]
-fn unfreeze_country_should_work() {
+fn unfreeze_bitcountry_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
-        assert_ok!(CountryModule::freeze_country(Origin::root(), COUNTRY_ID));
-        let event = Event::bitcountry(crate::Event::CountryFreezed(COUNTRY_ID));
+        assert_ok!(BitCountryModule::freeze_bitcountry(
+            Origin::root(),
+            BITCOUNTRY_ID
+        ));
+        let event = Event::bitcountry(crate::Event::BitCountryFreezed(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
-        assert_ok!(CountryModule::unfreeze_country(Origin::root(), COUNTRY_ID));
-        let event = Event::bitcountry(crate::Event::CountryUnFreezed(COUNTRY_ID));
+        assert_ok!(BitCountryModule::unfreeze_bitcountry(
+            Origin::root(),
+            BITCOUNTRY_ID
+        ));
+        let event = Event::bitcountry(crate::Event::BitCountryUnfreezed(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }
 
 #[test]
-fn destroy_country_should_work() {
+fn destroy_bitcountry_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
-        assert_ok!(CountryModule::destroy_country(Origin::root(), COUNTRY_ID));
-        let event = Event::bitcountry(crate::Event::CountryDestroyed(COUNTRY_ID));
+        assert_ok!(BitCountryModule::destroy_bitcountry(
+            Origin::root(),
+            BITCOUNTRY_ID
+        ));
+        let event = Event::bitcountry(crate::Event::BitCountryDestroyed(BITCOUNTRY_ID));
         assert_eq!(last_event(), event);
     })
 }
 
 #[test]
-fn destroy_country_without_root_should_fail() {
+fn destroy_bitcountry_without_root_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
         assert_noop!(
-            CountryModule::destroy_country(Origin::signed(ALICE), COUNTRY_ID),
+            BitCountryModule::destroy_bitcountry(Origin::signed(ALICE), BITCOUNTRY_ID),
             BadOrigin
         );
     })
 }
 
 #[test]
-fn destroy_country_with_no_id_should_fail() {
+fn destroy_bitcountry_with_no_id_should_fail() {
     ExtBuilder::default().build().execute_with(|| {
-        assert_ok!(CountryModule::create_bc(
+        assert_ok!(BitCountryModule::create_bitcountry(
             Origin::signed(ALICE),
             vec![1]
         ));
         assert_noop!(
-            CountryModule::destroy_country(Origin::root(), COUNTRY_ID_NOT_EXIST),
-            Error::<Runtime>::CountryInfoNotFound
+            BitCountryModule::destroy_bitcountry(Origin::root(), COUNTRY_ID_NOT_EXIST),
+            Error::<Runtime>::BitCountryInfoNotFound
         );
     })
 }

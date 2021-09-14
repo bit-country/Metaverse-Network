@@ -32,7 +32,7 @@ sp-version = { version = "3.0.0", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 
 # local packages
-bc-country = { path = "../../traits/bc-country", default-features = false }
+bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 auction-manager = { path = "../../traits/auction-manager", default-features = false }
 
 # Orml packages
@@ -46,10 +46,10 @@ package = 'pallet-nft'
 path = '../nft'
 version = '2.0.0-rc6'
 
-[dev-dependencies.social-currencies]
+[dev-dependencies.currencies]
 default-features = false
-package = "social-currencies"
-path = "../social-currencies"
+package = "currencies"
+path = "../currencies"
 version = '2.0.0-rc6'
 
 [features]

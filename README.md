@@ -7,9 +7,10 @@
 </p>
 
 <div align="center">
-<h1>Bit.Country</h1>
+<h1>Bit.Country Network</h1>
 
-## A Decentralized World - Create a decentralized bit country of your own.
+## Start your own metaverse. An Ethereum-compatible Network for Metaverses & Games
+
 
 [![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.dev/)
 [![Twitter URL](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2Fbitdotcountry)](https://twitter.com/bitdotcountry)
@@ -28,21 +29,13 @@ Development Note: It is still a WIP.
 
 <!-- /TOC -->
 
-
 # 1. Introduction
-Bit.Country is a decentralized world. The concept is uniquely invented and inspired by the decentralization paradigm.
-Its vision is to allow anyone (especially new users to the blockchain) to create their communities, economics as Bit Country on the blockchain network.
 
-Users can create their own countries, blocks, sections, and items as digital assets with NFTs. The UI offers both a classical web view and a 3D in-browser view of the country. The decentralized marketplace allows users to trade their digital assets with each other.
+Bit.Country is an EVM-enabled blockchain network for user-created metaverses and games.
 
-# 2. Overview
+Everyone can start their own metaverse for their people with the 3D world, NFTs, play-to-earn & build communities to earn, and takes community engagement to a new dimension on web3.0.
 
-Bit.Country provides a new way to socialize with a game feel, while also being driven by real economics.
-
-* A decentralized world - putting community first.
-* An open NFT/game protocol for managing & incentivizing small-medium communities using gamification.
-
-# 3. Build
+# 2. Build
 
 Install Rust:
 
@@ -62,7 +55,7 @@ Build Wasm and native code:
 cargo build --release
 ```
 
-# 4. Run
+# 3. Run
 
 ### Single Node Development Chain
 
@@ -78,17 +71,23 @@ Start a development chain with:
 ./target/release/bitcountry-node --dev
 ```
 
-Detailed logs may be shown by running the node with the following environment variables set: `RUST_LOG=debug RUST_BACKTRACE=1 cargo run -- --dev`.
+Detailed logs may be shown by running the node with the following environment variables
+set: `RUST_LOG=debug RUST_BACKTRACE=1 cargo run -- --dev`.
 
 ### Multi-Node Local Testnet
 
-If you want to see the multi-node consensus algorithm in action locally, then you can create a local testnet with two validator nodes for Alice and Bob, who are the initial authorities of the genesis chain that have been endowed with testnet units.
+If you want to see the multi-node consensus algorithm in action locally, then you can create a local testnet with two
+validator nodes for Alice and Bob, who are the initial authorities of the genesis chain that have been endowed with
+testnet units.
 
-Optionally, give each node a name and expose them so they are listed on the Polkadot [telemetry site](https://telemetry.polkadot.io/#/Local%20Testnet).
+Optionally, give each node a name and expose them so they are listed on the
+Polkadot [telemetry site](https://telemetry.polkadot.io/#/Local%20Testnet).
 
 You'll need two terminal windows open.
 
-We'll start Alice's substrate node first on default TCP port 30333 with her chain database stored locally at `/tmp/alice`. The bootnode ID of her node is `QmRpheLN4JWdAnY7HGJfWFNbfkQCb6tFf4vvA6hgjMZKrR`, which is generated from the `--node-key` value that we specify below:
+We'll start Alice's substrate node first on default TCP port 30333 with her chain database stored locally
+at `/tmp/alice`. The bootnode ID of her node is `QmRpheLN4JWdAnY7HGJfWFNbfkQCb6tFf4vvA6hgjMZKrR`, which is generated
+from the `--node-key` value that we specify below:
 
 ```bash
 cargo run -- \
@@ -100,7 +99,9 @@ cargo run -- \
   --validator
 ```
 
-In the second terminal, we'll start Bob's substrate node on a different TCP port of 30334, and with his chain database stored locally at `/tmp/bob`. We'll specify a value for the `--bootnodes` option that will connect his node to Alice's bootnode ID on TCP port 30333:
+In the second terminal, we'll start Bob's substrate node on a different TCP port of 30334, and with his chain database
+stored locally at `/tmp/bob`. We'll specify a value for the `--bootnodes` option that will connect his node to Alice's
+bootnode ID on TCP port 30333:
 
 ```bash
 cargo run -- \

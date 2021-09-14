@@ -4,7 +4,7 @@ description = 'Bit Country pallet for tokenization logic.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'social-currencies'
+name = 'currencies'
 repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
@@ -27,7 +27,7 @@ sp-std = { version = "3.0.0", default-features = false }
 orml-traits = { default-features = false, version = '0.4.0' }
 
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
-bc-country = { path = "../../traits/bc-country", default-features = false }
+bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 
 [dev-dependencies]
 #sp-io = { version = "3.0.0", default-features = false }

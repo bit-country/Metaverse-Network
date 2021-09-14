@@ -23,7 +23,7 @@
 use sp_std::prelude::*;
 use sp_std::vec;
 
-use frame_benchmarking::{account, whitelisted_caller, benchmarks, impl_benchmark_test_suite};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::Get;
 use frame_system::RawOrigin;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
@@ -45,7 +45,7 @@ fn dollar(d: u32) -> Balance {
 }
 
 benchmarks! {
-	// create NFT group
+    // create NFT group
     create_group{
     }: _(RawOrigin::Root ,vec![1], vec![1] )
 
@@ -56,4 +56,3 @@ benchmarks! {
         crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1],vec![1]);
     }: _(RawOrigin::Signed(caller),vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable)
 }
-

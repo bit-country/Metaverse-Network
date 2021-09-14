@@ -5,6 +5,8 @@
 
 use codec::FullCodec;
 use codec::{Decode, Encode};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{AtLeast32Bit, MaybeSerializeDeserialize},
     DispatchError, DispatchResult, RuntimeDebug,
@@ -13,10 +15,8 @@ use sp_std::{
     cmp::{Eq, PartialEq},
     fmt::Debug,
 };
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 
-use primitives::{AuctionId, ItemId, AssetId, CountryId, SocialTokenCurrencyId};
+use primitives::{AssetId, AuctionId, BitCountryId, FungibleTokenId, ItemId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
@@ -37,7 +37,7 @@ pub enum AuctionType {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ListingLevel {
     Global,
-    Local(CountryId),
+    Local(BitCountryId),
 }
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
@@ -53,7 +53,7 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
     pub end_time: BlockNumber,
     pub auction_type: AuctionType,
     pub listing_level: ListingLevel,
-    pub currency_id: SocialTokenCurrencyId,
+    pub currency_id: FungibleTokenId,
 }
 
 /// Auction info.
@@ -74,9 +74,7 @@ pub trait Auction<AccountId, BlockNumber> {
     type Balance: AtLeast32Bit + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
 
     /// The auction info of `id`
-    fn auction_info(
-        id: AuctionId,
-    ) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
+    fn auction_info(id: AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
     /// Update the auction info of `id` with `info`
     fn update_auction(
         id: AuctionId,
@@ -116,13 +114,10 @@ pub trait Auction<AccountId, BlockNumber> {
         id: AuctionId,
         new_bid: (AccountId, Self::Balance),
         last_bid: Option<(AccountId, Self::Balance)>,
-        social_currency_id: SocialTokenCurrencyId,
+        social_currency_id: FungibleTokenId,
     ) -> DispatchResult;
 
-
-    fn check_item_in_auction(
-        asset_id: AssetId
-    ) -> bool;
+    fn check_item_in_auction(asset_id: AssetId) -> bool;
 }
 
 /// The result of bid handling.
@@ -153,10 +148,9 @@ pub trait AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> {
 pub trait SwapManager<AccountId, CurrencyId, Balance> {
     fn add_liquidity(
         who: &AccountId,
-        token_id_a: SocialTokenCurrencyId,
-        token_id_b: SocialTokenCurrencyId,
+        token_id_a: FungibleTokenId,
+        token_id_b: FungibleTokenId,
         max_amount_a: Balance,
         max_amount_b: Balance,
     ) -> DispatchResult;
 }
-

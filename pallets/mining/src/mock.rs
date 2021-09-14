@@ -1,31 +1,35 @@
-use crate::{Module, Config};
-use crate as mining;
 use super::*;
-use frame_support::{
-    construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
-    impl_outer_event, impl_outer_origin, impl_outer_dispatch, traits::EnsureOrigin,
-};
-use sp_core::H256;
-use sp_runtime::{testing::Header, traits::{IdentityLookup, AccountIdConversion}, ModuleId, Perbill};
-use primitives::{CurrencyId, Amount, SocialTokenCurrencyId};
-use frame_system::{EnsureSignedBy, EnsureRoot};
-use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
+use crate as mining;
+use crate::{Config, Module};
+use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
+use frame_support::{
+    construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin,
+    ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight,
+};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
-use primitives::SocialTokenCurrencyId::SocialToken;
+use primitives::FungibleTokenId::FungibleToken;
+use primitives::{Amount, CurrencyId, FungibleTokenId};
+use sp_core::H256;
+use sp_runtime::{
+    testing::Header,
+    traits::{AccountIdConversion, IdentityLookup},
+    ModuleId, Perbill,
+};
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
-pub const COUNTRY_ID: CountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
+pub const BITCOUNTRY_ID: BitCountryId = 1;
+pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
 pub const NUUM: CurrencyId = 0;
-pub const COUNTRY_FUND: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1);
+pub const COUNTRY_FUND: FungibleTokenId = FungibleTokenId::FungibleToken(1);
 
 ord_parameter_types! {
     pub const One: AccountId = ALICE;
@@ -34,10 +38,10 @@ ord_parameter_types! {
 // Configure a mock runtime to test the pallet.
 
 parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
+    pub const BlockHashCount: u64 = 250;
+    pub const MaximumBlockWeight: u32 = 1024;
+    pub const MaximumBlockLength: u32 = 2 * 1024;
+    pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
 impl frame_system::Config for Runtime {
@@ -66,7 +70,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 0;
+    pub const ExistentialDeposit: u64 = 0;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -80,9 +84,9 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
-		Default::default()
-	};
+    pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
+        Default::default()
+    };
 }
 
 parameter_types! {
@@ -95,20 +99,21 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = SocialTokenCurrencyId;
+    type CurrencyId = FungibleTokenId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
-pub type AdaptedBasicCurrency = social_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+pub type AdaptedBasicCurrency =
+    currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 parameter_types! {
-    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
-    pub const MiningCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::MiningResource(0);
+    pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+    pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 }
 
-impl social_currencies::Config for Runtime {
+impl currencies::Config for Runtime {
     type Event = Event;
     type MultiSocialCurrency = Tokens;
     type NativeCurrency = AdaptedBasicCurrency;
@@ -116,7 +121,7 @@ impl social_currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub const MinVestedTransfer: Balance = 100;
+    pub const MinVestedTransfer: Balance = 100;
 }
 
 impl Config for Runtime {
@@ -131,17 +136,17 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},        
-        Currencies: social_currencies::{ Module, Storage, Call, Event<T>},
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: frame_system::{Module, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+        Currencies: currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         MiningModule: mining:: {Module, Call, Storage, Event<T>},
-	}
+    }
 );
 
 pub struct ExtBuilder;
@@ -161,8 +166,8 @@ impl ExtBuilder {
         pallet_balances::GenesisConfig::<Runtime> {
             balances: vec![(ALICE, 100000)],
         }
-            .assimilate_storage(&mut t)
-            .unwrap();
+        .assimilate_storage(&mut t)
+        .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| System::set_block_number(1));

@@ -1,9 +1,9 @@
+#[cfg(feature = "with-bitcountry-runtime")]
+mod service_bitcountry;
 #[cfg(feature = "with-parachain-runtime")]
 mod service_parachain;
 #[cfg(feature = "with-tewai-runtime")]
 mod service_tewai;
-#[cfg(feature = "with-bitcountry-runtime")]
-mod service_bitcountry;
 
 #[cfg(feature = "with-bitcountry-runtime")]
 pub use service_bitcountry::{new_full, new_light, new_partial};

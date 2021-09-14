@@ -4,10 +4,11 @@ pub mod currency {
 
     pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
     pub const CENTS: Balance = DOLLARS / 100;
-    // 10_000_000_000_000_000
+    /// 10_000_000_000_000_000
     pub const MILLICENTS: Balance = CENTS / 1000;
-    // 10_000_000_000_000
-    pub const MICROCENTS: Balance = MILLICENTS / 1000; // 10_000_000_000
+    /// 10_000_000_000_000
+    pub const MICROCENTS: Balance = MILLICENTS / 1000;
+    /// 10_000_000_000
 
     pub const fn deposit(items: u32, bytes: u32) -> Balance {
         items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
@@ -16,7 +17,7 @@ pub mod currency {
 
 /// Time.
 pub mod time {
-    use primitives::{Moment, BlockNumber};
+    use primitives::{BlockNumber, Moment};
 
     /// Since BABE is probabilistic this is the average expected block time that
     /// we are targeting. Blocks will be produced at a minimum duration defined
@@ -38,15 +39,15 @@ pub mod time {
     pub const MILLISECS_PER_BLOCK: Moment = 3000;
     pub const SECS_PER_BLOCK: Moment = MILLISECS_PER_BLOCK / 1000;
 
-    // NOTE: Currently it is not possible to change the slot duration after the chain has started.
-    //       Attempting to do so will brick block production.
+    /// NOTE: Currently it is not possible to change the slot duration after the chain has started.
+    ///       Attempting to do so will brick block production.
     pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
 
-    // 1 in 4 blocks (on average, not counting collisions) will be primary BABE blocks.
+    /// 1 in 4 blocks (on average, not counting collisions) will be primary BABE blocks.
     pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
-    // NOTE: Currently it is not possible to change the epoch duration after the chain has started.
-    //       Attempting to do so will brick block production.
+    /// NOTE: Currently it is not possible to change the epoch duration after the chain has started.
+    ///       Attempting to do so will brick block production.
     pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 10 * MINUTES;
     pub const EPOCH_DURATION_IN_SLOTS: u64 = {
         const SLOT_FILL_RATE: f64 = MILLISECS_PER_BLOCK as f64 / SLOT_DURATION as f64;
@@ -54,7 +55,7 @@ pub mod time {
         (EPOCH_DURATION_IN_BLOCKS as f64 * SLOT_FILL_RATE) as u64
     };
 
-    // These time units are defined in number of blocks.
+    /// These time units are defined in number of blocks.
     pub const MINUTES: BlockNumber = 60 / (SECS_PER_BLOCK as BlockNumber);
     pub const HOURS: BlockNumber = MINUTES * 60;
     pub const DAYS: BlockNumber = HOURS * 24;

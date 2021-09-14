@@ -1,35 +1,36 @@
 #![cfg(test)]
 
-use crate as swap;
 use super::*;
+use crate as swap;
+use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
+use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{
-    construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
-    impl_outer_event, impl_outer_origin, impl_outer_dispatch, traits::EnsureOrigin,
+    construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin,
+    ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight,
 };
+use frame_system::{EnsureRoot, EnsureSignedBy};
+use orml_traits::parameter_type_with_key;
+use primitives::{Amount, CurrencyId};
+use social_currencies::BasicCurrencyAdapter;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId, Perbill};
-use primitives::{CurrencyId, Amount};
-use frame_system::{EnsureSignedBy, EnsureRoot};
-use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
-use orml_traits::parameter_type_with_key;
-use social_currencies::BasicCurrencyAdapter;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const DEX: AccountId = 34780150990899770580028125037;
 
-pub const NUUM_SOC: TradingPair = TradingPair (NUUM, SOC);
-pub const NUUM: SocialTokenCurrencyId =  SocialTokenCurrencyId::NativeToken(0);
-pub const SOC: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1); // Social
-pub const SOC_2: SocialTokenCurrencyId = SocialTokenCurrencyId::SocialToken(1);
-pub const SHARE: SocialTokenCurrencyId = SocialTokenCurrencyId::DEXShare(0, 1);
+pub const NUUM_SOC: TradingPair = TradingPair(NUUM, SOC);
+pub const NUUM: FungibleTokenId = FungibleTokenId::NativeToken(0);
+pub const SOC: FungibleTokenId = FungibleTokenId::FungibleToken(1);
+/// Social
+pub const SOC_2: FungibleTokenId = FungibleTokenId::FungibleToken(1);
+pub const SHARE: FungibleTokenId = FungibleTokenId::DEXShare(0, 1);
 
 impl From<AccountId> for Origin {
     fn from(item: AccountId) -> Self {
@@ -38,13 +39,11 @@ impl From<AccountId> for Origin {
 }
 
 parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
+    pub const BlockHashCount: u64 = 250;
+    pub const MaximumBlockWeight: u32 = 1024;
+    pub const MaximumBlockLength: u32 = 2 * 1024;
+    pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
-
-
 
 impl frame_system::Config for Runtime {
     type Origin = Origin;
@@ -72,7 +71,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+    pub const ExistentialDeposit: u64 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -93,15 +92,15 @@ parameter_types! {
 impl swap::Config for Runtime {
     type Event = Event;
     type ModuleId = SwapModuleId;
-    type SocialTokenCurrency = Tokens;
+    type FungibleTokenCurrency = Tokens;
     type NativeCurrency = Balances;
     type GetSwapFee = SwapFee;
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: SocialTokenCurrencyId| -> Balance {
-		Default::default()
-	};
+    pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
+        Default::default()
+    };
 }
 
 parameter_types! {
@@ -114,14 +113,14 @@ impl orml_tokens::Config for Runtime {
     type Event = Event;
     type Balance = Balance;
     type Amount = Amount;
-    type CurrencyId = SocialTokenCurrencyId;
+    type CurrencyId = FungibleTokenId;
     type WeightInfo = ();
     type ExistentialDeposits = ExistentialDeposits;
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
 parameter_types! {
-    pub const GetNativeCurrencyId: SocialTokenCurrencyId = SocialTokenCurrencyId::NativeToken(0);
+    pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 }
 
 impl social_currencies::Config for Runtime {
@@ -135,17 +134,17 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: frame_system::{Module, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         SwapModule: swap::{Module, Call ,Storage, Event<T>},
-	}
+    }
 );
 
 pub struct ExtBuilder;
@@ -156,7 +155,7 @@ impl Default for ExtBuilder {
     }
 }
 
-impl ExtBuilder {    
+impl ExtBuilder {
     pub fn build(self) -> sp_io::TestExternalities {
         let mut t = frame_system::GenesisConfig::default()
             .build_storage::<Runtime>()
@@ -165,14 +164,14 @@ impl ExtBuilder {
         pallet_balances::GenesisConfig::<Runtime> {
             balances: vec![(ALICE, 100), (BOB, 100)],
         }
-            .assimilate_storage(&mut t)
-            .unwrap();
+        .assimilate_storage(&mut t)
+        .unwrap();
 
         orml_tokens::GenesisConfig::<Runtime> {
             endowed_accounts: vec![(ALICE, SOC, 100), (BOB, SOC, 100)],
         }
-            .assimilate_storage(&mut t)
-            .unwrap();
+        .assimilate_storage(&mut t)
+        .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| System::set_block_number(1));

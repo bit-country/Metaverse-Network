@@ -17,11 +17,13 @@
 
 //! Miscellaneous additional datatypes.
 
-use codec::{Encode, Decode};
-use sp_runtime::{RuntimeDebug, DispatchError};
-use sp_runtime::traits::{Zero, Bounded, CheckedAdd, CheckedSub, CheckedMul, CheckedDiv, Saturating, One};
-use crate::{Vote, AccountVote};
-use primitives::{CountryId, SpotId};
+use crate::{AccountVote, Vote};
+use codec::{Decode, Encode};
+use primitives::{BitCountryId, SpotId};
+use sp_runtime::traits::{
+    Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, Saturating, Zero,
+};
+use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec;
 use sp_std::vec::Vec;
 
@@ -32,7 +34,7 @@ pub type ReferendumIndex = u64;
 pub struct ContinuumSpot {
     pub(crate) x: i32,
     pub(crate) y: i32,
-    pub(crate) country: CountryId,
+    pub(crate) country: BitCountryId,
 }
 
 impl ContinuumSpot {
@@ -57,9 +59,18 @@ impl ContinuumSpot {
     }
 
     //Move coordinate by another coordinate
-    pub fn move_coordinate(from_coordinate: (i32, i32), coordinate: (i32, i32)) -> Result<(i32, i32), DispatchError> {
-        let new_x = from_coordinate.0.checked_add(coordinate.0).ok_or("Overflow")?;
-        let new_y = from_coordinate.1.checked_add(coordinate.1).ok_or("Overflow")?;
+    pub fn move_coordinate(
+        from_coordinate: (i32, i32),
+        coordinate: (i32, i32),
+    ) -> Result<(i32, i32), DispatchError> {
+        let new_x = from_coordinate
+            .0
+            .checked_add(coordinate.0)
+            .ok_or("Overflow")?;
+        let new_y = from_coordinate
+            .1
+            .checked_add(coordinate.1)
+            .ok_or("Overflow")?;
         let x = (new_x, new_y);
         Ok(x)
     }
@@ -75,13 +86,9 @@ pub struct ContinuumSpotTally<AccountId> {
     pub(crate) turnout: u8,
 }
 
-impl<
-    AccountId
-> ContinuumSpotTally<AccountId> {
+impl<AccountId> ContinuumSpotTally<AccountId> {
     /// Create a new tally.
-    pub fn new(
-        vote: Vote<AccountId>
-    ) -> Self {
+    pub fn new(vote: Vote<AccountId>) -> Self {
         Self {
             who: vote.who,
             nays: Zero::zero(),
@@ -90,10 +97,7 @@ impl<
     }
 
     /// Add an account's vote into the tally.
-    pub fn add(
-        &mut self,
-        vote: AccountVote<AccountId>,
-    ) -> Option<()> {
+    pub fn add(&mut self, vote: AccountVote<AccountId>) -> Option<()> {
         match vote {
             AccountVote::Standard { vote } => {
                 self.turnout = self.turnout.checked_add(One::one())?;
@@ -106,10 +110,7 @@ impl<
     }
 
     /// Remove an account's vote from the tally.
-    pub fn remove(
-        &mut self,
-        vote: AccountVote<AccountId>,
-    ) -> Option<()> {
+    pub fn remove(&mut self, vote: AccountVote<AccountId>) -> Option<()> {
         match vote {
             AccountVote::Standard { vote } => {
                 self.turnout = self.turnout.checked_add(Zero::zero())?;
@@ -125,7 +126,7 @@ impl<
         self.turnout = self.turnout.saturating_add(Zero::zero());
         match approve {
             false => self.nays = self.nays.saturating_add(Zero::zero()),
-            true => ()
+            true => (),
         }
         Some(())
     }
@@ -141,10 +142,10 @@ impl<
     }
 
     pub fn result(&mut self) -> Option<bool> {
-        // let total_nay = self.nays.checked_div(&self.turnout).unwrap().saturating_mul(Into::<Balance>::into(100));
-        // let approve_threshold = 49 as u128;
+        /// let total_nay = self.nays.checked_div(&self.turnout).unwrap().saturating_mul(Into::<Balance>::into(100));
+        /// let approve_threshold = 49 as u128;
         //
-        // Some(total_nay > Into::<Balance>::into(approve_threshold))
+        /// Some(total_nay > Into::<Balance>::into(approve_threshold))
         Some(true)
     }
 }
@@ -171,12 +172,12 @@ pub enum ReferendumInfo<AccountId, BlockNumber> {
 
 impl<AccountId, BlockNumber: Default> ReferendumInfo<AccountId, BlockNumber> {
     /// Create a new instance.
-    pub fn new(
-        end: BlockNumber,
-        spot_id: SpotId,
-        // threshold: VoteThreshold,
-    ) -> Self {
-        let s = ReferendumStatus { end, spot_id, tallies: Vec::new() };
+    pub fn new(end: BlockNumber, spot_id: SpotId) -> Self {
+        let s = ReferendumStatus {
+            end,
+            spot_id,
+            tallies: Vec::new(),
+        };
         ReferendumInfo::Ongoing(s)
     }
 }

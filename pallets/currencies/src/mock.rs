@@ -16,13 +16,13 @@ use orml_traits::parameter_type_with_key;
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type CountryId = u64;
+pub type BitCountryId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 4;
 pub const BOB: AccountId = 5;
-pub const COUNTRY_ID: CountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: CountryId = 1;
+pub const BITCOUNTRY_ID: BitCountryId = 1;
+pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
 pub const NUUM: CurrencyId = 0;
 pub const COUNTRY_FUND: CurrencyId = 1;
 
@@ -99,21 +99,21 @@ impl orml_tokens::Config for Runtime {
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
-pub struct CountryInfoSource {}
+pub struct BitCountryInfoSource {}
 
-impl BCCountry<AccountId> for CountryInfoSource {
-    fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
+impl BitCountryTrait<AccountId> for BitCountryInfoSource {
+    fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
         match *who {
             ALICE => true,
             _ => false,
         }
     }
 
-    fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
+    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
         None
     }
 
-    fn get_country_token(country_id: CountryId) -> Option<CurrencyId> {
+    fn get_country_token(country_id: BitCountryId) -> Option<CurrencyId> {
         None
     }
 }
@@ -122,8 +122,8 @@ impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
-    type SocialTokenTreasury = CountryFundModuleId;
-    type CountryInfoSource = CountryInfoSource;
+    type FungibleTokenTreasury = CountryFundModuleId;
+    type BitCountryInfoSource = BitCountryInfoSource;
 }
 
 parameter_types! {
