@@ -22,11 +22,13 @@ use crate as continuum;
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, OnNewBidResult};
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, weights::Weight};
+use frame_support::{
+    construct_runtime, ord_parameter_types, parameter_types, weights::Weight, PalletId,
+};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use primitives::{Amount, AssetId, CurrencyId, FungibleTokenId};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 parameter_types! {
     pub const BlockHashCount: u32 = 256;
@@ -156,7 +158,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 }
 
 parameter_types! {
-    pub const ContinuumTreasuryModuleId: ModuleId = ModuleId(*b"bit/ctmu");
+    pub const ContinuumTreasuryPalletId: PalletId = PalletId(*b"bit/ctmu");
     pub const AuctionTimeToClose: u32 = 10; //Default 100800 Blocks
     pub const SessionDuration: BlockNumber = 10; //Default 43200 Blocks
     pub const SpotAuctionChillingDuration: BlockNumber = 10; //Default 43200 Blocks
@@ -196,7 +198,7 @@ impl Config for Runtime {
     type EmergencyOrigin = EnsureSignedBy<One, AccountId>;
     type AuctionHandler = MockAuctionManager;
     type AuctionDuration = SpotAuctionChillingDuration;
-    type ContinuumTreasury = ContinuumTreasuryModuleId;
+    type ContinuumTreasury = ContinuumTreasuryPalletId;
     type Currency = Balances;
     type BitCountryInfoSource = BitCountryInfoSource;
 }

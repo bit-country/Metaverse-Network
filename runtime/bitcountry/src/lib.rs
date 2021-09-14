@@ -15,7 +15,7 @@ use frame_support::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         DispatchClass, IdentityFee, Weight,
     },
-    RuntimeDebug,
+    PalletId, RuntimeDebug,
 };
 use frame_system::{
     limits::{BlockLength, BlockWeights},
@@ -50,8 +50,8 @@ use sp_runtime::transaction_validity::{
     TransactionPriority, TransactionSource, TransactionValidity,
 };
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys, ApplyExtrinsicResult, FixedPointNumber,
-    ModuleId, Perbill, Percent, Permill, Perquintill,
+    create_runtime_str, generic, impl_opaque_keys, ApplyExtrinsicResult, FixedPointNumber, Perbill,
+    Percent, Permill, Perquintill,
 };
 use sp_std::prelude::*;
 #[cfg(any(feature = "std", test))]
@@ -610,7 +610,7 @@ parameter_types! {
     pub const TermDuration: BlockNumber = 7 * DAYS;
     pub const DesiredMembers: u32 = 13;
     pub const DesiredRunnersUp: u32 = 7;
-    pub const ElectionsPhragmenModuleId: LockIdentifier = *b"phrelect";
+    pub const ElectionsPhragmenPalletId: LockIdentifier = *b"phrelect";
 }
 
 // Make sure that there are no more than `MaxMembers` members elected via elections-phragmen.
@@ -618,7 +618,7 @@ const_assert!(DesiredMembers::get() <= CouncilMaxMembers::get());
 
 impl pallet_elections_phragmen::Config for Runtime {
     type Event = Event;
-    type ModuleId = ElectionsPhragmenModuleId;
+    type PalletId = ElectionsPhragmenPalletId;
     type Currency = Balances;
     type ChangeMembers = Council;
     /// NOTE: this implies that council's genesis members cannot be set directly and must come from
@@ -672,19 +672,19 @@ parameter_types! {
     pub const DataDepositPerByte: Balance = 1 * CENTS;
     pub const BountyDepositBase: Balance = 1 * DOLLARS;
     pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
-    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
+    pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
     pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
     pub const MaximumReasonLength: u32 = 16384;
     pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
     pub const BountyValueMinimum: Balance = 5 * DOLLARS;
-    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
-    pub const NftModuleId: ModuleId = ModuleId(*b"bit/bnft");
-    pub const ContinuumTreasuryModuleId: ModuleId = ModuleId(*b"bit/ctmu");
-    pub const LandTreasuryModuleId: ModuleId = ModuleId(*b"bit/land");
+    pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
+    pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
+    pub const ContinuumTreasuryPalletId: PalletId = PalletId(*b"bit/ctmu");
+    pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 }
 
 impl pallet_treasury::Config for Runtime {
-    type ModuleId = BitCountryTreasuryModuleId;
+    type PalletId = BitCountryTreasuryPalletId;
     type Currency = Balances;
     type ApproveOrigin = EnsureOneOf<
         AccountId,
@@ -945,12 +945,12 @@ parameter_types! {
     pub const PeriodSpend: Balance = 500 * DOLLARS;
     pub const MaxLockDuration: BlockNumber = 36 * 30 * DAYS;
     pub const ChallengePeriod: BlockNumber = 7 * DAYS;
-    pub const SocietyModuleId: ModuleId = ModuleId(*b"py/socie");
+    pub const SocietyPalletId: PalletId = PalletId(*b"py/socie");
 }
 
 impl pallet_society::Config for Runtime {
     type Event = Event;
-    type ModuleId = SocietyModuleId;
+    type PalletId = SocietyPalletId;
     type Currency = Balances;
     type Randomness = RandomnessCollectiveFlip;
     type CandidateDeposit = CandidateDeposit;
@@ -973,9 +973,9 @@ impl EnsureOrigin<Origin> for EnsureRootOrBCTreasury {
 
     fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
         Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
-            RawOrigin::Root => Ok(BitCountryTreasuryModuleId::get().into_account()),
+            RawOrigin::Root => Ok(BitCountryTreasuryPalletId::get().into_account()),
             RawOrigin::Signed(caller) => {
-                if caller == BitCountryTreasuryModuleId::get().into_account() {
+                if caller == BitCountryTreasuryPalletId::get().into_account() {
                     Ok(caller)
                 } else {
                     Err(Origin::from(Some(caller)))
@@ -1013,13 +1013,13 @@ impl pallet_mmr::Config for Runtime {
 }
 
 parameter_types! {
-    pub const LotteryModuleId: ModuleId = ModuleId(*b"py/lotto");
+    pub const LotteryPalletId: PalletId = PalletId(*b"py/lotto");
     pub const MaxCalls: usize = 10;
     pub const MaxGenerateRandom: u32 = 10;
 }
 
 impl pallet_lottery::Config for Runtime {
-    type ModuleId = LotteryModuleId;
+    type PalletId = LotteryPalletId;
     type Call = Call;
     type Event = Event;
     type Currency = Balances;
@@ -1060,7 +1060,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
+    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -1095,7 +1095,7 @@ impl nft::Config for Runtime {
     type CreateAssetDeposit = CreateAssetDeposit;
     type Currency = Balances;
     type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
-    type ModuleId = NftModuleId;
+    type PalletId = NftPalletId;
     type AuctionHandler = Auction;
     type AssetsHandler = NftModule;
 }
@@ -1109,7 +1109,7 @@ impl orml_nft::Config for Runtime {
 
 impl bitcountry::Config for Runtime {
     type Event = Event;
-    type ModuleId = CountryFundModuleId;
+    type PalletId = CountryFundPalletId;
 }
 
 parameter_types! {
@@ -1118,7 +1118,7 @@ parameter_types! {
 
 impl block::Config for Runtime {
     type Event = Event;
-    type LandTreasury = LandTreasuryModuleId;
+    type LandTreasury = LandTreasuryPalletId;
     type BitCountryInfoSource = BitCountryModule;
     type Currency = Balances;
     type MinimumLandPrice = MinimumLandPrice;
@@ -1152,7 +1152,7 @@ impl continuum::Config for Runtime {
         pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
     type AuctionHandler = Auction;
     type AuctionDuration = SpotAuctionChillingDuration;
-    type ContinuumTreasury = ContinuumTreasuryModuleId;
+    type ContinuumTreasury = ContinuumTreasuryPalletId;
     type Currency = Balances;
     type BitCountryInfoSource = BitCountryModule;
 }
@@ -1161,7 +1161,7 @@ impl tokenization::Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type BCMultiCurrency = Currencies;
-    type FungibleTokenTreasury = CountryFundModuleId;
+    type FungibleTokenTreasury = CountryFundPalletId;
     type BitCountryInfoSource = BitCountryModule;
     type LiquidityPoolManager = Swap;
     type MinVestedTransfer = MinVestedTransfer;
@@ -1169,13 +1169,13 @@ impl tokenization::Config for Runtime {
 }
 
 parameter_types! {
-    pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
+    pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
     pub const SwapFee: (u32, u32) = (1, 20); //0.05%
 }
 
 impl swap::Config for Runtime {
     type Event = Event;
-    type ModuleId = SwapModuleId;
+    type PalletId = SwapPalletId;
     type FungibleTokenCurrency = Tokens;
     type NativeCurrency = Balances;
     type GetSwapFee = SwapFee;
@@ -1209,7 +1209,7 @@ impl swap::Config for Runtime {
 parameter_types! {
     //Mining Resource Currenct Id
     pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
-    pub const BitMiningTreasury: ModuleId = ModuleId(*b"cb/minig");
+    pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
 }
 
 impl mining::Config for Runtime {

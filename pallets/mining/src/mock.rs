@@ -15,7 +15,7 @@ use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{AccountIdConversion, IdentityLookup},
-    ModuleId, Perbill,
+    PalletId, Perbill,
 };
 
 pub type AccountId = u128;
@@ -90,9 +90,9 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
-    pub const MiningTreasuryModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+    pub const MiningTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl orml_tokens::Config for Runtime {
@@ -127,7 +127,7 @@ parameter_types! {
 impl Config for Runtime {
     type Event = Event;
     type MiningCurrency = Currencies;
-    type BitMiningTreasury = MiningTreasuryModuleId;
+    type BitMiningTreasury = MiningTreasuryPalletId;
     type BitMiningResourceId = MiningCurrencyId;
     type AdminOrigin = EnsureSignedBy<One, AccountId>;
 }

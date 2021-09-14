@@ -10,6 +10,7 @@ use frame_support::{
     ensure,
     pallet_prelude::*,
     traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
+    PalletId,
 };
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -21,7 +22,7 @@ use primitives::{AssetId, GroupCollectionId};
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
     traits::{AccountIdConversion, One},
-    DispatchError, ModuleId,
+    DispatchError,
 };
 use sp_std::vec::Vec;
 
@@ -156,7 +157,7 @@ pub mod pallet {
         type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
         //NFT Module Id
         #[pallet::constant]
-        type ModuleId: Get<ModuleId>;
+        type PalletId: Get<PalletId>;
         /// Weight info
         type WeightInfo: WeightInfo;
         /// Auction Handler
@@ -316,7 +317,7 @@ pub mod pallet {
                 Error::<T>::CollectionIsNotExist
             );
             // Class fund
-            let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(next_class_id);
+            let class_fund: T::AccountId = T::PalletId::get().into_sub_account(next_class_id);
 
             // Secure deposit of token class owner -- TODO - support customise deposit
             let class_deposit = T::CreateClassDeposit::get();
@@ -367,7 +368,7 @@ pub mod pallet {
             ensure!(sender == class_info.owner, Error::<T>::NoPermission);
 
             let deposit = T::CreateAssetDeposit::get();
-            let class_fund: T::AccountId = T::ModuleId::get().into_sub_account(class_id);
+            let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
             let total_deposit = deposit * Into::<BalanceOf<T>>::into(quantity);
 
             <T as Config>::Currency::transfer(

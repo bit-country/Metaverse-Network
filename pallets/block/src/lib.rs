@@ -20,13 +20,13 @@
 use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::ensure;
-use frame_support::pallet_prelude::*;
+use frame_support::{pallet_prelude::*, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, BitCountryId, CurrencyId, LandId};
 use sp_runtime::{
     traits::{AccountIdConversion, One},
-    DispatchError, ModuleId, RuntimeDebug,
+    DispatchError, RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
@@ -54,7 +54,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         #[pallet::constant]
-        type LandTreasury: Get<ModuleId>;
+        type LandTreasury: Get<PalletId>;
         /// Source of Bit Country Info
         type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
         /// Currency
@@ -132,7 +132,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
-        pub(super) fn set_max_bounds(
+        pub fn set_max_bounds(
             origin: OriginFor<T>,
             new_bound: (i32, i32),
         ) -> DispatchResultWithPostInfo {
@@ -147,7 +147,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn buy_land_block(
+        pub fn buy_land_block(
             origin: OriginFor<T>,
             bc_id: BitCountryId,
             coordinate: (i32, i32),
@@ -218,7 +218,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn buy_land(
+        pub fn buy_land(
             origin: OriginFor<T>,
             bc_id: BitCountryId,
             quantity: u8,
@@ -267,7 +267,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn transfer_land(
+        pub fn transfer_land(
             origin: OriginFor<T>,
             to: T::AccountId,
             land_id: LandId,

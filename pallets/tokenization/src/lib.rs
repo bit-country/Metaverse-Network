@@ -21,8 +21,8 @@
 use auction_manager::SwapManager;
 use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::sp_runtime::ModuleId;
 use frame_support::traits::{Currency, Get, WithdrawReasons};
+use frame_support::PalletId;
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage,
     dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -33,7 +33,6 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
-    account::MergeAccount,
     arithmetic::{Signed, SimpleArithmetic},
     BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
     BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
@@ -100,7 +99,7 @@ pub mod pallet {
         type TokenId: Parameter + AtLeast32Bit + Default + Copy;
         type BCMultiCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>
             + MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
-        type FungibleTokenTreasury: Get<ModuleId>;
+        type FungibleTokenTreasury: Get<PalletId>;
         type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
         type LiquidityPoolManager: SwapManager<Self::AccountId, FungibleTokenId, Balance>;
         #[pallet::constant]
@@ -204,19 +203,16 @@ pub mod pallet {
             let initial_pool_supply = initial_pool_numerator
                 .checked_div(initial_lp.1.saturated_into())
                 .unwrap_or(0);
-            debug::info!("initial_pool_supply: {})", initial_pool_supply);
             let initial_supply_ratio =
                 Price::checked_from_rational(initial_pool_supply, total_supply).unwrap_or_default();
             let supply_percent: u128 =
                 initial_supply_ratio.saturating_mul_int(100.saturated_into());
-            debug::info!("supply_percent: {})", supply_percent);
             ensure!(
                 supply_percent > 0u128 && supply_percent >= 20u128,
                 Error::<T>::InitialFungibleTokenSupplyIsTooLow
             );
             // Remaining balance for bc owner
             let owner_supply = total_supply.saturating_sub(initial_pool_supply);
-            debug::info!("owner_supply: {})", owner_supply);
             // Generate new TokenId
             let currency_id =
                 NextTokenId::<T>::mutate(|id| -> Result<FungibleTokenId, DispatchError> {

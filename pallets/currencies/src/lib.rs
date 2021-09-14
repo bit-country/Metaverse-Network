@@ -22,10 +22,9 @@
 
 use bc_primitives::*;
 use codec::{Codec, Decode, Encode};
-use frame_support::sp_runtime::ModuleId;
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResultWithPostInfo,
-    ensure, pallet_prelude::*, Parameter,
+    ensure, pallet_prelude::*, PalletId, Parameter,
 };
 use frame_support::{
     pallet_prelude::*,
@@ -38,7 +37,6 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
-    account::MergeAccount,
     arithmetic::{Signed, SimpleArithmetic},
     BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
     BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
@@ -85,8 +83,7 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        type MultiSocialCurrency: MergeAccount<Self::AccountId>
-            + MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId>
+        type MultiSocialCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId>
             + MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>
             + MultiReservableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
         type NativeCurrency: BasicCurrencyExtended<

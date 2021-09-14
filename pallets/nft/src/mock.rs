@@ -152,7 +152,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 parameter_types! {
     pub CreateClassDeposit: Balance = 2;
     pub CreateAssetDeposit: Balance = 1;
-    pub NftModuleId: ModuleId = ModuleId(*b"bit/bNFT");
+    pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
 }
 
 impl Config for Runtime {
@@ -160,7 +160,7 @@ impl Config for Runtime {
     type CreateClassDeposit = CreateClassDeposit;
     type CreateAssetDeposit = CreateAssetDeposit;
     type Currency = Balances;
-    type ModuleId = NftModuleId;
+    type PalletId = NftPalletId;
     type AuctionHandler = MockAuctionManager;
     type WeightInfo = ();
     type AssetsHandler = Handler;

@@ -21,8 +21,8 @@
 use auction_manager::SwapManager;
 use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::sp_runtime::ModuleId;
 use frame_support::traits::{Currency, Get, WithdrawReasons};
+use frame_support::PalletId;
 use frame_support::{
     decl_error, decl_event, decl_module, decl_storage,
     dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -33,7 +33,6 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
-    account::MergeAccount,
     arithmetic::{Signed, SimpleArithmetic},
     BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
     BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
@@ -104,7 +103,7 @@ pub mod pallet {
             Balance = Balance,
         >;
         #[pallet::constant]
-        type BitMiningTreasury: Get<ModuleId>;
+        type BitMiningTreasury: Get<PalletId>;
         type BitMiningResourceId: Get<FungibleTokenId>;
         /// Origin used to administer the pallet
         type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;

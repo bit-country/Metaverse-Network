@@ -6,12 +6,12 @@ use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeseriali
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{
     construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin,
-    ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight,
+    ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use primitives::{Amount, CurrencyId};
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId, Perbill};
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -74,12 +74,12 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl Config for Runtime {
     type Event = Event;
-    type ModuleId = CountryFundModuleId;
+    type PalletId = CountryFundPalletId;
 }
 
 pub type BitCountryModule = Module<Runtime>;

@@ -15,7 +15,7 @@ use sp_core::H256;
 use sp_runtime::{
     testing::Header,
     traits::{AccountIdConversion, IdentityLookup},
-    ModuleId, Perbill,
+    PalletId, Perbill,
 };
 
 pub type AccountId = u128;
@@ -90,9 +90,9 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
-    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+    pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl orml_tokens::Config for Runtime {
@@ -149,13 +149,13 @@ impl SwapManager<AccountId, FungibleTokenId, Balance> for DEXManager {
 }
 
 parameter_types! {
-    pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
+    pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
     pub const SwapFee: (u32, u32) = (1, 20); //0.005%
 }
 
 impl swap::Config for Runtime {
     type Event = Event;
-    type ModuleId = SwapModuleId;
+    type PalletId = SwapPalletId;
     type FungibleTokenCurrency = Tokens;
     type NativeCurrency = Balances;
     type GetSwapFee = SwapFee;
@@ -180,7 +180,7 @@ impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type BCMultiCurrency = Currencies;
-    type FungibleTokenTreasury = CountryFundModuleId;
+    type FungibleTokenTreasury = CountryFundPalletId;
     type BitCountryInfoSource = BitCountryInfoSource;
     type LiquidityPoolManager = SwapModule;
     type MinVestedTransfer = MinVestedTransfer;

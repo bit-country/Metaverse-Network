@@ -22,13 +22,13 @@ use auction_manager::SwapManager;
 use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
-use frame_support::{ensure, pallet_prelude::*, transactional};
+use frame_support::{ensure, pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
     traits::{AccountIdConversion, One},
-    DispatchError, DispatchResult, ModuleId, RuntimeDebug,
+    DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::vec;
 use sp_std::vec::Vec;
@@ -88,7 +88,7 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         /// The DEX's module id, keep all assets in DEX.
         #[pallet::constant]
-        type ModuleId: Get<ModuleId>;
+        type PalletId: Get<PalletId>;
         /// Social token currency system
         type FungibleTokenCurrency: MultiCurrencyExtended<
             Self::AccountId,
@@ -257,7 +257,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
     fn account_id() -> T::AccountId {
-        T::ModuleId::get().into_account()
+        T::PalletId::get().into_account()
     }
 
     fn do_add_liquidity(
@@ -369,7 +369,6 @@ impl<T: Config> Pallet<T> {
                     ExistenceRequirement::AllowDeath,
                 )?;
             } else {
-                debug::info!("Pool 1 increment {}", pool_1_increment);
                 T::FungibleTokenCurrency::transfer(
                     trading_pair.1,
                     who,

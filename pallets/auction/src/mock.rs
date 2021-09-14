@@ -1,13 +1,13 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types};
+use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
 use pallet_nft::AssetHandler;
 use primitives::{continuum::Continuum, Amount, AuctionId, CurrencyId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use crate as auction;
 use auction_manager::ListingLevel;
@@ -122,9 +122,9 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
-    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+    pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl orml_tokens::Config for Runtime {
@@ -183,7 +183,7 @@ impl Config for Runtime {
 parameter_types! {
     pub CreateClassDeposit: Balance = 2;
     pub CreateAssetDeposit: Balance = 1;
-    pub NftModuleId: ModuleId = ModuleId(*b"bit/bNFT");
+    pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
 }
 
 impl pallet_nft::Config for Runtime {
@@ -191,7 +191,7 @@ impl pallet_nft::Config for Runtime {
     type CreateClassDeposit = CreateClassDeposit;
     type CreateAssetDeposit = CreateAssetDeposit;
     type Currency = Balances;
-    type ModuleId = NftModuleId;
+    type PalletId = NftPalletId;
     type WeightInfo = ();
     type AuctionHandler = MockAuctionManager;
     type AssetsHandler = NftAssetHandler;

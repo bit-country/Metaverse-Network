@@ -33,8 +33,8 @@ pub mod pallet {
     use super::*;
     use auction_manager::ListingLevel;
     use bc_primitives::BitCountryTrait;
+    use frame_support::dispatch::DispatchResultWithPostInfo;
     use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
-    use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::OriginFor;
     use orml_traits::{MultiCurrency, MultiCurrencyExtended, MultiReservableCurrency};
     use primitives::{Balance, BitCountryId, FungibleTokenId};
@@ -130,7 +130,7 @@ pub mod pallet {
         /// Bidding on global listing
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         #[transactional]
-        pub(super) fn bid(
+        pub fn bid(
             origin: OriginFor<T>,
             id: AuctionId,
             value: BalanceOf<T>,
@@ -205,7 +205,7 @@ pub mod pallet {
         /// Bidding on local marketplace listing
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         #[transactional]
-        pub(super) fn bid_local(
+        pub fn bid_local(
             origin: OriginFor<T>,
             id: AuctionId,
             bc_id: BitCountryId,
@@ -283,7 +283,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub(super) fn buy_now(
+        pub fn buy_now(
             origin: OriginFor<T>,
             auction_id: AuctionId,
             value: BalanceOf<T>,
@@ -371,7 +371,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub(super) fn buy_now_local(
+        pub fn buy_now_local(
             origin: OriginFor<T>,
             auction_id: AuctionId,
             bc_id: BitCountryId,
@@ -467,7 +467,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub(super) fn create_new_auction(
+        pub fn create_new_auction(
             origin: OriginFor<T>,
             item_id: ItemId,
             value: BalanceOf<T>,
@@ -508,7 +508,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub(super) fn create_new_buy_now(
+        pub fn create_new_buy_now(
             origin: OriginFor<T>,
             item_id: ItemId,
             value: BalanceOf<T>,

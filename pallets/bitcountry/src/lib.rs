@@ -20,13 +20,13 @@
 use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::ensure;
-use frame_support::pallet_prelude::*;
+use frame_support::{pallet_prelude::*, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
     traits::{AccountIdConversion, One},
-    DispatchError, DispatchResult, ModuleId, RuntimeDebug,
+    DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
@@ -52,7 +52,7 @@ pub mod pallet {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
         #[pallet::constant]
-        type ModuleId: Get<ModuleId>;
+        type PalletId: Get<PalletId>;
     }
 
     #[pallet::storage]
@@ -122,7 +122,7 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight(10_000)]
-        pub(super) fn create_bitcountry(
+        pub fn create_bitcountry(
             origin: OriginFor<T>,
             metadata: Vec<u8>,
         ) -> DispatchResultWithPostInfo {
@@ -144,7 +144,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn transfer_bitcountry(
+        pub fn transfer_bitcountry(
             origin: OriginFor<T>,
             to: T::AccountId,
             bitcountry_id: BitCountryId,
@@ -186,7 +186,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn freeze_bitcountry(
+        pub fn freeze_bitcountry(
             origin: OriginFor<T>,
             bitcountry_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {
@@ -200,7 +200,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn unfreeze_bitcountry(
+        pub fn unfreeze_bitcountry(
             origin: OriginFor<T>,
             bitcountry_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {
@@ -222,7 +222,7 @@ pub mod pallet {
         }
 
         #[pallet::weight(10_000)]
-        pub(super) fn destroy_bitcountry(
+        pub fn destroy_bitcountry(
             origin: OriginFor<T>,
             bitcountry_id: BitCountryId,
         ) -> DispatchResultWithPostInfo {

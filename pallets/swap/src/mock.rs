@@ -6,14 +6,14 @@ use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeseriali
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{
     construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin,
-    ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight,
+    ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, CurrencyId};
 use social_currencies::BasicCurrencyAdapter;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleId, Perbill};
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -85,13 +85,13 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-    pub const SwapModuleId: ModuleId = ModuleId(*b"bit/swap");
+    pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
     pub const SwapFee: (u32, u32) = (1, 20); //0.005%
 }
 
 impl swap::Config for Runtime {
     type Event = Event;
-    type ModuleId = SwapModuleId;
+    type PalletId = SwapPalletId;
     type FungibleTokenCurrency = Tokens;
     type NativeCurrency = Balances;
     type GetSwapFee = SwapFee;
@@ -104,9 +104,9 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
-    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+    pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl orml_tokens::Config for Runtime {

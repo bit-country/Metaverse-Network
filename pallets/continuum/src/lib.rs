@@ -19,18 +19,14 @@
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode};
-use frame_support::{
-    dispatch::DispatchResult,
-    ensure,
-    traits::{Get, Vec},
-};
+use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::{self as system, ensure_root, ensure_signed};
 use primitives::{continuum::Continuum, Balance, BitCountryId, CurrencyId, ItemId, SpotId};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{AccountIdConversion, CheckedAdd, CheckedDiv, One, Zero},
-    DispatchError, FixedPointNumber, ModuleId, RuntimeDebug,
+    DispatchError, FixedPointNumber, RuntimeDebug,
 };
 use sp_std::vec;
 
@@ -111,7 +107,7 @@ pub mod pallet {
         /// Auction duration
         type AuctionDuration: Get<Self::BlockNumber>;
         /// Continuum Treasury
-        type ContinuumTreasury: Get<ModuleId>;
+        type ContinuumTreasury: Get<PalletId>;
         /// Currency
         type Currency: ReservableCurrency<Self::AccountId>
             + LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
