@@ -145,13 +145,13 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
     }
 }
 
-/// We assume that ~10% of the block weight is consumed by `on_initalize` handlers.
+/// We assume that ~10% of the estate weight is consumed by `on_initalize` handlers.
 /// This is used to limit the maximal weight of a single extrinsic.
 const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
-/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used
+/// We allow `Normal` extrinsics to fill up the estate up to 75%, the rest can be used
 /// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
-/// We allow for 2 seconds of compute with a 6 second average block time.
+/// We allow for 2 seconds of compute with a 6 second average estate time.
 const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
 
 parameter_types! {
@@ -170,7 +170,7 @@ parameter_types! {
         .for_class(DispatchClass::Operational, |weights| {
             weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
             // Operational transactions have some extra reserved space, so that they
-            // are included even if block reached `MAXIMUM_BLOCK_WEIGHT`.
+            // are included even if estate reached `MAXIMUM_BLOCK_WEIGHT`.
             weights.reserved = Some(
                 MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT
             );
@@ -812,7 +812,7 @@ where
         let current_block = System::block_number()
             .saturated_into::<u64>()
             // The `System::block_number` is initialized with `n+1`,
-            // so the actual block number is `n`.
+            // so the actual estate number is `n`.
             .saturating_sub(1);
         let era = Era::mortal(period, current_block);
         let extra = (
@@ -1116,7 +1116,7 @@ parameter_types! {
     pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 }
 
-impl block::Config for Runtime {
+impl estate::Config for Runtime {
     type Event = Event;
     type LandTreasury = LandTreasuryModuleId;
     type BitCountryInfoSource = BitCountryModule;
@@ -1264,7 +1264,7 @@ construct_runtime!(
 
          //BitCountry pallets
         BitCountryModule: bitcountry::{Module, Call, Storage, Event<T>} = 35,
-        BlockModule: block::{Module, Call, Storage, Event<T>} = 36,
+        Estate: estate::{Module, Call, Storage, Event<T>} = 36,
         OrmlNFT: orml_nft::{Module, Storage} = 37,
         NftModule: nft::{Module, Call, Storage, Event<T>} = 38,
         Continuum: continuum::{Module, Call, Storage, Config<T>, Event<T>} = 39,
@@ -1423,7 +1423,7 @@ impl_runtime_apis! {
         fn configuration() -> sp_consensus_babe::BabeGenesisConfiguration {
             // The choice of `c` parameter (where `1 - c` represents the
             // probability of a slot being empty), is done in accordance to the
-            // slot duration and expected target block time, for safely
+            // slot duration and expected target estate time, for safely
             // resisting network delays of maximum two seconds.
             // <https://research.web3.foundation/en/latest/polkadot/BABE/Babe/#6-practical-results>
             sp_consensus_babe::BabeGenesisConfiguration {

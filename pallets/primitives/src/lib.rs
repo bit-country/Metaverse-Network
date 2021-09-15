@@ -32,7 +32,7 @@ use sp_runtime::traits::AtLeast32Bit;
 pub mod continuum;
 pub mod dex;
 
-/// An index to a block.
+/// An index to a estate.
 pub type BlockNumber = u32;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
@@ -197,7 +197,7 @@ pub mod report {
 pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
     /// Vesting token
     pub token: FungibleTokenId,
-    /// Vesting starting block
+    /// Vesting starting estate
     pub start: BlockNumber,
     /// Number of blocks between vest
     pub period: BlockNumber,

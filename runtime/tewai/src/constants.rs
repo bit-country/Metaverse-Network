@@ -19,11 +19,11 @@ pub mod currency {
 pub mod time {
     use primitives::{BlockNumber, Moment};
 
-    /// Since BABE is probabilistic this is the average expected block time that
+    /// Since BABE is probabilistic this is the average expected estate time that
     /// we are targeting. Blocks will be produced at a minimum duration defined
     /// by `SLOT_DURATION`, but some slots will not be allocated to any
-    /// authority and hence no block will be produced. We expect to have this
-    /// block time on average following the defined slot duration and the value
+    /// authority and hence no estate will be produced. We expect to have this
+    /// estate time on average following the defined slot duration and the value
     /// of `c` configured for BABE (where `1 - c` represents the probability of
     /// a slot being empty).
     /// This value is only used indirectly to define the unit constants below
@@ -40,14 +40,14 @@ pub mod time {
     pub const SECS_PER_BLOCK: Moment = MILLISECS_PER_BLOCK / 1000;
 
     /// NOTE: Currently it is not possible to change the slot duration after the chain has started.
-    ///       Attempting to do so will brick block production.
+    ///       Attempting to do so will brick estate production.
     pub const SLOT_DURATION: Moment = MILLISECS_PER_BLOCK;
 
     /// 1 in 4 blocks (on average, not counting collisions) will be primary BABE blocks.
     pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
 
     /// NOTE: Currently it is not possible to change the epoch duration after the chain has started.
-    ///       Attempting to do so will brick block production.
+    ///       Attempting to do so will brick estate production.
     pub const EPOCH_DURATION_IN_BLOCKS: BlockNumber = 10 * MINUTES;
     pub const EPOCH_DURATION_IN_SLOTS: u64 = {
         const SLOT_FILL_RATE: f64 = MILLISECS_PER_BLOCK as f64 / SLOT_DURATION as f64;

@@ -446,7 +446,7 @@ impl<T: Config> Module<T> {
         locked
     }
 
-    /// Returns locked balance of any social token based on current block number.
+    /// Returns locked balance of any social token based on current estate number.
     fn locked_balance(who: &T::AccountId, currency_id: FungibleTokenId) -> Balance {
         let now = <frame_system::Pallet<T>>::block_number();
         <VestingSchedules<T>>::mutate_exists(who, |maybe_schedules| {

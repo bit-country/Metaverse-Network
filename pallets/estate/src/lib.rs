@@ -123,9 +123,9 @@ pub mod pallet {
         InsufficientFund,
         /// Land id already exist
         LandIdAlreadyExist,
-        /// Land block is not available
+        /// Land estate is not available
         LandBlockIsNotAvailable,
-        /// Land block is out of bound
+        /// Land estate is out of bound
         LandBlockIsOutOfBound,
     }
 

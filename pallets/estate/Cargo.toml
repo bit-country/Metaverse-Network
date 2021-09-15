@@ -4,7 +4,7 @@ description = 'Bit Country pallet for block logic.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'pallet-block'
+name = 'pallet-estate'
 repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
