@@ -3,13 +3,13 @@
 // Ref: https://github.com/open-web3-stack/open-runtime-module-library
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::FullCodec;
 use codec::{Decode, Encode};
+use codec::{FullCodec, MaxEncodedLen};
 use frame_support::dispatch::DispatchResult;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
-    traits::{AtLeast32Bit, MaybeSerializeDeserialize},
+    traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
     DispatchError, RuntimeDebug,
 };
 use sp_std::{
@@ -17,6 +17,7 @@ use sp_std::{
     fmt::Debug,
 };
 
+use frame_support::Parameter;
 use primitives::{AssetId, AuctionId, BitCountryId, FungibleTokenId, ItemId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
@@ -72,7 +73,7 @@ pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 /// Abstraction over a simple auction system.
 pub trait Auction<AccountId, BlockNumber> {
     /// The price to bid.
-    type Balance: AtLeast32Bit + FullCodec + Copy + MaybeSerializeDeserialize + Debug + Default;
+    type Balance: AtLeast32BitUnsigned + FullCodec + Copy + Default + Debug;
 
     /// The auction info of `id`
     fn auction_info(id: AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
