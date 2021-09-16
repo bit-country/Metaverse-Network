@@ -1,20 +1,28 @@
-use bitcountry_runtime::Block;
-use primitives::{AccountId, Balance, Index};
-use sc_rpc_api::DenyUnsafe;
+//! A collection of node-specific RPC methods.
+//! Substrate provides the `sc-rpc` crate, which defines the core RPC layer
+//! used by Substrate nodes. This file extends those RPC definitions with
+//! capabilities that are specific to this project's runtime configuration.
+
+#![warn(missing_docs)]
+
+use std::sync::Arc;
+
+use bitcountry_runtime::{AccountId, Block};
+use primitives::{Balance, Index};
+pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
-use std::sync::Arc;
 
 /// Full client dependencies.
 pub struct FullDeps<C, P> {
     /// The client instance to use.
     pub client: Arc<C>,
-    /// Whether to deny unsafe calls
-    pub deny_unsafe: DenyUnsafe,
     /// Transaction pool instance.
     pub pool: Arc<P>,
+    /// Whether to deny unsafe calls
+    pub deny_unsafe: DenyUnsafe,
 }
 
 /// Instantiate all full RPC extensions.
@@ -47,6 +55,11 @@ where
     io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
         client.clone(),
     )));
+
+    // Extend this RPC with a custom API by using the following syntax.
+    // `YourRpcStruct` should have a reference to a client, which is needed
+    // to call into the runtime.
+    // `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
 
     io
 }

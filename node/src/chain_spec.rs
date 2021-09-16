@@ -1,13 +1,13 @@
-use bitcountry_runtime::constants::currency::*;
-use bitcountry_runtime::Block;
 use bitcountry_runtime::{
-    wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContinuumConfig,
-    CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig,
-    SessionConfig, SessionKeys, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
-    TechnicalCommitteeConfig, BABE_GENESIS_EPOCH_CONFIG,
+    constants::currency::*, opaque::Block, opaque::SessionKeys, wasm_binary_unwrap,
+    AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContinuumConfig, CouncilConfig,
+    DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig,
+    SessionConfig, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
+    BABE_GENESIS_EPOCH_CONFIG,
 };
 use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+pub use primitives::{AccountId, Balance, Signature};
 use sc_chain_spec::ChainSpecExtension;
 use sc_chain_spec::Properties;
 use sc_service::ChainType;
@@ -21,9 +21,6 @@ use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     Perbill,
 };
-
-pub use bitcountry_runtime::GenesisConfig;
-pub use primitives::{AccountId, Balance, Signature};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -41,6 +38,8 @@ pub struct Extensions {
     pub fork_blocks: sc_client_api::ForkBlocks<Block>,
     /// Known bad block hashes.
     pub bad_blocks: sc_client_api::BadBlocks<Block>,
+    /// The light sync state extension used by the sync-state rpc.
+    pub light_sync_state: sc_sync_state_rpc::LightSyncStateExtension,
 }
 
 /// Specialized `ChainSpec`.
@@ -96,7 +95,7 @@ pub fn authority_keys_from_seed(
     )
 }
 
-fn development_config_genesis() -> GenesisConfig {
+fn development_config_genesis() -> bitcountry_runtime::GenesisConfig {
     testnet_genesis(
         vec![authority_keys_from_seed("Alice")],
         vec![],
@@ -120,7 +119,7 @@ pub fn development_config() -> ChainSpec {
     )
 }
 
-fn local_testnet_genesis() -> GenesisConfig {
+fn local_testnet_genesis() -> bitcountry_runtime::GenesisConfig {
     testnet_genesis(
         vec![
             authority_keys_from_seed("Alice"),
@@ -148,7 +147,7 @@ pub fn local_testnet_config() -> ChainSpec {
     )
 }
 
-fn tewai_testnet_genesis() -> GenesisConfig {
+fn tewai_testnet_genesis() -> bitcountry_runtime::GenesisConfig {
     let initial_authorities: Vec<(
         AccountId,
         AccountId,
@@ -220,7 +219,7 @@ fn testnet_genesis(
     root_key: AccountId,
     endowed_accounts: Option<Vec<AccountId>>,
     enable_println: bool,
-) -> bitcountry_runtime::GenesisConfig {
+) -> GenesisConfig {
     // Initial endowned if no endowned accounts
     let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(|| {
         vec![
@@ -279,20 +278,20 @@ fn testnet_genesis(
     const ENDOWMENT: Balance = 300_000_000 * DOLLARS;
     const STASH: Balance = ENDOWMENT / 100;
 
-    bitcountry_runtime::GenesisConfig {
-        frame_system: Some(SystemConfig {
+    GenesisConfig {
+        system: SystemConfig {
             code: wasm_binary_unwrap().to_vec(),
             changes_trie_config: Default::default(),
-        }),
-        pallet_balances: Some(BalancesConfig {
+        },
+        balances: BalancesConfig {
             balances: endowed_accounts
                 .iter()
                 .cloned()
                 .map(|x| (x, ENDOWMENT))
                 .collect(),
-        }),
-        pallet_indices: Some(IndicesConfig { indices: vec![] }),
-        pallet_session: Some(SessionConfig {
+        },
+        indices: IndicesConfig { indices: vec![] },
+        session: SessionConfig {
             keys: initial_authorities
                 .iter()
                 .map(|x| {
@@ -303,50 +302,51 @@ fn testnet_genesis(
                     )
                 })
                 .collect::<Vec<_>>(),
-        }),
-        pallet_staking: Some(StakingConfig {
+        },
+        staking: StakingConfig {
             validator_count: initial_authorities.len() as u32 * 2,
             minimum_validator_count: initial_authorities.len() as u32,
             invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
             slash_reward_fraction: Perbill::from_percent(10),
             stakers,
             ..Default::default()
-        }),
-        pallet_democracy: Some(DemocracyConfig::default()),
-        pallet_elections_phragmen: Some(ElectionsConfig {
+        },
+        democracy: DemocracyConfig::default(),
+        elections: ElectionsConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 2)
                 .cloned()
                 .map(|member| (member, STASH))
                 .collect(),
-        }),
-        pallet_collective_Instance1: Some(CouncilConfig::default()),
-        pallet_collective_Instance2: Some(TechnicalCommitteeConfig {
+        },
+        council: CouncilConfig::default(),
+        technical_committee: TechnicalCommitteeConfig {
             members: endowed_accounts
                 .iter()
                 .take((num_endowed_accounts + 1) / 2)
                 .cloned()
                 .collect(),
             phantom: Default::default(),
-        }),
-        pallet_sudo: Some(SudoConfig { key: root_key }),
-        pallet_babe: Some(BabeConfig {
+        },
+        sudo: SudoConfig { key: root_key },
+        babe: BabeConfig {
             authorities: vec![],
-        }),
-        pallet_im_online: Some(ImOnlineConfig { keys: vec![] }),
-        pallet_authority_discovery: Some(AuthorityDiscoveryConfig { keys: vec![] }),
-        pallet_grandpa: Some(GrandpaConfig {
+            epoch_config: Some(bitcountry_runtime::BABE_GENESIS_EPOCH_CONFIG),
+        },
+        im_online: ImOnlineConfig { keys: vec![] },
+        authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
+        grandpa: GrandpaConfig {
             authorities: vec![],
-        }),
-        pallet_treasury: Some(Default::default()),
-        pallet_vesting: Some(Default::default()),
-        continuum: Some(ContinuumConfig {
+        },
+        treasury: Default::default(),
+        vesting: Default::default(),
+        continuum: ContinuumConfig {
             initial_active_session: Default::default(),
             initial_auction_rate: 5,
             initial_max_bound: (-100, 100),
             spot_price: 5 * DOLLARS,
-        }),
+        },
     }
 }
 

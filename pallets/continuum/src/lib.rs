@@ -29,6 +29,7 @@ use sp_runtime::{
     DispatchError, FixedPointNumber, RuntimeDebug,
 };
 use sp_std::vec;
+use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionType, ListingLevel};
 use bc_primitives::{BitCountryStruct, BitCountryTrait};
