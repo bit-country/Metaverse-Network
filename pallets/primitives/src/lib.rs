@@ -85,6 +85,10 @@ pub type AuctionId = u64;
 pub type SpotId = u64;
 /// LandId
 pub type LandId = u64;
+/// LandUnitId
+pub type LandUnitId = u128;
+/// EstateId
+pub type EstateId = u64;
 /// Social Token Id type
 pub type TokenId = u64;
 

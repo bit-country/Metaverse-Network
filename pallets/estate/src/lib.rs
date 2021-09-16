@@ -23,7 +23,7 @@ use frame_support::ensure;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, BitCountryId, CurrencyId, LandId};
+use primitives::{Balance, BitCountryId, CurrencyId, LandId, LandUnitId, EstateId};
 use sp_runtime::{
     traits::{AccountIdConversion, One},
     DispatchError, ModuleId, RuntimeDebug,
@@ -98,8 +98,10 @@ pub mod pallet {
 
     /// Get max bound
     #[pallet::storage]
-    #[pallet::getter(fn get_max_bound)]
-    pub type MaxBound<T: Config> = StorageValue<_, (i32, i32), ValueQuery>;
+    #[pallet::getter(fn get_max_bounds)]
+    pub type MaxBounds<T: Config> = StorageMap<_, Blake2_128Concat, BitCountryId, (i32, i32), ValueQuery>;
+
+    // StorageValue<_, (i32, i32), ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -108,7 +110,7 @@ pub mod pallet {
         NewLandCreated(Vec<LandId>),
         TransferredLand(LandId, T::AccountId, T::AccountId),
         NewLandBlockPurchased(LandId, BitCountryId, (i32, i32)),
-        NewMaxBoundSet((i32, i32)),
+        MaxBoundSet(BitCountryId, (i32, i32)),
     }
 
     #[pallet::error]
@@ -126,7 +128,7 @@ pub mod pallet {
         /// Land estate is not available
         LandBlockIsNotAvailable,
         /// Land estate is out of bound
-        LandBlockIsOutOfBound,
+        LandBlockIsOutOfBound
     }
 
     #[pallet::call]
@@ -134,14 +136,14 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         pub(super) fn set_max_bounds(
             origin: OriginFor<T>,
+            bc_id: BitCountryId,
             new_bound: (i32, i32),
         ) -> DispatchResultWithPostInfo {
-            /// Only execute by governance
-            /// T::CouncilOrigin::ensure_origin(origin)?;
             ensure_root(origin)?;
 
-            MaxBound::<T>::set(new_bound);
-            Self::deposit_event(Event::<T>::NewMaxBoundSet(new_bound));
+            MaxBounds::<T>::insert(bc_id, new_bound);
+
+            Self::deposit_event(Event::<T>::MaxBoundSet(bc_id, new_bound));
 
             Ok(().into())
         }
@@ -167,7 +169,7 @@ pub mod pallet {
             );
 
             /// Check whether the coordinate is within the bound
-            let max_bound = MaxBound::<T>::get();
+            let max_bound = MaxBounds::<T>::get(bc_id);
             ensure!(
                 (coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
                     && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
@@ -292,6 +294,92 @@ pub mod pallet {
                     Self::add_land_to_new_owner(land_id, &who);
                     Self::deposit_event(Event::<T>::TransferredLand(
                         land_id.clone(),
+                        who.clone(),
+                        to,
+                    ));
+
+                    Ok(().into())
+                },
+            )
+        }
+
+        #[pallet::weight(10_000)]
+        pub(super) fn buy_estate(
+            origin: OriginFor<T>,
+            bc_id: BitCountryId,
+            blockId: LandId,
+            coordinate: (i32, i32),
+            quantity: u8,
+        ) -> DispatchResultWithPostInfo {
+            let sender = ensure_signed(origin)?;
+
+            ensure!(
+                T::BitCountryInfoSource::check_ownership(&sender, &bc_id),
+                Error::<T>::NoPermission
+            );
+
+            let minimum_land_price = T::MinimumLandPrice::get();
+            let total_cost = minimum_land_price * Into::<BalanceOf<T>>::into(quantity);
+            ensure!(
+                T::Currency::free_balance(&sender) > total_cost,
+                Error::<T>::InsufficientFund
+            );
+            let land_treasury = Self::account_id();
+            T::Currency::transfer(
+                &sender,
+                &land_treasury,
+                total_cost,
+                ExistenceRequirement::KeepAlive,
+            )?;
+
+            let mut new_land_ids: Vec<LandId> = Vec::new();
+
+            for _ in 0..quantity {
+                let land_id = Self::get_new_land_id()?;
+                new_land_ids.push(land_id);
+
+                LandOwner::<T>::insert(land_id, &sender, ());
+
+                Self::add_land_to_new_owner(land_id, &sender);
+            }
+
+            let total_land_count = Self::all_lands_count();
+
+            let new_total_land_count = total_land_count
+                .checked_add(quantity.into())
+                .ok_or("Overflow adding new count to total lands")?;
+            AllLandsCount::<T>::put(new_total_land_count);
+            Self::deposit_event(Event::<T>::NewLandCreated(new_land_ids.clone()));
+
+            Ok(().into())
+        }
+
+        #[pallet::weight(10_000)]
+        pub(super) fn transfer_estate(
+            origin: OriginFor<T>,
+            to: T::AccountId,
+            estate_id: EstateId,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+            /// Get owner of the land
+            LandOwner::<T>::try_mutate_exists(
+                &estate_id,
+                &who,
+                |land_by_owner| -> DispatchResultWithPostInfo {
+                    //ensure there is record of the land owner with land id, account id and delete them
+                    ensure!(land_by_owner.is_some(), Error::<T>::NoPermission);
+
+                    if who == to {
+                        /// no change needed
+                        return Ok(().into());
+                    }
+
+                    *land_by_owner = None;
+                    LandOwner::<T>::insert(estate_id.clone(), to.clone(), ());
+
+                    Self::add_land_to_new_owner(estate_id, &who);
+                    Self::deposit_event(Event::<T>::TransferredLand(
+                        estate_id.clone(),
                         who.clone(),
                         to,
                     ));
