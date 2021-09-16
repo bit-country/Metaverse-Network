@@ -554,7 +554,7 @@ impl<T: Config> Pallet<T> {
                     Default::default(),
                     now,
                     ListingLevel::Global,
-                )?;
+                );
                 // TODO Emit event
             }
         }

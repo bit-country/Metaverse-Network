@@ -21,6 +21,7 @@
 use auction_manager::SwapManager;
 use bc_primitives::*;
 use codec::{Decode, Encode};
+use frame_support::dispatch::DispatchResult;
 use frame_support::pallet_prelude::*;
 use frame_support::{ensure, pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
@@ -28,7 +29,7 @@ use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
 use sp_runtime::{
     traits::{AccountIdConversion, One},
-    DispatchError, DispatchResult, RuntimeDebug,
+    DispatchError, RuntimeDebug,
 };
 use sp_std::vec;
 use sp_std::vec::Vec;
@@ -392,7 +393,8 @@ impl<T: Config> Pallet<T> {
             ));
 
             Ok(())
-        })
+        });
+        Ok(())
     }
 
     #[transactional]
@@ -728,6 +730,7 @@ impl<T: Config> SwapManager<T::AccountId, FungibleTokenId, Balance> for Pallet<T
         max_amount_a: Balance,
         max_amount_b: Balance,
     ) -> DispatchResult {
-        Self::do_add_liquidity(who, token_id_a, token_id_b, max_amount_a, max_amount_b)
+        Self::do_add_liquidity(who, token_id_a, token_id_b, max_amount_a, max_amount_b)?;
+        Ok(())
     }
 }

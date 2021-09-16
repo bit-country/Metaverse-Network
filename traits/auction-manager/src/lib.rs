@@ -5,11 +5,12 @@
 
 use codec::FullCodec;
 use codec::{Decode, Encode};
+use frame_support::dispatch::DispatchResult;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
     traits::{AtLeast32Bit, MaybeSerializeDeserialize},
-    DispatchError, DispatchResult, RuntimeDebug,
+    DispatchError, RuntimeDebug,
 };
 use sp_std::{
     cmp::{Eq, PartialEq},

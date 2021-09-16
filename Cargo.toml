@@ -15,4 +15,6 @@ exclude = [
     '/dapps/airdrop',
     '/dapps/countrytoken',
     'pallets/oracle',
+    'modules/*',
+#    'pallets/currencies',
 ]

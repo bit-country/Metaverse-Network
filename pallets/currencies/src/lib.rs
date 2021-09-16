@@ -38,6 +38,7 @@ use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
 use orml_traits::{
     arithmetic::{Signed, SimpleArithmetic},
+    currency::TransferAll,
     BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency,
     BasicReservableCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended,
     MultiLockableCurrency, MultiReservableCurrency,
@@ -83,7 +84,8 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        type MultiSocialCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId>
+        type MultiSocialCurrency: TransferAll<Self::AccountId>
+            + MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId>
             + MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>
             + MultiReservableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
         type NativeCurrency: BasicCurrencyExtended<

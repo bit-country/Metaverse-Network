@@ -10,19 +10,19 @@ version = '0.0.1'
 
 [dependencies]
 # third-party dependencies
-codec = { package = "parity-scale-codec", version = "2.2", default-features = false, features = ["derive", "max-encoded-len"] }
-serde = { version = "1.0.101", optional = true }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
+serde = { version = "1.0.124", optional = true }
 
 # primitives
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
 
 # frame dependencies
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
 
 #chainbridge = { git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
 hex = { version = "0.4", default-features = false }
@@ -30,8 +30,8 @@ hex = { version = "0.4", default-features = false }
 [dev-dependencies]
 blake2-rfc = { version = "0.2.18", default-features = false }
 hex-literal = "0.3"
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
 
 [features]
 default = ["std"]

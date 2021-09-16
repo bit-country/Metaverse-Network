@@ -13,7 +13,7 @@ targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
 serde = { version = "1.0.124", optional = true, features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "2.2.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
@@ -36,9 +36,9 @@ bc-primitives = { path = "../../traits/bc-primitives", default-features = false 
 auction-manager = { path = "../../traits/auction-manager", default-features = false }
 
 # Orml packages
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
 
 [dependencies.nft]
 default-features = false
