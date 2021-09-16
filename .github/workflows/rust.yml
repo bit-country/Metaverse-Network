@@ -28,9 +28,9 @@ jobs:
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           source ~/.cargo/env
-          rustup update nightly-2021-03-01
-          rustup target add wasm32-unknown-unknown --toolchain nightly-2021-03-01
-          rustup default nightly-2021-03-01
+          rustup update nightly-2021-06-17
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2021-06-17
+          rustup default nightly-2021-06-17
       - name: Check Rust version
         run: rustup show
       - name: Check Build
