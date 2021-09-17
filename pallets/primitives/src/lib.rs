@@ -25,6 +25,8 @@ use sp_runtime::{
 	MultiSignature, OpaqueExtrinsic,
 };
 
+use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::AtLeast32Bit;
@@ -66,7 +68,7 @@ pub type DigestItem = generic::DigestItem<Hash>;
 /// Header type.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type.
-pub type Block = generic::Block<Header, OpaqueExtrinsic>;
+pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// Block ID.
 pub type BlockId = generic::BlockId<Block>;
 /// Country Id
