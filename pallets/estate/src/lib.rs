@@ -18,7 +18,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bc_primitives::*;
-use codec::{Decode, Encode};
 use frame_support::ensure;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
@@ -368,213 +367,6 @@ pub mod pallet {
 
             Ok(().into())
         }
-
-
-        #[pallet::weight(10_000)]
-        pub(super) fn buy_land_block(
-            origin: OriginFor<T>,
-            bc_id: BitCountryId,
-            coordinate: (i32, i32),
-        ) -> DispatchResultWithPostInfo {
-            /// Check ownership
-            let sender = ensure_signed(origin)?;
-
-            ensure!(
-                T::BitCountryInfoSource::check_ownership(&sender, &bc_id),
-                Error::<T>::NoPermission
-            );
-
-            /// Check whether the coordinate is exists
-            ensure!(
-                !LandBlocks::<T>::contains_key(bc_id, coordinate),
-                Error::<T>::LandBlockIsNotAvailable
-            );
-
-            /// Check whether the coordinate is within the bound
-            let max_bound = MaxBounds::<T>::get(bc_id);
-            ensure!(
-                (coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
-                    && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
-                Error::<T>::LandBlockIsOutOfBound
-            );
-
-            /// Check minimum balance and transfer
-            let minimum_land_price = T::MinimumLandPrice::get();
-            ensure!(
-                T::Currency::free_balance(&sender) > minimum_land_price,
-                Error::<T>::InsufficientFund
-            );
-            let land_treasury = Self::account_id();
-            T::Currency::transfer(
-                &sender,
-                &land_treasury,
-                minimum_land_price,
-                ExistenceRequirement::KeepAlive,
-            )?;
-
-            /// Generate new land id
-            let new_land_id = Self::get_new_land_id()?;
-
-            /// Add to land owners
-            LandOwner::<T>::insert(new_land_id, &sender, ());
-            Self::add_land_to_new_owner(new_land_id, &sender);
-
-            /// Update total land count
-            let total_land_count = Self::all_lands_count();
-            let new_total_land_count = total_land_count
-                .checked_add(One::one())
-                .ok_or("Overflow adding new count to total lands")?;
-            AllLandsCount::<T>::put(new_total_land_count);
-
-            /// Update land info
-            LandInfo::<T>::insert(new_land_id, (bc_id, coordinate));
-
-            /// Update land blocks
-            LandBlocks::<T>::insert(bc_id, coordinate, ());
-
-            Self::deposit_event(Event::<T>::NewLandBlockPurchased(
-                new_land_id.clone(),
-                bc_id,
-                coordinate,
-            ));
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        pub(super) fn buy_land(
-            origin: OriginFor<T>,
-            bc_id: BitCountryId,
-            quantity: u8,
-        ) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin)?;
-
-            ensure!(
-                T::BitCountryInfoSource::check_ownership(&sender, &bc_id),
-                Error::<T>::NoPermission
-            );
-
-            let minimum_land_price = T::MinimumLandPrice::get();
-            let total_cost = minimum_land_price * Into::<BalanceOf<T>>::into(quantity);
-            ensure!(
-                T::Currency::free_balance(&sender) > total_cost,
-                Error::<T>::InsufficientFund
-            );
-            let land_treasury = Self::account_id();
-            T::Currency::transfer(
-                &sender,
-                &land_treasury,
-                total_cost,
-                ExistenceRequirement::KeepAlive,
-            )?;
-
-            let mut new_land_ids: Vec<LandId> = Vec::new();
-
-            for _ in 0..quantity {
-                let land_id = Self::get_new_land_id()?;
-                new_land_ids.push(land_id);
-
-                LandOwner::<T>::insert(land_id, &sender, ());
-
-                Self::add_land_to_new_owner(land_id, &sender);
-            }
-
-            let total_land_count = Self::all_lands_count();
-
-            let new_total_land_count = total_land_count
-                .checked_add(quantity.into())
-                .ok_or("Overflow adding new count to total lands")?;
-            AllLandsCount::<T>::put(new_total_land_count);
-            Self::deposit_event(Event::<T>::NewLandCreated(new_land_ids.clone()));
-
-            Ok(().into())
-        }
-
-        #[pallet::weight(10_000)]
-        pub(super) fn transfer_land_old(
-            origin: OriginFor<T>,
-            to: T::AccountId,
-            land_id: LandId,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            /// Get owner of the land
-            LandOwner::<T>::try_mutate_exists(
-                &land_id,
-                &who,
-                |land_by_owner| -> DispatchResultWithPostInfo {
-                    //ensure there is record of the land owner with land id, account id and delete them
-                    ensure!(land_by_owner.is_some(), Error::<T>::NoPermission);
-
-                    if who == to {
-                        /// no change needed
-                        return Ok(().into());
-                    }
-
-                    *land_by_owner = None;
-                    LandOwner::<T>::insert(land_id.clone(), to.clone(), ());
-
-                    Self::add_land_to_new_owner(land_id, &who);
-                    Self::deposit_event(Event::<T>::TransferredLand(
-                        land_id.clone(),
-                        who.clone(),
-                        to,
-                    ));
-
-                    Ok(().into())
-                },
-            )
-        }
-
-        #[pallet::weight(10_000)]
-        pub(super) fn buy_estate(
-            origin: OriginFor<T>,
-            bc_id: BitCountryId,
-            blockId: LandId,
-            coordinate: (i32, i32),
-            quantity: u8,
-        ) -> DispatchResultWithPostInfo {
-            let sender = ensure_signed(origin)?;
-
-            ensure!(
-                T::BitCountryInfoSource::check_ownership(&sender, &bc_id),
-                Error::<T>::NoPermission
-            );
-
-            let minimum_land_price = T::MinimumLandPrice::get();
-            let total_cost = minimum_land_price * Into::<BalanceOf<T>>::into(quantity);
-            ensure!(
-                T::Currency::free_balance(&sender) > total_cost,
-                Error::<T>::InsufficientFund
-            );
-            let land_treasury = Self::account_id();
-            T::Currency::transfer(
-                &sender,
-                &land_treasury,
-                total_cost,
-                ExistenceRequirement::KeepAlive,
-            )?;
-
-            let mut new_land_ids: Vec<LandId> = Vec::new();
-
-            for _ in 0..quantity {
-                let land_id = Self::get_new_land_id()?;
-                new_land_ids.push(land_id);
-
-                LandOwner::<T>::insert(land_id, &sender, ());
-
-                Self::add_land_to_new_owner(land_id, &sender);
-            }
-
-            let total_land_count = Self::all_lands_count();
-
-            let new_total_land_count = total_land_count
-                .checked_add(quantity.into())
-                .ok_or("Overflow adding new count to total lands")?;
-            AllLandsCount::<T>::put(new_total_land_count);
-            Self::deposit_event(Event::<T>::NewLandCreated(new_land_ids.clone()));
-
-            Ok(().into())
-        }
     }
 
     #[pallet::hooks]
@@ -585,44 +377,14 @@ impl<T: Config> Module<T> {
     /// Reads the nonce from storage, increments the stored nonce, and returns
     /// the encoded nonce to the caller.
 
-    fn get_new_land_id() -> Result<LandId, DispatchError> {
-        let land_id = NextLandId::<T>::try_mutate(|id| -> Result<LandId, DispatchError> {
-            let current_id = *id;
-            *id = id
-                .checked_add(One::one())
-                .ok_or(Error::<T>::NoAvailableLandId)?;
-            Ok(current_id)
-        })?;
-        Ok(land_id)
-    }
 
     fn account_id() -> T::AccountId {
         T::LandTreasury::get().into_account()
     }
 
-    fn add_land_to_new_owner(land_id: LandId, sender: &T::AccountId) -> DispatchResult {
-        if LandOwner::<T>::contains_key(land_id, &sender) {
-            LandByOwner::<T>::try_mutate(&sender, |land_ids| -> DispatchResult {
-                /// Check if the asset_id already in the owner
-                ensure!(
-                    !land_ids.iter().any(|i| land_id == *i),
-                    Error::<T>::LandIdAlreadyExist
-                );
-                land_ids.push(land_id);
-                Ok(())
-            })?;
-        } else {
-            let mut new_land_vec = Vec::<LandId>::new();
-            new_land_vec.push(land_id);
-            LandByOwner::<T>::insert(&sender, new_land_vec)
-        }
-        Ok(())
-    }
-
     fn add_land_unit_to_new_owner(land_unit_id: LandUnitId, sender: &T::AccountId) -> DispatchResult {
         if LandUnitOwner::<T>::contains_key(land_unit_id, &sender) {
             LandUnitByOwner::<T>::try_mutate(&sender, |land_unit_ids| -> DispatchResult {
-                /// Check if the asset_id already in the owner
                 ensure!(
                     !land_unit_ids.iter().any(|i| land_unit_id == *i),
                     Error::<T>::LandIdAlreadyExist
@@ -647,6 +409,10 @@ impl<T: Config> Module<T> {
                     Error::<T>::EstateIdAlreadyExist
                 );
                 estate_ids.push(estate_id);
+
+
+                // TODO: need to transfer ownership of all the related land unit?
+
                 Ok(())
             })?;
         } else {
