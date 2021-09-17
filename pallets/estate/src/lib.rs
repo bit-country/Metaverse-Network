@@ -143,6 +143,15 @@ pub mod pallet {
     pub type Estates<T: Config> =
     StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, EstateId, Vec<LandUnitId>, OptionQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn get_estate_owner)]
+    pub type EstateOwner<T: Config> =
+    StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, (), OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn get_estate_by_owner)]
+    pub type EstateByOwner<T: Config> =
+    StorageMap<_, Blake2_128Concat, T::AccountId, Vec<EstateId>, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -172,6 +181,7 @@ pub mod pallet {
         InsufficientFund,
         /// Land id already exist
         LandIdAlreadyExist,
+        EstateIdAlreadyExist,
         /// Land estate is not available
         LandBlockIsNotAvailable,
         /// Land estate is out of bound
@@ -334,7 +344,30 @@ pub mod pallet {
             Ok(().into())
         }
 
+        #[pallet::weight(10_000)]
+        pub(super) fn transfer_estate(
+            origin: OriginFor<T>,
+            to: T::AccountId,
+            estate_id: EstateId,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
 
+            if who == to {
+                /// no change needed
+                return Ok(().into());
+            }
+
+            EstateOwner::<T>::insert(estate_id.clone(), to.clone(), ());
+
+            Self::add_estate_to_new_owner(estate_id, &who);
+            Self::deposit_event(Event::<T>::TransferredEstate(
+                estate_id.clone(),
+                who.clone(),
+                to,
+            ));
+
+            Ok(().into())
+        }
 
 
         #[pallet::weight(10_000)]
@@ -542,41 +575,6 @@ pub mod pallet {
 
             Ok(().into())
         }
-
-        #[pallet::weight(10_000)]
-        pub(super) fn transfer_estate(
-            origin: OriginFor<T>,
-            to: T::AccountId,
-            estate_id: EstateId,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
-            /// Get owner of the land
-            LandOwner::<T>::try_mutate_exists(
-                &estate_id,
-                &who,
-                |land_by_owner| -> DispatchResultWithPostInfo {
-                    //ensure there is record of the land owner with land id, account id and delete them
-                    ensure!(land_by_owner.is_some(), Error::<T>::NoPermission);
-
-                    if who == to {
-                        /// no change needed
-                        return Ok(().into());
-                    }
-
-                    *land_by_owner = None;
-                    LandOwner::<T>::insert(estate_id.clone(), to.clone(), ());
-
-                    Self::add_land_to_new_owner(estate_id, &who);
-                    Self::deposit_event(Event::<T>::TransferredLand(
-                        estate_id.clone(),
-                        who.clone(),
-                        to,
-                    ));
-
-                    Ok(().into())
-                },
-            )
-        }
     }
 
     #[pallet::hooks]
@@ -636,6 +634,25 @@ impl<T: Config> Module<T> {
             let mut new_land_unit_vec = Vec::<LandUnitId>::new();
             new_land_unit_vec.push(land_unit_id);
             LandUnitByOwner::<T>::insert(&sender, new_land_unit_vec)
+        }
+        Ok(())
+    }
+
+    fn add_estate_to_new_owner(estate_id: EstateId, sender: &T::AccountId) -> DispatchResult {
+        if EstateOwner::<T>::contains_key(estate_id, &sender) {
+            EstateByOwner::<T>::try_mutate(&sender, |estate_ids| -> DispatchResult {
+                /// Check if the estate_id already in the owner
+                ensure!(
+                    !estate_ids.iter().any(|i| estate_id == *i),
+                    Error::<T>::EstateIdAlreadyExist
+                );
+                estate_ids.push(estate_id);
+                Ok(())
+            })?;
+        } else {
+            let mut new_land_unit_vec = Vec::<EstateId>::new();
+            new_land_unit_vec.push(estate_id);
+            EstateByOwner::<T>::insert(&sender, new_land_unit_vec)
         }
         Ok(())
     }
