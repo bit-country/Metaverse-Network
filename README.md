@@ -7,7 +7,7 @@
 </p>
 
 <div align="center">
-<h1>Bit.Country Network</h1>
+<h1>[Bit.Country] Metaverse Network</h1>
 
 ## Start your own metaverse. An Ethereum-compatible Network for Metaverses & Games
 
@@ -31,7 +31,7 @@ Development Note: It is still a WIP.
 
 # 1. Introduction
 
-Bit.Country is an EVM-enabled blockchain network for user-created metaverses and games.
+Metaverse Network is an EVM-enabled blockchain network for user-created metaverses and games.
 
 Everyone can start their own metaverse for their people with the 3D world, NFTs, play-to-earn & build communities to earn, and takes community engagement to a new dimension on web3.0.
 
