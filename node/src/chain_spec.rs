@@ -1,9 +1,11 @@
-use node_template_runtime::{
-	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig, Signature, SudoConfig, SystemConfig,
-	WASM_BINARY,
+use bitcountry_runtime::{
+	constants::currency::*, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, GenesisConfig,
+	GrandpaConfig, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
-use sc_service::ChainType;
+use hex_literal::hex;
+use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::crypto::UncheckedInto;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
@@ -41,13 +43,12 @@ pub fn development_config() -> Result<ChainSpec, String> {
 
 	Ok(ChainSpec::from_genesis(
 		// Name
-		"Development",
+		"Metaverse Dev",
 		// ID
 		"dev",
 		ChainType::Development,
 		move || {
 			testnet_genesis(
-				wasm_binary,
 				// Initial PoA authorities
 				vec![authority_keys_from_seed("Alice")],
 				// Sudo account
@@ -69,7 +70,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		// Protocol ID
 		None,
 		// Properties
-		None,
+		Some(bitcountry_properties()),
 		// Extensions
 		None,
 	))
@@ -80,13 +81,12 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 
 	Ok(ChainSpec::from_genesis(
 		// Name
-		"Local Testnet",
+		"Metaverse Local",
 		// ID
 		"local_testnet",
 		ChainType::Local,
 		move || {
 			testnet_genesis(
-				wasm_binary,
 				// Initial PoA authorities
 				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
 				// Sudo account
@@ -116,7 +116,67 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		// Protocol ID
 		None,
 		// Properties
+		Some(bitcountry_properties()),
+		// Extensions
 		None,
+	))
+}
+
+pub fn tewai_testnet_config() -> Result<ChainSpec, String> {
+	ChainSpec::from_json_bytes(&include_bytes!("../../node/res/tewaiChainNodeSpecRaw.json")[..])
+}
+
+pub fn metaverse_genesis() -> GenesisConfig {
+	let aura_authorities: Vec<(AuraId, GrandpaId)> = vec![
+		(
+			// 5FpqLqqbFyYWgYtgQS11HvTkaripk1nPFFti6CwDaMj8cSvu
+			hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].unchecked_into(),
+			hex!["2098c0df8dd97903bf2203bda7ba5aa6afaf3b5e353f60bc42000dca351c6a20"].unchecked_into(),
+		),
+		(
+			// 5EUXjqNx3Rsh3wtDJAPBzEvJdGVD3QmxmMUjrfARNr4uh7pq
+			hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
+			hex!["ed0524b8e41b652c36381c0d77ab80129c39070a808ab53586177804291acc79"].unchecked_into(),
+		),
+	];
+
+	// generated with secret: subkey inspect "$secret"/fir
+	let root_key: AccountId = hex![
+		// 5Dqy8KtwmGJd6Tkar8Va3Uw7xvX4RQAhrygUk3T8vUxDXf2a
+		"4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"
+	]
+	.into();
+
+	let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
+
+	testnet_genesis(
+		// Initial PoA authorities
+		aura_authorities,
+		// Sudo account
+		root_key,
+		// Pre-funded accounts
+		endowed_accounts,
+		true,
+	)
+}
+
+pub fn metaverse_testnet_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+	Ok(ChainSpec::from_genesis(
+		// Name
+		"Metaverse Testnet",
+		// ID
+		"local_testnet",
+		ChainType::Live,
+		metaverse_genesis,
+		// Bootnodes
+		vec![],
+		// Telemetry
+		None,
+		// Protocol ID
+		None,
+		// Properties
+		Some(bitcountry_properties()),
 		// Extensions
 		None,
 	))
@@ -124,7 +184,6 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
-	wasm_binary: &[u8],
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
@@ -133,7 +192,7 @@ fn testnet_genesis(
 	GenesisConfig {
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
-			code: wasm_binary.to_vec(),
+			code: wasm_binary_unwrap().to_vec(),
 			changes_trie_config: Default::default(),
 		},
 		balances: BalancesConfig {
@@ -150,7 +209,26 @@ fn testnet_genesis(
 			// Assign network admin rights.
 			key: root_key,
 		},
+		council: Default::default(),
+		tokens: Default::default(),
+		vesting: Default::default(),
+		continuum: ContinuumConfig {
+			initial_active_session: Default::default(),
+			initial_auction_rate: 5,
+			initial_max_bound: (-100, 100),
+			spot_price: 5 * DOLLARS,
+		},
 	}
+}
+
+pub fn bitcountry_properties() -> Properties {
+	let mut properties = Properties::new();
+
+	properties.insert("ss58Format".into(), 42.into());
+	properties.insert("tokenDecimals".into(), 18.into());
+	properties.insert("tokenSymbol".into(), "NUUM".into());
+
+	properties
 }
 
 //use bitcountry_runtime::{

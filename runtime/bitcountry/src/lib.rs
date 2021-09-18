@@ -6,15 +6,34 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+/// Wasm binary unwrapped. If built with `SKIP_WASM_BUILD`, the function panics.
+#[cfg(feature = "std")]
+pub fn wasm_binary_unwrap() -> &'static [u8] {
+	WASM_BINARY.expect(
+		"Development wasm binary is not available. This means the client is built with \
+		 `SKIP_WASM_BUILD` flag and it is only usable for production chains. Please rebuild with \
+		 the flag disabled.",
+	)
+}
+
+// External imports
+use currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
+mod weights;
+// primitives imports
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{
+	crypto::KeyTypeId,
+	u32_trait::{_1, _2, _3, _4, _5},
+	OpaqueMetadata,
+};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, Verify, Zero,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, NumberFor,
+		Verify, Zero,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
@@ -27,13 +46,14 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{KeyOwnerProofSystem, Randomness, StorageInfo},
+	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		IdentityFee, Weight,
 	},
 	PalletId, StorageValue,
 };
+use frame_system::RawOrigin;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
@@ -45,7 +65,7 @@ pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
 /// Constant values used within the runtime.
-mod constants;
+pub mod constants;
 use constants::{currency::*, time::*};
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
@@ -175,7 +195,10 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
+	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
+	pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -248,6 +271,26 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
+parameter_types! {
+	pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
+	pub const CouncilMaxProposals: u32 = 100;
+	pub const CouncilMaxMembers: u32 = 10;
+}
+
+// Council related pallets
+type CouncilCollective = pallet_collective::Instance1;
+
+impl pallet_collective::Config<CouncilCollective> for Runtime {
+	type Origin = Origin;
+	type Proposal = Call;
+	type Event = Event;
+	type MotionDuration = CouncilMotionDuration;
+	type MaxProposals = CouncilMaxProposals;
+	type MaxMembers = CouncilMaxMembers;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
 // Metaverse network related pallets
 
 parameter_type_with_key! {
@@ -257,7 +300,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+	pub TreasuryModuleAccount: AccountId = MetaverseNetworkTreasuryPalletId::get().into_account();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -271,53 +314,53 @@ impl orml_tokens::Config for Runtime {
 	type MaxLocks = MaxLocks;
 	type DustRemovalWhitelist = ();
 }
-//
-//parameter_types! {
-//    pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
-//}
-//
-//impl currencies::Config for Runtime {
-//	type Event = Event;
-//	type MultiSocialCurrency = Tokens;
-//	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-//	type GetNativeCurrencyId = GetNativeCurrencyId;
-//}
-//
-//parameter_types! {
-//    pub CreateClassDeposit: Balance = 500 * MILLICENTS;
-//    pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
-//}
-//
-//impl nft::Config for Runtime {
-//	type Event = Event;
-//	type CreateClassDeposit = CreateClassDeposit;
-//	type CreateAssetDeposit = CreateAssetDeposit;
-//	type Currency = Balances;
-//	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
-//	type PalletId = NftPalletId;
-//	type AuctionHandler = Auction;
-//	type AssetsHandler = NftModule;
-//}
-//
-//parameter_types! {
-//    pub MaxClassMetadata: u32 = 1024;
-//    pub MaxTokenMetadata: u32 = 1024;
-//}
-//
-//impl orml_nft::Config for Runtime {
-//	type ClassId = u32;
-//	type TokenId = u64;
-//	type ClassData = nft::NftClassData<Balance>;
-//	type TokenData = nft::NftAssetData<Balance>;
-//	type MaxClassMetadata = MaxClassMetadata;
-//	type MaxTokenMetadata = MaxTokenMetadata;
-//}
-//
-//impl bitcountry::Config for Runtime {
-//	type Event = Event;
-//	type PalletId = CountryFundPalletId;
-//}
-//
+
+parameter_types! {
+	pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+}
+
+impl currencies::Config for Runtime {
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+}
+
+parameter_types! {
+	pub CreateClassDeposit: Balance = 500 * MILLICENTS;
+	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+}
+
+impl nft::Config for Runtime {
+	type Event = Event;
+	type CreateClassDeposit = CreateClassDeposit;
+	type CreateAssetDeposit = CreateAssetDeposit;
+	type Currency = Balances;
+	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+	type PalletId = NftPalletId;
+	type AuctionHandler = Auction;
+	type AssetsHandler = NftModule;
+}
+
+parameter_types! {
+	pub MaxClassMetadata: u32 = 1024;
+	pub MaxTokenMetadata: u32 = 1024;
+}
+
+impl orml_nft::Config for Runtime {
+	type ClassId = u32;
+	type TokenId = u64;
+	type ClassData = nft::NftClassData<Balance>;
+	type TokenData = nft::NftAssetData<Balance>;
+	type MaxClassMetadata = MaxClassMetadata;
+	type MaxTokenMetadata = MaxTokenMetadata;
+}
+
+impl bitcountry::Config for Runtime {
+	type Event = Event;
+	type PalletId = MetaverseNetworkTreasuryPalletId;
+}
+
 //parameter_types! {
 //    pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 //}
@@ -332,61 +375,134 @@ impl orml_tokens::Config for Runtime {
 //	pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 //}
 //
+parameter_types! {
+	pub const AuctionTimeToClose: u32 = 100800; // Default 100800 Blocks
+	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
+}
+
+impl auction::Config for Runtime {
+	type Event = Event;
+	type AuctionTimeToClose = AuctionTimeToClose;
+	type Handler = Auction;
+	type Currency = Balances;
+	type ContinuumHandler = Continuum;
+	type FungibleTokenCurrency = Tokens;
+	type BitCountryInfoSource = MetaverseModule;
+	type MinimumAuctionDuration = MinimumAuctionDuration;
+}
+
+impl continuum::Config for Runtime {
+	type Event = Event;
+	type SessionDuration = ContinuumSessionDuration;
+	type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
+	type EmergencyOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type AuctionHandler = Auction;
+	type AuctionDuration = SpotAuctionChillingDuration;
+	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type BitCountryInfoSource = MetaverseModule;
+}
+
+impl tokenization::Config for Runtime {
+	type Event = Event;
+	type TokenId = u64;
+	type BCMultiCurrency = Currencies;
+	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
+	type BitCountryInfoSource = MetaverseModule;
+	type LiquidityPoolManager = Swap;
+	type MinVestedTransfer = MinVestedTransfer;
+	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
+}
+
+parameter_types! {
+	pub const SwapFee: (u32, u32) = (1, 20); //0.05%
+}
+
+impl swap::Config for Runtime {
+	type Event = Event;
+	type PalletId = SwapPalletId;
+	type FungibleTokenCurrency = Tokens;
+	type NativeCurrency = Balances;
+	type GetSwapFee = SwapFee;
+}
+
+pub struct EnsureRootOrMetaverseTreasury;
+
+impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
+	type Success = AccountId;
+
+	fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
+		Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
+			RawOrigin::Root => Ok(MetaverseNetworkTreasuryPalletId::get().into_account()),
+			RawOrigin::Signed(caller) => {
+				if caller == MetaverseNetworkTreasuryPalletId::get().into_account() {
+					Ok(caller)
+				} else {
+					Err(Origin::from(Some(caller)))
+				}
+			}
+			r => Err(Origin::from(r)),
+		})
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn successful_origin() -> Origin {
+		Origin::from(RawOrigin::Signed(Default::default()))
+	}
+}
+
+parameter_types! {
+	pub const MinVestedTransfer: Balance = 100 * DOLLARS;
+}
+
+impl pallet_vesting::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type BlockNumberToBalance = ConvertInto;
+	type MinVestedTransfer = MinVestedTransfer;
+	type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	//Mining Resource Currency Id
+	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl mining::Config for Runtime {
+	type Event = Event;
+	type MiningCurrency = Currencies;
+	type BitMiningTreasury = BitMiningTreasury;
+	type BitMiningResourceId = MiningResourceCurrencyId;
+	type AdminOrigin = EnsureRootOrMetaverseTreasury;
+}
+
 //parameter_types! {
-//    pub const AuctionTimeToClose: u32 = 100800; // Default 100800 Blocks
-//    pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
-//    pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
-//    pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
+//	pub const LocalChainId: chainbridge::ChainId = 1;
+//	pub const ProposalLifetime: BlockNumber = 15 * MINUTES;
 //}
 //
-//impl auction::Config for Runtime {
+//impl chainbridge::Config for Runtime {
 //	type Event = Event;
-//	type AuctionTimeToClose = AuctionTimeToClose;
-//	type Handler = Auction;
-//	type Currency = Balances;
-//	type ContinuumHandler = Continuum;
-//	type FungibleTokenCurrency = Tokens;
-//	type BitCountryInfoSource = BitCountryModule;
-//	type MinimumAuctionDuration = MinimumAuctionDuration;
-//}
-//
-//impl continuum::Config for Runtime {
-//	type Event = Event;
-//	type SessionDuration = ContinuumSessionDuration;
-//	type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
-//	type EmergencyOrigin =
-//	pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-//	type AuctionHandler = Auction;
-//	type AuctionDuration = SpotAuctionChillingDuration;
-//	type ContinuumTreasury = ContinuumTreasuryPalletId;
-//	type Currency = Balances;
-//	type BitCountryInfoSource = BitCountryModule;
-//}
-//
-//impl tokenization::Config for Runtime {
-//	type Event = Event;
-//	type TokenId = u64;
-//	type BCMultiCurrency = Currencies;
-//	type FungibleTokenTreasury = CountryFundPalletId;
-//	type BitCountryInfoSource = BitCountryModule;
-//	type LiquidityPoolManager = Swap;
-//	type MinVestedTransfer = MinVestedTransfer;
-//	type VestedTransferOrigin = EnsureRootOrBCTreasury;
+//	type AdminOrigin = EnsureRoot<AccountId>;
+//	type Proposal = Call;
+//	type ChainId = LocalChainId;
+//	type ProposalLifetime = ProposalLifetime;
 //}
 //
 //parameter_types! {
-//    pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
-//    pub const SwapFee: (u32, u32) = (1, 20); //0.05%
+//	//Testing ERC 20 Resource Id
+//	pub const BridgeTokenId: [u8; 32] =
+// hex_literal::hex!("000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00");
 //}
 //
-//impl swap::Config for Runtime {
+//impl modules_chainsafe::Config for Runtime {
 //	type Event = Event;
-//	type PalletId = SwapPalletId;
-//	type FungibleTokenCurrency = Tokens;
-//	type NativeCurrency = Balances;
-//	type GetSwapFee = SwapFee;
+//	type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
+//	type Currency = Balances;
+//	type BridgeTokenId = BridgeTokenId;
 //}
-//
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -402,14 +518,31 @@ construct_runtime!(
 		Aura: pallet_aura::{Pallet, Config<T>},
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 
+		// Governance
+		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
+
 		// Token & Related
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 
-
+		// Metaverse & Related
+		OrmlNFT: orml_nft::{Pallet, Storage},
+		NftModule: nft::{Pallet, Call, Storage, Event<T>},
+		Auction: auction::{Pallet, Call ,Storage, Event<T>},
+		MetaverseModule: bitcountry::{Pallet, Call, Storage, Event<T>},
+		Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
+		TokenizationModule: tokenization:: {Pallet, Call, Storage, Event<T>},
+		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
+		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
+		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		// Include the custom logic from the pallet-template in the runtime.
+
+		// Ecosystem
+//		ChainBridge: chainbridge::{Module, Call, Storage, Event<T>},
+//		BridgeTransfer: modules_chainsafe::{Module, Call, Event<T>, Storage}
 	}
 );
 //

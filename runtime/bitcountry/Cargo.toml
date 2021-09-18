@@ -22,6 +22,8 @@ frame-support = { version = "4.0.0-dev", default-features = false, git = "https:
 pallet-grandpa = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pallet-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pallet-sudo = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-collective = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-vesting = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pallet-timestamp = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pallet-transaction-payment = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -55,7 +57,7 @@ orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-librar
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
 
-# bit.country dependencies
+# metaverse dependencies
 primitives = { package = 'bit-country-primitives', path = '../../pallets/primitives', default-features = false }
 auction-manager = { package = 'auction-manager', path = '../../traits/auction-manager', default-features = false }
 bitcountry = { package = 'pallet-country', path = '../../pallets/bitcountry', default-features = false }
@@ -66,8 +68,11 @@ continuum = { package = 'pallet-continuum', path = '../../pallets/continuum', ve
 auction = { package = 'pallet-auction', path = '../../pallets/auction', version = '2.0.0-rc6', default-features = false }
 currencies = { package = 'currencies', path = '../../pallets/currencies', version = '2.0.0-rc6', default-features = false }
 swap = { package = 'pallet-swap', path = '../../pallets/swap', version = '2.0.0-rc6', default-features = false }
-#modules-chainsafe = { package = 'modules-chainsafe', path = '../../modules/chainsafe', version = '0.0.1', default-features = false }
 mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '2.0.0-rc6', default-features = false }
+#modules-chainsafe = { package = 'modules-chainsafe', path = '../../modules/chainsafe', version = '0.0.1', default-features = false }
+
+# ecosystem dependencies
+#chainbridge = { git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -83,6 +88,7 @@ std = [
     "frame-system/std",
     "pallet-aura/std",
     "pallet-balances/std",
+    "pallet-collective/std",
     "pallet-grandpa/std",
     "pallet-randomness-collective-flip/std",
     "pallet-sudo/std",
@@ -90,6 +96,7 @@ std = [
     "pallet-timestamp/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-transaction-payment/std",
+    "pallet-vesting/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",

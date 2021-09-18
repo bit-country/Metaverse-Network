@@ -7,7 +7,8 @@
 
 use std::sync::Arc;
 
-use node_template_runtime::{opaque::Block, AccountId, Balance, Index};
+use bitcountry_runtime::{opaque::Block, AccountId, Index};
+use primitives::Balance;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
