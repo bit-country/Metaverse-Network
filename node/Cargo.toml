@@ -77,7 +77,7 @@ frame-benchmarking-cli = { version = "4.0.0-dev", git = "https://github.com/pari
 
 node-template-runtime = { version = "3.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 tewai-runtime = { package = "node-runtime", version = "3.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
-node-primitives = { version = "2.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+node-primitives = { version = "2.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
 
 # Metaverse related dependencies
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
@@ -98,6 +98,7 @@ with-metaverse-runtime = [
 
 with-tewai-runtime = [
     "tewai-runtime",
+    "node-primitives"
 ]
 
 #[dependencies]
