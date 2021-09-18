@@ -32,6 +32,7 @@ build-docker:
 
 .PHONY: run-dev
 run-dev:
+	./target/release/metaverse-node purge-chain --dev
 	./target/release/metaverse-node --dev --tmp -lruntime=debug
 
 GITHOOKS_SRC = $(wildcard githooks/*)

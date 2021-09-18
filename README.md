@@ -37,44 +37,36 @@ Everyone can start their own metaverse for their people with the 3D world, NFTs,
 
 # 2. Build
 
-Install Rust:
+Install Rust and Wasm build environment:
 
 ```bash
-curl https://sh.rustup.rs -sSf | sh
-```
-
-Initialize your Wasm Build environment:
-
-```bash
-./scripts/init.sh
+make init
 ```
 
 Build Wasm and native code:
 
 ```bash
-cargo build --release
+make build
 ```
 
 # 3. Run
 
-### Single Node Development Chain
+### Start a Dev Metaverse Network Chain
 
-Purge any existing developer chain state:
-
-```bash
-./target/release/metaverse-node purge-chain --dev
-```
-
-Start a development chain with:
+Start a dev Metaverse Chain
 
 ```bash
-./target/release/metaverse-node --dev
+make run-dev
 ```
 
 Detailed logs may be shown by running the node with the following environment variables
 set: `RUST_LOG=debug RUST_BACKTRACE=1 cargo run -- --dev`.
 
-### Multi-Node Local Testnet
+This will spin up a Development Metaverse Chain with Alice and Bob as initial authorities.
+
+If you would like to run multi-node manually then you can use the Multi-Node Dev Testnet setup
+
+### Multi-Node Metaverse Network Chain
 
 If you want to see the multi-node consensus algorithm in action locally, then you can create a local testnet with two
 validator nodes for Alice and Bob, who are the initial authorities of the genesis chain that have been endowed with
