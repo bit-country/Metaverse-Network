@@ -58,15 +58,19 @@ node-template-runtime = { version = "3.0.0", git = "https://github.com/paritytec
 
 # Metaverse related dependencies
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
-metaverse-runtime = { version = "2.0.0-rc6", path = "../runtime/metaverse" }
+metaverse-runtime = { version = "2.0.0-rc6", path = "../runtime/metaverse", optional = true }
 
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
 [features]
-default = []
+default = ["with-metaverse-runtime"]
 runtime-benchmarks = [
     "node-template-runtime/runtime-benchmarks",
+]
+
+with-metaverse-runtime = [
+    "metaverse-runtime",
 ]
 
 #[dependencies]

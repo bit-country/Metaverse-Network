@@ -1,5 +1,3 @@
-//! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
-
 use metaverse_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
