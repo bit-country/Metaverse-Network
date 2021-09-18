@@ -6,6 +6,10 @@ init:
 check: githooks
 	SKIP_WASM_BUILD= cargo check --features with-metaverse-runtime
 
+.PHONY: check-tewai
+check-tewai: githooks
+	SKIP_WASM_BUILD= cargo check --features with-tewai-runtime
+
 .PHONY: check-debug
 check-debug:
 	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check --features with-metaverse-runtime
