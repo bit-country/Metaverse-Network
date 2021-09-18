@@ -18,7 +18,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type BitCountryId = u64;
+pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
@@ -104,8 +104,8 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-	pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
 	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 

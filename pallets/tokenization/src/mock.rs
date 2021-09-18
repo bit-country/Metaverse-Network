@@ -21,13 +21,13 @@ use sp_runtime::{
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type BitCountryId = u64;
+pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 4;
 pub const BOB: AccountId = 5;
-pub const BITCOUNTRY_ID: BitCountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
+pub const METAVERSE_ID: MetaverseId = 1;
+pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
 pub const NUUM: CurrencyId = 0;
 pub const COUNTRY_FUND: FungibleTokenId = FungibleTokenId::FungibleToken(1);
 
@@ -90,8 +90,8 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-	pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
 	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
@@ -107,25 +107,25 @@ impl orml_tokens::Config for Runtime {
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
-pub struct BitCountryInfoSource {}
+pub struct MetaverseInfoSource {}
 
-impl BitCountryTrait<AccountId> for BitCountryInfoSource {
-	fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
+impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => true,
 			_ => false,
 		}
 	}
 
-	fn get_bitcountry(bitcountry_id: u64) -> Option<BitCountryStruct<u128>> {
+	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseStruct<u128>> {
 		None
 	}
 
-	fn get_bitcountry_token(bitcountry_id: u64) -> Option<FungibleTokenId> {
+	fn get_metaverse_token(metaverse_id: u64) -> Option<FungibleTokenId> {
 		None
 	}
 
-	fn update_bitcountry_token(bitcountry_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
+	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
 }
@@ -177,7 +177,7 @@ impl Config for Runtime {
 	type TokenId = u64;
 	type BCMultiCurrency = Currencies;
 	type FungibleTokenTreasury = CountryFundPalletId;
-	type BitCountryInfoSource = BitCountryInfoSource;
+	type MetaverseInfoSource = MetaverseInfoSource;
 	type LiquidityPoolManager = SwapModule;
 	type MinVestedTransfer = MinVestedTransfer;
 	type VestedTransferOrigin = EnsureSignedBy<One, AccountId>;

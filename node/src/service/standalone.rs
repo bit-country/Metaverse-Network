@@ -1,6 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use bitcountry_runtime::{self, opaque::Block, RuntimeApi};
+use metaverse_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_executor::native_executor_instance;
@@ -16,8 +16,8 @@ use std::{sync::Arc, time::Duration};
 // Our native executor instance.
 native_executor_instance!(
 	pub Executor,
-	bitcountry_runtime::api::dispatch,
-	bitcountry_runtime::native_version,
+	metaverse_runtime::api::dispatch,
+	metaverse_runtime::native_version,
 	frame_benchmarking::benchmarking::HostFunctions,
 );
 

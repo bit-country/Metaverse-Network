@@ -18,7 +18,7 @@ use sp_std::{
 };
 
 use frame_support::Parameter;
-use primitives::{AssetId, AuctionId, BitCountryId, FungibleTokenId, ItemId};
+use primitives::{AssetId, AuctionId, FungibleTokenId, ItemId, MetaverseId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub enum Change<Value> {
@@ -39,7 +39,7 @@ pub enum AuctionType {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ListingLevel {
 	Global,
-	Local(BitCountryId),
+	Local(MetaverseId),
 }
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]

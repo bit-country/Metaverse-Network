@@ -105,8 +105,8 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 
 /// Runtime version.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-    spec_name: create_runtime_str!("bitcountry-node"),
-    impl_name: create_runtime_str!("bitcountry-node"),
+    spec_name: create_runtime_str!("metaverse-node"),
+    impl_name: create_runtime_str!("metaverse-node"),
     authoring_version: 10,
     /// Per convention: if the runtime behavior changes, increment spec_version
     /// and set impl_version to 0. If only runtime
@@ -759,7 +759,7 @@ parameter_types! {
     pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
     pub const BountyValueMinimum: Balance = 5 * DOLLARS;
     pub const MaxApprovals: u32 = 100;
-    pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+    pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
     pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
     pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
     pub const ContinuumTreasuryPalletId: PalletId = PalletId(*b"bit/ctmu");
@@ -980,9 +980,9 @@ impl EnsureOrigin<Origin> for EnsureRootOrBCTreasury {
 
     fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
         Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
-            RawOrigin::Root => Ok(BitCountryTreasuryPalletId::get().into_account()),
+            RawOrigin::Root => Ok(MetaverseTreasuryPalletId::get().into_account()),
             RawOrigin::Signed(caller) => {
-                if caller == BitCountryTreasuryPalletId::get().into_account() {
+                if caller == MetaverseTreasuryPalletId::get().into_account() {
                     Ok(caller)
                 } else {
                     Err(Origin::from(Some(caller)))
@@ -1026,7 +1026,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+    pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -1082,7 +1082,7 @@ impl orml_nft::Config for Runtime {
     type MaxTokenMetadata = MaxTokenMetadata;
 }
 
-impl bitcountry::Config for Runtime {
+impl metaverse::Config for Runtime {
     type Event = Event;
     type PalletId = CountryFundPalletId;
 }
@@ -1094,7 +1094,7 @@ parameter_types! {
 impl block::Config for Runtime {
     type Event = Event;
     type LandTreasury = LandTreasuryPalletId;
-    type BitCountryInfoSource = BitCountryModule;
+    type MetaverseInfoSource = MetaverseModule;
     type Currency = Balances;
     type MinimumLandPrice = MinimumLandPrice;
     type CouncilOrigin =
@@ -1115,7 +1115,7 @@ impl auction::Config for Runtime {
     type Currency = Balances;
     type ContinuumHandler = Continuum;
     type FungibleTokenCurrency = Tokens;
-    type BitCountryInfoSource = BitCountryModule;
+    type MetaverseInfoSource = MetaverseModule;
     type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
@@ -1129,7 +1129,7 @@ impl continuum::Config for Runtime {
     type AuctionDuration = SpotAuctionChillingDuration;
     type ContinuumTreasury = ContinuumTreasuryPalletId;
     type Currency = Balances;
-    type BitCountryInfoSource = BitCountryModule;
+    type MetaverseInfoSource = MetaverseModule;
 }
 
 impl tokenization::Config for Runtime {
@@ -1137,7 +1137,7 @@ impl tokenization::Config for Runtime {
     type TokenId = u64;
     type BCMultiCurrency = Currencies;
     type FungibleTokenTreasury = CountryFundPalletId;
-    type BitCountryInfoSource = BitCountryModule;
+    type MetaverseInfoSource = MetaverseModule;
     type LiquidityPoolManager = Swap;
     type MinVestedTransfer = MinVestedTransfer;
     type VestedTransferOrigin = EnsureRootOrBCTreasury;
@@ -1234,8 +1234,8 @@ construct_runtime!(
         Tips: pallet_tips::{Pallet, Call, Storage, Event<T>},
         Mmr: pallet_mmr::{Pallet, Storage},
 
-         //BitCountry pallets
-        BitCountryModule: bitcountry::{Pallet, Call, Storage, Event<T>},
+         //Metaverse pallets
+        MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
         BlockModule: block::{Pallet, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Pallet, Storage},
         NftModule: nft::{Pallet, Call, Storage, Event<T>},

@@ -1,8 +1,8 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use crate::rpc;
-use crate::service::BitCountryExecutor;
-use bitcountry_runtime::RuntimeApi;
+use crate::service::MetaverseExecutor;
+use metaverse_runtime::RuntimeApi;
 use primitives::Block;
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus::LongestChain;
@@ -16,7 +16,7 @@ use std::time::Duration;
 
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = LongestChain<FullBackend, Block>;
-type FullClient = sc_service::TFullClient<Block, RuntimeApi, BitCountryExecutor>;
+type FullClient = sc_service::TFullClient<Block, RuntimeApi, MetaverseExecutor>;
 type FullGrandpaBlockImport =
     sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
 
@@ -47,7 +47,7 @@ pub fn new_partial(
     let inherent_data_providers = InherentDataProviders::new();
 
     let (client, backend, keystore_container, task_manager) =
-        sc_service::new_full_parts::<Block, RuntimeApi, BitCountryExecutor>(&config)?;
+        sc_service::new_full_parts::<Block, RuntimeApi, MetaverseExecutor>(&config)?;
     let client = Arc::new(client);
 
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
@@ -331,7 +331,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 /// Builds a new service for a light client.
 pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError> {
     let (client, backend, keystore, mut task_manager, on_demand) =
-        sc_service::new_light_parts::<Block, RuntimeApi, BitCountryExecutor>(&config)?;
+        sc_service::new_light_parts::<Block, RuntimeApi, MetaverseExecutor>(&config)?;
 
     config
         .network

@@ -30,12 +30,12 @@ pub struct AuctionLogicHandler;
 pub mod pallet {
 	use super::*;
 	use auction_manager::ListingLevel;
-	use bc_primitives::BitCountryTrait;
+	use bc_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended, MultiReservableCurrency};
-	use primitives::{Balance, BitCountryId, FungibleTokenId};
+	use primitives::{Balance, FungibleTokenId, MetaverseId};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
@@ -61,7 +61,7 @@ pub mod pallet {
 			CurrencyId = FungibleTokenId,
 			Balance = Balance,
 		>;
-		type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
+		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 		type MinimumAuctionDuration: Get<Self::BlockNumber>;
 	}
 
@@ -175,7 +175,7 @@ pub mod pallet {
 		pub fn bid_local(
 			origin: OriginFor<T>,
 			id: AuctionId,
-			bc_id: BitCountryId,
+			bc_id: MetaverseId,
 			value: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
@@ -286,11 +286,11 @@ pub mod pallet {
 								}
 							}
 						}
-						ItemId::Spot(spot_id, country_id) => {
+						ItemId::Spot(spot_id, metaverse_id) => {
 							let continuum_spot = T::ContinuumHandler::transfer_spot(
 								spot_id,
 								&auction_item.recipient,
-								&(from.clone(), country_id),
+								&(from.clone(), metaverse_id),
 							);
 							match continuum_spot {
 								Err(_) => (),
@@ -299,7 +299,7 @@ pub mod pallet {
 								}
 							}
 						}
-						_ => {} // Future implementation for Spot, BitCountry
+						_ => {} // Future implementation for Spot, Metaverse
 					}
 				}
 			}
@@ -310,7 +310,7 @@ pub mod pallet {
 		pub fn buy_now_local(
 			origin: OriginFor<T>,
 			auction_id: AuctionId,
-			bc_id: BitCountryId,
+			bc_id: MetaverseId,
 			value: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
@@ -366,11 +366,11 @@ pub mod pallet {
 								}
 							}
 						}
-						ItemId::Spot(spot_id, country_id) => {
+						ItemId::Spot(spot_id, metaverse_id) => {
 							let continuum_spot = T::ContinuumHandler::transfer_spot(
 								spot_id,
 								&auction_item.recipient,
-								&(from.clone(), country_id),
+								&(from.clone(), metaverse_id),
 							);
 							match continuum_spot {
 								Err(_) => (),
@@ -379,7 +379,7 @@ pub mod pallet {
 								}
 							}
 						}
-						_ => {} // Future implementation for Spot, BitCountry
+						_ => {} // Future implementation for Spot, Metaverse
 					}
 				}
 			}
@@ -510,11 +510,11 @@ pub mod pallet {
 													}
 												}
 											}
-											ItemId::Spot(spot_id, country_id) => {
+											ItemId::Spot(spot_id, metaverse_id) => {
 												let continuum_spot = T::ContinuumHandler::transfer_spot(
 													spot_id,
 													&auction_item.recipient,
-													&(high_bidder.clone(), country_id),
+													&(high_bidder.clone(), metaverse_id),
 												);
 												match continuum_spot {
 													Err(_) => continue,
@@ -527,7 +527,7 @@ pub mod pallet {
 													}
 												}
 											}
-											_ => {} // Future implementation for Spot, BitCountry
+											_ => {} // Future implementation for Spot, Metaverse
 										}
 									}
 								}
@@ -570,11 +570,11 @@ pub mod pallet {
 													}
 												}
 											}
-											ItemId::Spot(spot_id, country_id) => {
+											ItemId::Spot(spot_id, metaverse_id) => {
 												let continuum_spot = T::ContinuumHandler::transfer_spot(
 													spot_id,
 													&auction_item.recipient,
-													&(high_bidder.clone(), country_id),
+													&(high_bidder.clone(), metaverse_id),
 												);
 												match continuum_spot {
 													Err(_) => continue,
@@ -587,7 +587,7 @@ pub mod pallet {
 													}
 												}
 											}
-											_ => {} // Future implementation for Spot, BitCountry
+											_ => {} // Future implementation for Spot, Metaverse
 										}
 									}
 								}
@@ -711,7 +711,7 @@ pub mod pallet {
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 					if let ListingLevel::Local(bc_id) = listing_level {
-						currency_id = T::BitCountryInfoSource::get_bitcountry_token(bc_id)
+						currency_id = T::MetaverseInfoSource::get_metaverse_token(bc_id)
 							.ok_or(Error::<T>::FungibleTokenCurrencyNotFound)?;
 					}
 
@@ -742,7 +742,7 @@ pub mod pallet {
 
 					Ok(auction_id)
 				}
-				ItemId::Spot(_spot_id, _country_id) => {
+				ItemId::Spot(_spot_id, _metaverse_id) => {
 					// TODO Check if spot_id is not owned by any
 					let start_time = <system::Module<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction

@@ -14,7 +14,7 @@
 
 [![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.dev/)
 [![Twitter URL](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2Fbitdotcountry)](https://twitter.com/bitdotcountry)
-[![Medium](https://img.shields.io/badge/Medium-BitCountry-brightgreen?logo=medium)](https://medium.com/@bitcountry)
+[![Medium](https://img.shields.io/badge/Medium-Metaverse-brightgreen?logo=medium)](https://medium.com/@metaverse)
 
 </div>
 
@@ -62,13 +62,13 @@ cargo build --release
 Purge any existing developer chain state:
 
 ```bash
-./target/release/bitcountry-node purge-chain --dev
+./target/release/metaverse-node purge-chain --dev
 ```
 
 Start a development chain with:
 
 ```bash
-./target/release/bitcountry-node --dev
+./target/release/metaverse-node --dev
 ```
 
 Detailed logs may be shown by running the node with the following environment variables

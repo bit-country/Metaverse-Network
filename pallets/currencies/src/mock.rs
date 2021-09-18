@@ -20,13 +20,13 @@ use sp_runtime::{
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type BitCountryId = u64;
+pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 4;
 pub const BOB: AccountId = 5;
-pub const BITCOUNTRY_ID: BitCountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
+pub const METAVERSE_ID: MetaverseId = 1;
+pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
 pub const NUUM: CurrencyId = 0;
 pub const COUNTRY_FUND: CurrencyId = 1;
 
@@ -85,8 +85,8 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-    pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+    pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+    pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
     pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
@@ -103,21 +103,21 @@ impl orml_tokens::Config for Runtime {
 pub type AdaptedBasicCurrency =
     orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
-pub struct BitCountryInfoSource {}
+pub struct MetaverseInfoSource {}
 
-impl BitCountryTrait<AccountId> for BitCountryInfoSource {
-    fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
+impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+    fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
         match *who {
             ALICE => true,
             _ => false,
         }
     }
 
-    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
+    fn get_country(metaverse_id: MetaverseId) -> Option<MetaverseStruct<AccountId>> {
         None
     }
 
-    fn get_country_token(country_id: BitCountryId) -> Option<CurrencyId> {
+    fn get_country_token(metaverse_id: MetaverseId) -> Option<CurrencyId> {
         None
     }
 }
@@ -127,7 +127,7 @@ impl Config for Runtime {
     type TokenId = u64;
     type CountryCurrency = Currencies;
     type FungibleTokenTreasury = CountryFundPalletId;
-    type BitCountryInfoSource = BitCountryInfoSource;
+    type MetaverseInfoSource = MetaverseInfoSource;
 }
 
 parameter_types! {

@@ -8,7 +8,7 @@ check: githooks
 
 .PHONY: check-debug
 check-debug:
-	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check --features with-bitcountry-runtime
+	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check --features with-metaverse-runtime
 
 .PHONY: test
 test:
@@ -20,7 +20,7 @@ run:
 
 .PHONY: build
 build:
-	cargo build --release  --features with-bitcountry-runtime
+	cargo build --release  --features with-metaverse-runtime
 
 .PHONY: build-docker
 build-docker:
@@ -28,7 +28,7 @@ build-docker:
 
 .PHONY: run-dev
 run-dev:
-	./target/release/bitcountry-node --dev --tmp -lruntime=debug
+	./target/release/metaverse-node --dev --tmp -lruntime=debug
 
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))

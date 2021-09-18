@@ -41,7 +41,7 @@ use orml_traits::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 use sp_runtime::{
 	traits::{CheckedSub, MaybeSerializeDeserialize, Saturating, StaticLookup, Zero},
 	DispatchError, DispatchResult,
@@ -104,12 +104,12 @@ pub mod pallet {
 		InsufficientBalance,
 		/// No permission to issue token
 		NoPermissionTokenIssuance,
-		/// Country Currency already issued for this bitcountry
+		/// Country Currency already issued for this metaverse
 		FungibleTokenAlreadyIssued,
 		/// No available next token id
 		NoAvailableTokenId,
 		//Country Is Not Available
-		BitCountryFundIsNotAvailable,
+		MetaverseFundIsNotAvailable,
 		AmountIntoBalanceFailed,
 	}
 

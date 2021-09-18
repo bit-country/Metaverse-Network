@@ -26,7 +26,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::{ensure, pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError, RuntimeDebug,
@@ -114,8 +114,8 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	#[pallet::metadata(T::AccountId = "AccountId")]
 	pub enum Event<T: Config> {
-		NewCountryCreated(BitCountryId),
-		TransferredCountry(BitCountryId, T::AccountId, T::AccountId),
+		NewCountryCreated(MetaverseId),
+		TransferredCountry(MetaverseId, T::AccountId, T::AccountId),
 		/// Add liquidity success. \[who, currency_id_0, pool_0_increment,
 		/// currency_id_1, pool_1_increment, share_increment\]
 		AddLiquidity(
@@ -150,7 +150,7 @@ pub mod pallet {
 		CountryIdNotFound,
 		//No permission
 		NoPermission,
-		//No available bitcountry id
+		//No available metaverse id
 		NoAvailableCountryId,
 		//Social Token is not valid
 		InvalidFungibleTokenIds,

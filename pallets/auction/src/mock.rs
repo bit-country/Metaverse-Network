@@ -11,7 +11,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use crate as auction;
 use auction_manager::ListingLevel;
-use bc_primitives::{BitCountryStruct, BitCountryTrait, Country};
+use bc_primitives::{Country, MetaverseStruct, MetaverseTrait};
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -20,14 +20,14 @@ parameter_types! {
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
-pub type BitCountryId = u64;
+pub type MetaverseId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
-pub const ALICE_COUNTRY_ID: BitCountryId = 1;
-pub const BOB_COUNTRY_ID: BitCountryId = 2;
+pub const ALICE_COUNTRY_ID: MetaverseId = 1;
+pub const BOB_COUNTRY_ID: MetaverseId = 2;
 
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
@@ -118,8 +118,8 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-	pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
 	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
@@ -138,26 +138,26 @@ parameter_types! {
 	pub const MinimumAuctionDuration: u64 = 10; //Test auction end within 100 blocks
 }
 
-pub struct BitCountryInfoSource {}
+pub struct MetaverseInfoSource {}
 
-impl BitCountryTrait<AccountId> for BitCountryInfoSource {
-	fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
+impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
-			ALICE => *country_id == ALICE_COUNTRY_ID,
-			BOB => *country_id == BOB_COUNTRY_ID,
+			ALICE => *metaverse_id == ALICE_COUNTRY_ID,
+			BOB => *metaverse_id == BOB_COUNTRY_ID,
 			_ => false,
 		}
 	}
 
-	fn get_bitcountry(bitcountry_id: u64) -> Option<BitCountryStruct<u128>> {
+	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseStruct<u128>> {
 		None
 	}
 
-	fn get_bitcountry_token(bitcountry_id: u64) -> Option<FungibleTokenId> {
+	fn get_metaverse_token(metaverse_id: u64) -> Option<FungibleTokenId> {
 		None
 	}
 
-	fn update_bitcountry_token(bitcountry_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
+	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
 }
@@ -169,7 +169,7 @@ impl Config for Runtime {
 	type Currency = Balances;
 	type ContinuumHandler = Continuumm;
 	type FungibleTokenCurrency = Tokens;
-	type BitCountryInfoSource = BitCountryInfoSource;
+	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 

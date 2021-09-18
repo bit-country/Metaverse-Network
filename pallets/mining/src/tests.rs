@@ -1,4 +1,4 @@
-// Unit testing for bitcountry currency, bitcountry treasury
+// Unit testing for metaverse currency, metaverse treasury
 #[cfg(test)]
 use super::*;
 use frame_support::{assert_noop, assert_ok};

@@ -239,7 +239,7 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Attempted to initialize the bitcountry after it had already been initialized.
+		/// Attempted to initialize the metaverse after it had already been initialized.
 		AlreadyInitialized,
 		/// Asset Info not found
 		AssetInfoNotFound,

@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use crate as bitcountry;
+use crate as metaverse;
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{
@@ -16,13 +16,13 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u64;
-pub type BitCountryId = u64;
+pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const BITCOUNTRY_ID: BitCountryId = 0;
-pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
+pub const METAVERSE_ID: MetaverseId = 0;
+pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
 pub const NUUM: CurrencyId = 0;
 
 // Configure a mock runtime to test the pallet.
@@ -82,7 +82,7 @@ impl Config for Runtime {
 	type PalletId = CountryFundPalletId;
 }
 
-pub type BitCountryModule = Module<Runtime>;
+pub type MetaverseModule = Module<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -95,7 +95,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Country: bitcountry::{Module, Call ,Storage, Event<T>},
+		Country: metaverse::{Module, Call ,Storage, Event<T>},
 	}
 );
 

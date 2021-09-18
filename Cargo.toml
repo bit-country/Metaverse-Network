@@ -6,7 +6,7 @@ members = [
     'pallets/*',
     'traits/*',
     'node',
-    'runtime/bitcountry'
+    'runtime/metaverse'
     #    'modules/*'
 ]
 exclude = [

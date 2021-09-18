@@ -37,7 +37,7 @@ use orml_traits::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,
@@ -153,7 +153,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Issue mining resource on bitcountry. There are, and will only ever be, `total`
+		/// Issue mining resource on metaverse. There are, and will only ever be, `total`
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
 		#[pallet::weight(10_000)]
@@ -165,7 +165,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Burn mining resource on bitcountry. There are, and will only ever be, `total`
+		/// Burn mining resource on metaverse. There are, and will only ever be, `total`
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
 		#[pallet::weight(10_000)]

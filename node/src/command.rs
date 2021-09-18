@@ -20,7 +20,7 @@ use crate::{
 	cli::{Cli, Subcommand},
 	service,
 };
-use bitcountry_runtime::Block;
+use metaverse_runtime::Block;
 use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
 
@@ -53,7 +53,7 @@ impl SubstrateCli for Cli {
 		Ok(match id {
 			"dev" => Box::new(chain_spec::development_config()?),
 			"" | "local" => Box::new(chain_spec::local_testnet_config()?),
-			#[cfg(feature = "with-bitcountry-runtime")]
+			#[cfg(feature = "with-metaverse-runtime")]
 			"metaverse" => Box::new(chain_spec::metaverse_testnet_config()?),
 			#[cfg(feature = "with-tewai-runtime")]
 			"tewai" => Box::new(chain_spec::tewai_testnet_config()?),
@@ -62,7 +62,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		&bitcountry_runtime::VERSION
+		&metaverse_runtime::VERSION
 	}
 }
 
@@ -165,13 +165,13 @@ pub fn run() -> sc_cli::Result<()> {
 //    cli::{Cli, Subcommand},
 //    service,
 //};
-//use bitcountry_runtime::opaque::Block;
+//use metaverse_runtime::opaque::Block;
 //use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
 //use sc_service::PartialComponents;
 //
 //impl SubstrateCli for Cli {
 //    fn impl_name() -> String {
-//        "BitCountry Node".into()
+//        "Metaverse Node".into()
 //    }
 //
 //    fn impl_version() -> String {

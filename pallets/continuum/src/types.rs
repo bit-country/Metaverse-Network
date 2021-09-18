@@ -19,7 +19,7 @@
 
 use crate::{AccountVote, Vote};
 use codec::{Decode, Encode};
-use primitives::{BitCountryId, SpotId};
+use primitives::{MetaverseId, SpotId};
 use sp_runtime::traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, Saturating, Zero};
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec;
@@ -32,7 +32,7 @@ pub type ReferendumIndex = u64;
 pub struct ContinuumSpot {
 	pub(crate) x: i32,
 	pub(crate) y: i32,
-	pub(crate) country: BitCountryId,
+	pub(crate) country: MetaverseId,
 }
 
 impl ContinuumSpot {

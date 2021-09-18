@@ -1,11 +1,11 @@
 [package]
-authors = ['BitCountry Developers <https://mvp.studio>']
+authors = ['Metaverse Developers <https://mvp.studio>']
 build = 'build.rs'
 description = 'A decentralised world powered by economy.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
-name = 'bitcountry-node'
+name = 'metaverse-node'
 repository = 'https://github.com/bit-country/Bit-Country-Blockchain/'
 version = '0.0.1'
 
@@ -14,7 +14,7 @@ targets = ['x86_64-unknown-linux-gnu']
 
 
 [[bin]]
-name = "bitcountry-node"
+name = "metaverse-node"
 
 [dependencies]
 structopt = "0.3.8"
@@ -58,7 +58,7 @@ node-template-runtime = { version = "3.0.0", git = "https://github.com/paritytec
 
 # Metaverse related dependencies
 primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
-bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime/bitcountry" }
+metaverse-runtime = { version = "2.0.0-rc6", path = "../runtime/metaverse" }
 
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -190,11 +190,11 @@ runtime-benchmarks = [
 # WASM-specific dependencies
 #primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
 #node-template-runtime = { version = "3.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-#bitcountry-runtime = { version = "2.0.0-rc6", path = "../runtime/bitcountry" }
+#metaverse-runtime = { version = "2.0.0-rc6", path = "../runtime/metaverse" }
 #tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
 
 #[[bin]]
-#name = "bitcountry-node"
+#name = "metaverse-node"
 #path = "src/main.rs"
 #
 #[build-dependencies]
@@ -204,13 +204,13 @@ runtime-benchmarks = [
 #default = []
 
 #[features]
-#default = ["with-bitcountry-runtime"]
+#default = ["with-metaverse-runtime"]
 #runtime-benchmarks = [
-#    'bitcountry-runtime/runtime-benchmarks',
+#    'metaverse-runtime/runtime-benchmarks',
 #    #    'tewai-runtime/runtime-benchmarks'
 #]
-#with-bitcountry-runtime = [
-#    "bitcountry-runtime",
+#with-metaverse-runtime = [
+#    "metaverse-runtime",
 #]
 ##with-tewai-runtime = [
 ##    "tewai-runtime",
@@ -218,5 +218,5 @@ runtime-benchmarks = [
 #
 ##TODO change to rococo runtime when merge rococo branch back to master
 #with-parachain-runtime = [
-#    "bitcountry-runtime",
+#    "metaverse-runtime",
 #]

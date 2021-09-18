@@ -105,8 +105,8 @@ pub mod opaque {
 //   https://substrate.dev/docs/en/knowledgebase/runtime/upgrades#runtime-versioning
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("bitcountry-runtime"),
-	impl_name: create_runtime_str!("bitcountry-runtime"),
+	spec_name: create_runtime_str!("metaverse-runtime"),
+	impl_name: create_runtime_str!("metaverse-runtime"),
 	authoring_version: 1,
 	// The version of the runtime specification. A full node will not attempt to use its native
 	//   runtime in substitute for the on-chain Wasm runtime unless all of `spec_name`,
@@ -356,7 +356,7 @@ impl orml_nft::Config for Runtime {
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
-impl bitcountry::Config for Runtime {
+impl metaverse::Config for Runtime {
 	type Event = Event;
 	type PalletId = MetaverseNetworkTreasuryPalletId;
 }
@@ -368,7 +368,7 @@ impl bitcountry::Config for Runtime {
 //impl block::Config for Runtime {
 //	type Event = Event;
 //	type LandTreasury = LandTreasuryPalletId;
-//	type BitCountryInfoSource = BitCountryModule;
+//	type MetaverseInfoSource = MetaverseModule;
 //	type Currency = Balances;
 //	type MinimumLandPrice = MinimumLandPrice;
 //	type CouncilOrigin =
@@ -389,7 +389,7 @@ impl auction::Config for Runtime {
 	type Currency = Balances;
 	type ContinuumHandler = Continuum;
 	type FungibleTokenCurrency = Tokens;
-	type BitCountryInfoSource = MetaverseModule;
+	type MetaverseInfoSource = MetaverseModule;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
@@ -402,7 +402,7 @@ impl continuum::Config for Runtime {
 	type AuctionDuration = SpotAuctionChillingDuration;
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
-	type BitCountryInfoSource = MetaverseModule;
+	type MetaverseInfoSource = MetaverseModule;
 }
 
 impl tokenization::Config for Runtime {
@@ -410,7 +410,7 @@ impl tokenization::Config for Runtime {
 	type TokenId = u64;
 	type BCMultiCurrency = Currencies;
 	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
-	type BitCountryInfoSource = MetaverseModule;
+	type MetaverseInfoSource = MetaverseModule;
 	type LiquidityPoolManager = Swap;
 	type MinVestedTransfer = MinVestedTransfer;
 	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
@@ -532,7 +532,7 @@ construct_runtime!(
 		OrmlNFT: orml_nft::{Pallet, Storage},
 		NftModule: nft::{Pallet, Call, Storage, Event<T>},
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
-		MetaverseModule: bitcountry::{Pallet, Call, Storage, Event<T>},
+		MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TokenizationModule: tokenization:: {Pallet, Call, Storage, Event<T>},
 		Swap: swap:: {Pallet, Call, Storage ,Event<T>},

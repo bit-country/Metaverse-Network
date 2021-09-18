@@ -1,8 +1,8 @@
-use bitcountry_runtime::{
+use hex_literal::hex;
+use metaverse_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, GenesisConfig,
 	GrandpaConfig, Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
-use hex_literal::hex;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
@@ -70,7 +70,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		// Protocol ID
 		None,
 		// Properties
-		Some(bitcountry_properties()),
+		Some(metaverse_properties()),
 		// Extensions
 		None,
 	))
@@ -116,7 +116,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		// Protocol ID
 		None,
 		// Properties
-		Some(bitcountry_properties()),
+		Some(metaverse_properties()),
 		// Extensions
 		None,
 	))
@@ -176,7 +176,7 @@ pub fn metaverse_testnet_config() -> Result<ChainSpec, String> {
 		// Protocol ID
 		None,
 		// Properties
-		Some(bitcountry_properties()),
+		Some(metaverse_properties()),
 		// Extensions
 		None,
 	))
@@ -221,7 +221,7 @@ fn testnet_genesis(
 	}
 }
 
-pub fn bitcountry_properties() -> Properties {
+pub fn metaverse_properties() -> Properties {
 	let mut properties = Properties::new();
 
 	properties.insert("ss58Format".into(), 42.into());
@@ -231,7 +231,7 @@ pub fn bitcountry_properties() -> Properties {
 	properties
 }
 
-//use bitcountry_runtime::{
+//use metaverse_runtime::{
 //    constants::currency::*, opaque::Block, opaque::SessionKeys, wasm_binary_unwrap, AuraConfig,
 //    AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContinuumConfig, CouncilConfig,
 //    DemocracyConfig, ElectionsConfig, GenesisConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig,
@@ -349,7 +349,7 @@ pub fn bitcountry_properties() -> Properties {
 //    (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 //}
 //
-//fn development_config_genesis() -> bitcountry_runtime::GenesisConfig {
+//fn development_config_genesis() -> metaverse_runtime::GenesisConfig {
 //    testnet_genesis(
 //        vec![authority_keys_from_seed("Alice")],
 //        vec![],
@@ -368,12 +368,12 @@ pub fn bitcountry_properties() -> Properties {
 //        vec![],
 //        None,
 //        None,
-//        Some(bitcountry_properties()),
+//        Some(metaverse_properties()),
 //        Default::default(),
 //    )
 //}
 //
-//fn local_testnet_genesis() -> bitcountry_runtime::GenesisConfig {
+//fn local_testnet_genesis() -> metaverse_runtime::GenesisConfig {
 //    testnet_genesis(
 //        vec![
 //            authority_keys_from_seed("Alice"),
@@ -396,12 +396,12 @@ pub fn bitcountry_properties() -> Properties {
 //        vec![],
 //        None,
 //        None,
-//        Some(bitcountry_properties()),
+//        Some(metaverse_properties()),
 //        Default::default(),
 //    )
 //}
 //
-//fn tewai_testnet_genesis() -> bitcountry_runtime::GenesisConfig {
+//fn tewai_testnet_genesis() -> metaverse_runtime::GenesisConfig {
 //    let initial_authorities: Vec<(
 //        AccountId,
 //        AccountId,
@@ -603,7 +603,7 @@ pub fn bitcountry_properties() -> Properties {
 //        sudo: SudoConfig { key: root_key },
 //        //        babe: BabeConfig {
 //        //            authorities: vec![],
-//        //            epoch_config: Some(bitcountry_runtime::BABE_GENESIS_EPOCH_CONFIG),
+//        //            epoch_config: Some(metaverse_runtime::BABE_GENESIS_EPOCH_CONFIG),
 //        //        },
 //        aura: AuraConfig {
 //            authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
@@ -624,7 +624,7 @@ pub fn bitcountry_properties() -> Properties {
 //    }
 //}
 //
-//pub fn bitcountry_properties() -> Properties {
+//pub fn metaverse_properties() -> Properties {
 //    let mut properties = Properties::new();
 //
 //    properties.insert("ss58Format".into(), 28.into());

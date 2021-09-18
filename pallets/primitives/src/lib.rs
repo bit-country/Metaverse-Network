@@ -72,7 +72,7 @@ pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// Block ID.
 pub type BlockId = generic::BlockId<Block>;
 /// Country Id
-pub type BitCountryId = u64;
+pub type MetaverseId = u64;
 /// Amount for transaction type
 pub type Amount = i128;
 /// Currency Id type
@@ -95,8 +95,8 @@ pub type TokenId = u64;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
 	NFT(AssetId),
-	Spot(u64, BitCountryId),
-	Country(BitCountryId),
+	Spot(u64, MetaverseId),
+	Country(MetaverseId),
 	Block(u64),
 }
 

@@ -21,13 +21,13 @@ use sp_runtime::{
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type BitCountryId = u64;
+pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
-pub const BITCOUNTRY_ID: BitCountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
+pub const METAVERSE_ID: MetaverseId = 1;
+pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
 pub const NUUM: CurrencyId = 0;
 pub const COUNTRY_FUND: FungibleTokenId = FungibleTokenId::FungibleToken(1);
 
@@ -90,8 +90,8 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub const BitCountryTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-	pub TreasuryModuleAccount: AccountId = BitCountryTreasuryPalletId::get().into_account();
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
 	pub const MiningTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
 }
 

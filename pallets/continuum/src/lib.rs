@@ -21,7 +21,7 @@
 use codec::{Decode, Encode};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{continuum::Continuum, Balance, BitCountryId, CurrencyId, ItemId, SpotId};
+use primitives::{continuum::Continuum, Balance, CurrencyId, ItemId, MetaverseId, SpotId};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
@@ -32,7 +32,7 @@ use sp_std::vec;
 use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionType, ListingLevel};
-use bc_primitives::{BitCountryStruct, BitCountryTrait};
+use bc_primitives::{MetaverseStruct, MetaverseTrait};
 use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
 use sp_arithmetic::Perbill;
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
@@ -113,8 +113,8 @@ pub mod pallet {
 		/// Currency
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
-		/// Source of Bit Country Info
-		type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
+		/// Source of Metaverse Network Info
+		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 	}
 
 	#[pallet::genesis_config]
@@ -289,11 +289,11 @@ pub mod pallet {
 		pub fn buy_continuum_spot(
 			origin: OriginFor<T>,
 			coordinate: (i32, i32),
-			country_id: BitCountryId,
+			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			ensure!(
-				T::BitCountryInfoSource::check_ownership(&sender, &country_id),
+				T::MetaverseInfoSource::check_ownership(&sender, &metaverse_id),
 				Error::<T>::NoPermission
 			);
 			ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
@@ -314,7 +314,7 @@ pub mod pallet {
 				ExistenceRequirement::KeepAlive,
 			)?;
 
-			Self::do_transfer_spot(spot_id, &continuum_treasury, &(sender, country_id))?;
+			Self::do_transfer_spot(spot_id, &continuum_treasury, &(sender, metaverse_id))?;
 
 			Ok(().into())
 		}
@@ -329,12 +329,12 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn register_interest(
 			origin: OriginFor<T>,
-			country_id: BitCountryId,
+			metaverse_id: MetaverseId,
 			coordinate: (i32, i32),
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			ensure!(
-				T::BitCountryInfoSource::check_ownership(&sender, &country_id),
+				T::MetaverseInfoSource::check_ownership(&sender, &metaverse_id),
 				Error::<T>::NoPermission
 			);
 			let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
@@ -600,7 +600,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn try_vote(who: &T::AccountId, spot_id: SpotId, vote: AccountVote<T::AccountId>) -> DispatchResult {
-		// TODO ensure is actual neighbor once bitcountry trait is completed
+		// TODO ensure is actual neighbor once metaverse trait is completed
 		let mut status = Self::referendum_status(spot_id)?;
 
 		VotingOf::<T>::try_mutate(who, |mut voting| -> DispatchResult {
@@ -663,7 +663,7 @@ impl<T: Config> Pallet<T> {
 	pub fn do_transfer_spot(
 		spot_id: SpotId,
 		from: &T::AccountId,
-		to: &(T::AccountId, BitCountryId),
+		to: &(T::AccountId, MetaverseId),
 	) -> Result<SpotId, DispatchError> {
 		Self::transfer_spot(spot_id, from, to)
 	}
@@ -715,7 +715,7 @@ impl<T: Config> Continuum<T::AccountId> for Pallet<T> {
 	fn transfer_spot(
 		spot_id: SpotId,
 		from: &T::AccountId,
-		to: &(T::AccountId, BitCountryId),
+		to: &(T::AccountId, MetaverseId),
 	) -> Result<SpotId, DispatchError> {
 		ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError> {
 			let treasury = Self::account_id();

@@ -23,7 +23,7 @@ use frame_support::ensure;
 use frame_support::{pallet_prelude::*, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, BitCountryId, CurrencyId, LandId};
+use primitives::{Balance, CurrencyId, LandId, MetaverseId};
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError, RuntimeDebug,
@@ -53,8 +53,8 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		#[pallet::constant]
 		type LandTreasury: Get<PalletId>;
-		/// Source of Bit Country Info
-		type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
+		/// Source of Metaverse Network Info
+		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 		/// Currency
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		/// Minimum Land Price
@@ -85,11 +85,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_land_blocks)]
 	pub type LandBlocks<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, (i32, i32), (), OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), (), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_land_info)]
-	pub type LandInfo<T: Config> = StorageMap<_, Blake2_128Concat, LandId, (BitCountryId, (i32, i32)), OptionQuery>;
+	pub type LandInfo<T: Config> = StorageMap<_, Blake2_128Concat, LandId, (MetaverseId, (i32, i32)), OptionQuery>;
 
 	/// Get max bound
 	#[pallet::storage]
@@ -102,7 +102,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		NewLandCreated(Vec<LandId>),
 		TransferredLand(LandId, T::AccountId, T::AccountId),
-		NewLandBlockPurchased(LandId, BitCountryId, (i32, i32)),
+		NewLandBlockPurchased(LandId, MetaverseId, (i32, i32)),
 		NewMaxBoundSet((i32, i32)),
 	}
 
@@ -110,8 +110,8 @@ pub mod pallet {
 	pub enum Error<T> {
 		/// No permission
 		NoPermission,
-		/// No available bitcountry id
-		NoAvailableBitCountryId,
+		/// No available metaverse id
+		NoAvailableMetaverseId,
 		/// No available land id
 		NoAvailableLandId,
 		/// Insufficient fund
@@ -141,14 +141,14 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn buy_land_block(
 			origin: OriginFor<T>,
-			bc_id: BitCountryId,
+			bc_id: MetaverseId,
 			coordinate: (i32, i32),
 		) -> DispatchResultWithPostInfo {
 			/// Check ownership
 			let sender = ensure_signed(origin)?;
 
 			ensure!(
-				T::BitCountryInfoSource::check_ownership(&sender, &bc_id),
+				T::MetaverseInfoSource::check_ownership(&sender, &bc_id),
 				Error::<T>::NoPermission
 			);
 
@@ -210,11 +210,11 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000)]
-		pub fn buy_land(origin: OriginFor<T>, bc_id: BitCountryId, quantity: u8) -> DispatchResultWithPostInfo {
+		pub fn buy_land(origin: OriginFor<T>, bc_id: MetaverseId, quantity: u8) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
 			ensure!(
-				T::BitCountryInfoSource::check_ownership(&sender, &bc_id),
+				T::MetaverseInfoSource::check_ownership(&sender, &bc_id),
 				Error::<T>::NoPermission
 			);
 

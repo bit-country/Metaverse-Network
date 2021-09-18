@@ -1,6 +1,6 @@
 [package]
-authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for tokenization logic.'
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet for tokenization logic.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'

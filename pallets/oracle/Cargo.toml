@@ -2,7 +2,7 @@
 name = "oracle"
 version = "1.0.0"
 edition = "2018"
-authors = ['Bit Country Developer']
+authors = ['Metaverse Network Developer']
 # description = "A pallet that demonstrates many aspects of offchain workers"
 license = "GPL-3.0-or-later"
 

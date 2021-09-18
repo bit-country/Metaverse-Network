@@ -37,7 +37,7 @@ use orml_traits::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, BitCountryId, CurrencyId, FungibleTokenId};
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,
@@ -98,7 +98,7 @@ pub mod pallet {
 		type BCMultiCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>
 			+ MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
 		type FungibleTokenTreasury: Get<PalletId>;
-		type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
+		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 		type LiquidityPoolManager: SwapManager<Self::AccountId, FungibleTokenId, Balance>;
 		#[pallet::constant]
 		/// The minimum amount transferred to call `vested_transfer`.
@@ -124,7 +124,7 @@ pub mod pallet {
 	/// Details of the token corresponding to the token id.
 	/// (hash) -> Token details [returns Token struct]
 	pub(super) type CountryTreasury<T: Config> =
-		StorageMap<_, Blake2_128Concat, BitCountryId, BitCountryFund<T::AccountId, Balance>, OptionQuery>;
+		StorageMap<_, Blake2_128Concat, MetaverseId, MetaverseFund<T::AccountId, Balance>, OptionQuery>;
 
 	/// Vesting schedules of an account.
 	#[pallet::storage]
@@ -144,15 +144,15 @@ pub mod pallet {
 		InsufficientBalance,
 		/// No permission to issue token
 		NoPermissionTokenIssuance,
-		/// Country Currency already issued for this bitcountry
+		/// Country Currency already issued for this metaverse
 		FungibleTokenAlreadyIssued,
 		/// No available next token id
 		NoAvailableTokenId,
 		/// Country Fund Not Available
-		BitCountryFundIsNotAvailable,
+		MetaverseFundIsNotAvailable,
 		/// Initial Social Token Supply is too low
 		InitialFungibleTokenSupplyIsTooLow,
-		/// Failed on updating social token for this bitcountry
+		/// Failed on updating social token for this metaverse
 		FailedOnUpdatingFungibleToken,
 		/// Vesting period is zero
 		ZeroVestingPeriod,
@@ -170,25 +170,25 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Issue a new class of fungible assets for bitcountry. There are, and will only ever be,
+		/// Issue a new class of fungible assets for metaverse. There are, and will only ever be,
 		/// `total` such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
 		#[pallet::weight(10_000)]
 		pub fn mint_token(
 			origin: OriginFor<T>,
 			ticker: Ticker,
-			country_id: BitCountryId,
+			metaverse_id: MetaverseId,
 			total_supply: Balance,
 			initial_lp: (u32, u32),
 			initial_backing: Balance,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			ensure!(
-				T::BitCountryInfoSource::check_ownership(&who, &country_id),
+				T::MetaverseInfoSource::check_ownership(&who, &metaverse_id),
 				Error::<T>::NoPermissionTokenIssuance
 			);
 			ensure!(
-				!CountryTreasury::<T>::contains_key(&country_id),
+				!CountryTreasury::<T>::contains_key(&metaverse_id),
 				Error::<T>::FungibleTokenAlreadyIssued
 			);
 
@@ -216,10 +216,10 @@ pub mod pallet {
 					Ok(FungibleTokenId::FungibleToken(current_id))
 				}
 			})?;
-			let fund_id: T::AccountId = T::FungibleTokenTreasury::get().into_sub_account(country_id);
+			let fund_id: T::AccountId = T::FungibleTokenTreasury::get().into_sub_account(metaverse_id);
 
-			// Bit Country treasury
-			let country_fund = BitCountryFund {
+			// Metaverse Network treasury
+			let country_fund = MetaverseFund {
 				vault: fund_id.clone(),
 				value: total_supply,
 				backing: initial_backing,
@@ -229,12 +229,12 @@ pub mod pallet {
 			let token_info = Token { ticker, total_supply };
 
 			// Update currency id in BC
-			T::BitCountryInfoSource::update_bitcountry_token(country_id.clone(), currency_id.clone())?;
+			T::MetaverseInfoSource::update_metaverse_token(metaverse_id.clone(), currency_id.clone())?;
 
 			// Store social token info
 			FungibleTokens::<T>::insert(currency_id, token_info);
 
-			CountryTreasury::<T>::insert(country_id.clone(), country_fund);
+			CountryTreasury::<T>::insert(metaverse_id.clone(), country_fund);
 			// Deposit fund into bit country treasury
 			T::BCMultiCurrency::transfer(FungibleTokenId::NativeToken(0), &who, &fund_id, initial_backing.clone())?;
 			T::BCMultiCurrency::deposit(currency_id, &fund_id, total_supply.clone())?;
@@ -270,13 +270,13 @@ pub mod pallet {
 				vesting_schedule,
 			));
 
-			let fund_address = Self::get_country_fund_id(country_id);
+			let fund_address = Self::get_country_fund_id(metaverse_id);
 			Self::deposit_event(Event::<T>::FungibleTokenIssued(
 				currency_id.clone(),
 				who.clone(),
 				fund_address,
 				total_supply,
-				country_id,
+				metaverse_id,
 			));
 
 			Ok(().into())
@@ -385,15 +385,15 @@ impl<T: Config> Module<T> {
 		Ok(())
 	}
 
-	pub fn get_total_issuance(country_id: BitCountryId) -> Result<Balance, DispatchError> {
-		let country_fund = CountryTreasury::<T>::get(country_id).ok_or(Error::<T>::BitCountryFundIsNotAvailable)?;
+	pub fn get_total_issuance(metaverse_id: MetaverseId) -> Result<Balance, DispatchError> {
+		let country_fund = CountryTreasury::<T>::get(metaverse_id).ok_or(Error::<T>::MetaverseFundIsNotAvailable)?;
 		let total_issuance = T::BCMultiCurrency::total_issuance(country_fund.currency_id);
 
 		Ok(total_issuance)
 	}
 
-	pub fn get_country_fund_id(country_id: BitCountryId) -> T::AccountId {
-		match CountryTreasury::<T>::get(country_id) {
+	pub fn get_country_fund_id(metaverse_id: MetaverseId) -> T::AccountId {
+		match CountryTreasury::<T>::get(metaverse_id) {
 			Some(fund) => fund.vault,
 			_ => Default::default(),
 		}
