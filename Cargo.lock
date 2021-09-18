@@ -8663,26 +8663,6 @@ dependencies = [
 [[package]]
 name = "sc-telemetry"
 version = "3.0.0"
-source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.1#3f110196163b5ec03bac5ee188d60bedf3ebd91d"
-dependencies = [
- "chrono",
- "futures 0.3.14",
- "libp2p 0.37.1",
- "log",
- "parking_lot 0.11.1",
- "pin-project 1.0.7",
- "rand 0.7.3",
- "serde",
- "serde_json",
- "take_mut",
- "thiserror",
- "void",
- "wasm-timer",
-]
-
-[[package]]
-name = "sc-telemetry"
-version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d05040c594b331d90d7341e82c6dc6a3eb7bb2afb4e5dc9c36a79a6754166057"
 dependencies = [
@@ -8699,6 +8679,26 @@ dependencies = [
  "take_mut",
  "tracing",
  "tracing-subscriber",
+ "void",
+ "wasm-timer",
+]
+
+[[package]]
+name = "sc-telemetry"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.1#3f110196163b5ec03bac5ee188d60bedf3ebd91d"
+dependencies = [
+ "chrono",
+ "futures 0.3.14",
+ "libp2p 0.37.1",
+ "log",
+ "parking_lot 0.11.1",
+ "pin-project 1.0.7",
+ "rand 0.7.3",
+ "serde",
+ "serde_json",
+ "take_mut",
+ "thiserror",
  "void",
  "wasm-timer",
 ]
