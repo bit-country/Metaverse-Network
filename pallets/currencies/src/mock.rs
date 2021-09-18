@@ -1,39 +1,42 @@
-use crate::{Module, Config};
-use crate as tokenization;
 use super::*;
-use frame_support::{
-    construct_runtime, parameter_types, ord_parameter_types, weights::Weight,
-    impl_outer_event, impl_outer_origin, impl_outer_dispatch, traits::EnsureOrigin,
-};
-use sp_core::H256;
-use sp_runtime::{testing::Header, traits::{IdentityLookup, AccountIdConversion}, ModuleId, Perbill};
-use primitives::{CurrencyId, Amount};
-use frame_system::{EnsureSignedBy, EnsureRoot};
-use frame_support::pallet_prelude::{MaybeSerializeDeserialize, Hooks, GenesisBuild};
+use crate as tokenization;
+use crate::{Config, Module};
+use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
+use frame_support::{
+    construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin,
+    ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
+};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
+use primitives::{Amount, CurrencyId};
+use sp_core::H256;
+use sp_runtime::{
+    testing::Header,
+    traits::{AccountIdConversion, IdentityLookup},
+    Perbill,
+};
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
 pub type Balance = u128;
-pub type BitCountryId = u64;
+pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 4;
 pub const BOB: AccountId = 5;
-pub const BITCOUNTRY_ID: BitCountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
+pub const METAVERSE_ID: MetaverseId = 1;
+pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
 pub const NUUM: CurrencyId = 0;
 pub const COUNTRY_FUND: CurrencyId = 1;
-
 
 // Configure a mock runtime to test the pallet.
 
 parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
+    pub const BlockHashCount: u64 = 250;
+    pub const MaximumBlockWeight: u32 = 1024;
+    pub const MaximumBlockLength: u32 = 2 * 1024;
+    pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
 impl frame_system::Config for Runtime {
@@ -62,7 +65,7 @@ impl frame_system::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 1;
+    pub const ExistentialDeposit: u64 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -76,15 +79,15 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-		Default::default()
-	};
+    pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+        Default::default()
+    };
 }
 
 parameter_types! {
-    pub const BitCountryTreasuryModuleId: ModuleId = ModuleId(*b"bit/trsy");
-    pub TreasuryModuleAccount: AccountId = BitCountryTreasuryModuleId::get().into_account();
-    pub const CountryFundModuleId: ModuleId = ModuleId(*b"bit/fund");
+    pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+    pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
+    pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl orml_tokens::Config for Runtime {
@@ -97,23 +100,24 @@ impl orml_tokens::Config for Runtime {
     type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 }
 
-pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+pub type AdaptedBasicCurrency =
+    orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
-pub struct BitCountryInfoSource {}
+pub struct MetaverseInfoSource {}
 
-impl BitCountryTrait<AccountId> for BitCountryInfoSource {
-    fn check_ownership(who: &AccountId, country_id: &BitCountryId) -> bool {
+impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+    fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
         match *who {
             ALICE => true,
             _ => false,
         }
     }
 
-    fn get_country(country_id: BitCountryId) -> Option<BitCountryStruct<AccountId>> {
+    fn get_country(metaverse_id: MetaverseId) -> Option<MetaverseStruct<AccountId>> {
         None
     }
 
-    fn get_country_token(country_id: BitCountryId) -> Option<CurrencyId> {
+    fn get_country_token(metaverse_id: MetaverseId) -> Option<CurrencyId> {
         None
     }
 }
@@ -122,12 +126,12 @@ impl Config for Runtime {
     type Event = Event;
     type TokenId = u64;
     type CountryCurrency = Currencies;
-    type FungibleTokenTreasury = CountryFundModuleId;
-    type BitCountryInfoSource = BitCountryInfoSource;
+    type FungibleTokenTreasury = CountryFundPalletId;
+    type MetaverseInfoSource = MetaverseInfoSource;
 }
 
 parameter_types! {
-	pub const GetNativeCurrencyId: CurrencyId = NUUM;
+    pub const GetNativeCurrencyId: CurrencyId = NUUM;
 }
 
 impl orml_currencies::Config for Runtime {
@@ -142,17 +146,17 @@ type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
 construct_runtime!(
-	pub enum Runtime where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},        
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: frame_system::{Module, Call, Config, Storage, Event<T>},
+        Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
         Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
         TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
-	}
+    }
 );
 
 pub struct ExtBuilder;
@@ -172,8 +176,8 @@ impl ExtBuilder {
         pallet_balances::GenesisConfig::<Runtime> {
             balances: vec![(ALICE, 100000)],
         }
-            .assimilate_storage(&mut t)
-            .unwrap();
+        .assimilate_storage(&mut t)
+        .unwrap();
 
         let mut ext = sp_io::TestExternalities::new(t);
         ext.execute_with(|| System::set_block_number(1));

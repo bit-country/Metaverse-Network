@@ -2,22 +2,21 @@
 name = "oracle"
 version = "1.0.0"
 edition = "2018"
-authors = ['Bit Country Developer']
+authors = ['Metaverse Network Developer']
 # description = "A pallet that demonstrates many aspects of offchain workers"
 license = "GPL-3.0-or-later"
 
 
 [dependencies]
-parity-scale-codec = { default-features = false, features = ['derive'], version = "2.0.0" }
-alt_serde = { version = "1", default-features = false, features = ["derive"] }
+parity-scale-codec = { default-features = false, features = ['derive'], version = "2.2.0" }
 
 # Substrate packages
-frame-support = { version = '3.0.0', default-features = false }
-frame-system = { version = '3.0.0', default-features = false }
-sp-core = { version = '3.0.0', default-features = false }
-#sp-io = { version = '3.0.0', default-features = false }
-sp-runtime = { version = '3.0.0', default-features = false }
-sp-std = { version = '3.0.0', default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+#sp-io = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
 
 [features]
 default = ['std']
