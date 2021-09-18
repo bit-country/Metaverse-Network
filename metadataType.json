@@ -43,7 +43,7 @@
     "end": "Option<BlockNumber>",
     "price_per_block": "Balance"
   },
-  "BitCountryId": "u64",
+  "MetaverseId": "u64",
   "CollectionId": "u64",
   "ClassId": "u32",
   "ClassInfoOf": {
@@ -130,8 +130,8 @@
   "ItemId": {
     "_enum": {
       "NFT": "AssetId",
-      "Spot": "(u64, BitCountryId)",
-      "BitCountry": "BitCountryId",
+      "Spot": "(u64, MetaverseId)",
+      "Metaverse": "MetaverseId",
       "Block": "u64"
     }
   },
@@ -151,7 +151,7 @@
     ]
   },
   "TradingPair": "(FungibleTokenId,FungibleTokenId)",
-  "BitCountry": {
+  "Metaverse": {
     "owner": "AccountId",
     "metadata": "Text",
     "currency_id": "FungibleTokenId"
@@ -161,7 +161,7 @@
     "ticker": "Ticker",
     "total_supply": "Balance"
   },
-  "BitCountryFund": {
+  "MetaverseFund": {
     "vault": "AccountId",
     "value": "u128",
     "backing": "u128",
@@ -172,7 +172,7 @@
   "ListingLevel": {
     "_enum": {
       "Global": "Null",
-      "Local": "BitCountryId"
+      "Local": "MetaverseId"
     }
   },
   "AmountOf": "Balance",

@@ -147,7 +147,6 @@ decl_module! {
         #[weight = 10000]
         pub fn submit_number_signed(origin, number: u64) -> DispatchResult {
             let who = ensure_signed(origin)?;
-            debug::info!("submit_number_signed: ({}, {:?})", number, who);
             Self::append_or_replace_number(number);
 
             Self::deposit_event(RawEvent::NewNumber(Some(who), number));
@@ -157,7 +156,6 @@ decl_module! {
         #[weight = 10000]
         pub fn submit_number_unsigned(origin, number: u64) -> DispatchResult {
             let _ = ensure_none(origin)?;
-            debug::info!("submit_number_unsigned: {}", number);
             Self::append_or_replace_number(number);
 
             Self::deposit_event(RawEvent::NewNumber(None, number));
@@ -172,7 +170,6 @@ decl_module! {
            /// we don't need to verify the signature here because it has been verified in
            ///   `validate_unsigned` function when sending out the unsigned tx.
             let Payload { number, public } = payload;
-            debug::info!("submit_number_unsigned_with_signed_payload: ({}, {:?})", number, public);
             Self::append_or_replace_number(number);
 
             Self::deposit_event(RawEvent::NewNumber(None, number));
@@ -180,7 +177,6 @@ decl_module! {
         }
 
         fn offchain_worker(block_number: T::BlockNumber) {
-            debug::info!("Entering off-chain worker");
         }
     }
 }
@@ -194,7 +190,6 @@ impl<T: Config> Module<T> {
                 let _ = numbers.pop_front();
             }
             numbers.push_back(number);
-            debug::info!("Number vector: {:?}", numbers);
         });
     }
 
@@ -205,10 +200,8 @@ impl<T: Config> Module<T> {
 
         /// `submit_unsigned_transaction` returns a type of `Result<(), ()>`
         ///   ref: https://substrate.dev/rustdocs/v2.0.0/frame_system/offchain/struct.SubmitTransaction.html#method.submit_unsigned_transaction
-        SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into()).map_err(|_| {
-            debug::error!("Failed in offchain_unsigned_tx");
-            <Error<T>>::OffchainUnsignedTxError
-        })
+        SubmitTransaction::<T, Call<T>>::submit_unsigned_transaction(call.into())
+            .map_err(|_| <Error<T>>::OffchainUnsignedTxError)
     }
 
     fn offchain_unsigned_tx_signed_payload(_block_number: T::BlockNumber) -> Result<(), Error<T>> {
@@ -230,14 +223,10 @@ impl<T: Config> Module<T> {
             },
             Call::submit_number_unsigned_with_signed_payload,
         ) {
-            return res.map_err(|_| {
-                debug::error!("Failed in offchain_unsigned_tx_signed_payload");
-                <Error<T>>::OffchainUnsignedTxSignedPayloadError
-            });
+            return res.map_err(|_| <Error<T>>::OffchainUnsignedTxSignedPayloadError);
         }
 
         /// The case of `None`: no account is available for sending
-        debug::error!("No local account available");
         Err(<Error<T>>::NoLocalAcctForSigning)
     }
 }
@@ -268,9 +257,10 @@ impl<T: Config> frame_support::unsigned::ValidateUnsigned for Module<T> {
     }
 }
 
-impl<T: Config> rt_offchain::storage_lock::BlockNumberProvider for Module<T> {
-    type BlockNumber = T::BlockNumber;
-    fn current_block_number() -> Self::BlockNumber {
-        <frame_system::Module<T>>::block_number()
-    }
-}
+//impl<T: Config> rt_offchain::storage_lock::BlockNumberProvider for Module<T> {
+//    type BlockNumber = T::BlockNumber;
+//    fn current_block_number() -> Self::BlockNumber {
+//        <frame_system::Module<T>>::block_number()
+//    }
+//}clear
+

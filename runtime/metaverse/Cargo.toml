@@ -1,0 +1,278 @@
+#Metaverse Parachain runtime - need to merge rococo branch back to this runtime
+[package]
+authors = ['Bit.Country Developers <https://github.com/bit-country>']
+edition = '2018'
+homepage = 'https://bit.country'
+license = 'Unlicense'
+name = 'metaverse-runtime'
+description = 'Metaverse Runtime'
+repository = 'https://github.com/bit-country/Bit-Country-Blockchain'
+version = '2.0.0-rc6'
+publish = false
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+
+pallet-aura = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-balances = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-grandpa = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-randomness-collective-flip = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-sudo = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-collective = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-vesting = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-timestamp = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-transaction-payment = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+frame-executive = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false, version = "4.0.0-dev" }
+sp-consensus-aura = { version = "0.10.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false, version = "4.0.0-dev" }
+sp-offchain = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-runtime = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-session = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-transaction-pool = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-version = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+
+# Used for the node template's RPCs
+frame-system-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-transaction-payment-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+
+# Used for runtime benchmarking
+frame-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
+frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
+hex-literal = { version = "0.3.1", optional = true }
+
+pallet-template = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+
+# external crates - orml packages
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+
+# metaverse dependencies
+primitives = { package = 'bit-country-primitives', path = '../../pallets/primitives', default-features = false }
+auction-manager = { package = 'auction-manager', path = '../../traits/auction-manager', default-features = false }
+metaverse = { package = 'pallet-country', path = '../../pallets/metaverse', default-features = false }
+block = { package = 'pallet-block', path = '../../pallets/block', default-features = false }
+tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', default-features = false }
+nft = { package = 'pallet-nft', path = '../../pallets/nft', version = '2.0.0-rc6', default-features = false }
+continuum = { package = 'pallet-continuum', path = '../../pallets/continuum', version = '0.0.1', default-features = false }
+auction = { package = 'pallet-auction', path = '../../pallets/auction', version = '2.0.0-rc6', default-features = false }
+currencies = { package = 'currencies', path = '../../pallets/currencies', version = '2.0.0-rc6', default-features = false }
+swap = { package = 'pallet-swap', path = '../../pallets/swap', version = '2.0.0-rc6', default-features = false }
+mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '2.0.0-rc6', default-features = false }
+#modules-chainsafe = { package = 'modules-chainsafe', path = '../../modules/chainsafe', version = '0.0.1', default-features = false }
+
+# ecosystem dependencies
+#chainbridge = { git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
+
+[build-dependencies]
+substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "frame-executive/std",
+    "frame-support/std",
+    "frame-system-rpc-runtime-api/std",
+    "frame-system/std",
+    "pallet-aura/std",
+    "pallet-balances/std",
+    "pallet-collective/std",
+    "pallet-grandpa/std",
+    "pallet-randomness-collective-flip/std",
+    "pallet-sudo/std",
+    "pallet-template/std",
+    "pallet-timestamp/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
+    "pallet-transaction-payment/std",
+    "pallet-vesting/std",
+    "sp-api/std",
+    "sp-block-builder/std",
+    "sp-consensus-aura/std",
+    "sp-core/std",
+    "sp-inherents/std",
+    "sp-offchain/std",
+    "sp-runtime/std",
+    "sp-session/std",
+    "sp-std/std",
+    "sp-transaction-pool/std",
+    "sp-version/std",
+    'auction-manager/std',
+    'orml-currencies/std',
+    'orml-tokens/std',
+    'orml-nft/std',
+    'primitives/std',
+    'metaverse/std',
+    'auction/std',
+    'block/std',
+    'nft/std',
+    'continuum/std',
+    'currencies/std',
+    'swap/std',
+    #    'chainbridge/std',
+    #    'modules-chainsafe/std',
+    'mining/std',
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-support/runtime-benchmarks",
+    "frame-system-benchmarking",
+    "frame-system/runtime-benchmarks",
+    "hex-literal",
+    "pallet-balances/runtime-benchmarks",
+    "pallet-template/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+]
+
+
+#primitives = { package = 'bit-country-primitives', path = '../../pallets/primitives', default-features = false }
+#chainbridge = { git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
+#
+## Orml pacakges
+#orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+#orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+#orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+#orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+#
+## bit.country dependencies
+#auction-manager = { package = 'auction-manager', path = '../../traits/auction-manager', version = '2.0.0-rc6', default-features = false }
+#metaverse = { package = 'pallet-country', path = '../../pallets/metaverse', version = '2.0.0-rc6', default-features = false }
+#block = { package = 'pallet-block', path = '../../pallets/block', version = '2.0.0-rc6', default-features = false }
+#tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', version = '2.0.0-rc6', default-features = false }
+#nft = { package = 'pallet-nft', path = '../../pallets/nft', version = '2.0.0-rc6', default-features = false }
+#continuum = { package = 'pallet-continuum', path = '../../pallets/continuum', version = '0.0.1', default-features = false }
+#auction = { package = 'pallet-auction', path = '../../pallets/auction', version = '2.0.0-rc6', default-features = false }
+#currencies = { package = 'currencies', path = '../../pallets/currencies', version = '2.0.0-rc6', default-features = false }
+#swap = { package = 'pallet-swap', path = '../../pallets/swap', version = '2.0.0-rc6', default-features = false }
+##modules-chainsafe = { package = 'modules-chainsafe', path = '../../modules/chainsafe', version = '0.0.1', default-features = false }
+#mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '2.0.0-rc6', default-features = false }
+
+#[build-dependencies]
+#substrate-wasm-builder = { version = "4.0.0" }
+
+
+#[features]
+#default = ['std']
+#with-tracing = ['frame-executive/with-tracing']
+#std = [
+#    'sp-authority-discovery/std',
+#    'pallet-assets/std',
+#    'pallet-authority-discovery/std',
+#    'pallet-authorship/std',
+#    'sp-consensus-babe/std',
+#    'sp-consensus-aura/std',
+#    'pallet-aura/std',
+#    'pallet-babe/std',
+#    'pallet-balances/std',
+#    'pallet-bounties/std',
+#    'sp-block-builder/std',
+#    'codec/std',
+#    'pallet-collective/std',
+#    'pallet-contracts/std',
+#    'pallet-contracts-primitives/std',
+#    'pallet-contracts-rpc-runtime-api/std',
+#    'pallet-democracy/std',
+#    'pallet-elections-phragmen/std',
+#    'frame-executive/std',
+#    'pallet-grandpa/std',
+#    'pallet-im-online/std',
+#    'pallet-indices/std',
+#    'sp-inherents/std',
+#    'pallet-lottery/std',
+#    'pallet-membership/std',
+#    'pallet-mmr/std',
+#    'pallet-multisig/std',
+#    'pallet-identity/std',
+#    'pallet-scheduler/std',
+#    'sp-offchain/std',
+#    'pallet-offences/std',
+#    'pallet-proxy/std',
+#    'sp-core/std',
+#    'pallet-randomness-collective-flip/std',
+#    'sp-std/std',
+#    'serde',
+#    'pallet-session/std',
+#    'sp-api/std',
+#    'sp-runtime/std',
+#    'sp-staking/std',
+#    'pallet-staking/std',
+#    'sp-keyring',
+#    'sp-session/std',
+#    'pallet-sudo/std',
+#    'frame-support/std',
+#    'frame-benchmarking/std',
+#    'frame-system-rpc-runtime-api/std',
+#    'frame-system/std',
+#    'pallet-timestamp/std',
+#    'pallet-tips/std',
+#    'pallet-transaction-payment-rpc-runtime-api/std',
+#    'pallet-transaction-payment/std',
+#    'pallet-treasury/std',
+#    'sp-transaction-pool/std',
+#    'pallet-utility/std',
+#    'sp-version/std',
+#    'pallet-society/std',
+#    'pallet-recovery/std',
+#    'pallet-vesting/std',
+#    'auction-manager/std',
+#    'orml-currencies/std',
+#    'orml-tokens/std',
+#    'orml-nft/std',
+#    'metaverse/std',
+#    'auction/std',
+#    'block/std',
+#    'nft/std',
+#    'continuum/std',
+#    'currencies/std',
+#    'swap/std',
+#    #    'chainbridge/std',
+#    #    'modules-chainsafe/std',
+#    'mining/std',
+#    'sp-npos-elections/std',
+#]
+#runtime-benchmarks = [
+#    'frame-benchmarking',
+#    'frame-support/runtime-benchmarks',
+#    'frame-system/runtime-benchmarks',
+#    'sp-runtime/runtime-benchmarks',
+#    'pallet-assets/runtime-benchmarks',
+#    'pallet-babe/runtime-benchmarks',
+#    'pallet-balances/runtime-benchmarks',
+#    'pallet-bounties/runtime-benchmarks',
+#    'pallet-collective/runtime-benchmarks',
+#    'pallet-contracts/runtime-benchmarks',
+#    'pallet-democracy/runtime-benchmarks',
+#    'pallet-elections-phragmen/runtime-benchmarks',
+#    'pallet-grandpa/runtime-benchmarks',
+#    'pallet-identity/runtime-benchmarks',
+#    'pallet-im-online/runtime-benchmarks',
+#    'pallet-indices/runtime-benchmarks',
+#    'pallet-lottery/runtime-benchmarks',
+#    'pallet-mmr/runtime-benchmarks',
+#    'pallet-multisig/runtime-benchmarks',
+#    'pallet-proxy/runtime-benchmarks',
+#    'pallet-scheduler/runtime-benchmarks',
+#    'pallet-society/runtime-benchmarks',
+#    'pallet-staking/runtime-benchmarks',
+#    'pallet-timestamp/runtime-benchmarks',
+#    'pallet-tips/runtime-benchmarks',
+#    'pallet-treasury/runtime-benchmarks',
+#    'pallet-utility/runtime-benchmarks',
+#    'pallet-vesting/runtime-benchmarks',
+#    'pallet-offences-benchmarking',
+#    'pallet-session-benchmarking',
+#    'frame-system-benchmarking',
+#    'nft/runtime-benchmarks'
+#]
