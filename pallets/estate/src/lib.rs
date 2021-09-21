@@ -241,32 +241,42 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            if who == to {
-                /// no change needed
-                return Ok(().into());
-            }
+            LandUnits::<T>::try_mutate_exists(
+                &bc_id,
+                &coordinate,
+                |land_unit_owner| -> DispatchResultWithPostInfo {
+                    //ensure there is record of the land owner with land id, account id and delete them
+                    ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
 
-            // LandUnitOwner::<T>::insert(land_unit_id.clone(), to.clone(), ());
-            //
-            // Self::add_land_unit_to_new_owner(land_unit_id, &who);
-            // Self::deposit_event(Event::<T>::TransferredLandUnit(
-            //     land_unit_id.clone(),
-            //     who.clone(),
-            //     to,
-            // ));
+                    if who == to {
+                        /// no change needed
+                        return Ok(().into());
+                    }
 
-            Ok(().into())
+                    *land_unit_owner = None;
+                    LandUnits::<T>::insert(bc_id.clone(), coordinate.clone(), to.clone());
+
+                    // Update
+                    Self::deposit_event(Event::<T>::TransferredLandUnit(
+                            bc_id.clone(),
+                            coordinate.clone(),
+                            who.clone(),
+                            to,
+                    ));
+
+                    Ok(().into())
+                },
+            )
         }
 
         #[pallet::weight(10_000)]
         pub(super) fn mint_estate(
             origin: OriginFor<T>,
+            beneficiary: T::AccountId,
             bc_id: BitCountryId,
             coordinates: Vec<(i32, i32)>,
         ) -> DispatchResultWithPostInfo {
             // ensure_root(origin)?;
-
-            /// TODO: Check whether any of the land unit is being used anywhere else
 
             /// Generate new estate id
             let new_estate_id = Self::get_new_estate_id()?;
@@ -280,6 +290,8 @@ pub mod pallet {
 
             /// Update land blocks
             Estates::<T>::insert(bc_id, new_estate_id, &coordinates);
+
+            EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
 
             Self::deposit_event(Event::<T>::NewEstateMinted(
                 new_estate_id.clone(),
