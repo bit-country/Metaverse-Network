@@ -22,7 +22,7 @@ use frame_support::ensure;
 use frame_support::pallet_prelude::*;
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, BitCountryId, CurrencyId, LandId, LandUnitId, EstateId};
+use primitives::{Balance, BitCountryId, CurrencyId, LandId, EstateId};
 use sp_runtime::{
     traits::{AccountIdConversion, One},
     DispatchError, ModuleId, RuntimeDebug,
@@ -67,43 +67,10 @@ pub mod pallet {
     type BalanceOf<T> =
     <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-    #[pallet::storage]
-    #[pallet::getter(fn next_land_id)]
-    pub type NextLandId<T: Config> = StorageValue<_, LandId, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_land_owner)]
-    pub type LandOwner<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, LandId, Twox64Concat, T::AccountId, (), OptionQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_lands_by_owner)]
-    pub type LandByOwner<T: Config> =
-    StorageMap<_, Blake2_128Concat, T::AccountId, Vec<LandId>, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn all_lands_count)]
-    pub(super) type AllLandsCount<T: Config> = StorageValue<_, u64, ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_land_blocks)]
-    pub type LandBlocks<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, (i32, i32), (), OptionQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_land_info)]
-    pub type LandInfo<T: Config> =
-    StorageMap<_, Blake2_128Concat, LandId, (BitCountryId, (i32, i32)), OptionQuery>;
-
-
     /// Get max bound
     #[pallet::storage]
     #[pallet::getter(fn get_max_bounds)]
     pub type MaxBounds<T: Config> = StorageMap<_, Blake2_128Concat, BitCountryId, (i32, i32), ValueQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn next_landunit_id)]
-    pub type NextLandUnitId<T: Config> = StorageValue<_, LandUnitId, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn all_land_units_count)]
@@ -112,22 +79,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_land_units)]
     pub type LandUnits<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, (i32, i32), (), OptionQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_land_unit)]
-    pub type LandUnit<T: Config> =
-    StorageMap<_, Blake2_128Concat, LandUnitId, (BitCountryId, (i32, i32)), OptionQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_land_unit_owner)]
-    pub type LandUnitOwner<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, LandUnitId, Twox64Concat, T::AccountId, (), OptionQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_landunits_by_owner)]
-    pub type LandUnitByOwner<T: Config> =
-    StorageMap<_, Blake2_128Concat, T::AccountId, Vec<LandUnitId>, ValueQuery>;
+    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, (i32, i32), T::AccountId, ValueQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn next_estate_id)]
@@ -140,7 +92,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn get_estates)]
     pub type Estates<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, EstateId, Vec<LandUnitId>, OptionQuery>;
+    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, EstateId, Vec<(i32, i32)>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn get_estate_owner)]
@@ -157,13 +109,13 @@ pub mod pallet {
     #[pallet::metadata(T::AccountId = "AccountId")]
     pub enum Event<T: Config> {
         NewLandCreated(Vec<LandId>),
-        NewLandsMinted(Vec<LandUnitId>),
+        NewLandsMinted(BitCountryId, Vec<(i32, i32)>),
         TransferredLand(LandId, T::AccountId, T::AccountId),
         NewLandBlockPurchased(LandId, BitCountryId, (i32, i32)),
-        TransferredLandUnit(LandUnitId, T::AccountId, T::AccountId),
+        TransferredLandUnit(BitCountryId, (i32, i32), T::AccountId, T::AccountId),
         TransferredEstate(EstateId, T::AccountId, T::AccountId),
-        NewLandUnitMinted(LandUnitId, BitCountryId, (i32, i32)),
-        NewEstateMinted(EstateId, BitCountryId, Vec<LandUnitId>),
+        NewLandUnitMinted(BitCountryId, (i32, i32)),
+        NewEstateMinted(EstateId, BitCountryId, Vec<(i32, i32)>),
         MaxBoundSet(BitCountryId, (i32, i32)),
     }
 
@@ -209,40 +161,38 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         pub(super) fn mint_land(
             origin: OriginFor<T>,
+            beneficiary: T::AccountId,
             bc_id: BitCountryId,
             coordinate: (i32, i32),
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
-            /// Check whether the coordinate is exists
+            // Check whether the coordinate exists
             ensure!(
                 !LandUnits::<T>::contains_key(bc_id, coordinate),
                 Error::<T>::LandUnitIsNotAvailable
             );
 
-            /// Check whether the coordinate is within the bound
+            // Check whether the coordinate is within the bound
             let max_bound = MaxBounds::<T>::get(bc_id);
+
             ensure!(
                 (coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
                     && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
                 Error::<T>::LandUnitIsOutOfBound
             );
 
-            /// Generate new land id
-            let new_land_unit_id = Self::get_new_land_unit_id()?;
-
-            /// Update total land count
+            // Update total land count
             let total_land_units_count = Self::all_land_units_count();
             let new_total_land_units_count = total_land_units_count
                 .checked_add(One::one())
                 .ok_or("Overflow adding new count to total lands")?;
             AllLandUnitsCount::<T>::put(new_total_land_units_count);
 
-            /// Update land blocks
-            LandUnits::<T>::insert(bc_id, coordinate, ());
+            // Update land units
+            LandUnits::<T>::insert(bc_id, coordinate, beneficiary.clone());
 
             Self::deposit_event(Event::<T>::NewLandUnitMinted(
-                new_land_unit_id.clone(),
                 bc_id,
                 coordinate,
             ));
@@ -253,6 +203,7 @@ pub mod pallet {
         #[pallet::weight(10_000)]
         pub(super) fn mint_lands(
             origin: OriginFor<T>,
+            beneficiary: T::AccountId,
             bc_id: BitCountryId,
             coordinates: Vec<(i32, i32)>,
         ) -> DispatchResultWithPostInfo {
@@ -260,28 +211,23 @@ pub mod pallet {
 
             let max_bound = MaxBounds::<T>::get(bc_id);
 
-            let mut new_land_unit_ids: Vec<LandUnitId> = Vec::new();
             for coordinate in &coordinates {
-                /// Check whether the coordinate is within the bound
+                // Check whether the coordinate is within the bound
                 ensure!( (coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
                     && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
                 Error::<T>::LandUnitIsOutOfBound);
 
-                /// Generate new land id
-                let new_land_unit_id = Self::get_new_land_unit_id()?;
-                new_land_unit_ids.push(new_land_unit_id);
-
-                LandUnits::<T>::insert(bc_id, coordinate, ());
+                LandUnits::<T>::insert(bc_id, coordinate, beneficiary.clone());
             };
 
-            /// Update total land count
+            // Update total land count
             let total_land_unit_count = Self::all_land_units_count();
 
             let new_total_land_unit_count = total_land_unit_count
                 .checked_add(coordinates.len() as u64)
                 .ok_or("Overflow adding new count to total lands")?;
             AllLandUnitsCount::<T>::put(new_total_land_unit_count);
-            Self::deposit_event(Event::<T>::NewLandsMinted(new_land_unit_ids.clone()));
+            Self::deposit_event(Event::<T>::NewLandsMinted(bc_id.clone(), coordinates.clone()));
 
             Ok(().into())
         }
@@ -290,7 +236,8 @@ pub mod pallet {
         pub(super) fn transfer_land(
             origin: OriginFor<T>,
             to: T::AccountId,
-            land_unit_id: LandUnitId,
+            bc_id: BitCountryId,
+            coordinate: (i32, i32),
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
@@ -299,14 +246,14 @@ pub mod pallet {
                 return Ok(().into());
             }
 
-            LandUnitOwner::<T>::insert(land_unit_id.clone(), to.clone(), ());
-
-            Self::add_land_unit_to_new_owner(land_unit_id, &who);
-            Self::deposit_event(Event::<T>::TransferredLandUnit(
-                land_unit_id.clone(),
-                who.clone(),
-                to,
-            ));
+            // LandUnitOwner::<T>::insert(land_unit_id.clone(), to.clone(), ());
+            //
+            // Self::add_land_unit_to_new_owner(land_unit_id, &who);
+            // Self::deposit_event(Event::<T>::TransferredLandUnit(
+            //     land_unit_id.clone(),
+            //     who.clone(),
+            //     to,
+            // ));
 
             Ok(().into())
         }
@@ -315,9 +262,9 @@ pub mod pallet {
         pub(super) fn mint_estate(
             origin: OriginFor<T>,
             bc_id: BitCountryId,
-            land_unit_ids: Vec<LandUnitId>,
+            coordinates: Vec<(i32, i32)>,
         ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
+            // ensure_root(origin)?;
 
             /// TODO: Check whether any of the land unit is being used anywhere else
 
@@ -332,12 +279,12 @@ pub mod pallet {
             AllEstatesCount::<T>::put(new_total_estates_count);
 
             /// Update land blocks
-            Estates::<T>::insert(bc_id, new_estate_id, &land_unit_ids);
+            Estates::<T>::insert(bc_id, new_estate_id, &coordinates);
 
             Self::deposit_event(Event::<T>::NewEstateMinted(
                 new_estate_id.clone(),
                 bc_id,
-                land_unit_ids,
+                coordinates,
             ));
 
             Ok(().into())
@@ -382,21 +329,21 @@ impl<T: Config> Module<T> {
         T::LandTreasury::get().into_account()
     }
 
-    fn add_land_unit_to_new_owner(land_unit_id: LandUnitId, sender: &T::AccountId) -> DispatchResult {
-        if LandUnitOwner::<T>::contains_key(land_unit_id, &sender) {
-            LandUnitByOwner::<T>::try_mutate(&sender, |land_unit_ids| -> DispatchResult {
-                ensure!(
-                    !land_unit_ids.iter().any(|i| land_unit_id == *i),
-                    Error::<T>::LandIdAlreadyExist
-                );
-                land_unit_ids.push(land_unit_id);
-                Ok(())
-            })?;
-        } else {
-            let mut new_land_unit_vec = Vec::<LandUnitId>::new();
-            new_land_unit_vec.push(land_unit_id);
-            LandUnitByOwner::<T>::insert(&sender, new_land_unit_vec)
-        }
+    fn add_land_unit_to_new_owner(coordinate: (i32, i32), sender: &T::AccountId) -> DispatchResult {
+        // if LandUnitOwner::<T>::contains_key(coordinate, &sender) {
+            // LandUnitByOwner::<T>::try_mutate(&sender, |land_unit_ids| -> DispatchResult {
+            //     ensure!(
+            //         !land_unit_ids.iter().any(|i| coordinate == *i),
+            //         Error::<T>::LandIdAlreadyExist
+            //     );
+            //     land_unit_ids.push(coordinate);
+            //     Ok(())
+            // })?;
+        // } else {
+            // let mut new_land_unit_vec = Vec::<LandUnitId>::new();
+            // new_land_unit_vec.push(coordinate);
+            // LandUnitByOwner::<T>::insert(&sender, new_land_unit_vec)
+        // }
         Ok(())
     }
 
@@ -421,17 +368,6 @@ impl<T: Config> Module<T> {
             EstateByOwner::<T>::insert(&sender, new_land_unit_vec)
         }
         Ok(())
-    }
-
-    fn get_new_land_unit_id() -> Result<LandUnitId, DispatchError> {
-        let land_unit_id = NextLandUnitId::<T>::try_mutate(|id| -> Result<LandUnitId, DispatchError> {
-            let current_id = *id;
-            *id = id
-                .checked_add(One::one())
-                .ok_or(Error::<T>::NoAvailableLandId)?;
-            Ok(current_id)
-        })?;
-        Ok(land_unit_id)
     }
 
     fn get_new_estate_id() -> Result<EstateId, DispatchError> {
