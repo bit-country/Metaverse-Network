@@ -21,6 +21,7 @@ use currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 mod weights;
 // primitives imports
+use crate::opaque::SessionKeys;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use parachain_staking::{InflationInfo, Range};
 use sp_api::impl_runtime_apis;
@@ -68,6 +69,7 @@ pub use sp_runtime::{Perbill, Permill};
 /// Constant values used within the runtime.
 pub mod constants;
 use constants::{currency::*, time::*};
+use sp_runtime::traits::OpaqueKeys;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -480,6 +482,23 @@ impl mining::Config for Runtime {
 }
 
 parameter_types! {
+	pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(17);
+}
+
+impl pallet_session::Config for Runtime {
+	type Event = Event;
+	type ValidatorId = <Self as frame_system::Config>::AccountId;
+	type ValidatorIdOf = parachain_staking::ValidatorOf<Self>;
+	type ShouldEndSession = Staking;
+	type NextSessionRotation = Staking;
+	type SessionManager = Staking;
+	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+	type Keys = SessionKeys;
+	type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
 	/// Minimum round length is 2 minutes (10 * 12 second block times)
 	pub const MinBlocksPerRound: u32 = 10;
 	/// Default BlocksPerRound is every hour (300 * 12 second block times)
@@ -593,7 +612,8 @@ construct_runtime!(
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 
-		// External modules support
+		// External consensus support
+		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>}
 
 		// Include the custom logic from the pallet-template in the runtime.
