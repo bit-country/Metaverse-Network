@@ -3638,6 +3638,7 @@ dependencies = [
  "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
  "pallet-auction",
  "pallet-aura",
+ "pallet-authorship",
  "pallet-balances",
  "pallet-block",
  "pallet-collective",
@@ -3647,6 +3648,7 @@ dependencies = [
  "pallet-mining",
  "pallet-nft",
  "pallet-randomness-collective-flip",
+ "pallet-session",
  "pallet-sudo",
  "pallet-swap",
  "pallet-template",
@@ -3655,6 +3657,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-vesting",
+ "parachain-staking",
  "parity-scale-codec",
  "sp-api",
  "sp-block-builder",
@@ -5214,6 +5217,24 @@ dependencies = [
  "parity-scale-codec",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "parachain-staking"
+version = "2.1.1"
+source = "git+https://github.com/justinphamnz/Parachain-Staking#f9c725aa472d3ed75f27714ffb61be188380e7d9"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-session",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+ "substrate-fixed",
 ]
 
 [[package]]
@@ -8520,6 +8541,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "substrate-fixed"
+version = "0.5.6"
+source = "git+https://github.com/encointer/substrate-fixed#b33d186888c60f38adafcfc0ec3a21aab263aef1"
+dependencies = [
+ "parity-scale-codec",
+ "typenum",
+]
+
+[[package]]
 name = "substrate-frame-rpc-system"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
@@ -9190,7 +9220,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f559b464de2e2bdabcac6a210d12e9b5a5973c251e102c44c585c71d51bd78e"
 dependencies = [
  "cfg-if 1.0.0",
- "rand 0.8.4",
+ "rand 0.3.23",
  "static_assertions",
 ]
 
