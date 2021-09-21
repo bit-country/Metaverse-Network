@@ -1,14 +1,18 @@
 use hex_literal::hex;
 use metaverse_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, GenesisConfig,
-	GrandpaConfig, Signature, SudoConfig, SystemConfig, WASM_BINARY,
+	GrandpaConfig, InflationInfo, Range, Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
+use primitives::Balance;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
 use sp_core::{sr25519, Pair, Public};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
-use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{
+	traits::{IdentifyAccount, Verify},
+	Perbill,
+};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -177,6 +181,27 @@ pub fn metaverse_testnet_config() -> Result<ChainSpec, String> {
 	))
 }
 
+pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
+	InflationInfo {
+		expect: Range {
+			min: 100_000 * DOLLARS,
+			ideal: 200_000 * DOLLARS,
+			max: 500_000 * DOLLARS,
+		},
+		annual: Range {
+			min: Perbill::from_percent(4),
+			ideal: Perbill::from_percent(5),
+			max: Perbill::from_percent(5),
+		},
+		// 8766 rounds (hours) in a year
+		round: Range {
+			min: Perbill::from_parts(Perbill::from_percent(4).deconstruct() / 8766),
+			ideal: Perbill::from_parts(Perbill::from_percent(5).deconstruct() / 8766),
+			max: Perbill::from_parts(Perbill::from_percent(5).deconstruct() / 8766),
+		},
+	}
+}
+
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
@@ -184,6 +209,12 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool,
 ) -> GenesisConfig {
+	let candidates = vec![(
+		get_account_id_from_seed::<sr25519::Public>("Alice"),
+		get_from_seed::<AuraId>("Alice"),
+		100 * DOLLARS,
+	)];
+
 	GenesisConfig {
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
@@ -212,6 +243,15 @@ fn testnet_genesis(
 			initial_auction_rate: 5,
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
+		},
+		staking: StakingConfig {
+			candidates: candidates
+				.iter()
+				.cloned()
+				.map(|(account, _, bond)| (account, bond))
+				.collect(),
+			nominations: vec![],
+			inflation_config: metaverse_network_inflation_config(),
 		},
 	}
 }

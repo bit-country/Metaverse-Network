@@ -69,6 +69,7 @@ auction = { package = 'pallet-auction', path = '../../pallets/auction', version 
 currencies = { package = 'currencies', path = '../../pallets/currencies', version = '2.0.0-rc6', default-features = false }
 swap = { package = 'pallet-swap', path = '../../pallets/swap', version = '2.0.0-rc6', default-features = false }
 mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '2.0.0-rc6', default-features = false }
+parachain-staking = { package = 'parachain-staking', path = '../../pallets/staking', version = '2.1.1', default-features = false }
 #modules-chainsafe = { package = 'modules-chainsafe', path = '../../modules/chainsafe', version = '0.0.1', default-features = false }
 
 # ecosystem dependencies
@@ -123,6 +124,7 @@ std = [
     #    'chainbridge/std',
     #    'modules-chainsafe/std',
     'mining/std',
+    'parachain-staking/std'
 ]
 runtime-benchmarks = [
     "frame-benchmarking",

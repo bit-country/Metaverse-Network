@@ -2,6 +2,7 @@
 pub mod currency {
 	use primitives::Balance;
 
+	pub const KILODOLLARS: Balance = 1_000_000_000_000_000_000_000;
 	pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 	pub const CENTS: Balance = DOLLARS / 100;
 	/// 10_000_000_000_000_000
