@@ -29,7 +29,284 @@ fn set_max_bound_should_reject_non_root() {
         assert_noop!(EstateModule::set_max_bounds(
             Origin::signed(ALICE),
             BITCOUNTRY_ID,
-            (0, 199)
+            MAX_BOUND
         ), BadOrigin);
     });
 }
+
+#[test]
+fn set_max_bound_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::MaxBoundSet(BITCOUNTRY_ID, MAX_BOUND))
+        );
+
+        assert_eq!(EstateModule::get_max_bounds(BITCOUNTRY_ID), MAX_BOUND);
+    });
+}
+
+#[test]
+fn mint_land_should_reject_non_root() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(EstateModule::mint_land(
+            Origin::signed(ALICE),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ), BadOrigin);
+    });
+}
+
+#[test]
+fn mint_land_should_reject_no_max_bound_set() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ), Error::<Runtime>::NoMaxBoundSet);
+    });
+}
+
+#[test]
+fn mint_land_should_reject_out_bound() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_noop!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_OUT
+        ), Error::<Runtime>::LandUnitIsOutOfBound);
+    });
+}
+
+#[test]
+fn mint_land_should_work_with_one_coordinate() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_ok!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+        );
+
+        assert_eq!(EstateModule::all_land_units_count(), 1);
+    });
+}
+
+#[test]
+fn mint_land_should_reject_with_duplicate_coordinates() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_ok!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+        );
+
+        assert_eq!(EstateModule::all_land_units_count(), 1);
+
+        assert_noop!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ), Error::<Runtime>::LandUnitIsNotAvailable);
+    });
+}
+
+#[test]
+fn mint_land_should_work_with_different_coordinate() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_ok!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+        );
+
+        assert_eq!(EstateModule::all_land_units_count(), 1);
+
+        assert_ok!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_2
+        ));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_2))
+        );
+
+        assert_eq!(EstateModule::all_land_units_count(), 2);
+    });
+}
+
+#[test]
+fn mint_lands_should_reject_non_root() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(EstateModule::mint_lands(
+            Origin::signed(ALICE),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ), BadOrigin);
+    });
+}
+
+#[test]
+fn mint_lands_should_reject_no_max_bound_set() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(EstateModule::mint_lands(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ), Error::<Runtime>::NoMaxBoundSet);
+    });
+}
+
+#[test]
+fn mint_lands_should_reject_out_bound() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_noop!(EstateModule::mint_lands(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_OUT, COORDINATE_IN_1]
+        ), Error::<Runtime>::LandUnitIsOutOfBound);
+    });
+}
+
+#[test]
+fn mint_lands_should_work_with_one_coordinate() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_ok!(EstateModule::mint_lands(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1]
+        ));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::NewLandsMinted(BITCOUNTRY_ID, vec![COORDINATE_IN_1]))
+        );
+
+        assert_eq!(EstateModule::all_land_units_count(), 1);
+    });
+}
+
+#[test]
+fn mint_lands_should_work_with_more_than_one_coordinate() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_ok!(EstateModule::mint_lands(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::NewLandsMinted(BITCOUNTRY_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2]))
+        );
+
+        assert_eq!(EstateModule::all_land_units_count(), 2);
+    });
+}
+
+
+#[test]
+fn mint_estate_should_reject_non_root() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_noop!(EstateModule::mint_estate(
+            Origin::signed(ALICE),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ), BadOrigin);
+    });
+}
+
+// #[test]
+// fn mint_estate_should_work() {
+//     ExtBuilder::default().build().execute_with(|| {
+//         assert_ok!(EstateModule::mint_estate(
+//             Origin::root(),
+//             BENEFICIARY_ID,
+//             BITCOUNTRY_ID,
+//             vec![COORDINATE_IN_1, COORDINATE_IN_2]
+//         ));
+//     });
+//
+//     // println!("{}", EstateModule::next_estate_id());
+//     assert_eq!(EstateModule::all_estates_count(), 2);
+//     // assert_eq!(EstateModule::next_estate_id(), 2);
+// }

@@ -31,12 +31,15 @@ pub type EstateId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
-pub const BITCOUNTRY_ID: BitCountryId = 1;
-pub const COUNTRY_ID_NOT_EXIST: BitCountryId = 1;
-pub const NUUM: CurrencyId = 0;
+pub const BENEFICIARY_ID: AccountId = 99;
+pub const BITCOUNTRY_ID: BitCountryId = 0;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const ALICE_COUNTRY_ID: BitCountryId = 1;
 pub const BOB_COUNTRY_ID: BitCountryId = 2;
+pub const MAX_BOUND: (i32, i32) = (-100, 100);
+pub const COORDINATE_IN_1: (i32, i32) = (-10, 10);
+pub const COORDINATE_IN_2: (i32, i32) = (-5, 5);
+pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 
 ord_parameter_types! {
     pub const One: AccountId = ALICE;

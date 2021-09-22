@@ -122,24 +122,24 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        /// No permission
+        // No permission
         NoPermission,
-        /// No available bitcountry id
+        // No available bitcountry id
         NoAvailableBitCountryId,
-        /// No available land id
-        NoAvailableLandId,
+        // No available land id
+        // NoAvailableLandId,
         NoAvailableEstateId,
-        /// Insufficient fund
+        // Insufficient fund
         InsufficientFund,
-        /// Land id already exist
+        // Land id already exist
         LandIdAlreadyExist,
         EstateIdAlreadyExist,
-        /// Land estate is not available
-        LandBlockIsNotAvailable,
-        /// Land estate is out of bound
-        LandBlockIsOutOfBound,
+        // Land unit is not available
         LandUnitIsNotAvailable,
+        // Land unit is out of bound
         LandUnitIsOutOfBound,
+        // No max bound set
+        NoMaxBoundSet,
     }
 
     #[pallet::call]
@@ -172,6 +172,12 @@ pub mod pallet {
             ensure!(
                 !LandUnits::<T>::contains_key(bc_id, coordinate),
                 Error::<T>::LandUnitIsNotAvailable
+            );
+
+            // Ensure the max bound is set for the bit country
+            ensure!(
+                MaxBounds::<T>::contains_key(bc_id),
+                Error::<T>::NoMaxBoundSet
             );
 
             // Check whether the coordinate is within the bound
@@ -209,6 +215,12 @@ pub mod pallet {
             coordinates: Vec<(i32, i32)>,
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
+
+            // Ensure the max bound is set for the bit country
+            ensure!(
+                MaxBounds::<T>::contains_key(bc_id),
+                Error::<T>::NoMaxBoundSet
+            );
 
             let max_bound = MaxBounds::<T>::get(bc_id);
 
@@ -277,7 +289,7 @@ pub mod pallet {
             bc_id: BitCountryId,
             coordinates: Vec<(i32, i32)>,
         ) -> DispatchResultWithPostInfo {
-            // ensure_root(origin)?;
+            ensure_root(origin)?;
 
             // Generate new estate id
             let new_estate_id = Self::get_new_estate_id()?;
