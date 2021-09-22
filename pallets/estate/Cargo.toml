@@ -21,6 +21,8 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+
 # local packages
 bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
@@ -28,12 +30,10 @@ primitives = { package = "bit-country-primitives", path = "../primitives", defau
 [dev-dependencies]
 pallet-balances = {version = "3.0.0", default-features = false}
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-#sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 [features]
 default = ['std']
 std = [
-    'serde',
     'codec/std',
     'frame-support/std',
     'frame-system/std',
@@ -43,6 +43,6 @@ std = [
     "sp-std/std",
     'bc-primitives/std',
     'primitives/std',
-    'pallet-collective/std',
+#    'pallet-collective/std',
     'pallet-balances/std'
 ]
