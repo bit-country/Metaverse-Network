@@ -19,14 +19,14 @@
 
 use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::ensure;
 use frame_support::pallet_prelude::*;
+use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, BitCountryId, CurrencyId, LandId, EstateId};
+use primitives::{Balance, CurrencyId, EstateId, LandId, MetaverseId};
 use sp_runtime::{
-    traits::{AccountIdConversion, One},
-    DispatchError, ModuleId, RuntimeDebug,
+	traits::{AccountIdConversion, One},
+	DispatchError, RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
@@ -36,334 +36,304 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-use frame_support::dispatch::DispatchResult;
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use super::*;
-    use frame_support::traits::{
-        Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency,
-    };
-    use primitives::AccountId;
+	use super::*;
+	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
+	use primitives::AccountId;
 
-    #[pallet::pallet]
-    #[pallet::generate_store(trait Store)]
-    pub struct Pallet<T>(PhantomData<T>);
+	#[pallet::pallet]
+	#[pallet::generate_store(trait Store)]
+	pub struct Pallet<T>(PhantomData<T>);
 
-    #[pallet::config]
-    pub trait Config: frame_system::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        #[pallet::constant]
-        type LandTreasury: Get<ModuleId>;
-        /// Source of Bit Country Info
-        type BitCountryInfoSource: BitCountryTrait<Self::AccountId>;
-        /// Currency
-        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-        /// Minimum Land Price
-        type MinimumLandPrice: Get<BalanceOf<Self>>;
-        /// Council origin which allows to update max bound
-        type CouncilOrigin: EnsureOrigin<Self::Origin>;
-    }
+	#[pallet::config]
+	pub trait Config: frame_system::Config {
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		#[pallet::constant]
+		type LandTreasury: Get<PalletId>;
+		/// Source of Bit Country Info
+		type BitCountryInfoSource: MetaverseTrait<Self::AccountId>;
+		/// Currency
+		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		/// Minimum Land Price
+		type MinimumLandPrice: Get<BalanceOf<Self>>;
+		/// Council origin which allows to update max bound
+		type CouncilOrigin: EnsureOrigin<Self::Origin>;
+	}
 
-    type BalanceOf<T> =
-    <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-    /// Get max bound
-    #[pallet::storage]
-    #[pallet::getter(fn get_max_bounds)]
-    pub type MaxBounds<T: Config> = StorageMap<_, Blake2_128Concat, BitCountryId, (i32, i32), ValueQuery>;
+	/// Get max bound
+	#[pallet::storage]
+	#[pallet::getter(fn get_max_bounds)]
+	pub type MaxBounds<T: Config> = StorageMap<_, Blake2_128Concat, MetaverseId, (i32, i32), ValueQuery>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn all_land_units_count)]
-    pub(super) type AllLandUnitsCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn all_land_units_count)]
+	pub(super) type AllLandUnitsCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn get_land_units)]
-    pub type LandUnits<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, (i32, i32), T::AccountId, ValueQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn get_land_units)]
+	pub type LandUnits<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), T::AccountId, ValueQuery>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn next_estate_id)]
-    pub type NextEstateId<T: Config> = StorageValue<_, EstateId, ValueQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn next_estate_id)]
+	pub type NextEstateId<T: Config> = StorageValue<_, EstateId, ValueQuery>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn all_estates_count)]
-    pub(super) type AllEstatesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn all_estates_count)]
+	pub(super) type AllEstatesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn get_estates)]
-    pub type Estates<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, BitCountryId, Twox64Concat, EstateId, Vec<(i32, i32)>, OptionQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn get_estates)]
+	pub type Estates<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, EstateId, Vec<(i32, i32)>, OptionQuery>;
 
-    #[pallet::storage]
-    #[pallet::getter(fn get_estate_owner)]
-    pub type EstateOwner<T: Config> =
-    StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, (), OptionQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn get_estate_owner)]
+	pub type EstateOwner<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, (), OptionQuery>;
 
-    #[pallet::event]
-    #[pallet::generate_deposit(pub (super) fn deposit_event)]
-    #[pallet::metadata(T::AccountId = "AccountId")]
-    pub enum Event<T: Config> {
-        NewLandsMinted(BitCountryId, Vec<(i32, i32)>),
-        TransferredLandUnit(BitCountryId, (i32, i32), T::AccountId, T::AccountId),
-        TransferredEstate(EstateId, T::AccountId, T::AccountId),
-        NewLandUnitMinted(BitCountryId, (i32, i32)),
-        NewEstateMinted(EstateId, BitCountryId, Vec<(i32, i32)>),
-        MaxBoundSet(BitCountryId, (i32, i32)),
-    }
+	#[pallet::event]
+	#[pallet::generate_deposit(pub (super) fn deposit_event)]
+	#[pallet::metadata(T::AccountId = "AccountId")]
+	pub enum Event<T: Config> {
+		NewLandsMinted(MetaverseId, Vec<(i32, i32)>),
+		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
+		TransferredEstate(EstateId, T::AccountId, T::AccountId),
+		NewLandUnitMinted(MetaverseId, (i32, i32)),
+		NewEstateMinted(EstateId, MetaverseId, Vec<(i32, i32)>),
+		MaxBoundSet(MetaverseId, (i32, i32)),
+	}
 
-    #[pallet::error]
-    pub enum Error<T> {
-        // No permission
-        NoPermission,
-        // NoAvailableLandId,
-        NoAvailableEstateId,
-        // Insufficient fund
-        InsufficientFund,
-        // Estate id already exist
-        EstateIdAlreadyExist,
-        // Land unit is not available
-        LandUnitIsNotAvailable,
-        // Land unit is out of bound
-        LandUnitIsOutOfBound,
-        // No max bound set
-        NoMaxBoundSet,
-    }
+	#[pallet::error]
+	pub enum Error<T> {
+		// No permission
+		NoPermission,
+		// NoAvailableLandId,
+		NoAvailableEstateId,
+		// Insufficient fund
+		InsufficientFund,
+		// Estate id already exist
+		EstateIdAlreadyExist,
+		// Land unit is not available
+		LandUnitIsNotAvailable,
+		// Land unit is out of bound
+		LandUnitIsOutOfBound,
+		// No max bound set
+		NoMaxBoundSet,
+	}
 
-    #[pallet::call]
-    impl<T: Config> Pallet<T> {
-        #[pallet::weight(10_000)]
-        pub(super) fn set_max_bounds(
-            origin: OriginFor<T>,
-            bc_id: BitCountryId,
-            new_bound: (i32, i32),
-        ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight(10_000)]
+		pub fn set_max_bounds(
+			origin: OriginFor<T>,
+			bc_id: MetaverseId,
+			new_bound: (i32, i32),
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
 
-            MaxBounds::<T>::insert(bc_id, new_bound);
+			MaxBounds::<T>::insert(bc_id, new_bound);
 
-            Self::deposit_event(Event::<T>::MaxBoundSet(bc_id, new_bound));
+			Self::deposit_event(Event::<T>::MaxBoundSet(bc_id, new_bound));
 
-            Ok(().into())
-        }
+			Ok(().into())
+		}
 
-        #[pallet::weight(10_000)]
-        pub(super) fn mint_land(
-            origin: OriginFor<T>,
-            beneficiary: T::AccountId,
-            bc_id: BitCountryId,
-            coordinate: (i32, i32),
-        ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
+		#[pallet::weight(10_000)]
+		pub fn mint_land(
+			origin: OriginFor<T>,
+			beneficiary: T::AccountId,
+			bc_id: MetaverseId,
+			coordinate: (i32, i32),
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
 
-            // Check whether the coordinate exists
-            ensure!(
-                !LandUnits::<T>::contains_key(bc_id, coordinate),
-                Error::<T>::LandUnitIsNotAvailable
-            );
+			// Check whether the coordinate exists
+			ensure!(
+				!LandUnits::<T>::contains_key(bc_id, coordinate),
+				Error::<T>::LandUnitIsNotAvailable
+			);
 
-            // Ensure the max bound is set for the bit country
-            ensure!(
-                MaxBounds::<T>::contains_key(bc_id),
-                Error::<T>::NoMaxBoundSet
-            );
+			// Ensure the max bound is set for the bit country
+			ensure!(MaxBounds::<T>::contains_key(bc_id), Error::<T>::NoMaxBoundSet);
 
-            // Check whether the coordinate is within the bound
-            let max_bound = MaxBounds::<T>::get(bc_id);
+			// Check whether the coordinate is within the bound
+			let max_bound = MaxBounds::<T>::get(bc_id);
 
-            ensure!(
-                (coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
-                    && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
-                Error::<T>::LandUnitIsOutOfBound
-            );
+			ensure!(
+				(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
+					&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
+				Error::<T>::LandUnitIsOutOfBound
+			);
 
-            // Update total land count
-            let total_land_units_count = Self::all_land_units_count();
-            let new_total_land_units_count = total_land_units_count
-                .checked_add(One::one())
-                .ok_or("Overflow adding new count to total lands")?;
-            AllLandUnitsCount::<T>::put(new_total_land_units_count);
+			// Update total land count
+			let total_land_units_count = Self::all_land_units_count();
+			let new_total_land_units_count = total_land_units_count
+				.checked_add(One::one())
+				.ok_or("Overflow adding new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_units_count);
 
-            // Update land units
-            LandUnits::<T>::insert(bc_id, coordinate, beneficiary.clone());
+			// Update land units
+			LandUnits::<T>::insert(bc_id, coordinate, beneficiary.clone());
 
-            Self::deposit_event(Event::<T>::NewLandUnitMinted(
-                bc_id,
-                coordinate,
-            ));
+			Self::deposit_event(Event::<T>::NewLandUnitMinted(bc_id, coordinate));
 
-            Ok(().into())
-        }
+			Ok(().into())
+		}
 
-        #[pallet::weight(10_000)]
-        pub(super) fn mint_lands(
-            origin: OriginFor<T>,
-            beneficiary: T::AccountId,
-            bc_id: BitCountryId,
-            coordinates: Vec<(i32, i32)>,
-        ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
+		#[pallet::weight(10_000)]
+		pub fn mint_lands(
+			origin: OriginFor<T>,
+			beneficiary: T::AccountId,
+			bc_id: MetaverseId,
+			coordinates: Vec<(i32, i32)>,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
 
-            // Ensure the max bound is set for the bit country
-            ensure!(
-                MaxBounds::<T>::contains_key(bc_id),
-                Error::<T>::NoMaxBoundSet
-            );
+			// Ensure the max bound is set for the bit country
+			ensure!(MaxBounds::<T>::contains_key(bc_id), Error::<T>::NoMaxBoundSet);
 
-            let max_bound = MaxBounds::<T>::get(bc_id);
+			let max_bound = MaxBounds::<T>::get(bc_id);
 
-            for coordinate in &coordinates {
-                // Check whether the coordinate is within the bound
-                ensure!( (coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
-                    && (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
-                Error::<T>::LandUnitIsOutOfBound);
+			for coordinate in &coordinates {
+				// Check whether the coordinate is within the bound
+				ensure!(
+					(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
+						&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
+					Error::<T>::LandUnitIsOutOfBound
+				);
 
-                LandUnits::<T>::insert(bc_id, coordinate, beneficiary.clone());
-            };
+				LandUnits::<T>::insert(bc_id, coordinate, beneficiary.clone());
+			}
 
-            // Update total land count
-            let total_land_unit_count = Self::all_land_units_count();
+			// Update total land count
+			let total_land_unit_count = Self::all_land_units_count();
 
-            let new_total_land_unit_count = total_land_unit_count
-                .checked_add(coordinates.len() as u64)
-                .ok_or("Overflow adding new count to total lands")?;
-            AllLandUnitsCount::<T>::put(new_total_land_unit_count);
-            Self::deposit_event(Event::<T>::NewLandsMinted(bc_id.clone(), coordinates.clone()));
+			let new_total_land_unit_count = total_land_unit_count
+				.checked_add(coordinates.len() as u64)
+				.ok_or("Overflow adding new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_unit_count);
+			Self::deposit_event(Event::<T>::NewLandsMinted(bc_id.clone(), coordinates.clone()));
 
-            Ok(().into())
-        }
+			Ok(().into())
+		}
 
-        #[pallet::weight(10_000)]
-        pub(super) fn transfer_land(
-            origin: OriginFor<T>,
-            to: T::AccountId,
-            bc_id: BitCountryId,
-            coordinate: (i32, i32),
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+		#[pallet::weight(10_000)]
+		pub fn transfer_land(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			bc_id: MetaverseId,
+			coordinate: (i32, i32),
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
 
-            LandUnits::<T>::try_mutate_exists(
-                &bc_id,
-                &coordinate,
-                |land_unit_owner| -> DispatchResultWithPostInfo {
-                    // ensure there is record of the land unit with bit country id and coordinate
-                    ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
+			LandUnits::<T>::try_mutate_exists(&bc_id, &coordinate, |land_unit_owner| -> DispatchResultWithPostInfo {
+				// ensure there is record of the land unit with bit country id and coordinate
+				ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
 
-                    // ensure the land unit is belong to the correct owner
-                    let mut land_unit_owner_record =
-                        land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
+				// ensure the land unit is belong to the correct owner
+				let mut land_unit_owner_record = land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
 
-                    ensure!(*land_unit_owner_record == who, Error::<T>::NoPermission);
+				ensure!(*land_unit_owner_record == who, Error::<T>::NoPermission);
 
-                    if who == to {
-                        // no change needed
-                        return Ok(().into());
-                    }
+				if who == to {
+					// no change needed
+					return Ok(().into());
+				}
 
-                    *land_unit_owner = None;
-                    LandUnits::<T>::insert(bc_id.clone(), coordinate.clone(), to.clone());
+				*land_unit_owner = None;
+				LandUnits::<T>::insert(bc_id.clone(), coordinate.clone(), to.clone());
 
-                    // Update
-                    Self::deposit_event(Event::<T>::TransferredLandUnit(
-                            bc_id.clone(),
-                            coordinate.clone(),
-                            who.clone(),
-                            to.clone(),
-                    ));
+				// Update
+				Self::deposit_event(Event::<T>::TransferredLandUnit(
+					bc_id.clone(),
+					coordinate.clone(),
+					who.clone(),
+					to.clone(),
+				));
 
-                    Ok(().into())
-                },
-            )
-        }
+				Ok(().into())
+			})
+		}
 
-        #[pallet::weight(10_000)]
-        pub(super) fn mint_estate(
-            origin: OriginFor<T>,
-            beneficiary: T::AccountId,
-            bc_id: BitCountryId,
-            coordinates: Vec<(i32, i32)>,
-        ) -> DispatchResultWithPostInfo {
-            ensure_root(origin)?;
+		#[pallet::weight(10_000)]
+		pub fn mint_estate(
+			origin: OriginFor<T>,
+			beneficiary: T::AccountId,
+			bc_id: MetaverseId,
+			coordinates: Vec<(i32, i32)>,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
 
-            // Generate new estate id
-            let new_estate_id = Self::get_new_estate_id()?;
+			// Generate new estate id
+			let new_estate_id = Self::get_new_estate_id()?;
 
-            // Update total estates
-            let total_estates_count = Self::all_estates_count();
-            let new_total_estates_count = total_estates_count
-                .checked_add(One::one())
-                .ok_or("Overflow adding new count to total estates")?;
-            AllEstatesCount::<T>::put(new_total_estates_count);
+			// Update total estates
+			let total_estates_count = Self::all_estates_count();
+			let new_total_estates_count = total_estates_count
+				.checked_add(One::one())
+				.ok_or("Overflow adding new count to total estates")?;
+			AllEstatesCount::<T>::put(new_total_estates_count);
 
-            // Update estates
-            Estates::<T>::insert(bc_id, new_estate_id, &coordinates);
+			// Update estates
+			Estates::<T>::insert(bc_id, new_estate_id, &coordinates);
 
-            EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
+			EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
 
-            Self::deposit_event(Event::<T>::NewEstateMinted(
-                new_estate_id.clone(),
-                bc_id,
-                coordinates,
-            ));
+			Self::deposit_event(Event::<T>::NewEstateMinted(new_estate_id.clone(), bc_id, coordinates));
 
-            Ok(().into())
-        }
+			Ok(().into())
+		}
 
-        #[pallet::weight(10_000)]
-        pub(super) fn transfer_estate(
-            origin: OriginFor<T>,
-            to: T::AccountId,
-            estate_id: EstateId,
-        ) -> DispatchResultWithPostInfo {
-            let who = ensure_signed(origin)?;
+		#[pallet::weight(10_000)]
+		pub fn transfer_estate(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			estate_id: EstateId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
 
-            EstateOwner::<T>::try_mutate_exists(
-                &estate_id,
-                &who,
-                |estate_by_owner| -> DispatchResultWithPostInfo {
-                    //ensure there is record of the estate owner with estate id and account id
-                    ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
+			EstateOwner::<T>::try_mutate_exists(&estate_id, &who, |estate_by_owner| -> DispatchResultWithPostInfo {
+				//ensure there is record of the estate owner with estate id and account id
+				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
 
-                    if who == to {
-                        // no change needed
-                        return Ok(().into());
-                    }
+				if who == to {
+					// no change needed
+					return Ok(().into());
+				}
 
-                    *estate_by_owner = None;
-                    EstateOwner::<T>::insert(estate_id.clone(), to.clone(), ());
+				*estate_by_owner = None;
+				EstateOwner::<T>::insert(estate_id.clone(), to.clone(), ());
 
-                    Self::deposit_event(Event::<T>::TransferredEstate(
-                            estate_id.clone(),
-                            who.clone(),
-                            to
-                    ));
+				Self::deposit_event(Event::<T>::TransferredEstate(estate_id.clone(), who.clone(), to));
 
-                    Ok(().into())
-                }
-            )
-        }
-    }
+				Ok(().into())
+			})
+		}
+	}
 
-    #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	#[pallet::hooks]
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Module<T> {
-    // Reads the nonce from storage, increments the stored nonce, and returns
-    // the encoded nonce to the caller.
-    fn account_id() -> T::AccountId {
-        T::LandTreasury::get().into_account()
-    }
+	// Reads the nonce from storage, increments the stored nonce, and returns
+	// the encoded nonce to the caller.
+	fn account_id() -> T::AccountId {
+		T::LandTreasury::get().into_account()
+	}
 
-    fn get_new_estate_id() -> Result<EstateId, DispatchError> {
-        let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
-            let current_id = *id;
-            *id = id
-                .checked_add(One::one())
-                .ok_or(Error::<T>::NoAvailableEstateId)?;
-            Ok(current_id)
-        })?;
-        Ok(estate_id)
-    }
+	fn get_new_estate_id() -> Result<EstateId, DispatchError> {
+		let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
+			let current_id = *id;
+			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableEstateId)?;
+			Ok(current_id)
+		})?;
+		Ok(estate_id)
+	}
 }
