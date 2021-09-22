@@ -164,7 +164,7 @@ pub struct ReferendumStatus<AccountId, BlockNumber> {
 /// Info regarding a referendum, present or past.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum ReferendumInfo<AccountId, BlockNumber> {
-    /// Referendum is happening, the arg is the estate number at which it will end.
+    /// Referendum is happening, the arg is the block number at which it will end.
     Ongoing(ReferendumStatus<AccountId, BlockNumber>),
     /// Referendum finished at `end`, and has been `approved` or rejected.
     Finished { approved: bool, end: BlockNumber },

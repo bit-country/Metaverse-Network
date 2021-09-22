@@ -39,7 +39,7 @@ type AccountPublic = <Signature as Verify>::Signer;
 pub struct Extensions {
     /// Block numbers with known hashes.
     pub fork_blocks: sc_client_api::ForkBlocks<Block>,
-    /// Known bad estate hashes.
+    /// Known bad block hashes.
     pub bad_blocks: sc_client_api::BadBlocks<Block>,
 }
 

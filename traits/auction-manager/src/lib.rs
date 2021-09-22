@@ -62,9 +62,9 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
     /// Current bidder and bid price.
     pub bid: Option<(AccountId, Balance)>,
-    /// Define which estate this auction will be started.
+    /// Define which block this auction will be started.
     pub start: BlockNumber,
-    /// Define which estate this auction will be ended.
+    /// Define which block this auction will be ended.
     pub end: Option<BlockNumber>,
 }
 

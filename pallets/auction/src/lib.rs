@@ -856,7 +856,7 @@ pub mod pallet {
                 ItemId::Spot(_spot_id, _country_id) => {
                     // TODO Check if spot_id is not owned by any
                     let start_time = <system::Module<T>>::block_number();
-                    let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days estate for default auction
+                    let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
                     let auction_id = Self::new_auction(
                         recipient.clone(),
                         initial_amount,

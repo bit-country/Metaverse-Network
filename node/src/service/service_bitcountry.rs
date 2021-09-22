@@ -299,11 +299,11 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         // NOTE: unlike in substrate we are currently running the full
         // GRANDPA voter protocol for all full nodes (regardless of whether
         // they're validators or not). at this point the full voter should
-        // provide better guarantees of estate and vote data availability than
+        // provide better guarantees of block and vote data availability than
         // the observer.
 
         // add a custom voting rule to temporarily stop voting for new blocks
-        // after the given pause estate is finalized and restarting after the
+        // after the given pause block is finalized and restarting after the
         // given delay.
         let grandpa_config = sc_finality_grandpa::GrandpaParams {
             config: grandpa_config,
