@@ -7,14 +7,14 @@
 </p>
 
 <div align="center">
-<h1>Bit.Country Network</h1>
+<h1>[Bit.Country] Metaverse Network</h1>
 
 ## Start your own metaverse. An Ethereum-compatible Network for Metaverses & Games
 
 
 [![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.dev/)
 [![Twitter URL](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2Fbitdotcountry)](https://twitter.com/bitdotcountry)
-[![Medium](https://img.shields.io/badge/Medium-BitCountry-brightgreen?logo=medium)](https://medium.com/@bitcountry)
+[![Medium](https://img.shields.io/badge/Medium-Metaverse-brightgreen?logo=medium)](https://medium.com/@metaverse)
 
 </div>
 
@@ -31,50 +31,42 @@ Development Note: It is still a WIP.
 
 # 1. Introduction
 
-Bit.Country is an EVM-enabled blockchain network for user-created metaverses and games.
+Metaverse Network is an EVM-enabled blockchain network for user-created metaverses and games.
 
 Everyone can start their own metaverse for their people with the 3D world, NFTs, play-to-earn & build communities to earn, and takes community engagement to a new dimension on web3.0.
 
 # 2. Build
 
-Install Rust:
+Install Rust and Wasm build environment:
 
 ```bash
-curl https://sh.rustup.rs -sSf | sh
-```
-
-Initialize your Wasm Build environment:
-
-```bash
-./scripts/init.sh
+make init
 ```
 
 Build Wasm and native code:
 
 ```bash
-cargo build --release
+make build
 ```
 
 # 3. Run
 
-### Single Node Development Chain
+### Start a Dev Metaverse Network Chain
 
-Purge any existing developer chain state:
-
-```bash
-./target/release/bitcountry-node purge-chain --dev
-```
-
-Start a development chain with:
+Start a dev Metaverse Chain
 
 ```bash
-./target/release/bitcountry-node --dev
+make run-dev
 ```
 
 Detailed logs may be shown by running the node with the following environment variables
 set: `RUST_LOG=debug RUST_BACKTRACE=1 cargo run -- --dev`.
 
-### Multi-Node Local Testnet
+This will spin up a Development Metaverse Chain with Alice and Bob as initial authorities.
+
+If you would like to run multi-node manually then you can use the Multi-Node Dev Testnet setup
+
+### Multi-Node Metaverse Network Chain
 
 If you want to see the multi-node consensus algorithm in action locally, then you can create a local testnet with two
 validator nodes for Alice and Bob, who are the initial authorities of the genesis chain that have been endowed with

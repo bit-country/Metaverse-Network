@@ -1,6 +1,6 @@
 [package]
-authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for auction management.'
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet for auction management.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
@@ -9,12 +9,12 @@ repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
 [dependencies]
-serde = { version = "1.0.119", optional = true, features = ["derive"] }
+serde = { version = "1.0.124", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-sp-runtime = { version = "3.0.0", default-features = false }
-sp-std = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
-frame-support = { version = "3.0.0", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 # Used for the node's RPCs
 primitives = { package = "bit-country-primitives", path = "../../pallets/primitives", default-features = false }
 
