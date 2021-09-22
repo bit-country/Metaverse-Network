@@ -105,10 +105,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
     #[pallet::metadata(T::AccountId = "AccountId")]
     pub enum Event<T: Config> {
-        NewLandCreated(Vec<LandId>),
         NewLandsMinted(BitCountryId, Vec<(i32, i32)>),
-        TransferredLand(LandId, T::AccountId, T::AccountId),
-        NewLandBlockPurchased(LandId, BitCountryId, (i32, i32)),
         TransferredLandUnit(BitCountryId, (i32, i32), T::AccountId, T::AccountId),
         TransferredEstate(EstateId, T::AccountId, T::AccountId),
         NewLandUnitMinted(BitCountryId, (i32, i32)),
@@ -120,15 +117,11 @@ pub mod pallet {
     pub enum Error<T> {
         // No permission
         NoPermission,
-        // No available bitcountry id
-        NoAvailableBitCountryId,
-        // No available land id
         // NoAvailableLandId,
         NoAvailableEstateId,
         // Insufficient fund
         InsufficientFund,
-        // Land id already exist
-        LandIdAlreadyExist,
+        // Estate id already exist
         EstateIdAlreadyExist,
         // Land unit is not available
         LandUnitIsNotAvailable,
