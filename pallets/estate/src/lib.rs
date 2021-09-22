@@ -45,6 +45,7 @@ pub mod pallet {
     use frame_support::traits::{
         Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency,
     };
+    use primitives::AccountId;
 
     #[pallet::pallet]
     #[pallet::generate_store(trait Store)]
@@ -99,11 +100,6 @@ pub mod pallet {
     #[pallet::getter(fn get_estate_owner)]
     pub type EstateOwner<T: Config> =
     StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, (), OptionQuery>;
-
-    #[pallet::storage]
-    #[pallet::getter(fn get_estate_by_owner)]
-    pub type EstateByOwner<T: Config> =
-    StorageMap<_, Blake2_128Concat, T::AccountId, Vec<EstateId>, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -258,11 +254,17 @@ pub mod pallet {
                 &bc_id,
                 &coordinate,
                 |land_unit_owner| -> DispatchResultWithPostInfo {
-                    //ensure there is record of the land unit with bit country id and coordinate
+                    // ensure there is record of the land unit with bit country id and coordinate
                     ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
 
+                    // ensure the land unit is belong to the correct owner
+                    let mut land_unit_owner_record =
+                        land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
+
+                    ensure!(*land_unit_owner_record == who, Error::<T>::NoPermission);
+
                     if who == to {
-                        /// no change needed
+                        // no change needed
                         return Ok(().into());
                     }
 
@@ -274,7 +276,7 @@ pub mod pallet {
                             bc_id.clone(),
                             coordinate.clone(),
                             who.clone(),
-                            to,
+                            to.clone(),
                     ));
 
                     Ok(().into())
@@ -355,51 +357,11 @@ pub mod pallet {
 }
 
 impl<T: Config> Module<T> {
-    /// Reads the nonce from storage, increments the stored nonce, and returns
-    /// the encoded nonce to the caller.
-
-
+    // Reads the nonce from storage, increments the stored nonce, and returns
+    // the encoded nonce to the caller.
     fn account_id() -> T::AccountId {
         T::LandTreasury::get().into_account()
     }
-
-    // fn add_land_unit_to_new_owner(coordinate: (i32, i32), sender: &T::AccountId) -> DispatchResult {
-    //     if LandUnitOwner::<T>::contains_key(coordinate, &sender) {
-    //         LandUnitByOwner::<T>::try_mutate(&sender, |land_unit_ids| -> DispatchResult {
-    //             ensure!(
-    //                 !land_unit_ids.iter().any(|i| coordinate == *i),
-    //                 Error::<T>::LandIdAlreadyExist
-    //             );
-    //             land_unit_ids.push(coordinate);
-    //             Ok(())
-    //         })?;
-    //     } else {
-    //         let mut new_land_unit_vec = Vec::<LandUnitId>::new();
-    //         new_land_unit_vec.push(coordinate);
-    //         LandUnitByOwner::<T>::insert(&sender, new_land_unit_vec)
-    //     }
-    //     Ok(())
-    // }
-
-    // fn add_estate_to_new_owner(estate_id: EstateId, sender: &T::AccountId) -> DispatchResult {
-    //     if EstateOwner::<T>::contains_key(estate_id, &sender) {
-    //         EstateByOwner::<T>::try_mutate(&sender, |estate_ids| -> DispatchResult {
-    //             /// Check if the estate_id already in the owner
-    //             ensure!(
-    //                 !estate_ids.iter().any(|i| estate_id == *i),
-    //                 Error::<T>::EstateIdAlreadyExist
-    //             );
-    //             estate_ids.push(estate_id);
-    //
-    //             Ok(())
-    //         })?;
-    //     } else {
-    //         let mut new_land_unit_vec = Vec::<EstateId>::new();
-    //         new_land_unit_vec.push(estate_id);
-    //         EstateByOwner::<T>::insert(&sender, new_land_unit_vec)
-    //     }
-    //     Ok(())
-    // }
 
     fn get_new_estate_id() -> Result<EstateId, DispatchError> {
         let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {

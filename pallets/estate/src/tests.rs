@@ -120,6 +120,35 @@ fn mint_land_should_work_with_one_coordinate() {
 }
 
 #[test]
+fn mint_land_should_work_have_correct_owner() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), 0);
+
+        assert_ok!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+        );
+
+        assert_eq!(EstateModule::all_land_units_count(), 1);
+
+        assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), BENEFICIARY_ID);
+    });
+}
+
+#[test]
 fn mint_land_should_reject_with_duplicate_coordinates() {
     ExtBuilder::default().build().execute_with(|| {
         assert_ok!(EstateModule::set_max_bounds(
@@ -282,6 +311,95 @@ fn mint_lands_should_work_with_more_than_one_coordinate() {
     });
 }
 
+#[test]
+fn transfer_land_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_ok!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), BENEFICIARY_ID);
+
+        assert_ok!(EstateModule::transfer_land(
+            Origin::signed(BENEFICIARY_ID),
+            ALICE,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        // TODO: fix line below - check with Justin
+        // assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), ALICE);
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::TransferredLandUnit(BITCOUNTRY_ID, COORDINATE_IN_1, BENEFICIARY_ID, ALICE))
+        );
+    });
+}
+
+#[test]
+fn transfer_land_should_reject_no_permission() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_ok!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), BENEFICIARY_ID);
+
+        assert_noop!(EstateModule::transfer_land(
+            Origin::signed(BOB),
+            ALICE,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ), Error::<Runtime>::NoPermission);
+    });
+}
+
+#[test]
+fn transfer_land_should_do_nothing_for_same_account() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::set_max_bounds(
+            Origin::root(),
+            BITCOUNTRY_ID,
+            MAX_BOUND
+        ));
+
+        assert_ok!(EstateModule::mint_land(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), BENEFICIARY_ID);
+
+        assert_ok!(EstateModule::transfer_land(
+            Origin::signed(BENEFICIARY_ID),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            COORDINATE_IN_1
+        ));
+
+        assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), BENEFICIARY_ID);
+    });
+}
 
 #[test]
 fn mint_estate_should_reject_non_root() {
@@ -295,18 +413,132 @@ fn mint_estate_should_reject_non_root() {
     });
 }
 
-// #[test]
-// fn mint_estate_should_work() {
-//     ExtBuilder::default().build().execute_with(|| {
-//         assert_ok!(EstateModule::mint_estate(
-//             Origin::root(),
-//             BENEFICIARY_ID,
-//             BITCOUNTRY_ID,
-//             vec![COORDINATE_IN_1, COORDINATE_IN_2]
-//         ));
-//     });
-//
-//     // println!("{}", EstateModule::next_estate_id());
-//     assert_eq!(EstateModule::all_estates_count(), 2);
-//     // assert_eq!(EstateModule::next_estate_id(), 2);
-// }
+#[test]
+fn mint_estate_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::mint_estate(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ));
+
+        let mut estate_id: u64 = 0;
+        assert_eq!(EstateModule::all_estates_count(), 1);
+        assert_eq!(EstateModule::next_estate_id(), 1);
+        assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id), Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+
+        assert_ok!(EstateModule::mint_estate(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1]
+        ));
+
+        estate_id = 1;
+        assert_eq!(EstateModule::all_estates_count(), 2);
+        assert_eq!(EstateModule::next_estate_id(), 2);
+        assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id), Some(vec![COORDINATE_IN_1]));
+        assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+
+        let estate_id_non_exists: u64 = 999;
+        assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id_non_exists), None);
+        assert_eq!(EstateModule::get_estate_owner(estate_id_non_exists, BENEFICIARY_ID), None);
+    });
+}
+
+#[test]
+fn mint_estate_should_return_none_for_non_exist_estate() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::mint_estate(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ));
+
+        let mut estate_id: u64 = 0;
+        assert_eq!(EstateModule::all_estates_count(), 1);
+        assert_eq!(EstateModule::next_estate_id(), 1);
+        assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id), Some(vec![COORDINATE_IN_1, COORDINATE_IN_2]));
+        assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+
+        let estate_id_non_exists: u64 = 999;
+        assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id_non_exists), None);
+        assert_eq!(EstateModule::get_estate_owner(estate_id_non_exists, BENEFICIARY_ID), None);
+    });
+}
+
+#[test]
+fn transfer_estate_should_work() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::mint_estate(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ));
+
+        let mut estate_id: u64 = 0;
+        assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+
+        assert_ok!(EstateModule::transfer_estate(
+            Origin::signed(BENEFICIARY_ID),
+            ALICE,
+            estate_id
+        ));
+
+        assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), None);
+        assert_eq!(EstateModule::get_estate_owner(estate_id, ALICE), Some(()));
+
+        assert_eq!(
+            last_event(),
+            Event::estate(crate::Event::TransferredEstate(estate_id, BENEFICIARY_ID, ALICE))
+        );
+    });
+}
+
+#[test]
+fn transfer_estate_should_reject_no_permission() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::mint_estate(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ));
+
+        let mut estate_id: u64 = 0;
+        assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+
+        assert_noop!(EstateModule::transfer_estate(
+            Origin::signed(BOB),
+            ALICE,
+            estate_id
+        ), Error::<Runtime>::NoPermission);
+    });
+}
+
+#[test]
+fn transfer_estate_should_work_with_same_account() {
+    ExtBuilder::default().build().execute_with(|| {
+        assert_ok!(EstateModule::mint_estate(
+            Origin::root(),
+            BENEFICIARY_ID,
+            BITCOUNTRY_ID,
+            vec![COORDINATE_IN_1, COORDINATE_IN_2]
+        ));
+
+        let mut estate_id: u64 = 0;
+        assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+
+        assert_ok!(EstateModule::transfer_estate(
+            Origin::signed(BENEFICIARY_ID),
+            BENEFICIARY_ID,
+            estate_id
+        ));
+
+        assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+    });
+}
