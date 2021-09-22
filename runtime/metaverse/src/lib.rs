@@ -522,9 +522,9 @@ parameter_types! {
 	/// Default percent of inflation set aside for parachain bond every round
 	pub const DefaultParachainBondReservePercent: Percent = Percent::from_percent(30);
 	/// Minimum stake required to become a collator is 1_000
-	pub const MinCollatorStk: u128 = 1 * KILODOLLARS;
+	pub const MinCollatorStk: u128 = 1 * DOLLARS;
 	/// Minimum stake required to be reserved to be a candidate is 1_000
-	pub const MinCollatorCandidateStk: u128 = 1 * KILODOLLARS;
+	pub const MinCollatorCandidateStk: u128 = 1 * DOLLARS;
 	/// Minimum stake required to be reserved to be a nominator is 5
 	pub const MinNominatorStk: u128 = 5 * DOLLARS;
 }
@@ -613,8 +613,8 @@ construct_runtime!(
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 
 		// External consensus support
-		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>}
+		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
+		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>}
 
 		// Include the custom logic from the pallet-template in the runtime.
 

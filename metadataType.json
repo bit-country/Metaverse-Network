@@ -183,5 +183,70 @@
     "period_count": "u32",
     "per_period": "Balance"
   },
-  "VestingScheduleOf": "VestingSchedule"
+  "RoundIndex": "u32",
+  "VestingScheduleOf": "VestingSchedule",
+  "Candidate": {
+    "id": "AccountId",
+    "fee": "Perbill",
+    "bond": "Balance",
+    "nominators": "Vec<Bond>",
+    "total": "Balance",
+    "state": "CollatorStatus"
+  },
+  "CollatorStatus": {
+    "_enum": {
+      "Active": "Null",
+      "Idle": "Null",
+      "Leaving": "RoundIndex"
+    }
+  },
+  "Range": "RangeBalance",
+  "RangeBalance": {
+    "min": "Balance",
+    "ideal": "Balance",
+    "max": "Balance"
+  },
+  "RangePerbill": {
+    "min": "Perbill",
+    "ideal": "Perbill",
+    "max": "Perbill"
+  },
+  "InflationInfo": {
+    "expect": "RangeBalance",
+    "annual": "RangePerbill",
+    "round": "RangePerbill"
+  },
+  "OrderedSet": "Vec<Bond>",
+  "Collator": {
+    "id": "AccountId",
+    "bond": "Balance",
+    "nominators": "Vec<Bond>",
+    "total": "Balance",
+    "state": "CollatorStatus"
+  },
+  "CollatorSnapshot": {
+    "bond": "Balance",
+    "nominators": "Vec<Bond>",
+    "total": "Balance"
+  },
+  "RoundInfo": {
+    "current": "RoundIndex",
+    "first": "BlockNumber",
+    "length": "u32"
+  },
+  "Nominator": {
+    "nominations": "Vec<Bond>",
+    "total": "Balance"
+  },
+  "Bond": {
+    "owner": "AccountId",
+    "amount": "Balance"
+  },
+  "ValidatorStatus": {
+    "_enum": {
+      "Active": "Null",
+      "Idle": "Null",
+      "Leaving": "RoundIndex"
+    }
+  }
 }
