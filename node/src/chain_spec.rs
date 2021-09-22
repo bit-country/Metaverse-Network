@@ -1,4 +1,5 @@
 use hex_literal::hex;
+use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
 	ContinuumConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig, Signature, StakingConfig,
@@ -61,7 +62,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		move || {
 			testnet_genesis(
 				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice")],
+				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
 				// Sudo account
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
@@ -220,11 +221,19 @@ fn testnet_genesis(
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool,
 ) -> GenesisConfig {
-	let candidates = vec![(
-		get_account_id_from_seed::<sr25519::Public>("Alice"),
-		get_from_seed::<AuraId>("Alice"),
-		100 * DOLLARS,
-	)];
+	let staking_candidate: Vec<(AccountId, Balance)> = initial_authorities
+		.iter()
+		.clone()
+		.map(|x| (x.0.clone(), 100 * DOLLARS))
+		.collect();
+
+	let session_keys_test: Vec<(AccountId, AccountId, SessionKeys)> = initial_authorities
+		.iter()
+		.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
+		.collect::<Vec<_>>();
+	info!("{}", session_keys_test[0].0);
+	info!("{}", staking_candidate[0].0);
+	info!("{}", staking_candidate[1].0);
 
 	GenesisConfig {
 		system: SystemConfig {
@@ -234,13 +243,19 @@ fn testnet_genesis(
 		},
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
+			balances: endowed_accounts
+				.iter()
+				.cloned()
+				.map(|k| (k, 600 * KILODOLLARS))
+				.collect(),
 		},
 		aura: AuraConfig {
-			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+			//			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+			authorities: vec![],
 		},
 		grandpa: GrandpaConfig {
-			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+			//			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+			authorities: vec![],
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
@@ -256,11 +271,7 @@ fn testnet_genesis(
 			spot_price: 5 * DOLLARS,
 		},
 		staking: StakingConfig {
-			candidates: candidates
-				.iter()
-				.cloned()
-				.map(|(account, _, bond)| (account, bond))
-				.collect(),
+			candidates: staking_candidate,
 			nominations: vec![],
 			inflation_config: metaverse_network_inflation_config(),
 		},
