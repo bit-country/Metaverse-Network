@@ -1236,7 +1236,7 @@ construct_runtime!(
 
          //Metaverse pallets
         MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
-        Estate: estate::{Module, Call, Storage, Event<T>},
+        Estate: estate::{Pallet, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Pallet, Storage},
         NftModule: nft::{Pallet, Call, Storage, Event<T>},
         Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
