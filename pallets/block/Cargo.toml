@@ -1,6 +1,6 @@
 [package]
-authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for block logic.'
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet for block logic.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
@@ -13,38 +13,23 @@ targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-pallet-aura = { version = "3.0.0", default-features = false }
-pallet-balances = { version = "3.0.0", default-features = false }
-frame-support = { version = "3.0.0", default-features = false }
-pallet-grandpa = { version = "3.0.0", default-features = false }
-pallet-randomness-collective-flip = { version = "3.0.0", default-features = false }
-pallet-sudo = { version = "3.0.0", default-features = false }
-frame-system = { version = "3.0.0", default-features = false }
-pallet-timestamp = { version = "3.0.0", default-features = false }
-pallet-transaction-payment = { version = "3.0.0", default-features = false }
-frame-executive = { version = "3.0.0", default-features = false }
-serde = { version = "1.0.119", optional = true, features = ["derive"] }
-sp-api = { version = "3.0.0", default-features = false }
-sp-block-builder = { version = "3.0.0", default-features = false }
-sp-consensus-aura = { version = "0.9.0", default-features = false }
-sp-core = { version = "3.0.0", default-features = false }
-sp-inherents = { version = "3.0.0", default-features = false }
-sp-offchain = { version = "3.0.0", default-features = false }
-sp-runtime = { version = "3.0.0", default-features = false }
-sp-session = { version = "3.0.0", default-features = false }
-sp-std = { version = "3.0.0", default-features = false }
-sp-transaction-pool = { version = "3.0.0", default-features = false }
-sp-version = { version = "3.0.0", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 # local packages
-bc-country = { path = "../../traits/bc-country", default-features = false }
-bc-land = { path = "../../traits/bc-land", default-features = false }
+bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
 
 
 
 [dev-dependencies]
-sp-core = { version = "3.0.0", default-features = false }
-#sp-io = { version = "3.0.0", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+#sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 [features]
 default = ['std']
@@ -54,5 +39,5 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
-
+    'bc-primitives/std'
 ]

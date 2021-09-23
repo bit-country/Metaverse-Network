@@ -23,7 +23,7 @@
 use sp_std::prelude::*;
 use sp_std::vec;
 
-use frame_benchmarking::{account, whitelisted_caller, benchmarks, impl_benchmark_test_suite};
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::Get;
 use frame_system::RawOrigin;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
@@ -40,20 +40,19 @@ pub trait Config: crate::Config + orml_nft::Config + social_currencies::Config {
 const SEED: u32 = 0;
 
 fn dollar(d: u32) -> Balance {
-    let d: Balance = d.into();
-    d.saturating_mul(1_000_000_000_000_000_000)
+	let d: Balance = d.into();
+	d.saturating_mul(1_000_000_000_000_000_000)
 }
 
 benchmarks! {
 	// create NFT group
-    create_group{
-    }: _(RawOrigin::Root ,vec![1], vec![1] )
+	create_group{
+	}: _(RawOrigin::Root ,vec![1], vec![1] )
 
-    create_class{
-        let caller = whitelisted_caller();
-        let initial_balance = dollar(1000);
-        <T as social_currencies::Config>::NativeCurrency::update_balance(&caller, initial_balance.unique_saturated_into())?;
-        crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1],vec![1]);
-    }: _(RawOrigin::Signed(caller),vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable)
+	create_class{
+		let caller = whitelisted_caller();
+		let initial_balance = dollar(1000);
+		<T as social_currencies::Config>::NativeCurrency::update_balance(&caller, initial_balance.unique_saturated_into())?;
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1],vec![1]);
+	}: _(RawOrigin::Signed(caller),vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable)
 }
-
