@@ -6,7 +6,7 @@
 //! EXECUTION: Some(Wasm), WASM-EXECUTION: Interpreted, CHAIN: None, DB CACHE: 128
 
 // Executed Command:
-// ./target/release/bitcountry-node
+// ./target/release/metaverse-node
 // benchmark
 // --pallet=nft
 // --extrinsic=*

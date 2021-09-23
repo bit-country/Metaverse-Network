@@ -1,0 +1,62 @@
+[package]
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet.'
+edition = '2018'
+homepage = 'https://bit.country'
+license = 'Unlicense'
+name = 'pallet-metaverse'
+repository = 'https://github.com/bit-country'
+version = '2.0.0-rc6'
+
+[package.metadata.docs.rs]
+targets = ['x86_64-unknown-linux-gnu']
+
+[dependencies]
+serde = { version = "1.0.124", optional = true, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+
+# local packages
+bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
+
+# Orml packages
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+
+[dependencies.nft]
+default-features = false
+package = 'pallet-nft'
+path = '../nft'
+version = '2.0.0-rc6'
+
+[features]
+default = ['std']
+std = [
+    'serde',
+    'codec/std',
+    'sp-runtime/std',
+    'frame-support/std',
+    'frame-system/std',
+    'sp-io/std',
+    'sp-core/std',
+    "sp-std/std",
+    "orml-traits/std",
+    "orml-tokens/std",
+    'nft/std',
+    'primitives/std'
+]

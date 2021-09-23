@@ -17,15 +17,19 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-
-use sp_runtime::{
-    generic, traits::{Verify, BlakeTwo256, IdentifyAccount}, OpaqueExtrinsic, MultiSignature,
-};
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
 use sp_runtime::RuntimeDebug;
+use sp_runtime::{
+	generic,
+	traits::{BlakeTwo256, IdentifyAccount, Verify},
+	MultiSignature, OpaqueExtrinsic,
+};
+
+use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_runtime::traits::AtLeast32Bit;
 
 pub mod continuum;
 pub mod dex;
@@ -66,11 +70,11 @@ pub type DigestItem = generic::DigestItem<Hash>;
 /// Header type.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type.
-pub type Block = generic::Block<Header, OpaqueExtrinsic>;
+pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// Block ID.
 pub type BlockId = generic::BlockId<Block>;
 /// Country Id
-pub type CountryId = u64;
+pub type MetaverseId = u64;
 /// Amount for transaction type
 pub type Amount = i128;
 /// Currency Id type
@@ -96,83 +100,142 @@ pub type TokenId = u64;
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
-    NFT(AssetId),
-    Spot(u64, CountryId),
-    Country(CountryId),
-    Block(u64),
+	NFT(AssetId),
+	Spot(u64, MetaverseId),
+	Country(MetaverseId),
+	Block(u64),
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum SocialTokenCurrencyId {
-    NativeToken(TokenId),
-    SocialToken(TokenId),
-    DEXShare(TokenId, TokenId),
+pub enum FungibleTokenId {
+	NativeToken(TokenId),
+	FungibleToken(TokenId),
+	DEXShare(TokenId, TokenId),
+	MiningResource(TokenId),
 }
 
-impl SocialTokenCurrencyId {
-    pub fn is_native_token_currency_id(&self) -> bool {
-        matches!(self, SocialTokenCurrencyId::NativeToken(_))
-    }
+impl FungibleTokenId {
+	pub fn is_native_token_currency_id(&self) -> bool {
+		matches!(self, FungibleTokenId::NativeToken(_))
+	}
 
-    pub fn is_social_token_currency_id(&self) -> bool {
-        matches!(self, SocialTokenCurrencyId::SocialToken(_))
-    }
+	pub fn is_social_token_currency_id(&self) -> bool {
+		matches!(self, FungibleTokenId::FungibleToken(_))
+	}
 
-    pub fn is_dex_share_social_token_currency_id(&self) -> bool {
-        matches!(self, SocialTokenCurrencyId::DEXShare(_, _))
-    }
+	pub fn is_dex_share_social_token_currency_id(&self) -> bool {
+		matches!(self, FungibleTokenId::DEXShare(_, _))
+	}
 
-    pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
-        match self {
-            SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1) => {
-                Some((SocialTokenCurrencyId::NativeToken(*token_currency_id_0), SocialTokenCurrencyId::SocialToken(*token_currency_id_1)))
-            }
-            _ => None,
-        }
-    }
+	pub fn is_mining_resource_currency(&self) -> bool {
+		matches!(self, FungibleTokenId::MiningResource(_))
+	}
 
-    pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
-        match (currency_id_0, currency_id_1) {
-            (SocialTokenCurrencyId::NativeToken(token_currency_id_0), SocialTokenCurrencyId::SocialToken(token_currency_id_1)) => {
-                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_0, token_currency_id_1))
-            }
-            (SocialTokenCurrencyId::SocialToken(token_currency_id_0), SocialTokenCurrencyId::NativeToken(token_currency_id_1)) => {
-                Some(SocialTokenCurrencyId::DEXShare(token_currency_id_1, token_currency_id_0))
-            }
-            _ => None,
-        }
-    }
+	pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
+		match self {
+			FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1) => Some((
+				FungibleTokenId::NativeToken(*token_currency_id_0),
+				FungibleTokenId::FungibleToken(*token_currency_id_1),
+			)),
+			_ => None,
+		}
+	}
+
+	pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
+		match (currency_id_0, currency_id_1) {
+			(
+				FungibleTokenId::NativeToken(token_currency_id_0),
+				FungibleTokenId::FungibleToken(token_currency_id_1),
+			) => Some(FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1)),
+			(
+				FungibleTokenId::FungibleToken(token_currency_id_0),
+				FungibleTokenId::NativeToken(token_currency_id_1),
+			) => Some(FungibleTokenId::DEXShare(token_currency_id_1, token_currency_id_0)),
+			_ => None,
+		}
+	}
 }
 
 /// App-specific crypto used for reporting equivocation/misbehavior in BABE and
 /// GRANDPA. Any rewards for misbehavior reporting will be paid out to this
 /// account.
 pub mod report {
-    use super::{Signature, Verify};
-    use frame_system::offchain::AppCrypto;
-    use sp_core::crypto::{key_types, KeyTypeId};
+	use super::{Signature, Verify};
+	use frame_system::offchain::AppCrypto;
+	use sp_core::crypto::{key_types, KeyTypeId};
 
-    /// Key type for the reporting module. Used for reporting BABE and GRANDPA
-    /// equivocations.
-    pub const KEY_TYPE: KeyTypeId = key_types::REPORTING;
+	/// Key type for the reporting module. Used for reporting BABE and GRANDPA
+	/// equivocations.
+	pub const KEY_TYPE: KeyTypeId = key_types::REPORTING;
 
-    mod app {
-        use sp_application_crypto::{app_crypto, sr25519};
-        app_crypto!(sr25519, super::KEY_TYPE);
-    }
+	mod app {
+		use sp_application_crypto::{app_crypto, sr25519};
+		app_crypto!(sr25519, super::KEY_TYPE);
+	}
 
-    /// Identity of the equivocation/misbehavior reporter.
-    pub type ReporterId = app::Public;
+	/// Identity of the equivocation/misbehavior reporter.
+	pub type ReporterId = app::Public;
 
-    /// An `AppCrypto` type to allow submitting signed transactions using the reporting
-    /// application key as signer.
-    pub struct ReporterAppCrypto;
+	/// An `AppCrypto` type to allow submitting signed transactions using the reporting
+	/// application key as signer.
+	pub struct ReporterAppCrypto;
 
-    impl AppCrypto<<Signature as Verify>::Signer, Signature> for ReporterAppCrypto {
-        type RuntimeAppPublic = ReporterId;
-        type GenericSignature = sp_core::sr25519::Signature;
-        type GenericPublic = sp_core::sr25519::Public;
-    }
+	impl AppCrypto<<Signature as Verify>::Signer, Signature> for ReporterAppCrypto {
+		type RuntimeAppPublic = ReporterId;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
+	}
 }
 
+/// The vesting schedule.
+///
+/// Benefits would be granted gradually, `per_period` amount every `period`
+/// of blocks after `start`.
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
+	/// Vesting token
+	pub token: FungibleTokenId,
+	/// Vesting starting block
+	pub start: BlockNumber,
+	/// Number of blocks between vest
+	pub period: BlockNumber,
+	/// Number of vest
+	pub period_count: u32,
+	/// Amount of tokens to release per vest
+	#[codec(compact)]
+	pub per_period: Balance,
+}
+
+impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSchedule<BlockNumber, Balance> {
+	/// Returns the end of all periods, `None` if calculation overflows.
+	pub fn end(&self) -> Option<BlockNumber> {
+		// period * period_count + start
+		self.period
+			.checked_mul(&self.period_count.into())?
+			.checked_add(&self.start)
+	}
+
+	/// Returns all locked amount, `None` if calculation overflows.
+	pub fn total_amount(&self) -> Option<Balance> {
+		self.per_period.checked_mul(&self.period_count.into())
+	}
+
+	/// Returns locked amount for a given `time`.
+	///
+	/// Note this func assumes schedule is a valid one(non-zero period and
+	/// non-overflow total amount), and it should be guaranteed by callers.
+	pub fn locked_amount(&self, time: BlockNumber) -> Balance {
+		// full = (time - start) / period
+		// unrealized = period_count - full
+		// per_period * unrealized
+		let full = time
+			.saturating_sub(self.start)
+			.checked_div(&self.period)
+			.expect("ensured non-zero period; qed");
+		let unrealized = self.period_count.saturating_sub(full.unique_saturated_into());
+		self.per_period
+			.checked_mul(&unrealized.into())
+			.expect("ensured non-overflow total amount; qed")
+	}
+}
