@@ -201,6 +201,12 @@ pub mod pallet {
 			let max_bound = MaxBounds::<T>::get(metaverse_id);
 
 			for coordinate in &coordinates {
+				// Check whether the coordinate exists
+				ensure!(
+					!LandUnits::<T>::contains_key(metaverse_id, coordinate),
+					Error::<T>::LandUnitIsNotAvailable
+				);
+
 				// Check whether the coordinate is within the bound
 				ensure!(
 					(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
@@ -275,8 +281,32 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
+			// Ensure the max bound is set for the bit country
+			ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
+
+			let max_bound = MaxBounds::<T>::get(metaverse_id);
+
 			// Generate new estate id
 			let new_estate_id = Self::get_new_estate_id()?;
+
+			for coordinate in &coordinates {
+				// Check whether the coordinate exists
+				ensure!(
+					!LandUnits::<T>::contains_key(metaverse_id, coordinate),
+					Error::<T>::LandUnitIsNotAvailable
+				);
+
+				// Check whether the coordinate is within the bound
+				ensure!(
+					(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
+						&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
+					Error::<T>::LandUnitIsOutOfBound
+				);
+
+				// Generate sub account from estate
+				let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
+				LandUnits::<T>::insert(metaverse_id, coordinate, estate_account_id.clone());
+			}
 
 			// Update total estates
 			let total_estates_count = Self::all_estates_count();
