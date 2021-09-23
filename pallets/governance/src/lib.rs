@@ -221,19 +221,20 @@ pub mod pallet {
             ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
             ensure!(T::Currency::free_balance(&from) >= balance, Error::<T>::InsufficientBalance);
             ensure!(<Preimages<T>>::contains_key(preimage_hash), Error::<T>::PreimageInvalid);
-            let launch_block: T::BlockNumber = Self::get_proposal_launch_block(country)?;
+            let now = <frame_system::Pallet<T>>::block_number();
             let proposal_info = ProposalInfo {
                 proposed_by: from.clone(),
               //  parameter: proposal_parameter,
                 hash: preimage_hash,
                 description: proposal_description,
-                referendum_launch_block: launch_block,
+                referendum_launch_block: now,
             };
             let proposal_id = Self::get_next_proposal_id()?;         
             <Proposals<T>>::insert(country, proposal_id, proposal_info);
             Self::update_proposals_per_country_number(country,true);
             T::Currency::reserve(&from, balance);
             <DepositOf<T>>::insert(proposal_id, (&from, balance));
+            Self::start_referendum(country, proposal_id,now);
             Self::deposit_event(Event::ProposalSubmitted(from, country, proposal_id)); 
             Ok(().into())
         }
@@ -375,15 +376,6 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-        /// Initialization
-        fn on_initialize(now: T::BlockNumber) -> Weight {
-            for (country_id,proposal_id, proposal_info) in <Proposals<T>>::iter() {
-                if proposal_info.referendum_launch_block == now {
-                    Self::start_referendum(country_id, proposal_id,now);
-                }
-            }
-            0
-        }
 
         /// Finalization
         fn on_finalize(now: T::BlockNumber)  {
