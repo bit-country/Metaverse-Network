@@ -237,9 +237,10 @@ pub mod pallet {
 				ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
 
 				// ensure the land unit is belong to the correct owner
-				let mut land_unit_owner_record = land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
+				// let mut land_unit_owner_record = land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
 
-				ensure!(*land_unit_owner_record == who, Error::<T>::NoPermission);
+				let owner = land_unit_owner.as_ref().map(|(t)| t);
+				ensure!(owner == Some(&who), Error::<T>::NoPermission);
 
 				if who == to {
 					// no change needed
