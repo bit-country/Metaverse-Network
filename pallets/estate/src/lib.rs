@@ -132,14 +132,14 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn set_max_bounds(
 			origin: OriginFor<T>,
-			bc_id: MetaverseId,
+			metaverse_id: MetaverseId,
 			new_bound: (i32, i32),
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			MaxBounds::<T>::insert(bc_id, new_bound);
+			MaxBounds::<T>::insert(metaverse_id, new_bound);
 
-			Self::deposit_event(Event::<T>::MaxBoundSet(bc_id, new_bound));
+			Self::deposit_event(Event::<T>::MaxBoundSet(metaverse_id, new_bound));
 
 			Ok(().into())
 		}
@@ -148,22 +148,22 @@ pub mod pallet {
 		pub fn mint_land(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
-			bc_id: MetaverseId,
+			metaverse_id: MetaverseId,
 			coordinate: (i32, i32),
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			// Check whether the coordinate exists
 			ensure!(
-				!LandUnits::<T>::contains_key(bc_id, coordinate),
+				!LandUnits::<T>::contains_key(metaverse_id, coordinate),
 				Error::<T>::LandUnitIsNotAvailable
 			);
 
 			// Ensure the max bound is set for the bit country
-			ensure!(MaxBounds::<T>::contains_key(bc_id), Error::<T>::NoMaxBoundSet);
+			ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
 
 			// Check whether the coordinate is within the bound
-			let max_bound = MaxBounds::<T>::get(bc_id);
+			let max_bound = MaxBounds::<T>::get(metaverse_id);
 
 			ensure!(
 				(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
@@ -179,9 +179,9 @@ pub mod pallet {
 			AllLandUnitsCount::<T>::put(new_total_land_units_count);
 
 			// Update land units
-			LandUnits::<T>::insert(bc_id, coordinate, beneficiary.clone());
+			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
 
-			Self::deposit_event(Event::<T>::NewLandUnitMinted(bc_id, coordinate));
+			Self::deposit_event(Event::<T>::NewLandUnitMinted(metaverse_id, coordinate));
 
 			Ok(().into())
 		}
@@ -190,15 +190,15 @@ pub mod pallet {
 		pub fn mint_lands(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
-			bc_id: MetaverseId,
+			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			// Ensure the max bound is set for the bit country
-			ensure!(MaxBounds::<T>::contains_key(bc_id), Error::<T>::NoMaxBoundSet);
+			ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
 
-			let max_bound = MaxBounds::<T>::get(bc_id);
+			let max_bound = MaxBounds::<T>::get(metaverse_id);
 
 			for coordinate in &coordinates {
 				// Check whether the coordinate is within the bound
@@ -208,7 +208,7 @@ pub mod pallet {
 					Error::<T>::LandUnitIsOutOfBound
 				);
 
-				LandUnits::<T>::insert(bc_id, coordinate, beneficiary.clone());
+				LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
 			}
 
 			// Update total land count
@@ -218,7 +218,7 @@ pub mod pallet {
 				.checked_add(coordinates.len() as u64)
 				.ok_or("Overflow adding new count to total lands")?;
 			AllLandUnitsCount::<T>::put(new_total_land_unit_count);
-			Self::deposit_event(Event::<T>::NewLandsMinted(bc_id.clone(), coordinates.clone()));
+			Self::deposit_event(Event::<T>::NewLandsMinted(metaverse_id.clone(), coordinates.clone()));
 
 			Ok(().into())
 		}
@@ -227,46 +227,50 @@ pub mod pallet {
 		pub fn transfer_land(
 			origin: OriginFor<T>,
 			to: T::AccountId,
-			bc_id: MetaverseId,
+			metaverse_id: MetaverseId,
 			coordinate: (i32, i32),
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			LandUnits::<T>::try_mutate_exists(&bc_id, &coordinate, |land_unit_owner| -> DispatchResultWithPostInfo {
-				// ensure there is record of the land unit with bit country id and coordinate
-				ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
+			LandUnits::<T>::try_mutate_exists(
+				&metaverse_id,
+				&coordinate,
+				|land_unit_owner| -> DispatchResultWithPostInfo {
+					// ensure there is record of the land unit with bit country id and coordinate
+					ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
 
-				// ensure the land unit is belong to the correct owner
-				// let mut land_unit_owner_record = land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
+					// ensure the land unit is belong to the correct owner
+					// let mut land_unit_owner_record = land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
 
-				let owner = land_unit_owner.as_ref().map(|(t)| t);
-				ensure!(owner == Some(&who), Error::<T>::NoPermission);
+					let owner = land_unit_owner.as_ref().map(|(t)| t);
+					ensure!(owner == Some(&who), Error::<T>::NoPermission);
 
-				if who == to {
-					// no change needed
-					return Ok(().into());
-				}
+					if who == to {
+						// no change needed
+						return Ok(().into());
+					}
 
-				*land_unit_owner = None;
-				LandUnits::<T>::insert(bc_id.clone(), coordinate.clone(), to.clone());
+					*land_unit_owner = None;
+					LandUnits::<T>::insert(metaverse_id.clone(), coordinate.clone(), to.clone());
 
-				// Update
-				Self::deposit_event(Event::<T>::TransferredLandUnit(
-					bc_id.clone(),
-					coordinate.clone(),
-					who.clone(),
-					to.clone(),
-				));
+					// Update
+					Self::deposit_event(Event::<T>::TransferredLandUnit(
+						metaverse_id.clone(),
+						coordinate.clone(),
+						who.clone(),
+						to.clone(),
+					));
 
-				Ok(().into())
-			})
+					Ok(().into())
+				},
+			)
 		}
 
 		#[pallet::weight(10_000)]
 		pub fn mint_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
-			bc_id: MetaverseId,
+			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
@@ -282,11 +286,15 @@ pub mod pallet {
 			AllEstatesCount::<T>::put(new_total_estates_count);
 
 			// Update estates
-			Estates::<T>::insert(bc_id, new_estate_id, &coordinates);
+			Estates::<T>::insert(metaverse_id, new_estate_id, &coordinates);
 
 			EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
 
-			Self::deposit_event(Event::<T>::NewEstateMinted(new_estate_id.clone(), bc_id, coordinates));
+			Self::deposit_event(Event::<T>::NewEstateMinted(
+				new_estate_id.clone(),
+				metaverse_id,
+				coordinates,
+			));
 
 			Ok(().into())
 		}
