@@ -55,7 +55,7 @@ pub use frame_support::{
 	},
 	PalletId, StorageValue,
 };
-use frame_system::{EnsureRoot, RawOrigin};
+use frame_system::{Config, EnsureOneOf, EnsureRoot, RawOrigin};
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
@@ -359,9 +359,18 @@ impl orml_nft::Config for Runtime {
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
+parameter_types! {
+	pub MaxMetaverseMetadata: u32 = 1024;
+	pub MinContribution: Balance = 1 * DOLLARS;
+}
+
 impl metaverse::Config for Runtime {
 	type Event = Event;
-	type PalletId = MetaverseNetworkTreasuryPalletId;
+	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type MaxMetaverseMetadata = MaxMetaverseMetadata;
+	type MinContribution = MinContribution;
+	type MetaverseCouncil = EnsureRootOrHalfMetaverseCouncil;
 }
 
 //parameter_types! {
@@ -456,6 +465,12 @@ impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
 	}
 }
 
+pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
+	AccountId,
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
+>;
+
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 100 * DOLLARS;
 }
@@ -502,7 +517,7 @@ parameter_types! {
 	/// Minimum round length is 2 minutes (10 * 12 second block times)
 	pub const MinBlocksPerRound: u32 = 10;
 	/// Default BlocksPerRound is every hour (300 * 12 second block times)
-	pub const DefaultBlocksPerRound: u32 = 300;
+	pub const DefaultBlocksPerRound: u32 = 30;
 	/// Collator candidate exits are delayed by 2 hours (2 * 300 * block_time)
 	pub const LeaveCandidatesDelay: u32 = 2;
 	/// Nominator exits are delayed by 2 hours (2 * 300 * block_time)

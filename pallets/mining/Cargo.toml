@@ -36,7 +36,7 @@ currencies = { package = "currencies", path = "../currencies", default-features 
 
 [dependencies.country]
 default-features = false
-package = 'pallet-country'
+package = 'pallet-metaverse'
 path = '../metaverse'
 version = '2.0.0-rc6'
 

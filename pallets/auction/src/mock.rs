@@ -11,7 +11,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use crate as auction;
 use auction_manager::ListingLevel;
-use bc_primitives::{Country, MetaverseStruct, MetaverseTrait};
+use bc_primitives::{Country, MetaverseInfo, MetaverseTrait};
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -149,7 +149,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 	}
 
-	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseStruct<u128>> {
+	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
 		None
 	}
 

@@ -63,7 +63,7 @@ orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library",
 # metaverse dependencies
 primitives = { package = 'bit-country-primitives', path = '../../pallets/primitives', default-features = false }
 auction-manager = { package = 'auction-manager', path = '../../traits/auction-manager', default-features = false }
-metaverse = { package = 'pallet-country', path = '../../pallets/metaverse', default-features = false }
+metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', default-features = false }
 block = { package = 'pallet-block', path = '../../pallets/block', default-features = false }
 tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', default-features = false }
 nft = { package = 'pallet-nft', path = '../../pallets/nft', version = '2.0.0-rc6', default-features = false }

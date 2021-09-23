@@ -117,7 +117,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 	}
 
-	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseStruct<u128>> {
+	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
 		None
 	}
 

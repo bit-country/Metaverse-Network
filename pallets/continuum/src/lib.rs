@@ -32,7 +32,7 @@ use sp_std::vec;
 use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionType, ListingLevel};
-use bc_primitives::{MetaverseStruct, MetaverseTrait};
+use bc_primitives::{MetaverseInfo, MetaverseTrait};
 use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
 use sp_arithmetic::Perbill;
 // use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
