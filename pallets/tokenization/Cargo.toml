@@ -33,12 +33,7 @@ bc-primitives = { path = "../../traits/bc-primitives", default-features = false 
 auction-manager = { path = "../../traits/auction-manager", default-features = false }
 swap = { package = "pallet-swap", path = "../swap", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
-
-[dependencies.country]
-default-features = false
-package = 'pallet-country'
-path = '../metaverse'
-version = '2.0.0-rc6'
+metaverse = { package = "pallet-metaverse", path = "../metaverse", default-features = false }
 
 [dev-dependencies]
 #sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
@@ -58,7 +53,7 @@ std = [
     'orml-tokens/std',
     'orml-traits/std',
     'primitives/std',
-    'country/std',
     'swap/std',
-    'currencies/std'
+    'currencies/std',
+    'metaverse/std'
 ]

@@ -3664,8 +3664,8 @@ dependencies = [
  "pallet-block",
  "pallet-collective",
  "pallet-continuum",
- "pallet-country",
  "pallet-grandpa",
+ "pallet-metaverse",
  "pallet-mining",
  "pallet-nft",
  "pallet-randomness-collective-flip",
@@ -4591,34 +4591,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-country"
-version = "2.0.0-rc6"
-dependencies = [
- "bc-primitives",
- "bit-country-primitives",
- "frame-support",
- "frame-system",
- "orml-currencies 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
- "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
- "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
- "pallet-balances",
- "pallet-nft",
- "pallet-randomness-collective-flip",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "serde",
- "sp-api",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-session",
- "sp-std",
- "sp-version",
-]
-
-[[package]]
 name = "pallet-democracy"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
@@ -4780,6 +4752,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-metaverse"
+version = "2.0.0-rc6"
+dependencies = [
+ "bc-primitives",
+ "bit-country-primitives",
+ "frame-support",
+ "frame-system",
+ "orml-currencies 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
+ "pallet-balances",
+ "pallet-nft",
+ "pallet-randomness-collective-flip",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-version",
+]
+
+[[package]]
 name = "pallet-mining"
 version = "2.0.0-rc6"
 dependencies = [
@@ -4793,7 +4793,7 @@ dependencies = [
  "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
  "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
  "pallet-balances",
- "pallet-country",
+ "pallet-metaverse",
  "pallet-swap",
  "parity-scale-codec",
  "serde",
@@ -5112,7 +5112,7 @@ dependencies = [
  "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
  "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
  "pallet-balances",
- "pallet-country",
+ "pallet-metaverse",
  "pallet-swap",
  "parity-scale-codec",
  "serde",

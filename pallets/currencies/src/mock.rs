@@ -113,7 +113,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
         }
     }
 
-    fn get_country(metaverse_id: MetaverseId) -> Option<MetaverseStruct<AccountId>> {
+    fn get_country(metaverse_id: MetaverseId) -> Option<MetaverseInfo<AccountId>> {
         None
     }
 

@@ -164,7 +164,7 @@ parameter_types! {
 
 pub struct MetaverseInfoSource {}
 
-impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+impl MetaverseTrait<AccountId, MetaverseMetadataOf> for MetaverseInfoSource {
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => *metaverse_id == ALICE_COUNTRY_ID,
@@ -173,7 +173,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 	}
 
-	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseStruct<u128>> {
+	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
 		None
 	}
 

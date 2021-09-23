@@ -19,16 +19,14 @@
 
 use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::ensure;
-use frame_support::{pallet_prelude::*, PalletId};
-use frame_system::pallet_prelude::*;
-use frame_system::{ensure_root, ensure_signed};
+use frame_support::{ensure, pallet_prelude::*, traits::Currency, BoundedVec, PalletId};
+use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
-use sp_std::vec::Vec;
+use sp_std::{convert::TryInto, vec::Vec};
 
 #[cfg(test)]
 mod mock;
@@ -36,23 +34,34 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-use bc_primitives::{MetaverseStruct, MetaverseTrait};
+use bc_primitives::{MetaverseInfo, MetaverseTrait};
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use frame_support::traits::ExistenceRequirement;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
+	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-
+		/// The currency type
+		type Currency: Currency<Self::AccountId>;
 		#[pallet::constant]
-		type PalletId: Get<PalletId>;
+		type MetaverseTreasury: Get<PalletId>;
+		#[pallet::constant]
+		type MaxMetaverseMetadata: Get<u32>;
+		/// Minimum contribution
+		#[pallet::constant]
+		type MinContribution: Get<BalanceOf<Self>>;
+		/// Origin to add new metaverse
+		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
 	}
 
 	#[pallet::storage]
@@ -61,8 +70,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse)]
-	pub type Metaverses<T: Config> =
-		StorageMap<_, Twox64Concat, MetaverseId, MetaverseStruct<T::AccountId>, OptionQuery>;
+	pub type Metaverses<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, MetaverseInfo<T::AccountId>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse_owner)]
@@ -109,20 +117,45 @@ pub mod pallet {
 		NoAvailableMetaverseId,
 		/// Fungible token already issued
 		FungibleTokenAlreadyIssued,
+		/// Max metadata exceed
+		MaxMetadataExceeded,
+		/// Contribution is insufficient
+		InsufficientContribution,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000)]
-		pub fn create_metaverse(origin: OriginFor<T>, metadata: Vec<u8>) -> DispatchResultWithPostInfo {
-			let owner = ensure_signed(origin)?;
+		pub fn create_metaverse(
+			origin: OriginFor<T>,
+			metadata: Metadata,
+			beneficiary: T::AccountId,
+			contribution: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			T::MetaverseCouncil::ensure_origin(origin)?;
 
-			let metaverse_id = Self::new_metaverse(&owner, metadata)?;
+			ensure!(
+				metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
+				Error::<T>::MaxMetadataExceeded
+			);
 
-			MetaverseOwner::<T>::insert(metaverse_id, owner, ());
+			ensure!(
+				T::Currency::free_balance(&beneficiary) >= contribution && contribution >= T::MinContribution::get(),
+				Error::<T>::InsufficientContribution
+			);
+
+			T::Currency::transfer(
+				&beneficiary,
+				&Self::account_id(),
+				contribution,
+				ExistenceRequirement::KeepAlive,
+			)?;
+
+			let metaverse_id = Self::new_metaverse(&beneficiary, metadata)?;
+
+			MetaverseOwner::<T>::insert(metaverse_id, beneficiary, ());
 
 			let total_metaverse_count = Self::all_metaverse_count();
-
 			let new_total_metaverse_count = total_metaverse_count
 				.checked_add(One::one())
 				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
@@ -170,7 +203,7 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn freeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can free a metaverse
-			ensure_root(origin)?;
+			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			FreezedMetaverses::<T>::insert(metaverse_id, ());
 			Self::deposit_event(Event::<T>::MetaverseFreezed(metaverse_id));
@@ -181,7 +214,7 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn unfreeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can free a metaverse
-			ensure_root(origin)?;
+			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			FreezedMetaverses::<T>::try_mutate(metaverse_id, |freeze_metaverse| -> DispatchResultWithPostInfo {
 				ensure!(freeze_metaverse.take().is_some(), Error::<T>::MetaverseInfoNotFound);
@@ -194,7 +227,7 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn destroy_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can destroy a metaverse
-			ensure_root(origin)?;
+			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			Metaverses::<T>::try_mutate(metaverse_id, |metaverse_info| -> DispatchResultWithPostInfo {
 				let t = metaverse_info.take().ok_or(Error::<T>::MetaverseInfoNotFound)?;
@@ -215,14 +248,14 @@ impl<T: Config> Pallet<T> {
 	/// Reads the nonce from storage, increments the stored nonce, and returns
 	/// the encoded nonce to the caller.
 
-	fn new_metaverse(owner: &T::AccountId, metadata: Vec<u8>) -> Result<MetaverseId, DispatchError> {
+	fn new_metaverse(owner: &T::AccountId, metadata: Metadata) -> Result<MetaverseId, DispatchError> {
 		let metaverse_id = NextMetaverseId::<T>::try_mutate(|id| -> Result<MetaverseId, DispatchError> {
 			let current_id = *id;
 			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableMetaverseId)?;
 			Ok(current_id)
 		})?;
 
-		let metaverse_info = MetaverseStruct {
+		let metaverse_info = MetaverseInfo {
 			owner: owner.clone(),
 			currency_id: FungibleTokenId::NativeToken(0),
 			metadata,
@@ -232,6 +265,14 @@ impl<T: Config> Pallet<T> {
 
 		Ok(metaverse_id)
 	}
+
+	/// The account ID of the treasury pot.
+	///
+	/// This actually does computation. If you need to keep using it, then make sure you cache the
+	/// value and only call this once.
+	pub fn account_id() -> T::AccountId {
+		T::MetaverseTreasury::get().into_account()
+	}
 }
 
 impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
@@ -239,7 +280,7 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 		Self::get_metaverse_owner(metaverse_id, who) == Some(())
 	}
 
-	fn get_metaverse(metaverse_id: MetaverseId) -> Option<MetaverseStruct<T::AccountId>> {
+	fn get_metaverse(metaverse_id: MetaverseId) -> Option<MetaverseInfo<T::AccountId>> {
 		Self::get_metaverse(metaverse_id)
 	}
 

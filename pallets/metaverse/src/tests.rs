@@ -29,7 +29,7 @@ fn create_metaverse_should_work() {
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_eq!(
 			MetaverseModule::get_metaverse(&METAVERSE_ID),
-			Some(MetaverseStruct {
+			Some(MetaverseInfo {
 				owner: ALICE,
 				metadata: vec![1],
 				currency_id: FungibleTokenId::NativeToken(0),

@@ -75,11 +75,16 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MaxTokenMetadata: u32 = 1024;
+	pub const MinContribution: Balance = 1;
 }
 
 impl Config for Runtime {
 	type Event = Event;
-	type PalletId = CountryFundPalletId;
+	type Currency = ();
+	type MetaverseTreasury = CountryFundPalletId;
+	type MaxMetaverseMetadata = MaxTokenMetadata;
+	type MinContribution = MinContribution;
 }
 
 pub type MetaverseModule = Module<Runtime>;
