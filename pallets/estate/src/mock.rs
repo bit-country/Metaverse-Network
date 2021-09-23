@@ -100,7 +100,6 @@ parameter_types! {
 	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
-	// pub const CountryFundModuleId: PalletId = PalletId(*b"bit/fund");
 }
 
 pub struct MetaverseInfoSource {}
@@ -132,7 +131,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 impl Config for Runtime {
 	type Event = Event;
 	type LandTreasury = LandTreasuryPalletId;
-	type BitCountryInfoSource = MetaverseInfoSource;
+	type MetaverseInfoSource = MetaverseInfoSource;
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = EnsureSignedBy<One, AccountId>;

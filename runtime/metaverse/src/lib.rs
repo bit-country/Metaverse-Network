@@ -364,20 +364,20 @@ impl metaverse::Config for Runtime {
 	type PalletId = MetaverseNetworkTreasuryPalletId;
 }
 
-//parameter_types! {
-//    pub const MinimumLandPrice: Balance = 10 * DOLLARS;
-//}
-//
-//impl block::Config for Runtime {
-//	type Event = Event;
-//	type LandTreasury = LandTreasuryPalletId;
-//	type MetaverseInfoSource = MetaverseModule;
-//	type Currency = Balances;
-//	type MinimumLandPrice = MinimumLandPrice;
-//	type CouncilOrigin =
-//	pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
-//}
-//
+parameter_types! {
+	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
+	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
+}
+
+impl estate::Config for Runtime {
+	type Event = Event;
+	type LandTreasury = LandTreasuryPalletId;
+	type MetaverseInfoSource = MetaverseModule;
+	type Currency = Balances;
+	type MinimumLandPrice = MinimumLandPrice;
+	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+}
+
 parameter_types! {
 	pub const AuctionTimeToClose: u32 = 100800; // Default 100800 Blocks
 	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
@@ -611,6 +611,7 @@ construct_runtime!(
 		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
+		Estate: estate::{Pallet, Call, Storage, Event<T>},
 
 		// External consensus support
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},

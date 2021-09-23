@@ -54,7 +54,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type LandTreasury: Get<PalletId>;
 		/// Source of Bit Country Info
-		type BitCountryInfoSource: MetaverseTrait<Self::AccountId>;
+		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 		/// Currency
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		/// Minimum Land Price
