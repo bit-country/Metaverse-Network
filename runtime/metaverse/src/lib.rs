@@ -19,17 +19,21 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 // External imports
 use currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
+
 mod weights;
+
 // primitives imports
 use crate::opaque::SessionKeys;
+use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use parachain_staking::{InflationInfo, Range};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::crypto::Public;
 use sp_core::{
 	crypto::KeyTypeId,
 	u32_trait::{_1, _2, _3, _4, _5},
-	OpaqueMetadata,
+	OpaqueMetadata, H160, U256,
 };
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
@@ -68,7 +72,12 @@ pub use sp_runtime::{Perbill, Permill};
 
 /// Constant values used within the runtime.
 pub mod constants;
+
+use codec::Encode;
 use constants::{currency::*, time::*};
+use frame_support::traits::FindAuthor;
+use frame_support::ConsensusEngineId;
+use sp_core::sp_std::marker::PhantomData;
 use sp_runtime::traits::OpaqueKeys;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
@@ -91,11 +100,19 @@ pub type Hash = sp_core::H256;
 
 pub mod opaque {
 	use super::*;
-	pub type Block = BlockP;
+	pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+	//	pub type Block = BlockP;
+	//	/// Opaque block header type.
+	//	pub type Header = HeaderP;
+	//	/// Opaque block identifier type.
+	//	pub type BlockId = BlockIdP;
 	/// Opaque block header type.
-	pub type Header = HeaderP;
+	pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+	/// Opaque block type.
+	pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 	/// Opaque block identifier type.
-	pub type BlockId = BlockIdP;
+	pub type BlockId = generic::BlockId<Block>;
 	impl_opaque_keys! {
 		pub struct SessionKeys {
 			pub aura: Aura,
@@ -566,6 +583,55 @@ impl parachain_staking::Config for Runtime {
 	type WeightInfo = parachain_staking::weights::SubstrateWeight<Runtime>;
 }
 
+pub struct FindAuthorTruncated<F>(PhantomData<F>);
+
+impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
+	fn find_author<'a, I>(digests: I) -> Option<H160>
+	where
+		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
+	{
+		if let Some(author_index) = F::find_author(digests) {
+			let authority_id = Aura::authorities()[author_index as usize].clone();
+			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+		}
+		None
+	}
+}
+
+parameter_types! {
+	pub const ChainId: u64 = 42;
+	pub BlockGasLimit: U256 = U256::from(u32::max_value());
+}
+
+// EVM config
+impl pallet_evm::Config for Runtime {
+	//    type FeeCalculator = pallet_dynamic_fee::Module<Self>;
+	type FeeCalculator = ();
+	type GasWeightMapping = ();
+	//	type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
+	//    type BlockHashMapping = ();
+	type CallOrigin = EnsureAddressTruncated;
+	type WithdrawOrigin = EnsureAddressTruncated;
+	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+	type Currency = Balances;
+	type Event = Event;
+	type Runner = pallet_evm::runner::stack::Runner<Self>;
+	type Precompiles = (
+		pallet_evm_precompile_simple::ECRecover,
+		pallet_evm_precompile_simple::Sha256,
+		pallet_evm_precompile_simple::Ripemd160,
+		pallet_evm_precompile_simple::Identity,
+		pallet_evm_precompile_modexp::Modexp,
+		pallet_evm_precompile_simple::ECRecoverPublicKey,
+		pallet_evm_precompile_sha3fips::Sha3FIPS256,
+		pallet_evm_precompile_sha3fips::Sha3FIPS512,
+	);
+	type ChainId = ChainId;
+	type BlockGasLimit = BlockGasLimit;
+	type OnChargeTransaction = ();
+	type FindAuthor = FindAuthorTruncated<Aura>;
+}
+
 //parameter_types! {
 //	pub const LocalChainId: chainbridge::ChainId = 1;
 //	pub const ProposalLifetime: BlockNumber = 15 * MINUTES;
@@ -629,8 +695,9 @@ construct_runtime!(
 
 		// External consensus support
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
-		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>}
+		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 
+		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
 		// Include the custom logic from the pallet-template in the runtime.
 
 		// Ecosystem
@@ -638,7 +705,25 @@ construct_runtime!(
 //		BridgeTransfer: modules_chainsafe::{Module, Call, Event<T>, Storage}
 	}
 );
+
+//pub struct TransactionConverter;
 //
+//impl fp_rpc::ConvertTransaction<UncheckedExtrinsic> for TransactionConverter {
+//    fn convert_transaction(&self, transaction: pallet_ethereum::Transaction) -> UncheckedExtrinsic
+// {        UncheckedExtrinsic::new_unsigned(pallet_ethereum::Call::<Runtime>::
+// transact(transaction).into())    }
+//}
+//
+//impl fp_rpc::ConvertTransaction<opaque::UncheckedExtrinsic> for TransactionConverter {
+//    fn convert_transaction(&self, transaction: pallet_ethereum::Transaction) ->
+// opaque::UncheckedExtrinsic {        let extrinsic =
+//
+// UncheckedExtrinsic::new_unsigned(pallet_ethereum::Call::<Runtime>::transact(transaction).into());
+//        let encoded = extrinsic.encode();
+//        opaque::UncheckedExtrinsic::decode(&mut &encoded[..]).expect("Encoded extrinsic is always
+// valid")    }
+//}
+
 // The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 // Block header type as expected by this runtime.
