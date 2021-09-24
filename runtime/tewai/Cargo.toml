@@ -84,7 +84,7 @@ pallet-utility = { git = "https://github.com/paritytech/substrate", rev = "91061
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
 pallet-vesting = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
-primitives = { package = 'bit-country-primitives', path = '../../pallets/primitives', default-features = false }
+primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
 #chainbridge = { git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
 
 # Orml pacakges

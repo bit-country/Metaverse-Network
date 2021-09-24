@@ -15,7 +15,7 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-primitives = { package = "bit-country-primitives", path = "../../pallets/primitives", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 [features]
 default = ['std']

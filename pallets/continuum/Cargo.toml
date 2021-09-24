@@ -25,7 +25,7 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 # Orml packages
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }

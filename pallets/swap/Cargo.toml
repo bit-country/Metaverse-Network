@@ -29,7 +29,7 @@ sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 # local packages
 bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
