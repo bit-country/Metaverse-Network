@@ -7,7 +7,6 @@ use sp_runtime::{
 	DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::vec::Vec;
-use std::collections::BTreeMap;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct MetaverseAssetData {
