@@ -25,6 +25,7 @@ use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, CurrencyId, EstateId, LandId, MetaverseId};
 use sp_runtime::{
+	print,
 	traits::{AccountIdConversion, One},
 	DispatchError, RuntimeDebug,
 };
@@ -151,6 +152,40 @@ pub mod pallet {
 			metaverse_id: MetaverseId,
 			coordinate: (i32, i32),
 		) -> DispatchResultWithPostInfo {
+			// ensure_root(origin)?;
+
+			let mut coordinates: Vec<(i32, i32)> = Vec::new();
+			coordinates.push(coordinate);
+
+			// Mint land units
+			Self::mint_land_units(metaverse_id, &beneficiary, coordinates, false);
+
+			/////////////////////////////////////////////
+			print("In main function");
+			//////////////////////////////////////////////////
+
+			// Update total land count
+			let total_land_units_count = Self::all_land_units_count();
+			let new_total_land_units_count = total_land_units_count
+				.checked_add(One::one())
+				.ok_or("Overflow adding new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+
+			// Update land units
+			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
+
+			Self::deposit_event(Event::<T>::NewLandUnitMinted(metaverse_id, coordinate));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn mint_land_root_helper(
+			origin: OriginFor<T>,
+			beneficiary: T::AccountId,
+			metaverse_id: MetaverseId,
+			coordinate: (i32, i32),
+		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			let mut coordinates: Vec<(i32, i32)> = Vec::new();
@@ -158,6 +193,100 @@ pub mod pallet {
 
 			// Mint land units
 			Self::mint_land_units(metaverse_id, &beneficiary, coordinates, false);
+
+			/////////////////////////////////////////////
+			print("In main function");
+			//////////////////////////////////////////////////
+
+			// Update total land count
+			let total_land_units_count = Self::all_land_units_count();
+			let new_total_land_units_count = total_land_units_count
+				.checked_add(One::one())
+				.ok_or("Overflow adding new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+
+			// Update land units
+			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
+
+			Self::deposit_event(Event::<T>::NewLandUnitMinted(metaverse_id, coordinate));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn mint_land_root_test(
+			origin: OriginFor<T>,
+			beneficiary: T::AccountId,
+			metaverse_id: MetaverseId,
+			coordinate: (i32, i32),
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			let mut coordinates: Vec<(i32, i32)> = Vec::new();
+			coordinates.push(coordinate);
+
+			/////////////////////////////////////////////
+			print("In main function");
+			ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
+			let max_bound = MaxBounds::<T>::get(metaverse_id);
+
+			ensure!(
+				!LandUnits::<T>::contains_key(metaverse_id, coordinate),
+				Error::<T>::LandUnitIsNotAvailable
+			);
+
+			ensure!(
+				(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
+					&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
+				Error::<T>::LandUnitIsOutOfBound
+			);
+
+			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
+			//////////////////////////////////////////////////
+
+			// Update total land count
+			let total_land_units_count = Self::all_land_units_count();
+			let new_total_land_units_count = total_land_units_count
+				.checked_add(One::one())
+				.ok_or("Overflow adding new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+
+			// Update land units
+			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
+
+			Self::deposit_event(Event::<T>::NewLandUnitMinted(metaverse_id, coordinate));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn mint_land_test(
+			origin: OriginFor<T>,
+			beneficiary: T::AccountId,
+			metaverse_id: MetaverseId,
+			coordinate: (i32, i32),
+		) -> DispatchResultWithPostInfo {
+			let mut coordinates: Vec<(i32, i32)> = Vec::new();
+			coordinates.push(coordinate);
+
+			/////////////////////////////////////////////
+			print("In main function");
+			ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
+			let max_bound = MaxBounds::<T>::get(metaverse_id);
+
+			ensure!(
+				!LandUnits::<T>::contains_key(metaverse_id, coordinate),
+				Error::<T>::LandUnitIsNotAvailable
+			);
+
+			ensure!(
+				(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
+					&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
+				Error::<T>::LandUnitIsOutOfBound
+			);
+
+			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
+			//////////////////////////////////////////////////
 
 			// Update total land count
 			let total_land_units_count = Self::all_land_units_count();
@@ -248,7 +377,7 @@ pub mod pallet {
 			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
+			// ensure_root(origin)?;
 
 			// Generate new estate id
 			let new_estate_id = Self::get_new_estate_id()?;
@@ -342,6 +471,8 @@ impl<T: Config> Module<T> {
 		coordinates: Vec<(i32, i32)>,
 		existing_land_units: bool,
 	) -> DispatchResult {
+		print("inside helper function");
+
 		// Ensure the max bound is set for the bit country
 		ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
 
@@ -349,11 +480,17 @@ impl<T: Config> Module<T> {
 
 		for coordinate in coordinates {
 			if !existing_land_units {
+				print("Checking land units");
+				print(LandUnits::<T>::contains_key(metaverse_id, coordinate));
+				print(!LandUnits::<T>::contains_key(metaverse_id, coordinate));
+
 				// Check whether the coordinate exists
 				ensure!(
 					!LandUnits::<T>::contains_key(metaverse_id, coordinate),
 					Error::<T>::LandUnitIsNotAvailable
 				);
+			} else {
+				print("No need to check land units");
 			}
 
 			// Check whether the coordinate is within the bound
@@ -362,6 +499,8 @@ impl<T: Config> Module<T> {
 					&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
 				Error::<T>::LandUnitIsOutOfBound
 			);
+
+			print("Checked coordinate");
 
 			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
 		}
