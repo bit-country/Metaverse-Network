@@ -2,18 +2,21 @@
 
 use super::*;
 use crate as swap;
+use currencies::BasicCurrencyAdapter;
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{
-	construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin, ord_parameter_types, parameter_types,
-	traits::EnsureOrigin, weights::Weight, PalletId,
+	construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, CurrencyId};
-use social_currencies::BasicCurrencyAdapter;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+
+parameter_types! {
+	pub const BlockHashCount: u32 = 256;
+}
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -36,13 +39,6 @@ impl From<AccountId> for Origin {
 	fn from(item: AccountId) -> Self {
 		Origin::signed(item)
 	}
-}
-
-parameter_types! {
-	pub const BlockHashCount: u64 = 250;
-	pub const MaximumBlockWeight: u32 = 1024;
-	pub const MaximumBlockLength: u32 = 2 * 1024;
-	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
 
 impl frame_system::Config for Runtime {
@@ -68,6 +64,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -82,6 +79,8 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 parameter_types! {
@@ -117,13 +116,15 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = ();
 }
 
 parameter_types! {
 	pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 }
 
-impl social_currencies::Config for Runtime {
+impl currencies::Config for Runtime {
 	type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -139,11 +140,11 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		SocialCurrencies: social_currencies::{ Module, Storage, Call, Event<T>},
-		Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
-		SwapModule: swap::{Module, Call ,Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		SocialCurrencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		Tokens: orml_tokens::{Pallet, Storage, Call, Event<T>},
+		SwapModule: swap::{Pallet, Call ,Storage, Event<T>},
 	}
 );
 
@@ -168,7 +169,7 @@ impl ExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			endowed_accounts: vec![(ALICE, SOC, 100), (BOB, SOC, 100)],
+			balances: vec![(ALICE, SOC, 100), (BOB, SOC, 100)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -180,7 +181,7 @@ impl ExtBuilder {
 }
 
 pub fn last_event() -> Event {
-	frame_system::Module::<Runtime>::events()
+	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
 		.event
