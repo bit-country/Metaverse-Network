@@ -56,11 +56,11 @@ hex-literal = { version = "0.3.1", optional = true }
 
 # EVM pallets
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-pallet-evm = { path = "../../pallets/evm", default-features = false, branch = "master" }
+pallet-evm = { path = "../../pallets/evm", default-features = false }
 #pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false, branch = "master" }
-pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false, branch = "master" }
-pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false, branch = "master" }
+pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
+pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
+pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
 #fp-rpc = { default-features = false, git = "https://github.com/bit-country/frontier", branch = "master" }
 
 # external crates - orml packages

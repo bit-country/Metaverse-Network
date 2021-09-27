@@ -4,6 +4,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::string_lit_as_bytes)]
+#![allow(clippy::unnecessary_cast)]
+#![allow(clippy::unused_unit)]
+#![allow(clippy::upper_case_acronyms)]
 
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
 use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
@@ -135,7 +138,7 @@ pub mod pallet {
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
-				let block_number = <frame_system::Module<T>>::block_number();
+				let block_number = <system::Pallet<T>>::block_number();
 
 				// make sure auction is started
 				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
@@ -197,7 +200,7 @@ pub mod pallet {
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
-				let block_number = <frame_system::Module<T>>::block_number();
+				let block_number = <system::Pallet<T>>::block_number();
 
 				// make sure auction is started
 				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
@@ -250,7 +253,7 @@ pub mod pallet {
 
 			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
-			let block_number = <frame_system::Module<T>>::block_number();
+			let block_number = <system::Pallet<T>>::block_number();
 			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
 			if !(auction.end.is_none()) {
 				let auction_end: T::BlockNumber = auction.end.unwrap();
@@ -275,10 +278,10 @@ pub mod pallet {
 				Err(_e) => {}
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
+
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
-							<AssetsInAuction<T>>::remove(asset_id);
 							match asset_transfer {
 								Err(_) => (),
 								Ok(_) => {
@@ -301,6 +304,8 @@ pub mod pallet {
 						}
 						_ => {} // Future implementation for Spot, Metaverse
 					}
+
+					<ItemsInAuction<T>>::remove(auction_item.item_id);
 				}
 			}
 			Ok(().into())
@@ -327,7 +332,7 @@ pub mod pallet {
 				Error::<T>::WrongListingLevel
 			);
 
-			let block_number = <frame_system::Module<T>>::block_number();
+			let block_number = <system::Pallet<T>>::block_number();
 			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
 			if !(auction.end.is_none()) {
 				let auction_end: T::BlockNumber = auction.end.unwrap();
@@ -358,7 +363,6 @@ pub mod pallet {
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
-							<AssetsInAuction<T>>::remove(asset_id);
 							match asset_transfer {
 								Err(_) => (),
 								Ok(_) => {
@@ -381,6 +385,8 @@ pub mod pallet {
 						}
 						_ => {} // Future implementation for Spot, Metaverse
 					}
+
+					<ItemsInAuction<T>>::remove(auction_item.item_id);
 				}
 			}
 			Ok(().into())
@@ -498,7 +504,6 @@ pub mod pallet {
 													&high_bidder,
 													asset_id,
 												);
-												<AssetsInAuction<T>>::remove(asset_id);
 												match asset_transfer {
 													Err(_) => continue,
 													Ok(_) => {
@@ -529,6 +534,7 @@ pub mod pallet {
 											}
 											_ => {} // Future implementation for Spot, Metaverse
 										}
+										<ItemsInAuction<T>>::remove(auction_item.item_id);
 									}
 								}
 							} else {
@@ -558,7 +564,7 @@ pub mod pallet {
 													&high_bidder,
 													asset_id,
 												);
-												<AssetsInAuction<T>>::remove(asset_id);
+
 												match asset_transfer {
 													Err(_) => continue,
 													Ok(_) => {
@@ -589,6 +595,7 @@ pub mod pallet {
 											}
 											_ => {} // Future implementation for Spot, Metaverse
 										}
+										<ItemsInAuction<T>>::remove(auction_item.item_id);
 									}
 								}
 							}
@@ -729,8 +736,6 @@ pub mod pallet {
 
 					<AuctionItems<T>>::insert(auction_id, new_auction_item);
 
-					<AssetsInAuction<T>>::insert(asset_id, true);
-
 					Self::deposit_event(Event::NewAuctionItem(
 						auction_id,
 						recipient,
@@ -739,7 +744,7 @@ pub mod pallet {
 						initial_amount,
 						end_time,
 					));
-
+					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
@@ -770,7 +775,7 @@ pub mod pallet {
 						initial_amount,
 						end_time,
 					));
-
+					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
@@ -782,12 +787,7 @@ pub mod pallet {
 				if let Some(end_block) = auction.end {
 					<AuctionEndTime<T>>::remove(end_block, id);
 					<Auctions<T>>::remove(&id);
-					match item_id {
-						ItemId::NFT(asset_id) => {
-							<AssetsInAuction<T>>::remove(asset_id);
-						}
-						_ => {}
-					}
+					<ItemsInAuction<T>>::remove(item_id);
 				}
 			}
 		}

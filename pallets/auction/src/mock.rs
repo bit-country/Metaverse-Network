@@ -1,17 +1,17 @@
 #![cfg(test)]
 
 use super::*;
+use crate as auction;
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
-use pallet_nft::AssetHandler;
 use primitives::{continuum::Continuum, Amount, AuctionId, CurrencyId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
-use crate as auction;
-use auction_manager::ListingLevel;
-use bc_primitives::{Country, MetaverseInfo, MetaverseTrait};
+use auction_manager::{CheckAuctionItemHandler, ListingLevel};
+use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use frame_support::traits::Contains;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -26,8 +26,8 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
-pub const ALICE_COUNTRY_ID: MetaverseId = 1;
-pub const BOB_COUNTRY_ID: MetaverseId = 2;
+pub const ALICE_METAVERSE_ID: MetaverseId = 1;
+pub const BOB_METAVERSE_ID: MetaverseId = 2;
 
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
@@ -52,21 +52,23 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
-	pub const BalanceExistentialDeposit: u64 = 1;
-	pub const SpotId: u64 = 1;
+	pub const ExistentialDeposit: u64 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type Event = Event;
 	type DustRemoval = ();
-	type ExistentialDeposit = BalanceExistentialDeposit;
+	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 pub struct Continuumm;
@@ -103,14 +105,6 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 	fn on_auction_ended(_id: AuctionId, _winner: Option<(AccountId, Balance)>) {}
 }
 
-pub struct NftAssetHandler;
-
-impl AssetHandler for NftAssetHandler {
-	fn check_item_in_auction(asset_id: AssetId) -> bool {
-		return MockAuctionManager::check_item_in_auction(asset_id);
-	}
-}
-
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
@@ -120,7 +114,7 @@ parameter_type_with_key! {
 parameter_types! {
 	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
-	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl orml_tokens::Config for Runtime {
@@ -131,6 +125,8 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = ();
 }
 
 parameter_types! {
@@ -143,8 +139,8 @@ pub struct MetaverseInfoSource {}
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
-			ALICE => *metaverse_id == ALICE_COUNTRY_ID,
-			BOB => *metaverse_id == BOB_COUNTRY_ID,
+			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
+			BOB => *metaverse_id == BOB_METAVERSE_ID,
 			_ => false,
 		}
 	}
@@ -187,7 +183,11 @@ impl pallet_nft::Config for Runtime {
 	type PalletId = NftPalletId;
 	type WeightInfo = ();
 	type AuctionHandler = MockAuctionManager;
-	type AssetsHandler = NftAssetHandler;
+}
+
+parameter_types! {
+	pub MaxClassMetadata: u32 = 1024;
+	pub MaxTokenMetadata: u32 = 1024;
 }
 
 impl orml_nft::Config for Runtime {
@@ -195,6 +195,8 @@ impl orml_nft::Config for Runtime {
 	type TokenId = u64;
 	type ClassData = pallet_nft::NftClassData<Balance>;
 	type TokenData = pallet_nft::NftAssetData<Balance>;
+	type MaxClassMetadata = MaxClassMetadata;
+	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -206,12 +208,12 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Tokens: orml_tokens::{Module, Call, Storage, Config<T>, Event<T>},
-		NFTModule: pallet_nft::{Module, Storage ,Call, Event<T>},
-		OrmlNft: orml_nft::{Module, Storage, Config<T>},
-		NftAuctionModule: auction::{Module, Call, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
+		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
+		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
+		NftAuctionModule: auction::{Pallet, Call, Storage, Event<T>},
 	}
 );
 pub struct ExtBuilder;
@@ -245,7 +247,7 @@ impl ExtBuilder {
 }
 
 pub fn last_event() -> Event {
-	frame_system::Module::<Runtime>::events()
+	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
 		.event
@@ -271,7 +273,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
-		None
+		Ok(())
 	}
 
 	fn new_auction(
@@ -280,7 +282,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		start: u64,
 		end: Option<u64>,
 	) -> Result<u64, DispatchError> {
-		None
+		Ok(1)
 	}
 
 	fn create_auction(
@@ -292,12 +294,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		start: u64,
 		listing_level: ListingLevel,
 	) -> Result<u64, DispatchError> {
-		None
+		Ok(1)
 	}
 
-	fn remove_auction(id: u64, item_id: ItemId) {
-		None
-	}
+	fn remove_auction(id: u64, item_id: ItemId) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -305,7 +305,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		new_bid: (u128, Self::Balance),
 		last_bid: Option<(u128, Self::Balance)>,
 	) -> DispatchResult {
-		None
+		Ok(())
 	}
 
 	fn local_auction_bid_handler(
@@ -315,10 +315,12 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		last_bid: Option<(u128, Self::Balance)>,
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
-		None
+		Ok(())
 	}
+}
 
-	fn check_item_in_auction(item_id: AssetId) -> bool {
-		false
+impl CheckAuctionItemHandler for MockAuctionManager {
+	fn check_item_in_auction(item_id: ItemId) -> bool {
+		return false;
 	}
 }

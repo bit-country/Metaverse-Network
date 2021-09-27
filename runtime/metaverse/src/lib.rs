@@ -359,7 +359,6 @@ impl nft::Config for Runtime {
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
 	type AuctionHandler = Auction;
-	type AssetsHandler = NftModule;
 }
 
 parameter_types! {
