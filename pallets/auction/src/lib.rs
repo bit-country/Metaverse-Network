@@ -29,7 +29,7 @@ pub struct AuctionLogicHandler;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use auction_manager::ListingLevel;
+	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use bc_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
@@ -78,9 +78,9 @@ pub mod pallet {
 		StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn assets_in_auction)]
+	#[pallet::getter(fn items_in_auction)]
 	/// Track which Assets are in auction
-	pub(super) type AssetsInAuction<T: Config> = StorageMap<_, Twox64Concat, AssetId, bool, OptionQuery>;
+	pub(super) type ItemsInAuction<T: Config> = StorageMap<_, Twox64Concat, ItemId, bool, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn auctions_index)]
@@ -621,7 +621,7 @@ pub mod pallet {
 		/// Invalid auction type
 		InvalidAuctionType,
 		/// Asset already in Auction
-		AssetAlreadyInAuction,
+		ItemAlreadyInAuction,
 		/// Wrong Listing Level
 		WrongListingLevel,
 		/// Social Token Currency is not exist
@@ -682,6 +682,10 @@ pub mod pallet {
 			_start: T::BlockNumber,
 			listing_level: ListingLevel,
 		) -> Result<AuctionId, DispatchError> {
+			ensure!(
+				Self::items_in_auction(item_id) == None,
+				Error::<T>::ItemAlreadyInAuction
+			);
 			match item_id {
 				ItemId::NFT(asset_id) => {
 					// Get asset detail
@@ -696,10 +700,6 @@ pub mod pallet {
 					ensure!(
 						class_info_data.token_type.is_transferable(),
 						Error::<T>::NoPermissionToCreateAuction
-					);
-					ensure!(
-						Self::assets_in_auction(asset_id) == None,
-						Error::<T>::AssetAlreadyInAuction
 					);
 
 					let start_time = <system::Module<T>>::block_number();
@@ -751,7 +751,7 @@ pub mod pallet {
 					let new_auction_item = AuctionItem {
 						item_id,
 						recipient: recipient.clone(),
-						initial_amount: initial_amount,
+						initial_amount,
 						amount: initial_amount,
 						start_time,
 						end_time,
@@ -864,12 +864,11 @@ pub mod pallet {
 		fn auction_info(id: AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
 			Self::auctions(id)
 		}
+	}
 
-		fn check_item_in_auction(asset_id: AssetId) -> bool {
-			if Self::assets_in_auction(asset_id) == Some(true) {
-				return true;
-			}
-			return false;
+	impl<T: Config> CheckAuctionItemHandler for Pallet<T> {
+		fn check_item_in_auction(item_id: ItemId) -> bool {
+			Self::items_in_auction(item_id) == Some(true)
 		}
 	}
 
