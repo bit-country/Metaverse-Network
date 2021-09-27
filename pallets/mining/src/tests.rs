@@ -35,7 +35,7 @@ fn mint_mining_resource_should_work() {
 
 		assert_eq!(get_mining_balance(), 1000);
 
-		let event = mock::Event::mining(crate::Event::MiningResourceMinted(1000));
+		let event = mock::Event::MiningModule(crate::Event::MiningResourceMinted(1000));
 
 		assert_eq!(last_event(), event);
 	});
@@ -59,7 +59,7 @@ fn burn_mining_resource_should_work() {
 		assert_eq!(get_mining_balance(), 700);
 		assert_eq!(
 			last_event(),
-			mock::Event::mining(crate::Event::MiningResourceBurned(300))
+			mock::Event::MiningModule(crate::Event::MiningResourceBurned(300))
 		);
 	});
 }
@@ -79,7 +79,7 @@ fn withdraw_mining_resource_should_work() {
 		assert_ok!(MiningModule::withdraw(origin, BOB, 300));
 		assert_eq!(get_mining_balance_of(&BOB), 300);
 
-		let event = mock::Event::mining(crate::Event::WithdrawMiningResource(BOB, 300));
+		let event = mock::Event::MiningModule(crate::Event::WithdrawMiningResource(BOB, 300));
 
 		assert_eq!(last_event(), event);
 	});
@@ -152,7 +152,7 @@ fn deposit_mining_resource_should_work() {
 
 		assert_eq!(get_mining_balance_of(&treasury_id), 800);
 
-		let event = mock::Event::mining(crate::Event::DepositMiningResource(BOB, 100));
+		let event = mock::Event::MiningModule(crate::Event::DepositMiningResource(BOB, 100));
 
 		assert_eq!(last_event(), event);
 	});
