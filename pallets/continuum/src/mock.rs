@@ -19,7 +19,7 @@
 
 use super::*;
 use crate as continuum;
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, OnNewBidResult};
+use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, CheckAuctionItemHandler, OnNewBidResult};
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, weights::Weight, PalletId};
@@ -77,6 +77,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -91,6 +92,8 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 pub struct MockAuctionManager;
@@ -103,7 +106,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
-		None
+		Ok(())
 	}
 
 	fn new_auction(
@@ -112,7 +115,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		start: u64,
 		end: Option<u64>,
 	) -> Result<u64, DispatchError> {
-		None
+		Ok(1)
 	}
 
 	fn create_auction(
@@ -124,12 +127,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		start: u64,
 		listing_level: ListingLevel,
 	) -> Result<u64, DispatchError> {
-		None
+		Ok(1)
 	}
 
-	fn remove_auction(id: u64, item_id: ItemId) {
-		None
-	}
+	fn remove_auction(id: u64, item_id: ItemId) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -137,7 +138,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		new_bid: (u128, Self::Balance),
 		last_bid: Option<(u128, Self::Balance)>,
 	) -> DispatchResult {
-		None
+		Ok(())
 	}
 
 	fn local_auction_bid_handler(
@@ -147,11 +148,13 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		last_bid: Option<(u128, Self::Balance)>,
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
-		None
+		Ok(())
 	}
+}
 
-	fn check_item_in_auction(item_id: AssetId) -> bool {
-		None
+impl CheckAuctionItemHandler for MockAuctionManager {
+	fn check_item_in_auction(item_id: ItemId) -> bool {
+		return false;
 	}
 }
 
@@ -164,7 +167,7 @@ parameter_types! {
 
 pub struct MetaverseInfoSource {}
 
-impl MetaverseTrait<AccountId, MetaverseMetadataOf> for MetaverseInfoSource {
+impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => *metaverse_id == ALICE_COUNTRY_ID,
@@ -182,7 +185,7 @@ impl MetaverseTrait<AccountId, MetaverseMetadataOf> for MetaverseInfoSource {
 	}
 
 	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
-		None
+		Ok(())
 	}
 }
 
@@ -209,9 +212,9 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Continuum: continuum::{Module, Call ,Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Continuum: continuum::{Pallet, Call ,Storage, Event<T>},
 	}
 );
 
