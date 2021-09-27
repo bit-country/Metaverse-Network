@@ -260,7 +260,7 @@ pub mod pallet {
 			Self::mint_land_units(metaverse_id, &estate_account_id, coordinates.clone(), false);
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &estate_account_id, coordinates.clone());
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone());
 
 			Ok(().into())
 		}
@@ -284,7 +284,7 @@ pub mod pallet {
 			Self::mint_land_units(metaverse_id, &estate_account_id, coordinates.clone(), true);
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &estate_account_id, coordinates.clone());
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone());
 
 			Ok(().into())
 		}
