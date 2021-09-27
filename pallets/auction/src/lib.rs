@@ -278,7 +278,7 @@ pub mod pallet {
 				Err(_e) => {}
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
-
+					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
@@ -304,8 +304,6 @@ pub mod pallet {
 						}
 						_ => {} // Future implementation for Spot, Metaverse
 					}
-
-					<ItemsInAuction<T>>::remove(auction_item.item_id);
 				}
 			}
 			Ok(().into())
@@ -360,6 +358,7 @@ pub mod pallet {
 				Err(_e) => {}
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
+					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
@@ -385,8 +384,6 @@ pub mod pallet {
 						}
 						_ => {} // Future implementation for Spot, Metaverse
 					}
-
-					<ItemsInAuction<T>>::remove(auction_item.item_id);
 				}
 			}
 			Ok(().into())

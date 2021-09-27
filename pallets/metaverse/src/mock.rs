@@ -5,8 +5,7 @@ use crate as metaverse;
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{
-	construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin, ord_parameter_types, parameter_types,
-	traits::EnsureOrigin, weights::Weight, PalletId,
+	construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use primitives::{Amount, CurrencyId};
@@ -33,7 +32,6 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
-
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
@@ -57,6 +55,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -71,20 +70,28 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 parameter_types! {
-	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
 	pub const MinContribution: Balance = 1;
 }
 
+ord_parameter_types! {
+	pub const One: AccountId = 1;
+	pub const Two: AccountId = 2;
+}
+
 impl Config for Runtime {
 	type Event = Event;
-	type Currency = ();
-	type MetaverseTreasury = CountryFundPalletId;
+	type Currency = Balances;
+	type MetaverseTreasury = MetaverseFundPalletId;
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
+	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 }
 
 pub type MetaverseModule = Module<Runtime>;
@@ -98,9 +105,9 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Country: metaverse::{Module, Call ,Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>},
 	}
 );
 
