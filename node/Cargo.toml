@@ -82,6 +82,7 @@ node-primitives = { version = "2.0.0", git = "https://github.com/paritytech/subs
 # Metaverse related dependencies
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
 metaverse-runtime = { version = "2.0.0-rc6", path = "../runtime/metaverse", optional = true }
+pioneer-runtime = { version = "2.0.0-rc6", path = "../runtime/pioneer", optional = true }
 pallet-evm = { path = "../pallets/evm" }
 
 [build-dependencies]
@@ -100,6 +101,10 @@ with-metaverse-runtime = [
 with-tewai-runtime = [
     "tewai-runtime",
     "node-primitives"
+]
+
+with-pioneer-runtime = [
+    "pioneer-runtime",
 ]
 
 #[dependencies]

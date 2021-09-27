@@ -1,6 +1,7 @@
 [package]
-name = "pioneer"
-version = "0.1.0"
+name = "pioneer-runtime"
+description = "Pioneer Runtime"
+version = "2.0.0-rc6"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -14,7 +15,7 @@ log = { version = "0.4.14", default-features = false }
 serde = { version = '1.0.119', optional = true, features = ['derive'] }
 
 # Local Dependencies
-template = { package = 'pallet-template', path = '../pallets/template', default-features = false }
+#template = { package = 'pallet-template', path = '../pallets/template', default-features = false }
 
 # Substrate Dependencies
 ## Substrate Primitive Dependencies
@@ -76,7 +77,7 @@ runtime-benchmarks = [
     'frame-system/runtime-benchmarks',
     'pallet-balances/runtime-benchmarks',
     'pallet-timestamp/runtime-benchmarks',
-    'template/runtime-benchmarks',
+#    'template/runtime-benchmarks',
 ]
 std = [
     "codec/std",
@@ -113,6 +114,7 @@ std = [
     "xcm-builder/std",
     "xcm-executor/std",
     "pallet-aura/std",
-    "sp-consensus-aura/std",
-    'template/std',
+    "sp-consensus-aura/std"
+#    ,
+#    'template/std',
 ]

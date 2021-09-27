@@ -45,16 +45,15 @@ use polkadot_parachain::primitives::Sibling;
 //XCM Imports
 use xcm::v0::{BodyId, Junction::*, MultiLocation, MultiLocation::*, NetworkId};
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter,
-	EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset,
-	ParentAsSuperuser, ParentIsDefault, RelayChainAsNative, SiblingParachainAsNative,
-	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
+	FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsDefault,
+	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
+	SignedToAccountId32, SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
 /// Import the template pallet.
-pub use template;
+// pub use template;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -93,13 +92,8 @@ pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signatu
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
-pub type Executive = frame_executive::Executive<
-	Runtime,
-	Block,
-	frame_system::ChainContext<Runtime>,
-	Runtime,
-	AllPallets,
->;
+pub type Executive =
+	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPallets>;
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -147,7 +141,10 @@ pub const MICROUNIT: Balance = 1_000_000;
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
 pub fn native_version() -> NativeVersion {
-	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
+	NativeVersion {
+		runtime_version: VERSION,
+		can_author_with: Default::default(),
+	}
 }
 
 /// We assume that ~10% of the block weight is consumed by `on_initalize` handlers.
@@ -445,9 +442,9 @@ impl pallet_aura::Config for Runtime {
 }
 
 /// Configure the pallet template in pallets/template.
-impl template::Config for Runtime {
-	type Event = Event;
-}
+// impl template::Config for Runtime {
+// 	type Event = Event;
+// }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -478,7 +475,7 @@ construct_runtime!(
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 53,
 
 		//Template
-		TemplatePallet: template::{Pallet, Call, Storage, Event<T>},
+		// TemplatePallet: template::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -638,13 +635,12 @@ impl cumulus_pallet_parachain_system::CheckInherents<Block> for CheckInherents {
 			.read_slot()
 			.expect("Could not read the relay chain slot from the proof");
 
-		let inherent_data =
-			cumulus_primitives_timestamp::InherentDataProvider::from_relay_chain_slot_and_duration(
-				relay_chain_slot,
-				sp_std::time::Duration::from_secs(6),
-			)
-				.create_inherent_data()
-				.expect("Could not create the timestamp inherent data");
+		let inherent_data = cumulus_primitives_timestamp::InherentDataProvider::from_relay_chain_slot_and_duration(
+			relay_chain_slot,
+			sp_std::time::Duration::from_secs(6),
+		)
+		.create_inherent_data()
+		.expect("Could not create the timestamp inherent data");
 
 		inherent_data.check_extrinsics(&block)
 	}
