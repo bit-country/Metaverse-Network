@@ -153,8 +153,11 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
+			let mut coordinates: Vec<(i32, i32)> = Vec::new();
+			coordinates.push(coordinate);
+
 			// Mint land units
-			Self::mint_land_unit(metaverse_id, &beneficiary, vec![coordinate], false);
+			Self::mint_land_units(metaverse_id, &beneficiary, coordinates, false);
 
 			// Update total land count
 			let total_land_units_count = Self::all_land_units_count();
@@ -181,7 +184,7 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			// Mint land units
-			Self::mint_land_unit(metaverse_id, &beneficiary, coordinates.clone(), false);
+			Self::mint_land_units(metaverse_id, &beneficiary, coordinates.clone(), false);
 
 			// Update total land count
 			let total_land_unit_count = Self::all_land_units_count();
@@ -254,7 +257,7 @@ pub mod pallet {
 			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
 
 			// Mint land units
-			Self::mint_land_unit(metaverse_id, &estate_account_id, coordinates.clone(), false);
+			Self::mint_land_units(metaverse_id, &estate_account_id, coordinates.clone(), false);
 
 			// Update estate information
 			Self::update_estate_information(new_estate_id, metaverse_id, &estate_account_id, coordinates.clone());
@@ -278,7 +281,7 @@ pub mod pallet {
 			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
 
 			// Mint land units
-			Self::mint_land_unit(metaverse_id, &estate_account_id, coordinates.clone(), true);
+			Self::mint_land_units(metaverse_id, &estate_account_id, coordinates.clone(), true);
 
 			// Update estate information
 			Self::update_estate_information(new_estate_id, metaverse_id, &estate_account_id, coordinates.clone());
@@ -333,7 +336,7 @@ impl<T: Config> Module<T> {
 		Ok(estate_id)
 	}
 
-	fn mint_land_unit(
+	fn mint_land_units(
 		metaverse_id: MetaverseId,
 		beneficiary: &T::AccountId,
 		coordinates: Vec<(i32, i32)>,
