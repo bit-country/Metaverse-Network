@@ -256,23 +256,8 @@ pub mod pallet {
 			// Mint land units
 			Self::mint_land_unit(metaverse_id, &estate_account_id, coordinates.clone(), false);
 
-			// Update total estates
-			let total_estates_count = Self::all_estates_count();
-			let new_total_estates_count = total_estates_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding new count to total estates")?;
-			AllEstatesCount::<T>::put(new_total_estates_count);
-
-			// Update estates
-			Estates::<T>::insert(metaverse_id, new_estate_id, &coordinates);
-
-			EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
-
-			Self::deposit_event(Event::<T>::NewEstateMinted(
-				new_estate_id.clone(),
-				metaverse_id,
-				coordinates,
-			));
+			// Update estate information
+			Self::update_estate_information(new_estate_id, metaverse_id, &estate_account_id, coordinates.clone());
 
 			Ok(().into())
 		}
@@ -295,23 +280,8 @@ pub mod pallet {
 			// Mint land units
 			Self::mint_land_unit(metaverse_id, &estate_account_id, coordinates.clone(), true);
 
-			// Update total estates
-			let total_estates_count = Self::all_estates_count();
-			let new_total_estates_count = total_estates_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding new count to total estates")?;
-			AllEstatesCount::<T>::put(new_total_estates_count);
-
-			// Update estates
-			Estates::<T>::insert(metaverse_id, new_estate_id, &coordinates);
-
-			EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
-
-			Self::deposit_event(Event::<T>::NewEstateMinted(
-				new_estate_id.clone(),
-				metaverse_id,
-				coordinates,
-			));
+			// Update estate information
+			Self::update_estate_information(new_estate_id, metaverse_id, &estate_account_id, coordinates.clone());
 
 			Ok(().into())
 		}
@@ -392,6 +362,33 @@ impl<T: Config> Module<T> {
 
 			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
 		}
+
+		Ok(())
+	}
+
+	fn update_estate_information(
+		new_estate_id: EstateId,
+		metaverse_id: MetaverseId,
+		beneficiary: &T::AccountId,
+		coordinates: Vec<(i32, i32)>,
+	) -> DispatchResult {
+		// Update total estates
+		let total_estates_count = Self::all_estates_count();
+		let new_total_estates_count = total_estates_count
+			.checked_add(One::one())
+			.ok_or("Overflow adding new count to total estates")?;
+		AllEstatesCount::<T>::put(new_total_estates_count);
+
+		// Update estates
+		Estates::<T>::insert(metaverse_id, new_estate_id, coordinates.clone());
+
+		EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
+
+		Self::deposit_event(Event::<T>::NewEstateMinted(
+			new_estate_id.clone(),
+			metaverse_id,
+			coordinates.clone(),
+		));
 
 		Ok(())
 	}
