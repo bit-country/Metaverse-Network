@@ -70,7 +70,7 @@ orml-traits = { git = "https://github.com/bit-country/open-runtime-module-librar
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
 
 # metaverse dependencies
-primitives = { package = 'bit-country-primitives', path = '../../pallets/primitives', default-features = false }
+primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
 auction-manager = { package = 'auction-manager', path = '../../traits/auction-manager', default-features = false }
 metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', default-features = false }
 estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
