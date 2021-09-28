@@ -5519,6 +5519,8 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "similar-asserts",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
  "substrate-fixed",
