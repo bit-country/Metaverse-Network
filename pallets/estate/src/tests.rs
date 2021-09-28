@@ -18,7 +18,7 @@
 #![cfg(test)]
 
 use super::*;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use mock::{Event, *};
 use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
@@ -428,7 +428,7 @@ fn mint_estate_should_fail_for_minted_land() {
 			COORDINATE_IN_1
 		));
 
-		assert_noop!(
+		assert_err!(
 			EstateModule::mint_estate(Origin::root(), BENEFICIARY_ID, BITCOUNTRY_ID, vec![COORDINATE_IN_1]),
 			Error::<Runtime>::LandUnitIsNotAvailable
 		);
@@ -581,7 +581,7 @@ fn create_estate_should_fail_for_not_minted_land() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), BITCOUNTRY_ID, MAX_BOUND));
 
-		assert_noop!(
+		assert_err!(
 			EstateModule::create_estate(
 				Origin::root(),
 				BENEFICIARY_ID,
@@ -590,11 +590,6 @@ fn create_estate_should_fail_for_not_minted_land() {
 			),
 			Error::<Runtime>::LandUnitIsNotAvailable
 		);
-
-		// assert_noop!(
-		// 	EstateModule::mint_land(Origin::root(), BENEFICIARY_ID, BITCOUNTRY_ID, COORDINATE_IN_1),
-		// 	Error::<Runtime>::LandUnitIsNotAvailable
-		// );
 	});
 }
 

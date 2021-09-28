@@ -259,7 +259,7 @@ pub mod pallet {
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
-				Self::mint_land_unit(metaverse_id, &beneficiary, coordinate, false)?;
+				Self::mint_land_unit(metaverse_id, &estate_account_id, coordinate, false)?;
 			}
 
 			// Update estate information
