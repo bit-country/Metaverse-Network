@@ -29,7 +29,6 @@ primitives = { package = "bit-country-primitives", path = "../../primitives/meta
 [dev-dependencies]
 #sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 #sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-#pallet-balances = {version = "3.0.0", default-features = false}
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 [features]
