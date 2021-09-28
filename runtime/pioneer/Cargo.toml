@@ -25,6 +25,7 @@ orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library",
 primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
 metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', default-features = false }
 currencies = { package = 'currencies', path = '../../pallets/currencies', version = '2.0.0-rc6', default-features = false }
+nft = { package = 'pallet-nft', path = '../../pallets/nft', version = '2.0.0-rc6', default-features = false }
 
 # Substrate Dependencies
 ## Substrate Primitive Dependencies
@@ -137,5 +138,6 @@ std = [
     'orml-nft/std',
     'primitives/std',
     'metaverse/std',
-    'currencies/std'
+    'currencies/std',
+    'nft/std'
 ]

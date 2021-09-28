@@ -468,63 +468,63 @@ impl pallet_aura::Config for Runtime {
 	type DisabledValidators = ();
 }
 
-// parameter_types! {
-// 	pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
-// 	pub const CouncilMaxProposals: u32 = 100;
-// 	pub const CouncilMaxMembers: u32 = 10;
-// }
-//
-// // Council related pallets
-// type CouncilCollective = pallet_collective::Instance1;
-//
-// impl pallet_collective::Config<CouncilCollective> for Runtime {
-// 	type Origin = Origin;
-// 	type Proposal = Call;
-// 	type Event = Event;
-// 	type MotionDuration = CouncilMotionDuration;
-// 	type MaxProposals = CouncilMaxProposals;
-// 	type MaxMembers = CouncilMaxMembers;
-// 	type DefaultVote = pallet_collective::PrimeDefaultVote;
-// 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
-// }
-//
-// pub struct EnsureRootOrMetaverseTreasury;
-//
-// impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
-// 	type Success = AccountId;
-//
-// 	fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
-// 		Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
-// 			RawOrigin::Root => Ok(MetaverseNetworkTreasuryPalletId::get().into_account()),
-// 			RawOrigin::Signed(caller) => {
-// 				if caller == MetaverseNetworkTreasuryPalletId::get().into_account() {
-// 					Ok(caller)
-// 				} else {
-// 					Err(Origin::from(Some(caller)))
-// 				}
-// 			}
-// 			r => Err(Origin::from(r)),
-// 		})
-// 	}
-//
-// 	#[cfg(feature = "runtime-benchmarks")]
-// 	fn successful_origin() -> Origin {
-// 		Origin::from(RawOrigin::Signed(Default::default()))
-// 	}
-// }
-//
-// pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
-// 	AccountId,
-// 	EnsureRoot<AccountId>,
-// 	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
-// >;
-//
-// parameter_types! {
-// 	pub MaxMetaverseMetadata: u32 = 1024;
-// 	pub MinContribution: Balance = 1 * DOLLARS;
-// }
-//
-// // Configure the pallet template in pallets/template.
+parameter_types! {
+	pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
+	pub const CouncilMaxProposals: u32 = 100;
+	pub const CouncilMaxMembers: u32 = 10;
+}
+
+// Council related pallets
+type CouncilCollective = pallet_collective::Instance1;
+
+impl pallet_collective::Config<CouncilCollective> for Runtime {
+	type Origin = Origin;
+	type Proposal = Call;
+	type Event = Event;
+	type MotionDuration = CouncilMotionDuration;
+	type MaxProposals = CouncilMaxProposals;
+	type MaxMembers = CouncilMaxMembers;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+pub struct EnsureRootOrMetaverseTreasury;
+
+impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
+	type Success = AccountId;
+
+	fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
+		Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
+			RawOrigin::Root => Ok(MetaverseNetworkTreasuryPalletId::get().into_account()),
+			RawOrigin::Signed(caller) => {
+				if caller == MetaverseNetworkTreasuryPalletId::get().into_account() {
+					Ok(caller)
+				} else {
+					Err(Origin::from(Some(caller)))
+				}
+			}
+			r => Err(Origin::from(r)),
+		})
+	}
+
+	#[cfg(feature = "runtime-benchmarks")]
+	fn successful_origin() -> Origin {
+		Origin::from(RawOrigin::Signed(Default::default()))
+	}
+}
+
+pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
+	AccountId,
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
+>;
+
+parameter_types! {
+	pub MaxMetaverseMetadata: u32 = 1024;
+	pub MinContribution: Balance = 1 * DOLLARS;
+}
+
+// Configure the pallet template in pallets/template.
 // impl metaverse::Config for Runtime {
 // 	type Event = Event;
 // 	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
@@ -595,12 +595,17 @@ construct_runtime!(
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin} = 52,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 53,
 
-		// Token & related
-		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		// Governance
+		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
 
-		//Template
+		// Token & related
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
+
+		// Metaverse & Related
+		// MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
 		// Auction: auction::{Pallet, Call, Storage, Event<T>},
+
 	}
 );
 
