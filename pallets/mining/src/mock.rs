@@ -3,10 +3,7 @@ use crate as mining;
 use crate::{Config, Module};
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
-use frame_support::{
-	construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin, ord_parameter_types, parameter_types,
-	traits::EnsureOrigin, weights::Weight,
-};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use primitives::FungibleTokenId::FungibleToken;
@@ -15,7 +12,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
-	PalletId, Perbill,
+	Perbill,
 };
 
 pub type AccountId = u128;
@@ -104,6 +101,8 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
