@@ -7,15 +7,28 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::crypto::Public;
+use sp_core::{
+	crypto::KeyTypeId,
+	u32_trait::{_1, _2, _3, _4, _5},
+	OpaqueMetadata,
+};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+	traits::{
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, NumberFor,
+		Verify, Zero,
+	},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,
+	ApplyExtrinsicResult, MultiSignature, Percent,
 };
 
 use sp_std::prelude::*;
+
+// External imports
+use currencies::BasicCurrencyAdapter;
+use orml_traits::parameter_type_with_key;
+
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -23,16 +36,20 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
 	construct_runtime, match_type, parameter_types,
-	traits::{Everything, IsInVec, Randomness},
+	traits::{EnsureOrigin, Everything, IsInVec, Randomness, StorageInfo},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		DispatchClass, IdentityFee, Weight,
 	},
-	StorageValue,
+	PalletId, StorageValue,
 };
 use frame_system::limits::{BlockLength, BlockWeights};
+use frame_system::{EnsureOneOf, EnsureRoot, RawOrigin};
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
+use primitives::{
+	Amount, Balance, Block as BlockP, BlockId as BlockIdP, BlockNumber, FungibleTokenId, Header as HeaderP,
+};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -52,22 +69,28 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 
-/// Import the template pallet.
-// pub use template;
+// Import the  pallet.
+// pub use auction;
+
+/// Constant values used within the runtime.
+pub mod constants;
+
+use codec::Encode;
+use constants::{currency::*, time::*};
+use frame_support::traits::FindAuthor;
+use frame_support::ConsensusEngineId;
+use sp_core::sp_std::marker::PhantomData;
+use sp_runtime::traits::OpaqueKeys;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
-/// Balance of an account.
-pub type Balance = u128;
 /// Index of a transaction in the chain.
 pub type Index = u32;
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
-/// An index to a block.
-pub type BlockNumber = u32;
 /// The address format for describing accounts.
 pub type Address = MultiAddress<AccountId, ()>;
 /// Block header type as expected by this runtime.
@@ -219,7 +242,7 @@ impl frame_system::Config for Runtime {
 	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = ();
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = frame_support::traits::Everything;
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = ();
 	/// Block & extrinsics weights: base values and limits.
@@ -230,6 +253,10 @@ impl frame_system::Config for Runtime {
 	type SS58Prefix = SS58Prefix;
 	/// The action to take on a Runtime Upgrade
 	type OnSetCode = cumulus_pallet_parachain_system::ParachainSetCode<Self>;
+}
+
+parameter_types! {
+	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 }
 
 parameter_types! {
@@ -441,10 +468,104 @@ impl pallet_aura::Config for Runtime {
 	type DisabledValidators = ();
 }
 
-/// Configure the pallet template in pallets/template.
-// impl template::Config for Runtime {
-// 	type Event = Event;
+// parameter_types! {
+// 	pub const CouncilMotionDuration: BlockNumber = 5 * DAYS;
+// 	pub const CouncilMaxProposals: u32 = 100;
+// 	pub const CouncilMaxMembers: u32 = 10;
 // }
+//
+// // Council related pallets
+// type CouncilCollective = pallet_collective::Instance1;
+//
+// impl pallet_collective::Config<CouncilCollective> for Runtime {
+// 	type Origin = Origin;
+// 	type Proposal = Call;
+// 	type Event = Event;
+// 	type MotionDuration = CouncilMotionDuration;
+// 	type MaxProposals = CouncilMaxProposals;
+// 	type MaxMembers = CouncilMaxMembers;
+// 	type DefaultVote = pallet_collective::PrimeDefaultVote;
+// 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+// }
+//
+// pub struct EnsureRootOrMetaverseTreasury;
+//
+// impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
+// 	type Success = AccountId;
+//
+// 	fn try_origin(o: Origin) -> Result<Self::Success, Origin> {
+// 		Into::<Result<RawOrigin<AccountId>, Origin>>::into(o).and_then(|o| match o {
+// 			RawOrigin::Root => Ok(MetaverseNetworkTreasuryPalletId::get().into_account()),
+// 			RawOrigin::Signed(caller) => {
+// 				if caller == MetaverseNetworkTreasuryPalletId::get().into_account() {
+// 					Ok(caller)
+// 				} else {
+// 					Err(Origin::from(Some(caller)))
+// 				}
+// 			}
+// 			r => Err(Origin::from(r)),
+// 		})
+// 	}
+//
+// 	#[cfg(feature = "runtime-benchmarks")]
+// 	fn successful_origin() -> Origin {
+// 		Origin::from(RawOrigin::Signed(Default::default()))
+// 	}
+// }
+//
+// pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
+// 	AccountId,
+// 	EnsureRoot<AccountId>,
+// 	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
+// >;
+//
+// parameter_types! {
+// 	pub MaxMetaverseMetadata: u32 = 1024;
+// 	pub MinContribution: Balance = 1 * DOLLARS;
+// }
+//
+// // Configure the pallet template in pallets/template.
+// impl metaverse::Config for Runtime {
+// 	type Event = Event;
+// 	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
+// 	type Currency = Balances;
+// 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
+// 	type MinContribution = MinContribution;
+// 	type MetaverseCouncil = EnsureRootOrHalfMetaverseCouncil;
+// }
+
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
+		Zero::zero()
+	};
+}
+
+parameter_types! {
+	pub TreasuryModuleAccount: AccountId = MetaverseNetworkTreasuryPalletId::get().into_account();
+}
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = FungibleTokenId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = MaxLocks;
+	type DustRemovalWhitelist = ();
+}
+
+parameter_types! {
+	pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+}
+
+impl currencies::Config for Runtime {
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -474,8 +595,12 @@ construct_runtime!(
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Call, Event<T>, Origin} = 52,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 53,
 
+		// Token & related
+		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+
 		//Template
-		// TemplatePallet: template::{Pallet, Call, Storage, Event<T>},
+		// Auction: auction::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

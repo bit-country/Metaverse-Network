@@ -14,8 +14,17 @@ codec = { package = 'parity-scale-codec', version = '2.0.0', default-features = 
 log = { version = "0.4.14", default-features = false }
 serde = { version = '1.0.119', optional = true, features = ['derive'] }
 
-# Local Dependencies
-#template = { package = 'pallet-template', path = '../pallets/template', default-features = false }
+# external crates - orml packages
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+
+
+# Metaverse Dependencies
+primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
+metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', default-features = false }
+currencies = { package = 'currencies', path = '../../pallets/currencies', version = '2.0.0-rc6', default-features = false }
 
 # Substrate Dependencies
 ## Substrate Primitive Dependencies
@@ -48,6 +57,10 @@ pallet-sudo = { git = 'https://github.com/paritytech/substrate', branch = 'polka
 pallet-timestamp = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 pallet-transaction-payment = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.9', default-features = false }
+pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-vesting = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-authorship = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-session = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
 # Cumulus Dependencies
 cumulus-pallet-aura-ext = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9', default-features = false }
@@ -102,6 +115,10 @@ std = [
     "pallet-timestamp/std",
     "pallet-sudo/std",
     "pallet-transaction-payment/std",
+    "pallet-collective/std",
+    "pallet-session/std",
+    "pallet-vesting/std",
+    "pallet-authorship/std",
     "parachain-info/std",
     "cumulus-pallet-aura-ext/std",
     "cumulus-pallet-parachain-system/std",
@@ -114,7 +131,11 @@ std = [
     "xcm-builder/std",
     "xcm-executor/std",
     "pallet-aura/std",
-    "sp-consensus-aura/std"
-#    ,
-#    'template/std',
+    "sp-consensus-aura/std",
+    'orml-currencies/std',
+    'orml-tokens/std',
+    'orml-nft/std',
+    'primitives/std',
+    'metaverse/std',
+    'currencies/std'
 ]
