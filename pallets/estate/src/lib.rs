@@ -259,7 +259,7 @@ pub mod pallet {
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
-				Self::mint_land_unit(metaverse_id, &beneficiary, coordinate, false)?;
+				Self::mint_land_unit(metaverse_id, &estate_account_id, coordinate, false)?;
 			}
 
 			// Update estate information
@@ -354,7 +354,6 @@ impl<T: Config> Pallet<T> {
 		let max_bound = MaxBounds::<T>::get(metaverse_id);
 
 		if existing_land_units {
-			let key = LandUnits::<T>::contains_key(metaverse_id, coordinate);
 			// Check whether the coordinate exists
 			ensure!(
 				LandUnits::<T>::contains_key(metaverse_id, coordinate),
