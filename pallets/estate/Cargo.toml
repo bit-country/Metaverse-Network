@@ -42,5 +42,6 @@ std = [
     'sp-core/std',
     'bc-primitives/std',
     'primitives/std',
-    'sp-io/std'
+    'sp-io/std',
+    'pallet-balances/std'
 ]

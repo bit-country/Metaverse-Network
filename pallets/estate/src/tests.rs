@@ -40,7 +40,7 @@ fn set_max_bound_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::MaxBoundSet(BITCOUNTRY_ID, MAX_BOUND))
+			Event::Estate(crate::Event::MaxBoundSet(BITCOUNTRY_ID, MAX_BOUND))
 		);
 
 		assert_eq!(EstateModule::get_max_bounds(BITCOUNTRY_ID), MAX_BOUND);
@@ -93,7 +93,7 @@ fn mint_land_should_work_with_one_coordinate() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -116,7 +116,7 @@ fn mint_land_should_work_have_correct_owner() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -142,7 +142,7 @@ fn mint_land_should_reject_with_duplicate_coordinates() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -168,7 +168,7 @@ fn mint_land_should_work_with_different_coordinate() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -182,7 +182,7 @@ fn mint_land_should_work_with_different_coordinate() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_2))
+			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_2))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 2);
@@ -250,7 +250,7 @@ fn mint_lands_should_work_with_one_coordinate() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::NewLandsMinted(BITCOUNTRY_ID, vec![COORDINATE_IN_1]))
+			Event::Estate(crate::Event::NewLandsMinted(BITCOUNTRY_ID, vec![COORDINATE_IN_1]))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -271,7 +271,7 @@ fn mint_lands_should_work_with_more_than_one_coordinate() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::NewLandsMinted(
+			Event::Estate(crate::Event::NewLandsMinted(
 				BITCOUNTRY_ID,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			))
@@ -309,7 +309,7 @@ fn transfer_land_should_work() {
 		// assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), ALICE);
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::TransferredLandUnit(
+			Event::Estate(crate::Event::TransferredLandUnit(
 				BITCOUNTRY_ID,
 				COORDINATE_IN_1,
 				BENEFICIARY_ID,
@@ -389,9 +389,17 @@ fn mint_estate_should_reject_non_root() {
 	});
 }
 
+/// Mint estate from existing land units
 #[test]
 fn mint_estate_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), BITCOUNTRY_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_lands(
+			Origin::root(),
+			BENEFICIARY_ID,
+			BITCOUNTRY_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -436,6 +444,7 @@ fn mint_estate_should_work() {
 #[test]
 fn mint_estate_should_return_none_for_non_exist_estate() {
 	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), BITCOUNTRY_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -485,7 +494,7 @@ fn transfer_estate_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::estate(crate::Event::TransferredEstate(estate_id, BENEFICIARY_ID, ALICE))
+			Event::Estate(crate::Event::TransferredEstate(estate_id, BENEFICIARY_ID, ALICE))
 		);
 	});
 }
