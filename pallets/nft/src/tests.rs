@@ -48,7 +48,7 @@ fn create_group_should_work() {
 		assert_eq!(Nft::get_group_collection(0), Some(collection_data));
 		assert_eq!(Nft::all_nft_collection_count(), 1);
 
-		let event = mock::Event::nft(crate::Event::NewNftCollectionCreated(0));
+		let event = mock::Event::Nft(crate::Event::NewNftCollectionCreated(0));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -65,6 +65,7 @@ fn create_group_should_fail() {
 fn create_class_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
+
 		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -83,18 +84,21 @@ fn create_class_should_work() {
 			initial_supply: Default::default(),
 		};
 
-		let class_info = orml_nft::ClassInfo::<u64, AccountId, NftClassData<u128>> {
-			metadata: vec![1],
-			total_issuance: Default::default(),
-			owner: ALICE,
-			data: class_data,
-		};
-
 		assert_eq!(Nft::get_class_collection(0), 0);
 		assert_eq!(Nft::all_nft_collection_count(), 1);
-		assert_eq!(NftModule::<Runtime>::classes(CLASS_ID), Some(class_info));
+		assert_eq!(
+			NftModule::<Runtime>::classes(CLASS_ID).unwrap().data,
+			NftClassData {
+				deposit: 2,
+				metadata: vec![1],
+				token_type: TokenType::Transferable,
+				collection_type: CollectionType::Collectable,
+				total_supply: Default::default(),
+				initial_supply: Default::default(),
+			}
+		);
 
-		let event = mock::Event::nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
+		let event = mock::Event::Nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
 		assert_eq!(last_event(), event);
 
 		assert_eq!(
@@ -119,7 +123,7 @@ fn mint_asset_should_work() {
 		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![0]);
 		assert_eq!(Nft::get_asset(0), Some((CLASS_ID, TOKEN_ID)));
 
-		let event = mock::Event::nft(crate::Event::NewNftMinted(0, 0, ALICE, CLASS_ID, 1, 0));
+		let event = mock::Event::Nft(crate::Event::NewNftMinted(0, 0, ALICE, CLASS_ID, 1, 0));
 		assert_eq!(last_event(), event);
 
 		//mint two assets
@@ -166,7 +170,7 @@ fn transfer_should_work() {
 		let origin = Origin::signed(ALICE);
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::transfer(origin, BOB, 0));
-		let event = mock::Event::nft(crate::Event::TransferedNft(1, 2, 0));
+		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -185,7 +189,7 @@ fn transfer_batch_should_work() {
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 1));
 		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, 0), (BOB, 1)]));
-		let event = mock::Event::nft(crate::Event::TransferedNft(1, 2, 0));
+		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0));
 		assert_eq!(last_event(), event);
 	})
 }

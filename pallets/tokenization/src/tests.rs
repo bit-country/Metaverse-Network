@@ -37,7 +37,7 @@ fn mint_social_token_should_work() {
 
 		assert_eq!(get_country_fund_balance(), 400);
 
-		let event = mock::Event::tokenization(crate::Event::FungibleTokenIssued(
+		let event = mock::Event::TokenizationModule(crate::Event::FungibleTokenIssued(
 			FungibleTokenId::FungibleToken(1),
 			ALICE,
 			country_fund_account(),

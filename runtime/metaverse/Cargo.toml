@@ -56,11 +56,11 @@ hex-literal = { version = "0.3.1", optional = true }
 
 # EVM pallets
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-pallet-evm = { path = "../../pallets/evm", default-features = false, branch = "master" }
+pallet-evm = { path = "../../pallets/evm", default-features = false }
 #pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false, branch = "master" }
-pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false, branch = "master" }
-pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false, branch = "master" }
+pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
+pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
+pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
 #fp-rpc = { default-features = false, git = "https://github.com/bit-country/frontier", branch = "master" }
 
 # external crates - orml packages
@@ -73,7 +73,7 @@ orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library",
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
-block = { package = "pallet-block", path = "../../pallets/block", default-features = false }
+estate = { package = "pallet-estate", path = "../../pallets/estate", default-features = false }
 tokenization = { package = "pallet-tokenization", path = "../../pallets/tokenization", default-features = false }
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
 continuum = { package = "pallet-continuum", path = "../../pallets/continuum", version = "0.0.1", default-features = false }
@@ -129,7 +129,7 @@ std = [
     "primitives/std",
     "metaverse/std",
     "auction/std",
-    "block/std",
+    "estate/std",
     "nft/std",
     "continuum/std",
     "currencies/std",

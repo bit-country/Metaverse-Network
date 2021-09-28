@@ -3793,9 +3793,9 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
- "pallet-block",
  "pallet-collective",
  "pallet-continuum",
+ "pallet-estate",
  "pallet-evm",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-sha3fips",
@@ -4654,23 +4654,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-block"
-version = "2.0.0-rc6"
-dependencies = [
- "bc-primitives",
- "bit-country-primitives",
- "frame-support",
- "frame-system",
- "pallet-randomness-collective-flip",
- "parity-scale-codec",
- "sp-api",
- "sp-core",
- "sp-runtime",
- "sp-session",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-bounties"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
@@ -4831,6 +4814,23 @@ dependencies = [
  "sp-npos-elections",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-estate"
+version = "2.0.0-rc6"
+dependencies = [
+ "bc-primitives",
+ "bit-country-primitives",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -5529,7 +5529,7 @@ dependencies = [
 [[package]]
 name = "parachain-staking"
 version = "2.1.1"
-source = "git+https://github.com/justinphamnz/Parachain-Staking#12288d7b265b1920c3eb9152fc37f76fc32dc3e1"
+source = "git+https://github.com/justinphamnz/Parachain-Staking#976282af89c9583f11744fa8395e99d304bb2f98"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5539,6 +5539,7 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
  "substrate-fixed",
@@ -9613,7 +9614,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f559b464de2e2bdabcac6a210d12e9b5a5973c251e102c44c585c71d51bd78e"
 dependencies = [
  "cfg-if 1.0.0",
- "rand 0.8.4",
+ "rand 0.3.23",
  "static_assertions",
 ]
 
