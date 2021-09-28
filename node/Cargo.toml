@@ -80,8 +80,9 @@ tewai-runtime = { package = "node-runtime", version = "3.0.0-dev", git = "https:
 node-primitives = { version = "2.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
 
 # Metaverse related dependencies
-primitives = { package = "bit-country-primitives", path = "../pallets/primitives" }
+primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
 metaverse-runtime = { version = "2.0.0-rc6", path = "../runtime/metaverse", optional = true }
+pallet-evm = { path = "../pallets/evm" }
 
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }

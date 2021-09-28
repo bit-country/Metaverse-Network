@@ -4,10 +4,7 @@ use super::*;
 
 use crate as nft;
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionType, Change, ListingLevel, OnNewBidResult};
-use frame_support::{
-	construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin, parameter_types, traits::EnsureOrigin,
-	weights::Weight,
-};
+use frame_support::{construct_runtime, parameter_types, traits::EnsureOrigin, weights::Weight};
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, CurrencyId, FungibleTokenId, ItemId};
 use sp_core::H256;
@@ -53,6 +50,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -67,6 +65,8 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 parameter_type_with_key! {
@@ -126,10 +126,6 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		todo!()
 	}
 
-	fn check_item_in_auction(asset_id: AssetId) -> bool {
-		return false;
-	}
-
 	fn local_auction_bid_handler(
 		_: BlockNumber,
 		_: u64,
@@ -147,6 +143,12 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 }
 
+impl CheckAuctionItemHandler for MockAuctionManager {
+	fn check_item_in_auction(item_id: ItemId) -> bool {
+		return false;
+	}
+}
+
 parameter_types! {
 	pub CreateClassDeposit: Balance = 2;
 	pub CreateAssetDeposit: Balance = 1;
@@ -161,7 +163,11 @@ impl Config for Runtime {
 	type PalletId = NftPalletId;
 	type AuctionHandler = MockAuctionManager;
 	type WeightInfo = ();
-	type AssetsHandler = Handler;
+}
+
+parameter_types! {
+	pub MaxClassMetadata: u32 = 1024;
+	pub MaxTokenMetadata: u32 = 1024;
 }
 
 impl orml_nft::Config for Runtime {
@@ -169,6 +175,8 @@ impl orml_nft::Config for Runtime {
 	type TokenId = u64;
 	type ClassData = nft::NftClassData<Balance>;
 	type TokenData = nft::NftAssetData<Balance>;
+	type MaxClassMetadata = MaxClassMetadata;
+	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -180,10 +188,10 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Nft: nft::{Module, Call, Event<T>},
-		OrmlNft: orml_nft::{Module, Storage, Config<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Nft: nft::{Pallet, Call, Event<T>},
+		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 	}
 );
 
@@ -218,12 +226,4 @@ pub fn last_event() -> Event {
 		.pop()
 		.expect("Event expected")
 		.event
-}
-
-pub struct Handler;
-
-impl AssetHandler for Handler {
-	fn check_item_in_auction(asset_id: AssetId) -> bool {
-		return MockAuctionManager::check_item_in_auction(asset_id);
-	}
 }

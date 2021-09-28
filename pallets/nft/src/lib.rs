@@ -15,7 +15,7 @@ use frame_support::{
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-use auction_manager::Auction;
+use auction_manager::{Auction, CheckAuctionItemHandler};
 use frame_system::pallet_prelude::*;
 use orml_nft::Pallet as NftModule;
 use primitives::{AssetId, GroupCollectionId};
@@ -134,6 +134,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use primitives::ItemId;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
@@ -158,8 +159,7 @@ pub mod pallet {
 		/// Weight info
 		type WeightInfo: WeightInfo;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber>;
-		type AssetsHandler: AssetHandler;
+		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
 	}
 
 	type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -410,7 +410,7 @@ pub mod pallet {
 			let sender = ensure_signed(origin)?;
 
 			ensure!(
-				!T::AssetsHandler::check_item_in_auction(asset_id),
+				!T::AuctionHandler::check_item_in_auction(ItemId::NFT(asset_id)),
 				Error::<T>::AssetAlreadyInAuction
 			);
 
@@ -481,7 +481,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
 	fn do_create_group_collection(name: Vec<u8>, properties: Vec<u8>) -> Result<GroupCollectionId, DispatchError> {
 		let next_group_collection_id =
 			NextGroupCollectionId::<T>::try_mutate(|collection_id| -> Result<GroupCollectionId, DispatchError> {
@@ -558,8 +558,6 @@ impl<T: Config> Module<T> {
 
 	pub fn check_nft_ownership(sender: &T::AccountId, asset_id: &AssetId) -> Result<bool, DispatchError> {
 		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
-		let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
-		let data = class_info.data;
 
 		let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
 		if sender == &asset_info.owner {
@@ -567,16 +565,5 @@ impl<T: Config> Module<T> {
 		}
 
 		return Ok(false);
-	}
-}
-
-pub trait AssetHandler {
-	/// Checks if item is already in an auction
-	fn check_item_in_auction(asset_id: AssetId) -> bool;
-}
-
-impl<T: Config> AssetHandler for Module<T> {
-	fn check_item_in_auction(asset_id: AssetId) -> bool {
-		return T::AuctionHandler::check_item_in_auction(asset_id);
 	}
 }

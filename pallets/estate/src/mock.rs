@@ -76,6 +76,7 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
@@ -90,6 +91,8 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 // pub type AdaptedBasicCurrency =
@@ -113,7 +116,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 	}
 
-	fn get_metaverse(metaverse_id: u64) -> Option<BitCountryStruct<u128>> {
+	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
 		None
 	}
 
@@ -143,9 +146,9 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Estate: estate:: {Module, Call, Storage, Event<T>}
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Estate: estate:: {Pallet, Call, Storage, Event<T>}
 	}
 );
 

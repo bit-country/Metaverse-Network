@@ -363,7 +363,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
 	fn transfer_from(
 		currency_id: FungibleTokenId,
 		from: &T::AccountId,
