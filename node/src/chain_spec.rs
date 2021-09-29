@@ -195,6 +195,27 @@ pub fn metaverse_testnet_config() -> Result<ChainSpec, String> {
 	))
 }
 
+pub fn pioneer_testnet_config() -> Result<ChainSpec, String> {
+	Ok(ChainSpec::from_genesis(
+		// Name
+		"Pioneer Testnet",
+		// ID
+		"local_testnet",
+		ChainType::Live,
+		metaverse_genesis,
+		// Bootnodes
+		vec![],
+		// Telemetry
+		None,
+		// Protocol ID
+		None,
+		// Properties
+		Some(metaverse_properties()),
+		// Extensions
+		None,
+	))
+}
+
 pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
 	InflationInfo {
 		expect: Range {

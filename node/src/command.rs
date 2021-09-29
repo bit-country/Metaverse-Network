@@ -57,6 +57,8 @@ impl SubstrateCli for Cli {
 			"metaverse" => Box::new(chain_spec::metaverse_testnet_config()?),
 			#[cfg(feature = "with-tewai-runtime")]
 			"tewai" => Box::new(chain_spec::tewai_testnet_config()?),
+			#[cfg(feature = "with-pioneer-runtime")]
+			"pioneer" => Box::new(chain_spec::pioneer_testnet_config()?),
 			path => Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
 		})
 	}
