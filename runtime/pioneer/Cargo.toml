@@ -13,6 +13,7 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 codec = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive']}
 log = { version = "0.4.14", default-features = false }
 serde = { version = '1.0.119', optional = true, features = ['derive'] }
+evm = { version = "0.30.1", default-features = false, features = ["with-codec"] }
 
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
@@ -31,6 +32,18 @@ continuum = { package = 'pallet-continuum', path = '../../pallets/continuum', ve
 swap = { package = 'pallet-swap', path = '../../pallets/swap', version = '2.0.0-rc6', default-features = false }
 mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '2.0.0-rc6', default-features = false }
 tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', default-features = false }
+estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
+
+# ecosystem dependencies
+parachain-staking = { package = "parachain-staking", git = "https://github.com/justinphamnz/Parachain-Staking", version = "2.1.1", default-features = false }
+
+#pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
+pallet-evm = { path = "../../pallets/evm", default-features = false, branch = "master" }
+#pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
+pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false, branch = "master" }
+pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false, branch = "master" }
+pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false, branch = "master" }
+#fp-rpc = { default-features = false, git = "https://github.com/bit-country/frontier", branch = "master" }
 
 # Substrate Dependencies
 ## Substrate Primitive Dependencies
@@ -149,5 +162,9 @@ std = [
     'continuum/std',
     'swap/std',
     'mining/std',
-    'tokenization/std'
+    'tokenization/std',
+    'estate/std',
+    'parachain-staking/std',
+    'pallet-evm/std',
+    "evm/std"
 ]

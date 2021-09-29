@@ -11,7 +11,7 @@ use sp_core::crypto::Public;
 use sp_core::{
 	crypto::KeyTypeId,
 	u32_trait::{_1, _2, _3, _4, _5},
-	OpaqueMetadata,
+	OpaqueMetadata, H160, U256,
 };
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
@@ -30,6 +30,9 @@ use currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 
 mod weights;
+
+use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
+pub use parachain_staking::{InflationInfo, Range};
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -633,6 +636,29 @@ impl continuum::Config for Runtime {
 }
 
 parameter_types! {
+	pub const MinVestedTransfer: Balance = 100 * DOLLARS;
+}
+
+impl pallet_vesting::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type BlockNumberToBalance = ConvertInto;
+	type MinVestedTransfer = MinVestedTransfer;
+	type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+}
+
+impl tokenization::Config for Runtime {
+	type Event = Event;
+	type TokenId = u64;
+	type BCMultiCurrency = Currencies;
+	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
+	type MetaverseInfoSource = MetaverseModule;
+	type LiquidityPoolManager = Swap;
+	type MinVestedTransfer = MinVestedTransfer;
+	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
+}
+
+parameter_types! {
 	pub const SwapFee: (u32, u32) = (1, 20); //0.05%
 }
 
@@ -644,6 +670,152 @@ impl swap::Config for Runtime {
 	type GetSwapFee = SwapFee;
 }
 
+parameter_types! {
+	//Mining Resource Currency Id
+	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl mining::Config for Runtime {
+	type Event = Event;
+	type MiningCurrency = Currencies;
+	type BitMiningTreasury = BitMiningTreasury;
+	type BitMiningResourceId = MiningResourceCurrencyId;
+	type AdminOrigin = EnsureRootOrMetaverseTreasury;
+}
+
+parameter_types! {
+	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
+	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
+}
+
+impl estate::Config for Runtime {
+	type Event = Event;
+	type LandTreasury = LandTreasuryPalletId;
+	type MetaverseInfoSource = MetaverseModule;
+	type Currency = Balances;
+	type MinimumLandPrice = MinimumLandPrice;
+	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+}
+
+parameter_types! {
+	/// Minimum round length is 2 minutes (10 * 12 second block times)
+	pub const MinBlocksPerRound: u32 = 10;
+	/// Default BlocksPerRound is every hour (300 * 12 second block times)
+	pub const DefaultBlocksPerRound: u32 = 30;
+	/// Collator candidate exits are delayed by 2 hours (2 * 300 * block_time)
+	pub const LeaveCandidatesDelay: u32 = 2;
+	/// Nominator exits are delayed by 2 hours (2 * 300 * block_time)
+	pub const LeaveNominatorsDelay: u32 = 2;
+	/// Nomination revocations are delayed by 2 hours (2 * 300 * block_time)
+	pub const RevokeNominationDelay: u32 = 2;
+	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
+	pub const RewardPaymentDelay: u32 = 2;
+	/// Minimum 8 collators selected per round, default at genesis and minimum forever after
+	pub const MinSelectedCandidates: u32 = 8;
+	/// Maximum 100 nominators per collator
+	pub const MaxNominatorsPerCollator: u32 = 100;
+	/// Maximum 100 collators per nominator
+	pub const MaxCollatorsPerNominator: u32 = 100;
+	/// Default fixed percent a collator takes off the top of due rewards is 20%
+	pub const DefaultCollatorCommission: Perbill = Perbill::from_percent(20);
+	/// Default percent of inflation set aside for parachain bond every round
+	pub const DefaultParachainBondReservePercent: Percent = Percent::from_percent(30);
+	/// Minimum stake required to become a collator is 1_000
+	pub const MinCollatorStk: u128 = 1 * DOLLARS;
+	/// Minimum stake required to be reserved to be a candidate is 1_000
+	pub const MinCollatorCandidateStk: u128 = 1 * DOLLARS;
+	/// Minimum stake required to be reserved to be a nominator is 5
+	pub const MinNominatorStk: u128 = 5 * DOLLARS;
+}
+
+impl parachain_staking::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type MonetaryGovernanceOrigin = EnsureRoot<AccountId>;
+	type MinBlocksPerRound = MinBlocksPerRound;
+	type DefaultBlocksPerRound = DefaultBlocksPerRound;
+	type LeaveCandidatesDelay = LeaveCandidatesDelay;
+	type LeaveNominatorsDelay = LeaveNominatorsDelay;
+	type RevokeNominationDelay = RevokeNominationDelay;
+	type RewardPaymentDelay = RewardPaymentDelay;
+	type MinSelectedCandidates = MinSelectedCandidates;
+	type MaxNominatorsPerCollator = MaxNominatorsPerCollator;
+	type MaxCollatorsPerNominator = MaxCollatorsPerNominator;
+	type DefaultCollatorCommission = DefaultCollatorCommission;
+	type DefaultParachainBondReservePercent = DefaultParachainBondReservePercent;
+	type MinCollatorStk = MinCollatorStk;
+	type MinCollatorCandidateStk = MinCollatorCandidateStk;
+	type MinNomination = MinNominatorStk;
+	type MinNominatorStk = MinNominatorStk;
+	type WeightInfo = parachain_staking::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(17);
+}
+
+impl pallet_session::Config for Runtime {
+	type Event = Event;
+	type ValidatorId = <Self as frame_system::Config>::AccountId;
+	type ValidatorIdOf = parachain_staking::ValidatorOf<Self>;
+	type ShouldEndSession = Staking;
+	type NextSessionRotation = Staking;
+	type SessionManager = Staking;
+	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+	type Keys = SessionKeys;
+	type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+}
+
+pub struct FindAuthorTruncated<F>(PhantomData<F>);
+
+impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
+	fn find_author<'a, I>(digests: I) -> Option<H160>
+	where
+		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
+	{
+		if let Some(author_index) = F::find_author(digests) {
+			let authority_id = Aura::authorities()[author_index as usize].clone();
+			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+		}
+		None
+	}
+}
+
+parameter_types! {
+	pub const ChainId: u64 = 42;
+	pub BlockGasLimit: U256 = U256::from(u32::max_value());
+}
+
+// EVM config
+impl pallet_evm::Config for Runtime {
+	//    type FeeCalculator = pallet_dynamic_fee::Module<Self>;
+	type FeeCalculator = ();
+	type GasWeightMapping = ();
+	//	type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
+	//    type BlockHashMapping = ();
+	type CallOrigin = EnsureAddressTruncated;
+	type WithdrawOrigin = EnsureAddressTruncated;
+	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+	type Currency = Balances;
+	type Event = Event;
+	type Runner = pallet_evm::runner::stack::Runner<Self>;
+	type Precompiles = (
+		pallet_evm_precompile_simple::ECRecover,
+		pallet_evm_precompile_simple::Sha256,
+		pallet_evm_precompile_simple::Ripemd160,
+		pallet_evm_precompile_simple::Identity,
+		pallet_evm_precompile_modexp::Modexp,
+		pallet_evm_precompile_simple::ECRecoverPublicKey,
+		pallet_evm_precompile_sha3fips::Sha3FIPS256,
+		pallet_evm_precompile_sha3fips::Sha3FIPS512,
+	);
+	type ChainId = ChainId;
+	type BlockGasLimit = BlockGasLimit;
+	type OnChargeTransaction = ();
+	type FindAuthor = FindAuthorTruncated<Aura>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -653,16 +825,9 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-
 		ParachainSystem: cumulus_pallet_parachain_system::{Pallet, Call, Config, Storage, Inherent, Event<T>, ValidateUnsigned} = 20,
-
 		ParachainInfo: parachain_info::{Pallet, Storage, Config} = 21,
-
-		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 30,
-
 		Aura: pallet_aura::{Pallet, Config<T>},
 		AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
 
@@ -675,9 +840,12 @@ construct_runtime!(
 		// Governance
 		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
 
-		// Token & related
+		// Token & Related
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 30,
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
+		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+		Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>},
 
 		// Metaverse & Related
 		MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
@@ -686,6 +854,16 @@ construct_runtime!(
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
+		TokenizationModule: tokenization:: {Pallet, Call, Storage, Event<T>},
+		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
+		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
+		Estate: estate::{Pallet, Call, Storage, Event<T>},
+
+		// External consensus support
+		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
+
+		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>}
 	}
 );
 
