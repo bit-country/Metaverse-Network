@@ -7,7 +7,7 @@
 </p>
 
 <div align="center">
-<h1>[Bit.Country] Metaverse Network</h1>
+<h1>[Bit.Country] Metaverse.Network</h1>
 
 ## Start your own metaverse. An Ethereum-compatible Network for Metaverses & Games
 
