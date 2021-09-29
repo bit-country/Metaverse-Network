@@ -525,14 +525,14 @@ parameter_types! {
 }
 
 // Configure the pallet template in pallets/template.
-// impl metaverse::Config for Runtime {
-// 	type Event = Event;
-// 	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
-// 	type Currency = Balances;
-// 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
-// 	type MinContribution = MinContribution;
-// 	type MetaverseCouncil = EnsureRootOrHalfMetaverseCouncil;
-// }
+impl metaverse::Config for Runtime {
+	type Event = Event;
+	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type MaxMetaverseMetadata = MaxMetaverseMetadata;
+	type MinContribution = MinContribution;
+	type MetaverseCouncil = EnsureRootOrHalfMetaverseCouncil;
+}
 
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
@@ -603,7 +603,7 @@ construct_runtime!(
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
 
 		// Metaverse & Related
-		// MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
+		MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
 		// Auction: auction::{Pallet, Call, Storage, Event<T>},
 
 	}
