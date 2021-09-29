@@ -29,6 +29,8 @@ use sp_std::prelude::*;
 use currencies::BasicCurrencyAdapter;
 use orml_traits::parameter_type_with_key;
 
+mod weights;
+
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -257,6 +259,9 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
+	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
+	pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
 }
 
 parameter_types! {
@@ -557,6 +562,36 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
+	pub CreateClassDeposit: Balance = 500 * MILLICENTS;
+	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+}
+
+impl nft::Config for Runtime {
+	type Event = Event;
+	type CreateClassDeposit = CreateClassDeposit;
+	type CreateAssetDeposit = CreateAssetDeposit;
+	type Currency = Balances;
+	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+	type PalletId = NftPalletId;
+	type AuctionHandler = Auction;
+	type AssetsHandler = NftModule;
+}
+
+parameter_types! {
+	pub MaxClassMetadata: u32 = 1024;
+	pub MaxTokenMetadata: u32 = 1024;
+}
+
+impl orml_nft::Config for Runtime {
+	type ClassId = u32;
+	type TokenId = u64;
+	type ClassData = nft::NftClassData<Balance>;
+	type TokenData = nft::NftAssetData<Balance>;
+	type MaxClassMetadata = MaxClassMetadata;
+	type MaxTokenMetadata = MaxTokenMetadata;
+}
+
+parameter_types! {
 	pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 }
 
@@ -565,6 +600,48 @@ impl currencies::Config for Runtime {
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
+}
+
+parameter_types! {
+	pub const AuctionTimeToClose: u32 = 100800; // Default 100800 Blocks
+	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
+}
+
+impl auction::Config for Runtime {
+	type Event = Event;
+	type AuctionTimeToClose = AuctionTimeToClose;
+	type Handler = Auction;
+	type Currency = Balances;
+	type ContinuumHandler = Continuum;
+	type FungibleTokenCurrency = Tokens;
+	type MetaverseInfoSource = MetaverseModule;
+	type MinimumAuctionDuration = MinimumAuctionDuration;
+}
+
+impl continuum::Config for Runtime {
+	type Event = Event;
+	type SessionDuration = ContinuumSessionDuration;
+	type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
+	type EmergencyOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type AuctionHandler = Auction;
+	type AuctionDuration = SpotAuctionChillingDuration;
+	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type MetaverseInfoSource = MetaverseModule;
+}
+
+parameter_types! {
+	pub const SwapFee: (u32, u32) = (1, 20); //0.05%
+}
+
+impl swap::Config for Runtime {
+	type Event = Event;
+	type PalletId = SwapPalletId;
+	type FungibleTokenCurrency = Tokens;
+	type NativeCurrency = Balances;
+	type GetSwapFee = SwapFee;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -604,8 +681,11 @@ construct_runtime!(
 
 		// Metaverse & Related
 		MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
-		// Auction: auction::{Pallet, Call, Storage, Event<T>},
-
+		OrmlNFT: orml_nft::{Pallet, Storage},
+		NftModule: nft::{Pallet, Call, Storage, Event<T>},
+		Auction: auction::{Pallet, Call ,Storage, Event<T>},
+		Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
 	}
 );
 
