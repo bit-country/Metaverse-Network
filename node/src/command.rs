@@ -17,9 +17,10 @@
 
 use crate::{
 	chain_spec,
-	cli::{Cli, Subcommand},
-	service,
+	cli::{Cli, Subcommand}, //RelayChainCli
+	service,                // ::{new_partial, ParachainRuntimeExecutor},
 };
+use cumulus_primitives_core::ParaId;
 use metaverse_runtime::Block;
 use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
@@ -58,7 +59,7 @@ impl SubstrateCli for Cli {
 			#[cfg(feature = "with-tewai-runtime")]
 			"tewai" => Box::new(chain_spec::tewai_testnet_config()?),
 			#[cfg(feature = "with-pioneer-runtime")]
-			"pioneer" => Box::new(chain_spec::pioneer_testnet_config()?),
+			"pioneer" => Box::new(chain_spec::pioneer_parachain_config(123.into())?), // TODO: need to set parachain id
 			path => Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
 		})
 	}
