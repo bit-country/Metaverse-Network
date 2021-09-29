@@ -150,8 +150,56 @@ pub fn run() -> sc_cli::Result<()> {
 				)
 			}
 		}
+		Some(Subcommand::ExportGenesisState(params)) => {
+			// TODO:
+			// let mut builder = sc_cli::LoggerBuilder::new("");
+			// builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
+			// let _ = builder.init();
+			//
+			// let block: Block = generate_genesis_block(&load_spec(
+			// 	&params.chain.clone().unwrap_or_default(),
+			// 	params.parachain_id.unwrap_or(2000).into(),
+			// )?)?;
+			// let raw_header = block.header().encode();
+			// let output_buf = if params.raw {
+			// 	raw_header
+			// } else {
+			// 	format!("0x{:?}", HexDisplay::from(&block.header().encode())).into_bytes()
+			// };
+			//
+			// if let Some(output) = &params.output {
+			// 	std::fs::write(output, output_buf)?;
+			// } else {
+			// 	std::io::stdout().write_all(&output_buf)?;
+			// }
+
+			Ok(())
+		}
+		Some(Subcommand::ExportGenesisWasm(params)) => {
+			// TODO:
+			// let mut builder = sc_cli::LoggerBuilder::new("");
+			// builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
+			// let _ = builder.init();
+			//
+			// let raw_wasm_blob =
+			// 	extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
+			// let output_buf = if params.raw {
+			// 	raw_wasm_blob
+			// } else {
+			// 	format!("0x{:?}", HexDisplay::from(&raw_wasm_blob)).into_bytes()
+			// };
+			//
+			// if let Some(output) = &params.output {
+			// 	std::fs::write(output, output_buf)?;
+			// } else {
+			// 	std::io::stdout().write_all(&output_buf)?;
+			// }
+
+			Ok(())
+		}
 		None => {
-			let runner = cli.create_runner(&cli.run)?;
+			// let runner = cli.create_runner(&cli.run)?;
+			let runner = cli.create_runner(&cli.run.normalize())?;
 			runner.run_node_until_exit(|config| async move {
 				match config.role {
 					Role::Light => service::new_light(config),
