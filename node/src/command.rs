@@ -17,13 +17,34 @@
 
 use crate::{
 	chain_spec,
-	cli::{Cli, Subcommand}, //RelayChainCli
-	service,                // ::{new_partial, ParachainRuntimeExecutor},
+	cli::{Cli, RelayChainCli, Subcommand},
+	service, // ::{new_partial, ParachainRuntimeExecutor},
 };
+use codec::Encode;
+use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
-use metaverse_runtime::Block;
-use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
+use log::info;
+use metaverse_runtime::{Block, RuntimeApi};
+use polkadot_parachain::primitives::AccountIdConversion;
+use sc_cli::{ChainSpec, CliConfiguration, DefaultConfigurationValues, Role, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
+use sp_core::hexdisplay::HexDisplay;
+use sp_runtime::traits::Block as BlockT;
+use std::{io::Write, net::SocketAddr};
+
+fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
+	Ok(match id {
+		"dev" => Box::new(chain_spec::development_config()?),
+		"" | "local" => Box::new(chain_spec::local_testnet_config()?),
+		#[cfg(feature = "with-metaverse-runtime")]
+		"metaverse" => Box::new(chain_spec::metaverse_testnet_config()?),
+		#[cfg(feature = "with-tewai-runtime")]
+		"tewai" => Box::new(chain_spec::tewai_testnet_config()?),
+		#[cfg(feature = "with-pioneer-runtime")]
+		"pioneer" => Box::new(chain_spec::pioneer_parachain_config(para_id)?),
+		path => Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
+	})
+}
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
@@ -51,22 +72,21 @@ impl SubstrateCli for Cli {
 	}
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
-		Ok(match id {
-			"dev" => Box::new(chain_spec::development_config()?),
-			"" | "local" => Box::new(chain_spec::local_testnet_config()?),
-			#[cfg(feature = "with-metaverse-runtime")]
-			"metaverse" => Box::new(chain_spec::metaverse_testnet_config()?),
-			#[cfg(feature = "with-tewai-runtime")]
-			"tewai" => Box::new(chain_spec::tewai_testnet_config()?),
-			#[cfg(feature = "with-pioneer-runtime")]
-			"pioneer" => Box::new(chain_spec::pioneer_parachain_config(123.into())?), // TODO: need to set parachain id
-			path => Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
-		})
+		load_spec(id, self.run.parachain_id.unwrap_or(2000).into())
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
 		&metaverse_runtime::VERSION
 	}
+}
+
+fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> sc_cli::Result<Vec<u8>> {
+	let mut storage = chain_spec.build_storage()?;
+
+	storage
+		.top
+		.remove(sp_core::storage::well_known_keys::CODE)
+		.ok_or_else(|| "Could not find wasm file in genesis state!".into())
 }
 
 /// Parse and run command line arguments
@@ -151,55 +171,54 @@ pub fn run() -> sc_cli::Result<()> {
 			}
 		}
 		Some(Subcommand::ExportGenesisState(params)) => {
-			// TODO:
-			// let mut builder = sc_cli::LoggerBuilder::new("");
-			// builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
-			// let _ = builder.init();
-			//
-			// let block: Block = generate_genesis_block(&load_spec(
-			// 	&params.chain.clone().unwrap_or_default(),
-			// 	params.parachain_id.unwrap_or(2000).into(),
-			// )?)?;
-			// let raw_header = block.header().encode();
-			// let output_buf = if params.raw {
-			// 	raw_header
-			// } else {
-			// 	format!("0x{:?}", HexDisplay::from(&block.header().encode())).into_bytes()
-			// };
-			//
-			// if let Some(output) = &params.output {
-			// 	std::fs::write(output, output_buf)?;
-			// } else {
-			// 	std::io::stdout().write_all(&output_buf)?;
-			// }
+			let mut builder = sc_cli::LoggerBuilder::new("");
+			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
+			let _ = builder.init();
+
+			let block: Block = generate_genesis_block(&load_spec(
+				&params.chain.clone().unwrap_or_default(),
+				params.parachain_id.unwrap_or(2000).into(),
+			)?)?;
+			let raw_header = block.header().encode();
+			let output_buf = if params.raw {
+				raw_header
+			} else {
+				format!("0x{:?}", HexDisplay::from(&block.header().encode())).into_bytes()
+			};
+
+			if let Some(output) = &params.output {
+				std::fs::write(output, output_buf)?;
+			} else {
+				std::io::stdout().write_all(&output_buf)?;
+			}
 
 			Ok(())
 		}
 		Some(Subcommand::ExportGenesisWasm(params)) => {
 			// TODO:
-			// let mut builder = sc_cli::LoggerBuilder::new("");
-			// builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
-			// let _ = builder.init();
-			//
-			// let raw_wasm_blob =
-			// 	extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
-			// let output_buf = if params.raw {
-			// 	raw_wasm_blob
-			// } else {
-			// 	format!("0x{:?}", HexDisplay::from(&raw_wasm_blob)).into_bytes()
-			// };
-			//
-			// if let Some(output) = &params.output {
-			// 	std::fs::write(output, output_buf)?;
-			// } else {
-			// 	std::io::stdout().write_all(&output_buf)?;
-			// }
+			let mut builder = sc_cli::LoggerBuilder::new("");
+			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
+			let _ = builder.init();
+
+			let raw_wasm_blob = extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
+			let output_buf = if params.raw {
+				raw_wasm_blob
+			} else {
+				format!("0x{:?}", HexDisplay::from(&raw_wasm_blob)).into_bytes()
+			};
+
+			if let Some(output) = &params.output {
+				std::fs::write(output, output_buf)?;
+			} else {
+				std::io::stdout().write_all(&output_buf)?;
+			}
 
 			Ok(())
 		}
 		None => {
-			// let runner = cli.create_runner(&cli.run)?;
 			let runner = cli.create_runner(&cli.run.normalize())?;
+
+			// TODO: load parachain in config
 			runner.run_node_until_exit(|config| async move {
 				match config.role {
 					Role::Light => service::new_light(config),
