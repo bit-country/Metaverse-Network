@@ -3,7 +3,7 @@ name: Metaverse Build & Test
 on:
   pull_request:
     branches:
-      - master
+      - *
   push:
     branches:
       - master
