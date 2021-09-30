@@ -36,8 +36,18 @@ pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumP
     min_proposal_launch_period: 12,
     voting_period:5, 
     enactment_period: 10, 
+    local_vote_locking_period: 11,
     max_proposals_per_country: 1,
 };  
+pub const VOTE_FOR: Vote<Balance>  = Vote {
+    aye: true,
+    balance: 10,
+};
+
+pub const VOTE_AGAINST: Vote<Balance> = Vote {
+    aye: false,
+    balance: 10,
+};
 
 
 impl frame_system::Config for Runtime {
@@ -124,6 +134,7 @@ impl BCCountry<AccountId> for CountryInfo {
 parameter_types! {
     pub const DefaultVotingPeriod: BlockNumber = 10; 
     pub const DefaultEnactmentPeriod: BlockNumber = 2; 
+    pub const DefaultLocalVoteLockingPeriod: BlockNumber = 3; 
     pub const DefaultProposalLaunchPeriod: BlockNumber = 15; 
     pub const DefaultMaxParametersPerProposal: u8 = 3;
     pub const DefaultMaxProposalsPerCountry: u8 = 2;
@@ -140,6 +151,7 @@ impl Config for Runtime {
     type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
     type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
     type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
+    type DefaultLocalVoteLockingPeriod = DefaultLocalVoteLockingPeriod;
     type MinimumProposalDeposit = MinimumProposalDeposit;
     type OneBlock = OneBlock;
     type Currency = Balances;

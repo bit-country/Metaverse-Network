@@ -4,13 +4,14 @@
 use codec::{Decode, Encode, Input};
 
 use frame_system::ensure_signed;
-use primitives::{CountryId, ProposalId, ReferendumId};
-use sp_std::prelude::*;
+use primitives::{CountryId, ProposalId, ReferendumId, Balance};
+use sp_std::{prelude::*,str::*, vec::*,convert::TryInto};
 use sp_runtime::traits::{Zero, Dispatchable, Hash, Saturating};
+use sp_runtime::traits::AtLeast32BitUnsigned;
 use bc_country::BCCountry;
 use frame_support::{
     ensure, weights::Weight,
-    traits::{Currency, ReservableCurrency, LockIdentifier, Vec, schedule::{Named as ScheduleNamed, DispatchTime} },
+    traits::{Currency, ReservableCurrency, LockableCurrency, LockIdentifier, Vec, schedule::{Named as ScheduleNamed, DispatchTime},GetCallName },
     dispatch::DispatchResult,
 };
 
@@ -69,7 +70,16 @@ pub mod pallet {
         #[pallet::constant]
         type DefaultPreimageByteDeposit: Get<BalanceOf<Self>>;
 
-        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+
+        /// The minimum period of vote locking.
+		///
+		/// It should be no shorter than enactment period to ensure that in the case of an approval,
+		/// those successful voters are locked into the consequences that their votes entail.
+		#[pallet::constant]
+		type DefaultLocalVoteLockingPeriod: Get<Self::BlockNumber>;
+
+		type Currency: ReservableCurrency<Self::AccountId>
+			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>; /// Currency type for this pallet.
 
         type CountryInfo: BCCountry<Self::AccountId>;
 
@@ -108,7 +118,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn referendum_info)]
-    pub type ReferendumInfoOf<T: Config> = StorageMap<_, Twox64Concat,  ReferendumId, ReferendumInfo<T::BlockNumber>, OptionQuery>;
+    pub type ReferendumInfoOf<T: Config> = StorageMap<_, Twox64Concat,  ReferendumId, ReferendumInfo<T::BlockNumber,BalanceOf<T>>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn next_referendum)]
@@ -124,7 +134,7 @@ pub mod pallet {
 
     #[pallet::storage]
     #[pallet::getter(fn voting_record)]
-    pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, VotingRecord, ValueQuery>;
+    pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, VotingRecord<BalanceOf<T>>, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -174,7 +184,6 @@ pub mod pallet {
         AccountHasNotVoted,
         AccountAlreadyVoted,
         InvalidJuryAddress,
-        InvalidReferendumOutcome,
         ReferendumParametersDoesNotExist,
         PreimageMissing,
         PreimageInvalid,
@@ -183,7 +192,7 @@ pub mod pallet {
     }
 
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>  {
 
         #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
         pub fn update_referendum_parameters(
@@ -280,30 +289,26 @@ pub mod pallet {
         pub fn try_vote(
             origin: OriginFor<T>, 
             referendum: ReferendumId,
-            vote_aye: bool
+            vote: Vote<BalanceOf<T>>
         ) -> DispatchResultWithPostInfo {
             let from = ensure_signed(origin)?;
             let mut status = Self::referendum_status(referendum)?;
             ensure!(T::CountryInfo::is_member(&from, &status.country), Error::<T>::AccountNotCountryMember);
+            ensure!(vote.balance <= T::Currency::free_balance(&from), Error::<T>::InsufficientBalance);
             <VotingOf<T>>::try_mutate(from.clone(),|mut voting_record| -> DispatchResultWithPostInfo {
                 let votes = &mut voting_record.votes;
                 match votes.binary_search_by_key(&referendum, |i| i.0) {
                     Ok(i) => Err(Error::<T>::AccountAlreadyVoted.into()),
-                    Err(i) => {
-                        let vote = Vote {
-                            aye: vote_aye,
-                            //balance: T::Currency::free_balance(&from)
-                        };
-                        
+                    Err(i) => { 
                         votes.insert(i, (referendum,vote.clone()));
 
                         <ReferendumInfoOf<T>>::try_mutate(referendum,|referendum_info| -> DispatchResultWithPostInfo {
-                            status.tally.add(vote).ok_or(Error::<T>::TallyOverflow)?;
+                            status.tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?;
                             *referendum_info = Some(ReferendumInfo::Ongoing(status));
                             
                             Ok(().into())
                         });
-                        Self::deposit_event(Event::VoteRecorded(from, referendum, vote_aye));
+                        Self::deposit_event(Event::VoteRecorded(from, referendum, vote.aye));
                         Ok(().into())
                     }
                 }
@@ -403,7 +408,6 @@ pub mod pallet {
     
     impl<T: Config> Pallet<T> {
 
-        // See `note_preimage`
 	    fn note_preimage_inner(who: T::AccountId, encoded_proposal: Vec<u8>, does_preimage_updates_jury: bool) -> DispatchResult {
             let proposal_hash = T::Hashing::hash(&encoded_proposal[..]);
             ensure!(!<Preimages<T>>::contains_key(&proposal_hash), Error::<T>::DuplicatePreimage);
@@ -428,14 +432,49 @@ pub mod pallet {
             Ok(())
 	    }
 
-        fn is_preimage_valid(encoded_proposal: Vec<u8>) -> Result<bool, DispatchError> {
+        fn is_preimage_valid(preimage_data: Vec<u8>) -> Result<bool, DispatchError> {
             //TO DO: check whether preimage function calls are within a defined scope
-            Ok(true)
+            if let Ok(proposal) = T::Proposal::decode(&mut &preimage_data[..]) {
+
+                Ok(true)
+            } else {
+                Err(Error::<T>::PreimageInvalid.into())
+            }
         }
 
-        fn does_preimage_updates_jury(encoded_proposal: Vec<u8>) -> Result<bool, DispatchError> {
+        fn does_preimage_updates_jury(preimage_data: Vec<u8>) -> Result<bool, DispatchError> {
             //TO DO: Check whether preimage updates jury
             Ok(false)
+     /*       if let Ok(proposal) = sp_std::str::decode(&mut &preimage_data[..]) {
+                // let proposal_vec: Vec<u8> = proposal.try_into().ok().unwrap();
+                // let proposal_str = proposal.get_call_metadata();
+                if proposal.contains("pallet_governance::Call::update_jury") {
+                    Ok(true)
+                }
+                else  {
+                    Ok(false)
+                }
+                
+            } else {
+                Err(Error::<T>::PreimageInvalid.into())
+            }
+
+
+            if let Ok(proposal) = T::Proposal::decode(&mut &preimage_data[..]) {
+              // let proposal_vec: Vec<u8> = proposal.try_into().ok().unwrap();
+                let proposal_str = proposal.get_call_metadata();
+                if proposal_str.contains("pallet_governance::Call::update_jury") {
+                    Ok(true)
+                }
+                else  {
+                    Ok(false)
+                }
+               
+            } else {
+                Err(Error::<T>::PreimageInvalid.into())
+            }
+
+*/
         }
 
         fn start_referendum(country_id: CountryId, proposal_id: ProposalId, current_block: T::BlockNumber) -> Result<u64,DispatchError> {
@@ -454,9 +493,9 @@ pub mod pallet {
                 None => referendum_end = current_block + T::DefaultVotingPeriod::get(),
             }
 
-            let initial_tally = Tally{
-                ayes: Zero::zero(),
-                nays: Zero::zero(),
+            let initial_tally = Tally {
+                ayes: Zero::zero() ,
+                nays: Zero::zero() ,
                 turnout: Zero::zero()
             };
 
@@ -465,7 +504,7 @@ pub mod pallet {
                 country: country_id,
                 proposal: proposal_id,
                 tally: initial_tally, 
-                threshold: Some(referendum_threshold.clone())
+                threshold: referendum_threshold.clone()
             };
             let referendum_info = ReferendumInfo::Ongoing(referendum_status);
             <ReferendumInfoOf<T>>::insert(referendum_id,referendum_info);
@@ -552,7 +591,7 @@ pub mod pallet {
             })
         }
 
-        fn does_proposal_changes_jury(referendum_status: ReferendumStatus<T::BlockNumber>) -> Result<bool, DispatchError> {
+        fn does_proposal_changes_jury(referendum_status: ReferendumStatus<T::BlockNumber,BalanceOf<T>>) -> Result<bool, DispatchError> {
             let proposal_hash = Self::proposals(referendum_status.country,referendum_status.proposal).ok_or(Error::<T>::ProposalDoesNotExist)?.hash;
             let preimage_status = Self::preimages(proposal_hash).ok_or(Error::<T>::PreimageMissing)?;
             match preimage_status  {
@@ -561,43 +600,20 @@ pub mod pallet {
             }   
         }
 
-        fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
+        fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber,BalanceOf<T>>, DispatchError> {
             let info = Self::referendum_info(referendum_id).ok_or(Error::<T>::ReferendumDoesNotExist)?;
             Self::ensure_ongoing(info.into())
         }
 
         /// Ok if the given referendum is active, Err otherwise
-        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
+        fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber,BalanceOf<T>>) -> Result<ReferendumStatus<T::BlockNumber,BalanceOf<T>>, DispatchError> {
              match r {
                 ReferendumInfo::Ongoing(s) => Ok(s),
                 _ => Err(Error::<T>::ReferendumIsOver.into()),
             }
         }
 
-        fn find_referendum_result(threshold: Option<VoteThreshold>, tally: Tally) -> Result<bool, DispatchError> {
-
-            if tally.turnout == 0  {
-                return Ok(false);
-            }
-
-            match threshold {
-                Some(ref threshold_type) => {
-                    match threshold_type {
-                        VoteThreshold::StandardQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.72), 
-                        VoteThreshold::TwoThirdsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6666), 
-                        VoteThreshold::ThreeFifthsSupermajority =>  Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6), 
-                        VoteThreshold::ReinforcedQualifiedMajority =>  Ok((tally.ayes as f64 / tally.turnout as f64) > 0.55), 
-                        VoteThreshold::RelativeMajority => Ok(tally.ayes > tally.nays),
-                        _ => Err(Error::<T>::InvalidReferendumOutcome.into()),
-                    }
-                }
-                // If no threshold is selected, the proposal will pass with relative majority
-                None => Ok(tally.ayes > tally.nays),    
-            }
-
-        }
-
-        fn finalize_vote(referendum_id: ReferendumId, referendum_status: ReferendumStatus<T::BlockNumber>) -> DispatchResult {
+        fn finalize_vote(referendum_id: ReferendumId, referendum_status: ReferendumStatus<T::BlockNumber,BalanceOf<T>>) -> DispatchResult {
             
             // Return deposit
             let deposit_info = Self::deposit(referendum_status.proposal).ok_or(Error::<T>::InsufficientBalance)?;
@@ -605,12 +621,13 @@ pub mod pallet {
             T::Currency::unreserve(&deposit_info.0, deposit_info.1); 
 
             // Check if referendum passes
-            let does_referendum_passed = Self::find_referendum_result(referendum_status.threshold.clone() , referendum_status.tally.clone())?;
+            let total_issuance = T::Currency::total_issuance();
+            let is_referendum_approved = referendum_status.threshold.is_referendum_approved(referendum_status.tally.clone(),total_issuance);
            
             // Update referendum info
             <ReferendumInfoOf<T>>::try_mutate(referendum_id,|referendum_info| -> DispatchResult {
                 *referendum_info = Some(ReferendumInfo::Finished {
-                    passed: does_referendum_passed,
+                    passed: is_referendum_approved,
                     end: referendum_status.end
                 });
                 
@@ -618,8 +635,7 @@ pub mod pallet {
             });
 
             // Enact proposal if it passed the threshold
-            if does_referendum_passed {
-                //Self::do_enact_proposal(referendum_status.proposal, referendum_status.country
+            if is_referendum_approved {
                 let mut when = referendum_status.end;
                 match Self::referendum_parameters(referendum_status.country) {
                     Some(current_params) =>  when += current_params.enactment_period ,

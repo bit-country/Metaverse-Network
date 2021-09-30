@@ -1132,6 +1132,7 @@ impl swap::Config for Runtime {
 parameter_types! {
     pub const DefaultVotingPeriod: BlockNumber = 100800; //Default 100800 Blocks
     pub const DefaultEnactmentPeriod: BlockNumber = 72000; //Default 72000 Blocks
+    pub const DefaultLocalVoteLockingPeriod: BlockNumber = 100000; //Default 100000 Blocks
     pub const DefaultProposalLaunchPeriod: BlockNumber = 172800; //Default 43200 Blocks
     pub const DefaultMaxParametersPerProposal: u8 = 3; //Default 3 parameters
     pub const DefaultMaxProposalsPerCountry: u8 = 4; //Default 4 parameters
@@ -1143,6 +1144,7 @@ parameter_types! {
 impl governance::Config for Runtime {
     type DefaultVotingPeriod = DefaultVotingPeriod;
     type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+    type DefaultLocalVoteLockingPeriod = DefaultLocalVoteLockingPeriod;
     type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
     type DefaultMaxParametersPerProposal =  DefaultMaxParametersPerProposal;
     type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
@@ -1155,7 +1157,6 @@ impl governance::Config for Runtime {
     type PalletsOrigin = OriginCaller;
     type Proposal = Call;
     type Scheduler = Scheduler;
-
 }
 
 construct_runtime!(

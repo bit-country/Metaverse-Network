@@ -96,6 +96,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
             min_proposal_launch_period: 12,
             voting_period:5, 
             enactment_period: 10, 
+            local_vote_locking_period: 11,
             max_proposals_per_country: 0,
         };  
         assert_ok!(GovernanceModule::update_referendum_parameters(origin.clone(), BOB_COUNTRY_ID, parameters));
@@ -199,7 +200,7 @@ fn vote_work() {
         add_preimage(hash, false);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
        // assert_eq!(Balances::free_balance(&BOB), 100);
         assert_eq!(last_event(), Event::governance(crate::Event::VoteRecorded(BOB, 0, true)));
     });
@@ -213,7 +214,7 @@ fn vote_when_not_country_member_does_not_work() {
         add_preimage(hash, false);
         assert_ok!(GovernanceModule::propose(origin.clone(), ALICE_COUNTRY_ID, 600, hash.clone(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_noop!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountNotCountryMember);
+        assert_noop!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR), Error::<Runtime>::AccountNotCountryMember);
     });
 }
 
@@ -225,8 +226,8 @@ fn vote_more_than_once_does_not_work() {
         add_preimage(hash, false);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
-        assert_noop!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true), Error::<Runtime>::AccountAlreadyVoted);
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
+        assert_noop!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR), Error::<Runtime>::AccountAlreadyVoted);
     });
 }
 
@@ -239,7 +240,7 @@ fn remove_vote_work() {
         add_preimage(hash, false);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
         assert_ok!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0));
         assert_eq!(Balances::free_balance(&BOB), 500);
         assert_eq!(last_event(), Event::governance(crate::Event::VoteRemoved(BOB,0)));
@@ -320,7 +321,7 @@ fn referendum_proposal_passes() {
         add_preimage(hash, false);
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
-        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
         run_to_block(27);
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: true, end: 26}));
@@ -337,7 +338,7 @@ fn referendum_proposal_is_rejected() {
         assert_ok!(GovernanceModule::propose(origin.clone(), BOB_COUNTRY_ID, 600, hash.clone(), PROPOSAL_DESCRIPTION.to_vec()));
         run_to_block(16);
         assert_eq!(last_event(), Event::governance(crate::Event::ReferendumStarted(0,VoteThreshold::RelativeMajority)));
-        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, false));
+        assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_AGAINST));
         run_to_block(27);
         assert_eq!(Balances::free_balance(&ALICE), 100000);
         assert_eq!(GovernanceModule::referendum_info(0), Some(ReferendumInfo::Finished{passed: false, end: 26}));

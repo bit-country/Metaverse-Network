@@ -202,15 +202,16 @@
     "max_proposals_per_country": "u8"
   },
   "Vote": {
-    "aye": "bool"
+    "aye": "bool",
+    "balance": "Balance"
   },
   "Tally": {
-    "ayes": "u32",
-    "nays": "u32",
-    "turnout": "u32"
+    "ayes": "Balance",
+    "nays": "Balance",
+    "turnout": "Balance"
   },
   "VotingRecord": {
-    "votes": "Vec<(ReferendumId,Vote)>"
+    "votes": "Vec<(ReferendumId,Vote<Balance>)>"
   },
   "ProposalInfo": {
     "proposed_by": "AccountId",
@@ -222,7 +223,7 @@
     "end": "BlockNumber",
     "country": "CountryId",
     "proposal": "ProposalId",
-    "tally": "Tally",
+    "tally": "Tally<Balance>",
     "threshold": "Option<VoteThreshold>"
   },
   "ReferendumInfo": {
