@@ -397,7 +397,7 @@ parameter_types! {
 impl estate::Config for Runtime {
 	type Event = Event;
 	type LandTreasury = LandTreasuryPalletId;
-	type MetaverseInfoSource = MetaverseModule;
+	type MetaverseInfoSource = Metaverse;
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
@@ -417,7 +417,7 @@ impl auction::Config for Runtime {
 	type Currency = Balances;
 	type ContinuumHandler = Continuum;
 	type FungibleTokenCurrency = Tokens;
-	type MetaverseInfoSource = MetaverseModule;
+	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
@@ -430,7 +430,7 @@ impl continuum::Config for Runtime {
 	type AuctionDuration = SpotAuctionChillingDuration;
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
-	type MetaverseInfoSource = MetaverseModule;
+	type MetaverseInfoSource = Metaverse;
 }
 
 impl tokenization::Config for Runtime {
@@ -438,7 +438,7 @@ impl tokenization::Config for Runtime {
 	type TokenId = u64;
 	type BCMultiCurrency = Currencies;
 	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
-	type MetaverseInfoSource = MetaverseModule;
+	type MetaverseInfoSource = Metaverse;
 	type LiquidityPoolManager = Swap;
 	type MinVestedTransfer = MinVestedTransfer;
 	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
