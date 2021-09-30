@@ -683,11 +683,11 @@ construct_runtime!(
 
 		// Metaverse & Related
 		OrmlNFT: orml_nft::{Pallet, Storage},
-		NftModule: nft::{Pallet, Call, Storage, Event<T>},
+		Nft: nft::{Pallet, Call, Storage, Event<T>},
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
-		MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
+		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
-		TokenizationModule: tokenization:: {Pallet, Call, Storage, Event<T>},
+		Tokenization: tokenization:: {Pallet, Call, Storage, Event<T>},
 		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},

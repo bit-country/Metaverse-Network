@@ -243,6 +243,7 @@ pub mod pallet {
 
 		/// Mint new estate with no existing land unit
 		#[pallet::weight(10_000)]
+
 		pub fn mint_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -255,11 +256,11 @@ pub mod pallet {
 			let new_estate_id = Self::get_new_estate_id()?;
 
 			// Generate sub account from estate
-			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
+			let estate_account_id = T::LandTreasury::get().into_sub_account(new_estate_id);
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
-				Self::mint_land_unit(metaverse_id, &beneficiary, coordinate, false)?;
+				Self::mint_land_unit(metaverse_id, &estate_account_id, coordinate, false)?;
 			}
 
 			// Update estate information
