@@ -1,3 +1,4 @@
+<!--suppress ALL -->
 <p align="center">
   <img src="http://uat.bit.country/blackteal.png" width="130">
 </p>

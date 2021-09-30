@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="All in generated-requests" type="HttpClient.HttpRequestRunConfigurationType" factoryName="HTTP Request" editBeforeRun="true" singleton="false" path="$APPLICATION_CONFIG_DIR$/scratches/generated-requests.http">
+    <method v="2">
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_bitcountry" />
+      <option name="LaunchBrowser.Before.Run" withDebugger="true" />
+    </method>
+  </configuration>
+</component>
