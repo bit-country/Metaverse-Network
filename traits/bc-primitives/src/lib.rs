@@ -13,12 +13,12 @@ pub struct MetaverseAssetData {
 	pub image: Vec<u8>,
 }
 
-pub type Metadata = Vec<u8>;
+pub type MetaverseMetadata = Vec<u8>;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
 pub struct MetaverseInfo<AccountId> {
 	pub owner: AccountId,
-	pub metadata: Metadata,
+	pub metadata: MetaverseMetadata,
 	pub currency_id: FungibleTokenId,
 }
 
