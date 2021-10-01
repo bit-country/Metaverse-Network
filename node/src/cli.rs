@@ -44,6 +44,9 @@ pub enum Subcommand {
 	/// Remove the whole chain.
 	PurgeChain(sc_cli::PurgeChainCmd),
 
+	/// Remove the parachain
+	PurgeChainParachain(cumulus_client_cli::PurgeChainCmd),
+
 	/// Revert the chain to a previous state.
 	Revert(sc_cli::RevertCmd),
 
