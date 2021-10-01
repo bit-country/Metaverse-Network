@@ -11,9 +11,12 @@ pub use metaverse::{new_full, new_light, new_partial, Executor};
 #[cfg(feature = "with-tewai-runtime")]
 pub use tewai::{new_full as tewai_full, new_light as tewai_light, new_partial as tewai_partial};
 
-// #[cfg(feature = "with-pioneer-runtime")]
-// mod pioneer;
-// #[cfg(feature = "with-pioneer-runtime")]
-// pub use pioneer::{
-// 	new_full as pioneer_full, new_light as pioneer_light, new_partial as pioneer_partial, Executor as
-// pioneer_executor, };
+#[cfg(feature = "with-pioneer-runtime")]
+mod pioneer;
+#[cfg(feature = "with-pioneer-runtime")]
+pub use pioneer::{
+	// new_full as pioneer_full, new_light as pioneer_light,
+	new_partial as pioneer_partial,
+	start_node,
+	ParachainRuntimeExecutor, // , Executor as pioneer_executor,
+};

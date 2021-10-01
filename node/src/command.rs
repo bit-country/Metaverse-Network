@@ -18,7 +18,7 @@
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
-	service, // ::{new_partial, ParachainRuntimeExecutor},
+	service, //::{new_partial, ParachainRuntimeExecutor},
 };
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
@@ -226,6 +226,20 @@ pub fn run() -> sc_cli::Result<()> {
 				)
 			}
 		}
+		// TODO:
+		// Some(Subcommand::BenchmarkParachain(cmd)) => {
+		// 	if cfg!(feature = "runtime-benchmarks") {
+		// 		let runner = cli.create_runner(cmd)?;
+		//
+		// 		runner.sync_run(|config| cmd.run::<Block, ParachainRuntimeExecutor>(config))
+		// 	} else {
+		// 		Err(
+		// 			"Benchmarking wasn't enabled when building the node. You can enable it with \
+		// 		     `--features runtime-benchmarks`."
+		// 				.into(),
+		// 		)
+		// 	}
+		// }
 		Some(Subcommand::ExportGenesisState(params)) => {
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
@@ -274,45 +288,50 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(&cli.run.normalize())?;
 
 			runner.run_node_until_exit(|config| async move {
-				let para_id = chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
+				if cfg!(feature = "with-pioneer-runtime") {
+					// TODO: run node in parachain
 
-				let polkadot_cli = RelayChainCli::new(
-					&config,
-					[RelayChainCli::executable_name().to_string()]
-						.iter()
-						.chain(cli.relaychain_args.iter()),
-				);
+					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
 
-				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2000));
+					let polkadot_cli = RelayChainCli::new(
+						&config,
+						[RelayChainCli::executable_name().to_string()]
+							.iter()
+							.chain(cli.relaychain_args.iter()),
+					);
 
-				let parachain_account = AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
+					let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2000));
 
-				let block: Block = generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
-				let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
+					let parachain_account =
+						AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 
-				let task_executor = config.task_executor.clone();
-				let polkadot_config = SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, task_executor)
-					.map_err(|err| format!("Relay chain argument error: {}", err))?;
+					let block: Block = generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
+					let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
-				info!("Parachain id: {:?}", id);
-				info!("Parachain Account: {}", parachain_account);
-				info!("Parachain genesis state: {}", genesis_state);
-				info!(
-					"Is collating: {}",
-					if config.role.is_authority() { "yes" } else { "no" }
-				);
+					let task_executor = config.task_executor.clone();
+					let polkadot_config =
+						SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, task_executor)
+							.map_err(|err| format!("Relay chain argument error: {}", err))?;
 
-				// TODO: run node in parachain
-				// crate::service::start_node(config, polkadot_config, id)
-				// 	.await
-				// 	.map(|r| r.0)
-				// 	.map_err(Into::into)
+					info!("Parachain id: {:?}", id);
+					info!("Parachain Account: {}", parachain_account);
+					info!("Parachain genesis state: {}", genesis_state);
+					info!(
+						"Is collating: {}",
+						if config.role.is_authority() { "yes" } else { "no" }
+					);
 
-				match config.role {
-					Role::Light => service::new_light(config),
-					_ => service::new_full(config),
+					crate::service::start_node(config, polkadot_config, id)
+						.await
+						.map(|r| r.0)
+						.map_err(Into::into)
+				} else {
+					match config.role {
+						Role::Light => service::new_light(config),
+						_ => service::new_full(config),
+					}
+					.map_err(sc_cli::Error::Service)
 				}
-				.map_err(sc_cli::Error::Service)
 			})
 		}
 	}
