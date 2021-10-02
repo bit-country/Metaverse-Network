@@ -17,6 +17,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 evm = { version = "0.30.1", default-features = false, features = ["with-codec"] }
+hex-literal = { version = "0.3.1" }
 
 pallet-aura = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pallet-balances = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -52,7 +53,6 @@ pallet-transaction-payment-rpc-runtime-api = { version = "4.0.0-dev", default-fe
 # Used for runtime benchmarking
 frame-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
 frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
-hex-literal = { version = "0.3.1", optional = true }
 
 # EVM pallets
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
@@ -81,15 +81,14 @@ auction = { package = "pallet-auction", path = "../../pallets/auction", version 
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
 swap = { package = "pallet-swap", path = "../../pallets/swap", version = "2.0.0-rc6", default-features = false }
 mining = { package = "pallet-mining", path = "../../pallets/mining", version = "2.0.0-rc6", default-features = false }
-#modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
+modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
 
 # ecosystem dependencies
 parachain-staking = { package = "parachain-staking", git = "https://github.com/justinphamnz/Parachain-Staking", version = "2.1.1", default-features = false }
-#chainbridge = { git = "https://github.com/justinphamnz/chainbridge-substrate", branch = "master", default-features = false }
+chainbridge = { git = "https://github.com/justinphamnz/chainbridge-substrate", branch = "master", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
-
 
 [features]
 default = ["std"]
@@ -134,8 +133,8 @@ std = [
     "continuum/std",
     "currencies/std",
     "swap/std",
-    #    "chainbridge/std",
-    #    "modules-chainsafe/std",
+    "chainbridge/std",
+    "modules-chainsafe/std",
     "mining/std",
     "parachain-staking/std",
     "pallet-evm/std",
@@ -147,7 +146,6 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system-benchmarking",
     "frame-system/runtime-benchmarks",
-    "hex-literal",
     "pallet-balances/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",

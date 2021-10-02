@@ -808,6 +808,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "chainbridge"
+version = "0.0.2"
+source = "git+https://github.com/justinphamnz/chainbridge-substrate?branch=master#9ed368b1ba9cf5c39077d31fcff5c6b41c9d72f5"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3776,6 +3792,7 @@ version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
+ "chainbridge",
  "currencies",
  "evm",
  "frame-benchmarking",
@@ -3785,6 +3802,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "hex-literal",
+ "modules-chainsafe",
  "orml-currencies 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
  "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
  "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
@@ -3933,6 +3951,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
 dependencies = [
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "modules-chainsafe"
+version = "0.0.1"
+dependencies = [
+ "bit-country-primitives",
+ "blake2-rfc",
+ "chainbridge",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
+ "pallet-balances",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
