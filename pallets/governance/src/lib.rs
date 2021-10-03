@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::{Decode, Encode, Input};
+use codec::{Decode, Encode, Input, MaxEncodedLen};
 
 use frame_support::{
 	dispatch::DispatchResult,
@@ -11,6 +11,7 @@ use frame_support::{
 		Currency, InstanceFilter, LockIdentifier, ReservableCurrency,
 	},
 	weights::Weight,
+	RuntimeDebug,
 };
 use frame_system::ensure_signed;
 use metaverse_primitive::MetaverseTrait;
@@ -34,7 +35,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::sp_runtime::transaction_validity::InvalidTransaction::Call;
+	use frame_support::traits::OriginTrait;
 	use frame_support::{
 		dispatch::DispatchResultWithPostInfo,
 		pallet_prelude::*,
@@ -89,7 +90,7 @@ pub mod pallet {
 
 		type Proposal: Parameter + Dispatchable<Origin = Self::Origin> + From<Call<Self>>;
 
-		type ProposalType: Parameter + Member + InstanceFilter<Self::Proposal>;
+		type ProposalType: Parameter + Member + Default + InstanceFilter<Self::Proposal>;
 		/// The Scheduler.
 		type Scheduler: ScheduleNamed<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
 		/// Metaverse Council which collective of members
@@ -713,7 +714,9 @@ pub mod pallet {
 			}) = preimage
 			{
 				if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
-					ensure!(T::ProposalType::filter(proposal), Error::<T>::PreimageInvalid);
+					let proposal_type = T::ProposalType::default();
+
+					ensure!(proposal_type.filter(&proposal), Error::<T>::PreimageInvalid);
 
 					Self::deposit_event(Event::<T>::PreimageUsed(proposal_info.hash, provider, deposit));
 					let result = proposal

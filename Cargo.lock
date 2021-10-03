@@ -4971,6 +4971,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
+ "pallet-metaverse",
  "pallet-scheduler",
  "parity-scale-codec",
  "serde",

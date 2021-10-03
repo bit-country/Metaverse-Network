@@ -28,7 +28,7 @@ pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "
 # local packages
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 metaverse-primitive = { package = "bc-primitives", path = "../../traits/bc-primitives", default-features = false }
-
+pallet-metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
 [features]
 default = ['std']
 std = [
@@ -43,5 +43,6 @@ std = [
     'pallet-balances/std',
     'pallet-scheduler/std',
     'primitives/std',
-    'metaverse-primitive/std'
+    'metaverse-primitive/std',
+    'pallet-metaverse/std'
 ]

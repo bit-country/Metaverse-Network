@@ -3,12 +3,14 @@
 use super::*;
 use crate as governance;
 use codec::Encode;
-use frame_support::{construct_runtime, parameter_types};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Parameter};
 
-use bc_country::Country;
+use frame_support::dispatch::DispatchError;
+use frame_support::pallet_prelude::{EnsureOrigin, Member};
 use frame_support::{pallet_prelude::Hooks, weights::Weight};
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use primitives::SocialTokenCurrencyId;
+use metaverse_primitive::{MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseTrait};
+use primitives::FungibleTokenId;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -64,8 +66,8 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
-
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
 }
@@ -78,6 +80,8 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 parameter_types! {
@@ -94,9 +98,9 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = ();
 }
 
-pub struct CountryInfo {}
+pub struct MetaverseInfo {}
 
-impl BCCountry<AccountId> for CountryInfo {
+impl MetaverseTrait<AccountId> for MetaverseInfo {
 	fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
 		match *who {
 			ALICE => *country_id == ALICE_COUNTRY_ID,
@@ -105,16 +109,28 @@ impl BCCountry<AccountId> for CountryInfo {
 		}
 	}
 
-	fn get_country(country_id: CountryId) -> Option<Country<AccountId>> {
+	fn get_metaverse(metaverse_id: u64) -> Option<MetaversePrimitiveInfo<AccountId>> {
 		None
 	}
 
-	fn get_country_token(country_id: CountryId) -> Option<SocialTokenCurrencyId> {
+	fn get_metaverse_token(metaverse_id: u64) -> Option<FungibleTokenId> {
 		None
 	}
 
-	fn is_member(who: &AccountId, country_id: &CountryId) -> bool {
-		match *country_id {
+	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
+		Ok(())
+	}
+}
+
+pub struct MetaverseLandInfo {}
+
+impl MetaverseLandTrait<AccountId> for MetaverseLandInfo {
+	fn get_user_land_units(who: &u64, metaverse_id: &u64) -> Vec<(i32, i32)> {
+		Vec::default()
+	}
+
+	fn is_user_own_metaverse_land(who: &u64, metaverse_id: &u64) -> bool {
+		match *metaverse_id {
 			ALICE_COUNTRY_ID => *who == ALICE,
 			BOB_COUNTRY_ID => *who == ALICE || *who == BOB,
 			_ => false,
@@ -133,6 +149,34 @@ parameter_types! {
 	pub const DefaultPreimageByteDeposit: Balance = 1;
 }
 
+ord_parameter_types! {
+	pub const One: AccountId = 1;
+	pub const Two: AccountId = 2;
+}
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+pub enum ProposalType {
+	Any,
+	JustTransfer,
+}
+
+impl Default for ProposalType {
+	fn default() -> Self {
+		Self::JustTransfer
+	}
+}
+
+impl InstanceFilter<Call> for ProposalType {
+	fn filter(&self, c: &Call) -> bool {
+		match self {
+			ProposalType::Any => true,
+			ProposalType::JustTransfer => matches!(c, Call::Balances(pallet_balances::Call::transfer(..))),
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == &ProposalType::Any || self == o
+	}
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type DefaultVotingPeriod = DefaultVotingPeriod;
@@ -144,10 +188,13 @@ impl Config for Runtime {
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
-	type MetaverseInfo = CountryInfo;
+	type MetaverseInfo = MetaverseInfo;
 	type PalletsOrigin = OriginCaller;
 	type Proposal = Call;
 	type Scheduler = Scheduler;
+	type MetaverseLandInfo = MetaverseLandInfo;
+	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+	type ProposalType = ProposalType;
 }
 
 pub type GovernanceModule = Pallet<Runtime>;
@@ -161,10 +208,10 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Scheduler: pallet_scheduler::{Module, Call, Storage, Event<T>},
-		Governance: governance::{Module, Call ,Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
+		Governance: governance::{Pallet, Call ,Storage, Event<T>},
 	}
 );
 
@@ -228,7 +275,6 @@ pub fn set_balance_proposal_hash(value: u64) -> H256 {
 pub fn add_preimage(hash: H256, does_preimage_updates_jury: bool) {
 	let preimage_status = PreimageStatus::Available {
 		data: set_balance_proposal(4),
-		does_update_jury: does_preimage_updates_jury,
 		provider: ALICE,
 		deposit: 200,
 		since: 1,

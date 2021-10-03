@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use super::*;
+use frame_support::sp_runtime::DispatchError::BadOrigin;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 
@@ -16,7 +17,7 @@ fn update_country_referendum_parameters_work() {
 		));
 		assert_eq!(
 			last_event(),
-			Event::governance(crate::Event::ReferendumParametersUpdated(BOB_COUNTRY_ID))
+			Event::Governance(crate::Event::ReferendumParametersUpdated(BOB_COUNTRY_ID))
 		);
 	});
 }
@@ -27,7 +28,7 @@ fn update_country_referendum_parameters_when_not_country_owner_does_not_work() {
 		let origin = Origin::signed(ALICE);
 		assert_noop!(
 			GovernanceModule::update_referendum_parameters(origin.clone(), BOB_COUNTRY_ID, REFERENDUM_PARAMETERS),
-			Error::<Runtime>::AccountNotCountryOwner
+			Error::<Runtime>::AccountIsNotMetaverseOwner
 		);
 	});
 }
@@ -43,7 +44,7 @@ fn create_new_preimage_work() {
 		let hash = set_balance_proposal_hash(4);
 		assert_eq!(
 			last_event(),
-			Event::governance(crate::Event::PreimageNoted(hash, ALICE, 13))
+			Event::Governance(crate::Event::PreimageNoted(hash, ALICE, 13))
 		);
 	});
 }
@@ -65,7 +66,7 @@ fn create_new_proposal_work() {
 		assert_eq!(Balances::free_balance(&ALICE), 99400);
 		assert_eq!(
 			last_event(),
-			Event::governance(crate::Event::ProposalSubmitted(ALICE, BOB_COUNTRY_ID, 0))
+			Event::Governance(crate::Event::ProposalSubmitted(ALICE, BOB_COUNTRY_ID, 0))
 		);
 	});
 }
@@ -121,7 +122,7 @@ fn create_new_proposal_when_not_country_member_does_not_work() {
 				hash.clone(),
 				PROPOSAL_DESCRIPTION.to_vec()
 			),
-			Error::<Runtime>::AccountNotCountryMember
+			Error::<Runtime>::AccountIsNotMetaverseMember
 		);
 	});
 }
@@ -175,7 +176,7 @@ fn cancel_proposal_work() {
 		assert_eq!(Balances::free_balance(&ALICE), 100000);
 		assert_eq!(
 			last_event(),
-			Event::governance(crate::Event::ProposalCancelled(ALICE, BOB_COUNTRY_ID, 0))
+			Event::Governance(crate::Event::ProposalCancelled(ALICE, BOB_COUNTRY_ID, 0))
 		);
 	});
 }
@@ -247,13 +248,13 @@ fn fast_track_proposal_work() {
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
 		assert_ok!(GovernanceModule::fast_track_proposal(
-			Origin::signed(BOB),
+			Origin::signed(ALICE),
 			0,
 			BOB_COUNTRY_ID
 		));
 		assert_eq!(
 			last_event(),
-			Event::governance(crate::Event::ProposalFastTracked(BOB, BOB_COUNTRY_ID, 0))
+			Event::Governance(crate::Event::ProposalFastTracked(BOB_COUNTRY_ID, 0))
 		);
 	});
 }
@@ -272,8 +273,8 @@ fn fast_track_proposal_when_not_country_owner_does_not_work() {
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
 		assert_noop!(
-			GovernanceModule::fast_track_proposal(origin.clone(), 0, BOB_COUNTRY_ID),
-			Error::<Runtime>::AccountNotCountryOwner
+			GovernanceModule::fast_track_proposal(Origin::signed(BOB), 0, BOB_COUNTRY_ID),
+			BadOrigin
 		);
 	});
 }
@@ -293,7 +294,7 @@ fn fast_track_proposal_that_is_a_referendum_does_not_work() {
 		));
 		run_to_block(16);
 		assert_noop!(
-			GovernanceModule::fast_track_proposal(Origin::signed(BOB), 0, BOB_COUNTRY_ID),
+			GovernanceModule::fast_track_proposal(Origin::signed(ALICE), 0, BOB_COUNTRY_ID),
 			Error::<Runtime>::ProposalIsReferendum
 		);
 	});
@@ -318,7 +319,7 @@ fn vote_work() {
 		// assert_eq!(Balances::free_balance(&BOB), 100);
 		assert_eq!(
 			last_event(),
-			Event::governance(crate::Event::VoteRecorded(BOB, 0, true))
+			Event::Governance(crate::Event::VoteRecorded(BOB, 0, true))
 		);
 	});
 }
@@ -339,7 +340,7 @@ fn vote_when_not_country_member_does_not_work() {
 		run_to_block(16);
 		assert_noop!(
 			GovernanceModule::try_vote(Origin::signed(BOB), 0, true),
-			Error::<Runtime>::AccountNotCountryMember
+			Error::<Runtime>::AccountIsNotMetaverseMember
 		);
 	});
 }
@@ -384,7 +385,7 @@ fn remove_vote_work() {
 		assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, true));
 		assert_ok!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0));
 		assert_eq!(Balances::free_balance(&BOB), 500);
-		assert_eq!(last_event(), Event::governance(crate::Event::VoteRemoved(BOB, 0)));
+		assert_eq!(last_event(), Event::Governance(crate::Event::VoteRemoved(BOB, 0)));
 	});
 }
 
@@ -427,7 +428,7 @@ fn emergency_cancel_referendum_work() {
 		run_to_block(18);
 		assert_ok!(GovernanceModule::emergency_cancel_referendum(origin.clone(), 0));
 		assert_eq!(Balances::free_balance(&ALICE), 100000);
-		assert_eq!(last_event(), Event::governance(crate::Event::ReferendumCancelled(0)));
+		assert_eq!(last_event(), Event::Governance(crate::Event::ReferendumCancelled(0)));
 	});
 }
 
@@ -460,29 +461,7 @@ fn emergency_cancel_referendum_when_not_having_privileges_does_not_work() {
 		run_to_block(17);
 		assert_noop!(
 			GovernanceModule::emergency_cancel_referendum(Origin::signed(BOB), 0),
-			Error::<Runtime>::InsufficientPrivileges
-		);
-	});
-}
-
-#[test]
-fn emergency_cancel_referendum_which_removes_privileges_does_not_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-		let hash = set_balance_proposal_hash(4);
-		add_preimage(hash, true);
-		ReferendumJuryOf::<Runtime>::insert(BOB_COUNTRY_ID, ALICE);
-		assert_ok!(GovernanceModule::propose(
-			origin.clone(),
-			BOB_COUNTRY_ID,
-			600,
-			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
-		));
-		run_to_block(17);
-		assert_noop!(
-			GovernanceModule::emergency_cancel_referendum(origin.clone(), 0),
-			Error::<Runtime>::InsufficientPrivileges
+			BadOrigin
 		);
 	});
 }
@@ -509,7 +488,7 @@ fn referendum_proposal_passes() {
 			GovernanceModule::referendum_info(0),
 			Some(ReferendumInfo::Finished { passed: true, end: 26 })
 		);
-		assert_eq!(last_event(), Event::governance(crate::Event::ReferendumPassed(0)));
+		assert_eq!(last_event(), Event::Governance(crate::Event::ReferendumPassed(0)));
 	});
 }
 
@@ -527,10 +506,7 @@ fn referendum_proposal_is_rejected() {
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
 		run_to_block(16);
-		assert_eq!(
-			last_event(),
-			Event::governance(crate::Event::ReferendumStarted(0, VoteThreshold::RelativeMajority))
-		);
+
 		assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, false));
 		run_to_block(27);
 		assert_eq!(Balances::free_balance(&ALICE), 100000);
@@ -538,7 +514,7 @@ fn referendum_proposal_is_rejected() {
 			GovernanceModule::referendum_info(0),
 			Some(ReferendumInfo::Finished { passed: false, end: 26 })
 		);
-		assert_eq!(last_event(), Event::governance(crate::Event::ReferendumNotPassed(0)));
+		assert_eq!(last_event(), Event::Governance(crate::Event::ReferendumNotPassed(0)));
 	});
 }
 
@@ -559,7 +535,7 @@ fn referendum_proposal_is_enacted() {
 		assert_ok!(GovernanceModule::enact_proposal(root.clone(), 0, BOB_COUNTRY_ID));
 		assert_eq!(
 			last_event(),
-			Event::governance(crate::Event::ProposalEnacted(BOB_COUNTRY_ID, 0))
+			Event::Governance(crate::Event::ProposalEnacted(BOB_COUNTRY_ID, 0))
 		);
 	});
 }

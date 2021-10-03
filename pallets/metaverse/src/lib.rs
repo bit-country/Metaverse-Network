@@ -305,20 +305,4 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 			Ok(())
 		})
 	}
-
-	fn is_member(account_id: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
-		if Self::check_ownership(account_id, metaverse_id) == Some(()) {
-			return true;
-		} else {
-			let account_lands = T::LandInfoSource::get_owner_lands(account);
-			let country_lands = T::LandInfoSource::get_lands_in_country(country_id);
-			for land in account_lands.iter() {
-				match country_lands.binary_search(land) {
-					Ok(i) => return true,
-					Err(i) => continue,
-				}
-			}
-		}
-		false
-	}
 }

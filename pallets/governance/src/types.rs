@@ -14,7 +14,6 @@ pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
 	/// The preimage is available.
 	Available {
 		data: Vec<u8>,
-		does_update_jury: bool,
 		provider: AccountId,
 		deposit: Balance,
 		since: BlockNumber,
