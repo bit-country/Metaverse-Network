@@ -96,7 +96,6 @@ orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library",
 # bit.country dependencies
 auction-manager = { package = 'auction-manager', path = '../../traits/auction-manager', version = '2.0.0-rc6', default-features = false }
 metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', version = '2.0.0-rc6', default-features = false }
-block = { package = 'pallet-block', path = '../../pallets/block', version = '2.0.0-rc6', default-features = false }
 tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', version = '2.0.0-rc6', default-features = false }
 nft = { package = 'pallet-nft', path = '../../pallets/nft', version = '2.0.0-rc6', default-features = false }
 continuum = { package = 'pallet-continuum', path = '../../pallets/continuum', version = '0.0.1', default-features = false }
@@ -179,7 +178,6 @@ std = [
     'orml-nft/std',
     'metaverse/std',
     'auction/std',
-    'block/std',
     'nft/std',
     'continuum/std',
     'currencies/std',
