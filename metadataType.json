@@ -151,7 +151,7 @@
     ]
   },
   "TradingPair": "(FungibleTokenId,FungibleTokenId)",
-  "Metaverse": {
+  "MetaverseInfo": {
     "owner": "AccountId",
     "metadata": "Text",
     "currency_id": "FungibleTokenId"
@@ -248,5 +248,18 @@
       "Idle": "Null",
       "Leaving": "RoundIndex"
     }
+  },
+  "AuctionSlot": {
+    "spot_id": "SpotId",
+    "participants": "Vec<AccountId>",
+    "active_session_index": "BlockNumber",
+    "status": "ContinuumAuctionSlotStatus"
+  },
+  "ContinuumAuctionSlotStatus": {
+    "_enum": [
+      "AcceptParticipates",
+      "GNPStarted",
+      "GNPConfirmed"
+    ]
   }
 }
