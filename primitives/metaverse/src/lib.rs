@@ -44,6 +44,8 @@ pub type Signature = MultiSignature;
 /// to the public key of our transaction signing scheme.
 pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
 
+///
+
 /// The type for looking up accounts. We don't expect more than 4 billion of them.
 pub type AccountIndex = u32;
 
@@ -85,6 +87,10 @@ pub type AssetId = u64;
 pub type AuctionId = u64;
 /// SpotId
 pub type SpotId = u64;
+/// ProposalId
+pub type ProposalId = u64;
+/// ReferendumId
+pub type ReferendumId = u64;
 /// LandId
 pub type LandId = u64;
 /// EstateId

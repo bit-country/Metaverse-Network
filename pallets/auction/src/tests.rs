@@ -29,7 +29,7 @@ fn init_test_nft(owner: Origin) {
 }
 
 #[test]
-// Private new_auction should work
+// Creating auction should work
 fn create_new_auction_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);

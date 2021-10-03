@@ -39,3 +39,9 @@ pub trait MetaverseTrait<AccountId> {
 
 	fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
 }
+
+pub trait MetaverseLandTrait<AccountId> {
+	fn get_user_land_units(who: &AccountId, metaverse_id: &MetaverseId) -> Vec<(i32, i32)>;
+
+	fn is_user_own_metaverse_land(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
+}

@@ -96,7 +96,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_owner)]
 	pub type EstateOwner<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, (), OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -304,7 +304,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			EstateOwner::<T>::try_mutate_exists(&estate_id, &who, |estate_by_owner| -> DispatchResultWithPostInfo {
+			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| -> DispatchResultWithPostInfo {
 				//ensure there is record of the estate owner with estate id and account id
 				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
 
@@ -314,7 +314,7 @@ pub mod pallet {
 				}
 
 				*estate_by_owner = None;
-				EstateOwner::<T>::insert(estate_id.clone(), to.clone(), ());
+				EstateOwner::<T>::insert(to.clone(), estate_id.clone(), ());
 
 				Self::deposit_event(Event::<T>::TransferredEstate(estate_id.clone(), who.clone(), to));
 
@@ -394,7 +394,7 @@ impl<T: Config> Pallet<T> {
 		// Update estates
 		Estates::<T>::insert(metaverse_id, new_estate_id, coordinates.clone());
 
-		EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
+		EstateOwner::<T>::insert(beneficiary.clone(), new_estate_id, {});
 
 		Self::deposit_event(Event::<T>::NewEstateMinted(
 			new_estate_id.clone(),
@@ -403,5 +403,30 @@ impl<T: Config> Pallet<T> {
 		));
 
 		Ok(())
+	}
+}
+
+impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
+	fn get_user_land_units(who: &T::AccountId, metaverse_id: &MetaverseId) -> Vec<(i32, i32)> {
+		// Check land units owner.
+		let mut total_land_units: Vec<(i32, i32)> = Vec::default();
+		LandUnits::<T>::iter_prefix(metaverse_id)
+			.filter(|(_, owner)| owner == who)
+			.map(|res| total_land_units.push(res.0));
+
+		let estate_ids_by_owner: Vec<EstateId> = EstateOwner::<T>::iter_prefix(who)
+			.map(|res| res.0)
+			.collect::<Vec<(_)>>();
+
+		for estate_id in estate_ids_by_owner {
+			let coordinates = Estates::<T>::get(&metaverse_id, &estate_id).unwrap();
+			coordinates.into_iter().map(|x| total_land_units.push(x));
+		}
+
+		total_land_units
+	}
+
+	fn is_user_own_metaverse_land(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
+		Self::get_user_land_units(&who, metaverse_id).len() > 0
 	}
 }
