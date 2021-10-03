@@ -453,7 +453,7 @@ fn mint_estate_should_work() {
 			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 	});
 }
 
@@ -475,12 +475,12 @@ fn mint_estate_should_return_none_for_non_exist_estate() {
 			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		);
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		let estate_id_non_exists: u64 = 999;
 		assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id_non_exists), None);
 		assert_eq!(
-			EstateModule::get_estate_owner(estate_id_non_exists, BENEFICIARY_ID),
+			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
 			None
 		);
 	});
@@ -498,7 +498,7 @@ fn transfer_estate_should_work() {
 		));
 
 		let mut estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		assert_ok!(EstateModule::transfer_estate(
 			Origin::signed(BENEFICIARY_ID),
@@ -506,8 +506,8 @@ fn transfer_estate_should_work() {
 			estate_id
 		));
 
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), None);
-		assert_eq!(EstateModule::get_estate_owner(estate_id, ALICE), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), None);
+		assert_eq!(EstateModule::get_estate_owner(ALICE, estate_id), Some(()));
 
 		assert_eq!(
 			last_event(),
@@ -528,7 +528,7 @@ fn transfer_estate_should_reject_no_permission() {
 		));
 
 		let mut estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		assert_noop!(
 			EstateModule::transfer_estate(Origin::signed(BOB), ALICE, estate_id),
@@ -549,7 +549,7 @@ fn transfer_estate_should_work_with_same_account() {
 		));
 
 		let mut estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		assert_ok!(EstateModule::transfer_estate(
 			Origin::signed(BENEFICIARY_ID),
@@ -557,7 +557,7 @@ fn transfer_estate_should_work_with_same_account() {
 			estate_id
 		));
 
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 	});
 }
 
@@ -619,7 +619,7 @@ fn create_estate_should_work() {
 			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 	});
 }
 
@@ -649,12 +649,12 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		);
-		assert_eq!(EstateModule::get_estate_owner(estate_id, BENEFICIARY_ID), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		let estate_id_non_exists: u64 = 999;
 		assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id_non_exists), None);
 		assert_eq!(
-			EstateModule::get_estate_owner(estate_id_non_exists, BENEFICIARY_ID),
+			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
 			None
 		);
 	});
