@@ -8,7 +8,7 @@ use frame_support::{
 	ensure,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
-		Currency, LockIdentifier, ReservableCurrency,
+		Currency, InstanceFilter, LockIdentifier, ReservableCurrency,
 	},
 	weights::Weight,
 };
@@ -19,6 +19,7 @@ use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
 use sp_std::prelude::*;
 
 mod types;
+
 pub use types::*;
 
 #[cfg(test)]
@@ -33,6 +34,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use frame_support::sp_runtime::transaction_validity::InvalidTransaction::Call;
 	use frame_support::{
 		dispatch::DispatchResultWithPostInfo,
 		pallet_prelude::*,
@@ -87,8 +89,11 @@ pub mod pallet {
 
 		type Proposal: Parameter + Dispatchable<Origin = Self::Origin> + From<Call<Self>>;
 
+		type ProposalType: Parameter + Member + InstanceFilter<Self::Proposal>;
 		/// The Scheduler.
 		type Scheduler: ScheduleNamed<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
+		/// Metaverse Council which collective of members
+		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
 	}
 
 	#[pallet::pallet]
@@ -157,7 +162,7 @@ pub mod pallet {
 		ReferendumParametersUpdated(MetaverseId),
 		ProposalSubmitted(T::AccountId, MetaverseId, ProposalId),
 		ProposalCancelled(T::AccountId, MetaverseId, ProposalId),
-		ProposalFastTracked(T::AccountId, MetaverseId, ProposalId),
+		ProposalFastTracked(MetaverseId, ProposalId),
 		ProposalEnacted(MetaverseId, ProposalId),
 		ReferendumStarted(ReferendumId, VoteThreshold),
 		ReferendumPassed(ReferendumId),
@@ -223,12 +228,11 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
-			let does_update_jury = Self::does_preimage_updates_jury(encoded_proposal.clone())?;
 			ensure!(
 				Self::is_preimage_valid(encoded_proposal.clone())?,
 				Error::<T>::PreimageCallsOutOfScope
 			);
-			Self::note_preimage_inner(from, encoded_proposal.clone(), does_update_jury)?;
+			Self::note_preimage_inner(from, encoded_proposal.clone())?;
 			Ok(().into())
 		}
 
@@ -254,13 +258,13 @@ pub mod pallet {
 				Error::<T>::InsufficientBalance
 			);
 			ensure!(<Preimages<T>>::contains_key(preimage_hash), Error::<T>::PreimageInvalid);
-			let now = <frame_system::Pallet<T>>::block_number();
+			let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
 			let proposal_info = ProposalInfo {
 				proposed_by: from.clone(),
 				//  parameter: proposal_parameter,
 				hash: preimage_hash,
 				description: proposal_description,
-				referendum_launch_block: now,
+				referendum_launch_block: launch_block,
 			};
 
 			let proposal_id = Self::get_next_proposal_id()?;
@@ -270,7 +274,7 @@ pub mod pallet {
 			T::Currency::reserve(&from, balance);
 			<DepositOf<T>>::insert(proposal_id, (&from, balance));
 
-			Self::start_referendum(metaverse_id, proposal_id, now);
+			Self::start_referendum(metaverse_id, proposal_id, launch_block);
 			Self::deposit_event(Event::ProposalSubmitted(from, metaverse_id, proposal_id));
 
 			Ok(().into())
@@ -282,23 +286,23 @@ pub mod pallet {
 		pub fn cancel_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,
-			country: MetaverseId,
+			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
-			let proposal_info = Self::proposals(country, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
+			let proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
 			ensure!(proposal_info.proposed_by == from, Error::<T>::NotProposalCreator);
 			ensure!(
-				proposal_info.referendum_launch_block > <frame_system::Module<T>>::block_number(),
+				proposal_info.referendum_launch_block > <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::ProposalIsReferendum
 			);
-			<Proposals<T>>::remove(country, proposal);
-			Self::update_proposals_per_country_number(country, false);
+			<Proposals<T>>::remove(metaverse_id, proposal);
+			Self::update_proposals_per_country_number(metaverse_id, false);
 
 			T::Currency::unreserve(&from, Self::deposit(proposal).ok_or(Error::<T>::DepositNotFound)?.1);
 			<DepositOf<T>>::remove(proposal);
 
-			Self::deposit_event(Event::ProposalCancelled(from, country, proposal));
+			Self::deposit_event(Event::ProposalCancelled(from, metaverse_id, proposal));
 			Ok(().into())
 		}
 
@@ -308,28 +312,25 @@ pub mod pallet {
 		pub fn fast_track_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,
-			country: MetaverseId,
+			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
-			T::MetaverseCouncil::ensure_origin(origin)?;
+			let from = T::MetaverseCouncil::ensure_origin(origin)?;
 
-			let from = ensure_signed(origin)?;
-			let mut proposal_info = Self::proposals(country, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
-			ensure!(
-				T::MetaverseInfo::check_ownership(&from, &country),
-				Error::<T>::AccountIsNotMetaverseOwner
-			);
-			let current_block_number = <frame_system::Module<T>>::block_number();
+			let mut proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
+
+			let current_block_number = <frame_system::Pallet<T>>::block_number();
 			ensure!(
 				proposal_info.referendum_launch_block > current_block_number,
 				Error::<T>::ProposalIsReferendum
 			);
 			proposal_info.referendum_launch_block = current_block_number + T::OneBlock::get();
-			<Proposals<T>>::remove(country, proposal);
-			<Proposals<T>>::insert(country, proposal, proposal_info);
-			Self::deposit_event(Event::ProposalFastTracked(from.clone(), country, proposal));
+			<Proposals<T>>::remove(metaverse_id, proposal);
+			<Proposals<T>>::insert(metaverse_id, proposal, proposal_info);
+			Self::deposit_event(Event::ProposalFastTracked(metaverse_id, proposal));
 			Ok(().into())
 		}
 
+		/// Vote for local metaverse proposal
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn try_vote(origin: OriginFor<T>, referendum: ReferendumId, vote_aye: bool) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
@@ -397,23 +398,18 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			referendum: ReferendumId,
 		) -> DispatchResultWithPostInfo {
-			let from = ensure_signed(origin)?;
+			T::MetaverseCouncil::ensure_origin(origin)?;
+
 			let referendum_info = Self::referendum_info(referendum).ok_or(Error::<T>::ReferendumDoesNotExist)?;
 			match referendum_info {
 				ReferendumInfo::Ongoing(referendum_status) => {
-					ensure!(
-						from == Self::referendum_jury(referendum_status.country).ok_or(Error::<T>::JuryNotSelected)?,
-						Error::<T>::InsufficientPrivileges
-					);
-					ensure!(
-						!Self::does_proposal_changes_jury(referendum_status.clone())?,
-						Error::<T>::InsufficientPrivileges
-					);
-					<Proposals<T>>::remove(referendum_status.country, referendum_status.proposal);
+					let proposal_info = Self::proposals(referendum_status.country, referendum_status.proposal)
+						.ok_or(Error::<T>::InvalidProposalParameters)?;
 					<ReferendumInfoOf<T>>::remove(referendum);
+					<Proposals<T>>::remove(referendum_status.country, referendum_status.proposal);
 					Self::update_proposals_per_country_number(referendum_status.country, false);
 					T::Currency::unreserve(
-						&from,
+						&proposal_info.proposed_by,
 						Self::deposit(referendum_status.proposal)
 							.ok_or(Error::<T>::DepositNotFound)?
 							.1,
@@ -430,11 +426,11 @@ pub mod pallet {
 		pub fn enact_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,
-			country: MetaverseId,
+			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-			Self::do_enact_proposal(proposal, country);
-			Self::deposit_event(Event::ProposalEnacted(country, proposal));
+			Self::do_enact_proposal(proposal, metaverse_id);
+			Self::deposit_event(Event::ProposalEnacted(metaverse_id, proposal));
 			Ok(().into())
 		}
 	}
@@ -458,11 +454,7 @@ pub mod pallet {
 
 	impl<T: Config> Pallet<T> {
 		// See `note_preimage`
-		fn note_preimage_inner(
-			who: T::AccountId,
-			encoded_proposal: Vec<u8>,
-			does_preimage_updates_jury: bool,
-		) -> DispatchResult {
+		fn note_preimage_inner(who: T::AccountId, encoded_proposal: Vec<u8>) -> DispatchResult {
 			let proposal_hash = T::Hashing::hash(&encoded_proposal[..]);
 			ensure!(
 				!<Preimages<T>>::contains_key(&proposal_hash),
@@ -477,7 +469,6 @@ pub mod pallet {
 			let a = PreimageStatus::Available {
 				data: encoded_proposal,
 				provider: who.clone(),
-				does_update_jury: does_preimage_updates_jury,
 				deposit,
 				since: now,
 				expiry: None,
@@ -509,9 +500,9 @@ pub mod pallet {
 			let mut referendum_end = current_block;
 			let mut referendum_threshold = VoteThreshold::RelativeMajority;
 			match Self::referendum_parameters(country_id) {
-				Some(country_referendum_params) => {
-					referendum_end = current_block + country_referendum_params.voting_period;
-					match country_referendum_params.voting_threshold {
+				Some(metaverse_referendum_params) => {
+					referendum_end = current_block + metaverse_referendum_params.voting_period;
+					match metaverse_referendum_params.voting_threshold {
 						Some(defined_threshold) => referendum_threshold = defined_threshold,
 						None => {}
 					}
@@ -534,6 +525,7 @@ pub mod pallet {
 			};
 			let referendum_info = ReferendumInfo::Ongoing(referendum_status);
 			<ReferendumInfoOf<T>>::insert(referendum_id, referendum_info);
+
 			Self::deposit_event(Event::ReferendumStarted(referendum_id, referendum_threshold));
 			Ok(referendum_id)
 		}
@@ -555,15 +547,15 @@ pub mod pallet {
 		}
 
 		fn get_proposal_launch_block(country: MetaverseId) -> Result<T::BlockNumber, DispatchError> {
-			let current_block = <frame_system::Module<T>>::block_number();
+			let current_block = <frame_system::Pallet<T>>::block_number();
 			match Self::referendum_parameters(country) {
-				Some(country_referendum_params) => {
+				Some(metaverse_referendum_params) => {
 					ensure!(
-						Self::proposals_per_country(country) < country_referendum_params.max_proposals_per_country,
+						Self::proposals_per_country(country) < metaverse_referendum_params.max_proposals_per_country,
 						Error::<T>::ProposalQueueFull
 					);
-					if country_referendum_params.min_proposal_launch_period.is_zero() {
-						Ok(current_block + country_referendum_params.min_proposal_launch_period)
+					if metaverse_referendum_params.min_proposal_launch_period.is_zero() {
+						Ok(current_block + metaverse_referendum_params.min_proposal_launch_period)
 					} else {
 						Ok(current_block + T::DefaultProposalLaunchPeriod::get())
 					}
@@ -621,26 +613,6 @@ pub mod pallet {
 				}
 				Ok(())
 			})
-		}
-
-		fn does_proposal_changes_jury(
-			referendum_status: ReferendumStatus<T::BlockNumber>,
-		) -> Result<bool, DispatchError> {
-			let proposal_hash = Self::proposals(referendum_status.country, referendum_status.proposal)
-				.ok_or(Error::<T>::ProposalDoesNotExist)?
-				.hash;
-			let preimage_status = Self::preimages(proposal_hash).ok_or(Error::<T>::PreimageMissing)?;
-			match preimage_status {
-				PreimageStatus::Available {
-					data,
-					does_update_jury,
-					provider,
-					deposit,
-					since,
-					expiry,
-				} => return Ok(does_update_jury),
-				PreimageStatus::Missing(expiry) => return Err(Error::<T>::PreimageMissing.into()),
-			}
 		}
 
 		fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
@@ -708,6 +680,7 @@ pub mod pallet {
 					Some(current_params) => when += current_params.enactment_period,
 					None => when += T::DefaultEnactmentPeriod::get(),
 				}
+
 				if T::Scheduler::schedule_named(
 					(GOVERNANCE_ID, referendum_id).encode(),
 					DispatchTime::At(when),
@@ -740,6 +713,8 @@ pub mod pallet {
 			}) = preimage
 			{
 				if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
+					ensure!(T::ProposalType::filter(proposal), Error::<T>::PreimageInvalid);
+
 					Self::deposit_event(Event::<T>::PreimageUsed(proposal_info.hash, provider, deposit));
 					let result = proposal
 						.dispatch(frame_system::RawOrigin::Root.into())
@@ -750,7 +725,6 @@ pub mod pallet {
 
 					Ok(())
 				} else {
-					//T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
 					Self::deposit_event(Event::<T>::PreimageInvalid(country, proposal_info.hash, proposal_id));
 					Err(Error::<T>::PreimageInvalid.into())
 				}
