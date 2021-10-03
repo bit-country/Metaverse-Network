@@ -23,11 +23,11 @@ sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkad
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 frame-executive = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 # local packages
-primitives = { package = "bc-primitives", path = "../../traits/bc-primitives", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+metaverse-primitive = { package = "bc-primitives", path = "../../traits/bc-primitives", default-features = false }
 
 [features]
 default = ['std']
@@ -43,4 +43,5 @@ std = [
     'pallet-balances/std',
     'pallet-scheduler/std',
     'primitives/std',
+    'metaverse-primitive/std'
 ]

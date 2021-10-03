@@ -1091,7 +1091,7 @@ parameter_types! {
     pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 }
 
-impl block::Config for Runtime {
+impl estate::Config for Runtime {
     type Event = Event;
     type LandTreasury = LandTreasuryPalletId;
     type MetaverseInfoSource = MetaverseModule;
@@ -1236,7 +1236,7 @@ construct_runtime!(
 
          //Metaverse pallets
         MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
-        BlockModule: block::{Pallet, Call, Storage, Event<T>},
+        Estate: estate::{Pallet, Call, Storage, Event<T>},
         OrmlNFT: orml_nft::{Pallet, Storage},
         NftModule: nft::{Pallet, Call, Storage, Event<T>},
         Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},

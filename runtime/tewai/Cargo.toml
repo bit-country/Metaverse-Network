@@ -84,7 +84,7 @@ pallet-utility = { git = "https://github.com/paritytech/substrate", rev = "91061
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
 pallet-vesting = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
-primitives = { package = 'bit-country-primitives', path = '../../pallets/primitives', default-features = false }
+primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
 #chainbridge = { git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
 
 # Orml pacakges
@@ -96,6 +96,7 @@ orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library",
 # bit.country dependencies
 auction-manager = { package = 'auction-manager', path = '../../traits/auction-manager', version = '2.0.0-rc6', default-features = false }
 metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', version = '2.0.0-rc6', default-features = false }
+estate = { package = 'pallet-estate', path = '../../pallets/estate', version = '2.0.0-rc6', default-features = false }
 tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', version = '2.0.0-rc6', default-features = false }
 nft = { package = 'pallet-nft', path = '../../pallets/nft', version = '2.0.0-rc6', default-features = false }
 continuum = { package = 'pallet-continuum', path = '../../pallets/continuum', version = '0.0.1', default-features = false }
@@ -178,6 +179,7 @@ std = [
     'orml-nft/std',
     'metaverse/std',
     'auction/std',
+    'estate/std',
     'nft/std',
     'continuum/std',
     'currencies/std',

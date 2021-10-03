@@ -283,20 +283,20 @@ impl<T: Config> Pallet<T> {
 				(max_amount_b, max_amount_a)
 			};
 			let (pool_0_increment, pool_1_increment, share_increment): (Balance, Balance, Balance) =
-                //First LP - Initial pool without any share token
+                // First LP - Initial pool without any share token
                 if total_shares.is_zero() {
-                    //Calculate share amount
+                    // Calculate share amount
                     let share_amount = if max_amount_0 > max_amount_1 {
-                        //Token 0 > Token 1
-                        //Find the price token 1 of token 0
+                        // Token 0 > Token 1
+                        // Find the price token 1 of token 0
                         let initial_price_1_in_0 =
                             Price::checked_from_rational(max_amount_0, max_amount_1).unwrap_or_default();
                         initial_price_1_in_0
                             .saturating_mul_int(max_amount_1)
                             .saturating_add(max_amount_0)
                     } else {
-                        //Token 0 < Token 1
-                        //Find the price token 0 of token 1
+                        // Token 0 < Token 1
+                        // Find the price token 0 of token 1
                         let initial_price_0_in_1: Price =
                             Price::checked_from_rational(max_amount_1, max_amount_0).unwrap_or_default();
                         initial_price_0_in_1
@@ -375,8 +375,7 @@ impl<T: Config> Pallet<T> {
 			));
 
 			Ok(())
-		});
-		Ok(())
+		})
 	}
 
 	#[transactional]

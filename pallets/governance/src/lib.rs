@@ -3,18 +3,18 @@
 
 use codec::{Decode, Encode, Input};
 
-use bc_country::BCCountry;
 use frame_support::{
 	dispatch::DispatchResult,
 	ensure,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
-		Currency, LockIdentifier, ReservableCurrency, Vec,
+		Currency, LockIdentifier, ReservableCurrency,
 	},
 	weights::Weight,
 };
 use frame_system::ensure_signed;
-use primitives::{CountryId, ProposalId, ReferendumId};
+use metaverse_primitive::MetaverseTrait;
+use primitives::{MetaverseId, ProposalId, ReferendumId};
 use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
 use sp_std::prelude::*;
 
@@ -41,6 +41,7 @@ pub mod pallet {
 		Parameter,
 	};
 	use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
+	use metaverse_primitive::MetaverseLandTrait;
 	use sp_runtime::DispatchResult;
 
 	pub(crate) type BalanceOf<T> =
@@ -77,7 +78,9 @@ pub mod pallet {
 
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
-		type CountryInfo: BCCountry<Self::AccountId>;
+		type MetaverseInfo: MetaverseTrait<Self::AccountId>;
+
+		type MetaverseLandInfo: MetaverseLandTrait<Self::AccountId>;
 
 		/// Overarching type of all pallets origins.
 		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
@@ -101,7 +104,7 @@ pub mod pallet {
 	pub type Proposals<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
-		CountryId,
+		MetaverseId,
 		Twox64Concat,
 		ProposalId,
 		ProposalInfo<T::AccountId, T::BlockNumber, T::Hash>,
@@ -114,7 +117,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn proposals_per_country)]
-	pub type TotalProposalsPerCountry<T: Config> = StorageMap<_, Twox64Concat, CountryId, u8, ValueQuery>;
+	pub type TotalProposalsPerCountry<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, u8, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn deposit)]
@@ -132,11 +135,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn referendum_parameters)]
 	pub type ReferendumParametersOf<T: Config> =
-		StorageMap<_, Twox64Concat, CountryId, ReferendumParameters<T::BlockNumber>, OptionQuery>;
+		StorageMap<_, Twox64Concat, MetaverseId, ReferendumParameters<T::BlockNumber>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn referendum_jury)]
-	pub type ReferendumJuryOf<T: Config> = StorageMap<_, Twox64Concat, CountryId, T::AccountId, OptionQuery>;
+	pub type ReferendumJuryOf<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, T::AccountId, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn voting_record)]
@@ -147,15 +150,15 @@ pub mod pallet {
 	#[pallet::metadata()]
 	pub enum Event<T: Config> {
 		PreimageNoted(T::Hash, T::AccountId, BalanceOf<T>),
-		PreimageInvalid(CountryId, T::Hash, ProposalId),
-		PreimageMissing(CountryId, T::Hash, ProposalId),
+		PreimageInvalid(MetaverseId, T::Hash, ProposalId),
+		PreimageMissing(MetaverseId, T::Hash, ProposalId),
 		PreimageUsed(T::Hash, T::AccountId, BalanceOf<T>),
-		PreimageEnacted(CountryId, T::Hash, DispatchResult),
-		ReferendumParametersUpdated(CountryId),
-		ProposalSubmitted(T::AccountId, CountryId, ProposalId),
-		ProposalCancelled(T::AccountId, CountryId, ProposalId),
-		ProposalFastTracked(T::AccountId, CountryId, ProposalId),
-		ProposalEnacted(CountryId, ProposalId),
+		PreimageEnacted(MetaverseId, T::Hash, DispatchResult),
+		ReferendumParametersUpdated(MetaverseId),
+		ProposalSubmitted(T::AccountId, MetaverseId, ProposalId),
+		ProposalCancelled(T::AccountId, MetaverseId, ProposalId),
+		ProposalFastTracked(T::AccountId, MetaverseId, ProposalId),
+		ProposalEnacted(MetaverseId, ProposalId),
 		ReferendumStarted(ReferendumId, VoteThreshold),
 		ReferendumPassed(ReferendumId),
 		ReferendumNotPassed(ReferendumId),
@@ -166,8 +169,8 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
-		AccountNotCountryMember,
-		AccountNotCountryOwner,
+		AccountIsNotMetaverseMember,
+		AccountIsNotMetaverseOwner,
 		ReferendumParametersOutOfScope,
 		InsufficientBalance,
 		DepositTooLow,
@@ -199,20 +202,21 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Metaverse owner can update referendum parameters
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn update_referendum_parameters(
 			origin: OriginFor<T>,
-			country: CountryId,
+			metaverse_id: MetaverseId,
 			new_referendum_parameters: ReferendumParameters<T::BlockNumber>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
-				T::CountryInfo::check_ownership(&from, &country),
-				Error::<T>::AccountNotCountryOwner
+				T::MetaverseInfo::check_ownership(&from, &metaverse_id),
+				Error::<T>::AccountIsNotMetaverseOwner
 			);
-			<ReferendumParametersOf<T>>::remove(country);
-			<ReferendumParametersOf<T>>::insert(country, new_referendum_parameters);
-			Self::deposit_event(Event::ReferendumParametersUpdated(country));
+			<ReferendumParametersOf<T>>::remove(metaverse_id);
+			<ReferendumParametersOf<T>>::insert(metaverse_id, new_referendum_parameters);
+			Self::deposit_event(Event::ReferendumParametersUpdated(metaverse_id));
 			Ok(().into())
 		}
 
@@ -228,18 +232,21 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Create new metaverse proposal
+		/// Only metaverse members who own piece of land has the ability to vote on local metaverse
+		/// proposal
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn propose(
 			origin: OriginFor<T>,
-			country: CountryId,
+			metaverse_id: MetaverseId,
 			balance: BalanceOf<T>,
 			preimage_hash: T::Hash,
 			proposal_description: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
-				T::CountryInfo::is_member(&from, &country),
-				Error::<T>::AccountNotCountryMember
+				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &metaverse_id),
+				Error::<T>::AccountIsNotMetaverseMember
 			);
 			ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
 			ensure!(
@@ -255,13 +262,17 @@ pub mod pallet {
 				description: proposal_description,
 				referendum_launch_block: now,
 			};
+
 			let proposal_id = Self::get_next_proposal_id()?;
-			<Proposals<T>>::insert(country, proposal_id, proposal_info);
-			Self::update_proposals_per_country_number(country, true);
+			<Proposals<T>>::insert(metaverse_id, proposal_id, proposal_info);
+
+			Self::update_proposals_per_country_number(metaverse_id, true);
 			T::Currency::reserve(&from, balance);
 			<DepositOf<T>>::insert(proposal_id, (&from, balance));
-			Self::start_referendum(country, proposal_id, now);
-			Self::deposit_event(Event::ProposalSubmitted(from, country, proposal_id));
+
+			Self::start_referendum(metaverse_id, proposal_id, now);
+			Self::deposit_event(Event::ProposalSubmitted(from, metaverse_id, proposal_id));
+
 			Ok(().into())
 		}
 
@@ -271,10 +282,11 @@ pub mod pallet {
 		pub fn cancel_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,
-			country: CountryId,
+			country: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let proposal_info = Self::proposals(country, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
+
 			ensure!(proposal_info.proposed_by == from, Error::<T>::NotProposalCreator);
 			ensure!(
 				proposal_info.referendum_launch_block > <frame_system::Module<T>>::block_number(),
@@ -282,25 +294,29 @@ pub mod pallet {
 			);
 			<Proposals<T>>::remove(country, proposal);
 			Self::update_proposals_per_country_number(country, false);
+
 			T::Currency::unreserve(&from, Self::deposit(proposal).ok_or(Error::<T>::DepositNotFound)?.1);
 			<DepositOf<T>>::remove(proposal);
+
 			Self::deposit_event(Event::ProposalCancelled(from, country, proposal));
 			Ok(().into())
 		}
 
-		/// Fast track proposal to referendum if you are the country owner and it has not launched
+		/// Fast track proposal to referendum if you are metaverse council and it has not launched
 		/// as a referendum yet
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn fast_track_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,
-			country: CountryId,
+			country: MetaverseId,
 		) -> DispatchResultWithPostInfo {
+			T::MetaverseCouncil::ensure_origin(origin)?;
+
 			let from = ensure_signed(origin)?;
 			let mut proposal_info = Self::proposals(country, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 			ensure!(
-				T::CountryInfo::check_ownership(&from, &country),
-				Error::<T>::AccountNotCountryOwner
+				T::MetaverseInfo::check_ownership(&from, &country),
+				Error::<T>::AccountIsNotMetaverseOwner
 			);
 			let current_block_number = <frame_system::Module<T>>::block_number();
 			ensure!(
@@ -319,8 +335,8 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 			let mut status = Self::referendum_status(referendum)?;
 			ensure!(
-				T::CountryInfo::is_member(&from, &status.country),
-				Error::<T>::AccountNotCountryMember
+				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &status.country),
+				Error::<T>::AccountIsNotMetaverseMember
 			);
 			<VotingOf<T>>::try_mutate(from.clone(), |mut voting_record| -> DispatchResultWithPostInfo {
 				let votes = &mut voting_record.votes;
@@ -414,7 +430,7 @@ pub mod pallet {
 		pub fn enact_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,
-			country: CountryId,
+			country: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			Self::do_enact_proposal(proposal, country);
@@ -484,7 +500,7 @@ pub mod pallet {
 		}
 
 		fn start_referendum(
-			country_id: CountryId,
+			country_id: MetaverseId,
 			proposal_id: ProposalId,
 			current_block: T::BlockNumber,
 		) -> Result<u64, DispatchError> {
@@ -538,7 +554,7 @@ pub mod pallet {
 			})
 		}
 
-		fn get_proposal_launch_block(country: CountryId) -> Result<T::BlockNumber, DispatchError> {
+		fn get_proposal_launch_block(country: MetaverseId) -> Result<T::BlockNumber, DispatchError> {
 			let current_block = <frame_system::Module<T>>::block_number();
 			match Self::referendum_parameters(country) {
 				Some(country_referendum_params) => {
@@ -592,7 +608,7 @@ pub mod pallet {
 			Ok(len)
 		}
 
-		fn update_proposals_per_country_number(country: CountryId, is_proposal_added: bool) -> DispatchResult {
+		fn update_proposals_per_country_number(country: MetaverseId, is_proposal_added: bool) -> DispatchResult {
 			<TotalProposalsPerCountry<T>>::try_mutate(country, |number_of_proposals| -> DispatchResult {
 				if is_proposal_added {
 					*number_of_proposals = number_of_proposals
@@ -713,7 +729,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		fn do_enact_proposal(proposal_id: ProposalId, country: CountryId) -> DispatchResult {
+		fn do_enact_proposal(proposal_id: ProposalId, country: MetaverseId) -> DispatchResult {
 			let proposal_info = Self::proposals(country, proposal_id).ok_or(Error::<T>::InvalidProposalParameters)?;
 			let preimage = <Preimages<T>>::take(&proposal_info.hash);
 			if let Some(PreimageStatus::Available {

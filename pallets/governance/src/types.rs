@@ -1,6 +1,6 @@
 use crate::*;
 use codec::{Decode, Encode};
-use primitives::{AccountId, CountryId, ProposalId, ReferendumId};
+use primitives::{AccountId, MetaverseId, ProposalId, ReferendumId};
 use sp_runtime::{
 	traits::{Hash, One},
 	RuntimeDebug,
@@ -122,7 +122,7 @@ pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct ReferendumStatus<BlockNumber> {
 	pub(crate) end: BlockNumber,
-	pub(crate) country: CountryId,
+	pub(crate) country: MetaverseId,
 	pub(crate) proposal: ProposalId,
 	pub(crate) tally: Tally,
 	pub(crate) threshold: Option<VoteThreshold>,

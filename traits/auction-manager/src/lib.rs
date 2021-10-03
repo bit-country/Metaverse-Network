@@ -115,8 +115,10 @@ pub trait Auction<AccountId, BlockNumber> {
 		last_bid: Option<(AccountId, Self::Balance)>,
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult;
+}
 
-	fn check_item_in_auction(asset_id: AssetId) -> bool;
+pub trait CheckAuctionItemHandler {
+	fn check_item_in_auction(item_id: ItemId) -> bool;
 }
 
 /// The result of bid handling.

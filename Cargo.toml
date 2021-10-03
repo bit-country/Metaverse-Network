@@ -6,15 +6,15 @@ members = [
     'pallets/*',
     'traits/*',
     'node',
-    'runtime/metaverse'
-    #    'modules/*'
+    'modules/chainsafe',
+    'runtime/metaverse',
+    'primitives/evm',
+    'primitives/metaverse',
 ]
 exclude = [
     '/dapps/luckydraw',
     '/dapps/airdrop',
     '/dapps/countrytoken',
     'pallets/oracle',
-    'modules/chainsafe',
-    'runtime/tewai'
-    #    'pallets/currencies',
+    'runtime/tewai',
 ]

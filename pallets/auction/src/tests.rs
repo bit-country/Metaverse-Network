@@ -51,7 +51,7 @@ fn create_new_auction_work() {
 				end: Some(101)
 			})
 		);
-		assert_eq!(NftAuctionModule::assets_in_auction(0), Some(true));
+		assert_eq!(NftAuctionModule::items_in_auction(ItemId::NFT(0)), Some(true));
 	});
 }
 
@@ -144,7 +144,7 @@ fn create_auction_fail() {
 				0,
 				ListingLevel::Global
 			),
-			Error::<Runtime>::AssetAlreadyInAuction
+			Error::<Runtime>::ItemAlreadyInAuction
 		);
 	});
 }
@@ -166,7 +166,7 @@ fn remove_auction_work() {
 		));
 		NftAuctionModule::remove_auction(0, ItemId::NFT(0));
 		assert_eq!(NftAuctionModule::auctions(0), None);
-		assert_eq!(NftAuctionModule::assets_in_auction(0), None);
+		assert_eq!(NftAuctionModule::items_in_auction(ItemId::NFT(0)), None);
 	});
 }
 
@@ -189,8 +189,7 @@ fn bid_works() {
 		));
 
 		assert_ok!(NftAuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), Event::auction(crate::Event::Bid(0, ALICE, 200)));
-
+		assert_eq!(last_event(), Event::NftAuctionModule(crate::Event::Bid(0, ALICE, 200)));
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
 	});
 }
@@ -281,12 +280,15 @@ fn asset_transfers_after_auction() {
 		));
 
 		assert_ok!(NftAuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), Event::auction(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(last_event(), Event::NftAuctionModule(crate::Event::Bid(0, ALICE, 200)));
 
 		run_to_block(102);
 
 		/// Verify asset transfers to alice after end of auction
-		assert_eq!(last_event(), Event::auction(crate::Event::AuctionFinalized(0, 1, 200)));
+		assert_eq!(
+			last_event(),
+			Event::NftAuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
+		);
 
 		/// Verify transfer of funs (minus gas)
 		assert_eq!(Balances::free_balance(BOB), 697);
@@ -377,7 +379,7 @@ fn buy_now_work() {
 		assert_eq!(Balances::free_balance(BOB), 796);
 
 		//event was triggered
-		let event = mock::Event::auction(crate::Event::BuyNowFinalised(1, ALICE, 150));
+		let event = mock::Event::NftAuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
 		assert_eq!(last_event(), event);
 
 		//Check that auction is over
@@ -517,7 +519,7 @@ fn on_finalize_should_work() {
 			0,
 			ListingLevel::Global
 		));
-		assert_eq!(NftAuctionModule::assets_in_auction(0), Some(true));
+		assert_eq!(NftAuctionModule::items_in_auction(ItemId::NFT(0)), Some(true));
 		assert_ok!(NftAuctionModule::bid(bidder, 0, 100));
 		run_to_block(102);
 		assert_eq!(NftAuctionModule::auctions(0), None);
@@ -527,9 +529,9 @@ fn on_finalize_should_work() {
 		assert_eq!(Balances::free_balance(ALICE), 99900);
 		assert_eq!(Balances::free_balance(BOB), 597);
 		//asset is not longer in auction
-		assert_eq!(NftAuctionModule::assets_in_auction(0), None);
+		assert_eq!(NftAuctionModule::items_in_auction(ItemId::NFT(0)), None);
 		//event was triggered
-		let event = mock::Event::auction(crate::Event::AuctionFinalized(0, ALICE, 100));
+		let event = mock::Event::NftAuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
 		assert_eq!(last_event(), event);
 	});
 }

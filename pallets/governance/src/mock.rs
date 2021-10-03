@@ -144,7 +144,7 @@ impl Config for Runtime {
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
-	type CountryInfo = CountryInfo;
+	type MetaverseInfo = CountryInfo;
 	type PalletsOrigin = OriginCaller;
 	type Proposal = Call;
 	type Scheduler = Scheduler;

@@ -128,7 +128,7 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn create_metaverse(
 			origin: OriginFor<T>,
-			metadata: Metadata,
+			metadata: MetaverseMetadata,
 			beneficiary: T::AccountId,
 			contribution: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
@@ -248,7 +248,7 @@ impl<T: Config> Pallet<T> {
 	/// Reads the nonce from storage, increments the stored nonce, and returns
 	/// the encoded nonce to the caller.
 
-	fn new_metaverse(owner: &T::AccountId, metadata: Metadata) -> Result<MetaverseId, DispatchError> {
+	fn new_metaverse(owner: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId, DispatchError> {
 		let metaverse_id = NextMetaverseId::<T>::try_mutate(|id| -> Result<MetaverseId, DispatchError> {
 			let current_id = *id;
 			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableMetaverseId)?;
@@ -296,7 +296,7 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 			let mut metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
 
 			ensure!(
-				metaverse_record.currency_id == FungibleTokenId::FungibleToken(0),
+				metaverse_record.currency_id == FungibleTokenId::NativeToken(0),
 				Error::<T>::FungibleTokenAlreadyIssued
 			);
 
@@ -304,5 +304,21 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 			Self::deposit_event(Event::<T>::MetaverseMintedNewCurrency(metaverse_id, currency_id));
 			Ok(())
 		})
+	}
+
+	fn is_member(account_id: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
+		if Self::check_ownership(account_id, metaverse_id) == Some(()) {
+			return true;
+		} else {
+			let account_lands = T::LandInfoSource::get_owner_lands(account);
+			let country_lands = T::LandInfoSource::get_lands_in_country(country_id);
+			for land in account_lands.iter() {
+				match country_lands.binary_search(land) {
+					Ok(i) => return true,
+					Err(i) => continue,
+				}
+			}
+		}
+		false
 	}
 }

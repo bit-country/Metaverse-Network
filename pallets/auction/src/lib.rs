@@ -1,9 +1,29 @@
+// This file is part of Bit.Country.
+
+// Copyright (C) 2020-2021 Bit.Country.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection
 // of Substrate runtime modules. Thanks to all contributors of orml.
 // Ref: https://github.com/open-web3-stack/open-runtime-module-library
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::string_lit_as_bytes)]
+#![allow(clippy::unnecessary_cast)]
+#![allow(clippy::unused_unit)]
+#![allow(clippy::upper_case_acronyms)]
 
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
 use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
@@ -29,7 +49,7 @@ pub struct AuctionLogicHandler;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use auction_manager::ListingLevel;
+	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use bc_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
@@ -78,9 +98,9 @@ pub mod pallet {
 		StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn assets_in_auction)]
+	#[pallet::getter(fn items_in_auction)]
 	/// Track which Assets are in auction
-	pub(super) type AssetsInAuction<T: Config> = StorageMap<_, Twox64Concat, AssetId, bool, OptionQuery>;
+	pub(super) type ItemsInAuction<T: Config> = StorageMap<_, Twox64Concat, ItemId, bool, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn auctions_index)]
@@ -135,7 +155,7 @@ pub mod pallet {
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
-				let block_number = <frame_system::Module<T>>::block_number();
+				let block_number = <system::Pallet<T>>::block_number();
 
 				// make sure auction is started
 				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
@@ -197,7 +217,7 @@ pub mod pallet {
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
-				let block_number = <frame_system::Module<T>>::block_number();
+				let block_number = <system::Pallet<T>>::block_number();
 
 				// make sure auction is started
 				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
@@ -250,7 +270,7 @@ pub mod pallet {
 
 			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
-			let block_number = <frame_system::Module<T>>::block_number();
+			let block_number = <system::Pallet<T>>::block_number();
 			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
 			if !(auction.end.is_none()) {
 				let auction_end: T::BlockNumber = auction.end.unwrap();
@@ -275,10 +295,10 @@ pub mod pallet {
 				Err(_e) => {}
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
+					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
-							<AssetsInAuction<T>>::remove(asset_id);
 							match asset_transfer {
 								Err(_) => (),
 								Ok(_) => {
@@ -327,7 +347,7 @@ pub mod pallet {
 				Error::<T>::WrongListingLevel
 			);
 
-			let block_number = <frame_system::Module<T>>::block_number();
+			let block_number = <system::Pallet<T>>::block_number();
 			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
 			if !(auction.end.is_none()) {
 				let auction_end: T::BlockNumber = auction.end.unwrap();
@@ -355,10 +375,10 @@ pub mod pallet {
 				Err(_e) => {}
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
+					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
-							<AssetsInAuction<T>>::remove(asset_id);
 							match asset_transfer {
 								Err(_) => (),
 								Ok(_) => {
@@ -498,7 +518,6 @@ pub mod pallet {
 													&high_bidder,
 													asset_id,
 												);
-												<AssetsInAuction<T>>::remove(asset_id);
 												match asset_transfer {
 													Err(_) => continue,
 													Ok(_) => {
@@ -529,6 +548,7 @@ pub mod pallet {
 											}
 											_ => {} // Future implementation for Spot, Metaverse
 										}
+										<ItemsInAuction<T>>::remove(auction_item.item_id);
 									}
 								}
 							} else {
@@ -558,7 +578,7 @@ pub mod pallet {
 													&high_bidder,
 													asset_id,
 												);
-												<AssetsInAuction<T>>::remove(asset_id);
+
 												match asset_transfer {
 													Err(_) => continue,
 													Ok(_) => {
@@ -589,6 +609,7 @@ pub mod pallet {
 											}
 											_ => {} // Future implementation for Spot, Metaverse
 										}
+										<ItemsInAuction<T>>::remove(auction_item.item_id);
 									}
 								}
 							}
@@ -621,7 +642,7 @@ pub mod pallet {
 		/// Invalid auction type
 		InvalidAuctionType,
 		/// Asset already in Auction
-		AssetAlreadyInAuction,
+		ItemAlreadyInAuction,
 		/// Wrong Listing Level
 		WrongListingLevel,
 		/// Social Token Currency is not exist
@@ -682,6 +703,10 @@ pub mod pallet {
 			_start: T::BlockNumber,
 			listing_level: ListingLevel,
 		) -> Result<AuctionId, DispatchError> {
+			ensure!(
+				Self::items_in_auction(item_id) == None,
+				Error::<T>::ItemAlreadyInAuction
+			);
 			match item_id {
 				ItemId::NFT(asset_id) => {
 					// Get asset detail
@@ -696,10 +721,6 @@ pub mod pallet {
 					ensure!(
 						class_info_data.token_type.is_transferable(),
 						Error::<T>::NoPermissionToCreateAuction
-					);
-					ensure!(
-						Self::assets_in_auction(asset_id) == None,
-						Error::<T>::AssetAlreadyInAuction
 					);
 
 					let start_time = <system::Module<T>>::block_number();
@@ -729,8 +750,6 @@ pub mod pallet {
 
 					<AuctionItems<T>>::insert(auction_id, new_auction_item);
 
-					<AssetsInAuction<T>>::insert(asset_id, true);
-
 					Self::deposit_event(Event::NewAuctionItem(
 						auction_id,
 						recipient,
@@ -739,7 +758,7 @@ pub mod pallet {
 						initial_amount,
 						end_time,
 					));
-
+					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
@@ -751,7 +770,7 @@ pub mod pallet {
 					let new_auction_item = AuctionItem {
 						item_id,
 						recipient: recipient.clone(),
-						initial_amount: initial_amount,
+						initial_amount,
 						amount: initial_amount,
 						start_time,
 						end_time,
@@ -770,7 +789,7 @@ pub mod pallet {
 						initial_amount,
 						end_time,
 					));
-
+					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
@@ -782,12 +801,7 @@ pub mod pallet {
 				if let Some(end_block) = auction.end {
 					<AuctionEndTime<T>>::remove(end_block, id);
 					<Auctions<T>>::remove(&id);
-					match item_id {
-						ItemId::NFT(asset_id) => {
-							<AssetsInAuction<T>>::remove(asset_id);
-						}
-						_ => {}
-					}
+					<ItemsInAuction<T>>::remove(item_id);
 				}
 			}
 		}
@@ -864,12 +878,11 @@ pub mod pallet {
 		fn auction_info(id: AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
 			Self::auctions(id)
 		}
+	}
 
-		fn check_item_in_auction(asset_id: AssetId) -> bool {
-			if Self::assets_in_auction(asset_id) == Some(true) {
-				return true;
-			}
-			return false;
+	impl<T: Config> CheckAuctionItemHandler for Pallet<T> {
+		fn check_item_in_auction(item_id: ItemId) -> bool {
+			Self::items_in_auction(item_id) == Some(true)
 		}
 	}
 

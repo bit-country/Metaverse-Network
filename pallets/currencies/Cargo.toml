@@ -25,7 +25,7 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 # Orml packages
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
 
-primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 
 [features]

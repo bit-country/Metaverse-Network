@@ -1,9 +1,64 @@
 [package]
-name = "evm"
-version = "0.1.0"
-authors = ["justinphamnz <justin.phamnz@gmail.com>"]
+name = "pallet-evm"
+version = "6.0.0-dev"
+authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
+license = "Apache-2.0"
+homepage = "https://substrate.dev"
+repository = "https://github.com/paritytech/frontier/"
+description = "FRAME EVM contracts pallet"
+readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+serde = { version = "1.0.101", optional = true, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
+frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-timestamp = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-balances = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-runtime = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-std = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-io = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+frame-benchmarking = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", default-features = false, optional = true, branch = "polkadot-v0.9.9" }
+fp-evm = { version = "3.0.0-dev", default-features = false, path = "../../primitives/evm" }
+primitive-types = { version = "0.10.0", default-features = false, features = ["rlp", "byteorder"] }
+rlp = { version = "0.5", default-features = false }
+evm = { version = "0.30.0", default-features = false, features = ["with-codec"] }
+evm-runtime = { version = "0.30.0", default-features = false }
+evm-gasometer = { version = "0.30.0", default-features = false }
+sha3 = { version = "0.8", default-features = false }
+log = { version = "0.4", default-features = false }
+hex = { version = "0.4", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "serde",
+    "codec/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "frame-support/std",
+    "frame-system/std",
+    "pallet-balances/std",
+    "sp-io/std",
+    "frame-benchmarking/std",
+    "sp-std/std",
+    "fp-evm/std",
+    "sha3/std",
+    "rlp/std",
+    "primitive-types/std",
+    "evm/std",
+    "evm/with-serde",
+    "evm-runtime/std",
+    "evm-gasometer/std",
+    "pallet-timestamp/std",
+    "log/std",
+    "hex/std",
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+]
