@@ -93,6 +93,8 @@ pub type ProposalId = u64;
 pub type ReferendumId = u64;
 /// LandId
 pub type LandId = u64;
+/// EstateId
+pub type EstateId = u64;
 /// Social Token Id type
 pub type TokenId = u64;
 
