@@ -52,7 +52,7 @@ pub struct ReferendumParameters<BlockNumber> {
 	pub(crate) min_proposal_launch_period: BlockNumber, // number of blocks
 	pub(crate) voting_period: BlockNumber,              // number of block
 	pub(crate) enactment_period: BlockNumber,           // number of blocks
-	pub(crate) max_proposals_per_country: u8,
+	pub(crate) max_proposals_per_metaverse: u8,
 }
 /*
 impl<BlockNumber: From<u32> + Default> Default for ReferendumParameters<BlockNumber>{
@@ -63,7 +63,7 @@ impl<BlockNumber: From<u32> + Default> Default for ReferendumParameters<BlockNum
 			voting_period:  T::DefaultVotingPeriod::get(),
 			enactment_period:  T::DefaultEnactmentPeriod::get(),
 		  //  max_params_per_proposal:  T::DefaultMaxParametersPerProposal::get(),
-			max_proposals_per_country: T::DefaultMaxProposalsPerCountry::get(),
+			max_proposals_per_country: T::DefaultMaxProposalsPerMetaverse::get(),
 		}
 	}
 }
@@ -121,7 +121,7 @@ pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct ReferendumStatus<BlockNumber> {
 	pub(crate) end: BlockNumber,
-	pub(crate) country: MetaverseId,
+	pub(crate) metaverse: MetaverseId,
 	pub(crate) proposal: ProposalId,
 	pub(crate) tally: Tally,
 	pub(crate) threshold: Option<VoteThreshold>,

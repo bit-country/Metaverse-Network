@@ -138,7 +138,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 			min_proposal_launch_period: 12,
 			voting_period: 5,
 			enactment_period: 10,
-			max_proposals_per_country: 0,
+			max_proposals_per_metaverse: 0,
 		};
 		assert_ok!(GovernanceModule::update_referendum_parameters(
 			origin.clone(),

@@ -40,7 +40,7 @@ pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumP
 	min_proposal_launch_period: 12,
 	voting_period: 5,
 	enactment_period: 10,
-	max_proposals_per_country: 1,
+	max_proposals_per_metaverse: 1,
 };
 
 impl frame_system::Config for Runtime {
@@ -143,7 +143,7 @@ parameter_types! {
 	pub const DefaultEnactmentPeriod: BlockNumber = 2;
 	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
 	pub const DefaultMaxParametersPerProposal: u8 = 3;
-	pub const DefaultMaxProposalsPerCountry: u8 = 2;
+	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50;
 	pub const DefaultPreimageByteDeposit: Balance = 1;
@@ -183,7 +183,7 @@ impl Config for Runtime {
 	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
 	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
 	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
-	type DefaultMaxProposalsPerCountry = DefaultMaxProposalsPerCountry;
+	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
