@@ -32,8 +32,6 @@ orml-traits = { git = "https://github.com/bit-country/open-runtime-module-librar
 [dev-dependencies]
 blake2-rfc = { version = "0.2.18", default-features = false }
 hex-literal = "0.3"
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 [features]
 default = ["std"]
