@@ -20,16 +20,11 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-#pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 # local packages
 bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
-
-[dev-dependencies]
-#sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-#sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+#pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false, optional = true }
 
 [features]
 default = ['std']
@@ -42,5 +37,5 @@ std = [
     'bc-primitives/std',
     'primitives/std',
     'sp-io/std',
-    'pallet-balances/std'
+    #    'pallet-balances/std'
 ]

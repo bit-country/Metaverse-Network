@@ -632,32 +632,32 @@ impl pallet_evm::Config for Runtime {
 	type FindAuthor = FindAuthorTruncated<Aura>;
 }
 
-parameter_types! {
-	pub const LocalChainId: chainbridge::ChainId = 1;
-	pub const ProposalLifetime: BlockNumber = 5 * MINUTES;
-}
-
-impl chainbridge::Config for Runtime {
-	type Event = Event;
-	type AdminOrigin = EnsureRoot<AccountId>;
-	type Proposal = Call;
-	type ChainId = LocalChainId;
-	type ProposalLifetime = ProposalLifetime;
-}
-
-parameter_types! {
-	//Testing ERC 20 Resource Id
-	pub const BridgeTokenId: [u8; 32] =
- hex_literal::hex!("000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00");
-}
-
-impl modules_chainsafe::Config for Runtime {
-	type Event = Event;
-	type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
-	type Currency = Currencies;
-	type NativeCurrencyId = GetNativeCurrencyId;
-	type BridgeTokenId = BridgeTokenId;
-}
+//parameter_types! {
+//	pub const LocalChainId: chainbridge::ChainId = 1;
+//	pub const ProposalLifetime: BlockNumber = 5 * MINUTES;
+//}
+//
+//impl chainbridge::Config for Runtime {
+//	type Event = Event;
+//	type AdminOrigin = EnsureRoot<AccountId>;
+//	type Proposal = Call;
+//	type ChainId = LocalChainId;
+//	type ProposalLifetime = ProposalLifetime;
+//}
+//
+//parameter_types! {
+//	//Testing ERC 20 Resource Id
+//	pub const BridgeTokenId: [u8; 32] =
+// hex_literal::hex!("000000000000000000000000000000c76ebe4a02bbc34786d860b355f5a5ce00");
+//}
+//
+//impl modules_chainsafe::Config for Runtime {
+//	type Event = Event;
+//	type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
+//	type Currency = Currencies;
+//	type NativeCurrencyId = GetNativeCurrencyId;
+//	type BridgeTokenId = BridgeTokenId;
+//}
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -702,8 +702,8 @@ construct_runtime!(
 		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
 
 		// Bridge
-		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
-		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
+//		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
+//		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
 	}
 );
 
