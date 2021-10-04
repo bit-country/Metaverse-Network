@@ -1,7 +1,20 @@
 use cumulus_primitives_core::ParaId;
 use pioneer_runtime::{
-	constants::currency::*, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, EVMConfig, GenesisConfig,
-	InflationInfo, Range, SessionConfig, SessionKeys, Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	constants::currency::*,
+	AccountId,
+	AuraConfig,
+	BalancesConfig,
+	ContinuumConfig,
+	EVMConfig,
+	GenesisConfig,
+	InflationInfo,
+	Range,
+	// SessionConfig,  StakingConfig,
+	SessionKeys,
+	Signature,
+	SudoConfig,
+	SystemConfig,
+	WASM_BINARY,
 };
 use primitives::Balance;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -205,18 +218,17 @@ fn testnet_genesis(
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
 		},
-		staking: StakingConfig {
-			candidates: staking_candidate,
-			nominations: vec![],
-			inflation_config: metaverse_network_inflation_config(),
-		},
+		// staking: StakingConfig {
+		// 	candidates: staking_candidate,
+		// 	nominations: vec![],
+		// 	inflation_config: metaverse_network_inflation_config(),
+		// },
 		// session: SessionConfig {
 		// 	keys: initial_authorities
 		// 		.iter()
 		// 		.map(|x| (x.clone(), x.clone(), session_keys(x.clone())))
 		// 		.collect::<Vec<_>>(),
 		// },
-		session: Default::default(),
 		evm: EVMConfig {
 			accounts: {
 				let mut map = BTreeMap::new();

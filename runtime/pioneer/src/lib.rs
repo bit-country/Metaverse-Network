@@ -728,44 +728,44 @@ parameter_types! {
 	pub const MinNominatorStk: u128 = 5 * DOLLARS;
 }
 
-impl parachain_staking::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type MonetaryGovernanceOrigin = EnsureRoot<AccountId>;
-	type MinBlocksPerRound = MinBlocksPerRound;
-	type DefaultBlocksPerRound = DefaultBlocksPerRound;
-	type LeaveCandidatesDelay = LeaveCandidatesDelay;
-	type LeaveNominatorsDelay = LeaveNominatorsDelay;
-	type RevokeNominationDelay = RevokeNominationDelay;
-	type RewardPaymentDelay = RewardPaymentDelay;
-	type MinSelectedCandidates = MinSelectedCandidates;
-	type MaxNominatorsPerCollator = MaxNominatorsPerCollator;
-	type MaxCollatorsPerNominator = MaxCollatorsPerNominator;
-	type DefaultCollatorCommission = DefaultCollatorCommission;
-	type DefaultParachainBondReservePercent = DefaultParachainBondReservePercent;
-	type MinCollatorStk = MinCollatorStk;
-	type MinCollatorCandidateStk = MinCollatorCandidateStk;
-	type MinNomination = MinNominatorStk;
-	type MinNominatorStk = MinNominatorStk;
-	type WeightInfo = parachain_staking::weights::SubstrateWeight<Runtime>;
-}
+// impl parachain_staking::Config for Runtime {
+// 	type Event = Event;
+// 	type Currency = Balances;
+// 	type MonetaryGovernanceOrigin = EnsureRoot<AccountId>;
+// 	type MinBlocksPerRound = MinBlocksPerRound;
+// 	type DefaultBlocksPerRound = DefaultBlocksPerRound;
+// 	type LeaveCandidatesDelay = LeaveCandidatesDelay;
+// 	type LeaveNominatorsDelay = LeaveNominatorsDelay;
+// 	type RevokeNominationDelay = RevokeNominationDelay;
+// 	type RewardPaymentDelay = RewardPaymentDelay;
+// 	type MinSelectedCandidates = MinSelectedCandidates;
+// 	type MaxNominatorsPerCollator = MaxNominatorsPerCollator;
+// 	type MaxCollatorsPerNominator = MaxCollatorsPerNominator;
+// 	type DefaultCollatorCommission = DefaultCollatorCommission;
+// 	type DefaultParachainBondReservePercent = DefaultParachainBondReservePercent;
+// 	type MinCollatorStk = MinCollatorStk;
+// 	type MinCollatorCandidateStk = MinCollatorCandidateStk;
+// 	type MinNomination = MinNominatorStk;
+// 	type MinNominatorStk = MinNominatorStk;
+// 	type WeightInfo = parachain_staking::weights::SubstrateWeight<Runtime>;
+// }
 
 parameter_types! {
 	pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(17);
 }
 
-impl pallet_session::Config for Runtime {
-	type Event = Event;
-	type ValidatorId = <Self as frame_system::Config>::AccountId;
-	type ValidatorIdOf = parachain_staking::ValidatorOf<Self>;
-	type ShouldEndSession = Staking;
-	type NextSessionRotation = Staking;
-	type SessionManager = Staking;
-	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
-	type Keys = SessionKeys;
-	type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
-	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
-}
+// impl pallet_session::Config for Runtime {
+// 	type Event = Event;
+// 	type ValidatorId = <Self as frame_system::Config>::AccountId;
+// 	type ValidatorIdOf = parachain_staking::ValidatorOf<Self>;
+// 	type ShouldEndSession = Staking;
+// 	type NextSessionRotation = Staking;
+// 	type SessionManager = Staking;
+// 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+// 	type Keys = SessionKeys;
+// 	type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+// 	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+// }
 
 pub struct FindAuthorTruncated<F>(PhantomData<F>);
 
@@ -860,8 +860,8 @@ construct_runtime!(
 		Estate: estate::{Pallet, Call, Storage, Event<T>},
 
 		// External consensus support
-		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
+		// Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+		// Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>}
 	}
