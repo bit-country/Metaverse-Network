@@ -18,6 +18,7 @@
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
+	para_chain_spec,
 	service, //::{new_partial, ParachainRuntimeExecutor},
 };
 use codec::Encode;
@@ -45,7 +46,8 @@ fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_servic
 		#[cfg(feature = "with-tewai-runtime")]
 		"tewai" => Box::new(chain_spec::tewai_testnet_config()?),
 		#[cfg(feature = "with-pioneer-runtime")]
-		"pioneer" => Box::new(chain_spec::pioneer_parachain_config(para_id)?),
+		"pioneer" => Box::new(para_chain_spec::local_testnet_config(para_id)),
+		// "pioneer" => Box::new(chain_spec::pioneer_parachain_config(para_id)?),
 		path => Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
 	})
 }
@@ -76,6 +78,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
+		info!("SubstrateCli load_spec: {}", id);
 		load_spec(id, self.run.parachain_id.unwrap_or(2000).into())
 	}
 
@@ -86,7 +89,7 @@ impl SubstrateCli for Cli {
 
 impl SubstrateCli for RelayChainCli {
 	fn impl_name() -> String {
-		"Bit.Country Metaverse Network Node".into()
+		"Bit.Country Metaverse Collator Node".into()
 	}
 
 	fn impl_version() -> String {
@@ -241,12 +244,22 @@ pub fn run() -> sc_cli::Result<()> {
 		// 	}
 		// }
 		Some(Subcommand::ExportGenesisState(params)) => {
+			info!(
+				"ExportGenesisState load_spec: {}",
+				&params.chain.clone().unwrap_or_default()
+			);
+
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
+			// let block: Block = generate_genesis_block(&load_spec(
+			// 	&params.chain.clone().unwrap_or_default(),
+			// 	params.parachain_id.unwrap_or(2000).into(),
+			// )?)?;
+
 			let block: Block = generate_genesis_block(&load_spec(
-				&params.chain.clone().unwrap_or_default(),
+				&params.chain.clone().unwrap_or("pioneer".into()),
 				params.parachain_id.unwrap_or(2000).into(),
 			)?)?;
 			let raw_header = block.header().encode();
@@ -265,11 +278,17 @@ pub fn run() -> sc_cli::Result<()> {
 			Ok(())
 		}
 		Some(Subcommand::ExportGenesisWasm(params)) => {
+			info!(
+				"ExportGenesisWasm load_spec: {}",
+				&params.chain.clone().unwrap_or_default()
+			);
+
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let raw_wasm_blob = extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
+			let raw_wasm_blob =
+				extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or("pioneer".into()))?)?;
 			let output_buf = if params.raw {
 				raw_wasm_blob
 			} else {
