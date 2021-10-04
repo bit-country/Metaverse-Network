@@ -18,8 +18,7 @@
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
-	para_chain_spec,
-	service, //::{new_partial, ParachainRuntimeExecutor},
+	para_chain_spec, service,
 };
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
@@ -47,7 +46,6 @@ fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_servic
 		"tewai" => Box::new(chain_spec::tewai_testnet_config()?),
 		#[cfg(feature = "with-pioneer-runtime")]
 		"pioneer" => Box::new(para_chain_spec::local_testnet_config(para_id)),
-		// "pioneer" => Box::new(chain_spec::pioneer_parachain_config(para_id)?),
 		path => Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
 	})
 }
@@ -252,11 +250,6 @@ pub fn run() -> sc_cli::Result<()> {
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
-
-			// let block: Block = generate_genesis_block(&load_spec(
-			// 	&params.chain.clone().unwrap_or_default(),
-			// 	params.parachain_id.unwrap_or(2000).into(),
-			// )?)?;
 
 			let block: Block = generate_genesis_block(&load_spec(
 				&params.chain.clone().unwrap_or("pioneer".into()),
