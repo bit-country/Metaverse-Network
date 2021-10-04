@@ -4861,6 +4861,7 @@ dependencies = [
  "bit-country-primitives",
  "frame-support",
  "frame-system",
+ "pallet-balances",
  "parity-scale-codec",
  "sp-core",
  "sp-io",

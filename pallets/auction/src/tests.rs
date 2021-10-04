@@ -225,7 +225,7 @@ fn cannot_bid_with_insufficient_funds() {
 
 		assert_noop!(
 			NftAuctionModule::bid(bidder, 0, 100001),
-			"You don\'t have enough free balance for this bid"
+			Error::<Runtime>::InsufficientFreeBalance
 		);
 
 		assert_eq!(Balances::free_balance(ALICE), 100000);

@@ -24,9 +24,9 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 4;
 pub const BOB: AccountId = 5;
 pub const METAVERSE_ID: MetaverseId = 1;
-pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
+pub const METAVERSE_ID_NOT_EXIST: MetaverseId = 1;
 pub const NUUM: CurrencyId = 0;
-pub const COUNTRY_FUND: FungibleTokenId = FungibleTokenId::FungibleToken(1);
+pub const METAVERSE_FUND: FungibleTokenId = FungibleTokenId::FungibleToken(1);
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -91,7 +91,7 @@ parameter_type_with_key! {
 parameter_types! {
 	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
-	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
 impl orml_tokens::Config for Runtime {
@@ -176,8 +176,8 @@ parameter_types! {
 impl Config for Runtime {
 	type Event = Event;
 	type TokenId = u64;
-	type BCMultiCurrency = Currencies;
-	type FungibleTokenTreasury = CountryFundPalletId;
+	type MetaverseMultiCurrency = Currencies;
+	type FungibleTokenTreasury = MetaverseFundPalletId;
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type LiquidityPoolManager = SwapModule;
 	type MinVestedTransfer = MinVestedTransfer;

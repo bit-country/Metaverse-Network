@@ -14,7 +14,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 // This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection
 // of Substrate runtime modules. Thanks to all contributors of orml.
 // Ref: https://github.com/open-web3-stack/open-runtime-module-library
@@ -75,13 +74,17 @@ pub mod pallet {
 		type Handler: AuctionHandler<Self::AccountId, BalanceOf<Self>, Self::BlockNumber, AuctionId>;
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+		/// Continuum protocol handler
 		type ContinuumHandler: Continuum<Self::AccountId>;
+		/// Multi-fungible token currency
 		type FungibleTokenCurrency: MultiReservableCurrency<
 			Self::AccountId,
 			CurrencyId = FungibleTokenId,
 			Balance = Balance,
 		>;
+		/// Metaverse info trait
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
+		#[pallet::constant]
 		type MinimumAuctionDuration: Get<Self::BlockNumber>;
 	}
 
@@ -132,9 +135,40 @@ pub mod pallet {
 		AuctionFinalizedNoBid(AuctionId),
 	}
 
+	/// Errors inform users that something went wrong.
+	#[pallet::error]
+	pub enum Error<T> {
+		AuctionNotExist,
+		AssetIsNotExist,
+		AuctionNotStarted,
+		AuctionIsExpired,
+		AuctionTypeIsNotSupported,
+		BidNotAccepted,
+		InsufficientFreeBalance,
+		InvalidBidPrice,
+		NoAvailableAuctionId,
+		NoPermissionToCreateAuction,
+		SelfBidNotAccepted,
+		CannotBidOnOwnAuction,
+		InvalidBuyItNowPrice,
+		InsufficientFunds,
+		/// Invalid auction type
+		InvalidAuctionType,
+		/// Asset already in Auction
+		ItemAlreadyInAuction,
+		/// Wrong Listing Level
+		WrongListingLevel,
+		/// Social Token Currency is not exist
+		FungibleTokenCurrencyNotFound,
+		/// Minimum Duration Is Too Low
+		AuctionEndIsLessThanMinimumDuration,
+		/// Overflow
+		Overflow,
+	}
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Bidding on global listing
+		/// User can bid on global listing
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn bid(origin: OriginFor<T>, id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
@@ -169,13 +203,14 @@ pub mod pallet {
 				} else {
 					ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
 				}
+				// implement hooks for future event
 				let bid_result = T::Handler::on_new_bid(block_number, id, (from.clone(), value), auction.bid.clone());
 
 				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 
 				ensure!(
 					<T as Config>::Currency::free_balance(&from) >= value,
-					"You don't have enough free balance for this bid"
+					Error::<T>::InsufficientFreeBalance
 				);
 
 				Self::auction_bid_handler(block_number, id, (from.clone(), value), auction.bid.clone())?;
@@ -237,7 +272,7 @@ pub mod pallet {
 
 				ensure!(
 					T::FungibleTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(),
-					"You don't have enough free balance for this bid"
+					Error::<T>::InsufficientFreeBalance
 				);
 
 				Self::local_auction_bid_handler(
@@ -319,7 +354,7 @@ pub mod pallet {
 								}
 							}
 						}
-						_ => {} // Future implementation for Spot, Metaverse
+						_ => {} // Future implementation for Land, Metaverse
 					}
 				}
 			}
@@ -418,7 +453,7 @@ pub mod pallet {
 
 			let start_time: T::BlockNumber = <system::Module<T>>::block_number();
 
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or("Overflow")?;
+			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
 			ensure!(
 				remaining_time >= T::MinimumAuctionDuration::get(),
@@ -457,7 +492,7 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 
 			let start_time: T::BlockNumber = <system::Module<T>>::block_number();
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or("Overflow")?;
+			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
 			ensure!(
 				remaining_time >= T::MinimumAuctionDuration::get(),
@@ -622,35 +657,6 @@ pub mod pallet {
 		}
 	}
 
-	/// Errors inform users that something went wrong.
-	#[pallet::error]
-	pub enum Error<T> {
-		AuctionNotExist,
-		AssetIsNotExist,
-		AuctionNotStarted,
-		AuctionIsExpired,
-		AuctionTypeIsNotSupported,
-		BidNotAccepted,
-		InsufficientFreeBalance,
-		InvalidBidPrice,
-		NoAvailableAuctionId,
-		NoPermissionToCreateAuction,
-		SelfBidNotAccepted,
-		CannotBidOnOwnAuction,
-		InvalidBuyItNowPrice,
-		InsufficientFunds,
-		/// Invalid auction type
-		InvalidAuctionType,
-		/// Asset already in Auction
-		ItemAlreadyInAuction,
-		/// Wrong Listing Level
-		WrongListingLevel,
-		/// Social Token Currency is not exist
-		FungibleTokenCurrencyNotFound,
-		/// Minimum Duration Is Too Low
-		AuctionEndIsLessThanMinimumDuration,
-	}
-
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
 		type Balance = BalanceOf<T>;
 
@@ -762,7 +768,6 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
-					// TODO Check if spot_id is not owned by any
 					let start_time = <system::Module<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
@@ -816,7 +821,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or("Auction is not exists")?;
+				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
@@ -849,7 +854,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or("Auction is not exists")?;
+				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);

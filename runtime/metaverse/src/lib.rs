@@ -437,7 +437,7 @@ impl continuum::Config for Runtime {
 impl tokenization::Config for Runtime {
 	type Event = Event;
 	type TokenId = u64;
-	type BCMultiCurrency = Currencies;
+	type MetaverseMultiCurrency = Currencies;
 	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
 	type MetaverseInfoSource = Metaverse;
 	type LiquidityPoolManager = Swap;
