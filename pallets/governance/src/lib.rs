@@ -144,10 +144,6 @@ pub mod pallet {
 		StorageMap<_, Twox64Concat, MetaverseId, ReferendumParameters<T::BlockNumber>, OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn referendum_jury)]
-	pub type ReferendumJuryOf<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, T::AccountId, OptionQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn voting_record)]
 	pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, VotingRecord, ValueQuery>;
 
@@ -249,10 +245,10 @@ pub mod pallet {
 			proposal_description: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
-			ensure!(
-				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &metaverse_id),
-				Error::<T>::AccountIsNotMetaverseMember
-			);
+			//			ensure!(
+			//				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &metaverse_id),
+			//				Error::<T>::AccountIsNotMetaverseMember
+			//			);
 			ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
 			ensure!(
 				T::Currency::free_balance(&from) >= balance,

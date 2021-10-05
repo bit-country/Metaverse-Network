@@ -41,7 +41,7 @@ pub enum VoteThreshold {
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum CountryParameter {
+pub enum MetaverseParameter {
 	MaxProposals(u8),
 	SetReferendumJury(AccountId),
 }
