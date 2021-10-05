@@ -1,16 +1,17 @@
 use cumulus_primitives_core::ParaId;
 use pioneer_runtime::{
 	constants::currency::*,
+	// SessionConfig,  StakingConfig,
+	opaque::SessionKeys,
 	AccountId,
 	AuraConfig,
 	BalancesConfig,
 	ContinuumConfig,
 	EVMConfig,
 	GenesisConfig,
+	GrandpaConfig,
 	InflationInfo,
 	Range,
-	// SessionConfig,  StakingConfig,
-	SessionKeys,
 	Signature,
 	SudoConfig,
 	SystemConfig,
@@ -33,9 +34,8 @@ use std::str::FromStr;
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<pioneer_runtime::GenesisConfig, Extensions>;
 
-fn session_keys(aura: AuraId) -> SessionKeys {
-	// SessionKeys { aura, grandpa }
-	SessionKeys { aura }
+fn session_keys(aura: AuraId, grandpa: GrandpaId) -> SessionKeys {
+	SessionKeys { aura, grandpa }
 }
 
 pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
@@ -108,7 +108,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 		move || {
 			testnet_genesis(
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				vec![get_from_seed::<AuraId>("Alice"), get_from_seed::<AuraId>("Bob")],
+				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
 				vec![
 					get_account_id_from_seed::<sr25519::Public>("Alice"),
 					get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -144,7 +144,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 		move || {
 			testnet_genesis(
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				vec![get_from_seed::<AuraId>("Alice"), get_from_seed::<AuraId>("Bob")],
+				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
 				vec![
 					get_account_id_from_seed::<sr25519::Public>("Alice"),
 					get_account_id_from_seed::<sr25519::Public>("Bob"),
@@ -175,7 +175,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 
 fn testnet_genesis(
 	root_key: AccountId,
-	initial_authorities: Vec<AuraId>,
+	initial_authorities: Vec<(AccountId, AuraId, GrandpaId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
 ) -> pioneer_runtime::GenesisConfig {
@@ -184,12 +184,6 @@ fn testnet_genesis(
 	// 	.clone()
 	// 	.map(|x| (x.0.clone(), 100 * DOLLARS))
 	// 	.collect();
-
-	let staking_candidate: Vec<(AccountId, Balance)> = endowed_accounts
-		.iter()
-		.clone()
-		.map(|x| (x.clone(), 100 * DOLLARS))
-		.collect();
 
 	pioneer_runtime::GenesisConfig {
 		system: pioneer_runtime::SystemConfig {
@@ -204,11 +198,14 @@ fn testnet_genesis(
 		sudo: pioneer_runtime::SudoConfig { key: root_key },
 		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
 		aura: pioneer_runtime::AuraConfig {
-			authorities: initial_authorities,
+			authorities: initial_authorities.iter().clone().map(|x| (x.1.clone())).collect(),
 		},
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-
+		grandpa: GrandpaConfig {
+			//			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+			authorities: vec![],
+		},
 		council: Default::default(),
 		tokens: Default::default(),
 		vesting: Default::default(),
@@ -226,7 +223,7 @@ fn testnet_genesis(
 		// session: SessionConfig {
 		// 	keys: initial_authorities
 		// 		.iter()
-		// 		.map(|x| (x.clone(), x.clone(), session_keys(x.clone())))
+		// 		.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
 		// 		.collect::<Vec<_>>(),
 		// },
 		evm: EVMConfig {
@@ -262,4 +259,13 @@ fn testnet_genesis(
 			},
 		},
 	}
+}
+
+/// Generate an Aura authority key.
+pub fn authority_keys_from_seed(s: &str) -> (AccountId, AuraId, GrandpaId) {
+	(
+		get_account_id_from_seed::<sr25519::Public>(s),
+		get_from_seed::<AuraId>(s),
+		get_from_seed::<GrandpaId>(s),
+	)
 }

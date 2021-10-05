@@ -39,9 +39,10 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
+use crate::opaque::SessionKeys;
 pub use frame_support::{
 	construct_runtime, match_type, parameter_types,
-	traits::{EnsureOrigin, Everything, IsInVec, Randomness, StorageInfo},
+	traits::{EnsureOrigin, Everything, IsInVec, KeyOwnerProofSystem, Randomness, StorageInfo},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		DispatchClass, IdentityFee, Weight,
@@ -51,6 +52,7 @@ pub use frame_support::{
 use frame_system::limits::{BlockLength, BlockWeights};
 use frame_system::{EnsureOneOf, EnsureRoot, RawOrigin};
 pub use pallet_balances::Call as BalancesCall;
+use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use pallet_timestamp::Call as TimestampCall;
 use primitives::{
 	Amount, Balance, Block as BlockP, BlockId as BlockIdP, BlockNumber, FungibleTokenId, Header as HeaderP,
@@ -123,9 +125,26 @@ pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExt
 pub type Executive =
 	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPallets>;
 
-impl_opaque_keys! {
-	pub struct SessionKeys {
-		pub aura: Aura,
+pub mod opaque {
+	use super::*;
+	pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+	//	pub type Block = BlockP;
+	//	/// Opaque block header type.
+	//	pub type Header = HeaderP;
+	//	/// Opaque block identifier type.
+	//	pub type BlockId = BlockIdP;
+	/// Opaque block header type.
+	pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+	/// Opaque block type.
+	pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+	/// Opaque block identifier type.
+	pub type BlockId = generic::BlockId<Block>;
+	impl_opaque_keys! {
+		pub struct SessionKeys {
+			pub aura: Aura,
+			pub grandpa: Grandpa,
+		}
 	}
 }
 
@@ -474,6 +493,22 @@ impl cumulus_pallet_dmp_queue::Config for Runtime {
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type DisabledValidators = ();
+}
+
+impl pallet_grandpa::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+
+	type KeyOwnerProofSystem = ();
+
+	type KeyOwnerProof = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
+
+	type KeyOwnerIdentification =
+		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::IdentificationTuple;
+
+	type HandleEquivocation = ();
+
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -830,6 +865,7 @@ construct_runtime!(
 		ParachainInfo: parachain_info::{Pallet, Storage, Config} = 21,
 		Aura: pallet_aura::{Pallet, Config<T>},
 		AuraExt: cumulus_pallet_aura_ext::{Pallet, Config},
+		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 
 		// XCM helpers.
 		XcmpQueue: cumulus_pallet_xcmp_queue::{Pallet, Call, Storage, Event<T>} = 50,
