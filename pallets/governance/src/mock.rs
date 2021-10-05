@@ -186,7 +186,7 @@ impl InstanceFilter<Call> for ProposalType {
 	fn filter(&self, c: &Call) -> bool {
 		match self {
 			ProposalType::Any => true,
-			ProposalType::JustTransfer => matches!(c, Call::Balances(pallet_balances::Call::transfer(..))),
+			ProposalType::JustTransfer => matches!(c, Call::Metaverse(..)),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -301,6 +301,18 @@ pub fn set_freeze_metaverse_proposal_hash(value: u64) -> H256 {
 pub fn add_preimage(hash: H256) {
 	let preimage_status = PreimageStatus::Available {
 		data: set_balance_proposal(4),
+		provider: ALICE,
+		deposit: 200,
+		since: 1,
+		/// None if it's not imminent.
+		expiry: Some(150),
+	};
+	Preimages::<Runtime>::insert(hash, preimage_status);
+}
+
+pub fn add_freeze_metaverse_preimage(hash: H256) {
+	let preimage_status = PreimageStatus::Available {
+		data: set_freeze_metaverse_proposal(1),
 		provider: ALICE,
 		deposit: 200,
 		since: 1,

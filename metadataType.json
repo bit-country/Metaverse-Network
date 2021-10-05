@@ -191,6 +191,7 @@
     ]
   },
   "ProposalId": "u64",
+  "ReferendumId": "u64",
   "MetaverseParameter": {
     "_enum": {
       "MaxProposals": "u8",

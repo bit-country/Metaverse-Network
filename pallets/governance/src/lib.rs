@@ -6,9 +6,10 @@ use codec::{Decode, Encode, Input, MaxEncodedLen};
 use frame_support::{
 	dispatch::DispatchResult,
 	ensure,
+	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
-		Currency, InstanceFilter, LockIdentifier, ReservableCurrency,
+		Currency, Get, InstanceFilter, LockIdentifier, ReservableCurrency,
 	},
 	weights::Weight,
 	RuntimeDebug,
@@ -225,10 +226,6 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
-			ensure!(
-				Self::is_preimage_valid(encoded_proposal.clone())?,
-				Error::<T>::PreimageCallsOutOfScope
-			);
 			Self::note_preimage_inner(from, encoded_proposal.clone())?;
 			Ok(().into())
 		}
@@ -245,10 +242,10 @@ pub mod pallet {
 			proposal_description: Vec<u8>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
-			//			ensure!(
-			//				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &metaverse_id),
-			//				Error::<T>::AccountIsNotMetaverseMember
-			//			);
+			ensure!(
+				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &metaverse_id),
+				Error::<T>::AccountIsNotMetaverseMember
+			);
 			ensure!(balance >= T::MinimumProposalDeposit::get(), Error::<T>::DepositTooLow);
 			ensure!(
 				T::Currency::free_balance(&from) >= balance,
@@ -258,7 +255,6 @@ pub mod pallet {
 			let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
 			let proposal_info = ProposalInfo {
 				proposed_by: from.clone(),
-				//  parameter: proposal_parameter,
 				hash: preimage_hash,
 				description: proposal_description,
 				referendum_launch_block: launch_block,
@@ -427,7 +423,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			Self::do_enact_proposal(proposal, metaverse_id);
-			Self::deposit_event(Event::ProposalEnacted(metaverse_id, proposal));
+
 			Ok(().into())
 		}
 	}
@@ -448,274 +444,268 @@ pub mod pallet {
 			}
 		}
 	}
+}
 
-	impl<T: Config> Pallet<T> {
-		// See `note_preimage`
-		fn note_preimage_inner(who: T::AccountId, encoded_proposal: Vec<u8>) -> DispatchResult {
-			let proposal_hash = T::Hashing::hash(&encoded_proposal[..]);
-			ensure!(
-				!<Preimages<T>>::contains_key(&proposal_hash),
-				Error::<T>::DuplicatePreimage
-			);
+impl<T: Config> Pallet<T> {
+	// See `note_preimage`
+	fn note_preimage_inner(who: T::AccountId, encoded_proposal: Vec<u8>) -> DispatchResult {
+		let proposal_hash = T::Hashing::hash(&encoded_proposal[..]);
+		ensure!(
+			!<Preimages<T>>::contains_key(&proposal_hash),
+			Error::<T>::DuplicatePreimage
+		);
 
-			let deposit = <BalanceOf<T>>::from(encoded_proposal.len() as u32)
-				.saturating_mul(T::DefaultPreimageByteDeposit::get());
-			T::Currency::reserve(&who, deposit)?;
+		let deposit =
+			<BalanceOf<T>>::from(encoded_proposal.len() as u32).saturating_mul(T::DefaultPreimageByteDeposit::get());
+		T::Currency::reserve(&who, deposit)?;
 
-			let now = <frame_system::Pallet<T>>::block_number();
-			let a = PreimageStatus::Available {
-				data: encoded_proposal,
-				provider: who.clone(),
-				deposit,
-				since: now,
-				expiry: None,
-			};
-			<Preimages<T>>::insert(proposal_hash, a);
+		let now = <frame_system::Pallet<T>>::block_number();
+		let a = PreimageStatus::Available {
+			data: encoded_proposal,
+			provider: who.clone(),
+			deposit,
+			since: now,
+			expiry: None,
+		};
+		<Preimages<T>>::insert(proposal_hash, a);
 
-			Self::deposit_event(Event::<T>::PreimageNoted(proposal_hash, who, deposit));
+		Self::deposit_event(Event::<T>::PreimageNoted(proposal_hash, who, deposit));
 
-			Ok(())
-		}
+		Ok(())
+	}
 
-		fn is_preimage_valid(encoded_proposal: Vec<u8>) -> Result<bool, DispatchError> {
-			//TO DO: check whether preimage function calls are within a defined scope
-			Ok(true)
-		}
+	fn start_referendum(
+		metaverse_id: MetaverseId,
+		proposal_id: ProposalId,
+		current_block: T::BlockNumber,
+	) -> Result<u64, DispatchError> {
+		let referendum_id = Self::get_next_referendum_id()?;
 
-		fn does_preimage_updates_jury(encoded_proposal: Vec<u8>) -> Result<bool, DispatchError> {
-			//TO DO: Check whether preimage updates jury
-			Ok(false)
-		}
-
-		fn start_referendum(
-			metaverse_id: MetaverseId,
-			proposal_id: ProposalId,
-			current_block: T::BlockNumber,
-		) -> Result<u64, DispatchError> {
-			let referendum_id = Self::get_next_referendum_id()?;
-
-			let mut referendum_end = current_block;
-			let mut referendum_threshold = VoteThreshold::RelativeMajority;
-			match Self::referendum_parameters(metaverse_id) {
-				Some(metaverse_referendum_params) => {
-					referendum_end = current_block + metaverse_referendum_params.voting_period;
-					match metaverse_referendum_params.voting_threshold {
-						Some(defined_threshold) => referendum_threshold = defined_threshold,
-						None => {}
-					}
+		let mut referendum_end = current_block;
+		let mut referendum_threshold = VoteThreshold::RelativeMajority;
+		match Self::referendum_parameters(metaverse_id) {
+			Some(metaverse_referendum_params) => {
+				referendum_end = current_block + metaverse_referendum_params.voting_period;
+				match metaverse_referendum_params.voting_threshold {
+					Some(defined_threshold) => referendum_threshold = defined_threshold,
+					None => {}
 				}
-				None => referendum_end = current_block + T::DefaultVotingPeriod::get(),
 			}
-
-			let initial_tally = Tally {
-				ayes: Zero::zero(),
-				nays: Zero::zero(),
-				turnout: Zero::zero(),
-			};
-
-			let referendum_status = ReferendumStatus {
-				end: referendum_end,
-				metaverse: metaverse_id,
-				proposal: proposal_id,
-				tally: initial_tally,
-				threshold: Some(referendum_threshold.clone()),
-			};
-			let referendum_info = ReferendumInfo::Ongoing(referendum_status);
-			<ReferendumInfoOf<T>>::insert(referendum_id, referendum_info);
-
-			Self::deposit_event(Event::ReferendumStarted(referendum_id, referendum_threshold));
-			Ok(referendum_id)
+			None => referendum_end = current_block + T::DefaultVotingPeriod::get(),
 		}
 
-		fn get_next_proposal_id() -> Result<ProposalId, DispatchError> {
-			<NextProposalId<T>>::try_mutate(|next_id| -> Result<ProposalId, DispatchError> {
-				let current_id = *next_id;
-				*next_id = next_id.checked_add(1).ok_or(Error::<T>::ProposalIdOverflow)?;
-				Ok(current_id)
-			})
-		}
+		let initial_tally = Tally {
+			ayes: Zero::zero(),
+			nays: Zero::zero(),
+			turnout: Zero::zero(),
+		};
 
-		fn get_next_referendum_id() -> Result<ReferendumId, DispatchError> {
-			<NextReferendumId<T>>::try_mutate(|next_id| -> Result<ReferendumId, DispatchError> {
-				let current_id = *next_id;
-				*next_id = next_id.checked_add(1).ok_or(Error::<T>::ReferendumIdOverflow)?;
-				Ok(current_id)
-			})
-		}
+		let referendum_status = ReferendumStatus {
+			end: referendum_end,
+			metaverse: metaverse_id,
+			proposal: proposal_id,
+			tally: initial_tally,
+			threshold: Some(referendum_threshold.clone()),
+		};
+		let referendum_info = ReferendumInfo::Ongoing(referendum_status);
+		<ReferendumInfoOf<T>>::insert(referendum_id, referendum_info);
 
-		fn get_proposal_launch_block(metaverse_id: MetaverseId) -> Result<T::BlockNumber, DispatchError> {
-			let current_block = <frame_system::Pallet<T>>::block_number();
-			match Self::referendum_parameters(metaverse_id) {
-				Some(metaverse_referendum_params) => {
-					ensure!(
-						Self::proposals_per_metaverse(metaverse_id)
-							< metaverse_referendum_params.max_proposals_per_metaverse,
-						Error::<T>::ProposalQueueFull
-					);
-					if metaverse_referendum_params.min_proposal_launch_period.is_zero() {
-						Ok(current_block + metaverse_referendum_params.min_proposal_launch_period)
-					} else {
-						Ok(current_block + T::DefaultProposalLaunchPeriod::get())
-					}
-				}
-				None => {
-					ensure!(
-						Self::proposals_per_metaverse(metaverse_id) < T::DefaultMaxProposalsPerMetaverse::get(),
-						Error::<T>::ProposalQueueFull
-					);
+		Self::deposit_event(Event::ReferendumStarted(referendum_id, referendum_threshold));
+		Ok(referendum_id)
+	}
+
+	fn get_next_proposal_id() -> Result<ProposalId, DispatchError> {
+		<NextProposalId<T>>::try_mutate(|next_id| -> Result<ProposalId, DispatchError> {
+			let current_id = *next_id;
+			*next_id = next_id.checked_add(1).ok_or(Error::<T>::ProposalIdOverflow)?;
+			Ok(current_id)
+		})
+	}
+
+	fn get_next_referendum_id() -> Result<ReferendumId, DispatchError> {
+		<NextReferendumId<T>>::try_mutate(|next_id| -> Result<ReferendumId, DispatchError> {
+			let current_id = *next_id;
+			*next_id = next_id.checked_add(1).ok_or(Error::<T>::ReferendumIdOverflow)?;
+			Ok(current_id)
+		})
+	}
+
+	fn get_proposal_launch_block(metaverse_id: MetaverseId) -> Result<T::BlockNumber, DispatchError> {
+		let current_block = <frame_system::Pallet<T>>::block_number();
+		match Self::referendum_parameters(metaverse_id) {
+			Some(metaverse_referendum_params) => {
+				ensure!(
+					Self::proposals_per_metaverse(metaverse_id)
+						< metaverse_referendum_params.max_proposals_per_metaverse,
+					Error::<T>::ProposalQueueFull
+				);
+				if metaverse_referendum_params.min_proposal_launch_period.is_zero() {
+					Ok(current_block + metaverse_referendum_params.min_proposal_launch_period)
+				} else {
 					Ok(current_block + T::DefaultProposalLaunchPeriod::get())
 				}
 			}
-		}
-
-		fn pre_image_data_len(preimage_hash: T::Hash) -> Result<u32, DispatchError> {
-			// To decode the `data` field of Available variant we need:
-			// * one byte for the variant
-			// * at most 5 bytes to decode a `Compact<u32>`
-			let mut buf = [0u8; 6];
-			let key = <Preimages<T>>::hashed_key_for(preimage_hash);
-			let bytes = sp_io::storage::read(&key, &mut buf, 0).ok_or_else(|| Error::<T>::PreimageMissing)?;
-			// The value may be smaller that 6 bytes.
-			let mut input = &buf[0..buf.len().min(bytes as usize)];
-
-			match input.read_byte() {
-				Ok(1) => (), // Check that input exists and is second variant.
-				Ok(0) => return Err(Error::<T>::PreimageMissing.into()),
-				_ => {
-					sp_runtime::print("Failed to decode `PreimageStatus` variant");
-					return Err(Error::<T>::PreimageMissing.into());
-				}
+			None => {
+				ensure!(
+					Self::proposals_per_metaverse(metaverse_id) < T::DefaultMaxProposalsPerMetaverse::get(),
+					Error::<T>::ProposalQueueFull
+				);
+				Ok(current_block + T::DefaultProposalLaunchPeriod::get())
 			}
-
-			// Decode the length of the vector.
-			let len = codec::Compact::<u32>::decode(&mut input)
-				.map_err(|_| {
-					sp_runtime::print("Failed to decode `PreimageStatus` variant");
-					DispatchError::from(Error::<T>::PreimageMissing)
-				})?
-				.0;
-
-			Ok(len)
 		}
+	}
 
-		fn update_proposals_per_metaverse_number(metaverse_id: MetaverseId, is_proposal_added: bool) -> DispatchResult {
-			<TotalProposalsPerMetaverse<T>>::try_mutate(metaverse_id, |number_of_proposals| -> DispatchResult {
-				if is_proposal_added {
-					*number_of_proposals = number_of_proposals
-						.checked_add(1)
-						.ok_or(Error::<T>::ProposalQueueOverflow)?;
-				} else {
-					*number_of_proposals = number_of_proposals
-						.checked_sub(1)
-						.ok_or(Error::<T>::ProposalQueueOverflow)?;
-				}
-				Ok(())
-			})
-		}
+	fn pre_image_data_len(preimage_hash: T::Hash) -> Result<u32, DispatchError> {
+		// To decode the `data` field of Available variant we need:
+		// * one byte for the variant
+		// * at most 5 bytes to decode a `Compact<u32>`
+		let mut buf = [0u8; 6];
+		let key = <Preimages<T>>::hashed_key_for(preimage_hash);
+		let bytes = sp_io::storage::read(&key, &mut buf, 0).ok_or_else(|| Error::<T>::PreimageMissing)?;
+		// The value may be smaller that 6 bytes.
+		let mut input = &buf[0..buf.len().min(bytes as usize)];
 
-		fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
-			let info = Self::referendum_info(referendum_id).ok_or(Error::<T>::ReferendumDoesNotExist)?;
-			Self::ensure_ongoing(info.into())
-		}
-
-		/// Ok if the given referendum is active, Err otherwise
-		fn ensure_ongoing(
-			r: ReferendumInfo<T::BlockNumber>,
-		) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
-			match r {
-				ReferendumInfo::Ongoing(s) => Ok(s),
-				_ => Err(Error::<T>::ReferendumIsOver.into()),
+		match input.read_byte() {
+			Ok(1) => (), // Check that input exists and is second variant.
+			Ok(0) => return Err(Error::<T>::PreimageMissing.into()),
+			_ => {
+				sp_runtime::print("Failed to decode `PreimageStatus` variant");
+				return Err(Error::<T>::PreimageMissing.into());
 			}
 		}
 
-		fn find_referendum_result(threshold: Option<VoteThreshold>, tally: Tally) -> Result<bool, DispatchError> {
-			if tally.turnout == 0 {
-				return Ok(false);
-			}
+		// Decode the length of the vector.
+		let len = codec::Compact::<u32>::decode(&mut input)
+			.map_err(|_| {
+				sp_runtime::print("Failed to decode `PreimageStatus` variant");
+				DispatchError::from(Error::<T>::PreimageMissing)
+			})?
+			.0;
 
-			match threshold {
-				Some(ref threshold_type) => match threshold_type {
-					VoteThreshold::StandardQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.72),
-					VoteThreshold::TwoThirdsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6666),
-					VoteThreshold::ThreeFifthsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6),
-					VoteThreshold::ReinforcedQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.55),
-					VoteThreshold::RelativeMajority => Ok(tally.ayes > tally.nays),
-					_ => Err(Error::<T>::InvalidReferendumOutcome.into()),
-				},
-				// If no threshold is selected, the proposal will pass with relative majority
-				None => Ok(tally.ayes > tally.nays),
+		Ok(len)
+	}
+
+	fn update_proposals_per_metaverse_number(metaverse_id: MetaverseId, is_proposal_added: bool) -> DispatchResult {
+		<TotalProposalsPerMetaverse<T>>::try_mutate(metaverse_id, |number_of_proposals| -> DispatchResult {
+			if is_proposal_added {
+				*number_of_proposals = number_of_proposals
+					.checked_add(1)
+					.ok_or(Error::<T>::ProposalQueueOverflow)?;
+			} else {
+				*number_of_proposals = number_of_proposals
+					.checked_sub(1)
+					.ok_or(Error::<T>::ProposalQueueOverflow)?;
 			}
+			Ok(())
+		})
+	}
+
+	fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
+		let info = Self::referendum_info(referendum_id).ok_or(Error::<T>::ReferendumDoesNotExist)?;
+		Self::ensure_ongoing(info.into())
+	}
+
+	/// Ok if the given referendum is active, Err otherwise
+	fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
+		match r {
+			ReferendumInfo::Ongoing(s) => Ok(s),
+			_ => Err(Error::<T>::ReferendumIsOver.into()),
+		}
+	}
+
+	fn find_referendum_result(threshold: Option<VoteThreshold>, tally: Tally) -> Result<bool, DispatchError> {
+		if tally.turnout == 0 {
+			return Ok(false);
 		}
 
-		fn finalize_vote(
-			referendum_id: ReferendumId,
-			referendum_status: ReferendumStatus<T::BlockNumber>,
-		) -> DispatchResult {
-			// Return deposit
-			let deposit_info = Self::deposit(referendum_status.proposal).ok_or(Error::<T>::InsufficientBalance)?;
-			<DepositOf<T>>::remove(referendum_status.proposal);
-			T::Currency::unreserve(&deposit_info.0, deposit_info.1);
+		match threshold {
+			Some(ref threshold_type) => match threshold_type {
+				VoteThreshold::StandardQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.72),
+				VoteThreshold::TwoThirdsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6666),
+				VoteThreshold::ThreeFifthsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6),
+				VoteThreshold::ReinforcedQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.55),
+				VoteThreshold::RelativeMajority => Ok(tally.ayes > tally.nays),
+				_ => Err(Error::<T>::InvalidReferendumOutcome.into()),
+			},
+			// If no threshold is selected, the proposal will pass with relative majority
+			None => Ok(tally.ayes > tally.nays),
+		}
+	}
 
-			// Check if referendum passes
-			let does_referendum_passed =
-				Self::find_referendum_result(referendum_status.threshold.clone(), referendum_status.tally.clone())?;
+	fn finalize_vote(
+		referendum_id: ReferendumId,
+		referendum_status: ReferendumStatus<T::BlockNumber>,
+	) -> DispatchResult {
+		// Return deposit
+		let deposit_info = Self::deposit(referendum_status.proposal).ok_or(Error::<T>::InsufficientBalance)?;
+		<DepositOf<T>>::remove(referendum_status.proposal);
+		T::Currency::unreserve(&deposit_info.0, deposit_info.1);
 
-			// Update referendum info
-			<ReferendumInfoOf<T>>::try_mutate(referendum_id, |referendum_info| -> DispatchResult {
-				*referendum_info = Some(ReferendumInfo::Finished {
-					passed: does_referendum_passed,
-					end: referendum_status.end,
-				});
+		// Check if referendum passes
+		let does_referendum_passed =
+			Self::find_referendum_result(referendum_status.threshold.clone(), referendum_status.tally.clone())?;
 
-				Ok(())
+		// Update referendum info
+		<ReferendumInfoOf<T>>::try_mutate(referendum_id, |referendum_info| -> DispatchResult {
+			*referendum_info = Some(ReferendumInfo::Finished {
+				passed: does_referendum_passed,
+				end: referendum_status.end,
 			});
 
-			// Enact proposal if it passed the threshold
-			if does_referendum_passed {
-				//Self::do_enact_proposal(referendum_status.proposal, referendum_status.metaverse
-				let mut when = referendum_status.end;
-				match Self::referendum_parameters(referendum_status.metaverse) {
-					Some(current_params) => when += current_params.enactment_period,
-					None => when += T::DefaultEnactmentPeriod::get(),
-				}
+			Ok(())
+		});
 
-				if T::Scheduler::schedule_named(
-					(GOVERNANCE_ID, referendum_id).encode(),
-					DispatchTime::At(when),
-					None,
-					63,
-					frame_system::RawOrigin::Root.into(),
-					Call::enact_proposal(referendum_status.proposal, referendum_status.metaverse).into(),
-				)
-				.is_err()
-				{
-					frame_support::print("LOGIC ERROR: does_referendum_passed/schedule_named failed");
-				} else {
-					Self::deposit_event(Event::ReferendumPassed(referendum_id));
-				}
-			} else {
-				Self::deposit_event(Event::ReferendumNotPassed(referendum_id));
+		// Enact proposal if it passed the threshold
+		if does_referendum_passed {
+			//Self::do_enact_proposal(referendum_status.proposal, referendum_status.metaverse
+			let mut when = referendum_status.end;
+			match Self::referendum_parameters(referendum_status.metaverse) {
+				Some(current_params) => when += current_params.enactment_period,
+				None => when += T::DefaultEnactmentPeriod::get(),
 			}
 
-			Ok(())
+			if T::Scheduler::schedule_named(
+				(GOVERNANCE_ID, referendum_id).encode(),
+				DispatchTime::At(when),
+				None,
+				63,
+				frame_system::RawOrigin::Root.into(),
+				Call::enact_proposal(referendum_status.proposal, referendum_status.metaverse).into(),
+			)
+			.is_err()
+			{
+				frame_support::print("LOGIC ERROR: does_referendum_passed/schedule_named failed");
+			} else {
+				Self::deposit_event(Event::ReferendumPassed(referendum_id));
+			}
+		} else {
+			Self::deposit_event(Event::ReferendumNotPassed(referendum_id));
 		}
 
-		fn do_enact_proposal(proposal_id: ProposalId, metaverse_id: MetaverseId) -> DispatchResult {
-			let proposal_info =
-				Self::proposals(metaverse_id, proposal_id).ok_or(Error::<T>::InvalidProposalParameters)?;
-			let preimage = <Preimages<T>>::take(&proposal_info.hash);
-			if let Some(PreimageStatus::Available {
-				data,
-				provider,
-				deposit,
-				..
-			}) = preimage
-			{
-				if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
-					let proposal_type = T::ProposalType::default();
+		Ok(())
+	}
 
-					ensure!(proposal_type.filter(&proposal), Error::<T>::PreimageInvalid);
+	fn do_enact_proposal(proposal_id: ProposalId, metaverse_id: MetaverseId) -> DispatchResult {
+		let proposal_info = Self::proposals(metaverse_id, proposal_id).ok_or(Error::<T>::InvalidProposalParameters)?;
+		let preimage = <Preimages<T>>::take(&proposal_info.hash);
+		if let Some(PreimageStatus::Available {
+			data,
+			provider,
+			deposit,
+			..
+		}) = preimage
+		{
+			if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
+				let proposal_type = T::ProposalType::default();
 
+				if !proposal_type.filter(&proposal) {
+					Self::deposit_event(Event::<T>::PreimageInvalid(
+						metaverse_id,
+						proposal_info.hash,
+						proposal_id,
+					));
+					Err(Error::<T>::PreimageInvalid.into())
+				} else {
 					Self::deposit_event(Event::<T>::PreimageUsed(proposal_info.hash, provider, deposit));
 					let result = proposal
 						.dispatch(frame_system::RawOrigin::Root.into())
@@ -723,24 +713,24 @@ pub mod pallet {
 						.map_err(|e| e.error);
 
 					Self::deposit_event(Event::<T>::PreimageEnacted(metaverse_id, proposal_info.hash, result));
-
+					Self::deposit_event(Event::ProposalEnacted(metaverse_id, proposal_id));
 					Ok(())
-				} else {
-					Self::deposit_event(Event::<T>::PreimageInvalid(
-						metaverse_id,
-						proposal_info.hash,
-						proposal_id,
-					));
-					Err(Error::<T>::PreimageInvalid.into())
 				}
 			} else {
-				Self::deposit_event(Event::<T>::PreimageMissing(
+				Self::deposit_event(Event::<T>::PreimageInvalid(
 					metaverse_id,
 					proposal_info.hash,
 					proposal_id,
 				));
-				Err(Error::<T>::PreimageMissing.into())
+				Err(Error::<T>::PreimageInvalid.into())
 			}
+		} else {
+			Self::deposit_event(Event::<T>::PreimageMissing(
+				metaverse_id,
+				proposal_info.hash,
+				proposal_id,
+			));
+			Err(Error::<T>::PreimageMissing.into())
 		}
 	}
 }

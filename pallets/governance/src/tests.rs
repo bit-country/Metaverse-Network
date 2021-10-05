@@ -544,8 +544,8 @@ fn referendum_proposal_is_enacted() {
 	ExtBuilder::default().build().execute_with(|| {
 		let root = Origin::root();
 		let proposer = Origin::signed(ALICE);
-		let hash = set_balance_proposal_hash(400);
-		add_preimage(hash);
+		let hash = set_freeze_metaverse_proposal_hash(1);
+		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
 			proposer.clone(),
 			BOB_COUNTRY_ID,
@@ -557,6 +557,28 @@ fn referendum_proposal_is_enacted() {
 		assert_eq!(
 			last_event(),
 			Event::Governance(crate::Event::ProposalEnacted(BOB_COUNTRY_ID, 0))
+		);
+	});
+}
+
+#[test]
+fn referendum_proposal_rejected_as_out_of_scope() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+		let proposer = Origin::signed(ALICE);
+		let hash = set_balance_proposal_hash(1);
+		add_preimage(hash);
+		assert_ok!(GovernanceModule::propose(
+			proposer.clone(),
+			BOB_COUNTRY_ID,
+			600,
+			hash.clone(),
+			PROPOSAL_DESCRIPTION.to_vec()
+		));
+		assert_ok!(GovernanceModule::enact_proposal(root.clone(), 0, BOB_COUNTRY_ID));
+		assert_eq!(
+			last_event(),
+			Event::Governance(crate::Event::PreimageInvalid(BOB_COUNTRY_ID, hash.clone(), 0))
 		);
 	});
 }
