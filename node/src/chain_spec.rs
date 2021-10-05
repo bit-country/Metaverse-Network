@@ -2,8 +2,8 @@ use hex_literal::hex;
 use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, EVMConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig, Signature,
-	StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	ContinuumConfig, DemocracyConfig, EVMConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig,
+	Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use primitives::Balance;
 use sc_service::{ChainType, Properties};
@@ -264,6 +264,7 @@ fn testnet_genesis(
 			key: root_key,
 		},
 		council: Default::default(),
+		democracy: DemocracyConfig::default(),
 		tokens: Default::default(),
 		vesting: Default::default(),
 		continuum: ContinuumConfig {

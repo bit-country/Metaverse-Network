@@ -3811,6 +3811,7 @@ dependencies = [
  "pallet-balances",
  "pallet-collective",
  "pallet-continuum",
+ "pallet-democracy",
  "pallet-estate",
  "pallet-evm",
  "pallet-evm-precompile-modexp",

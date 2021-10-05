@@ -45,6 +45,7 @@ sp-version = { version = "4.0.0-dev", default-features = false, git = "https://g
 pallet-authorship = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pallet-session = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 pallet-scheduler = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+pallet-democracy = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 
 # Used for the node template"s RPCs
 frame-system-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -113,6 +114,7 @@ std = [
     "pallet-vesting/std",
     "pallet-authorship/std",
     "pallet-scheduler/std",
+    "pallet-democracy/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",

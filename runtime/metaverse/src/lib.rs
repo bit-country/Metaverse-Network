@@ -695,8 +695,67 @@ impl pallet_scheduler::Config for Runtime {
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 }
 
+parameter_types! {
+	pub const LaunchPeriod: BlockNumber = 10 * MINUTES;
+	pub const VotingPeriod: BlockNumber = 10 * MINUTES;
+	pub const FastTrackVotingPeriod: BlockNumber = 10 * MINUTES;
+	pub const InstantAllowed: bool = true;
+	pub const MinimumDeposit: Balance = 100 * DOLLARS;
+	pub const EnactmentPeriod: BlockNumber = 10 * MINUTES;
+	pub const CooloffPeriod: BlockNumber = 10 * MINUTES;
+	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+	pub const MaxVotes: u32 = 50;
+	pub const MaxProposals: u32 = 50;
+}
+
+impl pallet_democracy::Config for Runtime {
+	type Proposal = Call;
+	type Event = Event;
+	type Currency = Balances;
+	type EnactmentPeriod = EnactmentPeriod;
+	type LaunchPeriod = LaunchPeriod;
+	type VotingPeriod = VotingPeriod;
+	type MinimumDeposit = MinimumDeposit;
+	/// A straight majority of the council can decide what their next motion is.
+	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>;
+	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
+	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;
+	/// A unanimous council can have the next scheduled referendum be a straight default-carries
+	/// (NTB) vote.
+	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
+	/// be tabled immediately and with a shorter voting/enactment period.
+	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
+	type InstantOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+	type InstantAllowed = InstantAllowed;
+	type FastTrackVotingPeriod = FastTrackVotingPeriod;
+	/// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
+	/// To cancel a proposal before it has been passed, the technical committee must be unanimous or
+	/// Root must agree.
+	type CancelProposalOrigin = EnsureOneOf<
+		AccountId,
+		EnsureRoot<AccountId>,
+		pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
+	>;
+	type BlacklistOrigin = EnsureRoot<AccountId>;
+	/// Any single technical committee member may veto a coming council proposal, however they can
+	/// only do it once and it lasts only for the cooloff period.
+	type VetoOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+	type CooloffPeriod = CooloffPeriod;
+	type PreimageByteDeposit = PreimageByteDeposit;
+	type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+	type Slash = ();
+	type Scheduler = Scheduler;
+	type PalletsOrigin = OriginCaller;
+	type MaxVotes = MaxVotes;
+	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
+	type MaxProposals = MaxProposals;
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
 pub enum ProposalType {
+	Any,
 	JustMetaverse,
 }
 
@@ -709,11 +768,12 @@ impl Default for ProposalType {
 impl InstanceFilter<Call> for ProposalType {
 	fn filter(&self, c: &Call) -> bool {
 		match self {
+			ProposalType::Any => true,
 			ProposalType::JustMetaverse => matches!(c, Call::Metaverse(..)),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
-		self == &ProposalType::JustMetaverse || self == o
+		self == &ProposalType::Any || self == o
 	}
 }
 
@@ -800,7 +860,9 @@ construct_runtime!(
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>},
+		// Governance
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
+		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
 
 		// External consensus support
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
