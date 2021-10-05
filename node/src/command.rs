@@ -302,9 +302,13 @@ pub fn run() -> sc_cli::Result<()> {
 		}
 		None => {
 			let runner = cli.create_runner(&cli.run.normalize())?;
+			let chain_spec = &runner.config().chain_spec;
 
-			runner.run_node_until_exit(|config| async move {
-				if cfg!(feature = "with-pioneer-runtime") {
+			info!("chain_spec id: {}", chain_spec.id());
+
+			#[cfg(feature = "with-pioneer-runtime")]
+			if chain_spec.id().starts_with("pioneer") {
+				return runner.run_node_until_exit(|config| async move {
 					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
 
 					let polkadot_cli = RelayChainCli::new(
@@ -339,17 +343,120 @@ pub fn run() -> sc_cli::Result<()> {
 						.await
 						.map(|r| r.0)
 						.map_err(Into::into)
-				} else {
-					#[cfg(feature = "with-metaverse-runtime")]
-					match config.role {
-						Role::Light => service::new_light(config),
-						_ => service::new_full(config),
-					}
-					.map_err(sc_cli::Error::Service)
+				});
+			};
+
+			#[cfg(feature = "with-metaverse-runtime")]
+			return runner.run_node_until_exit(|config| async move {
+				match config.role {
+					Role::Light => service::new_light(config),
+					_ => service::new_full(config),
 				}
-			})
+				.map_err(sc_cli::Error::Service)
+			});
+
+			// runner.run_node_until_exit(|config| async move {
+			// 	if cfg!(feature = "with-pioneer-runtime") {
+			// 		let para_id = chain_spec::Extensions::try_get(&*config.chain_spec).map(|e|
+			// e.para_id);
+			//
+			// 		let polkadot_cli = RelayChainCli::new(
+			// 			&config,
+			// 			[RelayChainCli::executable_name().to_string()]
+			// 				.iter()
+			// 				.chain(cli.relaychain_args.iter()),
+			// 		);
+			//
+			// 		let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2000));
+			//
+			// 		let parachain_account =
+			// 			AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
+			//
+			// 		let block: Block = generate_genesis_block(&config.chain_spec).map_err(|e|
+			// format!("{:?}", e))?; 		let genesis_state = format!("0x{:?}",
+			// HexDisplay::from(&block.header().encode()));
+			//
+			// 		let task_executor = config.task_executor.clone();
+			// 		let polkadot_config =
+			// 			SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, task_executor)
+			// 				.map_err(|err| format!("Relay chain argument error: {}", err))?;
+			//
+			// 		info!("Parachain id: {:?}", id);
+			// 		info!("Parachain Account: {}", parachain_account);
+			// 		info!("Parachain genesis state: {}", genesis_state);
+			// 		info!(
+			// 			"Is collating: {}",
+			// 			if config.role.is_authority() { "yes" } else { "no" }
+			// 		);
+			//
+			//
+			// 		crate::service::start_node(config, polkadot_config, id)
+			// 			.await
+			// 			.map(|r| r.0)
+			// 			.map_err(Into::into)
+			// 	} else {
+			// 		match config.role {
+			// 			Role::Light => service::new_light(config),
+			// 			_ => service::new_full(config),
+			// 		}
+			// 		.map_err(sc_cli::Error::Service)
+			// 	}
+			// })
 		}
 	}
+}
+
+#[cfg(feature = "with-pioneer-runtime")]
+fn run_metaversechain(cli: &Cli) -> sc_cli::Result<()> {
+	let runner = cli.create_runner(&cli.run.normalize())?;
+
+	runner.run_node_until_exit(|config| async move {
+		match config.role {
+			Role::Light => service::new_light(config),
+			_ => service::new_full(config),
+		}
+		.map_err(sc_cli::Error::Service)
+	})
+}
+
+#[cfg(feature = "with-pioneer-runtime")]
+fn run_parachain(cli: &Cli) -> sc_cli::Result<()> {
+	let runner = cli.create_runner(&cli.run.normalize())?;
+
+	runner.run_node_until_exit(|config| async move {
+		let para_id = chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
+
+		let polkadot_cli = RelayChainCli::new(
+			&config,
+			[RelayChainCli::executable_name().to_string()]
+				.iter()
+				.chain(cli.relaychain_args.iter()),
+		);
+
+		let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2000));
+
+		let parachain_account = AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
+
+		let block: Block = generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
+		let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
+
+		let task_executor = config.task_executor.clone();
+		let polkadot_config = SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, task_executor)
+			.map_err(|err| format!("Relay chain argument error: {}", err))?;
+
+		info!("Parachain id: {:?}", id);
+		info!("Parachain Account: {}", parachain_account);
+		info!("Parachain genesis state: {}", genesis_state);
+		info!(
+			"Is collating: {}",
+			if config.role.is_authority() { "yes" } else { "no" }
+		);
+
+		crate::service::start_node(config, polkadot_config, id)
+			.await
+			.map(|r| r.0)
+			.map_err(Into::into)
+	})
 }
 
 impl DefaultConfigurationValues for RelayChainCli {

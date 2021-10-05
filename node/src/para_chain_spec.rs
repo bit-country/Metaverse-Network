@@ -139,7 +139,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 		// Name
 		"Local Testnet",
 		// ID
-		"local_testnet",
+		"pioneer_local_testnet",
 		ChainType::Local,
 		move || {
 			testnet_genesis(
