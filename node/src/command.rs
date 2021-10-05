@@ -18,8 +18,12 @@
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
-	para_chain_spec, service,
+	service,
 };
+
+#[cfg(feature = "with-pioneer-runtime")]
+use crate::para_chain_spec;
+
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
@@ -301,8 +305,6 @@ pub fn run() -> sc_cli::Result<()> {
 
 			runner.run_node_until_exit(|config| async move {
 				if cfg!(feature = "with-pioneer-runtime") {
-					// TODO: run node in parachain
-
 					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
 
 					let polkadot_cli = RelayChainCli::new(
@@ -338,6 +340,7 @@ pub fn run() -> sc_cli::Result<()> {
 						.map(|r| r.0)
 						.map_err(Into::into)
 				} else {
+					#[cfg(feature = "with-metaverse-runtime")]
 					match config.role {
 						Role::Light => service::new_light(config),
 						_ => service::new_full(config),
