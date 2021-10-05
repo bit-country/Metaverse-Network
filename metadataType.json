@@ -7,6 +7,7 @@
     "data": "AssetData"
   },
   "AssetId": "u64",
+  "EstateId": "u64",
   "AssetData": {
     "name": "Text",
     "description": "Text",
@@ -110,7 +111,6 @@
       "DOT"
     ]
   },
-  "CountryCurrencyId": "u32",
   "CurrencyIdOf": "FungibleTokenId",
   "BalanceIdOf": "Balance",
   "ChainId": {
@@ -173,10 +173,10 @@
     "_enum": {
       "Missing": "BlockNumber",
       "Available": {
-        "data": "Vec<u8>", 
-        "provider": "AccountId", 
+        "data": "Vec<u8>",
+        "provider": "AccountId",
         "deposit": "Balance",
-        "since": "BlockNumber", 
+        "since": "BlockNumber",
         "expiry": "Option<BlockNumber>"
       }
     }
@@ -191,7 +191,7 @@
     ]
   },
   "ProposalId": "u64",
-  "CountryParameter": {
+  "MetaverseParameter": {
     "_enum": {
       "MaxProposals": "u8",
       "SetReferendumJury": "AccountId"
@@ -223,7 +223,7 @@
   },
   "ReferendumStatus": {
     "end": "BlockNumber",
-    "country": "CountryId",
+    "metaverse": "MetaverseId",
     "proposal": "ProposalId",
     "tally": "Tally",
     "threshold": "Option<VoteThreshold>"
@@ -234,6 +234,8 @@
       "Finished": {
         "passed": "bool",
         "end": "BlockNumber"
+      }
+    }
   },
   "ListingLevel": {
     "_enum": {
@@ -246,8 +248,8 @@
     "token": "FungibleTokenId",
     "start": "BlockNumber",
     "period": "BlockNumber",
-    "period_count": "u32",
-    "per_period": "Balance"
+    "periodCount": "u32",
+    "perPeriod": "Compact<Balance>"
   },
   "RoundIndex": "u32",
   "VestingScheduleOf": "VestingSchedule",

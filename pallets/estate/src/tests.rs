@@ -276,6 +276,10 @@ fn mint_lands_should_work_with_one_coordinate() {
 		));
 
 		assert_eq!(
+			EstateModule::get_user_land_units(&BENEFICIARY_ID, &BITCOUNTRY_ID).len(),
+			1
+		);
+		assert_eq!(
 			last_event(),
 			Event::Estate(crate::Event::NewLandsMinted(BITCOUNTRY_ID, vec![COORDINATE_IN_1]))
 		);
@@ -454,6 +458,47 @@ fn mint_estate_should_work() {
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(
+			EstateModule::get_user_land_units(&BENEFICIARY_ID, &BITCOUNTRY_ID).len(),
+			2
+		);
+	});
+}
+
+#[test]
+fn mint_estate_and_land_should_return_correct_total_land_unit() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), BITCOUNTRY_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			BITCOUNTRY_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let mut estate_id: u64 = 0;
+		assert_eq!(EstateModule::all_estates_count(), 1);
+		assert_eq!(EstateModule::next_estate_id(), 1);
+		assert_eq!(
+			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
+			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
+		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(
+			EstateModule::get_user_land_units(&BENEFICIARY_ID, &BITCOUNTRY_ID).len(),
+			2
+		);
+
+		assert_ok!(EstateModule::mint_land(
+			Origin::root(),
+			BENEFICIARY_ID,
+			BITCOUNTRY_ID,
+			(-6, 6)
+		));
+		assert_eq!(
+			EstateModule::get_user_land_units(&BENEFICIARY_ID, &BITCOUNTRY_ID).len(),
+			3
+		);
 	});
 }
 

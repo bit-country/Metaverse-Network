@@ -56,11 +56,14 @@ pub use frame_support::{
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-		IdentityFee, Weight,
+		DispatchClass, IdentityFee, Weight,
 	},
-	PalletId, StorageValue,
+	PalletId, RuntimeDebug, StorageValue,
 };
-use frame_system::{Config, EnsureOneOf, EnsureRoot, RawOrigin};
+use frame_system::{
+	limits::{BlockLength, BlockWeights},
+	Config, EnsureOneOf, EnsureRoot, RawOrigin,
+};
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
@@ -74,9 +77,9 @@ pub use sp_runtime::{Perbill, Permill};
 /// Constant values used within the runtime.
 pub mod constants;
 
-use codec::Encode;
+use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
-use frame_support::traits::FindAuthor;
+use frame_support::traits::{FindAuthor, InstanceFilter};
 use frame_support::ConsensusEngineId;
 use sp_core::sp_std::marker::PhantomData;
 use sp_runtime::traits::OpaqueKeys;
@@ -149,16 +152,48 @@ pub fn native_version() -> NativeVersion {
 	}
 }
 
+/// We assume that ~10% of the block weight is consumed by `on_initialize` handlers.
+/// This is used to limit the maximal weight of a single extrinsic.
+const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
+/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used
+/// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+/// We allow for 2 seconds of compute with a 3 second average block time.
+const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
 
 parameter_types! {
-	pub const Version: RuntimeVersion = VERSION;
+//	pub const Version: RuntimeVersion = VERSION;
+//	pub const BlockHashCount: BlockNumber = 2400;
+//	/// We allow for 2 seconds of compute with a 3 second average block time.
+//	pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
+//		::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
+//	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
+//		::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+//
+//
 	pub const BlockHashCount: BlockNumber = 2400;
-	/// We allow for 2 seconds of compute with a 3 second average block time.
-	pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
-		::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
-	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
-		::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	pub const Version: RuntimeVersion = VERSION;
+	pub RuntimeBlockLength: BlockLength =
+		BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
+		.base_block(BlockExecutionWeight::get())
+		.for_class(DispatchClass::all(), |weights| {
+			weights.base_extrinsic = ExtrinsicBaseWeight::get();
+		})
+		.for_class(DispatchClass::Normal, |weights| {
+			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+		})
+		.for_class(DispatchClass::Operational, |weights| {
+			weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
+			// Operational transactions have some extra reserved space, so that they
+			// are included even if block reached `MAXIMUM_BLOCK_WEIGHT`.
+			weights.reserved = Some(
+				MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT
+			);
+		})
+		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+		.build_or_panic();
+
 	pub const SS58Prefix: u8 = 42;
 }
 
@@ -168,9 +203,9 @@ impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
 	type BaseCallFilter = frame_support::traits::Everything;
 	/// Block & extrinsics weights: base values and limits.
-	type BlockWeights = BlockWeights;
+	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
-	type BlockLength = BlockLength;
+	type BlockLength = RuntimeBlockLength;
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The aggregated dispatch type that is available for extrinsics.
@@ -632,6 +667,76 @@ impl pallet_evm::Config for Runtime {
 	type FindAuthor = FindAuthorTruncated<Aura>;
 }
 
+parameter_types! {
+	pub const DefaultVotingPeriod: BlockNumber = 10;
+	pub const DefaultEnactmentPeriod: BlockNumber = 2;
+	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
+	pub const DefaultMaxParametersPerProposal: u8 = 3;
+	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
+	pub const OneBlock: BlockNumber = 1;
+	pub const MinimumProposalDeposit: Balance = 50 * DOLLARS;
+	pub const DefaultPreimageByteDeposit: Balance = 1 * DOLLARS;
+}
+
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
+		RuntimeBlockWeights::get().max_block;
+	pub const MaxScheduledPerBlock: u32 = 50;
+}
+
+impl pallet_scheduler::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+pub enum ProposalType {
+	JustMetaverse,
+}
+
+impl Default for ProposalType {
+	fn default() -> Self {
+		Self::JustMetaverse
+	}
+}
+
+impl InstanceFilter<Call> for ProposalType {
+	fn filter(&self, c: &Call) -> bool {
+		match self {
+			ProposalType::JustMetaverse => matches!(c, Call::Metaverse(..)),
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == &ProposalType::JustMetaverse || self == o
+	}
+}
+
+impl governance::Config for Runtime {
+	type Event = Event;
+	type DefaultVotingPeriod = DefaultVotingPeriod;
+	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
+	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
+	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
+	type MinimumProposalDeposit = MinimumProposalDeposit;
+	type OneBlock = OneBlock;
+	type Currency = Balances;
+	type MetaverseInfo = Metaverse;
+	type PalletsOrigin = OriginCaller;
+	type Proposal = Call;
+	type Scheduler = Scheduler;
+	type MetaverseLandInfo = Estate;
+	type MetaverseCouncil = EnsureRootOrMetaverseTreasury;
+	type ProposalType = ProposalType;
+}
+
 //parameter_types! {
 //	pub const LocalChainId: chainbridge::ChainId = 1;
 //	pub const ProposalLifetime: BlockNumber = 5 * MINUTES;
@@ -682,6 +787,7 @@ construct_runtime!(
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 
 		// Metaverse & Related
 		OrmlNFT: orml_nft::{Pallet, Storage},
@@ -694,6 +800,7 @@ construct_runtime!(
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>},
+		Governance: governance::{Pallet, Call ,Storage, Event<T>},
 
 		// External consensus support
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},

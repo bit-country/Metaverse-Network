@@ -7,7 +7,7 @@ use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Par
 
 use frame_support::dispatch::DispatchError;
 use frame_support::pallet_prelude::{EnsureOrigin, Member};
-use frame_support::{pallet_prelude::Hooks, weights::Weight};
+use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use metaverse_primitive::{MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseTrait};
 use primitives::FungibleTokenId;
@@ -34,7 +34,8 @@ pub const BOB: AccountId = 2;
 pub const ALICE_COUNTRY_ID: CountryId = 1;
 pub const BOB_COUNTRY_ID: CountryId = 2;
 pub const PROPOSAL_DESCRIPTION: [u8; 2] = [1, 2];
-//pub const PROPOSAL_PARAMETER: CountryParameter = CountryParameter::MaxParametersPerProposal(2);
+//pub const PROPOSAL_PARAMETER: MetaverseParameter =
+// MetaverseParameter::MaxParametersPerProposal(2);
 pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumParameters {
 	voting_threshold: Some(VoteThreshold::RelativeMajority),
 	min_proposal_launch_period: 12,
@@ -153,6 +154,22 @@ ord_parameter_types! {
 	pub const One: AccountId = 1;
 	pub const Two: AccountId = 2;
 }
+
+parameter_types! {
+	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MaxTokenMetadata: u32 = 1024;
+	pub const MinContribution: Balance = 1;
+}
+
+impl pallet_metaverse::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type MetaverseTreasury = MetaverseFundPalletId;
+	type MaxMetaverseMetadata = MaxTokenMetadata;
+	type MinContribution = MinContribution;
+	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
 pub enum ProposalType {
 	Any,
@@ -212,6 +229,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
+		Metaverse: pallet_metaverse::{Pallet, Call ,Storage, Event<T>}
 	}
 );
 
@@ -268,13 +286,33 @@ pub fn set_balance_proposal(value: u64) -> Vec<u8> {
 	Call::Balances(pallet_balances::Call::set_balance(BOB, value, 100)).encode()
 }
 
+pub fn set_freeze_metaverse_proposal(value: u64) -> Vec<u8> {
+	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse(value)).encode()
+}
+
 pub fn set_balance_proposal_hash(value: u64) -> H256 {
 	BlakeTwo256::hash(&set_balance_proposal(value)[..])
 }
 
-pub fn add_preimage(hash: H256, does_preimage_updates_jury: bool) {
+pub fn set_freeze_metaverse_proposal_hash(value: u64) -> H256 {
+	BlakeTwo256::hash(&set_freeze_metaverse_proposal(value)[..])
+}
+
+pub fn add_preimage(hash: H256) {
 	let preimage_status = PreimageStatus::Available {
 		data: set_balance_proposal(4),
+		provider: ALICE,
+		deposit: 200,
+		since: 1,
+		/// None if it's not imminent.
+		expiry: Some(150),
+	};
+	Preimages::<Runtime>::insert(hash, preimage_status);
+}
+
+pub fn add_metaverse_preimage(hash: H256) {
+	let preimage_status = PreimageStatus::Available {
+		data: set_freeze_metaverse_proposal(0),
 		provider: ALICE,
 		deposit: 200,
 		since: 1,

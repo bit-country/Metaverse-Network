@@ -23,7 +23,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CurrencyId, EstateId, LandId, MetaverseId};
+use primitives::{Balance, EstateId, LandId, MetaverseId};
 use sp_runtime::{
 	print,
 	traits::{AccountIdConversion, One},
@@ -410,17 +410,24 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 	fn get_user_land_units(who: &T::AccountId, metaverse_id: &MetaverseId) -> Vec<(i32, i32)> {
 		// Check land units owner.
 		let mut total_land_units: Vec<(i32, i32)> = Vec::default();
-		LandUnits::<T>::iter_prefix(metaverse_id)
+
+		let land_in_metaverse = LandUnits::<T>::iter_prefix(metaverse_id)
 			.filter(|(_, owner)| owner == who)
-			.map(|res| total_land_units.push(res.0));
+			.collect::<Vec<(_)>>();
+
+		for land_unit in land_in_metaverse {
+			let land = land_unit.0;
+			total_land_units.push(land);
+		}
 
 		let estate_ids_by_owner: Vec<EstateId> = EstateOwner::<T>::iter_prefix(who)
 			.map(|res| res.0)
 			.collect::<Vec<(_)>>();
 
 		for estate_id in estate_ids_by_owner {
-			let coordinates = Estates::<T>::get(&metaverse_id, &estate_id).unwrap();
-			coordinates.into_iter().map(|x| total_land_units.push(x));
+			let mut coordinates = Estates::<T>::get(&metaverse_id, &estate_id).unwrap();
+			total_land_units.append(&mut coordinates)
+			//			total_land_units.append(&mut coordinates);
 		}
 
 		total_land_units
