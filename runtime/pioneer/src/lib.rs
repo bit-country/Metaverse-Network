@@ -612,7 +612,6 @@ impl nft::Config for Runtime {
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
 	type AuctionHandler = Auction;
-	type AssetsHandler = NftModule;
 }
 
 parameter_types! {
@@ -685,7 +684,7 @@ impl pallet_vesting::Config for Runtime {
 impl tokenization::Config for Runtime {
 	type Event = Event;
 	type TokenId = u64;
-	type BCMultiCurrency = Currencies;
+	type MetaverseMultiCurrency = Currencies;
 	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
 	type MetaverseInfoSource = MetaverseModule;
 	type LiquidityPoolManager = Swap;
