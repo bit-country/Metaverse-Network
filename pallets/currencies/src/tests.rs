@@ -10,7 +10,7 @@ use sp_runtime::traits::BadOrigin;
 use sp_core::blake2_256;
 
 fn country_fund_account() -> AccountId {
-    TokenizationModule::get_country_fund_id(METAVERSE_ID)
+    TokenizationModule::get_metaverse_fund_id(METAVERSE_ID)
 }
 
 fn get_country_fund_balance() -> Balance {
@@ -104,7 +104,7 @@ fn country_treasury_pool_withdraw_should_work() {
         assert_ok!(
 			Currencies::deposit(
                 COUNTRY_FUND,
-                &TokenizationModule::get_country_fund_id(METAVERSE_ID),
+                &TokenizationModule::get_metaverse_fund_id(METAVERSE_ID),
                 400
             )
         );
@@ -112,7 +112,7 @@ fn country_treasury_pool_withdraw_should_work() {
         assert_ok!(
             Currencies::withdraw(
                 COUNTRY_FUND,
-                &TokenizationModule::get_country_fund_id(METAVERSE_ID),
+                &TokenizationModule::get_metaverse_fund_id(METAVERSE_ID),
                 200
             )
         );
@@ -162,13 +162,13 @@ fn country_treasury_pool_transfer_should_work() {
         assert_ok!(
 			Currencies::deposit(
                 COUNTRY_FUND,
-                &TokenizationModule::get_country_fund_id(METAVERSE_ID),
+                &TokenizationModule::get_metaverse_fund_id(METAVERSE_ID),
                 400
             )
         );
         assert_ok!(
 			Currencies::transfer(
-                Origin::signed(TokenizationModule::get_country_fund_id(METAVERSE_ID)),
+                Origin::signed(TokenizationModule::get_metaverse_fund_id(METAVERSE_ID)),
                 ALICE,
                 COUNTRY_FUND,
                 100

@@ -26,7 +26,7 @@ use sp_runtime::traits::BadOrigin;
 #[test]
 fn create_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
 		assert_eq!(
 			MetaverseModule::get_metaverse(&METAVERSE_ID),
 			Some(MetaverseInfo {
@@ -35,7 +35,7 @@ fn create_metaverse_should_work() {
 				currency_id: FungibleTokenId::NativeToken(0),
 			})
 		);
-		let event = Event::metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID));
+		let event = Event::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -43,20 +43,23 @@ fn create_metaverse_should_work() {
 #[test]
 fn create_metaverse_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(MetaverseModule::create_metaverse(Origin::none(), vec![1],), BadOrigin);
+		assert_noop!(
+			MetaverseModule::create_metaverse(Origin::none(), vec![1], ALICE, 1),
+			BadOrigin
+		);
 	});
 }
 
 #[test]
 fn transfer_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
 		assert_ok!(MetaverseModule::transfer_metaverse(
-			Origin::signed(ALICE),
+			Origin::signed(1),
 			BOB,
 			METAVERSE_ID
 		));
-		let event = Event::metaverse(crate::Event::TransferredMetaverse(METAVERSE_ID, ALICE, BOB));
+		let event = Event::Metaverse(crate::Event::TransferredMetaverse(METAVERSE_ID, ALICE, BOB));
 		assert_eq!(last_event(), event);
 		// Make sure 2 ways transfer works
 		assert_ok!(MetaverseModule::transfer_metaverse(
@@ -64,7 +67,7 @@ fn transfer_metaverse_should_work() {
 			ALICE,
 			METAVERSE_ID
 		));
-		let event = Event::metaverse(crate::Event::TransferredMetaverse(METAVERSE_ID, BOB, ALICE));
+		let event = Event::Metaverse(crate::Event::TransferredMetaverse(METAVERSE_ID, BOB, ALICE));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -72,7 +75,7 @@ fn transfer_metaverse_should_work() {
 #[test]
 fn transfer_metaverse_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
 		assert_noop!(
 			MetaverseModule::transfer_metaverse(Origin::signed(BOB), ALICE, METAVERSE_ID),
 			Error::<Runtime>::NoPermission
@@ -83,9 +86,9 @@ fn transfer_metaverse_should_fail() {
 #[test]
 fn freeze_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::freeze_metaverse(Origin::root(), METAVERSE_ID));
-		let event = Event::metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
+		assert_ok!(MetaverseModule::freeze_metaverse(Origin::signed(1), METAVERSE_ID));
+		let event = Event::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -93,10 +96,10 @@ fn freeze_metaverse_should_work() {
 #[test]
 fn freeze_metaverse_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
 		//Country owner tries to freeze their own metaverse
 		assert_noop!(
-			MetaverseModule::freeze_metaverse(Origin::signed(ALICE), METAVERSE_ID),
+			MetaverseModule::freeze_metaverse(Origin::signed(2), METAVERSE_ID),
 			BadOrigin
 		);
 	})
@@ -105,12 +108,12 @@ fn freeze_metaverse_should_fail() {
 #[test]
 fn unfreeze_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::freeze_metaverse(Origin::root(), METAVERSE_ID));
-		let event = Event::metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
+		assert_ok!(MetaverseModule::freeze_metaverse(Origin::signed(1), METAVERSE_ID));
+		let event = Event::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
-		assert_ok!(MetaverseModule::unfreeze_metaverse(Origin::root(), METAVERSE_ID));
-		let event = Event::metaverse(crate::Event::MetaverseUnfreezed(METAVERSE_ID));
+		assert_ok!(MetaverseModule::unfreeze_metaverse(Origin::signed(1), METAVERSE_ID));
+		let event = Event::Metaverse(crate::Event::MetaverseUnfreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -118,9 +121,9 @@ fn unfreeze_metaverse_should_work() {
 #[test]
 fn destroy_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::destroy_metaverse(Origin::root(), METAVERSE_ID));
-		let event = Event::metaverse(crate::Event::MetaverseDestroyed(METAVERSE_ID));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
+		assert_ok!(MetaverseModule::destroy_metaverse(Origin::signed(1), METAVERSE_ID));
+		let event = Event::Metaverse(crate::Event::MetaverseDestroyed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -128,9 +131,9 @@ fn destroy_metaverse_should_work() {
 #[test]
 fn destroy_metaverse_without_root_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
 		assert_noop!(
-			MetaverseModule::destroy_metaverse(Origin::signed(ALICE), METAVERSE_ID),
+			MetaverseModule::destroy_metaverse(Origin::signed(2), METAVERSE_ID),
 			BadOrigin
 		);
 	})
@@ -139,9 +142,9 @@ fn destroy_metaverse_without_root_should_fail() {
 #[test]
 fn destroy_metaverse_with_no_id_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), vec![1], ALICE, 1));
 		assert_noop!(
-			MetaverseModule::destroy_metaverse(Origin::root(), COUNTRY_ID_NOT_EXIST),
+			MetaverseModule::destroy_metaverse(Origin::signed(1), COUNTRY_ID_NOT_EXIST),
 			Error::<Runtime>::MetaverseInfoNotFound
 		);
 	})

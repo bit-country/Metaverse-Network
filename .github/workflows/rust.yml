@@ -37,5 +37,6 @@ jobs:
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release
-#      - name: Run tests
-#        run: cargo test
+      - name: Run all test cases
+        run: |
+          SKIP_WASM_BUILD= cargo test --all

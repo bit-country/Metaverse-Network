@@ -58,7 +58,7 @@ fn register_interest_should_work() {
 		assert_ok!(ContinuumModule::register_interest(origin, ALICE_COUNTRY_ID, (0, 0)));
 		assert_eq!(
 			last_event(),
-			Event::continuum(crate::Event::NewExpressOfInterestAdded(ALICE, 0))
+			Event::Continuum(crate::Event::NewExpressOfInterestAdded(ALICE, 0))
 		)
 	})
 }

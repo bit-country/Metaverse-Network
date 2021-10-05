@@ -31,7 +31,7 @@ use sp_runtime::{
 use sp_std::vec;
 use sp_std::vec::Vec;
 
-use auction_manager::{Auction, AuctionType, ListingLevel};
+use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
 use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
 use sp_arithmetic::Perbill;
@@ -105,7 +105,7 @@ pub mod pallet {
 		/// Emergency shutdown origin which allow cancellation in an emergency
 		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber>;
+		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
 		/// Auction duration
 		type AuctionDuration: Get<Self::BlockNumber>;
 		/// Continuum Treasury
@@ -281,6 +281,8 @@ pub mod pallet {
 		InsufficientFund,
 		/// Continuum Buynow is disable
 		ContinuumBuyNowIsDisabled,
+		/// Continuum Spot is in auction
+		SpotIsInAuction,
 	}
 
 	#[pallet::call]
@@ -619,7 +621,7 @@ impl<T: Config> Pallet<T> {
 
 					// Find existing tally of bidder
 					for mut tally in status.tallies {
-						/// Existing vote
+						// Existing vote
 						if tally.who == who.who {
 							tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?
 						} else {
@@ -656,11 +658,11 @@ impl<T: Config> Pallet<T> {
 		return 5;
 	}
 
-	pub fn get_spot(spot_id: SpotId) -> Result<ContinuumSpot, DispatchError> {
+	fn get_spot(spot_id: SpotId) -> Result<ContinuumSpot, DispatchError> {
 		ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound.into())
 	}
 
-	pub fn do_transfer_spot(
+	fn do_transfer_spot(
 		spot_id: SpotId,
 		from: &T::AccountId,
 		to: &(T::AccountId, MetaverseId),
@@ -668,14 +670,14 @@ impl<T: Config> Pallet<T> {
 		Self::transfer_spot(spot_id, from, to)
 	}
 
-	pub fn check_approved(tally: &ContinuumSpotTally<T::AccountId>) -> bool {
+	fn check_approved(tally: &ContinuumSpotTally<T::AccountId>) -> bool {
 		let nay_ratio = tally.turnout.checked_div(tally.nays).unwrap_or(0);
 		let nay_percent = nay_ratio.checked_mul(100).unwrap_or(0);
 
 		nay_percent > 51
 	}
 
-	pub fn check_spot_ownership(spot_id: Option<SpotId>, coordinate: (i32, i32)) -> Result<SpotId, DispatchError> {
+	fn check_spot_ownership(spot_id: Option<SpotId>, coordinate: (i32, i32)) -> Result<SpotId, DispatchError> {
 		match spot_id {
 			None => {
 				// Insert continuum spot as it's empty
@@ -717,6 +719,10 @@ impl<T: Config> Continuum<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &(T::AccountId, MetaverseId),
 	) -> Result<SpotId, DispatchError> {
+		ensure!(
+			!T::AuctionHandler::check_item_in_auction(ItemId::Spot(spot_id, to.1.clone())),
+			Error::<T>::SpotIsInAuction
+		);
 		ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError> {
 			let treasury = Self::account_id();
 			if *from != treasury {
