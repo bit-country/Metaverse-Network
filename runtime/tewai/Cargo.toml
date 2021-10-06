@@ -116,8 +116,8 @@ governance = { package = "pallet-governance", path = "../../pallets/governance",
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
-[dev-dependencies]
-sp-io = { git = "https://github.com/paritytech/substrate", rev = "91061a7d92", default-features = false }
+#[dev-dependencies]
+#sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
 
 [features]
 default = ['std']
