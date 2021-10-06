@@ -99,4 +99,5 @@ with-metaverse-runtime = [
 
 with-tewai-runtime = [
     "tewai-runtime",
+    "node-primitives"
 ]
