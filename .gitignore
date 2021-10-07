@@ -39,8 +39,10 @@ para-666-genesis
 /.idea*
 /node2/*
 /.idea/*
-/Cargo.lock
 /tewai*
 /.dockerignore
 /customNewTewaiChainRaw.json
 /newTewai*
+/blindbox-target/
+/pallets/staking/
+/pallets/staking

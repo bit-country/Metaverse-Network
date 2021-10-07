@@ -1,6 +1,6 @@
 [package]
-authors = ['Bit Country <https://github.com/bit-country>']
-description = 'Bit Country pallet for country logic.'
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet for country logic.'
 edition = '2018'
 homepage = 'https://bit.country'
 license = 'Unlicense'
@@ -12,26 +12,26 @@ version = '0.0.1'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
-serde = { version = "1.0.119", optional = true, default-features = false, features = ["derive"] }
+serde = { version = "1.0.124", optional = true, default-features = false, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-sp-runtime = { version = "3.0.0", default-features = false }
-sp-std = { version = "3.0.0", default-features = false }
-frame-system = { version = "3.0.0", default-features = false }
-frame-support = { version = "3.0.0", default-features = false }
-pallet-balances = { version = "3.0.0", default-features = false }
-frame-executive = { version = "3.0.0", default-features = false }
-sp-io = { version = "3.0.0", default-features = false }
-sp-core = { version = "3.0.0", default-features = false }
-sp-inherents = { version = "3.0.0", default-features = false }
-sp-arithmetic = { version = "3.0.0", default-features = false }
-sp-session = { version = "3.0.0", default-features = false }
-primitives = { package = "bit-country-primitives", path = "../primitives", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-executive = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-inherents = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 # Orml packages
-orml-traits = { default-features = false, version = '0.4.0' }
-orml-currencies = { default-features = false, version = '0.4.0' }
-orml-tokens = { default-features = false, version = '0.4.0' }
-orml-nft = { default-features = false, version = '0.4.0' }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "master", default-features = false }
 
 [dependencies.pallet_nft]
 default-features = false
@@ -45,10 +45,10 @@ package = 'auction-manager'
 path = '../../traits/auction-manager'
 version = '2.0.0-rc6'
 
-[dependencies.bc-country]
+[dependencies.bc-primitives]
 default-features = false
-package = 'bc-country'
-path = '../../traits/bc-country'
+package = 'bc-primitives'
+path = '../../traits/bc-primitives'
 version = '2.0.0-rc6'
 
 [features]

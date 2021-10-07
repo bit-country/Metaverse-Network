@@ -1,27 +1,19 @@
-#[cfg(feature = "with-parachain-runtime")]
-mod service_parachain;
+//! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
+
+pub const METAVERSE_RUNTIME_NOT_AVAILABLE: &str =
+    "Metaverse runtime is not available. Please compile the node with `--features with-metaverse-runtime` to enable it.";
+pub const TEWAI_RUNTIME_NOT_AVAILABLE: &str =
+	"Tewai runtime is not available. Please compile the node with `--features with-tewai-runtime` to enable it.";
+pub const PIONEER_RUNTIME_NOT_AVAILABLE: &str =
+	"Pioneer runtime is not available. Please compile the node with `--features with-pioneer-runtime` to enable it.";
+
+//#[cfg(feature = "with-parachain-runtime")]
+//mod service_parachain;
+#[cfg(feature = "with-metaverse-runtime")]
+mod metaverse;
 #[cfg(feature = "with-tewai-runtime")]
-mod service_tewai;
-#[cfg(feature = "with-bitcountry-runtime")]
-mod service_bitcountry;
-
-#[cfg(feature = "with-bitcountry-runtime")]
-pub use service_bitcountry::{new_full, new_light, new_partial};
+mod tewai;
+#[cfg(feature = "with-metaverse-runtime")]
+pub use metaverse::{new_full, new_light, new_partial, Executor};
 #[cfg(feature = "with-tewai-runtime")]
-pub use service_tewai::{new_full, new_light, new_partial};
-
-use sc_executor::native_executor_instance;
-
-#[cfg(feature = "with-tewai-runtime")]
-native_executor_instance!(
-    pub BitCountryExecutor,
-    tewai_runtime::api::dispatch,
-    tewai_runtime::native_version
-);
-
-#[cfg(feature = "with-bitcountry-runtime")]
-native_executor_instance!(
-    pub BitCountryExecutor,
-    bitcountry_runtime::api::dispatch,
-    bitcountry_runtime::native_version
-);
+pub use tewai::{new_full as tewai_full, new_light as tewai_light, new_partial as tewai_partial};

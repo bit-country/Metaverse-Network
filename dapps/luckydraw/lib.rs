@@ -146,9 +146,9 @@ pub mod luckydraw {
             return Ok(());
         }
 
-        // fn get_simple_random() -> u8 {
-        //     let block_number = Self::env().block_number();
-        // }
+       /// fn get_simple_random() -> u8 {
+       ///     let block_number = Self::env().block_number();
+       /// }
 
         fn get_random() -> u8 {
             let seed: [u8; 1] = [1];
@@ -173,16 +173,16 @@ pub mod luckydraw {
         #[test]
         fn default_works() {
             let luckydraw = LuckyDraw::default();
-            // assert_eq!(luckydraw.get(), 0);
+           /// assert_eq!(luckydraw.get(), 0);
         }
 
         #[test]
         fn it_works() {
-            // let mut luckydraw = LuckyDraw::new();
-            // assert_eq!(luckydraw.get(), 0);
-            // luckydraw.open_lucky_draw();
-            // let winning_number = luckydraw.winning_number;
-            // assert_eq!(luckydraw.get(), winning_number);
+           /// let mut luckydraw = LuckyDraw::new();
+           /// assert_eq!(luckydraw.get(), 0);
+           /// luckydraw.open_lucky_draw();
+           /// let winning_number = luckydraw.winning_number;
+           /// assert_eq!(luckydraw.get(), winning_number);
         }
     }
 }

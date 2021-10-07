@@ -7,6 +7,7 @@
     "data": "AssetData"
   },
   "AssetId": "u64",
+  "EstateId": "u64",
   "AssetData": {
     "name": "Text",
     "description": "Text",
@@ -21,7 +22,9 @@
     "amount": "Balance",
     "start_time": "u32",
     "end_time": "u32",
-    "auction_type": "AuctionType"
+    "auction_type": "AuctionType",
+    "listing_level": "ListingLevel",
+    "currency_id": "FungibleTokenId"
   },
   "AuctionInfo": {
     "bid": "Option<(AccountId,Balance)>",
@@ -41,10 +44,9 @@
     "end": "Option<BlockNumber>",
     "price_per_block": "Balance"
   },
-  "CountryId": "u64",
+  "MetaverseId": "u64",
   "CollectionId": "u64",
   "ClassId": "u32",
-  "TokenId": "u64",
   "ClassInfoOf": {
     "metadata": "Vec<u8>",
     "total_issuance": "TokenId",
@@ -100,11 +102,7 @@
       "Executable"
     ]
   },
-  "CurrencyId": {
-    "_enum": {
-      "Token": "TokenSymbol"
-    }
-  },
+  "CurrencyId": "FungibleTokenId",
   "TokenSymbol": {
     "_enum": [
       "NUUM",
@@ -113,8 +111,7 @@
       "DOT"
     ]
   },
-  "CountryCurrencyId": "u32",
-  "CurrencyIdOf": "CurrencyId",
+  "CurrencyIdOf": "FungibleTokenId",
   "BalanceIdOf": "Balance",
   "ChainId": {
     "_enum": {
@@ -133,10 +130,205 @@
   "ItemId": {
     "_enum": {
       "NFT": "AssetId",
-      "Spot": "(u64, CountryId)",
-      "Country": "CountryId",
+      "Spot": "(u64, MetaverseId)",
+      "Metaverse": "MetaverseId",
       "Block": "u64"
     }
   },
-  "PoolId": "u32"
+  "PoolId": "u32",
+  "FungibleTokenId": {
+    "_enum": {
+      "NativeToken": "TokenId",
+      "FungibleToken": "TokenId",
+      "DEXShare": "(TokenId, TokenId)",
+      "MiningResource": "TokenId"
+    }
+  },
+  "TradingPairStatus": {
+    "_enum": [
+      "NotEnabled",
+      "Enabled"
+    ]
+  },
+  "TradingPair": "(FungibleTokenId,FungibleTokenId)",
+  "MetaverseInfo": {
+    "owner": "AccountId",
+    "metadata": "Text",
+    "currency_id": "FungibleTokenId"
+  },
+  "Ticker": "Vec<u8>",
+  "Token": {
+    "ticker": "Ticker",
+    "total_supply": "Balance"
+  },
+  "MetaverseFund": {
+    "vault": "AccountId",
+    "value": "u128",
+    "backing": "u128",
+    "currency_id": "FungibleTokenId"
+  },
+  "LandId": "u64",
+  "TokenId": "u64",
+  "PreimageStatus": {
+    "_enum": {
+      "Missing": "BlockNumber",
+      "Available": {
+        "data": "Vec<u8>",
+        "provider": "AccountId",
+        "deposit": "Balance",
+        "since": "BlockNumber",
+        "expiry": "Option<BlockNumber>"
+      }
+    }
+  },
+  "VoteThreshold": {
+    "_enum": [
+      "StandardQualifiedMajority",
+      "TwoThirdsSupermajority",
+      "ThreeFifthsSupermajority",
+      "ReinforcedQualifiedMajority",
+      "RelativeMajority"
+    ]
+  },
+  "ProposalId": "u64",
+  "ReferendumId": "u64",
+  "MetaverseParameter": {
+    "_enum": {
+      "MaxProposals": "u8",
+      "SetReferendumJury": "AccountId"
+    }
+  },
+  "ReferendumParameters": {
+    "voting_threshold": "Option<VoteThreshold>",
+    "min_proposal_launch_period": "BlockNumber",
+    "voting_period": "BlockNumber",
+    "enactment_period": "BlockNumber",
+    "max_proposals_per_country": "u8"
+  },
+  "Vote": {
+    "aye": "bool"
+  },
+  "Tally": {
+    "ayes": "u32",
+    "nays": "u32",
+    "turnout": "u32"
+  },
+  "VotingRecord": {
+    "votes": "Vec<(ReferendumId,Vote)>"
+  },
+  "ProposalInfo": {
+    "proposed_by": "AccountId",
+    "hash": "Hash",
+    "description": "Vec<u8>",
+    "referendum_launch_block": "BlockNumber"
+  },
+  "ReferendumStatus": {
+    "end": "BlockNumber",
+    "metaverse": "MetaverseId",
+    "proposal": "ProposalId",
+    "tally": "Tally",
+    "threshold": "Option<VoteThreshold>"
+  },
+  "ReferendumInfo": {
+    "_enum": {
+      "Ongoing": "ReferendumStatus",
+      "Finished": {
+        "passed": "bool",
+        "end": "BlockNumber"
+      }
+    }
+  },
+  "ListingLevel": {
+    "_enum": {
+      "Global": "Null",
+      "Local": "MetaverseId"
+    }
+  },
+  "AmountOf": "Balance",
+  "VestingSchedule": {
+    "token": "FungibleTokenId",
+    "start": "BlockNumber",
+    "period": "BlockNumber",
+    "periodCount": "u32",
+    "perPeriod": "Compact<Balance>"
+  },
+  "RoundIndex": "u32",
+  "VestingScheduleOf": "VestingSchedule",
+  "Candidate": {
+    "id": "AccountId",
+    "fee": "Perbill",
+    "bond": "Balance",
+    "nominators": "Vec<Bond>",
+    "total": "Balance",
+    "state": "CollatorStatus"
+  },
+  "CollatorStatus": {
+    "_enum": {
+      "Active": "Null",
+      "Idle": "Null",
+      "Leaving": "RoundIndex"
+    }
+  },
+  "Range": "RangeBalance",
+  "RangeBalance": {
+    "min": "Balance",
+    "ideal": "Balance",
+    "max": "Balance"
+  },
+  "RangePerbill": {
+    "min": "Perbill",
+    "ideal": "Perbill",
+    "max": "Perbill"
+  },
+  "InflationInfo": {
+    "expect": "RangeBalance",
+    "annual": "RangePerbill",
+    "round": "RangePerbill"
+  },
+  "OrderedSet": "Vec<Bond>",
+  "Collator": {
+    "id": "AccountId",
+    "bond": "Balance",
+    "nominators": "Vec<Bond>",
+    "total": "Balance",
+    "state": "CollatorStatus"
+  },
+  "CollatorSnapshot": {
+    "bond": "Balance",
+    "nominators": "Vec<Bond>",
+    "total": "Balance"
+  },
+  "RoundInfo": {
+    "current": "RoundIndex",
+    "first": "BlockNumber",
+    "length": "u32"
+  },
+  "Nominator": {
+    "nominations": "Vec<Bond>",
+    "total": "Balance"
+  },
+  "Bond": {
+    "owner": "AccountId",
+    "amount": "Balance"
+  },
+  "ValidatorStatus": {
+    "_enum": {
+      "Active": "Null",
+      "Idle": "Null",
+      "Leaving": "RoundIndex"
+    }
+  },
+  "AuctionSlot": {
+    "spot_id": "SpotId",
+    "participants": "Vec<AccountId>",
+    "active_session_index": "BlockNumber",
+    "status": "ContinuumAuctionSlotStatus"
+  },
+  "ContinuumAuctionSlotStatus": {
+    "_enum": [
+      "AcceptParticipates",
+      "GNPStarted",
+      "GNPConfirmed"
+    ]
+  }
 }

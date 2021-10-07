@@ -1,0 +1,51 @@
+[package]
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet bridge balance transfer.'
+edition = '2018'
+homepage = 'https://bit.country'
+license = 'Unlicense'
+name = 'modules-chainsafe'
+repository = 'https://github.com/bit-country'
+version = '0.0.1'
+
+[dependencies]
+# third-party dependencies
+codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
+serde = { version = "1.0.124", optional = true }
+hex = { version = "0.4", default-features = false }
+
+# primitives
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+
+# frame dependencies
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+
+chainbridge = { package = "chainbridge", git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse" }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
+
+[dev-dependencies]
+blake2-rfc = { version = "0.2.18", default-features = false }
+hex-literal = "0.3"
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "serde",
+    "sp-std/std",
+    "sp-runtime/std",
+    "sp-io/std",
+    "sp-core/std",
+    "sp-arithmetic/std",
+    "frame-support/std",
+    "frame-system/std",
+    "primitives/std",
+    "orml-traits/std",
+    "chainbridge/std",
+]

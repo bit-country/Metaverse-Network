@@ -3,15 +3,18 @@ panic = 'unwind'
 
 [workspace]
 members = [
-#    'pallets/*',
-    #    'traits/*',
+    'pallets/*',
+    'traits/*',
     'node',
-    'runtime/bitcountry',
+    'modules/chainsafe',
+    'runtime/metaverse',
     'runtime/tewai',
+    'primitives/evm',
+    'primitives/metaverse',
 ]
 exclude = [
     '/dapps/luckydraw',
     '/dapps/airdrop',
-    '/dapps/countrytoken'
-
+    '/dapps/countrytoken',
+    'pallets/oracle',
 ]
