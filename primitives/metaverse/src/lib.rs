@@ -85,6 +85,10 @@ pub type AssetId = u64;
 pub type AuctionId = u64;
 /// SpotId
 pub type SpotId = u64;
+/// ProposalId
+pub type ProposalId = u64;
+/// ReferendumId
+pub type ReferendumId = u64;
 /// LandId
 pub type LandId = u64;
 /// EstateId

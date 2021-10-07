@@ -3,10 +3,7 @@ use crate as mining;
 use crate::{Config, Module};
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
-use frame_support::{
-	construct_runtime, impl_outer_dispatch, impl_outer_event, impl_outer_origin, ord_parameter_types, parameter_types,
-	traits::EnsureOrigin, weights::Weight,
-};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use primitives::FungibleTokenId::FungibleToken;
@@ -15,7 +12,7 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
-	PalletId, Perbill,
+	Perbill,
 };
 
 pub type AccountId = u128;
@@ -43,7 +40,6 @@ parameter_types! {
 	pub const MaximumBlockLength: u32 = 2 * 1024;
 	pub const AvailableBlockRatio: Perbill = Perbill::one();
 }
-
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
@@ -67,10 +63,11 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = ();
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
+	type OnSetCode = ();
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u64 = 0;
+	pub const ExistentialDeposit: u64 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -81,8 +78,9 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type MaxLocks = ();
 	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
-
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
@@ -103,6 +101,8 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -140,11 +140,11 @@ construct_runtime!(
 		NodeBlock = Block,
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Currencies: currencies::{ Module, Storage, Call, Event<T>},
-		Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
-		MiningModule: mining:: {Module, Call, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		Tokens: orml_tokens::{ Pallet, Storage, Call, Event<T>},
+		MiningModule: mining:: {Pallet, Call, Storage, Event<T>},
 	}
 );
 

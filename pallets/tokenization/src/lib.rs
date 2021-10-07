@@ -37,11 +37,14 @@ use orml_traits::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+pub use pallet::*;
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId, VestingSchedule};
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,
 };
+use sp_runtime::{FixedPointNumber, SaturatedConversion};
+use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
 
 #[cfg(test)]
@@ -63,6 +66,7 @@ pub struct Token<Balance> {
 }
 
 pub use pallet::*;
+use primitives::dex::Price;
 
 /// The maximum number of vesting schedules an account can have.
 pub const MAX_VESTINGS: usize = 20;
@@ -72,11 +76,7 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::sp_runtime::traits::Saturating;
-	use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
-	use primitives::dex::Price;
 	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
-	use sp_std::convert::TryInto;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
@@ -95,7 +95,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The arithmetic type of asset identifier.
 		type TokenId: Parameter + AtLeast32Bit + Default + Copy;
-		type BCMultiCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>
+		type MetaverseMultiCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>
 			+ MultiLockableCurrency<Self::AccountId, CurrencyId = FungibleTokenId>;
 		type FungibleTokenTreasury: Get<PalletId>;
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
@@ -120,10 +120,10 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, FungibleTokenId, Token<Balance>, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_country_treasury)]
+	#[pallet::getter(fn get_metaverse_treasury)]
 	/// Details of the token corresponding to the token id.
 	/// (hash) -> Token details [returns Token struct]
-	pub(super) type CountryTreasury<T: Config> =
+	pub(super) type MetaverseTreasury<T: Config> =
 		StorageMap<_, Blake2_128Concat, MetaverseId, MetaverseFund<T::AccountId, Balance>, OptionQuery>;
 
 	/// Vesting schedules of an account.
@@ -144,11 +144,11 @@ pub mod pallet {
 		InsufficientBalance,
 		/// No permission to issue token
 		NoPermissionTokenIssuance,
-		/// Country Currency already issued for this metaverse
+		/// Metaverse Currency already issued for this metaverse
 		FungibleTokenAlreadyIssued,
 		/// No available next token id
 		NoAvailableTokenId,
-		/// Country Fund Not Available
+		/// Metaverse Fund Not Available
 		MetaverseFundIsNotAvailable,
 		/// Initial Social Token Supply is too low
 		InitialFungibleTokenSupplyIsTooLow,
@@ -188,96 +188,11 @@ pub mod pallet {
 				Error::<T>::NoPermissionTokenIssuance
 			);
 			ensure!(
-				!CountryTreasury::<T>::contains_key(&metaverse_id),
+				!MetaverseTreasury::<T>::contains_key(&metaverse_id),
 				Error::<T>::FungibleTokenAlreadyIssued
 			);
 
-			let initial_pool_numerator = total_supply.saturating_mul(initial_lp.0.saturated_into());
-			let initial_pool_supply = initial_pool_numerator
-				.checked_div(initial_lp.1.saturated_into())
-				.unwrap_or(0);
-			let initial_supply_ratio =
-				Price::checked_from_rational(initial_pool_supply, total_supply).unwrap_or_default();
-			let supply_percent: u128 = initial_supply_ratio.saturating_mul_int(100.saturated_into());
-			ensure!(
-				supply_percent > 0u128 && supply_percent >= 20u128,
-				Error::<T>::InitialFungibleTokenSupplyIsTooLow
-			);
-			// Remaining balance for bc owner
-			let owner_supply = total_supply.saturating_sub(initial_pool_supply);
-			// Generate new TokenId
-			let currency_id = NextTokenId::<T>::mutate(|id| -> Result<FungibleTokenId, DispatchError> {
-				let current_id = *id;
-				if current_id == 0 {
-					*id = 2;
-					Ok(FungibleTokenId::FungibleToken(One::one()))
-				} else {
-					*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
-					Ok(FungibleTokenId::FungibleToken(current_id))
-				}
-			})?;
-			let fund_id: T::AccountId = T::FungibleTokenTreasury::get().into_sub_account(metaverse_id);
-
-			// Metaverse Network treasury
-			let country_fund = MetaverseFund {
-				vault: fund_id.clone(),
-				value: total_supply,
-				backing: initial_backing,
-				currency_id: currency_id,
-			};
-
-			let token_info = Token { ticker, total_supply };
-
-			// Update currency id in BC
-			T::MetaverseInfoSource::update_metaverse_token(metaverse_id.clone(), currency_id.clone())?;
-
-			// Store social token info
-			FungibleTokens::<T>::insert(currency_id, token_info);
-
-			CountryTreasury::<T>::insert(metaverse_id.clone(), country_fund);
-			// Deposit fund into bit country treasury
-			T::BCMultiCurrency::transfer(FungibleTokenId::NativeToken(0), &who, &fund_id, initial_backing.clone())?;
-			T::BCMultiCurrency::deposit(currency_id, &fund_id, total_supply.clone())?;
-			// Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
-			T::LiquidityPoolManager::add_liquidity(
-				&fund_id,
-				FungibleTokenId::NativeToken(0),
-				currency_id,
-				initial_backing,
-				initial_pool_supply,
-			)?;
-
-			// The remaining token will be vested gradually 12 months.
-			let now = <frame_system::Pallet<T>>::block_number();
-			let vested_per_period = owner_supply.checked_div(12).ok_or("Overflow")?;
-			let period_block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into(28800u64).unwrap_or_default();
-
-			let vesting_schedule = VestingSchedule {
-				token: currency_id,
-				start: now,
-				period: period_block_number,
-				period_count: 12,
-				per_period: vested_per_period,
-			};
-
-			T::BCMultiCurrency::transfer(currency_id, &fund_id, &who, owner_supply.clone())?;
-			T::BCMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, &who, owner_supply);
-			<VestingSchedules<T>>::append(who.clone(), vesting_schedule.clone());
-			Self::deposit_event(Event::VestingScheduleAdded(
-				currency_id,
-				fund_id,
-				who.clone(),
-				vesting_schedule,
-			));
-
-			let fund_address = Self::get_country_fund_id(metaverse_id);
-			Self::deposit_event(Event::<T>::FungibleTokenIssued(
-				currency_id.clone(),
-				who.clone(),
-				fund_address,
-				total_supply,
-				metaverse_id,
-			));
+			Self::mint_social_token(who, ticker, metaverse_id, total_supply, initial_lp, initial_backing)?;
 
 			Ok(().into())
 		}
@@ -363,7 +278,104 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
+	fn mint_social_token(
+		who: T::AccountId,
+		ticker: Ticker,
+		metaverse_id: MetaverseId,
+		total_supply: Balance,
+		initial_lp: (u32, u32),
+		initial_backing: Balance,
+	) -> DispatchResult {
+		let initial_pool_numerator = total_supply.saturating_mul(initial_lp.0.saturated_into());
+		let initial_pool_supply = initial_pool_numerator
+			.checked_div(initial_lp.1.saturated_into())
+			.unwrap_or(0);
+		let initial_supply_ratio = Price::checked_from_rational(initial_pool_supply, total_supply).unwrap_or_default();
+		let supply_percent: u128 = initial_supply_ratio.saturating_mul_int(100.saturated_into());
+		ensure!(
+			supply_percent > 0u128 && supply_percent >= 20u128,
+			Error::<T>::InitialFungibleTokenSupplyIsTooLow
+		);
+		// Remaining balance for metaverse owner
+		let owner_supply = total_supply.saturating_sub(initial_pool_supply);
+		// Generate new TokenId
+		let currency_id = NextTokenId::<T>::mutate(|id| -> Result<FungibleTokenId, DispatchError> {
+			let current_id = *id;
+			if current_id == 0 {
+				*id = 2;
+				Ok(FungibleTokenId::FungibleToken(One::one()))
+			} else {
+				*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableTokenId)?;
+				Ok(FungibleTokenId::FungibleToken(current_id))
+			}
+		})?;
+		let fund_id: T::AccountId = T::FungibleTokenTreasury::get().into_sub_account(metaverse_id);
+
+		// Metaverse Network treasury
+		let metaverse_fund = MetaverseFund {
+			vault: fund_id.clone(),
+			value: total_supply,
+			backing: initial_backing,
+			currency_id: currency_id,
+		};
+
+		let token_info = Token { ticker, total_supply };
+
+		// Update currency id in BC
+		T::MetaverseInfoSource::update_metaverse_token(metaverse_id.clone(), currency_id.clone())?;
+
+		// Store social token info
+		FungibleTokens::<T>::insert(currency_id, token_info);
+
+		MetaverseTreasury::<T>::insert(metaverse_id.clone(), metaverse_fund);
+		// Deposit fund into metaverse treasury
+		T::MetaverseMultiCurrency::transfer(FungibleTokenId::NativeToken(0), &who, &fund_id, initial_backing.clone())?;
+		T::MetaverseMultiCurrency::deposit(currency_id, &fund_id, total_supply.clone())?;
+		// Social currency should deposit to DEX pool instead, by calling provide LP function in DEX traits.
+		T::LiquidityPoolManager::add_liquidity(
+			&fund_id,
+			FungibleTokenId::NativeToken(0),
+			currency_id,
+			initial_backing,
+			initial_pool_supply,
+		)?;
+
+		// The remaining token will be vested gradually 12 months.
+		let now = <frame_system::Pallet<T>>::block_number();
+		let vested_per_period = owner_supply.checked_div(12).ok_or("Overflow")?;
+		let period_block_number: T::BlockNumber = TryInto::<T::BlockNumber>::try_into(28800u64).unwrap_or_default();
+
+		let vesting_schedule = VestingSchedule {
+			token: currency_id,
+			start: now,
+			period: period_block_number,
+			period_count: 12,
+			per_period: vested_per_period,
+		};
+
+		T::MetaverseMultiCurrency::transfer(currency_id, &fund_id, &who, owner_supply.clone())?;
+		T::MetaverseMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, &who, owner_supply);
+		<VestingSchedules<T>>::append(who.clone(), vesting_schedule.clone());
+		Self::deposit_event(Event::VestingScheduleAdded(
+			currency_id,
+			fund_id,
+			who.clone(),
+			vesting_schedule,
+		));
+
+		let fund_address = Self::get_metaverse_fund_id(metaverse_id);
+		Self::deposit_event(Event::<T>::FungibleTokenIssued(
+			currency_id.clone(),
+			who.clone(),
+			fund_address,
+			total_supply,
+			metaverse_id,
+		));
+
+		Ok(())
+	}
+
 	fn transfer_from(
 		currency_id: FungibleTokenId,
 		from: &T::AccountId,
@@ -374,7 +386,7 @@ impl<T: Config> Module<T> {
 			return Ok(());
 		}
 
-		T::BCMultiCurrency::transfer(currency_id, from, to, amount)?;
+		T::MetaverseMultiCurrency::transfer(currency_id, from, to, amount)?;
 
 		Self::deposit_event(Event::<T>::FungibleTokenTransferred(
 			currency_id,
@@ -386,14 +398,15 @@ impl<T: Config> Module<T> {
 	}
 
 	pub fn get_total_issuance(metaverse_id: MetaverseId) -> Result<Balance, DispatchError> {
-		let country_fund = CountryTreasury::<T>::get(metaverse_id).ok_or(Error::<T>::MetaverseFundIsNotAvailable)?;
-		let total_issuance = T::BCMultiCurrency::total_issuance(country_fund.currency_id);
+		let metaverse_fund =
+			MetaverseTreasury::<T>::get(metaverse_id).ok_or(Error::<T>::MetaverseFundIsNotAvailable)?;
+		let total_issuance = T::MetaverseMultiCurrency::total_issuance(metaverse_fund.currency_id);
 
 		Ok(total_issuance)
 	}
 
-	pub fn get_country_fund_id(metaverse_id: MetaverseId) -> T::AccountId {
-		match CountryTreasury::<T>::get(metaverse_id) {
+	pub fn get_metaverse_fund_id(metaverse_id: MetaverseId) -> T::AccountId {
+		match MetaverseTreasury::<T>::get(metaverse_id) {
 			Some(fund) => fund.vault,
 			_ => Default::default(),
 		}
@@ -402,9 +415,9 @@ impl<T: Config> Module<T> {
 	fn do_claim(who: &T::AccountId, currency_id: FungibleTokenId) -> Balance {
 		let locked = Self::locked_balance(who, currency_id.clone());
 		if locked.is_zero() {
-			T::BCMultiCurrency::remove_lock(VESTING_LOCK_ID, currency_id, who);
+			T::MetaverseMultiCurrency::remove_lock(VESTING_LOCK_ID, currency_id, who);
 		} else {
-			T::BCMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, locked);
+			T::MetaverseMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, locked);
 		}
 		locked
 	}
@@ -453,8 +466,8 @@ impl<T: Config> Module<T> {
 			.checked_add(schedule_amount)
 			.ok_or(Error::<T>::NumOverflow)?;
 
-		T::BCMultiCurrency::transfer(schedule.token, from, to, schedule_amount)?;
-		T::BCMultiCurrency::set_lock(VESTING_LOCK_ID, schedule.token, to, total_amount);
+		T::MetaverseMultiCurrency::transfer(schedule.token, from, to, schedule_amount)?;
+		T::MetaverseMultiCurrency::set_lock(VESTING_LOCK_ID, schedule.token, to, total_amount);
 		<VestingSchedules<T>>::append(to, schedule);
 		Ok(())
 	}
@@ -472,11 +485,11 @@ impl<T: Config> Module<T> {
 					Ok(acc_amount + amount)
 				})?;
 		ensure!(
-			T::BCMultiCurrency::free_balance(currency_id.clone(), who) >= total_amount,
+			T::MetaverseMultiCurrency::free_balance(currency_id.clone(), who) >= total_amount,
 			Error::<T>::InsufficientBalanceToLock,
 		);
 
-		T::BCMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, total_amount);
+		T::MetaverseMultiCurrency::set_lock(VESTING_LOCK_ID, currency_id, who, total_amount);
 		<VestingSchedules<T>>::insert(who, schedules);
 
 		Ok(())

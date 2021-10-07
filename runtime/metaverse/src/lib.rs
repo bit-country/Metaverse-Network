@@ -24,6 +24,7 @@ mod weights;
 
 // primitives imports
 use crate::opaque::SessionKeys;
+use hex_literal::hex;
 use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use parachain_staking::{InflationInfo, Range};
@@ -55,11 +56,14 @@ pub use frame_support::{
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-		IdentityFee, Weight,
+		DispatchClass, IdentityFee, Weight,
 	},
-	PalletId, StorageValue,
+	PalletId, RuntimeDebug, StorageValue,
 };
-use frame_system::{Config, EnsureOneOf, EnsureRoot, RawOrigin};
+use frame_system::{
+	limits::{BlockLength, BlockWeights},
+	Config, EnsureOneOf, EnsureRoot, RawOrigin,
+};
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
@@ -73,9 +77,9 @@ pub use sp_runtime::{Perbill, Permill};
 /// Constant values used within the runtime.
 pub mod constants;
 
-use codec::Encode;
+use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
-use frame_support::traits::FindAuthor;
+use frame_support::traits::{FindAuthor, InstanceFilter};
 use frame_support::ConsensusEngineId;
 use sp_core::sp_std::marker::PhantomData;
 use sp_runtime::traits::OpaqueKeys;
@@ -148,16 +152,48 @@ pub fn native_version() -> NativeVersion {
 	}
 }
 
+/// We assume that ~10% of the block weight is consumed by `on_initialize` handlers.
+/// This is used to limit the maximal weight of a single extrinsic.
+const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
+/// We allow `Normal` extrinsics to fill up the block up to 75%, the rest can be used
+/// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+/// We allow for 2 seconds of compute with a 3 second average block time.
+const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
 
 parameter_types! {
-	pub const Version: RuntimeVersion = VERSION;
+//	pub const Version: RuntimeVersion = VERSION;
+//	pub const BlockHashCount: BlockNumber = 2400;
+//	/// We allow for 2 seconds of compute with a 3 second average block time.
+//	pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
+//		::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
+//	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
+//		::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+//
+//
 	pub const BlockHashCount: BlockNumber = 2400;
-	/// We allow for 2 seconds of compute with a 3 second average block time.
-	pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
-		::with_sensible_defaults(2 * WEIGHT_PER_SECOND, NORMAL_DISPATCH_RATIO);
-	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
-		::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	pub const Version: RuntimeVersion = VERSION;
+	pub RuntimeBlockLength: BlockLength =
+		BlockLength::max_with_normal_ratio(5 * 1024 * 1024, NORMAL_DISPATCH_RATIO);
+	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
+		.base_block(BlockExecutionWeight::get())
+		.for_class(DispatchClass::all(), |weights| {
+			weights.base_extrinsic = ExtrinsicBaseWeight::get();
+		})
+		.for_class(DispatchClass::Normal, |weights| {
+			weights.max_total = Some(NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT);
+		})
+		.for_class(DispatchClass::Operational, |weights| {
+			weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
+			// Operational transactions have some extra reserved space, so that they
+			// are included even if block reached `MAXIMUM_BLOCK_WEIGHT`.
+			weights.reserved = Some(
+				MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT
+			);
+		})
+		.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+		.build_or_panic();
+
 	pub const SS58Prefix: u8 = 42;
 }
 
@@ -167,9 +203,9 @@ impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
 	type BaseCallFilter = frame_support::traits::Everything;
 	/// Block & extrinsics weights: base values and limits.
-	type BlockWeights = BlockWeights;
+	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
-	type BlockLength = BlockLength;
+	type BlockLength = RuntimeBlockLength;
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The aggregated dispatch type that is available for extrinsics.
@@ -359,7 +395,6 @@ impl nft::Config for Runtime {
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
 	type AuctionHandler = Auction;
-	type AssetsHandler = NftModule;
 }
 
 parameter_types! {
@@ -398,7 +433,7 @@ parameter_types! {
 impl estate::Config for Runtime {
 	type Event = Event;
 	type LandTreasury = LandTreasuryPalletId;
-	type MetaverseInfoSource = MetaverseModule;
+	type MetaverseInfoSource = Metaverse;
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
@@ -418,7 +453,7 @@ impl auction::Config for Runtime {
 	type Currency = Balances;
 	type ContinuumHandler = Continuum;
 	type FungibleTokenCurrency = Tokens;
-	type MetaverseInfoSource = MetaverseModule;
+	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 }
 
@@ -431,15 +466,15 @@ impl continuum::Config for Runtime {
 	type AuctionDuration = SpotAuctionChillingDuration;
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
-	type MetaverseInfoSource = MetaverseModule;
+	type MetaverseInfoSource = Metaverse;
 }
 
 impl tokenization::Config for Runtime {
 	type Event = Event;
 	type TokenId = u64;
-	type BCMultiCurrency = Currencies;
+	type MetaverseMultiCurrency = Currencies;
 	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
-	type MetaverseInfoSource = MetaverseModule;
+	type MetaverseInfoSource = Metaverse;
 	type LiquidityPoolManager = Swap;
 	type MinVestedTransfer = MinVestedTransfer;
 	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
@@ -632,9 +667,139 @@ impl pallet_evm::Config for Runtime {
 	type FindAuthor = FindAuthorTruncated<Aura>;
 }
 
+parameter_types! {
+	pub const DefaultVotingPeriod: BlockNumber = 10;
+	pub const DefaultEnactmentPeriod: BlockNumber = 2;
+	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
+	pub const DefaultMaxParametersPerProposal: u8 = 3;
+	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
+	pub const OneBlock: BlockNumber = 1;
+	pub const MinimumProposalDeposit: Balance = 50 * DOLLARS;
+	pub const DefaultPreimageByteDeposit: Balance = 1 * DOLLARS;
+}
+
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
+		RuntimeBlockWeights::get().max_block;
+	pub const MaxScheduledPerBlock: u32 = 50;
+}
+
+impl pallet_scheduler::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = MaxScheduledPerBlock;
+	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const LaunchPeriod: BlockNumber = 10 * MINUTES;
+	pub const VotingPeriod: BlockNumber = 10 * MINUTES;
+	pub const FastTrackVotingPeriod: BlockNumber = 10 * MINUTES;
+	pub const InstantAllowed: bool = true;
+	pub const MinimumDeposit: Balance = 100 * DOLLARS;
+	pub const EnactmentPeriod: BlockNumber = 10 * MINUTES;
+	pub const CooloffPeriod: BlockNumber = 10 * MINUTES;
+	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+	pub const MaxVotes: u32 = 50;
+	pub const MaxProposals: u32 = 50;
+}
+
+impl pallet_democracy::Config for Runtime {
+	type Proposal = Call;
+	type Event = Event;
+	type Currency = Balances;
+	type EnactmentPeriod = EnactmentPeriod;
+	type LaunchPeriod = LaunchPeriod;
+	type VotingPeriod = VotingPeriod;
+	type MinimumDeposit = MinimumDeposit;
+	/// A straight majority of the council can decide what their next motion is.
+	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>;
+	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
+	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;
+	/// A unanimous council can have the next scheduled referendum be a straight default-carries
+	/// (NTB) vote.
+	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
+	/// be tabled immediately and with a shorter voting/enactment period.
+	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
+	type InstantOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+	type InstantAllowed = InstantAllowed;
+	type FastTrackVotingPeriod = FastTrackVotingPeriod;
+	/// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
+	/// To cancel a proposal before it has been passed, the technical committee must be unanimous or
+	/// Root must agree.
+	type CancelProposalOrigin = EnsureOneOf<
+		AccountId,
+		EnsureRoot<AccountId>,
+		pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
+	>;
+	type BlacklistOrigin = EnsureRoot<AccountId>;
+	/// Any single technical committee member may veto a coming council proposal, however they can
+	/// only do it once and it lasts only for the cooloff period.
+	type VetoOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+	type CooloffPeriod = CooloffPeriod;
+	type PreimageByteDeposit = PreimageByteDeposit;
+	type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+	type Slash = ();
+	type Scheduler = Scheduler;
+	type PalletsOrigin = OriginCaller;
+	type MaxVotes = MaxVotes;
+	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
+	type MaxProposals = MaxProposals;
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+pub enum ProposalType {
+	Any,
+	JustMetaverse,
+}
+
+impl Default for ProposalType {
+	fn default() -> Self {
+		Self::JustMetaverse
+	}
+}
+
+impl InstanceFilter<Call> for ProposalType {
+	fn filter(&self, c: &Call) -> bool {
+		match self {
+			ProposalType::Any => true,
+			ProposalType::JustMetaverse => matches!(c, Call::Metaverse(..)),
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == &ProposalType::Any || self == o
+	}
+}
+
+impl governance::Config for Runtime {
+	type Event = Event;
+	type DefaultVotingPeriod = DefaultVotingPeriod;
+	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
+	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
+	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
+	type MinimumProposalDeposit = MinimumProposalDeposit;
+	type OneBlock = OneBlock;
+	type Currency = Balances;
+	type MetaverseInfo = Metaverse;
+	type PalletsOrigin = OriginCaller;
+	type Proposal = Call;
+	type Scheduler = Scheduler;
+	type MetaverseLandInfo = Estate;
+	type MetaverseCouncil = EnsureRootOrMetaverseTreasury;
+	type ProposalType = ProposalType;
+}
+
 //parameter_types! {
 //	pub const LocalChainId: chainbridge::ChainId = 1;
-//	pub const ProposalLifetime: BlockNumber = 15 * MINUTES;
+//	pub const ProposalLifetime: BlockNumber = 5 * MINUTES;
 //}
 //
 //impl chainbridge::Config for Runtime {
@@ -654,7 +819,8 @@ impl pallet_evm::Config for Runtime {
 //impl modules_chainsafe::Config for Runtime {
 //	type Event = Event;
 //	type BridgeOrigin = chainbridge::EnsureBridge<Runtime>;
-//	type Currency = Balances;
+//	type Currency = Currencies;
+//	type NativeCurrencyId = GetNativeCurrencyId;
 //	type BridgeTokenId = BridgeTokenId;
 //}
 
@@ -681,29 +847,32 @@ construct_runtime!(
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 
 		// Metaverse & Related
 		OrmlNFT: orml_nft::{Pallet, Storage},
-		NftModule: nft::{Pallet, Call, Storage, Event<T>},
+		Nft: nft::{Pallet, Call, Storage, Event<T>},
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
-		MetaverseModule: metaverse::{Pallet, Call, Storage, Event<T>},
+		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
-		TokenizationModule: tokenization:: {Pallet, Call, Storage, Event<T>},
+		Tokenization: tokenization:: {Pallet, Call, Storage, Event<T>},
 		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>},
+		// Governance
+		Governance: governance::{Pallet, Call ,Storage, Event<T>},
+		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
 
 		// External consensus support
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 
 		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
-		// Include the custom logic from the pallet-template in the runtime.
 
-		// Ecosystem
-//		ChainBridge: chainbridge::{Module, Call, Storage, Event<T>},
-//		BridgeTransfer: modules_chainsafe::{Module, Call, Event<T>, Storage}
+		// Bridge
+//		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
+//		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
 	}
 );
 

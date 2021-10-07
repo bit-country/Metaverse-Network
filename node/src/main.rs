@@ -8,6 +8,9 @@ mod cli;
 mod command;
 mod rpc;
 
+#[cfg(feature = "with-pioneer-runtime")]
+mod para_chain_spec;
+
 fn main() -> sc_cli::Result<()> {
 	command::run()
 }

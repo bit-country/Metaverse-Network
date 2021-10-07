@@ -808,6 +808,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "chainbridge"
+version = "0.0.2"
+source = "git+https://github.com/justinphamnz/chainbridge-substrate?branch=master#9ed368b1ba9cf5c39077d31fcff5c6b41c9d72f5"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3793,18 +3809,21 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
- "pallet-block",
  "pallet-collective",
  "pallet-continuum",
+ "pallet-democracy",
+ "pallet-estate",
  "pallet-evm",
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
+ "pallet-governance",
  "pallet-grandpa",
  "pallet-metaverse",
  "pallet-mining",
  "pallet-nft",
  "pallet-randomness-collective-flip",
+ "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
  "pallet-swap",
@@ -3933,6 +3952,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
 dependencies = [
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "modules-chainsafe"
+version = "0.0.1"
+dependencies = [
+ "bit-country-primitives",
+ "blake2-rfc",
+ "chainbridge",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?rev=59df1dfc1a)",
+ "parity-scale-codec",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -4654,23 +4694,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-block"
-version = "2.0.0-rc6"
-dependencies = [
- "bc-primitives",
- "bit-country-primitives",
- "frame-support",
- "frame-system",
- "pallet-randomness-collective-flip",
- "parity-scale-codec",
- "sp-api",
- "sp-core",
- "sp-runtime",
- "sp-session",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-bounties"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
@@ -4834,6 +4857,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-estate"
+version = "2.0.0-rc6"
+dependencies = [
+ "bc-primitives",
+ "bit-country-primitives",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
+]
+
+[[package]]
 name = "pallet-evm"
 version = "6.0.0-dev"
 dependencies = [
@@ -4918,6 +4958,28 @@ dependencies = [
  "sp-arithmetic",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-governance"
+version = "2.0.0-rc6"
+dependencies = [
+ "bc-primitives",
+ "bit-country-primitives",
+ "frame-executive",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-metaverse",
+ "pallet-scheduler",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
 ]
 
 [[package]]
@@ -5519,6 +5581,8 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "similar-asserts",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
  "substrate-fixed",
@@ -5527,7 +5591,7 @@ dependencies = [
 [[package]]
 name = "parachain-staking"
 version = "2.1.1"
-source = "git+https://github.com/justinphamnz/Parachain-Staking#12288d7b265b1920c3eb9152fc37f76fc32dc3e1"
+source = "git+https://github.com/justinphamnz/Parachain-Staking#976282af89c9583f11744fa8395e99d304bb2f98"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5537,6 +5601,7 @@ dependencies = [
  "parity-scale-codec",
  "serde",
  "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
  "substrate-fixed",
@@ -9611,7 +9676,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f559b464de2e2bdabcac6a210d12e9b5a5973c251e102c44c585c71d51bd78e"
 dependencies = [
  "cfg-if 1.0.0",
- "rand 0.8.4",
+ "rand 0.3.23",
  "static_assertions",
 ]
 

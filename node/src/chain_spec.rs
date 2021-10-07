@@ -1,12 +1,15 @@
+use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
 use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, EVMConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig, Signature,
-	StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	ContinuumConfig, DemocracyConfig, EVMConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig,
+	Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use primitives::Balance;
+use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::{ChainType, Properties};
+use serde::{Deserialize, Serialize};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
 use sp_core::{sr25519, Pair, Public, H160, U256};
@@ -23,6 +26,7 @@ use std::str::FromStr;
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+pub type ParachainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
 fn session_keys(aura: AuraId, grandpa: GrandpaId) -> SessionKeys {
 	SessionKeys { aura, grandpa }
@@ -33,6 +37,23 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 	TPublic::Pair::from_string(&format!("//{}", seed), None)
 		.expect("static values are valid; qed")
 		.public()
+}
+
+/// The extensions for the [`ChainSpec`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
+#[serde(deny_unknown_fields)]
+pub struct Extensions {
+	/// The relay chain of the Parachain.
+	pub relay_chain: String,
+	/// The id of the Parachain.
+	pub para_id: u32,
+}
+
+impl Extensions {
+	/// Try to get the extension from the given `ChainSpec`.
+	pub fn try_get(chain_spec: &dyn sc_service::ChainSpec) -> Option<&Self> {
+		sc_chain_spec::get_extension(chain_spec.extensions())
+	}
 }
 
 type AccountPublic = <Signature as Verify>::Signer;
@@ -195,6 +216,30 @@ pub fn metaverse_testnet_config() -> Result<ChainSpec, String> {
 	))
 }
 
+pub fn pioneer_parachain_config(id: ParaId) -> Result<ParachainSpec, String> {
+	Ok(ParachainSpec::from_genesis(
+		// Name
+		"Pioneer Testnet",
+		// ID
+		"local_testnet",
+		ChainType::Live,
+		metaverse_genesis,
+		// Bootnodes
+		vec![],
+		// Telemetry
+		None,
+		// Protocol ID
+		None,
+		// Properties
+		Some(metaverse_properties()),
+		// Extensions
+		Extensions {
+			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+			para_id: id.into(),
+		},
+	))
+}
+
 pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
 	InflationInfo {
 		expect: Range {
@@ -264,6 +309,7 @@ fn testnet_genesis(
 			key: root_key,
 		},
 		council: Default::default(),
+		democracy: DemocracyConfig::default(),
 		tokens: Default::default(),
 		vesting: Default::default(),
 		continuum: ContinuumConfig {

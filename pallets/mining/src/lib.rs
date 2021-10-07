@@ -214,7 +214,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
 	pub fn bit_mining_resource_account_id() -> T::AccountId {
 		T::BitMiningTreasury::get().into_account()
 	}

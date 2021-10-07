@@ -23,8 +23,9 @@ use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CurrencyId, EstateId, LandId, MetaverseId};
+use primitives::{Balance, EstateId, LandId, MetaverseId};
 use sp_runtime::{
+	print,
 	traits::{AccountIdConversion, One},
 	DispatchError, RuntimeDebug,
 };
@@ -95,7 +96,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_owner)]
 	pub type EstateOwner<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, (), OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -153,23 +154,8 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			// Check whether the coordinate exists
-			ensure!(
-				!LandUnits::<T>::contains_key(metaverse_id, coordinate),
-				Error::<T>::LandUnitIsNotAvailable
-			);
-
-			// Ensure the max bound is set for the bit country
-			ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
-
-			// Check whether the coordinate is within the bound
-			let max_bound = MaxBounds::<T>::get(metaverse_id);
-
-			ensure!(
-				(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
-					&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
-				Error::<T>::LandUnitIsOutOfBound
-			);
+			// Mint land unit
+			Self::mint_land_unit(metaverse_id, &beneficiary, coordinate, false)?;
 
 			// Update total land count
 			let total_land_units_count = Self::all_land_units_count();
@@ -195,26 +181,9 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			// Ensure the max bound is set for the bit country
-			ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
-
-			let max_bound = MaxBounds::<T>::get(metaverse_id);
-
-			for coordinate in &coordinates {
-				// Check whether the coordinate exists
-				ensure!(
-					!LandUnits::<T>::contains_key(metaverse_id, coordinate),
-					Error::<T>::LandUnitIsNotAvailable
-				);
-
-				// Check whether the coordinate is within the bound
-				ensure!(
-					(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
-						&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
-					Error::<T>::LandUnitIsOutOfBound
-				);
-
-				LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
+			// Mint land units
+			for coordinate in coordinates.clone() {
+				Self::mint_land_unit(metaverse_id, &beneficiary, coordinate, false)?;
 			}
 
 			// Update total land count
@@ -272,7 +241,9 @@ pub mod pallet {
 			)
 		}
 
+		/// Mint new estate with no existing land unit
 		#[pallet::weight(10_000)]
+
 		pub fn mint_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -281,50 +252,46 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			// Ensure the max bound is set for the bit country
-			ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
+			// Generate new estate id
+			let new_estate_id = Self::get_new_estate_id()?;
 
-			let max_bound = MaxBounds::<T>::get(metaverse_id);
+			// Generate sub account from estate
+			let estate_account_id = T::LandTreasury::get().into_sub_account(new_estate_id);
+
+			// Mint land units
+			for coordinate in coordinates.clone() {
+				Self::mint_land_unit(metaverse_id, &estate_account_id, coordinate, false)?;
+			}
+
+			// Update estate information
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates);
+
+			Ok(().into())
+		}
+
+		/// Create new estate from existing land units
+		#[pallet::weight(10_000)]
+		pub fn create_estate(
+			origin: OriginFor<T>,
+			beneficiary: T::AccountId,
+			metaverse_id: MetaverseId,
+			coordinates: Vec<(i32, i32)>,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
 
 			// Generate new estate id
 			let new_estate_id = Self::get_new_estate_id()?;
 
-			for coordinate in &coordinates {
-				// Check whether the coordinate exists
-				ensure!(
-					!LandUnits::<T>::contains_key(metaverse_id, coordinate),
-					Error::<T>::LandUnitIsNotAvailable
-				);
+			// Generate sub account from estate
+			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
 
-				// Check whether the coordinate is within the bound
-				ensure!(
-					(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
-						&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
-					Error::<T>::LandUnitIsOutOfBound
-				);
-
-				// Generate sub account from estate
-				let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
-				LandUnits::<T>::insert(metaverse_id, coordinate, estate_account_id.clone());
+			// Mint land units
+			for coordinate in coordinates.clone() {
+				Self::mint_land_unit(metaverse_id, &estate_account_id, coordinate, true)?;
 			}
 
-			// Update total estates
-			let total_estates_count = Self::all_estates_count();
-			let new_total_estates_count = total_estates_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding new count to total estates")?;
-			AllEstatesCount::<T>::put(new_total_estates_count);
-
-			// Update estates
-			Estates::<T>::insert(metaverse_id, new_estate_id, &coordinates);
-
-			EstateOwner::<T>::insert(new_estate_id, beneficiary.clone(), {});
-
-			Self::deposit_event(Event::<T>::NewEstateMinted(
-				new_estate_id.clone(),
-				metaverse_id,
-				coordinates,
-			));
+			// Update estate information
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone());
 
 			Ok(().into())
 		}
@@ -337,7 +304,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			EstateOwner::<T>::try_mutate_exists(&estate_id, &who, |estate_by_owner| -> DispatchResultWithPostInfo {
+			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| -> DispatchResultWithPostInfo {
 				//ensure there is record of the estate owner with estate id and account id
 				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
 
@@ -347,7 +314,7 @@ pub mod pallet {
 				}
 
 				*estate_by_owner = None;
-				EstateOwner::<T>::insert(estate_id.clone(), to.clone(), ());
+				EstateOwner::<T>::insert(to.clone(), estate_id.clone(), ());
 
 				Self::deposit_event(Event::<T>::TransferredEstate(estate_id.clone(), who.clone(), to));
 
@@ -360,7 +327,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
-impl<T: Config> Module<T> {
+impl<T: Config> Pallet<T> {
 	// Reads the nonce from storage, increments the stored nonce, and returns
 	// the encoded nonce to the caller.
 	fn account_id() -> T::AccountId {
@@ -374,5 +341,99 @@ impl<T: Config> Module<T> {
 			Ok(current_id)
 		})?;
 		Ok(estate_id)
+	}
+
+	fn mint_land_unit(
+		metaverse_id: MetaverseId,
+		beneficiary: &T::AccountId,
+		coordinate: (i32, i32),
+		existing_land_units: bool,
+	) -> DispatchResult {
+		// Ensure the max bound is set for the bit country
+		ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
+
+		let max_bound = MaxBounds::<T>::get(metaverse_id);
+
+		if existing_land_units {
+			// Check whether the coordinate exists
+			ensure!(
+				LandUnits::<T>::contains_key(metaverse_id, coordinate),
+				Error::<T>::LandUnitIsNotAvailable
+			);
+		} else {
+			ensure!(
+				!LandUnits::<T>::contains_key(metaverse_id, coordinate),
+				Error::<T>::LandUnitIsNotAvailable
+			);
+		}
+
+		// Check whether the coordinate is within the bound
+		ensure!(
+			(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
+				&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
+			Error::<T>::LandUnitIsOutOfBound
+		);
+
+		LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
+		Ok(())
+	}
+
+	fn update_estate_information(
+		new_estate_id: EstateId,
+		metaverse_id: MetaverseId,
+		beneficiary: &T::AccountId,
+		coordinates: Vec<(i32, i32)>,
+	) -> DispatchResult {
+		// Update total estates
+		let total_estates_count = Self::all_estates_count();
+		let new_total_estates_count = total_estates_count
+			.checked_add(One::one())
+			.ok_or("Overflow adding new count to total estates")?;
+		AllEstatesCount::<T>::put(new_total_estates_count);
+
+		// Update estates
+		Estates::<T>::insert(metaverse_id, new_estate_id, coordinates.clone());
+
+		EstateOwner::<T>::insert(beneficiary.clone(), new_estate_id, {});
+
+		Self::deposit_event(Event::<T>::NewEstateMinted(
+			new_estate_id.clone(),
+			metaverse_id,
+			coordinates.clone(),
+		));
+
+		Ok(())
+	}
+}
+
+impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
+	fn get_user_land_units(who: &T::AccountId, metaverse_id: &MetaverseId) -> Vec<(i32, i32)> {
+		// Check land units owner.
+		let mut total_land_units: Vec<(i32, i32)> = Vec::default();
+
+		let land_in_metaverse = LandUnits::<T>::iter_prefix(metaverse_id)
+			.filter(|(_, owner)| owner == who)
+			.collect::<Vec<(_)>>();
+
+		for land_unit in land_in_metaverse {
+			let land = land_unit.0;
+			total_land_units.push(land);
+		}
+
+		let estate_ids_by_owner: Vec<EstateId> = EstateOwner::<T>::iter_prefix(who)
+			.map(|res| res.0)
+			.collect::<Vec<(_)>>();
+
+		for estate_id in estate_ids_by_owner {
+			let mut coordinates = Estates::<T>::get(&metaverse_id, &estate_id).unwrap();
+			total_land_units.append(&mut coordinates)
+			//			total_land_units.append(&mut coordinates);
+		}
+
+		total_land_units
+	}
+
+	fn is_user_own_metaverse_land(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
+		Self::get_user_land_units(&who, metaverse_id).len() > 0
 	}
 }

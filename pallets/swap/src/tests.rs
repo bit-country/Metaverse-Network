@@ -45,11 +45,6 @@ fn add_liquidity_should_fail_with_insufficient_balances() {
 			SwapModule::add_liquidity(ALICE.into(), NUUM, SOC, 10, 1000),
 			orml_tokens::Error::<Runtime>::BalanceTooLow
 		);
-		// Below existential deposit
-		assert_noop!(
-			SwapModule::add_liquidity(ALICE.into(), NUUM, SOC, 100, 10),
-			pallet_balances::Error::<Runtime>::KeepAlive
-		);
 	});
 }
 
@@ -84,7 +79,7 @@ fn add_liquidity_should_work_with_greater_max_native_amount() {
 		assert_eq!(SocialCurrencies::total_balance(NUUM_SOC.1, &DEX), 5);
 
 		assert_eq!(SwapModule::liquidity_pool(NUUM_SOC), (10, 5));
-		let event = mock::Event::swap(crate::Event::AddLiquidity(ALICE, NUUM_SOC.0, 10, NUUM_SOC.1, 5, 20));
+		let event = mock::Event::SwapModule(crate::Event::AddLiquidity(ALICE, NUUM_SOC.0, 10, NUUM_SOC.1, 5, 20));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -101,7 +96,7 @@ fn add_liquidity_should_work_with_greater_max_social_amount() {
 		assert_eq!(SocialCurrencies::total_balance(NUUM_SOC.1, &DEX), 10);
 
 		assert_eq!(SwapModule::liquidity_pool(NUUM_SOC), (5, 10));
-		let event = mock::Event::swap(crate::Event::AddLiquidity(ALICE, NUUM_SOC.0, 5, NUUM_SOC.1, 10, 20));
+		let event = mock::Event::SwapModule(crate::Event::AddLiquidity(ALICE, NUUM_SOC.0, 5, NUUM_SOC.1, 10, 20));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -110,11 +105,11 @@ fn add_liquidity_should_work_with_greater_max_social_amount() {
 fn add_liquidity_should_work_when_share_issuance_greater_than_zero() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(SwapModule::add_liquidity(ALICE.into(), NUUM_SOC.0, NUUM_SOC.1, 5, 5));
-		let event = mock::Event::swap(crate::Event::AddLiquidity(ALICE, NUUM_SOC.0, 5, NUUM_SOC.1, 5, 10));
+		let event = mock::Event::SwapModule(crate::Event::AddLiquidity(ALICE, NUUM_SOC.0, 5, NUUM_SOC.1, 5, 10));
 		assert_eq!(last_event(), event);
 
 		assert_ok!(SwapModule::add_liquidity(ALICE.into(), NUUM_SOC.0, NUUM_SOC.1, 5, 5));
-		let event = mock::Event::swap(crate::Event::AddLiquidity(ALICE, NUUM_SOC.0, 5, NUUM_SOC.1, 5, 10));
+		let event = mock::Event::SwapModule(crate::Event::AddLiquidity(ALICE, NUUM_SOC.0, 5, NUUM_SOC.1, 5, 10));
 		assert_eq!(SwapModule::liquidity_pool(NUUM_SOC), (10, 10));
 		assert_eq!(SocialCurrencies::total_balance(NUUM_SOC.0, &ALICE), 90);
 		assert_eq!(SocialCurrencies::total_balance(NUUM_SOC.1, &ALICE), 90);
@@ -167,7 +162,7 @@ fn remove_liquidity_should_work() {
 		assert_ok!(SwapModule::add_liquidity(ALICE.into(), NUUM_SOC.0, NUUM_SOC.1, 10, 5));
 		assert_ok!(SwapModule::add_liquidity(BOB.into(), NUUM_SOC.0, NUUM_SOC.1, 50, 20));
 
-		let event = mock::Event::swap(crate::Event::RemoveLiquidity(ALICE, NUUM_SOC.0, 2, NUUM_SOC.1, 1, 5));
+		let event = mock::Event::SwapModule(crate::Event::RemoveLiquidity(ALICE, NUUM_SOC.0, 2, NUUM_SOC.1, 1, 5));
 
 		assert_ok!(SwapModule::remove_liquidity(ALICE.into(), NUUM, SOC, 5));
 		assert_eq!(last_event(), event);
@@ -209,7 +204,7 @@ fn swap_native_token_with_exact_supply_should_work() {
 			10,
 			7
 		));
-		let event = mock::Event::swap(crate::Event::Swap(BOB, vec![NUUM, SOC], 10, 7));
+		let event = mock::Event::SwapModule(crate::Event::Swap(BOB, vec![NUUM, SOC], 10, 7));
 
 		assert_eq!(last_event(), event);
 		assert_eq!(SwapModule::liquidity_pool(NUUM_SOC), (60, 43));
@@ -253,7 +248,7 @@ fn swap_social_token_with_exact_native_token_should_work() {
 			10
 		));
 
-		let event = mock::Event::swap(crate::Event::Swap(BOB, vec![SOC, NUUM], 9, 7));
+		let event = mock::Event::SwapModule(crate::Event::Swap(BOB, vec![SOC, NUUM], 9, 7));
 
 		assert_eq!(last_event(), event);
 		assert_eq!(SwapModule::liquidity_pool(NUUM_SOC), (43, 59));
