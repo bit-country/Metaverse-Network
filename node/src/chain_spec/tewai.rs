@@ -1,7 +1,7 @@
 use hex_literal::hex;
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::ChainSpecExtension;
-use sc_service::ChainType;
+use sc_service::{ChainType, Properties};
 use sc_telemetry::TelemetryEndpoints;
 use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
@@ -162,7 +162,7 @@ pub fn staging_testnet_config() -> ChainSpec {
 				.expect("Staging telemetry url is valid; qed"),
 		),
 		None,
-		None,
+		Some(tewai_properties()),
 		Default::default(),
 	)
 }
@@ -358,7 +358,7 @@ pub fn development_config() -> ChainSpec {
 		vec![],
 		None,
 		None,
-		None,
+		Some(tewai_properties()),
 		Default::default(),
 	)
 }
@@ -382,7 +382,17 @@ pub fn local_testnet_config() -> ChainSpec {
 		vec![],
 		None,
 		None,
-		None,
+		Some(tewai_properties()),
 		Default::default(),
 	)
+}
+
+pub fn tewai_properties() -> Properties {
+	let mut properties = Properties::new();
+
+	properties.insert("ss58Format".into(), 42.into());
+	properties.insert("tokenDecimals".into(), 18.into());
+	properties.insert("tokenSymbol".into(), "NUUM".into());
+
+	properties
 }
