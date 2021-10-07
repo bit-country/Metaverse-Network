@@ -134,10 +134,6 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 	))
 }
 
-pub fn tewai_testnet_config() -> Result<ChainSpec, String> {
-	ChainSpec::from_json_bytes(&include_bytes!("../../node/res/tewaiChainNodeSpecRaw.json")[..])
-}
-
 pub fn metaverse_genesis() -> GenesisConfig {
 	let aura_authorities: Vec<(AccountId, AuraId, GrandpaId)> = vec![
 		(

@@ -24,7 +24,7 @@
 use crate::rpc::rpc_tewai::*;
 use futures::prelude::*;
 
-use node_primitives::Block;
+use primitives::Block;
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus_babe::{self, SlotProportion};
 use tewai_runtime::RuntimeApi;

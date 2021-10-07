@@ -20,6 +20,7 @@ use crate::{
 	cli::{Cli, Subcommand},
 	service,
 };
+use log::info;
 use metaverse_runtime::Block;
 use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
@@ -51,18 +52,37 @@ impl SubstrateCli for Cli {
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
 		Ok(match id {
-			"dev" => Box::new(chain_spec::development_config()?),
-			"" | "local" => Box::new(chain_spec::local_testnet_config()?),
+			"dev" => Box::new(chain_spec::metaverse::development_config()?),
+			"" | "local" => Box::new(chain_spec::metaverse::local_testnet_config()?),
 			#[cfg(feature = "with-metaverse-runtime")]
-			"metaverse" => Box::new(chain_spec::metaverse_testnet_config()?),
+			"metaverse" => Box::new(chain_spec::metaverse::metaverse_testnet_config()?),
 			#[cfg(feature = "with-tewai-runtime")]
-			"tewai" => Box::new(chain_spec::tewai_testnet_config()?),
-			path => Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),
+			"tewai" => Box::new(chain_spec::tewai::tewai_testnet_config()?),
+			#[cfg(feature = "with-tewai-runtime")]
+			"tewai-dev" => Box::new(chain_spec::tewai::development_config()),
+			path => Box::new(chain_spec::metaverse::ChainSpec::from_json_file(
+				std::path::PathBuf::from(path),
+			)?),
 		})
 	}
 
-	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-		&metaverse_runtime::VERSION
+	fn native_runtime_version(spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
+		if spec.id().starts_with("metaverse") {
+			#[cfg(feature = "with-metaverse-runtime")]
+			return &metaverse_runtime::VERSION;
+			#[cfg(not(feature = "with-metaverse-runtime"))]
+			panic!("{}", service::METAVERSE_RUNTIME_NOT_AVAILABLE);
+		} else if spec.id().starts_with("tewai") {
+			#[cfg(feature = "with-tewai-runtime")]
+			return &tewai_runtime::VERSION;
+			#[cfg(not(feature = "with-tewai-runtime"))]
+			panic!("{}", service::TEWAI_RUNTIME_NOT_AVAILABLE);
+		} else {
+			#[cfg(feature = "with-metaverse-runtime")]
+			return &tewai_runtime::VERSION;
+			#[cfg(not(feature = "with-metaverse-runtime"))]
+			panic!("{}", service::METAVERSE_RUNTIME_NOT_AVAILABLE);
+		}
 	}
 }
 
@@ -149,13 +169,28 @@ pub fn run() -> sc_cli::Result<()> {
 		}
 		None => {
 			let runner = cli.create_runner(&cli.run)?;
-			runner.run_node_until_exit(|config| async move {
-				match config.role {
-					Role::Light => service::new_light(config),
-					_ => service::new_full(config),
-				}
-				.map_err(sc_cli::Error::Service)
-			})
+			let chain_spec = &runner.config().chain_spec;
+
+			info!("Metaverse Node - Chain_spec id: {}", chain_spec.id());
+
+			#[cfg(feature = "with-tewai-runtime")]
+			if chain_spec.id().starts_with("tewai") {
+				runner.run_node_until_exit(|config| async move {
+					match config.role {
+						Role::Light => service::tewai_light(config),
+						_ => service::tewai_full(config),
+					}
+					.map_err(sc_cli::Error::Service)
+				})
+			} else {
+				runner.run_node_until_exit(|config| async move {
+					match config.role {
+						Role::Light => service::new_light(config),
+						_ => service::new_full(config),
+					}
+					.map_err(sc_cli::Error::Service)
+				})
+			}
 		}
 	}
 }

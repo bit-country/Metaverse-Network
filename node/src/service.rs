@@ -1,5 +1,12 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
+pub const METAVERSE_RUNTIME_NOT_AVAILABLE: &str =
+    "Metaverse runtime is not available. Please compile the node with `--features with-metaverse-runtime` to enable it.";
+pub const TEWAI_RUNTIME_NOT_AVAILABLE: &str =
+	"Tewai runtime is not available. Please compile the node with `--features with-tewai-runtime` to enable it.";
+pub const PIONEER_RUNTIME_NOT_AVAILABLE: &str =
+	"Pioneer runtime is not available. Please compile the node with `--features with-pioneer-runtime` to enable it.";
+
 //#[cfg(feature = "with-parachain-runtime")]
 //mod service_parachain;
 #[cfg(feature = "with-metaverse-runtime")]

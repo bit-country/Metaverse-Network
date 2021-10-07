@@ -26,6 +26,10 @@ run:
 build:
 	cargo build --release  --features with-metaverse-runtime
 
+.PHONY: build-tewai
+build-tewai:
+	cargo build --release  --features with-tewai-runtime
+
 .PHONY: build-docker
 build-docker:
 	./scripts/docker_run.sh
