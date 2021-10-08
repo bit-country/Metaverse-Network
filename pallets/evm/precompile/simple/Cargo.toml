@@ -1,0 +1,29 @@
+[package]
+name = "pallet-evm-precompile-simple"
+version = "2.0.0-dev"
+authors = ["Parity Technologies <admin@parity.io>"]
+edition = "2018"
+license = "Apache-2.0"
+homepage = "https://substrate.dev"
+repository = "https://github.com/paritytech/frontier/"
+description = "Simple precompiles for EVM pallet."
+
+[dependencies]
+sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sp-io = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+fp-evm = { version = "3.0.0-dev", default-features = false, path = "../../../../primitives/evm" }
+evm = { version = "0.30.0", default-features = false, features = ["with-codec"] }
+ripemd160 = { version = "0.9", default-features = false }
+
+[dev-dependencies]
+pallet-evm-test-vector-support = { version = "1.0.0-dev", path = "../../test-vector-support" }
+
+[features]
+default = ["std"]
+std = [
+    "sp-core/std",
+    "sp-io/std",
+    "fp-evm/std",
+    "evm/std",
+    "ripemd160/std",
+]
