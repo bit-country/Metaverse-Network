@@ -34,6 +34,11 @@ build-tewai:
 build-docker:
 	./scripts/docker_run.sh
 
+.PHONY: build-docker-tewai
+build-docker-tewai:
+	./scripts/docker_build_tewai.sh
+
+
 .PHONY: run-dev
 run-dev:
 	./target/release/metaverse-node purge-chain --dev

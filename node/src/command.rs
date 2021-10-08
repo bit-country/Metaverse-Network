@@ -174,14 +174,14 @@ pub fn run() -> sc_cli::Result<()> {
 			info!("Metaverse Node - Chain_spec id: {}", chain_spec.id());
 			#[cfg(feature = "with-tewai-runtime")]
 			if chain_spec.id().starts_with("tewai") {
-				runner.run_node_until_exit(|config| async move {
+				return runner.run_node_until_exit(|config| async move {
 					match config.role {
 						Role::Light => service::tewai_light(config),
 						_ => service::tewai_full(config),
 					}
 					.map_err(sc_cli::Error::Service)
-				})
-			}
+				});
+			};
 
 			#[cfg(feature = "with-metaverse-runtime")]
 			runner.run_node_until_exit(|config| async move {
