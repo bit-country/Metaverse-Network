@@ -23,7 +23,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, EstateId, LandId, MetaverseId};
+use primitives::{Balance, EstateId, LandId, MetaverseId, estate::Estate};
 use sp_runtime::{
 	print,
 	traits::{AccountIdConversion, One},
@@ -435,5 +435,20 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 
 	fn is_user_own_metaverse_land(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
 		Self::get_user_land_units(&who, metaverse_id).len() > 0
+	}
+}
+
+impl<T: Config> Estate<T::AccountId> for Pallet<T> {
+	fn transfer_estate(estate_id: EstateId, from: &T::AccountId, to: &T::AccountId)
+					   -> Result<EstateId, DispatchError> {
+
+		let tt :u64 = 1;
+		Ok(tt)
+	}
+
+	fn transfer_landunit(coordinate: (i32, i32), from: &T::AccountId, to: &(T::AccountId, MetaverseId))
+						 -> Result<(i32, i32), DispatchError>{
+
+		Ok((0, 0))
 	}
 }

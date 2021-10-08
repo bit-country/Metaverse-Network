@@ -455,6 +455,7 @@ impl auction::Config for Runtime {
 	type FungibleTokenCurrency = Tokens;
 	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
+	type EstateHandler = Estate;
 }
 
 impl continuum::Config for Runtime {
