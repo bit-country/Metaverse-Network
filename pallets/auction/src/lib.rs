@@ -30,8 +30,9 @@ use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 use pallet_continuum::Pallet as ContinuumModule;
+use pallet_estate::Pallet as EstateModule;
 use pallet_nft::Module as NFTModule;
-use primitives::{continuum::Continuum, AssetId, AuctionId, ItemId};
+use primitives::{continuum::Continuum, estate::Estate, AssetId, AuctionId, ItemId};
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
 	traits::{One, Zero},
@@ -86,6 +87,8 @@ pub mod pallet {
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 		#[pallet::constant]
 		type MinimumAuctionDuration: Get<Self::BlockNumber>;
+
+		type EstateHandler: Estate<Self::AccountId>;
 	}
 
 	#[pallet::storage]
@@ -354,6 +357,32 @@ pub mod pallet {
 								}
 							}
 						}
+						ItemId::Estate(estate_id) => {
+							let estate = T::EstateHandler::transfer_estate(
+								estate_id,
+								&auction_item.recipient,
+								&from.clone(),
+							);
+							match estate {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
+						ItemId::LandUnit(coordinate, metaverse_id) => {
+							let land_unit = T::EstateHandler::transfer_landunit(
+								coordinate,
+								&auction_item.recipient,
+								&(from.clone(), metaverse_id),
+							);
+							match land_unit {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
 						_ => {} // Future implementation for Land, Metaverse
 					}
 				}
@@ -428,6 +457,32 @@ pub mod pallet {
 								&(from.clone(), metaverse_id),
 							);
 							match continuum_spot {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
+						ItemId::Estate(estate_id) => {
+							let estate = T::EstateHandler::transfer_estate(
+								estate_id,
+								&auction_item.recipient,
+								&from.clone(),
+							);
+							match estate {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
+						ItemId::LandUnit(coordinate, metaverse_id) => {
+							let land_unit = T::EstateHandler::transfer_landunit(
+								coordinate,
+								&auction_item.recipient,
+								&(from.clone(), metaverse_id),
+							);
+							match land_unit {
 								Err(_) => (),
 								Ok(_) => {
 									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
@@ -581,6 +636,32 @@ pub mod pallet {
 													}
 												}
 											}
+											ItemId::Estate(estate_id) => {
+												let estate = T::EstateHandler::transfer_estate(
+													estate_id,
+													&auction_item.recipient,
+													&high_bidder.clone(),
+												);
+												match estate {
+													Err(_) => (),
+													Ok(_) => {
+														Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+													}
+												}
+											}
+											ItemId::LandUnit(coordinate, metaverse_id) => {
+												let land_unit = T::EstateHandler::transfer_landunit(
+													coordinate,
+													&auction_item.recipient,
+													&(high_bidder.clone(), metaverse_id),
+												);
+												match land_unit {
+													Err(_) => (),
+													Ok(_) => {
+														Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+													}
+												}
+											}
 											_ => {} // Future implementation for Spot, Metaverse
 										}
 										<ItemsInAuction<T>>::remove(auction_item.item_id);
@@ -639,6 +720,32 @@ pub mod pallet {
 															high_bidder,
 															high_bid_price,
 														));
+													}
+												}
+											}
+											ItemId::Estate(estate_id) => {
+												let estate = T::EstateHandler::transfer_estate(
+													estate_id,
+													&auction_item.recipient,
+													&high_bidder.clone(),
+												);
+												match estate {
+													Err(_) => (),
+													Ok(_) => {
+														Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+													}
+												}
+											}
+											ItemId::LandUnit(coordinate, metaverse_id) => {
+												let land_unit = T::EstateHandler::transfer_landunit(
+													coordinate,
+													&auction_item.recipient,
+													&(high_bidder.clone(), metaverse_id),
+												);
+												match land_unit {
+													Err(_) => (),
+													Ok(_) => {
+														Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
 													}
 												}
 											}
@@ -797,6 +904,8 @@ pub mod pallet {
 					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
+				ItemId::Estate(_estate_id_) => { Ok(1) }
+				ItemId::LandUnit(_coordinate_, _metaverse_id_) => { Ok(1) }
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
 			}
 		}

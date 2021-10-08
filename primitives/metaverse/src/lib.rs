@@ -33,6 +33,7 @@ use sp_runtime::traits::AtLeast32Bit;
 
 pub mod continuum;
 pub mod dex;
+pub mod estate;
 
 /// An index to a block.
 pub type BlockNumber = u32;
