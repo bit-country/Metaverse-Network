@@ -48,7 +48,7 @@ sc-consensus-epochs = { version = "0.10.0-dev", git = "https://github.com/parity
 sc-consensus-slots = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sp-consensus = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sp-authority-discovery = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
-sp-finality-grandpa = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", optional = true }
+sp-finality-grandpa = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sc-finality-grandpa = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sc-finality-grandpa-rpc = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sc-client-api = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -102,7 +102,6 @@ with-metaverse-runtime = [
 with-tewai-runtime = [
     "tewai-runtime",
     "node-primitives",
-    "sp-finality-grandpa",
     "pallet-im-online",
     "sp-authority-discovery"
 ]
