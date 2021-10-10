@@ -11,7 +11,7 @@ check-tewai: githooks
 	SKIP_WASM_BUILD= cargo check --features with-tewai-runtime
 
 .PHONY: check-pioneer
-check-tewai: githooks
+check-pioneer: githooks
 	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime
 
 .PHONY: check-debug

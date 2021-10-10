@@ -4477,13 +4477,16 @@ dependencies = [
  "sp-finality-grandpa",
  "sp-inherents",
  "sp-keystore",
+ "sp-offchain",
  "sp-runtime",
+ "sp-session",
  "sp-timestamp",
  "sp-transaction-pool",
  "sp-transaction-storage-proof",
  "structopt",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
+ "substrate-prometheus-endpoint",
  "tewai-runtime",
 ]
 

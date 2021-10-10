@@ -1,3 +1,4 @@
+use crate::chain_spec::Extensions;
 use cumulus_primitives_core::ParaId;
 use pioneer_runtime::{
 	constants::currency::*,
