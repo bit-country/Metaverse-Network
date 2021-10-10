@@ -53,6 +53,7 @@ sc-finality-grandpa = { version = "0.10.0-dev", git = "https://github.com/parity
 sc-finality-grandpa-rpc = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sc-client-api = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sc-network = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
+sc-tracing = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sp-runtime = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sp-timestamp = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
 sc-sync-state-rpc = { version = "0.10.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -84,7 +85,24 @@ node-primitives = { version = "2.0.0", git = "https://github.com/paritytech/subs
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
 metaverse-runtime = { version = "2.0.0-rc6", path = "../runtime/metaverse", optional = true }
 tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
+pioneer-runtime = { version = "2.0.0-rc6", path = "../runtime/pioneer", optional = true }
 pallet-evm = { path = "../pallets/evm" }
+
+# Cumulus dependencies
+cumulus-client-consensus-aura = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9' }
+cumulus-client-consensus-common = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9' }
+cumulus-client-collator = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9' }
+cumulus-client-cli = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9' }
+cumulus-client-network = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9' }
+cumulus-client-service = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9' }
+cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9' }
+cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.9' }
+
+# Polkadot dependencies
+polkadot-cli = { git = 'https://github.com/paritytech/polkadot', branch = 'release-v0.9.9' }
+polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = 'release-v0.9.9' }
+polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = 'release-v0.9.9' }
+polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = 'release-v0.9.9' }
 
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9" }
@@ -101,7 +119,8 @@ with-metaverse-runtime = [
 
 with-tewai-runtime = [
     "tewai-runtime",
-    "node-primitives",
-    "pallet-im-online",
-    "sp-authority-discovery"
+]
+
+with-pioneer-runtime = [
+    "pioneer-runtime",
 ]
