@@ -904,8 +904,14 @@ pub mod pallet {
 					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
-				ItemId::Estate(_estate_id_) => { Ok(1) }
-				ItemId::LandUnit(_coordinate_, _metaverse_id_) => { Ok(1) }
+				ItemId::Estate(_estate_id_) => {
+					// TODO:
+					Ok(1)
+				}
+				ItemId::LandUnit(_coordinate_, _metaverse_id_) => {
+					// TODO:
+					Ok(1)
+				}
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
 			}
 		}

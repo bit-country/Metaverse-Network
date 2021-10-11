@@ -26,6 +26,12 @@ bc-primitives = { path = "../../traits/bc-primitives", default-features = false 
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false, optional = true }
 
+[dependencies.auction-manager]
+default-features = false
+package = 'auction-manager'
+path = '../../traits/auction-manager'
+version = '2.0.0-rc6'
+
 [features]
 default = ['std']
 std = [
@@ -37,5 +43,6 @@ std = [
     'bc-primitives/std',
     'primitives/std',
     'sp-io/std',
-    'pallet-balances/std'
+    'pallet-balances/std',
+    'auction-manager/std'
 ]
