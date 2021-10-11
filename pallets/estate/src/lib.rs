@@ -228,9 +228,7 @@ pub mod pallet {
 					// ensure there is record of the land unit with bit country id and coordinate
 					ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
 
-					// ensure the land unit is belong to the correct owner
-					// let mut land_unit_owner_record = land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
-
+					// Check ownership
 					let owner = land_unit_owner.as_ref().map(|(t)| t);
 					ensure!(owner == Some(&who), Error::<T>::NoPermission);
 
@@ -460,7 +458,7 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 	fn transfer_estate(estate_id: EstateId, from: &T::AccountId, to: &T::AccountId)
 					   -> Result<EstateId, DispatchError> {
 		ensure!(
-			!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
+			T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
 			Error::<T>::EstateNotInAuction
 		);
 
@@ -480,7 +478,7 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 	fn transfer_landunit(coordinate: (i32, i32), from: &T::AccountId, to: &(T::AccountId, MetaverseId))
 						 -> Result<(i32, i32), DispatchError>{
 		ensure!(
-			!T::AuctionHandler::check_item_in_auction(ItemId::LandUnit(coordinate, to.1)),
+			T::AuctionHandler::check_item_in_auction(ItemId::LandUnit(coordinate, to.1)),
 			Error::<T>::LandUnitNotInAuction
 		);
 
@@ -491,11 +489,9 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 				// ensure there is record of the land unit with bit country id and coordinate
 				ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
 
-				// ensure the land unit is belong to the correct owner
-				// let mut land_unit_owner_record = land_unit_owner.as_mut().ok_or(Error::<T>::NoPermission)?;
-
+				// Check ownership
 				let owner = land_unit_owner.as_ref().map(|(t)| t);
-				ensure!(owner == Some(&from), Error::<T>::NoPermission);
+				ensure!(owner != Some(&from), Error::<T>::NoPermission);
 
 				ensure!(from != &(to.0), Error::<T>::AlreadyOwnTheLandUnit);
 
