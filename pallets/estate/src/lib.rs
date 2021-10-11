@@ -132,7 +132,9 @@ pub mod pallet {
 		AlreadyOwnTheEstate,
 		AlreadyOwnTheLandUnit,
 		EstateNotInAuction,
-		LandUnitNotInAuction
+		LandUnitNotInAuction,
+		EstateAlreadyInAuction,
+		LandUnitAlreadyInAuction
 	}
 
 	#[pallet::call]
@@ -213,6 +215,11 @@ pub mod pallet {
 			coordinate: (i32, i32),
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(ItemId::LandUnit(coordinate, metaverse_id)),
+				Error::<T>::LandUnitAlreadyInAuction
+			);
 
 			LandUnits::<T>::try_mutate_exists(
 				&metaverse_id,
@@ -311,11 +318,10 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			// TODO:
-			// ensure!(
-			// 	!T::AuctionHandler::check_item_in_auction(ItemId::NFT(asset_id)),
-			// 	Error::<T>::AssetAlreadyInAuction
-			// );
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
+				Error::<T>::EstateAlreadyInAuction
+			);
 
 			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| -> DispatchResultWithPostInfo {
 				//ensure there is record of the estate owner with estate id and account id
