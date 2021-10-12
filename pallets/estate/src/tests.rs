@@ -389,12 +389,12 @@ fn transfer_land_should_do_nothing_for_same_account() {
 			BENEFICIARY_ID
 		);
 
-		assert_ok!(EstateModule::transfer_land(
+		assert_noop!(EstateModule::transfer_land(
 			Origin::signed(BENEFICIARY_ID),
 			BENEFICIARY_ID,
 			BITCOUNTRY_ID,
 			COORDINATE_IN_1
-		));
+		), Error::<Runtime>::AlreadyOwnTheLandUnit);
 
 		assert_eq!(
 			EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1),
@@ -581,7 +581,7 @@ fn transfer_estate_should_reject_no_permission() {
 }
 
 #[test]
-fn transfer_estate_should_work_with_same_account() {
+fn transfer_estate_should_fail_with_same_account() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), BITCOUNTRY_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
@@ -594,11 +594,11 @@ fn transfer_estate_should_work_with_same_account() {
 		let mut estate_id: u64 = 0;
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
-		assert_ok!(EstateModule::transfer_estate(
+		assert_noop!(EstateModule::transfer_estate(
 			Origin::signed(BENEFICIARY_ID),
 			BENEFICIARY_ID,
 			estate_id
-		));
+		), Error::<Runtime>::AlreadyOwnTheEstate);
 
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 	});

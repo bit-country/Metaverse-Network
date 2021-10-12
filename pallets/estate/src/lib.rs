@@ -223,36 +223,8 @@ pub mod pallet {
 				Error::<T>::LandUnitAlreadyInAuction
 			);
 
-			LandUnits::<T>::try_mutate_exists(
-				&metaverse_id,
-				&coordinate,
-				|land_unit_owner| -> DispatchResultWithPostInfo {
-					// ensure there is record of the land unit with bit country id and coordinate
-					ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
-
-					// Check ownership
-					let owner = land_unit_owner.as_ref().map(|(t)| t);
-					ensure!(owner == Some(&who), Error::<T>::NoPermission);
-
-					if who == to {
-						// no change needed
-						return Ok(().into());
-					}
-
-					*land_unit_owner = None;
-					LandUnits::<T>::insert(metaverse_id.clone(), coordinate.clone(), to.clone());
-
-					// Update
-					Self::deposit_event(Event::<T>::TransferredLandUnit(
-						metaverse_id.clone(),
-						coordinate.clone(),
-						who.clone(),
-						to.clone(),
-					));
-
-					Ok(().into())
-				},
-			)
+			Self::do_transfer_landunit(coordinate, &who, &to, metaverse_id)?;
+			Ok(().into())
 		}
 
 		/// Mint new estate with no existing land unit
@@ -323,22 +295,8 @@ pub mod pallet {
 				Error::<T>::EstateAlreadyInAuction
 			);
 
-			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| -> DispatchResultWithPostInfo {
-				//ensure there is record of the estate owner with estate id and account id
-				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
-
-				if who == to {
-					// no change needed
-					return Ok(().into());
-				}
-
-				*estate_by_owner = None;
-				EstateOwner::<T>::insert(to.clone(), estate_id.clone(), ());
-
-				Self::deposit_event(Event::<T>::TransferredEstate(estate_id.clone(), who.clone(), to));
-
-				Ok(().into())
-			})
+			Self::do_transfer_estate(estate_id, &who, &to)?;
+			Ok(().into())
 		}
 	}
 
@@ -421,6 +379,52 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
+
+	fn do_transfer_estate(estate_id: EstateId, from: &T::AccountId, to: &T::AccountId) -> Result<EstateId, DispatchError> {
+		EstateOwner::<T>::try_mutate_exists(&from, &estate_id, |estate_by_owner| -> Result<EstateId, DispatchError> {
+			//ensure there is record of the estate owner with estate id and account id
+			ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
+
+			ensure!(from != to, Error::<T>::AlreadyOwnTheEstate);
+
+			*estate_by_owner = None;
+			EstateOwner::<T>::insert(to.clone(), estate_id.clone(), ());
+
+			Self::deposit_event(Event::<T>::TransferredEstate(estate_id.clone(), from.clone(), to.clone()));
+
+			Ok(estate_id)
+		})
+	}
+
+	fn do_transfer_landunit (coordinate: (i32, i32), from: &T::AccountId, to: &T::AccountId, metaverse_id: MetaverseId) -> Result<(i32, i32), DispatchError> {
+		LandUnits::<T>::try_mutate_exists(
+			&metaverse_id,
+			&coordinate,
+			|land_unit_owner| -> Result<(i32, i32), DispatchError> {
+				// ensure there is record of the land unit with bit country id and coordinate
+				ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
+
+				// Check ownership
+				let owner = land_unit_owner.as_ref().map(|(t)| t);
+				ensure!(owner == Some(&from), Error::<T>::NoPermission);
+
+				ensure!(from != to, Error::<T>::AlreadyOwnTheLandUnit);
+
+				*land_unit_owner = None;
+				LandUnits::<T>::insert(metaverse_id.clone(), coordinate.clone(), to.clone());
+
+				// Update
+				Self::deposit_event(Event::<T>::TransferredLandUnit(
+					metaverse_id.clone(),
+					coordinate.clone(),
+					from.clone(),
+					to.clone(),
+				));
+
+				Ok(coordinate)
+			},
+		)
+	}
 }
 
 impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
@@ -462,17 +466,8 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 			Error::<T>::EstateNotInAuction
 		);
 
-		EstateOwner::<T>::try_mutate_exists(&from, &estate_id, |estate_by_owner| -> Result<EstateId, DispatchError> {
-			//ensure there is record of the estate owner with estate id and account id
-			ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
-
-			ensure!(from != to, Error::<T>::AlreadyOwnTheEstate);
-
-			*estate_by_owner = None;
-			EstateOwner::<T>::insert(to.clone(), estate_id.clone(), ());
-
-			Ok(estate_id)
-		})
+		let estate_id = Self::do_transfer_estate(estate_id, from, to)?;
+		Ok(estate_id)
 	}
 
 	fn transfer_landunit(coordinate: (i32, i32), from: &T::AccountId, to: &(T::AccountId, MetaverseId))
@@ -482,25 +477,8 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 			Error::<T>::LandUnitNotInAuction
 		);
 
-		LandUnits::<T>::try_mutate_exists(
-			&to.1.clone(),
-			&coordinate,
-			|land_unit_owner| -> Result<(i32, i32), DispatchError> {
-				// ensure there is record of the land unit with bit country id and coordinate
-				ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
-
-				// Check ownership
-				let owner = land_unit_owner.as_ref().map(|(t)| t);
-				ensure!(owner != Some(&from), Error::<T>::NoPermission);
-
-				ensure!(from != &(to.0), Error::<T>::AlreadyOwnTheLandUnit);
-
-				*land_unit_owner = None;
-				LandUnits::<T>::insert(to.1.clone(), coordinate.clone(), to.0.clone());
-
-				Ok(coordinate)
-			},
-		)
+		let coordinate = Self::do_transfer_landunit(coordinate, from, &(to).0, to.1)?;
+		Ok(coordinate)
 	}
 
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
