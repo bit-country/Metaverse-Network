@@ -454,7 +454,7 @@ fn mint_estate_should_work() {
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
-			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
+			EstateModule::get_estates(estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
@@ -480,7 +480,7 @@ fn mint_estate_and_land_should_return_correct_total_land_unit() {
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
-			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
+			EstateModule::get_estates( estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
@@ -517,13 +517,13 @@ fn mint_estate_should_return_none_for_non_exist_estate() {
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
-			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
+			EstateModule::get_estates(estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		let estate_id_non_exists: u64 = 999;
-		assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id_non_exists), None);
+		assert_eq!(EstateModule::get_estates( estate_id_non_exists), None);
 		assert_eq!(
 			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
 			None
@@ -661,7 +661,7 @@ fn create_estate_should_work() {
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
-			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
+			EstateModule::get_estates( estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
@@ -691,13 +691,13 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
-			EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
+			EstateModule::get_estates( estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		let estate_id_non_exists: u64 = 999;
-		assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id_non_exists), None);
+		assert_eq!(EstateModule::get_estates( estate_id_non_exists), None);
 		assert_eq!(
 			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
 			None

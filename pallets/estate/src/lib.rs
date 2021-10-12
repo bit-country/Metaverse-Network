@@ -93,8 +93,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estates)]
-	pub type Estates<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, EstateId, Vec<(i32, i32)>, OptionQuery>;
+	pub(super) type Estates<T: Config> =
+		StorageMap<_, Twox64Concat, EstateId, Vec<(i32, i32)>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_owner)]
@@ -109,7 +109,7 @@ pub mod pallet {
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
 		TransferredEstate(EstateId, T::AccountId, T::AccountId),
 		NewLandUnitMinted(MetaverseId, (i32, i32)),
-		NewEstateMinted(EstateId, MetaverseId, Vec<(i32, i32)>),
+		NewEstateMinted(EstateId, Vec<(i32, i32)>),
 		MaxBoundSet(MetaverseId, (i32, i32)),
 	}
 
@@ -276,7 +276,7 @@ pub mod pallet {
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates);
+			Self::update_estate_information(new_estate_id, &beneficiary, coordinates);
 
 			Ok(().into())
 		}
@@ -303,7 +303,7 @@ pub mod pallet {
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone());
+			Self::update_estate_information(new_estate_id, &beneficiary, coordinates.clone());
 
 			Ok(().into())
 		}
@@ -397,7 +397,6 @@ impl<T: Config> Pallet<T> {
 
 	fn update_estate_information(
 		new_estate_id: EstateId,
-		metaverse_id: MetaverseId,
 		beneficiary: &T::AccountId,
 		coordinates: Vec<(i32, i32)>,
 	) -> DispatchResult {
@@ -409,13 +408,12 @@ impl<T: Config> Pallet<T> {
 		AllEstatesCount::<T>::put(new_total_estates_count);
 
 		// Update estates
-		Estates::<T>::insert(metaverse_id, new_estate_id, coordinates.clone());
+		Estates::<T>::insert(new_estate_id, coordinates.clone());
 
 		EstateOwner::<T>::insert(beneficiary.clone(), new_estate_id, {});
 
 		Self::deposit_event(Event::<T>::NewEstateMinted(
 			new_estate_id.clone(),
-			metaverse_id,
 			coordinates.clone(),
 		));
 
@@ -442,7 +440,7 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 			.collect::<Vec<(_)>>();
 
 		for estate_id in estate_ids_by_owner {
-			let mut coordinates = Estates::<T>::get(&metaverse_id, &estate_id).unwrap();
+			let mut coordinates = Estates::<T>::get(&estate_id).unwrap();
 			total_land_units.append(&mut coordinates)
 		}
 
@@ -501,5 +499,13 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 				Ok(coordinate)
 			},
 		)
+	}
+
+	fn check_estate(estate_id: EstateId) {
+		Self::get_estates( estate_id);
+	}
+
+	fn check_landunit(coordinate: (i32, i32), metaverse_id: MetaverseId) {
+		Self::get_land_units(metaverse_id, coordinate);
 	}
 }

@@ -19,6 +19,7 @@ use sp_core::{
 	H256,
 };
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
+use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, CheckAuctionItemHandler, OnNewBidResult};
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -129,7 +130,67 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 }
 
-// type CouncilCollective = pallet_collective::Instance1;
+pub struct MockAuctionManager;
+
+impl Auction<AccountId, BlockNumber> for MockAuctionManager {
+	type Balance = Balance;
+
+	fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+		None
+	}
+
+	fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+		Ok(())
+	}
+
+	fn new_auction(
+		recipient: u128,
+		initial_amount: Self::Balance,
+		start: u64,
+		end: Option<u64>,
+	) -> Result<u64, DispatchError> {
+		Ok(1)
+	}
+
+	fn create_auction(
+		auction_type: AuctionType,
+		item_id: ItemId,
+		end: Option<u64>,
+		recipient: u128,
+		initial_amount: Self::Balance,
+		start: u64,
+		listing_level: ListingLevel,
+	) -> Result<u64, DispatchError> {
+		Ok(1)
+	}
+
+	fn remove_auction(id: u64, item_id: ItemId) {}
+
+	fn auction_bid_handler(
+		_now: u64,
+		id: u64,
+		new_bid: (u128, Self::Balance),
+		last_bid: Option<(u128, Self::Balance)>,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn local_auction_bid_handler(
+		_now: u64,
+		id: u64,
+		new_bid: (u128, Self::Balance),
+		last_bid: Option<(u128, Self::Balance)>,
+		social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		Ok(())
+	}
+}
+
+impl CheckAuctionItemHandler for MockAuctionManager {
+	fn check_item_in_auction(item_id: ItemId) -> bool {
+		return false;
+	}
+}
 
 impl Config for Runtime {
 	type Event = Event;
@@ -138,6 +199,7 @@ impl Config for Runtime {
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = EnsureSignedBy<One, AccountId>;
+	type AuctionHandler = MockAuctionManager;
 }
 
 construct_runtime!(
