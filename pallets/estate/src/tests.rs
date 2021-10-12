@@ -336,8 +336,6 @@ fn transfer_land_should_work() {
 			COORDINATE_IN_1
 		));
 
-		// TODO: fix line below - check with Justin
-		// assert_eq!(EstateModule::get_land_units(BITCOUNTRY_ID, COORDINATE_IN_1), ALICE);
 		assert_eq!(
 			last_event(),
 			Event::Estate(crate::Event::TransferredLandUnit(

@@ -30,7 +30,7 @@ use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
 use pallet_continuum::Pallet as ContinuumModule;
-use pallet_estate::Pallet as EstateModule;
+use pallet_estate::Module as EstateModule;
 use pallet_nft::Module as NFTModule;
 use primitives::{continuum::Continuum, estate::Estate, AssetId, AuctionId, ItemId};
 use sp_runtime::SaturatedConversion;
@@ -52,7 +52,7 @@ pub mod pallet {
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use bc_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
-	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
+	use frame_support::sp_runtime::traits::{CheckedSub};
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended, MultiReservableCurrency};
 	use primitives::{Balance, FungibleTokenId, MetaverseId};
@@ -166,7 +166,7 @@ pub mod pallet {
 		/// Minimum Duration Is Too Low
 		AuctionEndIsLessThanMinimumDuration,
 		/// Overflow
-		Overflow,
+		Overflow
 	}
 
 	#[pallet::call]
@@ -905,12 +905,70 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Estate(_estate_id_) => {
-					// TODO:
-					Ok(1)
+					// Ensure the _estate_id_ exist/minted
+					T::EstateHandler::check_estate(_estate_id_)?;
+
+					let start_time = <system::Module<T>>::block_number();
+					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
+					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					let new_auction_item = AuctionItem {
+						item_id,
+						recipient: recipient.clone(),
+						initial_amount,
+						amount: initial_amount,
+						start_time,
+						end_time,
+						auction_type,
+						listing_level: ListingLevel::Global,
+						currency_id: FungibleTokenId::NativeToken(0),
+					};
+
+					<AuctionItems<T>>::insert(auction_id, new_auction_item);
+
+					Self::deposit_event(Event::NewAuctionItem(
+						auction_id,
+						recipient,
+						listing_level,
+						initial_amount,
+						initial_amount,
+						end_time,
+					));
+					<ItemsInAuction<T>>::insert(item_id, true);
+					Ok(auction_id)
 				}
 				ItemId::LandUnit(_coordinate_, _metaverse_id_) => {
-					// TODO:
-					Ok(1)
+					// Ensure the _coordinate_ exist/minted
+					T::EstateHandler::check_landunit(_coordinate_, _metaverse_id_)?;
+
+					let start_time = <system::Module<T>>::block_number();
+					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
+					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					let new_auction_item = AuctionItem {
+						item_id,
+						recipient: recipient.clone(),
+						initial_amount,
+						amount: initial_amount,
+						start_time,
+						end_time,
+						auction_type,
+						listing_level: ListingLevel::Global,
+						currency_id: FungibleTokenId::NativeToken(0),
+					};
+
+					<AuctionItems<T>>::insert(auction_id, new_auction_item);
+
+					Self::deposit_event(Event::NewAuctionItem(
+						auction_id,
+						recipient,
+						listing_level,
+						initial_amount,
+						initial_amount,
+						end_time,
+					));
+					<ItemsInAuction<T>>::insert(item_id, true);
+					Ok(auction_id)
 				}
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
 			}

@@ -134,7 +134,9 @@ pub mod pallet {
 		EstateNotInAuction,
 		LandUnitNotInAuction,
 		EstateAlreadyInAuction,
-		LandUnitAlreadyInAuction
+		LandUnitAlreadyInAuction,
+		EstateDoesNotExist,
+		LandUnitDoesNotExist
 	}
 
 	#[pallet::call]
@@ -501,11 +503,15 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 		)
 	}
 
-	fn check_estate(estate_id: EstateId) {
-		Self::get_estates( estate_id);
+	fn check_estate(estate_id: EstateId) -> Result<EstateId, DispatchError> {
+		ensure!(Estates::<T>::contains_key(estate_id), Error::<T>::EstateDoesNotExist);
+
+		Ok(estate_id)
 	}
 
-	fn check_landunit(coordinate: (i32, i32), metaverse_id: MetaverseId) {
-		Self::get_land_units(metaverse_id, coordinate);
+	fn check_landunit(coordinate: (i32, i32), metaverse_id: MetaverseId) -> Result<(i32, i32), DispatchError> {
+		ensure!(LandUnits::<T>::contains_key(metaverse_id, coordinate), Error::<T>::LandUnitDoesNotExist);
+
+		Ok(coordinate)
 	}
 }
