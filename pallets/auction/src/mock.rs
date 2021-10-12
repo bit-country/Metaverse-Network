@@ -92,12 +92,12 @@ impl Estate<u128> for EstateHandler {
 		Ok((0, 0))
 	}
 
-	fn check_estate(estate_id: EstateId) -> Result<EstateId, DispatchError>{
-		Ok(1)
+	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError>{
+		Ok(true)
 	}
 
-	fn check_landunit(coordinate: (i32, i32), metaverse_id: MetaverseId) -> Result<(i32, i32), DispatchError>{
-		Ok((0, 0))
+	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError>{
+		Ok(true)
 	}
 }
 
