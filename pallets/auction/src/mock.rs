@@ -4,7 +4,7 @@ use super::*;
 use crate as auction;
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
-use primitives::{continuum::Continuum, Amount, AuctionId, CurrencyId, FungibleTokenId};
+use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, CurrencyId, FungibleTokenId, EstateId};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -76,6 +76,28 @@ pub struct Continuumm;
 impl Continuum<u128> for Continuumm {
 	fn transfer_spot(spot_id: u64, from: &AccountId, to: &(AccountId, u64)) -> Result<u64, DispatchError> {
 		Ok(1)
+	}
+}
+
+pub struct EstateHandler;
+
+impl Estate<u128> for EstateHandler {
+	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId)
+					   -> Result<EstateId, DispatchError> {
+		Ok(1)
+	}
+
+	fn transfer_landunit(coordinate: (i32, i32), from: &AccountId, to: &(AccountId, MetaverseId))
+						 -> Result<(i32, i32), DispatchError>{
+		Ok((0, 0))
+	}
+
+	fn check_estate(estate_id: EstateId) -> Result<EstateId, DispatchError>{
+		Ok(1)
+	}
+
+	fn check_landunit(coordinate: (i32, i32), metaverse_id: MetaverseId) -> Result<(i32, i32), DispatchError>{
+		Ok((0, 0))
 	}
 }
 
@@ -167,6 +189,7 @@ impl Config for Runtime {
 	type FungibleTokenCurrency = Tokens;
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
+	type EstateHandler = EstateHandler;
 }
 
 parameter_types! {
