@@ -166,7 +166,9 @@ pub mod pallet {
 		/// Minimum Duration Is Too Low
 		AuctionEndIsLessThanMinimumDuration,
 		/// Overflow
-		Overflow
+		Overflow,
+		EstateDoesNotExist,
+		LandUnitDoesNotExist
 	}
 
 	#[pallet::call]
@@ -906,7 +908,7 @@ pub mod pallet {
 				}
 				ItemId::Estate(_estate_id_) => {
 					// Ensure the _estate_id_ exist/minted
-					T::EstateHandler::check_estate(_estate_id_)?;
+					ensure!( T::EstateHandler::check_estate(_estate_id_)?, Error::<T>::EstateDoesNotExist);
 
 					let start_time = <system::Module<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
@@ -939,7 +941,8 @@ pub mod pallet {
 				}
 				ItemId::LandUnit(_coordinate_, _metaverse_id_) => {
 					// Ensure the _coordinate_ exist/minted
-					T::EstateHandler::check_landunit(_coordinate_, _metaverse_id_)?;
+					ensure!(T::EstateHandler::check_landunit(_metaverse_id_, _coordinate_)?, Error::<T>::LandUnitDoesNotExist);
+
 
 					let start_time = <system::Module<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
