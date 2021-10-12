@@ -8,6 +8,7 @@ members = [
     'node',
     'modules/chainsafe',
     'runtime/metaverse',
+    'runtime/pioneer',
     'runtime/tewai',
     'primitives/evm',
     'primitives/metaverse',
@@ -16,5 +17,5 @@ exclude = [
     '/dapps/luckydraw',
     '/dapps/airdrop',
     '/dapps/countrytoken',
-    'pallets/oracle',
+    'pallets/oracle'
 ]

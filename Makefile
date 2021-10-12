@@ -10,6 +10,10 @@ check: githooks
 check-tewai: githooks
 	SKIP_WASM_BUILD= cargo check --features with-tewai-runtime
 
+.PHONY: check-pioneer
+check-pioneer: githooks
+	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime
+
 .PHONY: check-debug
 check-debug:
 	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check --features with-metaverse-runtime
@@ -33,6 +37,11 @@ build-tewai:
 .PHONY: build-docker
 build-docker:
 	./scripts/docker_run.sh
+
+.PHONY: build-docker-tewai
+build-docker-tewai:
+	./scripts/docker_build_tewai.sh
+
 
 .PHONY: run-dev
 run-dev:

@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - pioneer-network-0.1 
   push:
     branches:
       - master
