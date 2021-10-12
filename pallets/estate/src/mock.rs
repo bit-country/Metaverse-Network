@@ -32,14 +32,16 @@ pub type EstateId = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
 pub const BENEFICIARY_ID: AccountId = 99;
-pub const BITCOUNTRY_ID: MetaverseId = 0;
+pub const METAVERSE_ID: MetaverseId = 0;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
-pub const ALICE_COUNTRY_ID: MetaverseId = 1;
-pub const BOB_COUNTRY_ID: MetaverseId = 2;
+pub const ALICE_METAVERSE_ID: MetaverseId = 1;
+pub const BOB_METAVERSE_ID: MetaverseId = 2;
 pub const MAX_BOUND: (i32, i32) = (-100, 100);
 pub const COORDINATE_IN_1: (i32, i32) = (-10, 10);
 pub const COORDINATE_IN_2: (i32, i32) = (-5, 5);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
+pub const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
+pub const ESTATE_IN_AUCTION: EstateId = 99;
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -111,8 +113,8 @@ pub struct MetaverseInfoSource {}
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
-			ALICE => *metaverse_id == ALICE_COUNTRY_ID,
-			BOB => *metaverse_id == BOB_COUNTRY_ID,
+			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
+			BOB => *metaverse_id == BOB_METAVERSE_ID,
 			_ => false,
 		}
 	}
@@ -188,7 +190,17 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 impl CheckAuctionItemHandler for MockAuctionManager {
 	fn check_item_in_auction(item_id: ItemId) -> bool {
-		return false;
+		match item_id {
+			ItemId::Estate(ESTATE_IN_AUCTION) => {
+				return true;
+			}
+			ItemId::LandUnit(COORDINATE_IN_AUCTION, METAVERSE_ID) => {
+				return true;
+			}
+			_ => {
+				return false;
+			}
+		}
 	}
 }
 
