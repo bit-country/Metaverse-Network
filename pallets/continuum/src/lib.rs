@@ -388,6 +388,7 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn enable_bidder_rejection_voting(origin: OriginFor<T>, spot_id: SpotId) -> DispatchResultWithPostInfo {
 			let root = ensure_root(origin);
+
 			//TODO Check if neighborhood
 			//Enable democracy pallet
 			//Propose bidder removal action on democracy
@@ -616,8 +617,6 @@ impl<T: Config> Pallet<T> {
 					let new_vote: AccountVote<T::AccountId> = vote.clone();
 					let who = new_vote.vote_who();
 					votes.insert(i, (spot_id, vote.clone()));
-
-					let tallies = status.tallies.clone();
 
 					// Find existing tally of bidder
 					for mut tally in status.tallies {
