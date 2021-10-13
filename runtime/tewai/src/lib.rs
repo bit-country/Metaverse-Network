@@ -1318,12 +1318,7 @@ pub type Executive =
 
 /// MMR helper types.
 mod mmr {
-	use super::Runtime;
 	pub use pallet_mmr::primitives::*;
-
-	pub type Leaf = <<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider>::LeafData;
-	pub type Hash = <Runtime as pallet_mmr::Config>::Hash;
-	pub type Hashing = <Runtime as pallet_mmr::Config>::Hashing;
 }
 
 impl_runtime_apis! {

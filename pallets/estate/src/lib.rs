@@ -325,12 +325,6 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	// Reads the nonce from storage, increments the stored nonce, and returns
-	// the encoded nonce to the caller.
-	fn account_id() -> T::AccountId {
-		T::LandTreasury::get().into_account()
-	}
-
 	fn get_new_estate_id() -> Result<EstateId, DispatchError> {
 		let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
 			let current_id = *id;

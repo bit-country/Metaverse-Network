@@ -33,7 +33,7 @@ use sc_cli::{
 use sc_service::config::{BasePath, PrometheusConfig};
 use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::traits::Block as BlockT;
+use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 use std::{io::Write, net::SocketAddr};
 
 fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {

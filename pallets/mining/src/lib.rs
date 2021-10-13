@@ -61,12 +61,11 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use primitives::{FungibleTokenId, VestingSchedule};
+	use primitives::FungibleTokenId;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
 	pub type ScheduledItem<T> = (
 		<T as frame_system::Config>::AccountId,
 		<T as frame_system::Config>::BlockNumber,

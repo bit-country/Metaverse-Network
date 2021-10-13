@@ -59,8 +59,8 @@ pub mod pallet {
 	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	pub(super) type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
-	pub(super) type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
+	// pub(super) type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
+	// pub(super) type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 	pub(super) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -450,7 +450,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
@@ -490,7 +490,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
 			ensure!(
@@ -728,7 +728,7 @@ pub mod pallet {
 						Error::<T>::NoPermissionToCreateAuction
 					);
 
-					let start_time = <system::Module<T>>::block_number();
+					let start_time = <system::Pallet<T>>::block_number();
 
 					let mut end_time = start_time + T::AuctionTimeToClose::get();
 					if let Some(_end_block) = _end {
@@ -767,7 +767,7 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
-					let start_time = <system::Module<T>>::block_number();
+					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 

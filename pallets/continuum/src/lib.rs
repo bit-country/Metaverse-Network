@@ -20,9 +20,10 @@
 
 use codec::{Decode, Encode};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
-use frame_system::{ensure_root, ensure_signed};
-use primitives::{continuum::Continuum, ItemId, MetaverseId, SpotId};
+use frame_system::{self as system, ensure_root, ensure_signed};
+use primitives::{continuum::Continuum, Balance, CurrencyId, ItemId, MetaverseId, SpotId};
 #[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	DispatchError, RuntimeDebug,
@@ -33,6 +34,7 @@ use sp_std::vec::Vec;
 use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use bc_primitives::MetaverseTrait;
 use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
+use sp_arithmetic::Perbill;
 
 #[cfg(feature = "std")]
 use frame_support::traits::GenesisBuild;
@@ -441,7 +443,7 @@ impl<T: Config> Pallet<T> {
 		Self::eoi_to_auction_slots(current_active_session_id, now)?;
 		// Finalise due vote
 		Self::finalize_vote(now);
-		let mut active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id);
+		let active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id);
 
 		match active_auction_slots {
 			Some(s) => {
@@ -601,10 +603,10 @@ impl<T: Config> Pallet<T> {
 
 	fn try_vote(who: &T::AccountId, spot_id: SpotId, vote: AccountVote<T::AccountId>) -> DispatchResult {
 		// TODO ensure is actual neighbor once metaverse trait is completed
-		let mut status = Self::referendum_status(spot_id)?;
+		let status = Self::referendum_status(spot_id)?;
 
 		VotingOf::<T>::try_mutate(who, |mut voting| -> DispatchResult {
-			let mut votes = &mut voting.votes;
+			let votes = &mut voting.votes;
 			match votes.binary_search_by_key(&spot_id, |i| i.0) {
 				// Already voted
 				Ok(i) => {}
@@ -615,7 +617,7 @@ impl<T: Config> Pallet<T> {
 					let who = new_vote.vote_who();
 					votes.insert(i, (spot_id, vote.clone()));
 
-					let mut tallies = status.tallies.clone();
+					let tallies = status.tallies.clone();
 
 					// Find existing tally of bidder
 					for mut tally in status.tallies {
@@ -637,11 +639,6 @@ impl<T: Config> Pallet<T> {
 		Self::ensure_ongoing(info.into())
 	}
 
-	fn referendum_info(spot_id: SpotId) -> Result<ReferendumInfo<T::AccountId, T::BlockNumber>, DispatchError> {
-		let info = ReferendumInfoOf::<T>::get(spot_id).ok_or(Error::<T>::ReferendumIsInValid.into());
-		info
-	}
-
 	/// Ok if the given referendum is active, Err otherwise
 	fn ensure_ongoing(
 		r: ReferendumInfo<T::AccountId, T::BlockNumber>,
@@ -650,14 +647,6 @@ impl<T: Config> Pallet<T> {
 			ReferendumInfo::Ongoing(s) => Ok(s),
 			_ => Err(Error::<T>::ReferendumIsInValid.into()),
 		}
-	}
-
-	fn do_register(who: &T::AccountId, spot_id: &SpotId) -> SpotId {
-		return 5;
-	}
-
-	fn get_spot(spot_id: SpotId) -> Result<ContinuumSpot, DispatchError> {
-		ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound.into())
 	}
 
 	fn do_transfer_spot(
