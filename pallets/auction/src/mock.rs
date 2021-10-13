@@ -30,8 +30,10 @@ pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
 
 pub const ESTATE_ID_EXIST: EstateId = 0;
+pub const ESTATE_ID_EXIST_1: EstateId = 1;
 pub const ESTATE_ID_NOT_EXIST: EstateId = 99;
-pub const LAND_UNIT_EXIST: (i32, i32) = (1, 1);
+pub const LAND_UNIT_EXIST: (i32, i32) = (0, 0);
+pub const LAND_UNIT_EXIST_1: (i32, i32) = (1, 1);
 pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
 
 impl frame_system::Config for Runtime {
@@ -99,7 +101,7 @@ impl Estate<u128> for EstateHandler {
 
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
 		match estate_id {
-			ESTATE_ID_EXIST => {
+			ESTATE_ID_EXIST | ESTATE_ID_EXIST_1 => {
 				Ok(true)
 			}
 			ESTATE_ID_NOT_EXIST => {
@@ -113,7 +115,7 @@ impl Estate<u128> for EstateHandler {
 
 	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		match coordinate {
-			LAND_UNIT_EXIST => {
+			LAND_UNIT_EXIST | LAND_UNIT_EXIST_1 => {
 				Ok(true)
 			}
 			LAND_UNIT_NOT_EXIST => {

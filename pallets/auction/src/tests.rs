@@ -5,6 +5,8 @@ use auction_manager::ListingLevel;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 use pallet_nft::{CollectionType, TokenType};
+use sp_runtime::print;
+
 
 fn init_test_nft(owner: Origin) {
 	//Create group collection before class
@@ -68,36 +70,8 @@ fn create_new_auction_work() {
 fn create_new_auction_should_work_for_valid_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		// init_test_nft(origin.clone());
-		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
-		assert_ok!(AuctionModule::create_auction(
-			AuctionType::Auction,
-			item_id,
-			None,
-			ALICE,
-			100,
-			0,
-			ListingLevel::Global
-		));
-		assert_eq!(
-			AuctionModule::auctions(0),
-			Some(AuctionInfo {
-				bid: None,
-				start: 1,
-				end: Some(101)
-			})
-		);
-		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
-	});
-}
 
-#[test]
-// Creating auction should work
-fn create_new_auction_should_work_for_valid_landunit() {
-	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-		// init_test_nft(origin.clone());
-		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
+		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			item_id,
@@ -124,7 +98,7 @@ fn create_new_auction_should_work_for_valid_landunit() {
 fn create_new_auction_should_fail_for_non_exist_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		// init_test_nft(origin.clone());
+
 		let item_id: ItemId = ItemId::Estate(ESTATE_ID_NOT_EXIST);
 		assert_noop!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -140,10 +114,38 @@ fn create_new_auction_should_fail_for_non_exist_estate() {
 
 #[test]
 // Creating auction should work
+fn create_new_auction_should_work_for_valid_landunit() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+
+		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			item_id,
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global
+		));
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101)
+			})
+		);
+		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
+	});
+}
+
+#[test]
+// Creating auction should work
 fn create_new_auction_should_work_for_non_exist_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		// init_test_nft(origin.clone());
+
 		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
 		assert_noop!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -283,6 +285,52 @@ fn bid_works() {
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::NFT(0),
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global
+		));
+
+		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(Balances::reserved_balance(ALICE), 200);
+	});
+}
+
+#[test]
+// Walk the happy path
+fn bid_works_for_valid_estate() {
+	ExtBuilder::default().build().execute_with(|| {
+		let bidder = Origin::signed(ALICE);
+		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
+
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			item_id,
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global
+		));
+
+		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(Balances::reserved_balance(ALICE), 200);
+	});
+}
+
+#[test]
+// Walk the happy path
+fn bid_works_for_valid_land_unit() {
+	ExtBuilder::default().build().execute_with(|| {
+		let bidder = Origin::signed(ALICE);
+		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
+
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			item_id,
 			None,
 			BOB,
 			100,
@@ -479,6 +527,118 @@ fn buy_now_work() {
 		/// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99700);
 		assert_eq!(Balances::free_balance(BOB), 796);
+
+		//event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
+		assert_eq!(last_event(), event);
+
+		//Check that auction is over
+		assert_noop!(
+			AuctionModule::buy_now(buyer.clone(), 1, 150),
+			Error::<Runtime>::AuctionNotExist
+		);
+	});
+}
+
+#[test]
+// Private bid_auction should work
+fn buy_now_works_for_valid_estate() {
+	ExtBuilder::default().build().execute_with(|| {
+
+		// let owner = Origin::signed(BOB);
+		let buyer = Origin::signed(ALICE);
+
+		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
+		/// call create_auction
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			item_id,
+			None,
+			BOB,
+			150,
+			0,
+			ListingLevel::Global
+		));
+
+		//buy now successful
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
+
+		assert_eq!(Balances::free_balance(BOB), 650);
+
+		let item_id_1: ItemId = ItemId::Estate(ESTATE_ID_EXIST_1);
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			item_id_1,
+			None,
+			BOB,
+			150,
+			0,
+			ListingLevel::Global
+		));
+
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
+
+		assert_eq!(AuctionModule::auctions(0), None);
+
+		/// check balances were transferred
+		assert_eq!(Balances::free_balance(ALICE), 99700);
+		assert_eq!(Balances::free_balance(BOB), 800);
+
+		//event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
+		assert_eq!(last_event(), event);
+
+		//Check that auction is over
+		assert_noop!(
+			AuctionModule::buy_now(buyer.clone(), 1, 150),
+			Error::<Runtime>::AuctionNotExist
+		);
+	});
+}
+
+#[test]
+// Private bid_auction should work
+fn buy_now_works_for_valid_landunit() {
+	ExtBuilder::default().build().execute_with(|| {
+
+		// let owner = Origin::signed(BOB);
+		let buyer = Origin::signed(ALICE);
+
+		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
+		/// call create_auction
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			item_id,
+			None,
+			BOB,
+			150,
+			0,
+			ListingLevel::Global
+		));
+
+		//buy now successful
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
+
+		assert_eq!(Balances::free_balance(BOB), 650);
+
+		let item_id_1: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST_1, ALICE_METAVERSE_ID);
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			item_id_1,
+			None,
+			BOB,
+			150,
+			0,
+			ListingLevel::Global
+		));
+
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
+
+		assert_eq!(AuctionModule::auctions(0), None);
+
+		/// check balances were transferred
+		assert_eq!(Balances::free_balance(ALICE), 99700);
+		assert_eq!(Balances::free_balance(BOB), 800);
 
 		//event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
