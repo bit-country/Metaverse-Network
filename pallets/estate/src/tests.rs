@@ -389,12 +389,15 @@ fn transfer_land_should_do_fail_for_same_account() {
 			BENEFICIARY_ID
 		);
 
-		assert_noop!(EstateModule::transfer_land(
-			Origin::signed(BENEFICIARY_ID),
-			BENEFICIARY_ID,
-			METAVERSE_ID,
-			COORDINATE_IN_1
-		), Error::<Runtime>::AlreadyOwnTheLandUnit);
+		assert_noop!(
+			EstateModule::transfer_land(
+				Origin::signed(BENEFICIARY_ID),
+				BENEFICIARY_ID,
+				METAVERSE_ID,
+				COORDINATE_IN_1
+			),
+			Error::<Runtime>::AlreadyOwnTheLandUnit
+		);
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
@@ -406,12 +409,15 @@ fn transfer_land_should_do_fail_for_same_account() {
 #[test]
 fn transfer_land_should_do_fail_for_already_in_auction() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(EstateModule::transfer_land(
-			Origin::signed(BENEFICIARY_ID),
-			BENEFICIARY_ID,
-			METAVERSE_ID,
-			COORDINATE_IN_AUCTION
-		), Error::<Runtime>::LandUnitAlreadyInAuction);
+		assert_noop!(
+			EstateModule::transfer_land(
+				Origin::signed(BENEFICIARY_ID),
+				BENEFICIARY_ID,
+				METAVERSE_ID,
+				COORDINATE_IN_AUCTION
+			),
+			Error::<Runtime>::LandUnitAlreadyInAuction
+		);
 	});
 }
 
@@ -490,7 +496,7 @@ fn mint_estate_and_land_should_return_correct_total_land_unit() {
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
-			EstateModule::get_estates( estate_id),
+			EstateModule::get_estates(estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
@@ -533,7 +539,7 @@ fn mint_estate_should_return_none_for_non_exist_estate() {
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		let estate_id_non_exists: u64 = 999;
-		assert_eq!(EstateModule::get_estates( estate_id_non_exists), None);
+		assert_eq!(EstateModule::get_estates(estate_id_non_exists), None);
 		assert_eq!(
 			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
 			None
@@ -616,11 +622,10 @@ fn transfer_estate_should_fail_with_same_account() {
 		let mut estate_id: u64 = 0;
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
-		assert_noop!(EstateModule::transfer_estate(
-			Origin::signed(BENEFICIARY_ID),
-			BENEFICIARY_ID,
-			estate_id
-		), Error::<Runtime>::AlreadyOwnTheEstate);
+		assert_noop!(
+			EstateModule::transfer_estate(Origin::signed(BENEFICIARY_ID), BENEFICIARY_ID, estate_id),
+			Error::<Runtime>::AlreadyOwnTheEstate
+		);
 
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 	});
@@ -681,7 +686,7 @@ fn create_estate_should_work() {
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
-			EstateModule::get_estates( estate_id),
+			EstateModule::get_estates(estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
@@ -711,13 +716,13 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
-			EstateModule::get_estates( estate_id),
+			EstateModule::get_estates(estate_id),
 			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
 		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		let estate_id_non_exists: u64 = 999;
-		assert_eq!(EstateModule::get_estates( estate_id_non_exists), None);
+		assert_eq!(EstateModule::get_estates(estate_id_non_exists), None);
 		assert_eq!(
 			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
 			None

@@ -4,7 +4,7 @@ use super::*;
 use crate as auction;
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
-use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, CurrencyId, FungibleTokenId, EstateId};
+use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, CurrencyId, EstateId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -89,41 +89,31 @@ impl Continuum<u128> for Continuumm {
 pub struct EstateHandler;
 
 impl Estate<u128> for EstateHandler {
-	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId)
-					   -> Result<EstateId, DispatchError> {
+	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId) -> Result<EstateId, DispatchError> {
 		Ok(1)
 	}
 
-	fn transfer_landunit(coordinate: (i32, i32), from: &AccountId, to: &(AccountId, MetaverseId))
-						 -> Result<(i32, i32), DispatchError> {
+	fn transfer_landunit(
+		coordinate: (i32, i32),
+		from: &AccountId,
+		to: &(AccountId, MetaverseId),
+	) -> Result<(i32, i32), DispatchError> {
 		Ok((0, 0))
 	}
 
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
 		match estate_id {
-			ESTATE_ID_EXIST | ESTATE_ID_EXIST_1 => {
-				Ok(true)
-			}
-			ESTATE_ID_NOT_EXIST => {
-				Ok(false)
-			}
-			_ => {
-				Ok(false)
-			}
+			ESTATE_ID_EXIST | ESTATE_ID_EXIST_1 => Ok(true),
+			ESTATE_ID_NOT_EXIST => Ok(false),
+			_ => Ok(false),
 		}
 	}
 
 	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		match coordinate {
-			LAND_UNIT_EXIST | LAND_UNIT_EXIST_1 => {
-				Ok(true)
-			}
-			LAND_UNIT_NOT_EXIST => {
-				Ok(false)
-			}
-			_ => {
-				Ok(false)
-			}
+			LAND_UNIT_EXIST | LAND_UNIT_EXIST_1 => Ok(true),
+			LAND_UNIT_NOT_EXIST => Ok(false),
+			_ => Ok(false),
 		}
 	}
 }

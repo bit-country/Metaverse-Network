@@ -7,7 +7,6 @@ use mock::{Event, *};
 use pallet_nft::{CollectionType, TokenType};
 use sp_runtime::print;
 
-
 fn init_test_nft(owner: Origin) {
 	//Create group collection before class
 	assert_ok!(NFTModule::<Runtime>::create_group(Origin::root(), vec![1], vec![1]));
@@ -30,13 +29,9 @@ fn init_test_nft(owner: Origin) {
 	));
 }
 
-fn mint_landunit(owner: Origin, coordinate: (i32, i32), metaverse_id: MetaverseId){
+fn mint_landunit(owner: Origin, coordinate: (i32, i32), metaverse_id: MetaverseId) {}
 
-}
-
-fn mint_estate(owner: Origin, coordinates: Vec<(i32, i32)>){
-
-}
+fn mint_estate(owner: Origin, coordinates: Vec<(i32, i32)>) {}
 
 #[test]
 // Creating auction should work
@@ -100,15 +95,10 @@ fn create_new_auction_should_fail_for_non_exist_estate() {
 		let origin = Origin::signed(ALICE);
 
 		let item_id: ItemId = ItemId::Estate(ESTATE_ID_NOT_EXIST);
-		assert_noop!(AuctionModule::create_auction(
-			AuctionType::Auction,
-			item_id,
-			None,
-			ALICE,
-			100,
-			0,
-			ListingLevel::Global
-		), Error::<Runtime>::EstateDoesNotExist);
+		assert_noop!(
+			AuctionModule::create_auction(AuctionType::Auction, item_id, None, ALICE, 100, 0, ListingLevel::Global),
+			Error::<Runtime>::EstateDoesNotExist
+		);
 	});
 }
 
@@ -147,15 +137,10 @@ fn create_new_auction_should_work_for_non_exist_landunit() {
 		let origin = Origin::signed(ALICE);
 
 		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
-		assert_noop!(AuctionModule::create_auction(
-			AuctionType::Auction,
-			item_id,
-			None,
-			ALICE,
-			100,
-			0,
-			ListingLevel::Global
-		), Error::<Runtime>::LandUnitDoesNotExist);
+		assert_noop!(
+			AuctionModule::create_auction(AuctionType::Auction, item_id, None, ALICE, 100, 0, ListingLevel::Global),
+			Error::<Runtime>::LandUnitDoesNotExist
+		);
 	});
 }
 
@@ -398,10 +383,7 @@ fn cannot_bid_on_own_auction() {
 			ListingLevel::Global
 		));
 
-		assert_noop!(
-			AuctionModule::bid(owner, 0, 50),
-			Error::<Runtime>::SelfBidNotAccepted
-		);
+		assert_noop!(AuctionModule::bid(owner, 0, 50), Error::<Runtime>::SelfBidNotAccepted);
 	});
 }
 
@@ -469,10 +451,7 @@ fn cannot_bid_on_ended_auction() {
 
 		System::set_block_number(101);
 
-		assert_noop!(
-			AuctionModule::bid(bidder, 0, 200),
-			Error::<Runtime>::AuctionIsExpired
-		);
+		assert_noop!(AuctionModule::bid(bidder, 0, 200), Error::<Runtime>::AuctionIsExpired);
 
 		assert_eq!(Balances::free_balance(ALICE), 100000);
 	});
@@ -544,7 +523,6 @@ fn buy_now_work() {
 // Private bid_auction should work
 fn buy_now_works_for_valid_estate() {
 	ExtBuilder::default().build().execute_with(|| {
-
 		// let owner = Origin::signed(BOB);
 		let buyer = Origin::signed(ALICE);
 
@@ -600,7 +578,6 @@ fn buy_now_works_for_valid_estate() {
 // Private bid_auction should work
 fn buy_now_works_for_valid_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
-
 		// let owner = Origin::signed(BOB);
 		let buyer = Origin::signed(ALICE);
 

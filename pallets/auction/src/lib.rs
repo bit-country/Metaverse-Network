@@ -52,7 +52,7 @@ pub mod pallet {
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use bc_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
-	use frame_support::sp_runtime::traits::{CheckedSub};
+	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended, MultiReservableCurrency};
 	use primitives::{Balance, FungibleTokenId, MetaverseId};
@@ -168,7 +168,7 @@ pub mod pallet {
 		/// Overflow
 		Overflow,
 		EstateDoesNotExist,
-		LandUnitDoesNotExist
+		LandUnitDoesNotExist,
 	}
 
 	#[pallet::call]
@@ -360,11 +360,8 @@ pub mod pallet {
 							}
 						}
 						ItemId::Estate(estate_id) => {
-							let estate = T::EstateHandler::transfer_estate(
-								estate_id,
-								&auction_item.recipient,
-								&from.clone(),
-							);
+							let estate =
+								T::EstateHandler::transfer_estate(estate_id, &auction_item.recipient, &from.clone());
 							match estate {
 								Err(_) => (),
 								Ok(_) => {
@@ -466,11 +463,8 @@ pub mod pallet {
 							}
 						}
 						ItemId::Estate(estate_id) => {
-							let estate = T::EstateHandler::transfer_estate(
-								estate_id,
-								&auction_item.recipient,
-								&from.clone(),
-							);
+							let estate =
+								T::EstateHandler::transfer_estate(estate_id, &auction_item.recipient, &from.clone());
 							match estate {
 								Err(_) => (),
 								Ok(_) => {
@@ -647,7 +641,11 @@ pub mod pallet {
 												match estate {
 													Err(_) => (),
 													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+														Self::deposit_event(Event::AuctionFinalized(
+															auction_id,
+															high_bidder,
+															high_bid_price,
+														));
 													}
 												}
 											}
@@ -660,7 +658,11 @@ pub mod pallet {
 												match land_unit {
 													Err(_) => (),
 													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+														Self::deposit_event(Event::AuctionFinalized(
+															auction_id,
+															high_bidder,
+															high_bid_price,
+														));
 													}
 												}
 											}
@@ -734,7 +736,11 @@ pub mod pallet {
 												match estate {
 													Err(_) => (),
 													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+														Self::deposit_event(Event::AuctionFinalized(
+															auction_id,
+															high_bidder,
+															high_bid_price,
+														));
 													}
 												}
 											}
@@ -747,7 +753,11 @@ pub mod pallet {
 												match land_unit {
 													Err(_) => (),
 													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+														Self::deposit_event(Event::AuctionFinalized(
+															auction_id,
+															high_bidder,
+															high_bid_price,
+														));
 													}
 												}
 											}
@@ -908,7 +918,10 @@ pub mod pallet {
 				}
 				ItemId::Estate(_estate_id_) => {
 					// Ensure the _estate_id_ exist/minted
-					ensure!( T::EstateHandler::check_estate(_estate_id_)?, Error::<T>::EstateDoesNotExist);
+					ensure!(
+						T::EstateHandler::check_estate(_estate_id_)?,
+						Error::<T>::EstateDoesNotExist
+					);
 
 					let start_time = <system::Module<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
@@ -941,8 +954,10 @@ pub mod pallet {
 				}
 				ItemId::LandUnit(_coordinate_, _metaverse_id_) => {
 					// Ensure the _coordinate_ exist/minted
-					ensure!(T::EstateHandler::check_landunit(_metaverse_id_, _coordinate_)?, Error::<T>::LandUnitDoesNotExist);
-
+					ensure!(
+						T::EstateHandler::check_landunit(_metaverse_id_, _coordinate_)?,
+						Error::<T>::LandUnitDoesNotExist
+					);
 
 					let start_time = <system::Module<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction

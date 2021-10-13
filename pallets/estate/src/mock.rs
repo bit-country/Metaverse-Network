@@ -5,6 +5,7 @@ use crate as estate;
 // use crate::{Config, Module};
 use bc_primitives::*;
 // // use sp_std::vec::Vec;
+use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, CheckAuctionItemHandler, OnNewBidResult};
 use frame_support::ensure;
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
@@ -19,7 +20,6 @@ use sp_core::{
 	H256,
 };
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, CheckAuctionItemHandler, OnNewBidResult};
 
 pub type AccountId = u128;
 pub type AuctionId = u64;

@@ -106,7 +106,7 @@ pub enum ItemId {
 	Country(MetaverseId),
 	Block(u64),
 	Estate(EstateId),
-	LandUnit((i32, i32), MetaverseId)
+	LandUnit((i32, i32), MetaverseId),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord)]
