@@ -18,16 +18,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bc_primitives::*;
-use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, EstateId, LandId, MetaverseId};
+use primitives::{EstateId, MetaverseId};
 use sp_runtime::{
-	print,
 	traits::{AccountIdConversion, One},
-	DispatchError, RuntimeDebug,
+	DispatchError,
 };
 use sp_std::vec::Vec;
 
@@ -42,8 +40,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
-	use primitives::AccountId;
+	use frame_support::traits::{Currency, ReservableCurrency};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]

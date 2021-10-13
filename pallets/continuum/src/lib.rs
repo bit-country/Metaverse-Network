@@ -20,22 +20,20 @@
 
 use codec::{Decode, Encode};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
-use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{continuum::Continuum, Balance, CurrencyId, ItemId, MetaverseId, SpotId};
+use frame_system::{ensure_root, ensure_signed};
+use primitives::{continuum::Continuum, ItemId, MetaverseId, SpotId};
 #[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_runtime::{
-	traits::{AccountIdConversion, CheckedAdd, CheckedDiv, One, Zero},
-	DispatchError, FixedPointNumber, RuntimeDebug,
+	traits::{AccountIdConversion, One, Zero},
+	DispatchError, RuntimeDebug,
 };
 use sp_std::vec;
 use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use bc_primitives::MetaverseTrait;
 use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
-use sp_arithmetic::Perbill;
-// use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
+
 #[cfg(feature = "std")]
 use frame_support::traits::GenesisBuild;
 

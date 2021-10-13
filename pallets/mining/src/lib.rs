@@ -18,30 +18,19 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::SwapManager;
-use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::traits::{Currency, Get, WithdrawReasons};
+use frame_support::traits::Get;
 use frame_support::PalletId;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
-	transactional, Parameter,
 };
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use frame_system::{self as system, ensure_signed};
-use orml_traits::{
-	arithmetic::{Signed, SimpleArithmetic},
-	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
-};
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
-use sp_runtime::{
-	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
-	DispatchError,
-};
+use orml_traits::{LockIdentifier, MultiCurrency, MultiCurrencyExtended};
+use primitives::{Balance, FungibleTokenId};
+use sp_runtime::traits::{AccountIdConversion, Zero};
 use sp_std::vec::Vec;
 
 #[cfg(test)]
@@ -72,13 +61,7 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::sp_runtime::traits::Saturating;
-	use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
-	use frame_support::traits::OnUnbalanced;
-	use pallet_balances::NegativeImbalance;
-	use primitives::dex::Price;
-	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
-	use sp_std::convert::TryInto;
+	use primitives::{FungibleTokenId, VestingSchedule};
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);

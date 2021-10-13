@@ -21,24 +21,19 @@
 use auction_manager::SwapManager;
 use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::traits::{Currency, Get, WithdrawReasons};
+use frame_support::traits::Get;
 use frame_support::PalletId;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
 	transactional, Parameter,
 };
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use frame_system::{self as system, ensure_signed};
-use orml_traits::{
-	arithmetic::{Signed, SimpleArithmetic},
-	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
-};
+use orml_traits::{LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency};
 pub use pallet::*;
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId, VestingSchedule};
+use primitives::{Balance, FungibleTokenId, MetaverseId, VestingSchedule};
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,

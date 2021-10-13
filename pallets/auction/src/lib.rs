@@ -29,9 +29,8 @@ use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, Re
 use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
-use pallet_continuum::Pallet as ContinuumModule;
-use pallet_nft::Module as NFTModule;
-use primitives::{continuum::Continuum, AssetId, AuctionId, ItemId};
+use pallet_nft::Pallet as NFTModule;
+use primitives::{continuum::Continuum, AuctionId, ItemId};
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
 	traits::{One, Zero},
@@ -51,9 +50,9 @@ pub mod pallet {
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use bc_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
-	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
+	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
-	use orml_traits::{MultiCurrency, MultiCurrencyExtended, MultiReservableCurrency};
+	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use primitives::{Balance, FungibleTokenId, MetaverseId};
 
 	#[pallet::pallet]
@@ -891,7 +890,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Module<T> {
+	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Pallet<T> {
 		fn on_new_bid(
 			_now: T::BlockNumber,
 			_id: AuctionId,

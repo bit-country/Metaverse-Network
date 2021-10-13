@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::{Decode, Encode, Input, MaxEncodedLen};
+use codec::{Decode, Encode, Input};
 
 use frame_support::{
 	dispatch::DispatchResult,
@@ -11,10 +11,7 @@ use frame_support::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
 		Currency, Get, InstanceFilter, LockIdentifier, ReservableCurrency,
 	},
-	weights::Weight,
-	RuntimeDebug,
 };
-use frame_system::ensure_signed;
 use metaverse_primitive::MetaverseTrait;
 use primitives::{MetaverseId, ProposalId, ReferendumId};
 use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
@@ -36,14 +33,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::traits::OriginTrait;
-	use frame_support::{
-		dispatch::DispatchResultWithPostInfo,
-		pallet_prelude::*,
-		traits::EnsureOrigin,
-		weights::{DispatchClass, Pays},
-		Parameter,
-	};
+	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::EnsureOrigin, Parameter};
 	use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 	use metaverse_primitive::MetaverseLandTrait;
 	use sp_runtime::DispatchResult;

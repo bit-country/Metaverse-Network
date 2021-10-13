@@ -3,7 +3,7 @@ use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
 	ContinuumConfig, DemocracyConfig, EVMConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig,
-	Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	Signature, StakingConfig, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 use sc_service::{ChainType, Properties};

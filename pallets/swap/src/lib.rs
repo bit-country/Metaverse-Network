@@ -19,20 +19,15 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use auction_manager::SwapManager;
-use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::dispatch::DispatchResult;
 use frame_support::pallet_prelude::*;
-use frame_support::{ensure, pallet_prelude::*, transactional, PalletId};
+use frame_support::{ensure, transactional, PalletId};
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
-use sp_runtime::{
-	traits::{AccountIdConversion, One},
-	DispatchError, RuntimeDebug,
-};
+use primitives::{Balance, FungibleTokenId, MetaverseId};
+use sp_runtime::{traits::AccountIdConversion, DispatchError, RuntimeDebug};
 use sp_std::vec;
-use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -69,7 +64,6 @@ use sp_core::U256;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use crate::pallet::vec;
 	use frame_support::traits::Currency;
 	use orml_traits::MultiCurrencyExtended;
 	use primitives::dex::TradingPair;

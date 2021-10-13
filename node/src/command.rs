@@ -25,7 +25,7 @@ use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
 use log::info;
-use metaverse_runtime::{Block, RuntimeApi};
+use metaverse_runtime::Block;
 use sc_cli::{
 	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Role,
 	RuntimeVersion, SharedParams, SubstrateCli,
@@ -33,7 +33,7 @@ use sc_cli::{
 use sc_service::config::{BasePath, PrometheusConfig};
 use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
+use sp_runtime::traits::Block as BlockT;
 use std::{io::Write, net::SocketAddr};
 
 fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
