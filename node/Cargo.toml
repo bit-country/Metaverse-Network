@@ -122,6 +122,8 @@ with-metaverse-runtime = [
 
 with-tewai-runtime = [
     "tewai-runtime",
+    "pallet-im-online",
+    "sp-authority-discovery"
 ]
 
 with-pioneer-runtime = [
