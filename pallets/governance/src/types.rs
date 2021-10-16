@@ -1,11 +1,14 @@
-use codec::{Encode, Decode};
-use sp_runtime::{RuntimeDebug,traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating, Zero,One,Hash,IntegerSquareRoot}};
-use sp_std::vec::Vec;
-use primitives::{CountryId, ProposalId, ReferendumId,AccountId,Balance};
-use frame_support::traits::CurrencyToVote;
-use sp_std::ops::{Add, Div, Mul, Rem};
 use crate::*;
-
+use codec::{Decode, Encode};
+use frame_support::traits::CurrencyToVote;
+use primitives::{AccountId, Balance, MetaverseId, ProposalId, ReferendumId};
+use scale_info::TypeInfo;
+use sp_runtime::{
+	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Hash, IntegerSquareRoot, One, Saturating, Zero},
+	RuntimeDebug,
+};
+use sp_std::ops::{Add, Div, Mul, Rem};
+use sp_std::vec::Vec;
 
 #[derive(Clone, Encode, Decode, RuntimeDebug)]
 pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
@@ -14,7 +17,7 @@ pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
 	/// The preimage is available.
 	Available {
 		data: Vec<u8>,
-        does_update_jury: bool,
+		//does_update_jury: bool,
 		provider: AccountId,
 		deposit: Balance,
 		since: BlockNumber,
@@ -32,19 +35,17 @@ impl<AccountId, Balance, BlockNumber> PreimageStatus<AccountId, Balance, BlockNu
 	}
 }
 
-
-
-#[derive(Encode, Decode,  Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
 pub enum VoteThreshold {
-    SuperMajorityApprove,
-    SuperMajorityAgainst,
-    RelativeMajority, // Most votes
-    /* to be enabled later
-    StandardQualifiedMajority, // 72%+ 72%+ representation
-    TwoThirdsSupermajority, // 66%+
-    ThreeFifthsSupermajority, // 60%+
-    ReinforcedQualifiedMajority, // 55%+ 65%+ representation
-    */
+	SuperMajorityApprove,
+	SuperMajorityAgainst,
+	RelativeMajority, // Most votes
+	                  /* to be enabled later
+					  StandardQualifiedMajority, // 72%+ 72%+ representation
+					  TwoThirdsSupermajority, // 66%+
+					  ThreeFifthsSupermajority, // 60%+
+					  ReinforcedQualifiedMajority, // 55%+ 65%+ representation
+					  */
 }
 
 pub trait ReferendumApproved<Balance> {
@@ -54,9 +55,7 @@ pub trait ReferendumApproved<Balance> {
 }
 
 /// Return `true` iff `n1 / d1 < n2 / d2`. `d1` and `d2` may not be zero.
-fn compare_rationals<
-	T: Zero + Mul<T, Output = T> + Div<T, Output = T> + Rem<T, Output = T> + Ord + Copy,
->(
+fn compare_rationals<T: Zero + Mul<T, Output = T> + Div<T, Output = T> + Rem<T, Output = T> + Ord + Copy>(
 	mut n1: T,
 	mut d1: T,
 	mut n2: T,
@@ -68,18 +67,18 @@ fn compare_rationals<
 		let q1 = n1 / d1;
 		let q2 = n2 / d2;
 		if q1 < q2 {
-			return true
+			return true;
 		}
 		if q2 < q1 {
-			return false
+			return false;
 		}
 		let r1 = n1 % d1;
 		let r2 = n2 % d2;
 		if r2.is_zero() {
-			return false
+			return false;
 		}
 		if r1.is_zero() {
-			return true
+			return true;
 		}
 		n1 = d2;
 		n2 = d1;
@@ -88,10 +87,9 @@ fn compare_rationals<
 	}
 }
 
-
 impl<
 		Balance: IntegerSquareRoot
-            + Zero
+			+ Zero
 			+ Ord
 			+ Add<Balance, Output = Balance>
 			+ Mul<Balance, Output = Balance>
@@ -104,129 +102,149 @@ impl<
 		let sqrt_voters = tally.turnout.integer_sqrt();
 		let sqrt_electorate = electorate.integer_sqrt();
 		if sqrt_voters.is_zero() {
-			return false
+			return false;
 		}
 		match *self {
-			VoteThreshold::SuperMajorityApprove =>
-				compare_rationals(tally.nays, sqrt_voters, tally.ayes, sqrt_electorate),
-			VoteThreshold::SuperMajorityAgainst =>
-				compare_rationals(tally.nays, sqrt_electorate, tally.ayes, sqrt_voters),
+			VoteThreshold::SuperMajorityApprove => {
+				compare_rationals(tally.nays, sqrt_voters, tally.ayes, sqrt_electorate)
+			}
+			VoteThreshold::SuperMajorityAgainst => {
+				compare_rationals(tally.nays, sqrt_electorate, tally.ayes, sqrt_voters)
+			}
 			VoteThreshold::RelativeMajority => tally.ayes > tally.nays,
 		}
-
 	}
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum CountryParameter {
-    MaxProposals(u8),
-    SetReferendumJury(AccountId),
+pub enum metaverseParameter {
+	MaxProposals(u8),
+	SetReferendumJury(AccountId),
 }
 
-#[derive(Encode, Decode,Default, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Default, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct ReferendumParameters<BlockNumber> {
-    pub(crate) voting_threshold: Option<VoteThreshold>,
-    pub(crate) min_proposal_launch_period: BlockNumber,// number of blocks
-    pub(crate) voting_period: BlockNumber, // number of blocks
-    pub(crate) enactment_period: BlockNumber, // number of blocks
-    pub(crate) local_vote_locking_period: BlockNumber, // number of blocks
-    pub(crate) max_proposals_per_country: u8,
+	pub(crate) voting_threshold: Option<VoteThreshold>,
+	pub(crate) min_proposal_launch_period: BlockNumber, // number of blocks
+	pub(crate) voting_period: BlockNumber,              // number of blocks
+	pub(crate) enactment_period: BlockNumber,           // number of blocks
+	pub(crate) local_vote_locking_period: BlockNumber,  // number of blocks
+	pub(crate) max_proposals_per_metaverse: u8,
 }
 /*
 impl<BlockNumber: From<u32> + Default> Default for ReferendumParameters<BlockNumber>{
-    fn default() -> Self {
-        ReferendumParameters {
-            voting_threshold: Some(VoteThreshold::RelativeMajority),
-            min_proposal_launch_period: T::Pallet::DefaultProposalLaunchPeriod::get(),
-            voting_period:  T::DefaultVotingPeriod::get(), 
-            enactment_period:  T::DefaultEnactmentPeriod::get(), 
-          //  max_params_per_proposal:  T::DefaultMaxParametersPerProposal::get(),
-            max_proposals_per_country: T::DefaultMaxProposalsPerCountry::get(),
-        }
-    }
+	fn default() -> Self {
+		ReferendumParameters {
+			voting_threshold: Some(VoteThreshold::RelativeMajority),
+			min_proposal_launch_period: T::Pallet::DefaultProposalLaunchPeriod::get(),
+			voting_period:  T::DefaultVotingPeriod::get(),
+			enactment_period:  T::DefaultEnactmentPeriod::get(),
+		  //  max_params_per_proposal:  T::DefaultMaxParametersPerProposal::get(),
+			max_proposals_per_metaverse: T::DefaultMaxProposalsPermetaverse::get(),
+		}
+	}
 }
 */
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Vote<Balance> {
-    pub(crate) aye: bool,
-    pub(crate) balance: Balance,
+	pub(crate) aye: bool,
+	pub(crate) balance: Balance,
 }
 
 /// Tally Struct
-#[derive(Encode, Decode,Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Tally<Balance> {
-    pub(crate) ayes: Balance,
-    pub(crate) nays: Balance,
-    pub(crate) turnout: Balance,
+	pub(crate) ayes: Balance,
+	pub(crate) nays: Balance,
+	pub(crate) turnout: Balance,
 }
 
-impl <
-    Balance: From<u8>
-        + Zero
-        + Copy
-        + CheckedAdd
-        + CheckedSub
-        + CheckedMul
-        + CheckedDiv
-        + Bounded
-        + Saturating,
-> Tally<Balance> {
-
-    /// Add an account's vote into the tally.
-    pub fn add(
-		&mut self,
-		vote: Vote<Balance>,
-	) -> Option<()> {
-        match vote.aye {
-            true => self.ayes = self.ayes.checked_add(&vote.balance)?,
-            false => self.nays = self.nays.checked_add(&vote.balance)?,
-        }
-        self.turnout = self.turnout.checked_add(&vote.balance)?;
+impl<Balance: From<u8> + Zero + Copy + CheckedAdd + CheckedSub + CheckedMul + CheckedDiv + Bounded + Saturating>
+	Tally<Balance>
+{
+	/// Add an account's vote into the tally.
+	pub fn add(&mut self, vote: Vote<Balance>) -> Option<()> {
+		match vote.aye {
+			true => self.ayes = self.ayes.checked_add(&vote.balance)?,
+			false => self.nays = self.nays.checked_add(&vote.balance)?,
+		}
+		self.turnout = self.turnout.checked_add(&vote.balance)?;
 		Some(())
 	}
 
-    /// Add an account's vote into the tally.
-    pub fn remove(
-		&mut self,
-		vote: Vote<Balance>,
-	) -> Option<()> {
-        match vote.aye {
-            true => self.ayes = self.ayes.checked_sub(&vote.balance)?,
-            false => self.nays = self.nays.checked_sub(&vote.balance)?,
-        }
-        self.turnout = self.turnout.checked_sub(&vote.balance)?;
+	/// Add an account's vote into the tally.
+	pub fn remove(&mut self, vote: Vote<Balance>) -> Option<()> {
+		match vote.aye {
+			true => self.ayes = self.ayes.checked_sub(&vote.balance)?,
+			false => self.nays = self.nays.checked_sub(&vote.balance)?,
+		}
+		self.turnout = self.turnout.checked_sub(&vote.balance)?;
 		Some(())
 	}
-
-
 }
 
+/// A "prior" lock, i.e. a lock for some now-forgotten reason.
+#[derive(Encode, Decode, Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, RuntimeDebug, TypeInfo)]
+pub struct PriorLock<BlockNumber, Balance>(BlockNumber, Balance);
 
-#[derive(Encode, Decode, Default,  Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct VotingRecord<Balance> {
-    pub(crate) votes: Vec<(ReferendumId,Vote<Balance>)>
+impl<BlockNumber: Ord + Copy + Zero, Balance: Ord + Copy + Zero> PriorLock<BlockNumber, Balance> {
+	/// Accumulates an additional lock.
+	pub fn accumulate(&mut self, until: BlockNumber, amount: Balance) {
+		self.0 = self.0.max(until);
+		self.1 = self.1.max(amount);
+	}
+
+	pub fn locked(&self) -> Balance {
+		self.1
+	}
+
+	pub fn rejig(&mut self, now: BlockNumber) {
+		if now >= self.0 {
+			self.0 = Zero::zero();
+			self.1 = Zero::zero();
+		}
+	}
 }
 
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct VotingRecord<Balance, BlockNumber> {
+	pub(crate) votes: Vec<(ReferendumId, Vote<Balance>)>,
+	pub(crate) prior: PriorLock<BlockNumber, Balance>,
+}
+
+impl<Balance: Saturating + Ord + Zero + Copy, BlockNumber: Ord + Copy + Zero> VotingRecord<Balance, BlockNumber> {
+	pub fn rejig(&mut self, now: BlockNumber) {
+		self.prior.rejig(now);
+	}
+
+	/// The amount of this account's balance that much currently be locked due to voting.
+	pub fn locked_balance(&self) -> Balance {
+		self.votes
+			.iter()
+			.map(|i| i.1.balance)
+			.fold(self.prior.locked(), |a, i| a.max(i))
+	}
+}
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct ProposalInfo<AccountId,BlockNumber,Hash> {
-    pub(crate) proposed_by: AccountId,
-    pub(crate) hash: Hash,
-    pub(crate) description: Vec<u8>, // link to proposal description
-    pub(crate) referendum_launch_block: BlockNumber,
+pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
+	pub(crate) proposed_by: AccountId,
+	pub(crate) hash: Hash,
+	pub(crate) description: Vec<u8>, // link to proposal description
+	pub(crate) referendum_launch_block: BlockNumber,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct ReferendumStatus<BlockNumber,Balance> {
-    pub(crate) end: BlockNumber,
-    pub(crate) country: CountryId,
-    pub(crate) proposal: ProposalId,
-    pub(crate) tally: Tally<Balance>,
-    pub(crate) threshold: VoteThreshold,
+pub struct ReferendumStatus<BlockNumber, Balance> {
+	pub(crate) end: BlockNumber,
+	pub(crate) metaverse: MetaverseId,
+	pub(crate) proposal: ProposalId,
+	pub(crate) tally: Tally<Balance>,
+	pub(crate) threshold: VoteThreshold,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum ReferendumInfo<BlockNumber,Balance> {
-    Ongoing(ReferendumStatus<BlockNumber,Balance>),
-    Finished{passed: bool, end: BlockNumber},
+pub enum ReferendumInfo<BlockNumber, Balance> {
+	Ongoing(ReferendumStatus<BlockNumber, Balance>),
+	Finished { passed: bool, end: BlockNumber },
 }

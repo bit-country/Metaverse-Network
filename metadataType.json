@@ -183,10 +183,8 @@
   },
   "VoteThreshold": {
     "_enum": [
-      "StandardQualifiedMajority",
-      "TwoThirdsSupermajority",
-      "ThreeFifthsSupermajority",
-      "ReinforcedQualifiedMajority",
+      "SuperMajorityApprove",
+      "SuperMajorityAgainst",
       "RelativeMajority"
     ]
   },
@@ -203,7 +201,8 @@
     "min_proposal_launch_period": "BlockNumber",
     "voting_period": "BlockNumber",
     "enactment_period": "BlockNumber",
-    "max_proposals_per_country": "u8"
+    "local_vote_locking_period": "BlockNumber",
+    "max_proposals_per_metaverse": "u8"
   },
   "Vote": {
     "aye": "bool",
@@ -214,8 +213,10 @@
     "nays": "Balance",
     "turnout": "Balance"
   },
+  "PriorLock": "(BlockNumber, Balance)",
   "VotingRecord": {
-    "votes": "Vec<(ReferendumId,Vote<Balance>)>"
+    "votes": "Vec<(ReferendumId,Vote<Balance>)>",
+    "prior": "PriorLock<BlockNumber, Balance>"
   },
   "ProposalInfo": {
     "proposed_by": "AccountId",
@@ -232,7 +233,7 @@
   },
   "ReferendumInfo": {
     "_enum": {
-      "Ongoing": "ReferendumStatus",
+      "Ongoing": "ReferendumStatus<BlockNumber,Balance>",
       "Finished": {
         "passed": "bool",
         "end": "BlockNumber"

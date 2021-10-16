@@ -71,7 +71,7 @@ pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// Block ID.
 pub type BlockId = generic::BlockId<Block>;
-/// Country Id
+/// Metaverse Id
 pub type MetaverseId = u64;
 /// Amount for transaction type
 pub type Amount = i128;

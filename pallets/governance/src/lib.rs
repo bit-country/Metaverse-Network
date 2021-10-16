@@ -9,7 +9,8 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
-		Currency, Get, InstanceFilter, LockIdentifier, ReservableCurrency,
+		BalanceStatus, Currency, Get, InstanceFilter, LockIdentifier, LockableCurrency, OnUnbalanced,
+		ReservableCurrency, WithdrawReasons,
 	},
 	weights::Weight,
 	RuntimeDebug,
@@ -80,7 +81,8 @@ pub mod pallet {
 		#[pallet::constant]
 		type DefaultPreimageByteDeposit: Get<BalanceOf<Self>>;
 
-		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		type Currency: ReservableCurrency<Self::AccountId>
+			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 
 		type MetaverseInfo: MetaverseTrait<Self::AccountId>;
 
@@ -133,7 +135,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn referendum_info)]
 	pub type ReferendumInfoOf<T: Config> =
-		StorageMap<_, Twox64Concat, ReferendumId, ReferendumInfo<T::BlockNumber>, OptionQuery>;
+		StorageMap<_, Twox64Concat, ReferendumId, ReferendumInfo<T::BlockNumber, BalanceOf<T>>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_referendum)]
@@ -146,7 +148,8 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn voting_record)]
-	pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, VotingRecord<BalanceOf<T>>, ValueQuery>;
+	pub type VotingOf<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, VotingRecord<BalanceOf<T>, T::BlockNumber>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -325,55 +328,64 @@ pub mod pallet {
 
 		/// Vote for local metaverse proposal
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-        pub fn try_vote(
-            origin: OriginFor<T>, 
-            referendum: ReferendumId,
-            vote: Vote<BalanceOf<T>>
-        ) -> DispatchResultWithPostInfo {
-            let from = ensure_signed(origin)?;
-            let mut status = Self::referendum_status(referendum)?;
-            ensure!(T::CountryInfo::is_member(&from, &status.country), Error::<T>::AccountNotCountryMember);
-            ensure!(vote.balance <= T::Currency::free_balance(&from), Error::<T>::InsufficientBalance);
-            <VotingOf<T>>::try_mutate(from.clone(),|mut voting_record| -> DispatchResultWithPostInfo {
-                let votes = &mut voting_record.votes;
-                match votes.binary_search_by_key(&referendum, |i| i.0) {
-                    Ok(i) => Err(Error::<T>::AccountAlreadyVoted.into()),
-                    Err(i) => { 
-                        votes.insert(i, (referendum,vote.clone()));
-
-                        <ReferendumInfoOf<T>>::try_mutate(referendum,|referendum_info| -> DispatchResultWithPostInfo {
-                            status.tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?;
-                            *referendum_info = Some(ReferendumInfo::Ongoing(status));
-                            
-                            Ok(().into())
-                        });
-                        Self::deposit_event(Event::VoteRecorded(from, referendum, vote.aye));
-                        Ok(().into())
-                    }
-                }
-            })
-        }
-
-
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn try_remove_vote(origin: OriginFor<T>, referendum: ReferendumId) -> DispatchResultWithPostInfo {
+		pub fn try_vote(
+			origin: OriginFor<T>,
+			referendum: ReferendumId,
+			vote: Vote<BalanceOf<T>>,
+		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			let mut status = Self::referendum_status(referendum)?;
-			<VotingOf<T>>::try_mutate(from.clone(), |voting_record| -> DispatchResultWithPostInfo {
-				let mut votes = &mut voting_record.votes;
+			ensure!(
+				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &status.metaverse),
+				Error::<T>::AccountIsNotMetaverseMember
+			);
+			ensure!(
+				vote.balance <= T::Currency::free_balance(&from),
+				Error::<T>::InsufficientBalance
+			);
+			<VotingOf<T>>::try_mutate(from.clone(), |mut voting_record| -> DispatchResultWithPostInfo {
+				let votes = &mut voting_record.votes;
 				match votes.binary_search_by_key(&referendum, |i| i.0) {
-					Ok(i) => {
-						let vote = votes.remove(i).1;
+					Ok(i) => Err(Error::<T>::AccountAlreadyVoted.into()),
+					Err(i) => {
+						votes.insert(i, (referendum, vote.clone()));
+
 						<ReferendumInfoOf<T>>::try_mutate(
 							referendum,
 							|referendum_info| -> DispatchResultWithPostInfo {
-								status.tally.remove(vote).ok_or(Error::<T>::TallyOverflow)?;
+								status.tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?;
 								*referendum_info = Some(ReferendumInfo::Ongoing(status));
 
 								Ok(().into())
 							},
 						);
-						Self::deposit_event(Event::VoteRemoved(from, referendum));
+						T::Currency::extend_lock(GOVERNANCE_ID, &from, vote.balance, WithdrawReasons::TRANSFER);
+						Self::deposit_event(Event::VoteRecorded(from, referendum, vote.aye));
+						Ok(().into())
+					}
+				}
+			})
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn try_remove_vote(origin: OriginFor<T>, referendum: ReferendumId) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
+			let mut status = Self::referendum_status(referendum)?;
+			let info = ReferendumInfoOf::<T>::get(&referendum);
+			<VotingOf<T>>::try_mutate(from.clone(), |voting_record| -> DispatchResultWithPostInfo {
+				let mut votes = &mut voting_record.votes;
+				match votes.binary_search_by_key(&referendum, |i| i.0) {
+					Ok(i) => {
+						match info {
+							Some(ReferendumInfo::Ongoing(mut status)) => {
+								let vote = votes.remove(i).1;
+								status.tally.remove(vote).ok_or(Error::<T>::TallyOverflow)?;
+								ReferendumInfoOf::<T>::insert(&referendum, ReferendumInfo::Ongoing(status));
+								Self::deposit_event(Event::VoteRemoved(from, referendum));
+							}
+							Some(ReferendumInfo::Finished { end, passed }) => (), //TO DO: Finish implementation
+							None => (),
+						}
 						Ok(().into())
 					}
 					Err(i) => Err(Error::<T>::AccountHasNotVoted.into()),
@@ -408,6 +420,13 @@ pub mod pallet {
 				_ => (),
 			}
 			Ok(().into())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn unlock_balance(origin: OriginFor<T>, target: T::AccountId) -> DispatchResult {
+			ensure_signed(origin)?;
+			Self::update_lock(&target);
+			Ok(())
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -500,7 +519,7 @@ impl<T: Config> Pallet<T> {
 			metaverse: metaverse_id,
 			proposal: proposal_id,
 			tally: initial_tally,
-			threshold: Some(referendum_threshold.clone()),
+			threshold: referendum_threshold.clone(),
 		};
 		let referendum_info = ReferendumInfo::Ongoing(referendum_status);
 		<ReferendumInfoOf<T>>::insert(referendum_id, referendum_info);
@@ -595,41 +614,26 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
-	fn referendum_status(referendum_id: ReferendumId) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
+	fn referendum_status(
+		referendum_id: ReferendumId,
+	) -> Result<ReferendumStatus<T::BlockNumber, BalanceOf<T>>, DispatchError> {
 		let info = Self::referendum_info(referendum_id).ok_or(Error::<T>::ReferendumDoesNotExist)?;
 		Self::ensure_ongoing(info.into())
 	}
 
 	/// Ok if the given referendum is active, Err otherwise
-	fn ensure_ongoing(r: ReferendumInfo<T::BlockNumber>) -> Result<ReferendumStatus<T::BlockNumber>, DispatchError> {
+	fn ensure_ongoing(
+		r: ReferendumInfo<T::BlockNumber, BalanceOf<T>>,
+	) -> Result<ReferendumStatus<T::BlockNumber, BalanceOf<T>>, DispatchError> {
 		match r {
 			ReferendumInfo::Ongoing(s) => Ok(s),
 			_ => Err(Error::<T>::ReferendumIsOver.into()),
 		}
 	}
 
-	fn find_referendum_result(threshold: Option<VoteThreshold>, tally: Tally) -> Result<bool, DispatchError> {
-		if tally.turnout == 0 {
-			return Ok(false);
-		}
-
-		match threshold {
-			Some(ref threshold_type) => match threshold_type {
-				VoteThreshold::StandardQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.72),
-				VoteThreshold::TwoThirdsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6666),
-				VoteThreshold::ThreeFifthsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6),
-				VoteThreshold::ReinforcedQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.55),
-				VoteThreshold::RelativeMajority => Ok(tally.ayes > tally.nays),
-				_ => Err(Error::<T>::InvalidReferendumOutcome.into()),
-			},
-			// If no threshold is selected, the proposal will pass with relative majority
-			None => Ok(tally.ayes > tally.nays),
-		}
-	}
-
 	fn finalize_vote(
 		referendum_id: ReferendumId,
-		referendum_status: ReferendumStatus<T::BlockNumber>,
+		referendum_status: ReferendumStatus<T::BlockNumber, BalanceOf<T>>,
 	) -> DispatchResult {
 		// Return deposit
 		let deposit_info = Self::deposit(referendum_status.proposal).ok_or(Error::<T>::InsufficientBalance)?;
@@ -637,13 +641,15 @@ impl<T: Config> Pallet<T> {
 		T::Currency::unreserve(&deposit_info.0, deposit_info.1);
 
 		// Check if referendum passes
-		let does_referendum_passed =
-			Self::find_referendum_result(referendum_status.threshold.clone(), referendum_status.tally.clone())?;
+		let total_issuance = T::Currency::total_issuance();
+		let is_referendum_approved = referendum_status
+			.threshold
+			.is_referendum_approved(referendum_status.tally.clone(), total_issuance);
 
 		// Update referendum info
 		<ReferendumInfoOf<T>>::try_mutate(referendum_id, |referendum_info| -> DispatchResult {
 			*referendum_info = Some(ReferendumInfo::Finished {
-				passed: does_referendum_passed,
+				passed: is_referendum_approved,
 				end: referendum_status.end,
 			});
 
@@ -651,7 +657,7 @@ impl<T: Config> Pallet<T> {
 		});
 
 		// Enact proposal if it passed the threshold
-		if does_referendum_passed {
+		if is_referendum_approved {
 			//Self::do_enact_proposal(referendum_status.proposal, referendum_status.metaverse
 			let mut when = referendum_status.end;
 			match Self::referendum_parameters(referendum_status.metaverse) {
@@ -669,7 +675,7 @@ impl<T: Config> Pallet<T> {
 			)
 			.is_err()
 			{
-				frame_support::print("LOGIC ERROR: does_referendum_passed/schedule_named failed");
+				frame_support::print("LOGIC ERROR: is_referendum_approved/schedule_named failed");
 			} else {
 				Self::deposit_event(Event::ReferendumPassed(referendum_id));
 			}
@@ -728,5 +734,16 @@ impl<T: Config> Pallet<T> {
 			Err(Error::<T>::PreimageMissing.into())
 		}
 	}
-}
 
+	fn update_lock(who: &T::AccountId) {
+		let lock_needed = VotingOf::<T>::mutate(who, |voting| {
+			voting.rejig(frame_system::Pallet::<T>::block_number());
+			voting.locked_balance()
+		});
+		if lock_needed.is_zero() {
+			T::Currency::remove_lock(GOVERNANCE_ID, who);
+		} else {
+			T::Currency::set_lock(GOVERNANCE_ID, who, lock_needed, WithdrawReasons::TRANSFER);
+		}
+	}
+}

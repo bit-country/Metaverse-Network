@@ -41,17 +41,15 @@ pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumP
 	min_proposal_launch_period: 12,
 	voting_period: 5,
 	enactment_period: 10,
+	local_vote_locking_period: 30,
 	max_proposals_per_metaverse: 1,
 };
 
-pub const VOTE_FOR: Vote<Balance>  = Vote {
-    aye: true,
-    balance: 10,
-};
+pub const VOTE_FOR: Vote<Balance> = Vote { aye: true, balance: 10 };
 
 pub const VOTE_AGAINST: Vote<Balance> = Vote {
-    aye: false,
-    balance: 10,
+	aye: false,
+	balance: 10,
 };
 
 impl frame_system::Config for Runtime {
@@ -343,4 +341,3 @@ pub fn add_metaverse_preimage(hash: H256) {
 	};
 	Preimages::<Runtime>::insert(hash, preimage_status);
 }
-
