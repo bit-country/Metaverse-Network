@@ -788,6 +788,7 @@ impl governance::Config for Runtime {
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
+	type Slash = ();
 	type MetaverseInfo = Metaverse;
 	type PalletsOrigin = OriginCaller;
 	type Proposal = Call;

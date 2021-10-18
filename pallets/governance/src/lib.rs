@@ -52,6 +52,9 @@ pub mod pallet {
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
+	pub(crate) type NegativeImbalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::NegativeImbalance;
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
@@ -83,6 +86,8 @@ pub mod pallet {
 
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+
+		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 
 		type MetaverseInfo: MetaverseTrait<Self::AccountId>;
 
@@ -718,6 +723,7 @@ impl<T: Config> Pallet<T> {
 					Ok(())
 				}
 			} else {
+				T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
 				Self::deposit_event(Event::<T>::PreimageInvalid(
 					metaverse_id,
 					proposal_info.hash,
