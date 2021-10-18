@@ -204,9 +204,25 @@
     "local_vote_locking_period": "BlockNumber",
     "max_proposals_per_metaverse": "u8"
   },
+  "Delegations": {
+    "votes": "Balance",
+    "capital": "Balance"
+  },
+  "Conviction": {
+    "_enum": [
+      "None",
+      "Locked1x",
+      "Locked2x",
+      "Locked3x",
+      "Locked4x",
+      "Locked5x",
+      "Locked6x"
+    ]
+  },
   "Vote": {
     "aye": "bool",
-    "balance": "Balance"
+    "balance": "Balance",
+    "conviction": "Conviction"
   },
   "Tally": {
     "ayes": "Balance",

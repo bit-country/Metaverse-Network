@@ -45,11 +45,16 @@ pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumP
 	max_proposals_per_metaverse: 1,
 };
 
-pub const VOTE_FOR: Vote<Balance> = Vote { aye: true, balance: 10 };
+pub const VOTE_FOR: Vote<Balance> = Vote {
+	aye: true,
+	balance: 10,
+	conviction: Conviction::None,
+};
 
 pub const VOTE_AGAINST: Vote<Balance> = Vote {
 	aye: false,
 	balance: 10,
+	conviction: Conviction::None,
 };
 
 impl frame_system::Config for Runtime {
