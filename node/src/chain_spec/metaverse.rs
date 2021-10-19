@@ -247,13 +247,20 @@ fn testnet_genesis(
 				.map(|k| (k, 600 * KILODOLLARS))
 				.collect(),
 		},
-		aura: AuraConfig {
-			//			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
-			authorities: vec![],
+		staking: StakingConfig {
+			candidates: staking_candidate,
+			nominations: vec![],
+			inflation_config: metaverse_network_inflation_config(),
 		},
+		session: SessionConfig {
+			keys: initial_authorities
+				.iter()
+				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
+				.collect::<Vec<_>>(),
+		},
+		aura: AuraConfig { authorities: vec![] },
 		grandpa: GrandpaConfig {
-			//			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
-			authorities: vec![],
+			authorities: authorities: vec![],
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
@@ -268,17 +275,6 @@ fn testnet_genesis(
 			initial_auction_rate: 5,
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
-		},
-		staking: StakingConfig {
-			candidates: staking_candidate,
-			nominations: vec![],
-			inflation_config: metaverse_network_inflation_config(),
-		},
-		session: SessionConfig {
-			keys: initial_authorities
-				.iter()
-				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
-				.collect::<Vec<_>>(),
 		},
 		evm: EVMConfig {
 			accounts: {

@@ -1,13 +1,14 @@
 use crate::*;
 use codec::{Decode, Encode};
 use primitives::{AccountId, MetaverseId, ProposalId, ReferendumId};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Hash, One},
 	RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
 	/// The preimage is imminently needed at the argument.
 	Missing(BlockNumber),

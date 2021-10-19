@@ -21,6 +21,7 @@ mod precompile;
 
 use codec::{Decode, Encode};
 use evm::ExitReason;
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::{H160, U256};
@@ -29,7 +30,7 @@ use sp_std::vec::Vec;
 pub use evm::backend::{Basic as Account, Log};
 pub use precompile::{LinearCostPrecompile, Precompile, PrecompileSet};
 
-#[derive(Clone, Eq, PartialEq, Encode, Decode, Default)]
+#[derive(Clone, Eq, PartialEq, Encode, Decode, Default, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug, Serialize, Deserialize))]
 /// External input from the transaction.
 pub struct Vicinity {
@@ -39,7 +40,7 @@ pub struct Vicinity {
 	pub origin: H160,
 }
 
-#[derive(Clone, Eq, PartialEq, Encode, Decode)]
+#[derive(Clone, Eq, PartialEq, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug, Serialize, Deserialize))]
 pub struct ExecutionInfo<T> {
 	pub exit_reason: ExitReason,
@@ -51,7 +52,7 @@ pub struct ExecutionInfo<T> {
 pub type CallInfo = ExecutionInfo<Vec<u8>>;
 pub type CreateInfo = ExecutionInfo<H160>;
 
-#[derive(Clone, Eq, PartialEq, Encode, Decode)]
+#[derive(Clone, Eq, PartialEq, Encode, Decode, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Debug, Serialize, Deserialize))]
 pub enum CallOrCreateInfo {
 	Call(CallInfo),

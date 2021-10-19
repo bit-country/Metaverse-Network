@@ -52,7 +52,7 @@ mod tests;
 
 pub use pallet::*;
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum ContinuumAuctionSlotStatus {
 	/// Accept participation
 	AcceptParticipates,
@@ -64,7 +64,7 @@ pub enum ContinuumAuctionSlotStatus {
 
 /// Information of EOI on Continuum spot
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct SpotEOI<AccountId> {
 	spot_id: SpotId,
 	participants: Vec<AccountId>,
@@ -72,7 +72,7 @@ pub struct SpotEOI<AccountId> {
 
 /// Information of an active auction slot
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct AuctionSlot<BlockNumber, AccountId> {
 	spot_id: SpotId,
 	participants: Vec<AccountId>,
@@ -241,7 +241,6 @@ pub mod pallet {
 	pub type SpotPrice<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// New express of interest
 		NewExpressOfInterestAdded(T::AccountId, SpotId),

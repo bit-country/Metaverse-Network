@@ -41,7 +41,7 @@ mod mock;
 mod tests;
 
 /// Status for TradingPair
-#[derive(Clone, Copy, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
+#[derive(Clone, Copy, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub enum TradingPairStatus {
 	/// can withdraw liquidity, re-enable and list this trading pair.
 	NotEnabled,
@@ -111,8 +111,6 @@ pub mod pallet {
 	pub type TradingPairStatuses<T: Config> = StorageMap<_, Twox64Concat, TradingPair, TradingPairStatus, ValueQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId")]
 	pub enum Event<T: Config> {
 		NewCountryCreated(MetaverseId),
 		TransferredCountry(MetaverseId, T::AccountId, T::AccountId),

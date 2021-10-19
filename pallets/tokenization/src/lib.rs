@@ -39,6 +39,7 @@ use orml_traits::{
 };
 pub use pallet::*;
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId, VestingSchedule};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,
@@ -46,7 +47,6 @@ use sp_runtime::{
 use sp_runtime::{FixedPointNumber, SaturatedConversion};
 use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
-
 #[cfg(test)]
 mod mock;
 
@@ -59,7 +59,7 @@ pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
 pub type Ticker = Vec<u8>;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Token<Balance> {
 	pub ticker: Ticker,
 	pub total_supply: Balance,
@@ -253,12 +253,6 @@ pub mod pallet {
 	}
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(
-    < T as frame_system::Config >::AccountId = "AccountId",
-    Balance = "Balance",
-    CurrencyId = "CurrencyId"
-    )]
 	pub enum Event<T: Config> {
 		/// Some assets were issued. \[asset_id, owner, fund_id ,total_supply\]
 		FungibleTokenIssued(FungibleTokenId, T::AccountId, T::AccountId, u128, u64),
