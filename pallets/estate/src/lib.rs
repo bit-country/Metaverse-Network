@@ -102,11 +102,11 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	#[pallet::metadata(T::AccountId = "AccountId")]
 	pub enum Event<T: Config> {
-		NewLandsMinted(MetaverseId, Vec<(i32, i32)>),
+		NewLandsMinted(T::AccountId, MetaverseId, Vec<(i32, i32)>),
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
 		TransferredEstate(EstateId, T::AccountId, T::AccountId),
-		NewLandUnitMinted(MetaverseId, (i32, i32)),
-		NewEstateMinted(EstateId, MetaverseId, Vec<(i32, i32)>),
+		NewLandUnitMinted(T::AccountId, MetaverseId, (i32, i32)),
+		NewEstateMinted(EstateId, T::AccountId, MetaverseId, Vec<(i32, i32)>),
 		MaxBoundSet(MetaverseId, (i32, i32)),
 	}
 
@@ -167,7 +167,7 @@ pub mod pallet {
 			// Update land units
 			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
 
-			Self::deposit_event(Event::<T>::NewLandUnitMinted(metaverse_id, coordinate));
+			Self::deposit_event(Event::<T>::NewLandUnitMinted(beneficiary.clone(), metaverse_id, coordinate));
 
 			Ok(().into())
 		}
@@ -193,7 +193,7 @@ pub mod pallet {
 				.checked_add(coordinates.len() as u64)
 				.ok_or("Overflow adding new count to total lands")?;
 			AllLandUnitsCount::<T>::put(new_total_land_unit_count);
-			Self::deposit_event(Event::<T>::NewLandsMinted(metaverse_id.clone(), coordinates.clone()));
+			Self::deposit_event(Event::<T>::NewLandsMinted(beneficiary.clone(), metaverse_id.clone(), coordinates.clone()));
 
 			Ok(().into())
 		}
@@ -398,6 +398,7 @@ impl<T: Config> Pallet<T> {
 
 		Self::deposit_event(Event::<T>::NewEstateMinted(
 			new_estate_id.clone(),
+			beneficiary.clone(),
 			metaverse_id,
 			coordinates.clone(),
 		));
