@@ -17,5 +17,6 @@ exclude = [
     '/dapps/luckydraw',
     '/dapps/airdrop',
     '/dapps/countrytoken',
-    'pallets/oracle'
+    'pallets/oracle',
+    'pallet/evm'
 ]

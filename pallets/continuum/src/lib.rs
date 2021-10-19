@@ -22,6 +22,7 @@ use codec::{Decode, Encode};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::{self as system, ensure_root, ensure_signed};
 use primitives::{continuum::Continuum, Balance, CurrencyId, ItemId, MetaverseId, SpotId};
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
@@ -241,6 +242,7 @@ pub mod pallet {
 	pub type SpotPrice<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// New express of interest
 		NewExpressOfInterestAdded(T::AccountId, SpotId),

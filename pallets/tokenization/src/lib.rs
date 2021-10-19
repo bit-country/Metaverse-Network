@@ -253,6 +253,7 @@ pub mod pallet {
 	}
 
 	#[pallet::event]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Some assets were issued. \[asset_id, owner, fund_id ,total_supply\]
 		FungibleTokenIssued(FungibleTokenId, T::AccountId, T::AccountId, u128, u64),

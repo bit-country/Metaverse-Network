@@ -6,6 +6,7 @@
 use codec::{Decode, Encode};
 use codec::{FullCodec, MaxEncodedLen};
 use frame_support::dispatch::DispatchResult;
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{
@@ -20,7 +21,7 @@ use sp_std::{
 use frame_support::Parameter;
 use primitives::{AssetId, AuctionId, FungibleTokenId, ItemId, MetaverseId};
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum Change<Value> {
 	/// No change.
 	NoChange,
@@ -28,14 +29,14 @@ pub enum Change<Value> {
 	NewValue(Value),
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum AuctionType {
 	Auction,
 	BuyNow,
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ListingLevel {
 	Global,
@@ -43,7 +44,7 @@ pub enum ListingLevel {
 }
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	pub item_id: ItemId,
 	pub recipient: AccountId,
@@ -60,7 +61,7 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 
 /// Auction info.
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	/// Current bidder and bid price.
 	pub bid: Option<(AccountId, Balance)>,

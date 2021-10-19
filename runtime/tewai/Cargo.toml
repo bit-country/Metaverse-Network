@@ -18,7 +18,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 codec = { package = "parity-scale-codec", version = "2.3.1", default-features = false, features = ["derive", "max-encoded-len"] }
 static_assertions = "1.1.0"
 hex-literal = { version = "0.3.1", optional = true }
-evm = { version = "0.30.1", default-features = false, features = ["with-codec"] }
+#evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
 log = { version = "0.4.14", default-features = false }
 
 # primitives
@@ -94,11 +94,11 @@ pallet-vesting = { version = "4.0.0-dev", default-features = false, git = "https
 
 # EVM pallets
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-pallet-evm = { path = "../../pallets/evm", default-features = false }
+#pallet-evm = { path = "../../pallets/evm", default-features = false }
 #pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
-pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
-pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
+#pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
+#pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
+#pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
 #fp-rpc = { default-features = false, git = "https://github.com/bit-country/frontier", branch = "master" }
 
 # external crates - orml packages
@@ -124,7 +124,8 @@ governance = { package = "pallet-governance", path = "../../pallets/governance",
 #modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
 
 # ecosystem dependencies
-parachain-staking = { package = "parachain-staking", git = "https://github.com/justinphamnz/Parachain-Staking", version = "2.1.1", default-features = false }
+parachain-staking = { path = "../../pallets/staking", version = "2.1.1", default-features = false }
+
 #chainbridge = { package = "chainbridge", git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
 
 [build-dependencies]
@@ -217,9 +218,9 @@ std = [
     #    "modules-chainsafe/std",
     "mining/std",
     "parachain-staking/std",
-    "pallet-evm/std",
+    #    "pallet-evm/std",
     #    "fp-rpc/std",
-    "evm/std",
+    #    "evm/std",
     "governance/std"
 ]
 runtime-benchmarks = [

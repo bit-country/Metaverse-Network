@@ -385,6 +385,7 @@ dependencies = [
  "frame-support",
  "funty",
  "parity-scale-codec",
+ "scale-info",
  "serde",
  "sp-io",
  "sp-runtime",
@@ -468,6 +469,7 @@ dependencies = [
  "bit-country-primitives",
  "frame-support",
  "parity-scale-codec",
+ "scale-info",
  "serde",
  "sp-io",
  "sp-runtime",
@@ -1992,26 +1994,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "estate-staking"
-version = "2.1.1"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-balances",
- "pallet-session",
- "parity-scale-codec",
- "serde",
- "similar-asserts",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "substrate-fixed",
-]
-
-[[package]]
 name = "ethbloom"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2069,33 +2051,14 @@ checksum = "f7531096570974c3a9dcf9e4b8e1cede1ec26cf5046219fb3b9d897503b9be59"
 [[package]]
 name = "evm"
 version = "0.30.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3144301c57a81101003055c7cab61b58e68060f3bd1c54aa419f663e4f0e6347"
-dependencies = [
- "environmental",
- "ethereum",
- "evm-core 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "evm-gasometer 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "evm-runtime 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "log",
- "parity-scale-codec",
- "primitive-types",
- "rlp",
- "serde",
- "sha3 0.8.2",
-]
-
-[[package]]
-name = "evm"
-version = "0.30.1"
 source = "git+https://github.com/PureStake/evm?branch=joshy-scale-info#ac69f9774c3a1f142ebfd1292445b066063cf20e"
 dependencies = [
  "auto_impl",
  "environmental",
  "ethereum",
- "evm-core 0.30.0 (git+https://github.com/PureStake/evm?branch=joshy-scale-info)",
- "evm-gasometer 0.30.0 (git+https://github.com/PureStake/evm?branch=joshy-scale-info)",
- "evm-runtime 0.30.0 (git+https://github.com/PureStake/evm?branch=joshy-scale-info)",
+ "evm-core",
+ "evm-gasometer",
+ "evm-runtime",
  "log",
  "parity-scale-codec",
  "primitive-types",
@@ -2103,18 +2066,6 @@ dependencies = [
  "scale-info",
  "serde",
  "sha3 0.8.2",
-]
-
-[[package]]
-name = "evm-core"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7bfa2dae9a2c6c0172d83c37eb406bfabf6a9d1af17b7ab4958e89853ddae97"
-dependencies = [
- "funty",
- "parity-scale-codec",
- "primitive-types",
- "serde",
 ]
 
 [[package]]
@@ -2132,36 +2083,12 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14d5b12117cb9a5a9b9f031296ea86416da2cd9d8c9a9e3a2fa10275ae55f3ea"
-dependencies = [
- "environmental",
- "evm-core 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "evm-runtime 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "primitive-types",
-]
-
-[[package]]
-name = "evm-gasometer"
-version = "0.30.0"
 source = "git+https://github.com/PureStake/evm?branch=joshy-scale-info#ac69f9774c3a1f142ebfd1292445b066063cf20e"
 dependencies = [
  "environmental",
- "evm-core 0.30.0 (git+https://github.com/PureStake/evm?branch=joshy-scale-info)",
- "evm-runtime 0.30.0 (git+https://github.com/PureStake/evm?branch=joshy-scale-info)",
+ "evm-core",
+ "evm-runtime",
  "primitive-types",
-]
-
-[[package]]
-name = "evm-runtime"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3921ac8964cf13d12693392fef6686ef94470328ccd8eea384c6ff9ac0125b01"
-dependencies = [
- "environmental",
- "evm-core 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "primitive-types",
- "sha3 0.8.2",
 ]
 
 [[package]]
@@ -2171,7 +2098,7 @@ source = "git+https://github.com/PureStake/evm?branch=joshy-scale-info#ac69f9774
 dependencies = [
  "auto_impl",
  "environmental",
- "evm-core 0.30.0 (git+https://github.com/PureStake/evm?branch=joshy-scale-info)",
+ "evm-core",
  "primitive-types",
  "sha3 0.8.2",
 ]
@@ -2300,7 +2227,7 @@ dependencies = [
 name = "fp-evm"
 version = "3.0.0-dev"
 dependencies = [
- "evm 0.30.1 (git+https://github.com/PureStake/evm?branch=joshy-scale-info)",
+ "evm",
  "impl-trait-for-tuples 0.1.3",
  "parity-scale-codec",
  "scale-info",
@@ -4356,7 +4283,6 @@ dependencies = [
  "metaverse-runtime",
  "node-primitives",
  "node-template-runtime",
- "pallet-evm",
  "pallet-im-online",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
@@ -4425,7 +4351,6 @@ dependencies = [
  "auction-manager",
  "bit-country-primitives",
  "currencies",
- "evm 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -4445,10 +4370,6 @@ dependencies = [
  "pallet-continuum",
  "pallet-democracy",
  "pallet-estate",
- "pallet-evm",
- "pallet-evm-precompile-modexp",
- "pallet-evm-precompile-sha3fips",
- "pallet-evm-precompile-simple",
  "pallet-governance",
  "pallet-grandpa",
  "pallet-metaverse",
@@ -4464,8 +4385,9 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-vesting",
- "parachain-staking 2.1.1 (git+https://github.com/justinphamnz/Parachain-Staking)",
+ "parachain-staking",
  "parity-scale-codec",
+ "scale-info",
  "serde",
  "sp-api",
  "sp-block-builder",
@@ -4740,7 +4662,7 @@ dependencies = [
  "approx",
  "matrixmultiply",
  "nalgebra-macros",
- "num-complex 0.4.0",
+ "num-complex",
  "num-rational 0.4.0",
  "num-traits",
  "rand 0.8.4",
@@ -4864,20 +4786,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "num"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b7a8e9be5e039e2ff869df49155f1c06bd01ade2117ec783e56ab0932b67a8f"
-dependencies = [
- "num-bigint 0.3.3",
- "num-complex 0.3.1",
- "num-integer",
- "num-iter",
- "num-rational 0.3.2",
- "num-traits",
-]
-
-[[package]]
 name = "num-bigint"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4885,26 +4793,6 @@ checksum = "090c7f9998ee0ff65aa5b723e4009f7b217707f1fb5ea551329cc4d6231fb304"
 dependencies = [
  "autocfg",
  "num-integer",
- "num-traits",
-]
-
-[[package]]
-name = "num-bigint"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f6f7833f2cbf2360a6cfd58cd41a53aa7a90bd4c202f5b1c7dd2ed73c57b2c3"
-dependencies = [
- "autocfg",
- "num-integer",
- "num-traits",
-]
-
-[[package]]
-name = "num-complex"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "747d632c0c558b87dbabbe6a82f3b4ae03720d0646ac5b7b4dae89394be5f2c5"
-dependencies = [
  "num-traits",
 ]
 
@@ -4928,36 +4816,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-iter"
-version = "0.1.42"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2021c8337a54d21aca0d59a92577a029af9431cb59b909b03252b9c164fad59"
-dependencies = [
- "autocfg",
- "num-integer",
- "num-traits",
-]
-
-[[package]]
 name = "num-rational"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c000134b5dbf44adc5cb772486d335293351644b801551abe8f75c84cfa4aef"
 dependencies = [
  "autocfg",
- "num-bigint 0.2.6",
- "num-integer",
- "num-traits",
-]
-
-[[package]]
-name = "num-rational"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12ac428b1cb17fce6f731001d307d351ec70a6d202fc2e60f7d4c5e42d8f4f07"
-dependencies = [
- "autocfg",
- "num-bigint 0.3.3",
+ "num-bigint",
  "num-integer",
  "num-traits",
 ]
@@ -5330,6 +5195,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-collator-selection"
+version = "3.0.0"
+source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.11#ede4d527c4fc5d84c43216b408a873625488574b"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-authorship",
+ "pallet-session",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-collective"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.11#57346f6b24875f8935280dba51fa8ab0a9ba1e39"
@@ -5519,9 +5403,9 @@ dependencies = [
 name = "pallet-evm"
 version = "6.0.0-dev"
 dependencies = [
- "evm 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "evm-gasometer 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "evm-runtime 0.30.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "evm",
+ "evm-gasometer",
+ "evm-runtime",
  "fp-evm",
  "frame-benchmarking",
  "frame-support",
@@ -5533,59 +5417,13 @@ dependencies = [
  "parity-scale-codec",
  "primitive-types",
  "rlp",
+ "scale-info",
  "serde",
  "sha3 0.8.2",
  "sp-core",
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-evm-precompile-modexp"
-version = "2.0.0-dev"
-dependencies = [
- "evm 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fp-evm",
- "hex",
- "num",
- "pallet-evm-test-vector-support",
- "sp-core",
- "sp-io",
-]
-
-[[package]]
-name = "pallet-evm-precompile-sha3fips"
-version = "2.0.0-dev"
-dependencies = [
- "evm 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fp-evm",
- "sp-core",
- "sp-io",
- "tiny-keccak",
-]
-
-[[package]]
-name = "pallet-evm-precompile-simple"
-version = "2.0.0-dev"
-dependencies = [
- "evm 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fp-evm",
- "pallet-evm-test-vector-support",
- "ripemd160",
- "sp-core",
- "sp-io",
-]
-
-[[package]]
-name = "pallet-evm-test-vector-support"
-version = "1.0.0-dev"
-dependencies = [
- "evm 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fp-evm",
- "hex",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -6326,7 +6164,7 @@ dependencies = [
 [[package]]
 name = "pallet-xcm"
 version = "0.9.11"
-source = "git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3#eb9f107e3a04687dcf80111563f2bcea7d5b15d3"
+source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.11#eb9f107e3a04687dcf80111563f2bcea7d5b15d3"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -6336,8 +6174,8 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-std",
- "xcm 0.9.11 (git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3)",
- "xcm-executor 0.9.11 (git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3)",
+ "xcm 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
+ "xcm-executor 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
 ]
 
 [[package]]
@@ -6367,25 +6205,6 @@ dependencies = [
  "scale-info",
  "serde",
  "similar-asserts",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "substrate-fixed",
-]
-
-[[package]]
-name = "parachain-staking"
-version = "2.1.1"
-source = "git+https://github.com/justinphamnz/Parachain-Staking#9d937e2100d6c75111aac971bae279dff9b0cb22"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-session",
- "parity-scale-codec",
- "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -6742,7 +6561,6 @@ dependencies = [
  "cumulus-primitives-timestamp",
  "cumulus-primitives-utility",
  "currencies",
- "evm 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",
@@ -6758,13 +6576,10 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-collator-selection",
  "pallet-collective",
  "pallet-continuum",
  "pallet-estate",
- "pallet-evm",
- "pallet-evm-precompile-modexp",
- "pallet-evm-precompile-sha3fips",
- "pallet-evm-precompile-simple",
  "pallet-grandpa",
  "pallet-metaverse",
  "pallet-mining",
@@ -6780,10 +6595,13 @@ dependencies = [
  "pallet-vesting",
  "pallet-xcm",
  "parachain-info",
- "parachain-staking 2.1.1 (git+https://github.com/justinphamnz/Parachain-Staking)",
+ "parachain-staking",
  "parity-scale-codec",
- "polkadot-parachain 0.9.11 (git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3)",
+ "polkadot-parachain 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
+ "polkadot-runtime-common 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
+ "scale-info",
  "serde",
+ "smallvec",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",
@@ -6797,9 +6615,9 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "substrate-wasm-builder",
- "xcm 0.9.11 (git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3)",
+ "xcm 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
  "xcm-builder",
- "xcm-executor 0.9.11 (git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3)",
+ "xcm-executor 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
 ]
 
 [[package]]
@@ -9414,17 +9232,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ripemd160"
-version = "0.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eca4ecc81b7f313189bf73ce724400a07da2a6dac19588b03c8bd76a2dcc251"
-dependencies = [
- "block-buffer 0.9.0",
- "digest 0.9.0",
- "opaque-debug 0.3.0",
-]
-
-[[package]]
 name = "rlp"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9829,7 +9636,7 @@ dependencies = [
  "futures 0.3.17",
  "log",
  "merlin",
- "num-bigint 0.2.6",
+ "num-bigint",
  "num-rational 0.2.4",
  "num-traits",
  "parity-scale-codec",
@@ -10848,7 +10655,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e82063457853d00243beda9952e910b82593e4b07ae9f721b9278a99a0d3d5c"
 dependencies = [
  "approx",
- "num-complex 0.4.0",
+ "num-complex",
  "num-traits",
  "paste",
 ]
@@ -11991,7 +11798,6 @@ dependencies = [
  "auction-manager",
  "bit-country-primitives",
  "currencies",
- "evm 0.30.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
@@ -12023,10 +11829,6 @@ dependencies = [
  "pallet-election-provider-multi-phase",
  "pallet-elections-phragmen",
  "pallet-estate",
- "pallet-evm",
- "pallet-evm-precompile-modexp",
- "pallet-evm-precompile-sha3fips",
- "pallet-evm-precompile-simple",
  "pallet-gilt",
  "pallet-governance",
  "pallet-grandpa",
@@ -12063,7 +11865,7 @@ dependencies = [
  "pallet-uniques",
  "pallet-utility",
  "pallet-vesting",
- "parachain-staking 2.1.1 (git+https://github.com/justinphamnz/Parachain-Staking)",
+ "parachain-staking",
  "parity-scale-codec",
  "sp-api",
  "sp-authority-discovery",
@@ -13167,21 +12969,21 @@ dependencies = [
 [[package]]
 name = "xcm-builder"
 version = "0.9.11"
-source = "git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3#eb9f107e3a04687dcf80111563f2bcea7d5b15d3"
+source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.11#eb9f107e3a04687dcf80111563f2bcea7d5b15d3"
 dependencies = [
  "frame-support",
  "frame-system",
  "log",
  "pallet-transaction-payment",
  "parity-scale-codec",
- "polkadot-parachain 0.9.11 (git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3)",
+ "polkadot-parachain 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
  "scale-info",
  "sp-arithmetic",
  "sp-io",
  "sp-runtime",
  "sp-std",
- "xcm 0.9.11 (git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3)",
- "xcm-executor 0.9.11 (git+https://github.com/paritytech/polkadot?rev=eb9f107e3a04687dcf80111563f2bcea7d5b15d3)",
+ "xcm 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
+ "xcm-executor 0.9.11 (git+https://github.com/paritytech/polkadot?branch=release-v0.9.11)",
 ]
 
 [[package]]

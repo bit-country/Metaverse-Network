@@ -89,7 +89,7 @@ primitives = { package = "bit-country-primitives", path = "../primitives/metaver
 metaverse-runtime = { version = "2.0.0-rc6", path = "../runtime/metaverse", optional = true }
 tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
 pioneer-runtime = { version = "2.0.0-rc6", path = "../runtime/pioneer", optional = true }
-pallet-evm = { path = "../pallets/evm" }
+#pallet-evm = { path = "../pallets/evm" }
 
 # Cumulus dependencies
 cumulus-client-consensus-aura = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11' }

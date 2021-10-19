@@ -2,27 +2,28 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AtLeast32Bit, MaybeSerializeDeserialize},
 	DispatchError, DispatchResult, RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseAssetData {
 	pub image: Vec<u8>,
 }
 
 pub type MetaverseMetadata = Vec<u8>;
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseInfo<AccountId> {
 	pub owner: AccountId,
 	pub metadata: MetaverseMetadata,
 	pub currency_id: FungibleTokenId,
 }
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseFund<AccountId, Balance> {
 	pub vault: AccountId,
 	pub value: Balance,

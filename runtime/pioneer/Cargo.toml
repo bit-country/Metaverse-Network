@@ -10,10 +10,12 @@ edition = "2018"
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 
 [dependencies]
-codec = { package = 'parity-scale-codec', version = '2.3.1', default-features = false, features = ['derive'] }
+codec = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
 log = { version = "0.4.14", default-features = false }
-serde = { version = '1.0.124', optional = true, features = ['derive'] }
-evm = { version = "0.30.1", default-features = false, features = ["with-codec"] }
+serde = { version = '1.0.119', optional = true, features = ['derive'] }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+smallvec = "1.6.1"
+#evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
 
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.11", default-features = false }
@@ -35,14 +37,14 @@ tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokeniza
 estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
 
 # ecosystem dependencies
-parachain-staking = { package = "parachain-staking", git = "https://github.com/justinphamnz/Parachain-Staking", version = "2.1.1", default-features = false }
+parachain-staking = { path = "../../pallets/staking", version = "2.1.1", default-features = false }
 
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-pallet-evm = { path = "../../pallets/evm", default-features = false }
+#pallet-evm = { path = "../../pallets/evm", default-features = false }
 #pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
-pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
-pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
+#pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
+#pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
+#pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
 #fp-rpc = { default-features = false, git = "https://github.com/bit-country/frontier", branch = "master" }
 
 ## Substrate Primitive Dependencies
@@ -91,13 +93,15 @@ cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus', branc
 cumulus-primitives-timestamp = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
 cumulus-primitives-utility = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
 parachain-info = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
+pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.11" }
 
 # Polkadot Dependencies
-polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', rev = 'eb9f107e3a04687dcf80111563f2bcea7d5b15d3', default-features = false }
-xcm = { git = 'https://github.com/paritytech/polkadot', rev = 'eb9f107e3a04687dcf80111563f2bcea7d5b15d3', default-features = false }
-xcm-builder = { git = 'https://github.com/paritytech/polkadot', rev = 'eb9f107e3a04687dcf80111563f2bcea7d5b15d3', default-features = false }
-xcm-executor = { git = 'https://github.com/paritytech/polkadot', rev = 'eb9f107e3a04687dcf80111563f2bcea7d5b15d3', default-features = false }
-pallet-xcm = { git = 'https://github.com/paritytech/polkadot', rev = 'eb9f107e3a04687dcf80111563f2bcea7d5b15d3', default-features = false }
+polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.11", default-features = false }
+xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.11", default-features = false }
+xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.11", default-features = false }
+xcm-executor = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.11", default-features = false }
+pallet-xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.11", default-features = false }
+polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.11", default-features = false }
 
 [features]
 default = ['std']
@@ -113,6 +117,7 @@ runtime-benchmarks = [
 ]
 std = [
     "codec/std",
+    "scale-info/std",
     "serde",
     "log/std",
     "sp-api/std",
@@ -165,6 +170,7 @@ std = [
     'tokenization/std',
     'estate/std',
     'parachain-staking/std',
-    'pallet-evm/std',
-    "evm/std"
+    'pallet-collator-selection/std'
+    #    'pallet-evm/std',
+    #    "evm/std"
 ]

@@ -110,6 +110,7 @@ pub mod pallet {
 	pub type MintingOrigins<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
 
 	#[pallet::event]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Mining resource minted [amount]
 		MiningResourceMinted(Balance),
