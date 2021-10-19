@@ -33,9 +33,8 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const ALICE_COUNTRY_ID: CountryId = 1;
 pub const BOB_COUNTRY_ID: CountryId = 2;
+pub const PROPOSAL_BLOCK: BlockNumber = 12;
 pub const PROPOSAL_DESCRIPTION: [u8; 2] = [1, 2];
-//pub const PROPOSAL_PARAMETER: MetaverseParameter =
-// MetaverseParameter::MaxParametersPerProposal(2);
 pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumParameters {
 	voting_threshold: Some(VoteThreshold::RelativeMajority),
 	min_proposal_launch_period: 12,
@@ -346,4 +345,14 @@ pub fn add_metaverse_preimage(hash: H256) {
 		expiry: Some(150),
 	};
 	Preimages::<Runtime>::insert(hash, preimage_status);
+}
+
+pub fn add_out_of_scope_proposal(preimage_hash: H256) {
+	let proposal_info = ProposalInfo {
+		proposed_by: ALICE,
+		hash: preimage_hash,
+		description: PROPOSAL_DESCRIPTION.to_vec(),
+		referendum_launch_block: PROPOSAL_BLOCK,
+	};
+	Proposals::<Runtime>::insert(BOB_COUNTRY_ID, 0, proposal_info);
 }

@@ -166,6 +166,7 @@ pub mod pallet {
 		PreimageUsed(T::Hash, T::AccountId, BalanceOf<T>),
 		PreimageEnacted(MetaverseId, T::Hash, DispatchResult),
 		ReferendumParametersUpdated(MetaverseId),
+		ProposalRefused(MetaverseId, T::Hash),
 		ProposalSubmitted(T::AccountId, MetaverseId, ProposalId),
 		ProposalCancelled(T::AccountId, MetaverseId, ProposalId),
 		ProposalFastTracked(MetaverseId, ProposalId),
@@ -260,25 +261,50 @@ pub mod pallet {
 				Error::<T>::InsufficientBalance
 			);
 			ensure!(<Preimages<T>>::contains_key(preimage_hash), Error::<T>::PreimageInvalid);
-			let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
-			let proposal_info = ProposalInfo {
-				proposed_by: from.clone(),
-				hash: preimage_hash,
-				description: proposal_description,
-				referendum_launch_block: launch_block,
-			};
+			let preimage = Self::preimages(preimage_hash);
+			if let Some(PreimageStatus::Available {
+				data,
+				provider,
+				deposit,
+				..
+			}) = preimage
+			{
+				if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
+					let proposal_type = T::ProposalType::default();
+					if !proposal_type.filter(&proposal) {
+						T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
+						Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
+						Err(Error::<T>::PreimageInvalid.into())
+					} else {
+						let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
+						let proposal_info = ProposalInfo {
+							proposed_by: from.clone(),
+							hash: preimage_hash,
+							description: proposal_description,
+							referendum_launch_block: launch_block,
+						};
 
-			let proposal_id = Self::get_next_proposal_id()?;
-			<Proposals<T>>::insert(metaverse_id, proposal_id, proposal_info);
+						let proposal_id = Self::get_next_proposal_id()?;
+						<Proposals<T>>::insert(metaverse_id, proposal_id, proposal_info);
 
-			Self::update_proposals_per_metaverse_number(metaverse_id, true);
-			T::Currency::reserve(&from, balance);
-			<DepositOf<T>>::insert(proposal_id, (&from, balance));
+						Self::update_proposals_per_metaverse_number(metaverse_id, true);
+						T::Currency::reserve(&from, balance);
+						<DepositOf<T>>::insert(proposal_id, (&from, balance));
 
-			Self::start_referendum(metaverse_id, proposal_id, launch_block);
-			Self::deposit_event(Event::ProposalSubmitted(from, metaverse_id, proposal_id));
+						Self::start_referendum(metaverse_id, proposal_id, launch_block);
+						Self::deposit_event(Event::ProposalSubmitted(from, metaverse_id, proposal_id));
 
-			Ok(().into())
+						Ok(().into())
+					}
+				} else {
+					T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
+					Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
+					Err(Error::<T>::PreimageInvalid.into())
+				}
+			} else {
+				Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
+				Err(Error::<T>::PreimageMissing.into())
+			}
 		}
 
 		/// Cancel proposal if you are the proposal owner, the proposal exist, and it has not
@@ -468,9 +494,9 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	// See `note_preimage`
 	fn note_preimage_inner(who: T::AccountId, encoded_proposal: Vec<u8>) -> DispatchResult {
-		let proposal_hash = T::Hashing::hash(&encoded_proposal[..]);
+		let preimage_hash = T::Hashing::hash(&encoded_proposal[..]);
 		ensure!(
-			!<Preimages<T>>::contains_key(&proposal_hash),
+			!<Preimages<T>>::contains_key(&preimage_hash),
 			Error::<T>::DuplicatePreimage
 		);
 
@@ -486,9 +512,9 @@ impl<T: Config> Pallet<T> {
 			since: now,
 			expiry: None,
 		};
-		<Preimages<T>>::insert(proposal_hash, a);
+		<Preimages<T>>::insert(preimage_hash, a);
 
-		Self::deposit_event(Event::<T>::PreimageNoted(proposal_hash, who, deposit));
+		Self::deposit_event(Event::<T>::PreimageNoted(preimage_hash, who, deposit));
 
 		Ok(())
 	}
@@ -663,7 +689,6 @@ impl<T: Config> Pallet<T> {
 
 		// Enact proposal if it passed the threshold
 		if is_referendum_approved {
-			//Self::do_enact_proposal(referendum_status.proposal, referendum_status.metaverse
 			let mut when = referendum_status.end;
 			match Self::referendum_parameters(referendum_status.metaverse) {
 				Some(current_params) => when += current_params.enactment_period,
