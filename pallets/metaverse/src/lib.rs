@@ -132,7 +132,8 @@ pub mod pallet {
 			beneficiary: T::AccountId,
 			contribution: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
-			T::MetaverseCouncil::ensure_origin(origin)?;
+			// T::MetaverseCouncil::ensure_origin(origin)?;
+			let from = ensure_signed(origin)?;
 
 			ensure!(
 				metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
