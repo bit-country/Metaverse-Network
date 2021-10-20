@@ -34,6 +34,10 @@ build:
 build-tewai:
 	cargo build --release  --features with-tewai-runtime
 
+.PHONY: build-pioneer
+build-pioneer:
+	cargo build --release  --features with-pioneer-runtime
+
 .PHONY: build-docker
 build-docker:
 	./scripts/docker_run.sh

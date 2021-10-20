@@ -24,6 +24,8 @@ mod pioneer;
 pub use pioneer::{
 	// new_full as pioneer_full, new_light as pioneer_light,
 	new_partial as pioneer_partial,
-	start_parachain_node as start_node,
-	ParachainRuntimeExecutor, // , Executor as pioneer_executor,
+	parachain_build_import_queue,
+	start_parachain_node,
+	// Executor as pioneer_executor
+	ParachainRuntimeExecutor,
 };

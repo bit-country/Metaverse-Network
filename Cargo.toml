@@ -24,6 +24,7 @@ exclude = [
     '/dapps/countrytoken',
     'pallets/oracle',
     'pallet/evm',
+    'pallet/evm/*',
     'primitives/evm/',
     'modules/chainsafe',
     'runtime/tewai',

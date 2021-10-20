@@ -89,7 +89,7 @@ governance = { package = "pallet-governance", path = "../../pallets/governance",
 
 # ecosystem dependencies
 parachain-staking = { path = "../../pallets/staking", version = "2.1.1", default-features = false }
-#chainbridge = { package = "chainbridge", git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
+#chainbridge = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }

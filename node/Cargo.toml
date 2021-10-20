@@ -111,7 +111,7 @@ polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "r
 substrate-build-script-utils = { version = '3.0.0', git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 
 [features]
-default = ["with-metaverse-runtime"]
+default = ["with-pioneer-runtime"]
 runtime-benchmarks = [
     "node-template-runtime/runtime-benchmarks",
 ]
@@ -128,4 +128,5 @@ with-tewai-runtime = [
 
 with-pioneer-runtime = [
     "pioneer-runtime",
+    "metaverse-runtime",
 ]

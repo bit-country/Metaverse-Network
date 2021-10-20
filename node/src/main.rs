@@ -5,9 +5,10 @@ mod chain_spec;
 #[macro_use]
 mod service;
 mod cli;
-mod command;
+//mod command;
+mod pioneer_command;
 mod rpc;
 
 fn main() -> sc_cli::Result<()> {
-	command::run()
+	pioneer_command::run()
 }
