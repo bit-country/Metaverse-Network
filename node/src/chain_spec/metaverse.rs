@@ -259,9 +259,7 @@ fn testnet_genesis(
 				.collect::<Vec<_>>(),
 		},
 		aura: AuraConfig { authorities: vec![] },
-		grandpa: GrandpaConfig {
-			authorities: authorities: vec![],
-		},
+		grandpa: GrandpaConfig { authorities: vec![] },
 		sudo: SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
