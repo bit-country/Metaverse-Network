@@ -24,8 +24,7 @@ mod weights;
 
 // primitives imports
 use crate::opaque::SessionKeys;
-use hex_literal::hex;
-use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
+use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use parachain_staking::{InflationInfo, Range};
 use sp_api::impl_runtime_apis;
@@ -33,7 +32,7 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::Public;
 use sp_core::{
 	crypto::KeyTypeId,
-	u32_trait::{_1, _2, _3, _4, _5},
+	u32_trait::{_1, _2, _3, _4},
 	OpaqueMetadata, H160, U256,
 };
 use sp_runtime::{
@@ -62,14 +61,12 @@ pub use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	Config, EnsureOneOf, EnsureRoot, RawOrigin,
+	EnsureOneOf, EnsureRoot, RawOrigin,
 };
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
-use primitives::{
-	Amount, Balance, Block as BlockP, BlockId as BlockIdP, BlockNumber, FungibleTokenId, Header as HeaderP,
-};
+use primitives::{Amount, Balance, BlockNumber, FungibleTokenId};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};

@@ -22,7 +22,7 @@ use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, OpaqueExtrinsic,
+	MultiSignature,
 };
 
 use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;

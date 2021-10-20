@@ -27,6 +27,7 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 use primitives::{Amount, AssetId, CurrencyId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
+use bc_primitives::{MetaverseInfo, MetaverseTrait};
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;

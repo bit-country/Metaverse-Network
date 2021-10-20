@@ -18,15 +18,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bc_primitives::*;
-use codec::{Decode, Encode};
-use frame_support::{ensure, pallet_prelude::*, traits::Currency, BoundedVec, PalletId};
-use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use frame_support::{ensure, pallet_prelude::*, traits::Currency, PalletId};
+use frame_system::{ensure_signed, pallet_prelude::*};
+use primitives::{FungibleTokenId, MetaverseId};
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
-	DispatchError, DispatchResult, RuntimeDebug,
+	DispatchError,
 };
-use sp_std::{convert::TryInto, vec::Vec};
 
 #[cfg(test)]
 mod mock;

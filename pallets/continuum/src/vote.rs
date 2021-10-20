@@ -1,13 +1,7 @@
-use crate::ContinuumSpotTally;
-use codec::{Decode, Encode, EncodeLike, Input, Output};
-use frame_support::sp_runtime::traits::AccountIdConversion;
+use codec::{Decode, Encode};
 use primitives::SpotId;
-use sp_runtime::{
-	traits::{Saturating, Zero},
-	RuntimeDebug,
-};
-use sp_std::{convert::TryFrom, prelude::*, result::Result};
-// use crate::mock::AccountId;
+use sp_runtime::RuntimeDebug;
+use sp_std::prelude::*;
 
 /// Struct of every Continuum vote
 #[derive(Encode, Decode, Copy, Clone, Eq, PartialEq, RuntimeDebug)]

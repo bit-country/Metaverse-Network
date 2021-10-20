@@ -10,14 +10,13 @@ use sp_api::impl_runtime_apis;
 use sp_core::crypto::Public;
 use sp_core::{
 	crypto::KeyTypeId,
-	u32_trait::{_1, _2, _3, _4, _5},
+	u32_trait::{_1, _2},
 	OpaqueMetadata, H160, U256,
 };
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, NumberFor,
-		Verify, Zero,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, Verify, Zero,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature, Percent,
@@ -31,7 +30,7 @@ use orml_traits::parameter_type_with_key;
 
 mod weights;
 
-use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
+use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 pub use parachain_staking::{InflationInfo, Range};
 
 #[cfg(feature = "std")]
@@ -52,11 +51,9 @@ pub use frame_support::{
 use frame_system::limits::{BlockLength, BlockWeights};
 use frame_system::{EnsureOneOf, EnsureRoot, RawOrigin};
 pub use pallet_balances::Call as BalancesCall;
-use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
+use pallet_grandpa::AuthorityId as GrandpaId;
 pub use pallet_timestamp::Call as TimestampCall;
-use primitives::{
-	Amount, Balance, Block as BlockP, BlockId as BlockIdP, BlockNumber, FungibleTokenId, Header as HeaderP,
-};
+use primitives::{Amount, Balance, BlockNumber, FungibleTokenId};
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -82,12 +79,10 @@ use xcm_executor::{Config, XcmExecutor};
 /// Constant values used within the runtime.
 pub mod constants;
 
-use codec::Encode;
-use constants::{currency::*, time::*};
+use constants::currency::*;
 use frame_support::traits::FindAuthor;
 use frame_support::ConsensusEngineId;
 use sp_core::sp_std::marker::PhantomData;
-use sp_runtime::traits::OpaqueKeys;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;

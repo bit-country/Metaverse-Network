@@ -1,11 +1,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, MaxEncodedLen};
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
-use sp_runtime::{
-	traits::{AtLeast32Bit, MaybeSerializeDeserialize},
-	DispatchError, DispatchResult, RuntimeDebug,
-};
+use codec::{Decode, Encode};
+use primitives::{FungibleTokenId, MetaverseId};
+use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec::Vec;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
