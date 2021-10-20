@@ -184,7 +184,7 @@ pub fn pioneer_network_config(id: ParaId) -> ChainSpec {
 		None,
 		Some(pioneer_properties()),
 		Extensions {
-			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
+			relay_chain: "kusama".into(), // You MUST set this to the correct network!
 			para_id: id.into(),
 		},
 	)
