@@ -88,7 +88,7 @@ governance = { package = "pallet-governance", path = "../../pallets/governance",
 #modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
 
 # ecosystem dependencies
-parachain-staking = { path = "../../pallets/staking", version = "2.1.1", default-features = false }
+parachain-staking = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
 #chainbridge = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
 
 [build-dependencies]

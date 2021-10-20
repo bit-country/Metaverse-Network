@@ -37,7 +37,7 @@ tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokeniza
 estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
 
 # ecosystem dependencies
-parachain-staking = { path = "../../pallets/staking", version = "2.1.1", default-features = false }
+parachain-staking = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
 
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
 #pallet-evm = { path = "../../pallets/evm", default-features = false }
