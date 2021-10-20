@@ -68,16 +68,11 @@ where
 }
 
 pub fn development_config(id: ParaId) -> ChainSpec {
-	// Give your base currency a unit name and decimal places
-	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("tokenSymbol".into(), "UNIT".into());
-	properties.insert("tokenDecimals".into(), 12.into());
-
 	ChainSpec::from_genesis(
 		// Name
 		"Development",
 		// ID
-		"dev",
+		"pioneer-dev",
 		ChainType::Local,
 		move || {
 			testnet_genesis(
@@ -154,7 +149,7 @@ pub fn pioneer_network_config(id: ParaId) -> ChainSpec {
 		// Name
 		"Pioneer Network",
 		// ID
-		"live",
+		"pioneer-live",
 		ChainType::Live,
 		move || {
 			pioneer_genesis(

@@ -22,8 +22,8 @@ fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_servic
 	Ok(match id {
 		"dev" => Box::new(chain_spec::pioneer::development_config(para_id)),
 		"pioneer" => Box::new(chain_spec::pioneer::development_config(para_id)),
-		"pioneer-live" => Box::new(chain_spec::pioneer::pioneer_network_config(para_id)),
-		"" | "local" => Box::new(chain_spec::pioneer::local_testnet_config(para_id)),
+		"pioneer-live" => Box::new(chain_spec::pioneer::development_config(para_id)),
+		"" | "local" => Box::new(chain_spec::pioneer::development_config(para_id)),
 		path => Box::new(chain_spec::pioneer::ChainSpec::from_json_file(
 			std::path::PathBuf::from(path),
 		)?),
@@ -188,7 +188,7 @@ pub fn run() -> Result<()> {
 			let _ = builder.init();
 
 			let block: Block = generate_genesis_block(&load_spec(
-				&params.chain.clone().unwrap_or_default(),
+				&params.chain.clone().unwrap_or("pioneer".into()),
 				params.parachain_id.unwrap_or(2000).into(),
 			)?)?;
 			let raw_header = block.header().encode();
