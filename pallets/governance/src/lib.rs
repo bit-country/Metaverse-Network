@@ -70,10 +70,10 @@ pub mod pallet {
 		type DefaultProposalLaunchPeriod: Get<Self::BlockNumber>;
 
 		#[pallet::constant]
-		type OneBlock: Get<Self::BlockNumber>;
+		type DefaultVoteLockingPeriod: Get<Self::BlockNumber>;
 
 		#[pallet::constant]
-		type DefaultMaxParametersPerProposal: Get<u8>;
+		type OneBlock: Get<Self::BlockNumber>;
 
 		#[pallet::constant]
 		type DefaultMaxProposalsPerMetaverse: Get<u8>;

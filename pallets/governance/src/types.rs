@@ -117,13 +117,7 @@ impl<
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
-pub enum metaverseParameter {
-	MaxProposals(u8),
-	SetReferendumJury(AccountId),
-}
-
-#[derive(Encode, Decode, Default, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct ReferendumParameters<BlockNumber> {
 	pub(crate) voting_threshold: Option<VoteThreshold>,
 	pub(crate) min_proposal_launch_period: BlockNumber, // number of blocks
@@ -132,20 +126,19 @@ pub struct ReferendumParameters<BlockNumber> {
 	pub(crate) local_vote_locking_period: BlockNumber,  // number of blocks
 	pub(crate) max_proposals_per_metaverse: u8,
 }
-/*
-impl<BlockNumber: From<u32> + Default> Default for ReferendumParameters<BlockNumber>{
+
+impl<BlockNumber: From<u32>> Default for ReferendumParameters<BlockNumber> {
 	fn default() -> Self {
 		ReferendumParameters {
 			voting_threshold: Some(VoteThreshold::RelativeMajority),
-			min_proposal_launch_period: T::Pallet::DefaultProposalLaunchPeriod::get(),
-			voting_period:  T::DefaultVotingPeriod::get(),
-			enactment_period:  T::DefaultEnactmentPeriod::get(),
-		  //  max_params_per_proposal:  T::DefaultMaxParametersPerProposal::get(),
-			max_proposals_per_metaverse: T::DefaultMaxProposalsPermetaverse::get(),
+			min_proposal_launch_period: 15u32.into(),
+			voting_period: 10u32.into(),
+			enactment_period: 2u32.into(),
+			local_vote_locking_period: 28u32.into(),
+			max_proposals_per_metaverse: 2,
 		}
 	}
 }
-*/
 
 /// Amount of votes and capital placed in delegation for an account.
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]

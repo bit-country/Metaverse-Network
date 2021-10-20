@@ -671,7 +671,7 @@ parameter_types! {
 	pub const DefaultVotingPeriod: BlockNumber = 10;
 	pub const DefaultEnactmentPeriod: BlockNumber = 2;
 	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
-	pub const DefaultMaxParametersPerProposal: u8 = 3;
+	pub const DefaultVoteLockingPeriod: BlockNumber = 28;
 	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50 * DOLLARS;
@@ -782,7 +782,7 @@ impl governance::Config for Runtime {
 	type DefaultVotingPeriod = DefaultVotingPeriod;
 	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
 	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
-	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
+	type DefaultVoteLockingPeriod = DefaultVoteLockingPeriod;
 	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
