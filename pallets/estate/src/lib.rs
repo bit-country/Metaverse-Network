@@ -43,7 +43,7 @@ pub use pallet::*;
 pub mod pallet {
 	use super::*;
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
-	use primitives::AccountId;
+	use primitives::{AccountId, UndeployedLandBlockId};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -320,6 +320,34 @@ pub mod pallet {
 
 				Ok(().into())
 			})
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn deploy_land_block(
+			origin: OriginFor<T>,
+			undeploy_land_block_id: UndeployedLandBlockId,
+			coordinates: Vec<(i32, i32)>
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| -> DispatchResultWithPostInfo {
+			// 	//ensure there is record of the estate owner with estate id and account id
+			// 	ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
+			//
+			// 	if who == to {
+			// 		// no change needed
+			// 		return Ok(().into());
+			// 	}
+			//
+			// 	*estate_by_owner = None;
+			// 	EstateOwner::<T>::insert(to.clone(), estate_id.clone(), ());
+			//
+			// 	Self::deposit_event(Event::<T>::TransferredEstate(estate_id.clone(), who.clone(), to));
+			//
+			// 	Ok(().into())
+			// })
+
+			Ok(().into())
 		}
 	}
 

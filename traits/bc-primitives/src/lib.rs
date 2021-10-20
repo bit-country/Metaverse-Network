@@ -45,3 +45,7 @@ pub trait MetaverseLandTrait<AccountId> {
 
 	fn is_user_own_metaverse_land(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
 }
+
+pub trait UndeployedLandBlocksTrait<AccountId>{
+
+}
