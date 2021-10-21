@@ -23,7 +23,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, EstateId, LandId, MetaverseId};
+use primitives::{Balance, EstateId, LandId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlock, UndeployedLandBlockType};
 use sp_runtime::{
 	print,
 	traits::{AccountIdConversion, One},
@@ -36,6 +36,13 @@ mod mock;
 
 #[cfg(test)]
 mod tests;
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+pub struct TestCollectionData {
+	pub name: Vec<u8>,
+	// Metadata from ipfs
+	pub properties: Vec<u8>,
+}
 
 pub use pallet::*;
 
@@ -98,6 +105,20 @@ pub mod pallet {
 	pub type EstateOwner<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn next_undeployed_land_block_id)]
+	pub(super) type NextUndeployedLandBlockId<T: Config> = StorageValue<_, UndeployedLandBlockId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_undeployed_land_blocks)]
+	pub(super) type UndeployedLandBlocks<T: Config> =
+	StorageMap<_, Blake2_128Concat, UndeployedLandBlockId, UndeployedLandBlock, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_undeployed_land_block_owner)]
+	pub type UndeployedLandBlocksOwner<T: Config> =
+		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<UndeployedLandBlockId>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	#[pallet::metadata(T::AccountId = "AccountId")]
@@ -126,6 +147,8 @@ pub mod pallet {
 		LandUnitIsOutOfBound,
 		// No max bound set
 		NoMaxBoundSet,
+		UndeployedLandBlockNotFound,
+		UndeployedLandBlockIsNotTransferable
 	}
 
 	#[pallet::call]
@@ -349,6 +372,8 @@ pub mod pallet {
 
 			Ok(().into())
 		}
+
+		// #[]
 	}
 
 	#[pallet::hooks]
@@ -432,6 +457,34 @@ impl<T: Config> Pallet<T> {
 
 		Ok(())
 	}
+
+	fn get_new_undeployed_land_block_id() -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id = NextUndeployedLandBlockId::<T>::try_mutate(|id| -> Result<UndeployedLandBlockId, DispatchError> {
+			let current_id = *id;
+			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableEstateId)?;
+			Ok(current_id)
+		})?;
+		Ok(undeployed_land_block_id)
+	}
+
+	fn issue_undeployed_land_blocks(who: &T::AccountId, beneficiary: &T::AccountId, number_land_units: u32, undeployed_land_block_type: UndeployedLandBlockType ) ->DispatchResult {
+		// Generate new undeployed land block id
+		let new_undeployed_land_block_id = Self::get_new_undeployed_land_block_id()?;
+
+		let undeployed_land_block  = UndeployedLandBlock {
+			id: new_undeployed_land_block_id,
+			number_land_units,
+			undeployed_land_block_type
+		};
+
+		// UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block );
+
+
+		Ok(())
+	}
+
+
+	// fn
 }
 
 impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
@@ -463,5 +516,34 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 
 	fn is_user_own_metaverse_land(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
 		Self::get_user_land_units(&who, metaverse_id).len() > 0
+	}
+}
+
+impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
+	fn issue_undeployed_land_blocks(who: &T::AccountId, beneficiary: &T::AccountId, number_land_units: u32, undeployed_land_block_type: UndeployedLandBlockType) -> Result<bool, DispatchError> {
+		// ensure_root(who)?;
+
+		Ok(true)
+	}
+
+	fn transfer_undeployed_land_block(who: &T::AccountId, beneficiary: &T::AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>{
+		let undeployed_land_block = UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+
+		Ok(true)
+	}
+
+	fn burn_undeployed_land_block(who: &T::AccountId, undeployed_land_block_id: UndeployedLandBlockId, number_of_land_units: u32) -> Result<bool, DispatchError>{
+		Ok(true)
+	}
+
+	fn freeze_undeployed_land_block(who: &T::AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>{
+		// ensure_root(who)?;
+
+		Ok(true)
+	}
+
+	fn request_undeployed_land_block(who: &T::AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>{
+		Ok(true)
 	}
 }

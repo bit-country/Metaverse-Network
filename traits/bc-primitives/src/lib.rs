@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType};
 use sp_runtime::{
 	traits::{AtLeast32Bit, MaybeSerializeDeserialize},
 	DispatchError, DispatchResult, RuntimeDebug,
@@ -47,5 +47,13 @@ pub trait MetaverseLandTrait<AccountId> {
 }
 
 pub trait UndeployedLandBlocksTrait<AccountId>{
+	fn issue_undeployed_land_blocks(who: &AccountId, beneficiary: &AccountId, number_land_units: u32, undeployed_land_block_type: UndeployedLandBlockType) -> Result<bool, DispatchError>;
 
+	fn transfer_undeployed_land_block(who: &AccountId, beneficiary: &AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>;
+
+	fn burn_undeployed_land_block(who: &AccountId, undeployed_land_block_id: UndeployedLandBlockId, number_of_land_units: u32) -> Result<bool, DispatchError>;
+
+	fn freeze_undeployed_land_block(who: &AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>;
+
+	fn request_undeployed_land_block(who: &AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>;
 }

@@ -266,11 +266,11 @@ impl Default for UndeployedLandBlockType {
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct UndeployedLandBlock {
 	// Minimum balance to create a collection of Asset
 	pub id: UndeployedLandBlockId,
 	// Metadata from ipfs
-	pub number_land_units: u64,
+	pub number_land_units: u32,
 	pub undeployed_land_block_type: UndeployedLandBlockType,
 }
