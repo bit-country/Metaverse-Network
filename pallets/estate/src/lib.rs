@@ -117,7 +117,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_undeployed_land_block_owner)]
 	pub type UndeployedLandBlocksOwner<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<UndeployedLandBlockId>, ValueQuery>;
+	StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -129,6 +129,7 @@ pub mod pallet {
 		NewLandUnitMinted(MetaverseId, (i32, i32)),
 		NewEstateMinted(EstateId, MetaverseId, Vec<(i32, i32)>),
 		MaxBoundSet(MetaverseId, (i32, i32)),
+		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>)
 	}
 
 	#[pallet::error]
@@ -148,7 +149,8 @@ pub mod pallet {
 		// No max bound set
 		NoMaxBoundSet,
 		UndeployedLandBlockNotFound,
-		UndeployedLandBlockIsNotTransferable
+		UndeployedLandBlockIsNotTransferable,
+		UndeployedLandBlockDoesNotHaveEnoughLandUnits
 	}
 
 	#[pallet::call]
@@ -348,32 +350,46 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
-			undeploy_land_block_id: UndeployedLandBlockId,
+			undeployed_land_block_id: UndeployedLandBlockId,
+			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			// EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| -> DispatchResultWithPostInfo {
-			// 	//ensure there is record of the estate owner with estate id and account id
-			// 	ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
-			//
-			// 	if who == to {
-			// 		// no change needed
-			// 		return Ok(().into());
-			// 	}
-			//
-			// 	*estate_by_owner = None;
-			// 	EstateOwner::<T>::insert(to.clone(), estate_id.clone(), ());
-			//
-			// 	Self::deposit_event(Event::<T>::TransferredEstate(estate_id.clone(), who.clone(), to));
-			//
-			// 	Ok(().into())
-			// })
+			UndeployedLandBlocksOwner::<T>::try_mutate_exists(&who, &undeployed_land_block_id, |undeployed_land_block_by_owner| -> DispatchResultWithPostInfo {
+				//ensure there is record of the estate owner with estate id and account id
+				ensure!(undeployed_land_block_by_owner.is_some(), Error::<T>::NoPermission);
 
-			Ok(().into())
+				// let undeployed_land_block = UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+				UndeployedLandBlocks::<T>::try_mutate_exists(&undeployed_land_block_id, |undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block.as_mut().ok_or(Error::<T>::NoPermission)?;
+
+					let land_units_to_mint = coordinates.len() as u32;
+					ensure!(undeployed_land_block_record.number_land_units > land_units_to_mint , Error::<T>::UndeployedLandBlockDoesNotHaveEnoughLandUnits);
+
+					// Mint land units
+					for coordinate in coordinates.clone() {
+						Self::mint_land_unit(metaverse_id, &who, coordinate, false)?;
+					}
+
+					// Update total land count
+					let total_land_unit_count = Self::all_land_units_count();
+
+					let new_total_land_unit_count = total_land_unit_count
+						.checked_add(coordinates.len() as u64)
+						.ok_or("Overflow adding new count to total lands")?;
+					AllLandUnitsCount::<T>::put(new_total_land_unit_count);
+
+					// Update undeployed land block
+					undeployed_land_block_record.number_land_units = undeployed_land_block_record.number_land_units.checked_sub(land_units_to_mint).ok_or("Overflow deduct land units from undeployed land block")?;
+
+					Self::deposit_event(Event::<T>::LandBlockDeployed(who.clone(), metaverse_id, undeployed_land_block_id, coordinates));
+
+					Ok(().into())
+				})
+			})
 		}
-
-		// #[]
 	}
 
 	#[pallet::hooks]
@@ -477,14 +493,11 @@ impl<T: Config> Pallet<T> {
 			undeployed_land_block_type
 		};
 
-		// UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block );
+		UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block );
 
 
 		Ok(())
 	}
-
-
-	// fn
 }
 
 impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
@@ -529,11 +542,24 @@ impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 	fn transfer_undeployed_land_block(who: &T::AccountId, beneficiary: &T::AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>{
 		let undeployed_land_block = UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
+		ensure!(
+			undeployed_land_block.undeployed_land_block_type == UndeployedLandBlockType::Transferable,
+			Error::<T>::UndeployedLandBlockIsNotTransferable
+		);
+
+		// TODO: transfer undeployed land blocks
 
 		Ok(true)
 	}
 
 	fn burn_undeployed_land_block(who: &T::AccountId, undeployed_land_block_id: UndeployedLandBlockId, number_of_land_units: u32) -> Result<bool, DispatchError>{
+		let undeployed_land_block = UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+		ensure!(
+			undeployed_land_block.number_land_units > number_of_land_units,
+			Error::<T>::UndeployedLandBlockDoesNotHaveEnoughLandUnits
+		);
+
 		Ok(true)
 	}
 
