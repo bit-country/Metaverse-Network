@@ -2,8 +2,8 @@ use crate::chain_spec::Extensions;
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
 use pioneer_runtime::{
-	constants::currency::*, AccountId, AuraConfig, BalancesConfig, GenesisConfig, SessionKeys, Signature, SudoConfig,
-	SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
+	constants::currency::*, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, DemocracyConfig, GenesisConfig,
+	SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
 use primitives::Balance;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
@@ -169,11 +169,15 @@ pub fn pioneer_network_config(id: ParaId) -> ChainSpec {
 				vec![
 					(
 						hex!["886286c58d67217bdd854832d5e9f1b218dec6a0ff7e0b7573147ca94a233a0a"].into(),
-						50 * 1000 * KILODOLLARS,
+						99 * 1000 * KILODOLLARS,
 					),
 					(
-						hex!["641625840fd1b0e315b178e360fa6a6b200f514bd51d348a0564525c27ec7b25"].into(),
-						50 * 1000 * KILODOLLARS,
+						hex!["a079b5f55ba3f64990f8af5edf1fc57712f3ee97f51a74a8143c360a2739ff02"].into(),
+						5 * 100 * KILODOLLARS,
+					),
+					(
+						hex!["0e5f902f5273b54271f9e57b35d7872e42b60fa7d770870c313473db5903597b"].into(),
+						5 * 100 * KILODOLLARS,
 					),
 				],
 				id,
@@ -219,8 +223,8 @@ fn pioneer_genesis(
 				.cloned()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                 // account id
-						acc,                         // validator id
+						acc.clone(),                  // account id
+						acc,                          // validator id
 						parachain_session_keys(aura), // session keys
 					)
 				})
@@ -229,58 +233,16 @@ fn pioneer_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-//		council: Default::default(),
-//		tokens: Default::default(),
-//		vesting: Default::default(),
-//		continuum: ContinuumConfig {
-//			initial_active_session: Default::default(),
-//			initial_auction_rate: 5,
-//			initial_max_bound: (-100, 100),
-//			spot_price: 5 * DOLLARS,
-//		},
-		/* staking: StakingConfig {
-		 * 	candidates: staking_candidate,
-		 * 	nominations: vec![],
-		 * 	inflation_config: metaverse_network_inflation_config(),
-		 * },
-		 * session: SessionConfig {
-		 * 	keys: initial_authorities
-		 * 		.iter()
-		 * 		.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
-		 * 		.collect::<Vec<_>>(),
-		 * },
-		 *		evm: EVMConfig {
-		 *			accounts: {
-		 *				let mut map = BTreeMap::new();
-		 *				map.insert(
-		 *					// H160 address of Alice dev account
-		 *					// Derived from SS58 (42 prefix) address
-		 *					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-		 *					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
-		 *					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
-		 *					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558").expect("internal H160 is valid; qed"),
-		 *					pallet_evm::GenesisAccount {
-		 *						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-		 *							.expect("internal U256 is valid; qed"),
-		 *						code: Default::default(),
-		 *						nonce: Default::default(),
-		 *						storage: Default::default(),
-		 *					},
-		 *				);
-		 *				map.insert(
-		 *					// H160 address of CI test runner account
-		 *					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b").expect("internal H160 is valid; qed"),
-		 *					pallet_evm::GenesisAccount {
-		 *						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-		 *							.expect("internal U256 is valid; qed"),
-		 *						code: Default::default(),
-		 *						nonce: Default::default(),
-		 *						storage: Default::default(),
-		 *					},
-		 *				);
-		 *				map
-		 *			},
-		 *		}, */
+		council: Default::default(),
+		democracy: DemocracyConfig::default(),
+		tokens: Default::default(),
+		vesting: Default::default(),
+		continuum: ContinuumConfig {
+			initial_active_session: Default::default(),
+			initial_auction_rate: 5,
+			initial_max_bound: (-100, 100),
+			spot_price: 5 * DOLLARS,
+		},
 	}
 }
 
@@ -313,8 +275,8 @@ fn testnet_genesis(
 				.cloned()
 				.map(|(acc, aura)| {
 					(
-						acc.clone(),                 // account id
-						acc,                         // validator id
+						acc.clone(),                  // account id
+						acc,                          // validator id
 						parachain_session_keys(aura), // session keys
 					)
 				})
@@ -323,15 +285,16 @@ fn testnet_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-//		council: Default::default(),
-//		tokens: Default::default(),
-//		vesting: Default::default(),
-//		continuum: ContinuumConfig {
-//			initial_active_session: Default::default(),
-//			initial_auction_rate: 5,
-//			initial_max_bound: (-100, 100),
-//			spot_price: 5 * DOLLARS,
-//		},
+		council: Default::default(),
+		democracy: DemocracyConfig::default(),
+		tokens: Default::default(),
+		vesting: Default::default(),
+		continuum: ContinuumConfig {
+			initial_active_session: Default::default(),
+			initial_auction_rate: 5,
+			initial_max_bound: (-100, 100),
+			spot_price: 5 * DOLLARS,
+		},
 		/* staking: StakingConfig {
 		 * 	candidates: staking_candidate,
 		 * 	nominations: vec![],

@@ -82,6 +82,8 @@ pallet-vesting = { default-features = false, git = "https://github.com/paritytec
 pallet-authorship = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 pallet-grandpa = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
+pallet-democracy = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
+pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 
 # Cumulus Dependencies
 cumulus-pallet-aura-ext = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
@@ -141,8 +143,10 @@ std = [
     "pallet-transaction-payment/std",
     "pallet-collective/std",
     "pallet-session/std",
+    "pallet-democracy/std",
     "pallet-vesting/std",
     "pallet-authorship/std",
+    "pallet-scheduler/std",
     "parachain-info/std",
     "cumulus-pallet-aura-ext/std",
     "cumulus-pallet-parachain-system/std",

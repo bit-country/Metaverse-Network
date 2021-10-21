@@ -62,7 +62,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-		load_spec(id, self.run.parachain_id.unwrap_or(2000).into())
+		load_spec(id, self.run.parachain_id.unwrap_or(2096).into())
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -188,8 +188,8 @@ pub fn run() -> Result<()> {
 			let _ = builder.init();
 
 			let block: Block = generate_genesis_block(&load_spec(
-				&params.chain.clone().unwrap_or("pioneer".into()),
-				params.parachain_id.unwrap_or(2000).into(),
+				&params.chain.clone().unwrap_or("pioneer-live".into()),
+				params.parachain_id.unwrap_or(2096).into(),
 			)?)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
@@ -250,7 +250,7 @@ pub fn run() -> Result<()> {
 						.chain(cli.relaychain_args.iter()),
 				);
 
-				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2000));
+				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2096));
 
 				let parachain_account = AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 

@@ -262,7 +262,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 			let block: Block = generate_genesis_block(&load_spec(
 				&params.chain.clone().unwrap_or("pioneer".into()),
-				params.parachain_id.unwrap_or(2000).into(),
+				params.parachain_id.unwrap_or(2096).into(),
 			)?)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
