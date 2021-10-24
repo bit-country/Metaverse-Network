@@ -142,52 +142,8 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 	)
 }
 
-pub fn pioneer_network_config(id: ParaId) -> ChainSpec {
-	// Give your base currency a unit name and decimal places
-
-	ChainSpec::from_genesis(
-		// Name
-		"Pioneer Network",
-		// ID
-		"pioneer-live",
-		ChainType::Live,
-		move || {
-			pioneer_genesis(
-				hex!["886286c58d67217bdd854832d5e9f1b218dec6a0ff7e0b7573147ca94a233a0a"].into(),
-				vec![
-					(
-						// 5Fh7g4pSqUYWKENqhjgWvMv44KFYbk2cdktfaCuSFuACvUFz
-						hex!["a079b5f55ba3f64990f8af5edf1fc57712f3ee97f51a74a8143c360a2739ff02"].into(),
-						hex!["a079b5f55ba3f64990f8af5edf1fc57712f3ee97f51a74a8143c360a2739ff02"].unchecked_into(),
-					),
-					(
-						// 5CPYv4r2kMwC8cac7psqex6Ajh2xw22MrCJPm7kdjfvEbbt1
-						hex!["0e5f902f5273b54271f9e57b35d7872e42b60fa7d770870c313473db5903597b"].into(),
-						hex!["0e5f902f5273b54271f9e57b35d7872e42b60fa7d770870c313473db5903597b"].unchecked_into(),
-					),
-				],
-				vec![
-					(
-						hex!["886286c58d67217bdd854832d5e9f1b218dec6a0ff7e0b7573147ca94a233a0a"].into(),
-						50 * 1000 * KILODOLLARS,
-					),
-					(
-						hex!["641625840fd1b0e315b178e360fa6a6b200f514bd51d348a0564525c27ec7b25"].into(),
-						50 * 1000 * KILODOLLARS,
-					),
-				],
-				id,
-			)
-		},
-		vec![],
-		None,
-		None,
-		Some(pioneer_properties()),
-		Extensions {
-			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-			para_id: id.into(),
-		},
-	)
+pub fn pioneer_network_config_json() -> Result<ChainSpec, String> {
+	ChainSpec::from_json_bytes(&include_bytes!("../../../node/res/pioneer-live-raw-spec.json")[..])
 }
 
 fn pioneer_genesis(

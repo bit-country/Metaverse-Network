@@ -20,10 +20,10 @@ use std::{io::Write, net::SocketAddr};
 
 fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 	Ok(match id {
-		"dev" => Box::new(chain_spec::pioneer::development_config(para_id)),
-		"pioneer" => Box::new(chain_spec::pioneer::pioneer_network_config(para_id)),
-		"pioneer-live" => Box::new(chain_spec::pioneer::pioneer_network_config(para_id)),
 		"" | "local" => Box::new(chain_spec::pioneer::development_config(para_id)),
+		"pioneer-dev" => Box::new(chain_spec::pioneer::development_config(para_id)),
+		"pioneer-local" => Box::new(chain_spec::pioneer::local_testnet_config(para_id)),
+		"pioneer" => Box::new(chain_spec::pioneer::pioneer_network_config_json()?),
 		path => Box::new(chain_spec::pioneer::ChainSpec::from_json_file(
 			std::path::PathBuf::from(path),
 		)?),
@@ -62,7 +62,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-		load_spec(id, self.run.parachain_id.unwrap_or(2000).into())
+		load_spec(id, self.run.parachain_id.unwrap_or(2096).into())
 	}
 
 	fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -189,7 +189,7 @@ pub fn run() -> Result<()> {
 
 			let block: Block = generate_genesis_block(&load_spec(
 				&params.chain.clone().unwrap_or("pioneer".into()),
-				params.parachain_id.unwrap_or(2000).into(),
+				params.parachain_id.unwrap_or(2096).into(),
 			)?)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
@@ -250,7 +250,7 @@ pub fn run() -> Result<()> {
 						.chain(cli.relaychain_args.iter()),
 				);
 
-				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2000));
+				let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2096));
 
 				let parachain_account = AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 

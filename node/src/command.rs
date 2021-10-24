@@ -262,7 +262,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 			let block: Block = generate_genesis_block(&load_spec(
 				&params.chain.clone().unwrap_or("pioneer".into()),
-				params.parachain_id.unwrap_or(2000).into(),
+				params.parachain_id.unwrap_or(2096).into(),
 			)?)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
@@ -290,7 +290,7 @@ pub fn run() -> sc_cli::Result<()> {
 			let _ = builder.init();
 
 			let raw_wasm_blob =
-				extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or("pioneer".into()))?)?;
+				extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or("pioneer-live".into()))?)?;
 			let output_buf = if params.raw {
 				raw_wasm_blob
 			} else {
@@ -333,7 +333,7 @@ pub fn run() -> sc_cli::Result<()> {
 							.chain(cli.relaychain_args.iter()),
 					);
 
-					let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2000));
+					let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2096));
 
 					let parachain_account =
 						AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
