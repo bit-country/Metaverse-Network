@@ -205,6 +205,7 @@ pub mod pallet {
 		AccountAlreadyVoted,
 		InvalidJuryAddress,
 		InvalidReferendumOutcome,
+		InvalidReferendumParameterValue,
 		ReferendumParametersDoesNotExist,
 		PreimageMissing,
 		PreimageInvalid,
@@ -407,14 +408,24 @@ pub mod pallet {
 				let mut votes = &mut voting_record.votes;
 				match votes.binary_search_by_key(&referendum, |i| i.0) {
 					Ok(i) => {
+						let vote = votes.remove(i).1;
 						match info {
 							Some(ReferendumInfo::Ongoing(mut status)) => {
-								let vote = votes.remove(i).1;
 								status.tally.remove(vote).ok_or(Error::<T>::TallyOverflow)?;
 								ReferendumInfoOf::<T>::insert(&referendum, ReferendumInfo::Ongoing(status));
+								Self::update_lock(&from);
 								Self::deposit_event(Event::VoteRemoved(from, referendum));
 							}
-							Some(ReferendumInfo::Finished { end, passed }) => (), //TO DO: Finish implementation
+							Some(ReferendumInfo::Finished { end, passed }) => {
+								let mut prior = &mut voting_record.prior;
+								if let Some((lock_periods, balance)) = vote.locked_if(passed) {
+									let unlock_at = end + T::DefaultVoteLockingPeriod::get() * lock_periods.into();
+									let now = frame_system::Pallet::<T>::block_number();
+									if now < unlock_at {
+										prior.accumulate(unlock_at, balance);
+									}
+								}
+							}
 							None => (),
 						}
 						Ok(().into())

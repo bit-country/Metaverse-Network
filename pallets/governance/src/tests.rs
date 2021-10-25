@@ -41,6 +41,7 @@ fn create_new_preimage_work() {
 		let encoded_proposal = set_balance_proposal(4);
 		assert_ok!(GovernanceModule::note_preimage(origin.clone(), encoded_proposal));
 		assert_eq!(Balances::free_balance(&ALICE), 99987);
+		assert_eq!(Balances::reserved_balance(&ALICE), 13);
 		let hash = set_balance_proposal_hash(4);
 		assert_eq!(
 			last_event(),
@@ -64,6 +65,7 @@ fn create_new_proposal_work() {
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
 		assert_eq!(Balances::free_balance(&ALICE), 99400);
+		assert_eq!(Balances::reserved_balance(&ALICE), 600);
 		assert_eq!(
 			last_event(),
 			Event::Governance(crate::Event::ProposalSubmitted(ALICE, BOB_COUNTRY_ID, 0))
@@ -87,6 +89,7 @@ fn create_local_metaverse_proposal_work() {
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
 		assert_eq!(Balances::free_balance(&ALICE), 99400);
+		assert_eq!(Balances::reserved_balance(&ALICE), 600);
 		assert_eq!(
 			last_event(),
 			Event::Governance(crate::Event::ProposalSubmitted(ALICE, BOB_COUNTRY_ID, 0))
@@ -363,7 +366,7 @@ fn vote_work() {
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
-		// assert_eq!(Balances::free_balance(&BOB), 100);
+		assert_eq!(Balances::usable_balance(&BOB), 490);
 		assert_eq!(
 			last_event(),
 			Event::Governance(crate::Event::VoteRecorded(BOB, 0, true))
@@ -431,7 +434,6 @@ fn remove_vote_work() {
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
 		assert_ok!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0));
-		assert_eq!(Balances::free_balance(&BOB), 500);
 		assert_eq!(last_event(), Event::Governance(crate::Event::VoteRemoved(BOB, 0)));
 	});
 }
@@ -599,3 +601,28 @@ fn referendum_proposal_rejected_as_out_of_scope() {
 		);
 	});
 }
+
+/*
+#[test]
+fn unlocking_balance_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		let hash = set_freeze_metaverse_proposal_hash(1);
+		add_freeze_metaverse_preimage(hash);
+		assert_ok!(GovernanceModule::propose(
+			origin.clone(),
+			BOB_COUNTRY_ID,
+			600,
+			hash.clone(),
+			PROPOSAL_DESCRIPTION.to_vec()
+		));
+		run_to_block(16);
+		assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
+		assert_eq!(Balances::usable_balance(&BOB), 490);
+		run_to_block(40);
+		assert_ok!(GovernanceModule::unlock_balance(Origin::signed(BOB), 0, VOTE_FOR));
+
+
+	});
+}
+*/

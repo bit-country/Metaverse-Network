@@ -245,6 +245,17 @@ pub struct Vote<Balance> {
 	pub(crate) conviction: Conviction,
 }
 
+impl<Balance: Saturating> Vote<Balance> {
+	/// Returns `Some` of the lock periods that the account is locked for, assuming that the
+	/// referendum passed iff `approved` is `true`.
+	pub fn locked_if(self, approved: bool) -> Option<(u32, Balance)> {
+		// winning side: can only be removed after the lock period ends.
+		if self.aye == approved {
+			return Some((self.conviction.lock_periods(), self.balance));
+		}
+		None
+	}
+}
 /// Tally Struct
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
 pub struct Tally<Balance> {
