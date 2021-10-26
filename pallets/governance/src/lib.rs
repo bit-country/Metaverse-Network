@@ -150,7 +150,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata()]
 	pub enum Event<T: Config> {
 		PreimageNoted(T::Hash, T::AccountId, BalanceOf<T>),
 		PreimageInvalid(MetaverseId, T::Hash, ProposalId),
@@ -670,7 +669,11 @@ impl<T: Config> Pallet<T> {
 				None,
 				63,
 				frame_system::RawOrigin::Root.into(),
-				Call::enact_proposal(referendum_status.proposal, referendum_status.metaverse).into(),
+				Call::enact_proposal {
+					proposal: referendum_status.proposal,
+					metaverse_id: referendum_status.metaverse,
+				}
+				.into(),
 			)
 			.is_err()
 			{

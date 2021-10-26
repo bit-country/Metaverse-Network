@@ -117,8 +117,7 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata()]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A bid is placed. [auction_id, bidder, bidding_amount]
 		Bid(AuctionId, T::AccountId, BalanceOf<T>),

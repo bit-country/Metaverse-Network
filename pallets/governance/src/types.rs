@@ -1,13 +1,14 @@
 use crate::*;
 use codec::{Decode, Encode};
 use primitives::{AccountId, MetaverseId, ProposalId, ReferendumId};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Hash, One},
 	RuntimeDebug,
 };
 use sp_std::vec::Vec;
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
 	/// The preimage is imminently needed at the argument.
 	Missing(BlockNumber),
@@ -31,7 +32,7 @@ impl<AccountId, Balance, BlockNumber> PreimageStatus<AccountId, Balance, BlockNu
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum VoteThreshold {
 	StandardQualifiedMajority,   // 72%+ 72%+ representation
 	TwoThirdsSupermajority,      // 66%+
@@ -46,7 +47,7 @@ pub enum MetaverseParameter {
 	SetReferendumJury(AccountId),
 }
 
-#[derive(Encode, Decode, Default, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Default, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct ReferendumParameters<BlockNumber> {
 	pub(crate) voting_threshold: Option<VoteThreshold>,
 	pub(crate) min_proposal_launch_period: BlockNumber, // number of blocks
@@ -68,7 +69,7 @@ impl<BlockNumber: From<u32> + Default> Default for ReferendumParameters<BlockNum
 	}
 }
 */
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct Vote {
 	pub(crate) aye: bool,
 	/* pub(crate) who: AccountId,
@@ -76,7 +77,7 @@ pub struct Vote {
 }
 
 /// Tally Struct
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct Tally {
 	pub(crate) ayes: u32,
 	pub(crate) nays: u32,
@@ -105,12 +106,12 @@ impl Tally {
 	}
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct VotingRecord {
 	pub(crate) votes: Vec<(ReferendumId, Vote)>,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
 	pub(crate) proposed_by: AccountId,
 	pub(crate) hash: Hash,
@@ -118,7 +119,7 @@ pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
 	pub(crate) referendum_launch_block: BlockNumber,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ReferendumStatus<BlockNumber> {
 	pub(crate) end: BlockNumber,
 	pub(crate) metaverse: MetaverseId,
@@ -127,7 +128,7 @@ pub struct ReferendumStatus<BlockNumber> {
 	pub(crate) threshold: Option<VoteThreshold>,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum ReferendumInfo<BlockNumber> {
 	Ongoing(ReferendumStatus<BlockNumber>),
 	Finished { passed: bool, end: BlockNumber },

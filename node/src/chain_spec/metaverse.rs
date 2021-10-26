@@ -2,8 +2,8 @@ use hex_literal::hex;
 use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, DemocracyConfig, EVMConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig,
-	Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	ContinuumConfig, DemocracyConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig, Signature,
+	StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use primitives::Balance;
 use sc_service::{ChainType, Properties};
@@ -247,14 +247,19 @@ fn testnet_genesis(
 				.map(|k| (k, 600 * KILODOLLARS))
 				.collect(),
 		},
-		aura: AuraConfig {
-			//			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
-			authorities: vec![],
+		staking: StakingConfig {
+			candidates: staking_candidate,
+			nominations: vec![],
+			inflation_config: metaverse_network_inflation_config(),
 		},
-		grandpa: GrandpaConfig {
-			//			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
-			authorities: vec![],
+		session: SessionConfig {
+			keys: initial_authorities
+				.iter()
+				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
+				.collect::<Vec<_>>(),
 		},
+		aura: AuraConfig { authorities: vec![] },
+		grandpa: GrandpaConfig { authorities: vec![] },
 		sudo: SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
@@ -269,49 +274,38 @@ fn testnet_genesis(
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
 		},
-		staking: StakingConfig {
-			candidates: staking_candidate,
-			nominations: vec![],
-			inflation_config: metaverse_network_inflation_config(),
-		},
-		session: SessionConfig {
-			keys: initial_authorities
-				.iter()
-				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
-				.collect::<Vec<_>>(),
-		},
-		evm: EVMConfig {
-			accounts: {
-				let mut map = BTreeMap::new();
-				map.insert(
-					// H160 address of Alice dev account
-					// Derived from SS58 (42 prefix) address
-					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
-					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
-					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558").expect("internal H160 is valid; qed"),
-					pallet_evm::GenesisAccount {
-						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-							.expect("internal U256 is valid; qed"),
-						code: Default::default(),
-						nonce: Default::default(),
-						storage: Default::default(),
-					},
-				);
-				map.insert(
-					// H160 address of CI test runner account
-					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b").expect("internal H160 is valid; qed"),
-					pallet_evm::GenesisAccount {
-						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-							.expect("internal U256 is valid; qed"),
-						code: Default::default(),
-						nonce: Default::default(),
-						storage: Default::default(),
-					},
-				);
-				map
-			},
-		},
+		/*		evm: EVMConfig {
+		 *			accounts: {
+		 *				let mut map = BTreeMap::new();
+		 *				map.insert(
+		 *					// H160 address of Alice dev account
+		 *					// Derived from SS58 (42 prefix) address
+		 *					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+		 *					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
+		 *					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
+		 *					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558").expect("internal H160 is valid; qed"),
+		 *					pallet_evm::GenesisAccount {
+		 *						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+		 *							.expect("internal U256 is valid; qed"),
+		 *						code: Default::default(),
+		 *						nonce: Default::default(),
+		 *						storage: Default::default(),
+		 *					},
+		 *				);
+		 *				map.insert(
+		 *					// H160 address of CI test runner account
+		 *					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b").expect("internal H160 is valid; qed"),
+		 *					pallet_evm::GenesisAccount {
+		 *						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+		 *							.expect("internal U256 is valid; qed"),
+		 *						code: Default::default(),
+		 *						nonce: Default::default(),
+		 *						storage: Default::default(),
+		 *					},
+		 *				);
+		 *				map
+		 *			},
+		 *		}, */
 	}
 }
 

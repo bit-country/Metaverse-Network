@@ -99,8 +99,7 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId")]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		NewLandsMinted(MetaverseId, Vec<(i32, i32)>),
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),

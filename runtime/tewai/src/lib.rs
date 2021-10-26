@@ -38,7 +38,7 @@ use frame_system::{
 };
 use pallet_contracts::weights::WeightInfo;
 use pallet_election_provider_multi_phase::FallbackStrategy;
-use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
+//use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
@@ -117,17 +117,17 @@ mod weights;
 /// Runtime version.
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("tewai"),
-	impl_name: create_runtime_str!("tewai-node"),
+	spec_name: create_runtime_str!("bitcountry-node"),
+	impl_name: create_runtime_str!("bitcountry-node"),
 	authoring_version: 10,
 	// Per convention: if the runtime behavior changes, increment spec_version
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 267,
+	spec_version: 276,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
-	transaction_version: 2,
+	transaction_version: 3,
 };
 
 /// The BABE epoch configuration at genesis.

@@ -348,7 +348,7 @@ fn development_config_genesis() -> GenesisConfig {
 /// Development config (single validator Alice)
 pub fn development_config() -> ChainSpec {
 	ChainSpec::from_genesis(
-		"Tewai Dev",
+		"Bit.Country Dev Chain",
 		"tewai-dev",
 		ChainType::Development,
 		development_config_genesis,
@@ -372,8 +372,8 @@ fn local_testnet_genesis() -> GenesisConfig {
 /// Local testnet config (multivalidator Alice + Bob)
 pub fn local_testnet_config() -> ChainSpec {
 	ChainSpec::from_genesis(
-		"Local Testnet",
-		"local_testnet",
+		"Bit.Country Test Chain",
+		"tewai_local_testnet",
 		ChainType::Local,
 		local_testnet_genesis,
 		vec![],

@@ -4,6 +4,7 @@ use super::*;
 use crate as governance;
 use codec::Encode;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Parameter};
+use scale_info::TypeInfo;
 
 use frame_support::dispatch::DispatchError;
 use frame_support::pallet_prelude::{EnsureOrigin, Member};
@@ -170,7 +171,7 @@ impl pallet_metaverse::Config for Runtime {
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalType {
 	Any,
 	JustTransfer,

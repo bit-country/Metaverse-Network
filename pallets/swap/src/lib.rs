@@ -27,6 +27,7 @@ use frame_support::{ensure, pallet_prelude::*, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError, RuntimeDebug,
@@ -41,7 +42,7 @@ mod mock;
 mod tests;
 
 /// Status for TradingPair
-#[derive(Clone, Copy, Encode, Decode, RuntimeDebug, PartialEq, Eq)]
+#[derive(Clone, Copy, Encode, Decode, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub enum TradingPairStatus {
 	/// can withdraw liquidity, re-enable and list this trading pair.
 	NotEnabled,
@@ -111,8 +112,7 @@ pub mod pallet {
 	pub type TradingPairStatuses<T: Config> = StorageMap<_, Twox64Concat, TradingPair, TradingPairStatus, ValueQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId")]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		NewCountryCreated(MetaverseId),
 		TransferredCountry(MetaverseId, T::AccountId, T::AccountId),
