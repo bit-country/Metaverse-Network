@@ -704,3 +704,50 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 		);
 	});
 }
+
+#[test]
+fn deploy_land_block_should_fail_if_not_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		// assert_ok!(EstateModule::set_max_bounds(Origin::root(), BITCOUNTRY_ID, MAX_BOUND));
+		//
+		// assert_ok!(EstateModule::mint_lands(
+		// 	Origin::root(),
+		// 	BENEFICIARY_ID,
+		// 	BITCOUNTRY_ID,
+		// 	vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		// ));
+		//
+		// assert_ok!(EstateModule::create_estate(
+		// 	Origin::root(),
+		// 	BENEFICIARY_ID,
+		// 	BITCOUNTRY_ID,
+		// 	vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		// ));
+		//
+		// let mut estate_id: u64 = 0;
+		// assert_eq!(EstateModule::all_estates_count(), 1);
+		// assert_eq!(EstateModule::next_estate_id(), 1);
+		// assert_eq!(
+		// 	EstateModule::get_estates(BITCOUNTRY_ID, estate_id),
+		// 	Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
+		// );
+		// assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		//
+		// let estate_id_non_exists: u64 = 999;
+		// assert_eq!(EstateModule::get_estates(BITCOUNTRY_ID, estate_id_non_exists), None);
+		// assert_eq!(
+		// 	EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
+		// 	None
+		// );
+	});
+}
+
+#[test]
+fn deploy_land_block_should_fail_if_not_enough_land_unit() {
+	ExtBuilder::default().build().execute_with(|| {});
+}
+
+#[test]
+fn deploy_land_block_should_success() {
+	ExtBuilder::default().build().execute_with(|| {});
+}

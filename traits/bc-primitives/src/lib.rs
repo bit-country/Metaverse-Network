@@ -46,14 +46,39 @@ pub trait MetaverseLandTrait<AccountId> {
 	fn is_user_own_metaverse_land(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
 }
 
-pub trait UndeployedLandBlocksTrait<AccountId>{
-	fn issue_undeployed_land_blocks(who: &AccountId, beneficiary: &AccountId, metaverse_id: MetaverseId, number_land_units: u32, undeployed_land_block_type: UndeployedLandBlockType) -> Result<bool, DispatchError>;
+pub trait UndeployedLandBlocksTrait<AccountId> {
+	fn issue_undeployed_land_blocks(
+		who: &AccountId,
+		beneficiary: &AccountId,
+		metaverse_id: MetaverseId,
+		number_land_units: u32,
+		undeployed_land_block_type: UndeployedLandBlockType,
+	) -> Result<bool, DispatchError>;
 
-	fn transfer_undeployed_land_block(who: &AccountId, beneficiary: &AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>;
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		beneficiary: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError>;
 
-	fn burn_undeployed_land_block(who: &AccountId, undeployed_land_block_id: UndeployedLandBlockId, number_of_land_units: u32) -> Result<bool, DispatchError>;
+	fn burn_undeployed_land_block(
+		who: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+		number_of_land_units: u32,
+	) -> Result<bool, DispatchError>;
 
-	fn freeze_undeployed_land_block(who: &AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>;
+	fn freeze_undeployed_land_block(
+		who: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError>;
 
-	fn request_undeployed_land_block(who: &AccountId, undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError>;
+	fn unfreeze_undeployed_land_block(
+		who: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError>;
+
+	fn request_undeployed_land_block(
+		who: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError>;
 }
