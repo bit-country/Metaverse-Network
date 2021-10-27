@@ -112,7 +112,7 @@ pub mod pallet {
 	pub(super) type NextUndeployedLandBlockId<T: Config> = StorageValue<_, UndeployedLandBlockId, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_undeployed_land_blocks)]
+	#[pallet::getter(fn get_undeployed_land_block)]
 	pub(super) type UndeployedLandBlocks<T: Config> =
 		StorageMap<_, Blake2_128Concat, UndeployedLandBlockId, UndeployedLandBlock<T::AccountId>, OptionQuery>;
 
@@ -161,7 +161,7 @@ pub mod pallet {
 		AlreadyOwnTheUndeployedLandBlock,
 		UndeployedLandBlockFreezed,
 		UndeployedLandBlockAlreadyFreezed,
-		UndeployedLandBlockAlreadyUnfreezed,
+		UndeployedLandBlockNotFrozen,
 	}
 
 	#[pallet::call]
@@ -467,7 +467,7 @@ pub mod pallet {
 
 					ensure!(
 						undeployed_land_block_record.is_frozen == true,
-						Error::<T>::UndeployedLandBlockAlreadyUnfreezed
+						Error::<T>::UndeployedLandBlockNotFrozen
 					);
 
 					undeployed_land_block_record.is_frozen = false;
