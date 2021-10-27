@@ -152,11 +152,7 @@ impl MetaverseLandTrait<AccountId> for MetaverseLandInfo {
 }
 
 parameter_types! {
-	pub const DefaultVotingPeriod: BlockNumber = 10;
-	pub const DefaultEnactmentPeriod: BlockNumber = 2;
-	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
-	pub const DefaultVoteLockingPeriod: BlockNumber = 28;
-	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
+
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50;
 	pub const DefaultPreimageByteDeposit: Balance = 1;
@@ -208,12 +204,7 @@ impl InstanceFilter<Call> for ProposalType {
 
 impl Config for Runtime {
 	type Event = Event;
-	type DefaultVotingPeriod = DefaultVotingPeriod;
-	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
-	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
-	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
-	type DefaultVoteLockingPeriod = DefaultVoteLockingPeriod;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
 	type Currency = Balances;

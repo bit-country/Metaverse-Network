@@ -61,22 +61,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		#[pallet::constant]
-		type DefaultVotingPeriod: Get<Self::BlockNumber>;
-
-		#[pallet::constant]
-		type DefaultEnactmentPeriod: Get<Self::BlockNumber>;
-
-		#[pallet::constant]
-		type DefaultProposalLaunchPeriod: Get<Self::BlockNumber>;
-
-		#[pallet::constant]
-		type DefaultVoteLockingPeriod: Get<Self::BlockNumber>;
-
-		#[pallet::constant]
 		type OneBlock: Get<Self::BlockNumber>;
-
-		#[pallet::constant]
-		type DefaultMaxProposalsPerMetaverse: Get<u8>;
 
 		#[pallet::constant]
 		type MinimumProposalDeposit: Get<BalanceOf<Self>>;
@@ -419,7 +404,9 @@ pub mod pallet {
 							Some(ReferendumInfo::Finished { end, passed }) => {
 								let mut prior = &mut voting_record.prior;
 								if let Some((lock_periods, balance)) = vote.locked_if(passed) {
-									let unlock_at = end + T::DefaultVoteLockingPeriod::get() * lock_periods.into();
+									let mut lock_value: T::BlockNumber =
+										ReferendumParameters::default().local_vote_locking_period;
+									let unlock_at = end + lock_value * lock_periods.into();
 									let now = frame_system::Pallet::<T>::block_number();
 									if now < unlock_at {
 										prior.accumulate(unlock_at, balance);
@@ -547,7 +534,7 @@ impl<T: Config> Pallet<T> {
 					None => {}
 				}
 			}
-			None => referendum_end = current_block + T::DefaultVotingPeriod::get(),
+			None => referendum_end = current_block + ReferendumParameters::default().voting_period,
 		}
 
 		let initial_tally = Tally {
@@ -595,18 +582,19 @@ impl<T: Config> Pallet<T> {
 						< metaverse_referendum_params.max_proposals_per_metaverse,
 					Error::<T>::ProposalQueueFull
 				);
-				if metaverse_referendum_params.min_proposal_launch_period.is_zero() {
+				if !metaverse_referendum_params.min_proposal_launch_period.is_zero() {
 					Ok(current_block + metaverse_referendum_params.min_proposal_launch_period)
 				} else {
-					Ok(current_block + T::DefaultProposalLaunchPeriod::get())
+					Ok(current_block + ReferendumParameters::default().min_proposal_launch_period)
 				}
 			}
 			None => {
 				ensure!(
-					Self::proposals_per_metaverse(metaverse_id) < T::DefaultMaxProposalsPerMetaverse::get(),
+					Self::proposals_per_metaverse(metaverse_id)
+						< ReferendumParameters::<T::BlockNumber>::default().max_proposals_per_metaverse,
 					Error::<T>::ProposalQueueFull
 				);
-				Ok(current_block + T::DefaultProposalLaunchPeriod::get())
+				Ok(current_block + ReferendumParameters::default().min_proposal_launch_period)
 			}
 		}
 	}
@@ -703,7 +691,7 @@ impl<T: Config> Pallet<T> {
 			let mut when = referendum_status.end;
 			match Self::referendum_parameters(referendum_status.metaverse) {
 				Some(current_params) => when += current_params.enactment_period,
-				None => when += T::DefaultEnactmentPeriod::get(),
+				None => when += ReferendumParameters::default().enactment_period,
 			}
 
 			if T::Scheduler::schedule_named(

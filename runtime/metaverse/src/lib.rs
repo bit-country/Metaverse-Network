@@ -668,11 +668,6 @@ impl pallet_evm::Config for Runtime {
 }
 
 parameter_types! {
-	pub const DefaultVotingPeriod: BlockNumber = 10;
-	pub const DefaultEnactmentPeriod: BlockNumber = 2;
-	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
-	pub const DefaultVoteLockingPeriod: BlockNumber = 28;
-	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50 * DOLLARS;
 	pub const DefaultPreimageByteDeposit: Balance = 1 * DOLLARS;
@@ -779,11 +774,6 @@ impl InstanceFilter<Call> for ProposalType {
 
 impl governance::Config for Runtime {
 	type Event = Event;
-	type DefaultVotingPeriod = DefaultVotingPeriod;
-	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
-	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
-	type DefaultVoteLockingPeriod = DefaultVoteLockingPeriod;
-	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
