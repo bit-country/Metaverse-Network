@@ -53,22 +53,21 @@ pub trait UndeployedLandBlocksTrait<AccountId> {
 		metaverse_id: MetaverseId,
 		number_land_units: u32,
 		undeployed_land_block_type: UndeployedLandBlockType,
-	) -> Result<bool, DispatchError>;
+	) -> Result<UndeployedLandBlockId, DispatchError>;
 
 	fn transfer_undeployed_land_block(
 		who: &AccountId,
-		beneficiary: &AccountId,
+		to: &AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
-	) -> Result<bool, DispatchError>;
+	) -> Result<UndeployedLandBlockId, DispatchError>;
 
 	fn burn_undeployed_land_block(
 		who: &AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
-		number_of_land_units: u32,
-	) -> Result<bool, DispatchError>;
+	) -> Result<UndeployedLandBlockId, DispatchError>;
 
 	fn freeze_undeployed_land_block(
 		who: &AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
-	) -> Result<bool, DispatchError>;
+	) -> Result<UndeployedLandBlockId, DispatchError>;
 }
