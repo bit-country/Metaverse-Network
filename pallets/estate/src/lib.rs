@@ -116,16 +116,10 @@ pub mod pallet {
 	pub(super) type UndeployedLandBlocks<T: Config> =
 		StorageMap<_, Blake2_128Concat, UndeployedLandBlockId, UndeployedLandBlock<T::AccountId>, OptionQuery>;
 
-	// #[pallet::storage]
-	// #[pallet::getter(fn get_undeployed_land_block_owner)]
-	// pub type UndeployedLandBlocksOwner<T: Config> =
-	// StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (),
-	// OptionQuery>;
-	//
-	// #[pallet::storage]
-	// #[pallet::getter(fn get_freezing_undeployed_land_blocks)]
-	// pub(super) type FreezedUndeployedLandBlocks<T: Config> =
-	// StorageMap<_, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
+	#[pallet::storage]
+	#[pallet::getter(fn get_undeployed_land_block_owner)]
+	pub type UndeployedLandBlocksOwner<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -165,6 +159,7 @@ pub mod pallet {
 		UndeployedLandBlockIsNotTransferable,
 		UndeployedLandBlockDoesNotHaveEnoughLandUnits,
 		AlreadyOwnTheUndeployedLandBlock,
+		UndeployedLandBlockFreezed,
 		UndeployedLandBlockAlreadyFreezed,
 		UndeployedLandBlockAlreadyUnfreezed,
 	}
@@ -382,6 +377,11 @@ pub mod pallet {
 						Error::<T>::NoPermission
 					);
 
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockFreezed
+					);
+
 					let land_units_to_mint = coordinates.len() as u32;
 					ensure!(
 						undeployed_land_block_record.number_land_units > land_units_to_mint,
@@ -440,8 +440,9 @@ pub mod pallet {
 				owner: beneficiary.clone(),
 			};
 
-			// TODO: Insert new or update existing undeployed landblock
 			UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block);
+
+			UndeployedLandBlocksOwner::<T>::insert(beneficiary.clone(), new_undeployed_land_block_id, ());
 
 			Self::deposit_event(Event::<T>::UndeployedLandBlockIssued(
 				beneficiary.clone(),
@@ -541,6 +542,9 @@ pub mod pallet {
 
 					undeployed_land_block_record.owner = to.clone();
 
+					UndeployedLandBlocksOwner::<T>::remove(who.clone(), &undeployed_land_block_id);
+					UndeployedLandBlocksOwner::<T>::insert(to.clone(), &undeployed_land_block_id, ());
+
 					Self::deposit_event(Event::<T>::UndeployedLandBlockTransferred(
 						who.clone(),
 						to.clone(),
@@ -559,16 +563,21 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			ensure!(
-				UndeployedLandBlocks::<T>::contains_key(undeployed_land_block_id),
-				Error::<T>::UndeployedLandBlockNotFound
-			);
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
-			UndeployedLandBlocks::<T>::remove(undeployed_land_block_id);
+					let owner = &undeployed_land_block_record.owner;
+					UndeployedLandBlocks::<T>::remove(undeployed_land_block_id);
 
-			Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.clone()));
+					UndeployedLandBlocksOwner::<T>::remove(owner.clone(), undeployed_land_block_id);
 
-			Ok(().into())
+					Ok(().into())
+				},
+			)
 		}
 	}
 
