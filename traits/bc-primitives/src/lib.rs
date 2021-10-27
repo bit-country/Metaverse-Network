@@ -71,14 +71,4 @@ pub trait UndeployedLandBlocksTrait<AccountId> {
 		who: &AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<bool, DispatchError>;
-
-	fn unfreeze_undeployed_land_block(
-		who: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
-	) -> Result<bool, DispatchError>;
-
-	fn request_undeployed_land_block(
-		who: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
-	) -> Result<bool, DispatchError>;
 }
