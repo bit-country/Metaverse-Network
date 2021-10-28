@@ -16,6 +16,7 @@ members = [
     'traits/*',
     'node',
     'runtime/pioneer',
+    'runtime/metaverse',
     'primitives/metaverse',
 ]
 exclude = [
@@ -28,5 +29,4 @@ exclude = [
     'primitives/evm/',
     'modules/chainsafe',
     'runtime/tewai',
-    'runtime/metaverse',
 ]
