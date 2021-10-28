@@ -19,21 +19,16 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use auction_manager::SwapManager;
-use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::dispatch::DispatchResult;
 use frame_support::pallet_prelude::*;
-use frame_support::{ensure, pallet_prelude::*, transactional, PalletId};
+use frame_support::{ensure, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use primitives::{Balance, FungibleTokenId, MetaverseId};
 use scale_info::TypeInfo;
-use sp_runtime::{
-	traits::{AccountIdConversion, One},
-	DispatchError, RuntimeDebug,
-};
+use sp_runtime::{traits::AccountIdConversion, DispatchError, RuntimeDebug};
 use sp_std::vec;
-use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
@@ -70,7 +65,6 @@ use sp_core::U256;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use crate::pallet::vec;
 	use frame_support::traits::Currency;
 	use orml_traits::MultiCurrencyExtended;
 	use primitives::dex::TradingPair;
@@ -112,7 +106,7 @@ pub mod pallet {
 	pub type TradingPairStatuses<T: Config> = StorageMap<_, Twox64Concat, TradingPair, TradingPairStatus, ValueQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		NewCountryCreated(MetaverseId),
 		TransferredCountry(MetaverseId, T::AccountId, T::AccountId),
@@ -318,8 +312,8 @@ impl<T: Config> Pallet<T> {
                             .unwrap_or_default();
                         (amount_0, max_amount_1, share_increment)
                     } else {
-                       // existing price 0 / 1 of the pool
-                       // input_price_1_0 is more than actual price 1 0 in the pool, calculate the actual amount 1
+                        // existing price 0 / 1 of the pool
+                        // input_price_1_0 is more than actual price 1 0 in the pool, calculate the actual amount 1
                         let amount_1 = price_0_1.saturating_mul_int(max_amount_0);
                         let share_increment = Ratio::checked_from_rational(amount_1, *pool_1)
                             .and_then(|n| n.checked_mul_int(total_shares))

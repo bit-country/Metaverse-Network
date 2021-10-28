@@ -1,15 +1,14 @@
 use crate::chain_spec;
 use crate::chain_spec::Extensions;
 use cumulus_client_cli;
-use sc_cli::RunCmd;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
-#[structopt(settings = &[
-	structopt::clap::AppSettings::GlobalVersion,
-	structopt::clap::AppSettings::ArgsNegateSubcommands,
-	structopt::clap::AppSettings::SubcommandsNegateReqs,
+#[structopt(settings = & [
+structopt::clap::AppSettings::GlobalVersion,
+structopt::clap::AppSettings::ArgsNegateSubcommands,
+structopt::clap::AppSettings::SubcommandsNegateReqs,
 ])]
 pub struct Cli {
 	#[structopt(subcommand)]

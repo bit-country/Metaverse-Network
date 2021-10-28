@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::{Decode, Encode, Input, MaxEncodedLen};
+use codec::{Decode, Encode};
 
 use frame_support::{
 	dispatch::DispatchResult,
@@ -11,10 +11,7 @@ use frame_support::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
 		Currency, Get, InstanceFilter, LockIdentifier, ReservableCurrency,
 	},
-	weights::Weight,
-	RuntimeDebug,
 };
-use frame_system::ensure_signed;
 use metaverse_primitive::MetaverseTrait;
 use primitives::{MetaverseId, ProposalId, ReferendumId};
 use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
@@ -36,14 +33,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::traits::OriginTrait;
-	use frame_support::{
-		dispatch::DispatchResultWithPostInfo,
-		pallet_prelude::*,
-		traits::EnsureOrigin,
-		weights::{DispatchClass, Pays},
-		Parameter,
-	};
+	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::EnsureOrigin, Parameter};
 	use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 	use metaverse_primitive::MetaverseLandTrait;
 	use sp_runtime::DispatchResult;
@@ -364,7 +354,7 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 			let mut status = Self::referendum_status(referendum)?;
 			<VotingOf<T>>::try_mutate(from.clone(), |voting_record| -> DispatchResultWithPostInfo {
-				let mut votes = &mut voting_record.votes;
+				let votes = &mut voting_record.votes;
 				match votes.binary_search_by_key(&referendum, |i| i.0) {
 					Ok(i) => {
 						let vote = votes.remove(i).1;
@@ -552,36 +542,6 @@ impl<T: Config> Pallet<T> {
 				Ok(current_block + T::DefaultProposalLaunchPeriod::get())
 			}
 		}
-	}
-
-	fn pre_image_data_len(preimage_hash: T::Hash) -> Result<u32, DispatchError> {
-		// To decode the `data` field of Available variant we need:
-		// * one byte for the variant
-		// * at most 5 bytes to decode a `Compact<u32>`
-		let mut buf = [0u8; 6];
-		let key = <Preimages<T>>::hashed_key_for(preimage_hash);
-		let bytes = sp_io::storage::read(&key, &mut buf, 0).ok_or_else(|| Error::<T>::PreimageMissing)?;
-		// The value may be smaller that 6 bytes.
-		let mut input = &buf[0..buf.len().min(bytes as usize)];
-
-		match input.read_byte() {
-			Ok(1) => (), // Check that input exists and is second variant.
-			Ok(0) => return Err(Error::<T>::PreimageMissing.into()),
-			_ => {
-				sp_runtime::print("Failed to decode `PreimageStatus` variant");
-				return Err(Error::<T>::PreimageMissing.into());
-			}
-		}
-
-		// Decode the length of the vector.
-		let len = codec::Compact::<u32>::decode(&mut input)
-			.map_err(|_| {
-				sp_runtime::print("Failed to decode `PreimageStatus` variant");
-				DispatchError::from(Error::<T>::PreimageMissing)
-			})?
-			.0;
-
-		Ok(len)
 	}
 
 	fn update_proposals_per_metaverse_number(metaverse_id: MetaverseId, is_proposal_added: bool) -> DispatchResult {

@@ -21,7 +21,7 @@ use crate::{AccountVote, Vote};
 use codec::{Decode, Encode};
 use primitives::{MetaverseId, SpotId};
 use scale_info::TypeInfo;
-use sp_runtime::traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, Saturating, Zero};
+use sp_runtime::traits::{One, Zero};
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec;
 use sp_std::vec::Vec;

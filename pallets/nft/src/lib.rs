@@ -459,7 +459,7 @@ pub mod pallet {
 
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
-					let mut supporters = supporters.as_mut().ok_or("Empty supporters")?;
+					let supporters = supporters.as_mut().ok_or("Empty supporters")?;
 					supporters.push(sender);
 					Ok(())
 				});

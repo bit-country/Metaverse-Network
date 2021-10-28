@@ -3,7 +3,7 @@ use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
 	ContinuumConfig, DemocracyConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig, Signature,
-	StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	StakingConfig, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 use sc_service::{ChainType, Properties};
@@ -247,19 +247,14 @@ fn testnet_genesis(
 				.map(|k| (k, 600 * KILODOLLARS))
 				.collect(),
 		},
-		staking: StakingConfig {
-			candidates: staking_candidate,
-			nominations: vec![],
-			inflation_config: metaverse_network_inflation_config(),
+		aura: AuraConfig {
+			//			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+			authorities: vec![],
 		},
-		session: SessionConfig {
-			keys: initial_authorities
-				.iter()
-				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
-				.collect::<Vec<_>>(),
+		grandpa: GrandpaConfig {
+			//			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+			authorities: vec![],
 		},
-		aura: AuraConfig { authorities: vec![] },
-		grandpa: GrandpaConfig { authorities: vec![] },
 		sudo: SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
@@ -273,6 +268,17 @@ fn testnet_genesis(
 			initial_auction_rate: 5,
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
+		},
+		staking: StakingConfig {
+			candidates: staking_candidate,
+			nominations: vec![],
+			inflation_config: metaverse_network_inflation_config(),
+		},
+		session: SessionConfig {
+			keys: initial_authorities
+				.iter()
+				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
+				.collect::<Vec<_>>(),
 		},
 		/*		evm: EVMConfig {
 		 *			accounts: {

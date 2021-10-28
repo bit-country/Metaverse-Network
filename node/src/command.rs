@@ -25,7 +25,7 @@ use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
 use log::info;
-use metaverse_runtime::{Block, RuntimeApi};
+use metaverse_runtime::Block;
 use sc_cli::{
 	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result, Role,
 	RuntimeVersion, SharedParams, SubstrateCli,
