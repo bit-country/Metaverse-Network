@@ -33,6 +33,7 @@ use sp_runtime::traits::AtLeast32Bit;
 
 pub mod continuum;
 pub mod dex;
+pub mod estate;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -104,6 +105,8 @@ pub enum ItemId {
 	Spot(u64, MetaverseId),
 	Country(MetaverseId),
 	Block(u64),
+	Estate(EstateId),
+	LandUnit((i32, i32), MetaverseId),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]

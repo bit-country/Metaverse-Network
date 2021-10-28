@@ -4,7 +4,7 @@ use super::*;
 use crate as auction;
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
-use primitives::{continuum::Continuum, Amount, AuctionId, CurrencyId, FungibleTokenId};
+use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, CurrencyId, EstateId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
@@ -28,6 +28,13 @@ pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
+
+pub const ESTATE_ID_EXIST: EstateId = 0;
+pub const ESTATE_ID_EXIST_1: EstateId = 1;
+pub const ESTATE_ID_NOT_EXIST: EstateId = 99;
+pub const LAND_UNIT_EXIST: (i32, i32) = (0, 0);
+pub const LAND_UNIT_EXIST_1: (i32, i32) = (1, 1);
+pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
 
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
@@ -76,6 +83,38 @@ pub struct Continuumm;
 impl Continuum<u128> for Continuumm {
 	fn transfer_spot(spot_id: u64, from: &AccountId, to: &(AccountId, u64)) -> Result<u64, DispatchError> {
 		Ok(1)
+	}
+}
+
+pub struct EstateHandler;
+
+impl Estate<u128> for EstateHandler {
+	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId) -> Result<EstateId, DispatchError> {
+		Ok(1)
+	}
+
+	fn transfer_landunit(
+		coordinate: (i32, i32),
+		from: &AccountId,
+		to: &(AccountId, MetaverseId),
+	) -> Result<(i32, i32), DispatchError> {
+		Ok((0, 0))
+	}
+
+	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
+		match estate_id {
+			ESTATE_ID_EXIST | ESTATE_ID_EXIST_1 => Ok(true),
+			ESTATE_ID_NOT_EXIST => Ok(false),
+			_ => Ok(false),
+		}
+	}
+
+	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+		match coordinate {
+			LAND_UNIT_EXIST | LAND_UNIT_EXIST_1 => Ok(true),
+			LAND_UNIT_NOT_EXIST => Ok(false),
+			_ => Ok(false),
+		}
 	}
 }
 
@@ -167,6 +206,7 @@ impl Config for Runtime {
 	type FungibleTokenCurrency = Tokens;
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
+	type EstateHandler = EstateHandler;
 }
 
 parameter_types! {
@@ -213,7 +253,7 @@ construct_runtime!(
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
-		NftAuctionModule: auction::{Pallet, Call, Storage, Event<T>},
+		AuctionModule: auction::{Pallet, Call, Storage, Event<T>},
 	}
 );
 pub struct ExtBuilder;
@@ -255,11 +295,11 @@ pub fn last_event() -> Event {
 
 pub fn run_to_block(n: u64) {
 	while System::block_number() < n {
-		NftAuctionModule::on_finalize(System::block_number());
+		AuctionModule::on_finalize(System::block_number());
 		System::on_finalize(System::block_number());
 		System::set_block_number(System::block_number() + 1);
 		System::on_initialize(System::block_number());
-		NftAuctionModule::on_initialize(System::block_number());
+		AuctionModule::on_initialize(System::block_number());
 	}
 }
 
