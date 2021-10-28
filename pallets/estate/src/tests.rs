@@ -1357,3 +1357,249 @@ fn deploy_undeployed_land_block_should_work() {
 		assert_eq!(EstateModule::all_land_units_count(), 2);
 	});
 }
+
+#[test]
+fn approve_undeployed_land_block_should_fail_if_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::approve_undeployed_land_blocks(Origin::signed(ALICE), BOB, 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn approve_undeployed_land_block_should_fail_if_not_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			BITCOUNTRY_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::approve_undeployed_land_blocks(Origin::signed(ALICE), BOB, undeployed_land_block_id),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn approve_undeployed_land_block_should_fail_if_freezed() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			BITCOUNTRY_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(
+			Origin::root(),
+			undeployed_land_block_id
+		));
+
+		assert_noop!(
+			EstateModule::approve_undeployed_land_blocks(Origin::signed(BOB), ALICE, undeployed_land_block_id),
+			Error::<Runtime>::UndeployedLandBlockAlreadyFreezed
+		);
+	});
+}
+
+#[test]
+fn approve_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			BITCOUNTRY_ID,
+			20,
+			UndeployedLandBlockType::Transferable
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, None);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+
+		assert_ok!(EstateModule::approve_undeployed_land_blocks(
+			Origin::signed(BOB),
+			ALICE,
+			undeployed_land_block_id
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockApproved(
+				BOB,
+				ALICE,
+				undeployed_land_block_id
+			))
+		);
+
+		let transferred_issued_undeployed_land_block =
+			EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match transferred_issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, Some(ALICE));
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+	});
+}
+
+#[test]
+fn unapprove_undeployed_land_block_should_fail_if_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::unapprove_undeployed_land_blocks(Origin::signed(ALICE), 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn unapprove_undeployed_land_block_should_fail_if_not_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			BITCOUNTRY_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::unapprove_undeployed_land_blocks(Origin::signed(ALICE), undeployed_land_block_id),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn unapprove_undeployed_land_block_should_fail_if_freezed() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			BITCOUNTRY_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(
+			Origin::root(),
+			undeployed_land_block_id
+		));
+
+		assert_noop!(
+			EstateModule::unapprove_undeployed_land_blocks(Origin::signed(BOB), undeployed_land_block_id),
+			Error::<Runtime>::UndeployedLandBlockAlreadyFreezed
+		);
+	});
+}
+
+#[test]
+fn unapprove_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			BITCOUNTRY_ID,
+			20,
+			UndeployedLandBlockType::Transferable
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, None);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+		assert_ok!(EstateModule::approve_undeployed_land_blocks(
+			Origin::signed(BOB),
+			ALICE,
+			undeployed_land_block_id
+		));
+
+		let approved_issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match approved_issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, Some(ALICE));
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_ok!(EstateModule::unapprove_undeployed_land_blocks(
+			Origin::signed(BOB),
+			undeployed_land_block_id
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockUnapproved(undeployed_land_block_id))
+		);
+
+		let unapproved_issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match unapproved_issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, None);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	});
+}

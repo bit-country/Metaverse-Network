@@ -134,6 +134,8 @@ pub mod pallet {
 		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>),
 		UndeployedLandBlockIssued(T::AccountId, MetaverseId, UndeployedLandBlockId),
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
 		UndeployedLandBlockFreezed(UndeployedLandBlockId),
 		UndeployedLandBlockUnfreezed(UndeployedLandBlockId),
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
@@ -503,6 +505,79 @@ pub mod pallet {
 			Self::do_burn_undeployed_lan_block(undeployed_land_block_id)?;
 
 			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn approve_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.owner == who.clone(),
+						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockAlreadyFreezed
+					);
+
+					undeployed_land_block_record.approved = Some(to.clone());
+
+					Self::deposit_event(Event::<T>::UndeployedLandBlockApproved(
+						who.clone(),
+						to.clone(),
+						undeployed_land_block_id.clone(),
+					));
+
+					Ok(().into())
+				},
+			)
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn unapprove_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.owner == who.clone(),
+						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockAlreadyFreezed
+					);
+
+					undeployed_land_block_record.approved = None;
+
+					Self::deposit_event(Event::<T>::UndeployedLandBlockUnapproved(
+						undeployed_land_block_id.clone(),
+					));
+
+					Ok(().into())
+				},
+			)
 		}
 	}
 
