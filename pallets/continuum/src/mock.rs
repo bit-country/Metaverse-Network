@@ -20,6 +20,7 @@
 use super::*;
 use crate as continuum;
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, CheckAuctionItemHandler, OnNewBidResult};
+use bc_primitives::{MetaverseInfo, MetaverseTrait};
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, weights::Weight, PalletId};
@@ -27,7 +28,6 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 use primitives::{Amount, AssetId, CurrencyId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -75,7 +75,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();

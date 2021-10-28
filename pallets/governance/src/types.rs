@@ -1,10 +1,11 @@
 use crate::*;
 use codec::{Decode, Encode};
 use primitives::{AccountId, MetaverseId, ProposalId, ReferendumId};
+use scale_info::TypeInfo;
 use sp_runtime::{traits::One, RuntimeDebug};
 use sp_std::vec::Vec;
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
 	/// The preimage is imminently needed at the argument.
 	Missing(BlockNumber),
@@ -19,13 +20,26 @@ pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
 	},
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+impl<AccountId, Balance, BlockNumber> PreimageStatus<AccountId, Balance, BlockNumber> {
+	fn to_missing_expiry(self) -> Option<BlockNumber> {
+		match self {
+			PreimageStatus::Missing(expiry) => Some(expiry),
+			_ => None,
+		}
+	}
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum VoteThreshold {
-	StandardQualifiedMajority,   // 72%+ 72%+ representation
-	TwoThirdsSupermajority,      // 66%+
-	ThreeFifthsSupermajority,    // 60%+
-	ReinforcedQualifiedMajority, // 55%+ 65%+ representation
-	RelativeMajority,            // Most votes
+	StandardQualifiedMajority,
+	// 72%+ 72%+ representation
+	TwoThirdsSupermajority,
+	// 66%+
+	ThreeFifthsSupermajority,
+	// 60%+
+	ReinforcedQualifiedMajority,
+	// 55%+ 65%+ representation
+	RelativeMajority, // Most votes
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -34,22 +48,25 @@ pub enum MetaverseParameter {
 	SetReferendumJury(AccountId),
 }
 
-#[derive(Encode, Decode, Default, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Default, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct ReferendumParameters<BlockNumber> {
 	pub(crate) voting_threshold: Option<VoteThreshold>,
-	pub(crate) min_proposal_launch_period: BlockNumber, // number of blocks
-	pub(crate) voting_period: BlockNumber,              // number of block
-	pub(crate) enactment_period: BlockNumber,           // number of blocks
+	pub(crate) min_proposal_launch_period: BlockNumber,
+	// number of blocks
+	pub(crate) voting_period: BlockNumber,
+	// number of block
+	pub(crate) enactment_period: BlockNumber,
+	// number of blocks
 	pub(crate) max_proposals_per_metaverse: u8,
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct Vote {
 	pub(crate) aye: bool,
 }
 
 /// Tally Struct
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct Tally {
 	pub(crate) ayes: u32,
 	pub(crate) nays: u32,
@@ -78,20 +95,21 @@ impl Tally {
 	}
 }
 
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct VotingRecord {
 	pub(crate) votes: Vec<(ReferendumId, Vote)>,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
 	pub(crate) proposed_by: AccountId,
 	pub(crate) hash: Hash,
-	pub(crate) description: Vec<u8>, // link to proposal description
+	pub(crate) description: Vec<u8>,
+	// link to proposal description
 	pub(crate) referendum_launch_block: BlockNumber,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ReferendumStatus<BlockNumber> {
 	pub(crate) end: BlockNumber,
 	pub(crate) metaverse: MetaverseId,
@@ -100,7 +118,7 @@ pub struct ReferendumStatus<BlockNumber> {
 	pub(crate) threshold: Option<VoteThreshold>,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum ReferendumInfo<BlockNumber> {
 	Ongoing(ReferendumStatus<BlockNumber>),
 	Finished { passed: bool, end: BlockNumber },
