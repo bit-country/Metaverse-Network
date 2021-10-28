@@ -81,7 +81,6 @@ substrate-prometheus-endpoint = { git = "https://github.com/paritytech/substrate
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 
-node-template-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 node-primitives = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", optional = true }
 
 # Metaverse related dependencies
@@ -112,9 +111,6 @@ substrate-build-script-utils = { version = '3.0.0', git = "https://github.com/pa
 
 [features]
 default = ["with-pioneer-runtime"]
-runtime-benchmarks = [
-    "node-template-runtime/runtime-benchmarks",
-]
 
 with-metaverse-runtime = [
     "metaverse-runtime",
@@ -128,5 +124,4 @@ with-tewai-runtime = [
 
 with-pioneer-runtime = [
     "pioneer-runtime",
-    "metaverse-runtime",
 ]

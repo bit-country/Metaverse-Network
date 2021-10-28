@@ -50,6 +50,9 @@ build-docker:
 build-docker-tewai:
 	./scripts/docker_build_tewai.sh
 
+.PHONY: build-docker-pioneer
+build-docker-pioneer:
+	./scripts/docker_build_pioneer.sh
 
 .PHONY: run-dev
 run-dev:
