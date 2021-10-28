@@ -95,7 +95,7 @@ fn mint_land_should_work_with_one_coordinate() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				COORDINATE_IN_1
 			))
 		);
@@ -122,7 +122,7 @@ fn mint_land_should_work_have_correct_owner() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				COORDINATE_IN_1
 			))
 		);
@@ -152,7 +152,7 @@ fn mint_land_should_reject_with_duplicate_coordinates() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				COORDINATE_IN_1
 			))
 		);
@@ -181,7 +181,7 @@ fn mint_lands_should_reject_with_duplicate_coordinates() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandsMinted(
 				BENEFICIARY_ID,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			))
 		);
@@ -210,7 +210,7 @@ fn mint_land_should_work_with_different_coordinate() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				COORDINATE_IN_1
 			))
 		);
@@ -228,7 +228,7 @@ fn mint_land_should_work_with_different_coordinate() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				COORDINATE_IN_2
 			))
 		);
@@ -304,7 +304,7 @@ fn mint_lands_should_work_with_one_coordinate() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandsMinted(
 				BENEFICIARY_ID,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				vec![COORDINATE_IN_1]
 			))
 		);
@@ -329,7 +329,7 @@ fn mint_lands_should_work_with_more_than_one_coordinate() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandsMinted(
 				BENEFICIARY_ID,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			))
 		);

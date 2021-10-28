@@ -23,7 +23,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{EstateId, MetaverseId};
+use primitives::{estate::Estate, EstateId, ItemId, MetaverseId};
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError,
@@ -253,8 +253,7 @@ pub mod pallet {
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, &beneficiary, coordinates);
-
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates);
 			Ok(().into())
 		}
 
@@ -280,7 +279,7 @@ pub mod pallet {
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, &beneficiary, coordinates.clone());
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone());
 
 			Ok(().into())
 		}
@@ -354,6 +353,7 @@ impl<T: Config> Pallet<T> {
 
 	fn update_estate_information(
 		new_estate_id: EstateId,
+		metaverse_id: MetaverseId,
 		beneficiary: &T::AccountId,
 		coordinates: Vec<(i32, i32)>,
 	) -> DispatchResult {
