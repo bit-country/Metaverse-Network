@@ -54,15 +54,15 @@ pub mod pallet {
 	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
-	use orml_traits::{MultiCurrency, MultiCurrencyExtended, MultiReservableCurrency};
+	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use primitives::{Balance, FungibleTokenId, MetaverseId};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	pub(super) type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
-	pub(super) type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
+	// pub(super) type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
+	// pub(super) type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 	pub(super) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -120,8 +120,7 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata()]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A bid is placed. [auction_id, bidder, bidding_amount]
 		Bid(AuctionId, T::AccountId, BalanceOf<T>),
@@ -502,7 +501,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
@@ -542,7 +541,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
 			ensure!(
@@ -848,7 +847,7 @@ pub mod pallet {
 						Error::<T>::NoPermissionToCreateAuction
 					);
 
-					let start_time = <system::Module<T>>::block_number();
+					let start_time = <system::Pallet<T>>::block_number();
 
 					let mut end_time = start_time + T::AuctionTimeToClose::get();
 					if let Some(_end_block) = _end {
@@ -887,7 +886,7 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
-					let start_time = <system::Module<T>>::block_number();
+					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
@@ -1082,7 +1081,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Module<T> {
+	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Pallet<T> {
 		fn on_new_bid(
 			_now: T::BlockNumber,
 			_id: AuctionId,

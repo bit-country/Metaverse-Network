@@ -19,6 +19,7 @@ use auction_manager::{Auction, CheckAuctionItemHandler};
 use frame_system::pallet_prelude::*;
 use orml_nft::Pallet as NftModule;
 use primitives::{AssetId, GroupCollectionId};
+use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
@@ -39,14 +40,14 @@ pub mod default_weight;
 
 pub use default_weight::WeightInfo;
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct NftGroupCollectionData {
 	pub name: Vec<u8>,
 	// Metadata from ipfs
 	pub properties: Vec<u8>,
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftClassData<Balance> {
 	// Minimum balance to create a collection of Asset
@@ -59,7 +60,7 @@ pub struct NftClassData<Balance> {
 	pub initial_supply: u64,
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftAssetData<Balance> {
 	// Deposit balance to create each token
@@ -69,7 +70,7 @@ pub struct NftAssetData<Balance> {
 	pub properties: Vec<u8>,
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenType {
 	Transferable,
@@ -91,7 +92,7 @@ impl Default for TokenType {
 	}
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CollectionType {
 	Collectable,
@@ -207,12 +208,7 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, AssetId, Vec<T::AccountId>, OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(
-    < T as frame_system::Config >::AccountId = "AccountId",
-    ClassIdOf < T > = "ClassId",
-    TokenIdOf < T > = "TokenId",
-    )]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// New NFT Group Collection created
 		NewNftCollectionCreated(GroupCollectionId),
@@ -463,7 +459,7 @@ pub mod pallet {
 
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
-					let mut supporters = supporters.as_mut().ok_or("Empty supporters")?;
+					let supporters = supporters.as_mut().ok_or("Empty supporters")?;
 					supporters.push(sender);
 					Ok(())
 				});

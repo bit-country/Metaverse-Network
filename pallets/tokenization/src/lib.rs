@@ -21,24 +21,20 @@
 use auction_manager::SwapManager;
 use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::traits::{Currency, Get, WithdrawReasons};
+use frame_support::traits::Get;
 use frame_support::PalletId;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
 	transactional, Parameter,
 };
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use frame_system::{self as system, ensure_signed};
-use orml_traits::{
-	arithmetic::{Signed, SimpleArithmetic},
-	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
-};
+use orml_traits::{LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency};
 pub use pallet::*;
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId, VestingSchedule};
+use primitives::{Balance, FungibleTokenId, MetaverseId, VestingSchedule};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,
@@ -59,7 +55,7 @@ pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
 pub type Ticker = Vec<u8>;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Token<Balance> {
 	pub ticker: Ticker,
 	pub total_supply: Balance,
@@ -254,11 +250,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(
-    < T as frame_system::Config >::AccountId = "AccountId",
-    Balance = "Balance",
-    CurrencyId = "CurrencyId"
-    )]
 	pub enum Event<T: Config> {
 		/// Some assets were issued. \[asset_id, owner, fund_id ,total_supply\]
 		FungibleTokenIssued(FungibleTokenId, T::AccountId, T::AccountId, u128, u64),

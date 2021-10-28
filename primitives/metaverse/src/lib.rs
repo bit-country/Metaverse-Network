@@ -18,14 +18,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
+use scale_info::TypeInfo;
+use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, OpaqueExtrinsic,
+	MultiSignature,
 };
-
-use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -98,7 +98,7 @@ pub type EstateId = u64;
 pub type TokenId = u64;
 
 /// Public item id for auction
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
 	NFT(AssetId),
@@ -109,7 +109,7 @@ pub enum ItemId {
 	LandUnit((i32, i32), MetaverseId),
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum FungibleTokenId {
 	NativeToken(TokenId),
@@ -195,7 +195,7 @@ pub mod report {
 ///
 /// Benefits would be granted gradually, `per_period` amount every `period`
 /// of blocks after `start`.
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
 	/// Vesting token
 	pub token: FungibleTokenId,

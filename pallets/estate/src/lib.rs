@@ -19,16 +19,14 @@
 
 use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use bc_primitives::*;
-use codec::{Decode, Encode};
 use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{estate::Estate, Balance, EstateId, ItemId, LandId, MetaverseId};
+use primitives::{EstateId, MetaverseId};
 use sp_runtime::{
-	print,
 	traits::{AccountIdConversion, One},
-	DispatchError, RuntimeDebug,
+	DispatchError,
 };
 use sp_std::vec::Vec;
 
@@ -43,8 +41,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
-	use primitives::AccountId;
+	use frame_support::traits::{Currency, ReservableCurrency};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -101,14 +98,13 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId")]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		NewLandsMinted(MetaverseId, Vec<(i32, i32)>),
+		NewLandsMinted(T::AccountId, MetaverseId, Vec<(i32, i32)>),
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
 		TransferredEstate(EstateId, T::AccountId, T::AccountId),
-		NewLandUnitMinted(MetaverseId, (i32, i32)),
-		NewEstateMinted(EstateId, Vec<(i32, i32)>),
+		NewLandUnitMinted(T::AccountId, MetaverseId, (i32, i32)),
+		NewEstateMinted(EstateId, T::AccountId, MetaverseId, Vec<(i32, i32)>),
 		MaxBoundSet(MetaverseId, (i32, i32)),
 	}
 
@@ -177,7 +173,11 @@ pub mod pallet {
 			// Update land units
 			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
 
-			Self::deposit_event(Event::<T>::NewLandUnitMinted(metaverse_id, coordinate));
+			Self::deposit_event(Event::<T>::NewLandUnitMinted(
+				beneficiary.clone(),
+				metaverse_id,
+				coordinate,
+			));
 
 			Ok(().into())
 		}
@@ -203,7 +203,11 @@ pub mod pallet {
 				.checked_add(coordinates.len() as u64)
 				.ok_or("Overflow adding new count to total lands")?;
 			AllLandUnitsCount::<T>::put(new_total_land_unit_count);
-			Self::deposit_event(Event::<T>::NewLandsMinted(metaverse_id.clone(), coordinates.clone()));
+			Self::deposit_event(Event::<T>::NewLandsMinted(
+				beneficiary.clone(),
+				metaverse_id.clone(),
+				coordinates.clone(),
+			));
 
 			Ok(().into())
 		}
@@ -304,12 +308,6 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	// Reads the nonce from storage, increments the stored nonce, and returns
-	// the encoded nonce to the caller.
-	fn account_id() -> T::AccountId {
-		T::LandTreasury::get().into_account()
-	}
-
 	fn get_new_estate_id() -> Result<EstateId, DispatchError> {
 		let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
 			let current_id = *id;
@@ -371,7 +369,12 @@ impl<T: Config> Pallet<T> {
 
 		EstateOwner::<T>::insert(beneficiary.clone(), new_estate_id, {});
 
-		Self::deposit_event(Event::<T>::NewEstateMinted(new_estate_id.clone(), coordinates.clone()));
+		Self::deposit_event(Event::<T>::NewEstateMinted(
+			new_estate_id.clone(),
+			beneficiary.clone(),
+			metaverse_id,
+			coordinates.clone(),
+		));
 
 		Ok(())
 	}

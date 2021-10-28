@@ -1,15 +1,14 @@
 use crate::chain_spec;
 use crate::chain_spec::Extensions;
 use cumulus_client_cli;
-use sc_cli::RunCmd;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
-#[structopt(settings = &[
-	structopt::clap::AppSettings::GlobalVersion,
-	structopt::clap::AppSettings::ArgsNegateSubcommands,
-	structopt::clap::AppSettings::SubcommandsNegateReqs,
+#[structopt(settings = & [
+structopt::clap::AppSettings::GlobalVersion,
+structopt::clap::AppSettings::ArgsNegateSubcommands,
+structopt::clap::AppSettings::SubcommandsNegateReqs,
 ])]
 pub struct Cli {
 	#[structopt(subcommand)]
@@ -78,7 +77,7 @@ pub struct ExportGenesisStateCommand {
 	/// Id of the parachain this state is for.
 	///
 	/// Default: 100
-	#[structopt(long, conflicts_with = "chain")]
+	#[structopt(long)]
 	pub parachain_id: Option<u32>,
 
 	/// Write output in binary. Default is to write in hex.
@@ -86,7 +85,7 @@ pub struct ExportGenesisStateCommand {
 	pub raw: bool,
 
 	/// The name of the chain for that the genesis state should be exported.
-	#[structopt(long, conflicts_with = "parachain-id")]
+	#[structopt(long)]
 	pub chain: Option<String>,
 }
 
@@ -124,7 +123,7 @@ impl RelayChainCli {
 		para_config: &sc_service::Configuration,
 		relay_chain_args: impl Iterator<Item = &'a String>,
 	) -> Self {
-		let extension = Extensions::try_get(&*para_config.chain_spec);
+		let extension = chain_spec::Extensions::try_get(&*para_config.chain_spec);
 		let chain_id = extension.map(|e| e.relay_chain.clone());
 		let base_path = para_config.base_path.as_ref().map(|x| x.path().join("polkadot"));
 		Self {
