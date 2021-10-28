@@ -93,7 +93,11 @@ fn mint_land_should_work_with_one_coordinate() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+			Event::Estate(crate::Event::NewLandUnitMinted(
+				BENEFICIARY_ID,
+				BITCOUNTRY_ID,
+				COORDINATE_IN_1
+			))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -116,7 +120,11 @@ fn mint_land_should_work_have_correct_owner() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+			Event::Estate(crate::Event::NewLandUnitMinted(
+				BENEFICIARY_ID,
+				BITCOUNTRY_ID,
+				COORDINATE_IN_1
+			))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -142,7 +150,11 @@ fn mint_land_should_reject_with_duplicate_coordinates() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+			Event::Estate(crate::Event::NewLandUnitMinted(
+				BENEFICIARY_ID,
+				BITCOUNTRY_ID,
+				COORDINATE_IN_1
+			))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -168,6 +180,7 @@ fn mint_lands_should_reject_with_duplicate_coordinates() {
 		assert_eq!(
 			last_event(),
 			Event::Estate(crate::Event::NewLandsMinted(
+				BENEFICIARY_ID,
 				BITCOUNTRY_ID,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
@@ -195,7 +208,11 @@ fn mint_land_should_work_with_different_coordinate() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_1))
+			Event::Estate(crate::Event::NewLandUnitMinted(
+				BENEFICIARY_ID,
+				BITCOUNTRY_ID,
+				COORDINATE_IN_1
+			))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -209,7 +226,11 @@ fn mint_land_should_work_with_different_coordinate() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::NewLandUnitMinted(BITCOUNTRY_ID, COORDINATE_IN_2))
+			Event::Estate(crate::Event::NewLandUnitMinted(
+				BENEFICIARY_ID,
+				BITCOUNTRY_ID,
+				COORDINATE_IN_2
+			))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 2);
@@ -281,7 +302,11 @@ fn mint_lands_should_work_with_one_coordinate() {
 		);
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::NewLandsMinted(BITCOUNTRY_ID, vec![COORDINATE_IN_1]))
+			Event::Estate(crate::Event::NewLandsMinted(
+				BENEFICIARY_ID,
+				BITCOUNTRY_ID,
+				vec![COORDINATE_IN_1]
+			))
 		);
 
 		assert_eq!(EstateModule::all_land_units_count(), 1);
@@ -303,6 +328,7 @@ fn mint_lands_should_work_with_more_than_one_coordinate() {
 		assert_eq!(
 			last_event(),
 			Event::Estate(crate::Event::NewLandsMinted(
+				BENEFICIARY_ID,
 				BITCOUNTRY_ID,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))

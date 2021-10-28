@@ -20,37 +20,29 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::upper_case_acronyms)]
 
-use bc_primitives::*;
-use codec::{Codec, Decode, Encode};
-use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage, dispatch::DispatchResultWithPostInfo, ensure, pallet_prelude::*,
-	PalletId, Parameter,
+use codec::Codec;
+use frame_support::traits::{
+	Currency as PalletCurrency, ExistenceRequirement, Get, LockableCurrency as PalletLockableCurrency,
+	ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
 };
-use frame_support::{
-	pallet_prelude::*,
-	traits::{
-		Currency as PalletCurrency, ExistenceRequirement, Get, LockableCurrency as PalletLockableCurrency,
-		ReservableCurrency as PalletReservableCurrency, WithdrawReasons,
-	},
-};
+use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use frame_system::{self as system, ensure_signed};
 use orml_traits::{
 	arithmetic::{Signed, SimpleArithmetic},
 	currency::TransferAll,
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use primitives::FungibleTokenId;
 use sp_runtime::{
-	traits::{CheckedSub, MaybeSerializeDeserialize, Saturating, StaticLookup, Zero},
+	traits::{CheckedSub, MaybeSerializeDeserialize, StaticLookup, Zero},
 	DispatchError, DispatchResult,
 };
 use sp_std::{
 	convert::{TryFrom, TryInto},
 	fmt::Debug,
 	marker, result,
-	vec::Vec,
 };
 
 // #[cfg(test)]
