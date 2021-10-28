@@ -398,7 +398,6 @@ pub mod pallet {
 							Some(ReferendumInfo::Ongoing(mut status)) => {
 								status.tally.remove(vote).ok_or(Error::<T>::TallyOverflow)?;
 								ReferendumInfoOf::<T>::insert(&referendum, ReferendumInfo::Ongoing(status));
-								Self::update_lock(&from);
 								Self::deposit_event(Event::VoteRemoved(from, referendum));
 							}
 							Some(ReferendumInfo::Finished { end, passed }) => {
@@ -406,6 +405,12 @@ pub mod pallet {
 								if let Some((lock_periods, balance)) = vote.locked_if(passed) {
 									let mut lock_value: T::BlockNumber =
 										ReferendumParameters::default().local_vote_locking_period;
+									match Self::referendum_parameters(status.metaverse) {
+										Some(metaverse_referendum_params) => {
+											lock_value = metaverse_referendum_params.local_vote_locking_period;
+										}
+										None => (),
+									}
 									let unlock_at = end + lock_value * lock_periods.into();
 									let now = frame_system::Pallet::<T>::block_number();
 									if now < unlock_at {
@@ -525,7 +530,9 @@ impl<T: Config> Pallet<T> {
 		let referendum_id = Self::get_next_referendum_id()?;
 
 		let mut referendum_end = current_block;
-		let mut referendum_threshold = VoteThreshold::RelativeMajority;
+		let mut referendum_threshold = ReferendumParameters::<T::BlockNumber>::default()
+			.voting_threshold
+			.ok_or("Invalid Default Referendum Threshold")?;
 		match Self::referendum_parameters(metaverse_id) {
 			Some(metaverse_referendum_params) => {
 				referendum_end = current_block + metaverse_referendum_params.voting_period;
