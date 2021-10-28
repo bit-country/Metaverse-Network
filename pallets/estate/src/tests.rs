@@ -169,7 +169,7 @@ fn mint_lands_should_reject_with_duplicate_coordinates() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandsMinted(
 				BITCOUNTRY_ID,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
+				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
 		);
 
@@ -304,7 +304,7 @@ fn mint_lands_should_work_with_more_than_one_coordinate() {
 			last_event(),
 			Event::Estate(crate::Event::NewLandsMinted(
 				BITCOUNTRY_ID,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
+				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
 		);
 
@@ -344,7 +344,7 @@ fn transfer_land_should_work() {
 				BITCOUNTRY_ID,
 				COORDINATE_IN_1,
 				BENEFICIARY_ID,
-				ALICE
+				ALICE,
 			))
 		);
 	});
@@ -991,52 +991,6 @@ fn unfreeze_undeployed_land_block_should_work() {
 }
 
 #[test]
-fn burn_undeployed_land_block_should_fail_if_not_root() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EstateModule::burn_undeployed_land_blocks(Origin::signed(ALICE), 0),
-			BadOrigin
-		);
-	});
-}
-
-#[test]
-fn burn_undeployed_land_block_should_fail_not_found() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EstateModule::burn_undeployed_land_blocks(Origin::root(), 0),
-			Error::<Runtime>::UndeployedLandBlockNotFound
-		);
-	});
-}
-
-#[test]
-fn burn_undeployed_land_block_should_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::issue_undeployed_land_blocks(
-			Origin::root(),
-			BOB,
-			BITCOUNTRY_ID,
-			20,
-			UndeployedLandBlockType::BoundToAddress
-		));
-
-		// assert_eq!(EstateModule::get_undeployed_land_block(0), Some(()));
-		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
-
-		////////////////////////
-		assert_ok!(EstateModule::burn_undeployed_land_blocks(Origin::root(), 0));
-
-		assert_eq!(last_event(), Event::Estate(crate::Event::UndeployedLandBlockBurnt(0)));
-
-		//TODO: below test should past
-		// assert_eq!(EstateModule::get_undeployed_land_block(0), None);
-
-		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), None);
-	});
-}
-
-#[test]
 fn transfer_undeployed_land_block_should_fail_if_not_found() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
@@ -1151,7 +1105,7 @@ fn transfer_undeployed_land_block_should_work() {
 			Event::Estate(crate::Event::UndeployedLandBlockTransferred(
 				BOB,
 				ALICE,
-				undeployed_land_block_id
+				undeployed_land_block_id,
 			))
 		);
 
@@ -1339,7 +1293,7 @@ fn deploy_undeployed_land_block_should_work() {
 				BOB,
 				BITCOUNTRY_ID,
 				undeployed_land_block_id,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
+				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
 		);
 
@@ -1454,7 +1408,7 @@ fn approve_undeployed_land_block_should_work() {
 			Event::Estate(crate::Event::UndeployedLandBlockApproved(
 				BOB,
 				ALICE,
-				undeployed_land_block_id
+				undeployed_land_block_id,
 			))
 		);
 
@@ -1601,5 +1555,78 @@ fn unapprove_undeployed_land_block_should_work() {
 				assert_eq!(0, 1);
 			}
 		}
+	});
+}
+
+#[test]
+fn burn_undeployed_land_block_should_fail_if_not_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::burn_undeployed_land_blocks(Origin::signed(ALICE), 0),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn burn_undeployed_land_block_should_fail_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::burn_undeployed_land_blocks(Origin::root(), 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn burn_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			BITCOUNTRY_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 20);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+
+		assert_ok!(EstateModule::burn_undeployed_land_blocks(
+			Origin::root(),
+			undeployed_land_block_id
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockBurnt(undeployed_land_block_id))
+		);
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			None
+		);
+
+		//TODO: below test should pass. Check with Justin
+		// let burnt_undeployed_land_block =
+		// EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		// assert_eq!(burnt_undeployed_land_block, None)
 	});
 }
