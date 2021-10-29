@@ -245,7 +245,7 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 	}
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum UndeployedLandBlockType {
 	Transferable,
@@ -267,7 +267,7 @@ impl Default for UndeployedLandBlockType {
 	}
 }
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 // #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct UndeployedLandBlock<AccountId> {
 	// Minimum balance to create a collection of Asset

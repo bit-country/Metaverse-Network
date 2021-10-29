@@ -337,6 +337,8 @@ pub mod pallet {
 			);
 
 			Self::do_transfer_estate(estate_id, &who, &to)?;
+
+			Ok(().into())
 		}
 
 		#[pallet::weight(10_000)]
@@ -702,8 +704,8 @@ impl<T: Config> Pallet<T> {
 					.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 				let owner = &undeployed_land_block_record.owner;
-				UndeployedLandBlocks::<T>::remove(undeployed_land_block_id);
 
+				UndeployedLandBlocks::<T>::remove(undeployed_land_block_id);
 				UndeployedLandBlocksOwner::<T>::remove(owner.clone(), undeployed_land_block_id);
 
 				Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.clone()));

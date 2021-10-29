@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use primitives::{FungibleTokenId, MetaverseId};
+use primitives::{FungibleTokenId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType};
 use scale_info::TypeInfo;
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec::Vec;

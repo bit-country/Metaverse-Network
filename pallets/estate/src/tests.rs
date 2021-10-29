@@ -763,7 +763,7 @@ fn issue_land_block_should_fail_if_not_root() {
 			EstateModule::issue_undeployed_land_blocks(
 				Origin::signed(ALICE),
 				BOB,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				20,
 				UndeployedLandBlockType::BoundToAddress
 			),
@@ -778,14 +778,14 @@ fn issue_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, BITCOUNTRY_ID, 0))
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, METAVERSE_ID, 0))
 		);
 
 		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
@@ -813,14 +813,14 @@ fn issue_two_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, BITCOUNTRY_ID, 0))
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, METAVERSE_ID, 0))
 		);
 
 		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
@@ -843,14 +843,14 @@ fn issue_two_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			ALICE,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			30,
 			UndeployedLandBlockType::Transferable
 		));
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::UndeployedLandBlockIssued(ALICE, BITCOUNTRY_ID, 1))
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(ALICE, METAVERSE_ID, 1))
 		);
 
 		assert_eq!(EstateModule::get_undeployed_land_block_owner(ALICE, 1), Some(()));
@@ -898,7 +898,7 @@ fn freeze_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -943,7 +943,7 @@ fn freeze_undeployed_land_block_should_fail_already_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -985,7 +985,7 @@ fn unfreeze_undeployed_land_block_should_fail_not_frozen() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1003,7 +1003,7 @@ fn unfreeze_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1057,7 +1057,7 @@ fn transfer_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1077,7 +1077,7 @@ fn transfer_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1102,7 +1102,7 @@ fn transfer_undeployed_land_block_should_fail_if_not_transferable() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1122,7 +1122,7 @@ fn transfer_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1192,7 +1192,7 @@ fn deploye_undeployed_land_block_should_fail_if_not_found() {
 			EstateModule::deploy_land_block(
 				Origin::signed(ALICE),
 				undeployed_land_block_id,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				vec![COORDINATE_IN_1]
 			),
 			Error::<Runtime>::UndeployedLandBlockNotFound
@@ -1206,7 +1206,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1217,7 +1217,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_owner() {
 			EstateModule::deploy_land_block(
 				Origin::signed(ALICE),
 				undeployed_land_block_id,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				vec![COORDINATE_IN_1]
 			),
 			Error::<Runtime>::NoPermission
@@ -1231,7 +1231,7 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1247,7 +1247,7 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 			EstateModule::deploy_land_block(
 				Origin::signed(BOB),
 				undeployed_land_block_id,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				vec![COORDINATE_IN_1]
 			),
 			Error::<Runtime>::UndeployedLandBlockFreezed
@@ -1261,7 +1261,7 @@ fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			1,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1272,7 +1272,7 @@ fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
 			EstateModule::deploy_land_block(
 				Origin::signed(BOB),
 				undeployed_land_block_id,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			),
 			Error::<Runtime>::UndeployedLandBlockDoesNotHaveEnoughLandUnits
@@ -1286,7 +1286,7 @@ fn deploy_undeployed_land_block_should_fail_if_no_maxbound() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			100,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1297,7 +1297,7 @@ fn deploy_undeployed_land_block_should_fail_if_no_maxbound() {
 			EstateModule::deploy_land_block(
 				Origin::signed(BOB),
 				undeployed_land_block_id,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			),
 			Error::<Runtime>::NoMaxBoundSet
@@ -1308,12 +1308,12 @@ fn deploy_undeployed_land_block_should_fail_if_no_maxbound() {
 #[test]
 fn deploy_undeployed_land_block_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), BITCOUNTRY_ID, MAX_BOUND));
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			100,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1334,7 +1334,7 @@ fn deploy_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::deploy_land_block(
 			Origin::signed(BOB),
 			undeployed_land_block_id,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
@@ -1342,7 +1342,7 @@ fn deploy_undeployed_land_block_should_work() {
 			last_event(),
 			Event::Estate(crate::Event::LandBlockDeployed(
 				BOB,
-				BITCOUNTRY_ID,
+				METAVERSE_ID,
 				undeployed_land_block_id,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
@@ -1379,7 +1379,7 @@ fn approve_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1399,7 +1399,7 @@ fn approve_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1424,7 +1424,7 @@ fn approve_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1499,7 +1499,7 @@ fn unapprove_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1519,7 +1519,7 @@ fn unapprove_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1544,7 +1544,7 @@ fn unapprove_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1635,7 +1635,7 @@ fn burn_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			BITCOUNTRY_ID,
+			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1676,8 +1676,6 @@ fn burn_undeployed_land_block_should_work() {
 		);
 
 		//TODO: below test should pass. Check with Justin
-		// let burnt_undeployed_land_block =
-		// EstateModule::get_undeployed_land_block(undeployed_land_block_id);
-		// assert_eq!(burnt_undeployed_land_block, None)
+		assert_eq!(EstateModule::get_undeployed_land_block(undeployed_land_block_id), None)
 	});
 }
