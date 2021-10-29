@@ -24,7 +24,7 @@ mod weights;
 
 // primitives imports
 use crate::opaque::SessionKeys;
-use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
+//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use parachain_staking::{InflationInfo, Range};
 use sp_api::impl_runtime_apis;
@@ -42,7 +42,7 @@ use sp_runtime::{
 		Verify, Zero,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature, Percent,
+	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Percent, Perquintill,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -61,11 +61,11 @@ pub use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureOneOf, EnsureRoot, RawOrigin,
+	Config, EnsureOneOf, EnsureRoot, RawOrigin,
 };
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
-use pallet_transaction_payment::CurrencyAdapter;
+pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use primitives::{Amount, Balance, BlockNumber, FungibleTokenId};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -76,8 +76,9 @@ pub mod constants;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
-use frame_support::traits::{FindAuthor, InstanceFilter};
+use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
 use frame_support::ConsensusEngineId;
+use scale_info::TypeInfo;
 use sp_core::sp_std::marker::PhantomData;
 use sp_runtime::traits::OpaqueKeys;
 
@@ -252,12 +253,14 @@ parameter_types! {
 	pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
 	pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
+	pub const MaxAuthorities: u32 = 50;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
+	type MaxAuthorities = MaxAuthorities;
 	type DisabledValidators = ();
 }
 
@@ -275,6 +278,7 @@ impl pallet_grandpa::Config for Runtime {
 	type HandleEquivocation = ();
 
 	type WeightInfo = ();
+	type MaxAuthorities = MaxAuthorities;
 }
 
 parameter_types! {
@@ -310,13 +314,18 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub const TransactionByteFee: Balance = 1;
+	pub const OperationalFeeMultiplier: u8 = 5;
+	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
+	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
 	type TransactionByteFee = TransactionByteFee;
+	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = IdentityFee<Balance>;
-	type FeeMultiplierUpdate = ();
+	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -365,7 +374,7 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = MaxLocks;
-	type DustRemovalWhitelist = ();
+	type DustRemovalWhitelist = Nothing;
 }
 
 parameter_types! {
@@ -434,6 +443,7 @@ impl estate::Config for Runtime {
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type AuctionHandler = Auction;
 }
 
 parameter_types! {
@@ -452,6 +462,7 @@ impl auction::Config for Runtime {
 	type FungibleTokenCurrency = Tokens;
 	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
+	type EstateHandler = Estate;
 }
 
 impl continuum::Config for Runtime {
@@ -530,6 +541,7 @@ impl pallet_vesting::Config for Runtime {
 	type BlockNumberToBalance = ConvertInto;
 	type MinVestedTransfer = MinVestedTransfer;
 	type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+	const MAX_VESTING_SCHEDULES: u32 = 100;
 }
 
 parameter_types! {
@@ -635,34 +647,34 @@ parameter_types! {
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
 }
 
-// EVM config
-impl pallet_evm::Config for Runtime {
-	//    type FeeCalculator = pallet_dynamic_fee::Module<Self>;
-	type FeeCalculator = ();
-	type GasWeightMapping = ();
-	//	type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
-	//    type BlockHashMapping = ();
-	type CallOrigin = EnsureAddressTruncated;
-	type WithdrawOrigin = EnsureAddressTruncated;
-	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
-	type Currency = Balances;
-	type Event = Event;
-	type Runner = pallet_evm::runner::stack::Runner<Self>;
-	type Precompiles = (
-		pallet_evm_precompile_simple::ECRecover,
-		pallet_evm_precompile_simple::Sha256,
-		pallet_evm_precompile_simple::Ripemd160,
-		pallet_evm_precompile_simple::Identity,
-		pallet_evm_precompile_modexp::Modexp,
-		pallet_evm_precompile_simple::ECRecoverPublicKey,
-		pallet_evm_precompile_sha3fips::Sha3FIPS256,
-		pallet_evm_precompile_sha3fips::Sha3FIPS512,
-	);
-	type ChainId = ChainId;
-	type BlockGasLimit = BlockGasLimit;
-	type OnChargeTransaction = ();
-	type FindAuthor = FindAuthorTruncated<Aura>;
-}
+//// EVM config
+//impl pallet_evm::Config for Runtime {
+//	//    type FeeCalculator = pallet_dynamic_fee::Module<Self>;
+//	type FeeCalculator = ();
+//	type GasWeightMapping = ();
+//	//	type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
+//	//    type BlockHashMapping = ();
+//	type CallOrigin = EnsureAddressTruncated;
+//	type WithdrawOrigin = EnsureAddressTruncated;
+//	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+//	type Currency = Balances;
+//	type Event = Event;
+//	type Runner = pallet_evm::runner::stack::Runner<Self>;
+//	type Precompiles = (
+//		pallet_evm_precompile_simple::ECRecover,
+//		pallet_evm_precompile_simple::Sha256,
+//		pallet_evm_precompile_simple::Ripemd160,
+//		pallet_evm_precompile_simple::Identity,
+//		pallet_evm_precompile_modexp::Modexp,
+//		pallet_evm_precompile_simple::ECRecoverPublicKey,
+//		pallet_evm_precompile_sha3fips::Sha3FIPS256,
+//		pallet_evm_precompile_sha3fips::Sha3FIPS512,
+//	);
+//	type ChainId = ChainId;
+//	type BlockGasLimit = BlockGasLimit;
+//	type OnChargeTransaction = ();
+//	type FindAuthor = FindAuthorTruncated<Aura>;
+//}
 
 parameter_types! {
 	pub const DefaultVotingPeriod: BlockNumber = 10;
@@ -748,9 +760,10 @@ impl pallet_democracy::Config for Runtime {
 	type MaxVotes = MaxVotes;
 	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
 	type MaxProposals = MaxProposals;
+	type VoteLockingPeriod = EnactmentPeriod; // Same as EnactmentPeriod
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalType {
 	Any,
 	JustMetaverse,
@@ -865,7 +878,7 @@ construct_runtime!(
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 
-		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
+//		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
 
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
@@ -930,7 +943,7 @@ impl_runtime_apis! {
 
 	impl sp_api::Metadata<Block> for Runtime {
 		fn metadata() -> OpaqueMetadata {
-			Runtime::metadata().into()
+			OpaqueMetadata::new(Runtime::metadata().into())
 		}
 	}
 
@@ -977,7 +990,7 @@ impl_runtime_apis! {
 		}
 
 		fn authorities() -> Vec<AuraId> {
-			Aura::authorities()
+			Aura::authorities().into_inner()
 		}
 	}
 

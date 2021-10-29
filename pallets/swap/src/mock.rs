@@ -5,6 +5,7 @@ use crate as swap;
 use currencies::BasicCurrencyAdapter;
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
+use frame_support::traits::Nothing;
 use frame_support::{
 	construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
 };
@@ -61,7 +62,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
@@ -117,7 +118,7 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = ();
-	type DustRemovalWhitelist = ();
+	type DustRemovalWhitelist = Nothing;
 }
 
 parameter_types! {

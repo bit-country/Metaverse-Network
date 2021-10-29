@@ -18,19 +18,31 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use auction_manager::SwapManager;
+use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::traits::Get;
+use frame_support::traits::{Currency, Get, WithdrawReasons};
 use frame_support::PalletId;
 use frame_support::{
+	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
+	transactional, Parameter,
 };
-use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use orml_traits::{LockIdentifier, MultiCurrency, MultiCurrencyExtended};
-use primitives::{Balance, FungibleTokenId};
-use sp_runtime::traits::{AccountIdConversion, Zero};
+use frame_system::{self as system, ensure_signed};
+use orml_traits::{
+	arithmetic::{Signed, SimpleArithmetic},
+	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
+	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+};
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use scale_info::TypeInfo;
+use sp_runtime::{
+	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
+	DispatchError,
+};
 use sp_std::vec::Vec;
 
 #[cfg(test)]
@@ -45,7 +57,7 @@ pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
 pub type Ticker = Vec<u8>;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Token<Balance> {
 	pub ticker: Ticker,
 	pub total_supply: Balance,
@@ -61,11 +73,18 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use primitives::FungibleTokenId;
+	use frame_support::sp_runtime::traits::Saturating;
+	use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
+	use frame_support::traits::OnUnbalanced;
+	use pallet_balances::NegativeImbalance;
+	use primitives::dex::Price;
+	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
+	use sp_std::convert::TryInto;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
 
+	pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
 	pub type ScheduledItem<T> = (
 		<T as frame_system::Config>::AccountId,
 		<T as frame_system::Config>::BlockNumber,
@@ -91,12 +110,7 @@ pub mod pallet {
 	pub type MintingOrigins<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(
-    < T as frame_system::Config >::AccountId = "AccountId",
-    Balance = "Balance",
-    CurrencyId = "CurrencyId"
-    )]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Mining resource minted [amount]
 		MiningResourceMinted(Balance),

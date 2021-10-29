@@ -4,6 +4,7 @@ use super::*;
 use crate as governance;
 use codec::Encode;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Parameter};
+use scale_info::TypeInfo;
 
 use frame_support::dispatch::DispatchError;
 use frame_support::pallet_prelude::{EnsureOrigin, Member};
@@ -64,7 +65,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
@@ -170,7 +171,7 @@ impl pallet_metaverse::Config for Runtime {
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalType {
 	Any,
 	JustTransfer,
@@ -283,11 +284,16 @@ pub fn run_to_block(n: u64) {
 }
 
 pub fn set_balance_proposal(value: u64) -> Vec<u8> {
-	Call::Balances(pallet_balances::Call::set_balance(BOB, value, 100)).encode()
+	Call::Balances(pallet_balances::Call::set_balance {
+		who: BOB,
+		new_free: value,
+		new_reserved: 100,
+	})
+	.encode()
 }
 
 pub fn set_freeze_metaverse_proposal(value: u64) -> Vec<u8> {
-	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse(value)).encode()
+	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse { metaverse_id: value }).encode()
 }
 
 pub fn set_balance_proposal_hash(value: u64) -> H256 {
