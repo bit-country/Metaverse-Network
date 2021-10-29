@@ -433,7 +433,11 @@ fn remove_vote_work() {
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
-		assert_ok!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0));
+		assert_ok!(GovernanceModule::try_remove_vote(
+			Origin::signed(BOB),
+			0,
+			BOB_COUNTRY_ID
+		));
 		assert_eq!(last_event(), Event::Governance(crate::Event::VoteRemoved(BOB, 0)));
 	});
 }
@@ -453,7 +457,7 @@ fn remove_vote_when_you_have_not_voted_does_not_work() {
 		));
 		run_to_block(16);
 		assert_noop!(
-			GovernanceModule::try_remove_vote(Origin::signed(BOB), 0),
+			GovernanceModule::try_remove_vote(Origin::signed(BOB), 0, BOB_COUNTRY_ID),
 			Error::<Runtime>::AccountHasNotVoted
 		);
 	});
@@ -619,7 +623,11 @@ fn unlocking_balance_after_removing_vote_works() {
 		assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
 		assert_eq!(Balances::usable_balance(&BOB), 490);
 		run_to_block(26);
-		assert_ok!(GovernanceModule::try_remove_vote(Origin::signed(BOB), 0));
+		assert_ok!(GovernanceModule::try_remove_vote(
+			Origin::signed(BOB),
+			0,
+			BOB_COUNTRY_ID
+		));
 		assert_ok!(GovernanceModule::unlock_balance(Origin::signed(BOB), BOB));
 		assert_eq!(Balances::usable_balance(&BOB), 500);
 	});
@@ -642,6 +650,11 @@ fn unlocking_balance_after_referendum_is_over_works() {
 		assert_ok!(GovernanceModule::try_vote(Origin::signed(BOB), 0, VOTE_FOR));
 		assert_eq!(Balances::usable_balance(&BOB), 490);
 		run_to_block(30);
+		assert_ok!(GovernanceModule::try_remove_vote(
+			Origin::signed(BOB),
+			0,
+			BOB_COUNTRY_ID
+		));
 		assert_ok!(GovernanceModule::unlock_balance(Origin::signed(BOB), BOB));
 		assert_eq!(Balances::usable_balance(&BOB), 500);
 	});

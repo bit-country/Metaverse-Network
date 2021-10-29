@@ -385,9 +385,12 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn try_remove_vote(origin: OriginFor<T>, referendum: ReferendumId) -> DispatchResultWithPostInfo {
+		pub fn try_remove_vote(
+			origin: OriginFor<T>,
+			referendum: ReferendumId,
+			metaverse: MetaverseId,
+		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
-			let mut status = Self::referendum_status(referendum)?;
 			let info = ReferendumInfoOf::<T>::get(&referendum);
 			<VotingOf<T>>::try_mutate(from.clone(), |voting_record| -> DispatchResultWithPostInfo {
 				let mut votes = &mut voting_record.votes;
@@ -405,7 +408,7 @@ pub mod pallet {
 								if let Some((lock_periods, balance)) = vote.locked_if(passed) {
 									let mut lock_value: T::BlockNumber =
 										ReferendumParameters::default().local_vote_locking_period;
-									match Self::referendum_parameters(status.metaverse) {
+									match Self::referendum_parameters(metaverse) {
 										Some(metaverse_referendum_params) => {
 											lock_value = metaverse_referendum_params.local_vote_locking_period;
 										}
