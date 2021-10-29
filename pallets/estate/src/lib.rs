@@ -172,6 +172,7 @@ pub mod pallet {
 		LandUnitAlreadyInAuction,
 		EstateDoesNotExist,
 		LandUnitDoesNotExist,
+		OnlyFrozenUndeployedLandBlockCanBeDestroyed,
 	}
 
 	#[pallet::call]
@@ -696,23 +697,39 @@ impl<T: Config> Pallet<T> {
 	fn do_burn_undeployed_lan_block(
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
-		UndeployedLandBlocks::<T>::try_mutate_exists(
-			&undeployed_land_block_id,
-			|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
-				let mut undeployed_land_block_record = undeployed_land_block
-					.as_mut()
-					.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+		let undeployed_land_block_info =
+			UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
-				let owner = &undeployed_land_block_record.owner;
+		ensure!(
+			undeployed_land_block_info.is_frozen,
+			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
+		);
 
-				UndeployedLandBlocks::<T>::remove(undeployed_land_block_id);
-				UndeployedLandBlocksOwner::<T>::remove(owner.clone(), undeployed_land_block_id);
+		UndeployedLandBlocksOwner::<T>::remove(undeployed_land_block_info.owner, &undeployed_land_block_id);
+		UndeployedLandBlocks::<T>::remove(&undeployed_land_block_id);
 
-				Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.clone()));
+		Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.clone()));
 
-				Ok(undeployed_land_block_id)
-			},
-		)
+		Ok(undeployed_land_block_id)
+
+		// UndeployedLandBlocks::<T>::try_mutate_exists(
+		// 	&undeployed_land_block_id,
+		// 	|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
+		// 		let mut undeployed_land_block_record = undeployed_land_block
+		// 			.as_mut()
+		// 			.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+		//
+		// 		let owner = &undeployed_land_block_record.owner;
+		//
+		// 		UndeployedLandBlocks::<T>::remove(undeployed_land_block_id);
+		// 		UndeployedLandBlocksOwner::<T>::remove(owner.clone(), undeployed_land_block_id);
+		//
+		// 		Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.
+		// clone()));
+		//
+		// 		Ok(undeployed_land_block_id)
+		// 	},
+		// )
 	}
 
 	fn do_freeze_undeployed_land_block(

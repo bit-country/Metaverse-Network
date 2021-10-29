@@ -1630,6 +1630,24 @@ fn burn_undeployed_land_block_should_fail_not_found() {
 }
 
 #[test]
+fn burn_undeployed_land_block_should_fail_if_not_frozon() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		assert_noop!(
+			EstateModule::burn_undeployed_land_blocks(Origin::root(), 0),
+			Error::<Runtime>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
+		);
+	});
+}
+
+#[test]
 fn burn_undeployed_land_block_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
@@ -1660,6 +1678,8 @@ fn burn_undeployed_land_block_should_work() {
 			Some(())
 		);
 
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(Origin::root(), 0));
+
 		assert_ok!(EstateModule::burn_undeployed_land_blocks(
 			Origin::root(),
 			undeployed_land_block_id
@@ -1675,7 +1695,6 @@ fn burn_undeployed_land_block_should_work() {
 			None
 		);
 
-		//TODO: below test should pass. Check with Justin
 		assert_eq!(EstateModule::get_undeployed_land_block(undeployed_land_block_id), None)
 	});
 }
