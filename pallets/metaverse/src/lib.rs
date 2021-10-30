@@ -95,9 +95,8 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(T::AccountId = "AccountId")]
 	pub enum Event<T: Config> {
-		NewMetaverseCreated(MetaverseId),
+		NewMetaverseCreated(MetaverseId, T::AccountId),
 		TransferredMetaverse(MetaverseId, T::AccountId, T::AccountId),
 		MetaverseFreezed(MetaverseId),
 		MetaverseDestroyed(MetaverseId),
@@ -121,18 +120,15 @@ pub mod pallet {
 		MaxMetadataExceeded,
 		/// Contribution is insufficient
 		InsufficientContribution,
+		/// Only frozen metaverse can be destroy
+		OnlyFrozenMetaverseCanBeDestroyed,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(10_000)]
-		pub fn create_metaverse(
-			origin: OriginFor<T>,
-			metadata: MetaverseMetadata,
-			beneficiary: T::AccountId,
-			contribution: BalanceOf<T>,
-		) -> DispatchResultWithPostInfo {
-			T::MetaverseCouncil::ensure_origin(origin)?;
+		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
 
 			ensure!(
 				metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
@@ -140,27 +136,27 @@ pub mod pallet {
 			);
 
 			ensure!(
-				T::Currency::free_balance(&beneficiary) >= contribution && contribution >= T::MinContribution::get(),
+				T::Currency::free_balance(&from) >= T::MinContribution::get(),
 				Error::<T>::InsufficientContribution
 			);
 
 			T::Currency::transfer(
-				&beneficiary,
+				&from,
 				&Self::account_id(),
-				contribution,
+				T::MinContribution::get(),
 				ExistenceRequirement::KeepAlive,
 			)?;
 
-			let metaverse_id = Self::new_metaverse(&beneficiary, metadata)?;
+			let metaverse_id = Self::new_metaverse(&from, metadata)?;
 
-			MetaverseOwner::<T>::insert(metaverse_id, beneficiary, ());
+			MetaverseOwner::<T>::insert(metaverse_id, from.clone(), ());
 
 			let total_metaverse_count = Self::all_metaverse_count();
 			let new_total_metaverse_count = total_metaverse_count
 				.checked_add(One::one())
 				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 			AllMetaversesCount::<T>::put(new_total_metaverse_count);
-			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone()));
+			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), from));
 
 			Ok(().into())
 		}
@@ -205,10 +201,15 @@ pub mod pallet {
 			/// Only Council can free a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
 
-			FreezedMetaverses::<T>::insert(metaverse_id, ());
-			Self::deposit_event(Event::<T>::MetaverseFreezed(metaverse_id));
+			Metaverses::<T>::try_mutate(metaverse_id, |maybe_metaverse| {
+				let metaverse_info = maybe_metaverse.as_mut().ok_or(Error::<T>::MetaverseInfoNotFound)?;
 
-			Ok(().into())
+				metaverse_info.is_frozen = true;
+
+				Self::deposit_event(Event::<T>::MetaverseFreezed(metaverse_id));
+
+				Ok(().into())
+			})
 		}
 
 		#[pallet::weight(10_000)]
@@ -216,10 +217,13 @@ pub mod pallet {
 			/// Only Council can free a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
 
-			FreezedMetaverses::<T>::try_mutate(metaverse_id, |freeze_metaverse| -> DispatchResultWithPostInfo {
-				ensure!(freeze_metaverse.take().is_some(), Error::<T>::MetaverseInfoNotFound);
+			Metaverses::<T>::try_mutate(metaverse_id, |maybe_metaverse| {
+				let metaverse_info = maybe_metaverse.as_mut().ok_or(Error::<T>::MetaverseInfoNotFound)?;
+
+				metaverse_info.is_frozen = false;
 
 				Self::deposit_event(Event::<T>::MetaverseUnfreezed(metaverse_id));
+
 				Ok(().into())
 			})
 		}
@@ -229,14 +233,14 @@ pub mod pallet {
 			/// Only Council can destroy a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
 
-			Metaverses::<T>::try_mutate(metaverse_id, |metaverse_info| -> DispatchResultWithPostInfo {
-				let t = metaverse_info.take().ok_or(Error::<T>::MetaverseInfoNotFound)?;
+			let metaverse_info = Metaverses::<T>::get(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
 
-				MetaverseOwner::<T>::remove(&metaverse_id, t.owner.clone());
-				Self::deposit_event(Event::<T>::MetaverseDestroyed(metaverse_id));
+			ensure!(metaverse_info.is_frozen, Error::<T>::OnlyFrozenMetaverseCanBeDestroyed);
 
-				Ok(().into())
-			})
+			MetaverseOwner::<T>::remove(&metaverse_id, metaverse_info.owner);
+			Metaverses::<T>::remove(&metaverse_id);
+			Self::deposit_event(Event::<T>::MetaverseDestroyed(metaverse_id));
+			Ok(().into())
 		}
 	}
 
@@ -259,6 +263,7 @@ impl<T: Config> Pallet<T> {
 			owner: owner.clone(),
 			currency_id: FungibleTokenId::NativeToken(0),
 			metadata,
+			is_frozen: false,
 		};
 
 		Metaverses::<T>::insert(metaverse_id, metaverse_info);

@@ -11,7 +11,7 @@ use sp_std::convert::TryFrom;
 use sp_std::ops::{Add, Div, Mul, Rem};
 use sp_std::vec::Vec;
 
-#[derive(Clone, Encode, Decode, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
 	/// The preimage is imminently needed at the argument.
 	Missing(BlockNumber),
@@ -36,7 +36,7 @@ impl<AccountId, Balance, BlockNumber> PreimageStatus<AccountId, Balance, BlockNu
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum VoteThreshold {
 	SuperMajorityApprove,
 	SuperMajorityAgainst,
@@ -331,11 +331,12 @@ impl<Balance: Saturating + Ord + Zero + Copy, BlockNumber: Ord + Copy + Zero> Vo
 	}
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
 	pub(crate) proposed_by: AccountId,
 	pub(crate) hash: Hash,
-	pub(crate) description: Vec<u8>, // link to proposal description
+	pub(crate) description: Vec<u8>,
+	// link to proposal description
 	pub(crate) referendum_launch_block: BlockNumber,
 }
 

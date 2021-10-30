@@ -10,15 +10,16 @@ version = '2.0.0-rc6'
 
 [dependencies]
 serde = { version = "1.0.124", optional = true, features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+codec = { package = "parity-scale-codec", version = "2.3.1", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
 # Used for the node's RPCs
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 funty = { version = "=1.1.0", default-features = false }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 
 [features]
 default = ['std']

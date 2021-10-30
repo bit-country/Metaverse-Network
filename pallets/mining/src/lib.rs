@@ -38,6 +38,7 @@ use orml_traits::{
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,
@@ -56,7 +57,7 @@ pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
 pub type Ticker = Vec<u8>;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Token<Balance> {
 	pub ticker: Ticker,
 	pub total_supply: Balance,
@@ -109,12 +110,7 @@ pub mod pallet {
 	pub type MintingOrigins<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(
-    < T as frame_system::Config >::AccountId = "AccountId",
-    Balance = "Balance",
-    CurrencyId = "CurrencyId"
-    )]
+	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Mining resource minted [amount]
 		MiningResourceMinted(Balance),

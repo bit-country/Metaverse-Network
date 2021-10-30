@@ -38,7 +38,7 @@ use frame_system::{
 };
 use pallet_contracts::weights::WeightInfo;
 use pallet_election_provider_multi_phase::FallbackStrategy;
-use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
+//use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
@@ -1014,6 +1014,7 @@ impl estate::Config for Runtime {
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type AuctionHandler = Auction;
 }
 
 parameter_types! {
@@ -1032,6 +1033,7 @@ impl auction::Config for Runtime {
 	type FungibleTokenCurrency = Tokens;
 	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
+	type EstateHandler = Estate;
 }
 
 impl continuum::Config for Runtime {

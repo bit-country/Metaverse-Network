@@ -24,8 +24,7 @@ mod weights;
 
 // primitives imports
 use crate::opaque::SessionKeys;
-use hex_literal::hex;
-use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
+//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use parachain_staking::{InflationInfo, Range};
 use sp_api::impl_runtime_apis;
@@ -33,7 +32,7 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::Public;
 use sp_core::{
 	crypto::KeyTypeId,
-	u32_trait::{_1, _2, _3, _4, _5},
+	u32_trait::{_1, _2, _3, _4},
 	OpaqueMetadata, H160, U256,
 };
 use sp_runtime::{
@@ -43,7 +42,7 @@ use sp_runtime::{
 		Verify, Zero,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature, Percent,
+	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Percent, Perquintill,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -66,10 +65,8 @@ use frame_system::{
 };
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
-use pallet_transaction_payment::CurrencyAdapter;
-use primitives::{
-	Amount, Balance, Block as BlockP, BlockId as BlockIdP, BlockNumber, FungibleTokenId, Header as HeaderP,
-};
+pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
+use primitives::{Amount, Balance, BlockNumber, FungibleTokenId};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
@@ -79,8 +76,9 @@ pub mod constants;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
-use frame_support::traits::{FindAuthor, InstanceFilter};
+use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
 use frame_support::ConsensusEngineId;
+use scale_info::TypeInfo;
 use sp_core::sp_std::marker::PhantomData;
 use sp_runtime::traits::OpaqueKeys;
 
@@ -255,12 +253,14 @@ parameter_types! {
 	pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
 	pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
+	pub const MaxAuthorities: u32 = 50;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
+	type MaxAuthorities = MaxAuthorities;
 	type DisabledValidators = ();
 }
 
@@ -278,6 +278,7 @@ impl pallet_grandpa::Config for Runtime {
 	type HandleEquivocation = ();
 
 	type WeightInfo = ();
+	type MaxAuthorities = MaxAuthorities;
 }
 
 parameter_types! {
@@ -313,13 +314,18 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub const TransactionByteFee: Balance = 1;
+	pub const OperationalFeeMultiplier: u8 = 5;
+	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
+	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
+	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
 }
 
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
 	type TransactionByteFee = TransactionByteFee;
+	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = IdentityFee<Balance>;
-	type FeeMultiplierUpdate = ();
+	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -368,7 +374,7 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = MaxLocks;
-	type DustRemovalWhitelist = ();
+	type DustRemovalWhitelist = Nothing;
 }
 
 parameter_types! {
@@ -437,6 +443,7 @@ impl estate::Config for Runtime {
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type AuctionHandler = Auction;
 }
 
 parameter_types! {
@@ -455,6 +462,7 @@ impl auction::Config for Runtime {
 	type FungibleTokenCurrency = Tokens;
 	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
+	type EstateHandler = Estate;
 }
 
 impl continuum::Config for Runtime {
@@ -533,6 +541,7 @@ impl pallet_vesting::Config for Runtime {
 	type BlockNumberToBalance = ConvertInto;
 	type MinVestedTransfer = MinVestedTransfer;
 	type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+	const MAX_VESTING_SCHEDULES: u32 = 100;
 }
 
 parameter_types! {
@@ -552,120 +561,120 @@ parameter_types! {
 	pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(17);
 }
 
-impl pallet_session::Config for Runtime {
-	type Event = Event;
-	type ValidatorId = <Self as frame_system::Config>::AccountId;
-	type ValidatorIdOf = parachain_staking::ValidatorOf<Self>;
-	type ShouldEndSession = Staking;
-	type NextSessionRotation = Staking;
-	type SessionManager = Staking;
-	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
-	type Keys = SessionKeys;
-	type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
-	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
-}
+//impl pallet_session::Config for Runtime {
+//    type Event = Event;
+//    type ValidatorId = <Self as frame_system::Config>::AccountId;
+//    type ValidatorIdOf = parachain_staking::ValidatorOf<Self>;
+//    type ShouldEndSession = Staking;
+//    type NextSessionRotation = Staking;
+//    type SessionManager = Staking;
+//    type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+//    type Keys = SessionKeys;
+//    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+//    type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+//}
+//
+//parameter_types! {
+//	/// Minimum round length is 2 minutes (10 * 12 second block times)
+//	pub const MinBlocksPerRound: u32 = 10;
+//	/// Default BlocksPerRound is every hour (300 * 12 second block times)
+//	pub const DefaultBlocksPerRound: u32 = 30;
+//	/// Collator candidate exits are delayed by 2 hours (2 * 300 * block_time)
+//	pub const LeaveCandidatesDelay: u32 = 2;
+//	/// Nominator exits are delayed by 2 hours (2 * 300 * block_time)
+//	pub const LeaveNominatorsDelay: u32 = 2;
+//	/// Nomination revocations are delayed by 2 hours (2 * 300 * block_time)
+//	pub const RevokeNominationDelay: u32 = 2;
+//	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
+//	pub const RewardPaymentDelay: u32 = 2;
+//	/// Minimum 8 collators selected per round, default at genesis and minimum forever after
+//	pub const MinSelectedCandidates: u32 = 8;
+//	/// Maximum 100 nominators per collator
+//	pub const MaxNominatorsPerCollator: u32 = 100;
+//	/// Maximum 100 collators per nominator
+//	pub const MaxCollatorsPerNominator: u32 = 100;
+//	/// Default fixed percent a collator takes off the top of due rewards is 20%
+//	pub const DefaultCollatorCommission: Perbill = Perbill::from_percent(20);
+//	/// Default percent of inflation set aside for parachain bond every round
+//	pub const DefaultParachainBondReservePercent: Percent = Percent::from_percent(30);
+//	/// Minimum stake required to become a collator is 1_000
+//	pub const MinCollatorStk: u128 = 1 * DOLLARS;
+//	/// Minimum stake required to be reserved to be a candidate is 1_000
+//	pub const MinCollatorCandidateStk: u128 = 1 * DOLLARS;
+//	/// Minimum stake required to be reserved to be a nominator is 5
+//	pub const MinNominatorStk: u128 = 5 * DOLLARS;
+//}
+//
+//impl parachain_staking::Config for Runtime {
+//    type Event = Event;
+//    type Currency = Balances;
+//    type MonetaryGovernanceOrigin = EnsureRoot<AccountId>;
+//    type MinBlocksPerRound = MinBlocksPerRound;
+//    type DefaultBlocksPerRound = DefaultBlocksPerRound;
+//    type LeaveCandidatesDelay = LeaveCandidatesDelay;
+//    type LeaveNominatorsDelay = LeaveNominatorsDelay;
+//    type RevokeNominationDelay = RevokeNominationDelay;
+//    type RewardPaymentDelay = RewardPaymentDelay;
+//    type MinSelectedCandidates = MinSelectedCandidates;
+//    type MaxNominatorsPerCollator = MaxNominatorsPerCollator;
+//    type MaxCollatorsPerNominator = MaxCollatorsPerNominator;
+//    type DefaultCollatorCommission = DefaultCollatorCommission;
+//    type DefaultParachainBondReservePercent = DefaultParachainBondReservePercent;
+//    type MinCollatorStk = MinCollatorStk;
+//    type MinCollatorCandidateStk = MinCollatorCandidateStk;
+//    type MinNomination = MinNominatorStk;
+//    type MinNominatorStk = MinNominatorStk;
+//    type WeightInfo = parachain_staking::weights::SubstrateWeight<Runtime>;
+//}
+//
+//pub struct FindAuthorTruncated<F>(PhantomData<F>);
+//
+//impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
+//    fn find_author<'a, I>(digests: I) -> Option<H160>
+//        where
+//            I: 'a + IntoIterator<Item=(ConsensusEngineId, &'a [u8])>,
+//    {
+//        if let Some(author_index) = F::find_author(digests) {
+//            let authority_id = Aura::authorities()[author_index as usize].clone();
+//            return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
+//        }
+//        None
+//    }
+//}
+//
+//parameter_types! {
+//	pub const ChainId: u64 = 42;
+//	pub BlockGasLimit: U256 = U256::from(u32::max_value());
+//}
 
-parameter_types! {
-	/// Minimum round length is 2 minutes (10 * 12 second block times)
-	pub const MinBlocksPerRound: u32 = 10;
-	/// Default BlocksPerRound is every hour (300 * 12 second block times)
-	pub const DefaultBlocksPerRound: u32 = 30;
-	/// Collator candidate exits are delayed by 2 hours (2 * 300 * block_time)
-	pub const LeaveCandidatesDelay: u32 = 2;
-	/// Nominator exits are delayed by 2 hours (2 * 300 * block_time)
-	pub const LeaveNominatorsDelay: u32 = 2;
-	/// Nomination revocations are delayed by 2 hours (2 * 300 * block_time)
-	pub const RevokeNominationDelay: u32 = 2;
-	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
-	pub const RewardPaymentDelay: u32 = 2;
-	/// Minimum 8 collators selected per round, default at genesis and minimum forever after
-	pub const MinSelectedCandidates: u32 = 8;
-	/// Maximum 100 nominators per collator
-	pub const MaxNominatorsPerCollator: u32 = 100;
-	/// Maximum 100 collators per nominator
-	pub const MaxCollatorsPerNominator: u32 = 100;
-	/// Default fixed percent a collator takes off the top of due rewards is 20%
-	pub const DefaultCollatorCommission: Perbill = Perbill::from_percent(20);
-	/// Default percent of inflation set aside for parachain bond every round
-	pub const DefaultParachainBondReservePercent: Percent = Percent::from_percent(30);
-	/// Minimum stake required to become a collator is 1_000
-	pub const MinCollatorStk: u128 = 1 * DOLLARS;
-	/// Minimum stake required to be reserved to be a candidate is 1_000
-	pub const MinCollatorCandidateStk: u128 = 1 * DOLLARS;
-	/// Minimum stake required to be reserved to be a nominator is 5
-	pub const MinNominatorStk: u128 = 5 * DOLLARS;
-}
-
-impl parachain_staking::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type MonetaryGovernanceOrigin = EnsureRoot<AccountId>;
-	type MinBlocksPerRound = MinBlocksPerRound;
-	type DefaultBlocksPerRound = DefaultBlocksPerRound;
-	type LeaveCandidatesDelay = LeaveCandidatesDelay;
-	type LeaveNominatorsDelay = LeaveNominatorsDelay;
-	type RevokeNominationDelay = RevokeNominationDelay;
-	type RewardPaymentDelay = RewardPaymentDelay;
-	type MinSelectedCandidates = MinSelectedCandidates;
-	type MaxNominatorsPerCollator = MaxNominatorsPerCollator;
-	type MaxCollatorsPerNominator = MaxCollatorsPerNominator;
-	type DefaultCollatorCommission = DefaultCollatorCommission;
-	type DefaultParachainBondReservePercent = DefaultParachainBondReservePercent;
-	type MinCollatorStk = MinCollatorStk;
-	type MinCollatorCandidateStk = MinCollatorCandidateStk;
-	type MinNomination = MinNominatorStk;
-	type MinNominatorStk = MinNominatorStk;
-	type WeightInfo = parachain_staking::weights::SubstrateWeight<Runtime>;
-}
-
-pub struct FindAuthorTruncated<F>(PhantomData<F>);
-
-impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
-	fn find_author<'a, I>(digests: I) -> Option<H160>
-	where
-		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
-	{
-		if let Some(author_index) = F::find_author(digests) {
-			let authority_id = Aura::authorities()[author_index as usize].clone();
-			return Some(H160::from_slice(&authority_id.to_raw_vec()[4..24]));
-		}
-		None
-	}
-}
-
-parameter_types! {
-	pub const ChainId: u64 = 42;
-	pub BlockGasLimit: U256 = U256::from(u32::max_value());
-}
-
-// EVM config
-impl pallet_evm::Config for Runtime {
-	//    type FeeCalculator = pallet_dynamic_fee::Module<Self>;
-	type FeeCalculator = ();
-	type GasWeightMapping = ();
-	//	type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
-	//    type BlockHashMapping = ();
-	type CallOrigin = EnsureAddressTruncated;
-	type WithdrawOrigin = EnsureAddressTruncated;
-	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
-	type Currency = Balances;
-	type Event = Event;
-	type Runner = pallet_evm::runner::stack::Runner<Self>;
-	type Precompiles = (
-		pallet_evm_precompile_simple::ECRecover,
-		pallet_evm_precompile_simple::Sha256,
-		pallet_evm_precompile_simple::Ripemd160,
-		pallet_evm_precompile_simple::Identity,
-		pallet_evm_precompile_modexp::Modexp,
-		pallet_evm_precompile_simple::ECRecoverPublicKey,
-		pallet_evm_precompile_sha3fips::Sha3FIPS256,
-		pallet_evm_precompile_sha3fips::Sha3FIPS512,
-	);
-	type ChainId = ChainId;
-	type BlockGasLimit = BlockGasLimit;
-	type OnChargeTransaction = ();
-	type FindAuthor = FindAuthorTruncated<Aura>;
-}
+//// EVM config
+//impl pallet_evm::Config for Runtime {
+//	//    type FeeCalculator = pallet_dynamic_fee::Module<Self>;
+//	type FeeCalculator = ();
+//	type GasWeightMapping = ();
+//	//	type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
+//	//    type BlockHashMapping = ();
+//	type CallOrigin = EnsureAddressTruncated;
+//	type WithdrawOrigin = EnsureAddressTruncated;
+//	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+//	type Currency = Balances;
+//	type Event = Event;
+//	type Runner = pallet_evm::runner::stack::Runner<Self>;
+//	type Precompiles = (
+//		pallet_evm_precompile_simple::ECRecover,
+//		pallet_evm_precompile_simple::Sha256,
+//		pallet_evm_precompile_simple::Ripemd160,
+//		pallet_evm_precompile_simple::Identity,
+//		pallet_evm_precompile_modexp::Modexp,
+//		pallet_evm_precompile_simple::ECRecoverPublicKey,
+//		pallet_evm_precompile_sha3fips::Sha3FIPS256,
+//		pallet_evm_precompile_sha3fips::Sha3FIPS512,
+//	);
+//	type ChainId = ChainId;
+//	type BlockGasLimit = BlockGasLimit;
+//	type OnChargeTransaction = ();
+//	type FindAuthor = FindAuthorTruncated<Aura>;
+//}
 
 parameter_types! {
 	pub const OneBlock: BlockNumber = 1;
@@ -703,52 +712,54 @@ parameter_types! {
 	pub const MaxProposals: u32 = 50;
 }
 
-impl pallet_democracy::Config for Runtime {
-	type Proposal = Call;
-	type Event = Event;
-	type Currency = Balances;
-	type EnactmentPeriod = EnactmentPeriod;
-	type LaunchPeriod = LaunchPeriod;
-	type VotingPeriod = VotingPeriod;
-	type MinimumDeposit = MinimumDeposit;
-	/// A straight majority of the council can decide what their next motion is.
-	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>;
-	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;
-	/// A unanimous council can have the next scheduled referendum be a straight default-carries
-	/// (NTB) vote.
-	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
-	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
-	/// be tabled immediately and with a shorter voting/enactment period.
-	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
-	type InstantOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
-	type InstantAllowed = InstantAllowed;
-	type FastTrackVotingPeriod = FastTrackVotingPeriod;
-	/// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
-	/// To cancel a proposal before it has been passed, the technical committee must be unanimous or
-	/// Root must agree.
-	type CancelProposalOrigin = EnsureOneOf<
-		AccountId,
-		EnsureRoot<AccountId>,
-		pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
-	>;
-	type BlacklistOrigin = EnsureRoot<AccountId>;
-	/// Any single technical committee member may veto a coming council proposal, however they can
-	/// only do it once and it lasts only for the cooloff period.
-	type VetoOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
-	type CooloffPeriod = CooloffPeriod;
-	type PreimageByteDeposit = PreimageByteDeposit;
-	type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
-	type Slash = ();
-	type Scheduler = Scheduler;
-	type PalletsOrigin = OriginCaller;
-	type MaxVotes = MaxVotes;
-	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
-	type MaxProposals = MaxProposals;
-}
+//impl pallet_democracy::Config for Runtime {
+//    type Proposal = Call;
+//    type Event = Event;
+//    type Currency = Balances;
+//    type EnactmentPeriod = EnactmentPeriod;
+//    type LaunchPeriod = LaunchPeriod;
+//    type VotingPeriod = VotingPeriod;
+//    type MinimumDeposit = MinimumDeposit;
+//    /// A straight majority of the council can decide what their next motion is.
+//    type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId,
+// CouncilCollective>;    /// A super-majority can have the next scheduled referendum be a straight
+// majority-carries vote.    type ExternalMajorityOrigin =
+// pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;    /// A unanimous
+// council can have the next scheduled referendum be a straight default-carries    /// (NTB) vote.
+//    type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId,
+// CouncilCollective>;    /// Two thirds of the technical committee can have an
+// ExternalMajority/ExternalDefault vote    /// be tabled immediately and with a shorter
+// voting/enactment period.    type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<_2,
+// _3, AccountId, CouncilCollective>;    type InstantOrigin =
+// pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
+//    type InstantAllowed = InstantAllowed;
+//    type FastTrackVotingPeriod = FastTrackVotingPeriod;
+//    /// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+//    type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId,
+// CouncilCollective>;    /// To cancel a proposal before it has been passed, the technical
+// committee must be unanimous or    /// Root must agree.
+//    type CancelProposalOrigin = EnsureOneOf<
+//        AccountId,
+//        EnsureRoot<AccountId>,
+//        pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
+//    >;
+//    type BlacklistOrigin = EnsureRoot<AccountId>;
+//    /// Any single technical committee member may veto a coming council proposal, however they can
+//    /// only do it once and it lasts only for the cooloff period.
+//    type VetoOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+//    type CooloffPeriod = CooloffPeriod;
+//    type PreimageByteDeposit = PreimageByteDeposit;
+//    type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId,
+// CouncilCollective>;    type Slash = ();
+//    type Scheduler = Scheduler;
+//    type PalletsOrigin = OriginCaller;
+//    type MaxVotes = MaxVotes;
+//    type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
+//    type MaxProposals = MaxProposals;
+//    type VoteLockingPeriod = EnactmentPeriod; // Same as EnactmentPeriod
+//}
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalType {
 	Any,
 	JustMetaverse,
@@ -853,13 +864,13 @@ construct_runtime!(
 		Estate: estate::{Pallet, Call, Storage, Event<T>},
 		// Governance
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
-		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
+//		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
 
 		// External consensus support
-		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
-		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+//		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
+//		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 
-		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
+//		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
 
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
@@ -924,7 +935,7 @@ impl_runtime_apis! {
 
 	impl sp_api::Metadata<Block> for Runtime {
 		fn metadata() -> OpaqueMetadata {
-			Runtime::metadata().into()
+			OpaqueMetadata::new(Runtime::metadata().into())
 		}
 	}
 
@@ -971,7 +982,7 @@ impl_runtime_apis! {
 		}
 
 		fn authorities() -> Vec<AuraId> {
-			Aura::authorities()
+			Aura::authorities().into_inner()
 		}
 	}
 
@@ -1087,7 +1098,6 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_balances, Balances);
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
 
-			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)
 		}
 	}
