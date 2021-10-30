@@ -2,8 +2,7 @@ use hex_literal::hex;
 use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, DemocracyConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig, Signature,
-	StakingConfig, SudoConfig, SystemConfig,
+	ContinuumConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, Signature, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 use sc_service::{ChainType, Properties};
@@ -248,19 +247,17 @@ fn testnet_genesis(
 				.collect(),
 		},
 		aura: AuraConfig {
-			//			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
-			authorities: vec![],
+			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
 		},
 		grandpa: GrandpaConfig {
-			//			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
-			authorities: vec![],
+			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
 		},
 		council: Default::default(),
-		democracy: DemocracyConfig::default(),
+		//        democracy: DemocracyConfig::default(),
 		tokens: Default::default(),
 		vesting: Default::default(),
 		continuum: ContinuumConfig {
@@ -269,17 +266,17 @@ fn testnet_genesis(
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
 		},
-		staking: StakingConfig {
-			candidates: staking_candidate,
-			nominations: vec![],
-			inflation_config: metaverse_network_inflation_config(),
-		},
-		session: SessionConfig {
-			keys: initial_authorities
-				.iter()
-				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
-				.collect::<Vec<_>>(),
-		},
+		/*        staking: StakingConfig {
+		 *            candidates: staking_candidate,
+		 *            nominations: vec![],
+		 *            inflation_config: metaverse_network_inflation_config(),
+		 *        },
+		 *        session: SessionConfig {
+		 *            keys: initial_authorities
+		 *                .iter()
+		 *                .map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
+		 *                .collect::<Vec<_>>(),
+		 *        }, */
 		/*		evm: EVMConfig {
 		 *			accounts: {
 		 *				let mut map = BTreeMap::new();
