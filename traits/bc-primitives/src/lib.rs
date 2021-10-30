@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use primitives::{FungibleTokenId, MetaverseId};
+use primitives::{FungibleTokenId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType};
 use scale_info::TypeInfo;
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec::Vec;
@@ -53,4 +53,30 @@ pub trait MetaverseLandTrait<AccountId> {
 	fn get_user_land_units(who: &AccountId, metaverse_id: &MetaverseId) -> Vec<(i32, i32)>;
 	/// Check if this user own the metaverse
 	fn is_user_own_metaverse_land(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
+}
+
+pub trait UndeployedLandBlocksTrait<AccountId> {
+	fn issue_undeployed_land_blocks(
+		who: &AccountId,
+		beneficiary: &AccountId,
+		metaverse_id: MetaverseId,
+		number_land_units: u32,
+		undeployed_land_block_type: UndeployedLandBlockType,
+	) -> Result<UndeployedLandBlockId, DispatchError>;
+
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		to: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError>;
+
+	fn burn_undeployed_land_block(
+		who: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError>;
+
+	fn freeze_undeployed_land_block(
+		who: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError>;
 }

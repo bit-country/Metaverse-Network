@@ -23,7 +23,10 @@ use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{estate::Estate, EstateId, ItemId, MetaverseId};
+use primitives::{
+	estate::Estate, Balance, EstateId, ItemId, LandId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
+	UndeployedLandBlockType,
+};
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError,
@@ -36,12 +39,20 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+pub struct TestCollectionData {
+	pub name: Vec<u8>,
+	// Metadata from ipfs
+	pub properties: Vec<u8>,
+}
+
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::traits::{Currency, ReservableCurrency};
+	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
+	use primitives::{AccountId, UndeployedLandBlockId};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -97,6 +108,20 @@ pub mod pallet {
 	pub type EstateOwner<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn next_undeployed_land_block_id)]
+	pub(super) type NextUndeployedLandBlockId<T: Config> = StorageValue<_, UndeployedLandBlockId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_undeployed_land_block)]
+	pub(super) type UndeployedLandBlocks<T: Config> =
+		StorageMap<_, Blake2_128Concat, UndeployedLandBlockId, UndeployedLandBlock<T::AccountId>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_undeployed_land_block_owner)]
+	pub type UndeployedLandBlocksOwner<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -106,6 +131,14 @@ pub mod pallet {
 		NewLandUnitMinted(T::AccountId, MetaverseId, (i32, i32)),
 		NewEstateMinted(EstateId, T::AccountId, MetaverseId, Vec<(i32, i32)>),
 		MaxBoundSet(MetaverseId, (i32, i32)),
+		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>),
+		UndeployedLandBlockIssued(T::AccountId, MetaverseId, UndeployedLandBlockId),
+		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
+		UndeployedLandBlockFreezed(UndeployedLandBlockId),
+		UndeployedLandBlockUnfreezed(UndeployedLandBlockId),
+		UndeployedLandBlockBurnt(UndeployedLandBlockId),
 	}
 
 	#[pallet::error]
@@ -124,6 +157,13 @@ pub mod pallet {
 		LandUnitIsOutOfBound,
 		// No max bound set
 		NoMaxBoundSet,
+		UndeployedLandBlockNotFound,
+		UndeployedLandBlockIsNotTransferable,
+		UndeployedLandBlockDoesNotHaveEnoughLandUnits,
+		AlreadyOwnTheUndeployedLandBlock,
+		UndeployedLandBlockFreezed,
+		UndeployedLandBlockAlreadyFreezed,
+		UndeployedLandBlockNotFrozen,
 		AlreadyOwnTheEstate,
 		AlreadyOwnTheLandUnit,
 		EstateNotInAuction,
@@ -132,6 +172,7 @@ pub mod pallet {
 		LandUnitAlreadyInAuction,
 		EstateDoesNotExist,
 		LandUnitDoesNotExist,
+		OnlyFrozenUndeployedLandBlockCanBeDestroyed,
 	}
 
 	#[pallet::call]
@@ -232,7 +273,6 @@ pub mod pallet {
 
 		/// Mint new estate with no existing land unit
 		#[pallet::weight(10_000)]
-
 		pub fn mint_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -298,7 +338,229 @@ pub mod pallet {
 			);
 
 			Self::do_transfer_estate(estate_id, &who, &to)?;
+
 			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn deploy_land_block(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+			metaverse_id: MetaverseId,
+			coordinates: Vec<(i32, i32)>,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.owner == who.clone(),
+						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockFreezed
+					);
+
+					let land_units_to_mint = coordinates.len() as u32;
+					ensure!(
+						undeployed_land_block_record.number_land_units > land_units_to_mint,
+						Error::<T>::UndeployedLandBlockDoesNotHaveEnoughLandUnits
+					);
+
+					// Mint land units
+					for coordinate in coordinates.clone() {
+						Self::mint_land_unit(metaverse_id, &who, coordinate, false)?;
+					}
+
+					// Update total land count
+					let total_land_unit_count = Self::all_land_units_count();
+
+					let new_total_land_unit_count = total_land_unit_count
+						.checked_add(coordinates.len() as u64)
+						.ok_or("Overflow adding new count to total lands")?;
+					AllLandUnitsCount::<T>::put(new_total_land_unit_count);
+
+					// Update undeployed land block
+					undeployed_land_block_record.number_land_units = undeployed_land_block_record
+						.number_land_units
+						.checked_sub(land_units_to_mint)
+						.ok_or("Overflow deduct land units from undeployed land block")?;
+
+					Self::deposit_event(Event::<T>::LandBlockDeployed(
+						who.clone(),
+						metaverse_id,
+						undeployed_land_block_id,
+						coordinates,
+					));
+
+					Ok(().into())
+				},
+			)
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn issue_undeployed_land_blocks(
+			who: OriginFor<T>,
+			beneficiary: T::AccountId,
+			metaverse_id: MetaverseId,
+			number_land_units: u32,
+			undeployed_land_block_type: UndeployedLandBlockType,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(who)?;
+
+			Self::do_issue_undeployed_land_blocks(
+				&beneficiary,
+				metaverse_id,
+				number_land_units,
+				undeployed_land_block_type,
+			)?;
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn freeze_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			Self::do_freeze_undeployed_land_block(undeployed_land_block_id)?;
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn unfreeze_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == true,
+						Error::<T>::UndeployedLandBlockNotFrozen
+					);
+
+					undeployed_land_block_record.is_frozen = false;
+
+					Self::deposit_event(Event::<T>::UndeployedLandBlockUnfreezed(undeployed_land_block_id));
+
+					Ok(().into())
+				},
+			)
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn transfer_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			Self::do_transfer_undeployed_land_block(&who, &to, undeployed_land_block_id)?;
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn burn_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			Self::do_burn_undeployed_lan_block(undeployed_land_block_id)?;
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn approve_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.owner == who.clone(),
+						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockAlreadyFreezed
+					);
+
+					undeployed_land_block_record.approved = Some(to.clone());
+
+					Self::deposit_event(Event::<T>::UndeployedLandBlockApproved(
+						who.clone(),
+						to.clone(),
+						undeployed_land_block_id.clone(),
+					));
+
+					Ok(().into())
+				},
+			)
+		}
+
+		#[pallet::weight(10_000)]
+		pub fn unapprove_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.owner == who.clone(),
+						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockAlreadyFreezed
+					);
+
+					undeployed_land_block_record.approved = None;
+
+					Self::deposit_event(Event::<T>::UndeployedLandBlockUnapproved(
+						undeployed_land_block_id.clone(),
+					));
+
+					Ok(().into())
+				},
+			)
 		}
 	}
 
@@ -379,6 +641,150 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	fn get_new_undeployed_land_block_id() -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id =
+			NextUndeployedLandBlockId::<T>::try_mutate(|id| -> Result<UndeployedLandBlockId, DispatchError> {
+				let current_id = *id;
+				*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableEstateId)?;
+				Ok(current_id)
+			})?;
+		Ok(undeployed_land_block_id)
+	}
+
+	fn do_transfer_undeployed_land_block(
+		who: &T::AccountId,
+		to: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		UndeployedLandBlocks::<T>::try_mutate_exists(
+			&undeployed_land_block_id,
+			|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
+				let mut undeployed_land_block_record = undeployed_land_block
+					.as_mut()
+					.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+				ensure!(
+					undeployed_land_block_record.owner == who.clone(),
+					Error::<T>::NoPermission
+				);
+
+				ensure!(
+					undeployed_land_block_record.is_frozen == false,
+					Error::<T>::UndeployedLandBlockAlreadyFreezed
+				);
+
+				ensure!(
+					undeployed_land_block_record.undeployed_land_block_type == UndeployedLandBlockType::Transferable,
+					Error::<T>::UndeployedLandBlockIsNotTransferable
+				);
+
+				undeployed_land_block_record.owner = to.clone();
+
+				UndeployedLandBlocksOwner::<T>::remove(who.clone(), &undeployed_land_block_id);
+				UndeployedLandBlocksOwner::<T>::insert(to.clone(), &undeployed_land_block_id, ());
+
+				Self::deposit_event(Event::<T>::UndeployedLandBlockTransferred(
+					who.clone(),
+					to.clone(),
+					undeployed_land_block_id.clone(),
+				));
+
+				Ok(undeployed_land_block_id)
+			},
+		)
+	}
+
+	fn do_burn_undeployed_lan_block(
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_info =
+			UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+		ensure!(
+			undeployed_land_block_info.is_frozen,
+			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
+		);
+
+		UndeployedLandBlocksOwner::<T>::remove(undeployed_land_block_info.owner, &undeployed_land_block_id);
+		UndeployedLandBlocks::<T>::remove(&undeployed_land_block_id);
+
+		Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.clone()));
+
+		Ok(undeployed_land_block_id)
+
+		// UndeployedLandBlocks::<T>::try_mutate_exists(
+		// 	&undeployed_land_block_id,
+		// 	|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
+		// 		let mut undeployed_land_block_record = undeployed_land_block
+		// 			.as_mut()
+		// 			.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+		//
+		// 		let owner = &undeployed_land_block_record.owner;
+		//
+		// 		UndeployedLandBlocks::<T>::remove(undeployed_land_block_id);
+		// 		UndeployedLandBlocksOwner::<T>::remove(owner.clone(), undeployed_land_block_id);
+		//
+		// 		Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.
+		// clone()));
+		//
+		// 		Ok(undeployed_land_block_id)
+		// 	},
+		// )
+	}
+
+	fn do_freeze_undeployed_land_block(
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		UndeployedLandBlocks::<T>::try_mutate_exists(
+			&undeployed_land_block_id,
+			|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
+				let mut undeployed_land_block_record = undeployed_land_block
+					.as_mut()
+					.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+				ensure!(
+					undeployed_land_block_record.is_frozen == false,
+					Error::<T>::UndeployedLandBlockAlreadyFreezed
+				);
+
+				undeployed_land_block_record.is_frozen = true;
+
+				Self::deposit_event(Event::<T>::UndeployedLandBlockFreezed(undeployed_land_block_id));
+
+				Ok(undeployed_land_block_id)
+			},
+		)
+	}
+
+	fn do_issue_undeployed_land_blocks(
+		beneficiary: &T::AccountId,
+		metaverse_id: MetaverseId,
+		number_land_units: u32,
+		undeployed_land_block_type: UndeployedLandBlockType,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let new_undeployed_land_block_id = Self::get_new_undeployed_land_block_id()?;
+
+		let undeployed_land_block = UndeployedLandBlock {
+			id: new_undeployed_land_block_id,
+			number_land_units,
+			undeployed_land_block_type,
+			approved: None,
+			is_frozen: false,
+			owner: beneficiary.clone(),
+		};
+
+		UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block);
+
+		UndeployedLandBlocksOwner::<T>::insert(beneficiary.clone(), new_undeployed_land_block_id, ());
+
+		Self::deposit_event(Event::<T>::UndeployedLandBlockIssued(
+			beneficiary.clone(),
+			metaverse_id,
+			new_undeployed_land_block_id.clone(),
+		));
+
+		Ok(new_undeployed_land_block_id)
+	}
 	fn do_transfer_estate(
 		estate_id: EstateId,
 		from: &T::AccountId,
@@ -474,6 +880,52 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 	}
 }
 
+impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
+	fn issue_undeployed_land_blocks(
+		who: &T::AccountId,
+		beneficiary: &T::AccountId,
+		metaverse_id: MetaverseId,
+		number_land_units: u32,
+		undeployed_land_block_type: UndeployedLandBlockType,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let new_undeployed_land_block_id = Self::do_issue_undeployed_land_blocks(
+			&beneficiary,
+			metaverse_id,
+			number_land_units,
+			undeployed_land_block_type,
+		)?;
+
+		Ok(new_undeployed_land_block_id)
+	}
+
+	fn transfer_undeployed_land_block(
+		who: &T::AccountId,
+		to: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id = Self::do_transfer_undeployed_land_block(who, to, undeployed_land_block_id)?;
+
+		Ok(undeployed_land_block_id)
+	}
+
+	fn burn_undeployed_land_block(
+		who: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id = Self::do_burn_undeployed_lan_block(undeployed_land_block_id)?;
+
+		Ok(undeployed_land_block_id)
+	}
+
+	fn freeze_undeployed_land_block(
+		who: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id = Self::do_freeze_undeployed_land_block(undeployed_land_block_id)?;
+
+		Ok(undeployed_land_block_id)
+	}
+}
 impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 	fn transfer_estate(estate_id: EstateId, from: &T::AccountId, to: &T::AccountId) -> Result<EstateId, DispatchError> {
 		ensure!(

@@ -182,7 +182,7 @@ fn mint_lands_should_reject_with_duplicate_coordinates() {
 			Event::Estate(crate::Event::NewLandsMinted(
 				BENEFICIARY_ID,
 				METAVERSE_ID,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
+				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
 		);
 
@@ -330,7 +330,7 @@ fn mint_lands_should_work_with_more_than_one_coordinate() {
 			Event::Estate(crate::Event::NewLandsMinted(
 				BENEFICIARY_ID,
 				METAVERSE_ID,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
+				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
 		);
 
@@ -368,7 +368,7 @@ fn transfer_land_should_work() {
 				METAVERSE_ID,
 				COORDINATE_IN_1,
 				BENEFICIARY_ID,
-				ALICE
+				ALICE,
 			))
 		);
 	});
@@ -753,5 +753,948 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
 			None
 		);
+	});
+}
+
+#[test]
+fn issue_land_block_should_fail_if_not_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::issue_undeployed_land_blocks(
+				Origin::signed(ALICE),
+				BOB,
+				METAVERSE_ID,
+				20,
+				UndeployedLandBlockType::BoundToAddress
+			),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn issue_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, METAVERSE_ID, 0))
+		);
+
+		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 20);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
+				assert_eq!(a.is_frozen, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	});
+}
+
+#[test]
+fn issue_two_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, METAVERSE_ID, 0))
+		);
+
+		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
+
+		let first_issued_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
+		match first_issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 20);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
+				assert_eq!(a.is_frozen, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			ALICE,
+			METAVERSE_ID,
+			30,
+			UndeployedLandBlockType::Transferable
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(ALICE, METAVERSE_ID, 1))
+		);
+
+		assert_eq!(EstateModule::get_undeployed_land_block_owner(ALICE, 1), Some(()));
+
+		let second_issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
+		match second_issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, ALICE);
+				assert_eq!(a.number_land_units, 30);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
+				assert_eq!(a.is_frozen, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	});
+}
+
+#[test]
+fn freeze_undeployed_land_block_should_fail_if_not_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::freeze_undeployed_land_blocks(Origin::signed(ALICE), 0),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn freeze_undeployed_land_block_should_fail_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::freeze_undeployed_land_blocks(Origin::root(), 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn freeze_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 20);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
+				assert_eq!(a.is_frozen, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(Origin::root(), 0));
+
+		assert_eq!(last_event(), Event::Estate(crate::Event::UndeployedLandBlockFreezed(0)));
+
+		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
+
+		let frozen_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
+		match frozen_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.is_frozen, true);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	});
+}
+
+#[test]
+fn freeze_undeployed_land_block_should_fail_already_freezed() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(Origin::root(), 0));
+
+		assert_eq!(last_event(), Event::Estate(crate::Event::UndeployedLandBlockFreezed(0)));
+
+		assert_noop!(
+			EstateModule::freeze_undeployed_land_blocks(Origin::root(), 0),
+			Error::<Runtime>::UndeployedLandBlockAlreadyFreezed
+		);
+	});
+}
+
+#[test]
+fn unfreeze_undeployed_land_block_should_fail_if_not_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::unfreeze_undeployed_land_blocks(Origin::signed(ALICE), 0),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn unfreeze_undeployed_land_block_should_fail_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::unfreeze_undeployed_land_blocks(Origin::root(), 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn unfreeze_undeployed_land_block_should_fail_not_frozen() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		assert_noop!(
+			EstateModule::unfreeze_undeployed_land_blocks(Origin::root(), 0),
+			Error::<Runtime>::UndeployedLandBlockNotFrozen
+		);
+	});
+}
+
+#[test]
+fn unfreeze_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(Origin::root(), 0));
+
+		let freezed_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
+		match freezed_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.is_frozen, true);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_ok!(EstateModule::unfreeze_undeployed_land_blocks(Origin::root(), 0));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockUnfreezed(0))
+		);
+
+		let unfreezed_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
+		match unfreezed_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.is_frozen, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	});
+}
+
+#[test]
+fn transfer_undeployed_land_block_should_fail_if_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::transfer_undeployed_land_blocks(Origin::signed(ALICE), BOB, 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn transfer_undeployed_land_block_should_fail_if_not_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::transfer_undeployed_land_blocks(Origin::signed(ALICE), BOB, undeployed_land_block_id),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn transfer_undeployed_land_block_should_fail_if_freezed() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(
+			Origin::root(),
+			undeployed_land_block_id
+		));
+
+		assert_noop!(
+			EstateModule::transfer_undeployed_land_blocks(Origin::signed(BOB), ALICE, undeployed_land_block_id),
+			Error::<Runtime>::UndeployedLandBlockAlreadyFreezed
+		);
+	});
+}
+
+#[test]
+fn transfer_undeployed_land_block_should_fail_if_not_transferable() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::transfer_undeployed_land_blocks(Origin::signed(BOB), ALICE, undeployed_land_block_id),
+			Error::<Runtime>::UndeployedLandBlockIsNotTransferable
+		);
+	});
+}
+
+#[test]
+fn transfer_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::Transferable
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+
+		assert_ok!(EstateModule::transfer_undeployed_land_blocks(
+			Origin::signed(BOB),
+			ALICE,
+			undeployed_land_block_id
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockTransferred(
+				BOB,
+				ALICE,
+				undeployed_land_block_id,
+			))
+		);
+
+		let transferred_issued_undeployed_land_block =
+			EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match transferred_issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, ALICE);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			None
+		);
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(ALICE, undeployed_land_block_id),
+			Some(())
+		);
+	});
+}
+
+#[test]
+fn deploye_undeployed_land_block_should_fail_if_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::deploy_land_block(
+				Origin::signed(ALICE),
+				undeployed_land_block_id,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1]
+			),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn deploy_undeployed_land_block_should_fail_if_not_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::deploy_land_block(
+				Origin::signed(ALICE),
+				undeployed_land_block_id,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1]
+			),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn deploy_undeployed_land_block_should_fail_if_freezed() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(
+			Origin::root(),
+			undeployed_land_block_id
+		));
+
+		assert_noop!(
+			EstateModule::deploy_land_block(
+				Origin::signed(BOB),
+				undeployed_land_block_id,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1]
+			),
+			Error::<Runtime>::UndeployedLandBlockFreezed
+		);
+	});
+}
+
+#[test]
+fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			1,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::deploy_land_block(
+				Origin::signed(BOB),
+				undeployed_land_block_id,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			),
+			Error::<Runtime>::UndeployedLandBlockDoesNotHaveEnoughLandUnits
+		);
+	});
+}
+
+#[test]
+fn deploy_undeployed_land_block_should_fail_if_no_maxbound() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			100,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::deploy_land_block(
+				Origin::signed(BOB),
+				undeployed_land_block_id,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			),
+			Error::<Runtime>::NoMaxBoundSet
+		);
+	});
+}
+
+#[test]
+fn deploy_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			100,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		let undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.number_land_units, 100);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_ok!(EstateModule::deploy_land_block(
+			Origin::signed(BOB),
+			undeployed_land_block_id,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::LandBlockDeployed(
+				BOB,
+				METAVERSE_ID,
+				undeployed_land_block_id,
+				vec![COORDINATE_IN_1, COORDINATE_IN_2],
+			))
+		);
+
+		let updated_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match updated_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.number_land_units, 98);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(EstateModule::all_land_units_count(), 2);
+	});
+}
+
+#[test]
+fn approve_undeployed_land_block_should_fail_if_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::approve_undeployed_land_blocks(Origin::signed(ALICE), BOB, 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn approve_undeployed_land_block_should_fail_if_not_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::approve_undeployed_land_blocks(Origin::signed(ALICE), BOB, undeployed_land_block_id),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn approve_undeployed_land_block_should_fail_if_freezed() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(
+			Origin::root(),
+			undeployed_land_block_id
+		));
+
+		assert_noop!(
+			EstateModule::approve_undeployed_land_blocks(Origin::signed(BOB), ALICE, undeployed_land_block_id),
+			Error::<Runtime>::UndeployedLandBlockAlreadyFreezed
+		);
+	});
+}
+
+#[test]
+fn approve_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::Transferable
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, None);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+
+		assert_ok!(EstateModule::approve_undeployed_land_blocks(
+			Origin::signed(BOB),
+			ALICE,
+			undeployed_land_block_id
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockApproved(
+				BOB,
+				ALICE,
+				undeployed_land_block_id,
+			))
+		);
+
+		let transferred_issued_undeployed_land_block =
+			EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match transferred_issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, Some(ALICE));
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+	});
+}
+
+#[test]
+fn unapprove_undeployed_land_block_should_fail_if_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::unapprove_undeployed_land_blocks(Origin::signed(ALICE), 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn unapprove_undeployed_land_block_should_fail_if_not_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_noop!(
+			EstateModule::unapprove_undeployed_land_blocks(Origin::signed(ALICE), undeployed_land_block_id),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn unapprove_undeployed_land_block_should_fail_if_freezed() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(
+			Origin::root(),
+			undeployed_land_block_id
+		));
+
+		assert_noop!(
+			EstateModule::unapprove_undeployed_land_blocks(Origin::signed(BOB), undeployed_land_block_id),
+			Error::<Runtime>::UndeployedLandBlockAlreadyFreezed
+		);
+	});
+}
+
+#[test]
+fn unapprove_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::Transferable
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, None);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+		assert_ok!(EstateModule::approve_undeployed_land_blocks(
+			Origin::signed(BOB),
+			ALICE,
+			undeployed_land_block_id
+		));
+
+		let approved_issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match approved_issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, Some(ALICE));
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_ok!(EstateModule::unapprove_undeployed_land_blocks(
+			Origin::signed(BOB),
+			undeployed_land_block_id
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockUnapproved(undeployed_land_block_id))
+		);
+
+		let unapproved_issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match unapproved_issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.approved, None);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	});
+}
+
+#[test]
+fn burn_undeployed_land_block_should_fail_if_not_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::burn_undeployed_land_blocks(Origin::signed(ALICE), 0),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn burn_undeployed_land_block_should_fail_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EstateModule::burn_undeployed_land_blocks(Origin::root(), 0),
+			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn burn_undeployed_land_block_should_fail_if_not_frozon() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		assert_noop!(
+			EstateModule::burn_undeployed_land_blocks(Origin::root(), 0),
+			Error::<Runtime>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
+		);
+	});
+}
+
+#[test]
+fn burn_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			METAVERSE_ID,
+			20,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 20);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			Some(())
+		);
+
+		assert_ok!(EstateModule::freeze_undeployed_land_blocks(Origin::root(), 0));
+
+		assert_ok!(EstateModule::burn_undeployed_land_blocks(
+			Origin::root(),
+			undeployed_land_block_id
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockBurnt(undeployed_land_block_id))
+		);
+
+		assert_eq!(
+			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
+			None
+		);
+
+		assert_eq!(EstateModule::get_undeployed_land_block(undeployed_land_block_id), None)
 	});
 }
