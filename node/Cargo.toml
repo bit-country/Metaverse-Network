@@ -110,7 +110,7 @@ polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "r
 substrate-build-script-utils = { version = '3.0.0', git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11" }
 
 [features]
-default = ["with-pioneer-runtime"]
+default = ["with-metaverse-runtime"]
 
 with-metaverse-runtime = [
     "metaverse-runtime",
