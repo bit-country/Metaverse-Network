@@ -69,12 +69,10 @@ pub trait UndeployedLandBlocksTrait<AccountId> {
 	) -> Result<UndeployedLandBlockId, DispatchError>;
 
 	fn burn_undeployed_land_block(
-		who: &AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError>;
 
 	fn freeze_undeployed_land_block(
-		who: &AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError>;
 }

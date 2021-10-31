@@ -729,10 +729,10 @@ parameter_types! {
 //    type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId,
 // CouncilCollective>;    /// A super-majority can have the next scheduled referendum be a straight
 // majority-carries vote.    type ExternalMajorityOrigin =
-// pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;    /// A unanimous
-// council can have the next scheduled referendum be a straight default-carries    /// (NTB) vote.
-//    type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId,
-// CouncilCollective>;    /// Two thirds of the technical committee can have an
+// pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;    /// A
+// unanimous council can have the next scheduled referendum be a straight default-carries    ///
+// (NTB) vote.    type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1,
+// AccountId, CouncilCollective>;    /// Two thirds of the technical committee can have an
 // ExternalMajority/ExternalDefault vote    /// be tabled immediately and with a shorter
 // voting/enactment period.    type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<_2,
 // _3, AccountId, CouncilCollective>;    type InstantOrigin =

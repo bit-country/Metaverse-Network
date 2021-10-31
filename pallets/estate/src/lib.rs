@@ -87,6 +87,10 @@ pub mod pallet {
 	pub(super) type AllLandUnitsCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn all_undeployed_land_unit)]
+	pub(super) type TotalUndeployedLandUnit<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn get_land_units)]
 	pub type LandUnits<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), T::AccountId, ValueQuery>;
@@ -205,11 +209,7 @@ pub mod pallet {
 			Self::mint_land_unit(metaverse_id, &beneficiary, coordinate, false)?;
 
 			// Update total land count
-			let total_land_units_count = Self::all_land_units_count();
-			let new_total_land_units_count = total_land_units_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding new count to total lands")?;
-			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+			Self::set_total_land_unit(One::one(), false)?;
 
 			// Update land units
 			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
@@ -238,12 +238,8 @@ pub mod pallet {
 			}
 
 			// Update total land count
-			let total_land_unit_count = Self::all_land_units_count();
+			Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
-			let new_total_land_unit_count = total_land_unit_count
-				.checked_add(coordinates.len() as u64)
-				.ok_or("Overflow adding new count to total lands")?;
-			AllLandUnitsCount::<T>::put(new_total_land_unit_count);
 			Self::deposit_event(Event::<T>::NewLandsMinted(
 				beneficiary.clone(),
 				metaverse_id.clone(),
@@ -380,18 +376,18 @@ pub mod pallet {
 					}
 
 					// Update total land count
-					let total_land_unit_count = Self::all_land_units_count();
-
-					let new_total_land_unit_count = total_land_unit_count
-						.checked_add(coordinates.len() as u64)
-						.ok_or("Overflow adding new count to total lands")?;
-					AllLandUnitsCount::<T>::put(new_total_land_unit_count);
+					Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
 					// Update undeployed land block
-					undeployed_land_block_record.number_land_units = undeployed_land_block_record
-						.number_land_units
-						.checked_sub(land_units_to_mint)
-						.ok_or("Overflow deduct land units from undeployed land block")?;
+					if undeployed_land_block_record.number_land_units == land_units_to_mint {
+						Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
+					} else {
+						undeployed_land_block_record.number_land_units = undeployed_land_block_record
+							.number_land_units
+							.checked_sub(land_units_to_mint)
+							.ok_or("Overflow deduct land units from undeployed land block")?;
+					}
+					Self::set_total_undeployed_land_unit(land_units_to_mint as u64, true)?;
 
 					Self::deposit_event(Event::<T>::LandBlockDeployed(
 						who.clone(),
@@ -479,7 +475,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			Self::do_burn_undeployed_lan_block(undeployed_land_block_id)?;
+			Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
 
 			Ok(().into())
 		}
@@ -688,7 +684,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
-	fn do_burn_undeployed_lan_block(
+	fn do_burn_undeployed_land_block(
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
 		let undeployed_land_block_info =
@@ -698,32 +694,13 @@ impl<T: Config> Pallet<T> {
 			undeployed_land_block_info.is_frozen,
 			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
 		);
-
+		Self::set_total_undeployed_land_unit(undeployed_land_block_info.number_land_units as u64, true)?;
 		UndeployedLandBlocksOwner::<T>::remove(undeployed_land_block_info.owner, &undeployed_land_block_id);
 		UndeployedLandBlocks::<T>::remove(&undeployed_land_block_id);
 
 		Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.clone()));
 
 		Ok(undeployed_land_block_id)
-
-		// UndeployedLandBlocks::<T>::try_mutate_exists(
-		// 	&undeployed_land_block_id,
-		// 	|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
-		// 		let mut undeployed_land_block_record = undeployed_land_block
-		// 			.as_mut()
-		// 			.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
-		//
-		// 		let owner = &undeployed_land_block_record.owner;
-		//
-		// 		UndeployedLandBlocks::<T>::remove(undeployed_land_block_id);
-		// 		UndeployedLandBlocksOwner::<T>::remove(owner.clone(), undeployed_land_block_id);
-		//
-		// 		Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.
-		// clone()));
-		//
-		// 		Ok(undeployed_land_block_id)
-		// 	},
-		// )
 	}
 
 	fn do_freeze_undeployed_land_block(
@@ -769,6 +746,9 @@ impl<T: Config> Pallet<T> {
 		UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block);
 
 		UndeployedLandBlocksOwner::<T>::insert(beneficiary.clone(), new_undeployed_land_block_id, ());
+
+		// Update total undeployed land  count
+		Self::set_total_undeployed_land_unit(number_land_units as u64, false)?;
 
 		Self::deposit_event(Event::<T>::UndeployedLandBlockIssued(
 			beneficiary.clone(),
@@ -839,6 +819,41 @@ impl<T: Config> Pallet<T> {
 			},
 		)
 	}
+
+	fn set_total_undeployed_land_unit(total: u64, deduct: bool) -> Result<(), DispatchError> {
+		let total_undeployed_land_units = Self::all_undeployed_land_unit();
+
+		if deduct {
+			let new_total_undeployed_land_unit_count = total_undeployed_land_units
+				.checked_sub(total)
+				.ok_or("Overflow deducting new count to total undeployed lands")?;
+			TotalUndeployedLandUnit::<T>::put(new_total_undeployed_land_unit_count);
+		} else {
+			let new_total_undeployed_land_unit_count = total_undeployed_land_units
+				.checked_add(total)
+				.ok_or("Overflow adding new count to total undeployed lands")?;
+			TotalUndeployedLandUnit::<T>::put(new_total_undeployed_land_unit_count);
+		}
+
+		Ok(())
+	}
+
+	fn set_total_land_unit(total: u64, deduct: bool) -> Result<(), DispatchError> {
+		let total_land_units_count = Self::all_land_units_count();
+
+		if deduct {
+			let new_total_land_units_count = total_land_units_count
+				.checked_sub(total)
+				.ok_or("Overflow deducting new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+		} else {
+			let new_total_land_units_count = total_land_units_count
+				.checked_add(total)
+				.ok_or("Overflow adding new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+		}
+		Ok(())
+	}
 }
 
 impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
@@ -895,16 +910,14 @@ impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 	}
 
 	fn burn_undeployed_land_block(
-		who: &T::AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
-		let undeployed_land_block_id = Self::do_burn_undeployed_lan_block(undeployed_land_block_id)?;
+		let undeployed_land_block_id = Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
 
 		Ok(undeployed_land_block_id)
 	}
 
 	fn freeze_undeployed_land_block(
-		who: &T::AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
 		let undeployed_land_block_id = Self::do_freeze_undeployed_land_block(undeployed_land_block_id)?;
@@ -944,5 +957,13 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 
 	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		Ok(LandUnits::<T>::contains_key(metaverse_id, coordinate))
+	}
+
+	fn get_total_land_units() -> u64 {
+		AllLandUnitsCount::<T>::get()
+	}
+
+	fn get_total_undeploy_land_units() -> u64 {
+		TotalUndeployedLandUnit::<T>::get()
 	}
 }
