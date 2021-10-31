@@ -123,7 +123,7 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		NewLandsMinted(T::AccountId, MetaverseId, Vec<(i32, i32)>),
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
@@ -132,7 +132,7 @@ pub mod pallet {
 		NewEstateMinted(EstateId, T::AccountId, MetaverseId, Vec<(i32, i32)>),
 		MaxBoundSet(MetaverseId, (i32, i32)),
 		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>),
-		UndeployedLandBlockIssued(T::AccountId, MetaverseId, UndeployedLandBlockId),
+		UndeployedLandBlockIssued(T::AccountId, UndeployedLandBlockId),
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
@@ -409,18 +409,12 @@ pub mod pallet {
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
 			beneficiary: T::AccountId,
-			metaverse_id: MetaverseId,
 			number_land_units: u32,
 			undeployed_land_block_type: UndeployedLandBlockType,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(who)?;
 
-			Self::do_issue_undeployed_land_blocks(
-				&beneficiary,
-				metaverse_id,
-				number_land_units,
-				undeployed_land_block_type,
-			)?;
+			Self::do_issue_undeployed_land_blocks(&beneficiary, number_land_units, undeployed_land_block_type)?;
 
 			Ok(().into())
 		}
@@ -758,7 +752,6 @@ impl<T: Config> Pallet<T> {
 
 	fn do_issue_undeployed_land_blocks(
 		beneficiary: &T::AccountId,
-		metaverse_id: MetaverseId,
 		number_land_units: u32,
 		undeployed_land_block_type: UndeployedLandBlockType,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
@@ -779,7 +772,6 @@ impl<T: Config> Pallet<T> {
 
 		Self::deposit_event(Event::<T>::UndeployedLandBlockIssued(
 			beneficiary.clone(),
-			metaverse_id,
 			new_undeployed_land_block_id.clone(),
 		));
 
@@ -882,18 +874,12 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 
 impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 	fn issue_undeployed_land_blocks(
-		who: &T::AccountId,
 		beneficiary: &T::AccountId,
-		metaverse_id: MetaverseId,
 		number_land_units: u32,
 		undeployed_land_block_type: UndeployedLandBlockType,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
-		let new_undeployed_land_block_id = Self::do_issue_undeployed_land_blocks(
-			&beneficiary,
-			metaverse_id,
-			number_land_units,
-			undeployed_land_block_type,
-		)?;
+		let new_undeployed_land_block_id =
+			Self::do_issue_undeployed_land_blocks(&beneficiary, number_land_units, undeployed_land_block_type)?;
 
 		Ok(new_undeployed_land_block_id)
 	}
@@ -926,6 +912,7 @@ impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 		Ok(undeployed_land_block_id)
 	}
 }
+
 impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 	fn transfer_estate(estate_id: EstateId, from: &T::AccountId, to: &T::AccountId) -> Result<EstateId, DispatchError> {
 		ensure!(
