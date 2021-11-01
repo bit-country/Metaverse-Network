@@ -13,4 +13,8 @@ pub trait Estate<AccountId> {
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError>;
 
 	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError>;
+
+	fn get_total_land_units() -> u64;
+
+	fn get_total_undeploy_land_units() -> u64;
 }

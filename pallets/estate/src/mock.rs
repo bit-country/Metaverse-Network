@@ -4,6 +4,7 @@ use super::*;
 use crate as estate;
 // use crate::{Config, Module};
 use bc_primitives::*;
+// use bit_country_primitives::*;
 // // use sp_std::vec::Vec;
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, CheckAuctionItemHandler, OnNewBidResult};
 use frame_support::ensure;
@@ -204,6 +205,10 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 	}
 }
 
+parameter_types! {
+	pub const MinBlocksPerRound: u32 = 10;
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type LandTreasury = LandTreasuryPalletId;
@@ -212,6 +217,7 @@ impl Config for Runtime {
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = EnsureSignedBy<One, AccountId>;
 	type AuctionHandler = MockAuctionManager;
+	type MinBlocksPerRound = MinBlocksPerRound;
 }
 
 construct_runtime!(
