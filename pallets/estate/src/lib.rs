@@ -27,6 +27,8 @@ use primitives::{
 	estate::Estate, Balance, EstateId, ItemId, LandId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
 	UndeployedLandBlockType,
 };
+pub use rate::{MintingRateInfo, Range};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError,
@@ -35,6 +37,7 @@ use sp_std::vec::Vec;
 
 #[cfg(test)]
 mod mock;
+mod rate;
 
 #[cfg(test)]
 mod tests;
@@ -51,12 +54,50 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use crate::rate::{round_issuance_range, MintingRateInfo};
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use primitives::{AccountId, UndeployedLandBlockId};
+	use sp_runtime::traits::Zero;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
+
+	type RoundIndex = u32;
+
+	#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
+	/// The current round index and transition information
+	pub struct RoundInfo<BlockNumber> {
+		/// Current round index
+		pub current: RoundIndex,
+		/// The first block of the current round
+		pub first: BlockNumber,
+		/// The length of the current round in number of blocks
+		pub length: u32,
+	}
+
+	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> RoundInfo<B> {
+		pub fn new(current: RoundIndex, first: B, length: u32) -> RoundInfo<B> {
+			RoundInfo { current, first, length }
+		}
+		/// Check if the round should be updated
+		pub fn should_update(&self, now: B) -> bool {
+			now - self.first >= self.length.into()
+		}
+		/// New round
+		pub fn update(&mut self, now: B) {
+			self.current += 1u32;
+			self.first = now;
+		}
+	}
+
+	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> Default
+		for RoundInfo<B>
+	{
+		fn default() -> RoundInfo<B> {
+			RoundInfo::new(1u32, 1u32.into(), 20u32)
+		}
+	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -73,6 +114,8 @@ pub mod pallet {
 		type CouncilOrigin: EnsureOrigin<Self::Origin>;
 		/// Auction Handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
+		#[pallet::constant]
+		type MinBlocksPerRound: Get<u32>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -126,6 +169,47 @@ pub mod pallet {
 	pub type UndeployedLandBlocksOwner<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn round)]
+	/// Current round index and next round scheduled transition
+	type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn minting_rate_config)]
+	/// Minting rate configuration
+	pub type MintingRateConfig<T: Config> = StorageValue<_, MintingRateInfo, ValueQuery>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {
+		pub minting_rate_config: MintingRateInfo,
+	}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			Self { ..Default::default() }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			<MintingRateConfig<T>>::put(self.minting_rate_config.clone());
+
+			// Start Round 1 at Block 0
+			let round: RoundInfo<T::BlockNumber> = RoundInfo::new(1u32, 0u32.into(), T::MinBlocksPerRound::get());
+
+			let round_issuance_per_round = round_issuance_range::<T>(self.minting_rate_config.clone());
+
+			<Round<T>>::put(round);
+			<Pallet<T>>::deposit_event(Event::NewRound(
+				T::BlockNumber::zero(),
+				1u32,
+				round_issuance_per_round.max,
+			));
+		}
+	}
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -143,6 +227,8 @@ pub mod pallet {
 		UndeployedLandBlockFreezed(UndeployedLandBlockId),
 		UndeployedLandBlockUnfreezed(UndeployedLandBlockId),
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
+		/// Starting Block, Round, Total Land Unit
+		NewRound(T::BlockNumber, RoundIndex, u64),
 	}
 
 	#[pallet::error]
@@ -555,10 +641,40 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_initialize(n: T::BlockNumber) -> Weight {
+			let minting_config = <MintingRateConfig<T>>::get();
+			let mut round = <Round<T>>::get();
+			if round.should_update(n) {
+				// mutate round
+				round.update(n);
+				let round_issuance_per_round = round_issuance_range::<T>(minting_config);
+				//TODO do actual minting new undeployed land block
+
+				Self::deposit_event(Event::NewRound(
+					round.first,
+					round.current,
+					round_issuance_per_round.max,
+				));
+
+				T::BlockWeights::get().max_block
+			} else {
+				T::BlockWeights::get().max_block
+			}
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
+	//    fn new_round_minting(now: T::BlockNumber) -> DispatchResult {
+	//        Ok(())
+	//    }
+
+	//    fn compute_land_issuance() -> u64 {
+	//        let config = <MintingRateConfig<T>>::get();
+	//        let round
+	//    }
+
 	fn get_new_estate_id() -> Result<EstateId, DispatchError> {
 		let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
 			let current_id = *id;

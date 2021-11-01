@@ -96,7 +96,7 @@ fn mint_land_should_work_with_one_coordinate() {
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
 				METAVERSE_ID,
-				COORDINATE_IN_1
+				COORDINATE_IN_1,
 			))
 		);
 
@@ -123,7 +123,7 @@ fn mint_land_should_work_have_correct_owner() {
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
 				METAVERSE_ID,
-				COORDINATE_IN_1
+				COORDINATE_IN_1,
 			))
 		);
 
@@ -153,7 +153,7 @@ fn mint_land_should_reject_with_duplicate_coordinates() {
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
 				METAVERSE_ID,
-				COORDINATE_IN_1
+				COORDINATE_IN_1,
 			))
 		);
 
@@ -211,7 +211,7 @@ fn mint_land_should_work_with_different_coordinate() {
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
 				METAVERSE_ID,
-				COORDINATE_IN_1
+				COORDINATE_IN_1,
 			))
 		);
 
@@ -229,7 +229,7 @@ fn mint_land_should_work_with_different_coordinate() {
 			Event::Estate(crate::Event::NewLandUnitMinted(
 				BENEFICIARY_ID,
 				METAVERSE_ID,
-				COORDINATE_IN_2
+				COORDINATE_IN_2,
 			))
 		);
 
@@ -305,7 +305,7 @@ fn mint_lands_should_work_with_one_coordinate() {
 			Event::Estate(crate::Event::NewLandsMinted(
 				BENEFICIARY_ID,
 				METAVERSE_ID,
-				vec![COORDINATE_IN_1]
+				vec![COORDINATE_IN_1],
 			))
 		);
 
@@ -763,7 +763,6 @@ fn issue_land_block_should_fail_if_not_root() {
 			EstateModule::issue_undeployed_land_blocks(
 				Origin::signed(ALICE),
 				BOB,
-				METAVERSE_ID,
 				20,
 				UndeployedLandBlockType::BoundToAddress
 			),
@@ -778,14 +777,13 @@ fn issue_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, METAVERSE_ID, 0))
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, 0))
 		);
 
 		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
@@ -813,14 +811,13 @@ fn issue_two_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, METAVERSE_ID, 0))
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, 0))
 		);
 
 		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
@@ -843,14 +840,13 @@ fn issue_two_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			ALICE,
-			METAVERSE_ID,
 			30,
 			UndeployedLandBlockType::Transferable
 		));
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::UndeployedLandBlockIssued(ALICE, METAVERSE_ID, 1))
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(ALICE, 1))
 		);
 
 		assert_eq!(EstateModule::get_undeployed_land_block_owner(ALICE, 1), Some(()));
@@ -898,7 +894,6 @@ fn freeze_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -943,7 +938,6 @@ fn freeze_undeployed_land_block_should_fail_already_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -985,7 +979,6 @@ fn unfreeze_undeployed_land_block_should_fail_not_frozen() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1003,7 +996,6 @@ fn unfreeze_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1057,7 +1049,6 @@ fn transfer_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1077,7 +1068,6 @@ fn transfer_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1102,7 +1092,6 @@ fn transfer_undeployed_land_block_should_fail_if_not_transferable() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1122,7 +1111,6 @@ fn transfer_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1206,7 +1194,6 @@ fn deploy_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1231,7 +1218,6 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1261,7 +1247,6 @@ fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			1,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1286,7 +1271,6 @@ fn deploy_undeployed_land_block_should_fail_if_no_maxbound() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			100,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1313,7 +1297,6 @@ fn deploy_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			100,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1379,7 +1362,6 @@ fn approve_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1399,7 +1381,6 @@ fn approve_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1424,7 +1405,6 @@ fn approve_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1499,7 +1479,6 @@ fn unapprove_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1519,7 +1498,6 @@ fn unapprove_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1544,7 +1522,6 @@ fn unapprove_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1635,7 +1612,6 @@ fn burn_undeployed_land_block_should_fail_if_not_frozon() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1653,7 +1629,6 @@ fn burn_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
-			METAVERSE_ID,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));

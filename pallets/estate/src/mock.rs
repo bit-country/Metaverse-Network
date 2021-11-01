@@ -205,6 +205,10 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 	}
 }
 
+parameter_types! {
+	pub const MinBlocksPerRound: u32 = 10;
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type LandTreasury = LandTreasuryPalletId;
@@ -213,6 +217,7 @@ impl Config for Runtime {
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = EnsureSignedBy<One, AccountId>;
 	type AuctionHandler = MockAuctionManager;
+	type MinBlocksPerRound = MinBlocksPerRound;
 }
 
 construct_runtime!(

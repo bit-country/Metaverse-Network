@@ -25,6 +25,7 @@ mod weights;
 // primitives imports
 use crate::opaque::SessionKeys;
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
+pub use estate::{MintingRateInfo, Range as MintingRange};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use parachain_staking::{InflationInfo, Range};
 use sp_api::impl_runtime_apis;
@@ -81,6 +82,7 @@ use frame_support::ConsensusEngineId;
 use scale_info::TypeInfo;
 use sp_core::sp_std::marker::PhantomData;
 use sp_runtime::traits::OpaqueKeys;
+//use frame_benchmarking::frame_support::pallet_prelude::Get;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -434,6 +436,7 @@ impl metaverse::Config for Runtime {
 parameter_types! {
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
+	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
 }
 
 impl estate::Config for Runtime {
@@ -444,6 +447,7 @@ impl estate::Config for Runtime {
 	type MinimumLandPrice = MinimumLandPrice;
 	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type AuctionHandler = Auction;
+	type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
 }
 
 parameter_types! {
@@ -870,7 +874,7 @@ construct_runtime!(
 		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
-		Estate: estate::{Pallet, Call, Storage, Event<T>},
+		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
 		// Governance
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
 		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},

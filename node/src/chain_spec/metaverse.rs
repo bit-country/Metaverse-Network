@@ -2,8 +2,8 @@ use hex_literal::hex;
 use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, DemocracyConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig, Signature,
-	StakingConfig, SudoConfig, SystemConfig,
+	ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig, InflationInfo, MintingRange,
+	MintingRateInfo, Range, SessionConfig, Signature, StakingConfig, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 use sc_service::{ChainType, Properties};
@@ -212,6 +212,16 @@ pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
 	}
 }
 
+pub fn metaverse_land_minting_config() -> MintingRateInfo {
+	MintingRateInfo {
+		expect: Default::default(),
+		// 10% minting rate per annual
+		annual: 10,
+		// Max 100 millions land unit
+		max: 100_000_000,
+	}
+}
+
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
 	initial_authorities: Vec<(AccountId, AuraId, GrandpaId)>,
@@ -279,6 +289,9 @@ fn testnet_genesis(
 				.iter()
 				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
 				.collect::<Vec<_>>(),
+		},
+		estate: EstateConfig {
+			minting_rate_config: metaverse_land_minting_config(),
 		},
 		/*		evm: EVMConfig {
 		 *			accounts: {
