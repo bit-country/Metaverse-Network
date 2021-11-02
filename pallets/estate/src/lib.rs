@@ -35,6 +35,9 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 mod rate;
@@ -213,19 +216,33 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Beneficial Account Id, Metaverse Id, Coordinates
 		NewLandsMinted(T::AccountId, MetaverseId, Vec<(i32, i32)>),
+		/// Metaverse Id, Coordinates, From Account Id, To Account Id
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
+		/// Estate Id, From Account Id, To Account Id
 		TransferredEstate(EstateId, T::AccountId, T::AccountId),
+		/// Beneficial Account Id, Metaverse Id, Coordinates
 		NewLandUnitMinted(T::AccountId, MetaverseId, (i32, i32)),
+		/// Estate Id, Beneficial Account Id, Metaverse Id, Coordinates
 		NewEstateMinted(EstateId, T::AccountId, MetaverseId, Vec<(i32, i32)>),
+		/// Metaverse Id, Min and Max Coordinate
 		MaxBoundSet(MetaverseId, (i32, i32)),
+		/// From Account Id, Metaverse Id, Undeployed Land Block Id, Coordinates
 		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>),
+		/// Beneficial Account Id, Undeployed Land Block Id
 		UndeployedLandBlockIssued(T::AccountId, UndeployedLandBlockId),
+		/// From Account Id, To Account Id, Undeployed Land Block Id
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		/// Owner Account Id, Approved Account Id, Undeployed Land Block Id
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		/// Undeployed Land Block Id
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
 		UndeployedLandBlockFreezed(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
 		UndeployedLandBlockUnfreezed(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
 		/// Starting Block, Round, Total Land Unit
 		NewRound(T::BlockNumber, RoundIndex, u64),
@@ -650,31 +667,22 @@ pub mod pallet {
 				round.update(n);
 				let round_issuance_per_round = round_issuance_range::<T>(minting_config);
 				//TODO do actual minting new undeployed land block
-
+				<Round<T>>::put(round);
 				Self::deposit_event(Event::NewRound(
 					round.first,
 					round.current,
 					round_issuance_per_round.max,
 				));
-
-				T::BlockWeights::get().max_block
+				//TODO update weight to ensure correct benchmark
+				0
 			} else {
-				T::BlockWeights::get().max_block
+				0
 			}
 		}
 	}
 }
 
 impl<T: Config> Pallet<T> {
-	//    fn new_round_minting(now: T::BlockNumber) -> DispatchResult {
-	//        Ok(())
-	//    }
-
-	//    fn compute_land_issuance() -> u64 {
-	//        let config = <MintingRateConfig<T>>::get();
-	//        let round
-	//    }
-
 	fn get_new_estate_id() -> Result<EstateId, DispatchError> {
 		let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
 			let current_id = *id;

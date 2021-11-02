@@ -125,3 +125,7 @@ with-tewai-runtime = [
 with-pioneer-runtime = [
     "pioneer-runtime",
 ]
+
+runtime-benchmarks = [
+    "metaverse-runtime/runtime-benchmarks",
+]
