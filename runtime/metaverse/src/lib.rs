@@ -77,6 +77,7 @@ pub mod constants;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
+use estate::weights::WeightInfo;
 use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
 use frame_support::ConsensusEngineId;
 use scale_info::TypeInfo;
@@ -448,6 +449,7 @@ impl estate::Config for Runtime {
 	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type AuctionHandler = Auction;
 	type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
+	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1072,7 +1074,7 @@ impl_runtime_apis! {
 			use frame_support::traits::StorageInfoTrait;
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use nft::benchmarking::Pallet as NftBench;
-			use estate::benchmarking::Pallet as EstateBench;
+			use estate::benchmarking::EstateModule as EstateBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1096,7 +1098,7 @@ impl_runtime_apis! {
 			impl frame_system_benchmarking::Config for Runtime {}
 
 			use nft::benchmarking::Pallet as NftBench;
-			use estate::benchmarking::Pallet as EstateBench;
+			use estate::benchmarking::EstateModule as EstateBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
