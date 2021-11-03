@@ -20,21 +20,23 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
+use super::*;
 use sp_std::prelude::*;
 use sp_std::vec;
 
 #[allow(unused)]
 pub use crate::Pallet as EstateModule;
-use crate::{Call, Config};
+use crate::{
+	pallet::{MintingRateConfig, Round},
+	Call, Config, MintingRateInfo, Range,
+};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
-use frame_support::traits::Get;
+use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use primitives::Balance;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 // use orml_traits::BasicCurrencyExtended;
 use primitives::{UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
-
-pub struct Pallet<T: Config>(crate::Pallet<T>);
 
 pub type AccountId = u128;
 pub type LandId = u64;
@@ -58,13 +60,24 @@ fn dollar(d: u32) -> Balance {
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
 
-// fn assert_last_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
-// 	frame_system::Pallet::<T>::assert_last_event(generic_event.into());
-// }
-//
-// fn assert_event<T: Config<I>, I: 'static>(generic_event: <T as Config<I>>::Event) {
-// 	frame_system::Pallet::<T>::assert_has_event(generic_event.into());
-// }
+fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
+	let caller: T::AccountId = account(name, index, SEED);
+	T::Currency::make_free_balance_be(&caller, dollar(100).unique_saturated_into());
+	caller
+}
+
+fn issue_new_undeployed_land_block<T: Config>(n: u32) -> Result<bool, &'static str> {
+	let caller = funded_account::<T>("caller", 0);
+	EstateModule::<T>::issue_undeployed_land_blocks(
+		RawOrigin::Root.into(),
+		caller,
+		n,
+		100,
+		UndeployedLandBlockType::Transferable,
+	);
+
+	Ok(true)
+}
 
 benchmarks! {
 	// set_max_bounds
@@ -303,6 +316,48 @@ benchmarks! {
 			}
 		}
 	}
+	active_issue_undeploy_land_block{
+		// INITIALIZE RUNTIME STATE
+		let minting_info = 	MintingRateInfo {
+			expect: Default::default(),
+			// 10% minting rate per annual
+			annual: 10,
+			// Max 100 millions land unit
+			max: 100_000_000,
+		};
+		// Pre issue 5 land blocks x 100 land units
+		issue_new_undeployed_land_block::<T>(5)?;
+		let min_block_per_round = 5u32;
+
+		let new_round = RoundInfo::new(1u32, 0u32.into(), min_block_per_round.into());
+
+		Round::<T>::put(new_round);
+		let high_inflation_rate = MintingRateInfo {
+			expect: Default::default(),
+			annual: 20,
+			// Max 100 millions land unit
+			max: 100_000_000,
+		};
+		MintingRateConfig::<T>::put(high_inflation_rate);
+
+//
+//		// PREPARE RUN_TO_BLOCK LOOP
+//		let before_running_round_index = EstateModule::<T>::round().current;
+//		let round_length: T::BlockNumber = EstateModule::<T>::round().length.into();
+//
+//
+//		let mut now = <frame_system::Pallet<T>>::block_number() + 1u32.into();
+//		let mut counter = 0usize;
+//		let end = EstateModule::<T>::round().first + (round_length * min_block_per_round.into());
+
+	}: {
+		EstateModule::<T>::on_initialize(6u32.into());
+	}
+
+	issue_undeployed_land_blocks{
+		let caller = funded_account::<T>("caller", 0);
+	}: _(RawOrigin::Root, caller, 5, 100, UndeployedLandBlockType::Transferable)
+
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

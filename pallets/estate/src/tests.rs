@@ -763,6 +763,7 @@ fn issue_land_block_should_fail_if_not_root() {
 			EstateModule::issue_undeployed_land_blocks(
 				Origin::signed(ALICE),
 				BOB,
+				1,
 				20,
 				UndeployedLandBlockType::BoundToAddress
 			),
@@ -777,6 +778,7 @@ fn issue_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -811,6 +813,7 @@ fn issue_two_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -840,6 +843,7 @@ fn issue_two_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			ALICE,
+			1,
 			30,
 			UndeployedLandBlockType::Transferable
 		));
@@ -894,6 +898,7 @@ fn freeze_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -938,6 +943,7 @@ fn freeze_undeployed_land_block_should_fail_already_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -979,6 +985,7 @@ fn unfreeze_undeployed_land_block_should_fail_not_frozen() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -996,6 +1003,7 @@ fn unfreeze_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1049,6 +1057,7 @@ fn transfer_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1068,6 +1077,7 @@ fn transfer_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1092,6 +1102,7 @@ fn transfer_undeployed_land_block_should_fail_if_not_transferable() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1111,6 +1122,7 @@ fn transfer_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1194,6 +1206,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1218,6 +1231,7 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1248,6 +1262,7 @@ fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
 			Origin::root(),
 			BOB,
 			1,
+			1,
 			UndeployedLandBlockType::BoundToAddress
 		));
 
@@ -1271,6 +1286,7 @@ fn deploy_undeployed_land_block_should_fail_if_no_maxbound() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			100,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1297,6 +1313,7 @@ fn deploy_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			100,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1362,6 +1379,7 @@ fn approve_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1381,6 +1399,7 @@ fn approve_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1405,6 +1424,7 @@ fn approve_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1479,6 +1499,7 @@ fn unapprove_undeployed_land_block_should_fail_if_not_owner() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1498,6 +1519,7 @@ fn unapprove_undeployed_land_block_should_fail_if_freezed() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1522,6 +1544,7 @@ fn unapprove_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::Transferable
 		));
@@ -1612,6 +1635,7 @@ fn burn_undeployed_land_block_should_fail_if_not_frozon() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));
@@ -1629,6 +1653,7 @@ fn burn_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
+			1,
 			20,
 			UndeployedLandBlockType::BoundToAddress
 		));

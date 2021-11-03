@@ -33,7 +33,7 @@ impl<T: frame_system::Config> nft::WeightInfo for WeightInfo<T> {
 	// Storage: Nft AllNftGroupCollection (r:1 w:1)
 	// Storage: Nft GroupCollections (r:0 w:1)
 	fn create_group() -> Weight {
-		(48_000_000 as Weight)
+		(39_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
@@ -43,7 +43,7 @@ impl<T: frame_system::Config> nft::WeightInfo for WeightInfo<T> {
 	// Storage: OrmlNFT Classes (r:0 w:1)
 	// Storage: Nft ClassDataCollection (r:0 w:1)
 	fn create_class() -> Weight {
-		(167_000_000 as Weight)
+		(138_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
