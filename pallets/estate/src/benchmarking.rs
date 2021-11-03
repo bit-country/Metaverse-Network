@@ -175,14 +175,14 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-	}: _(RawOrigin::Root, caller.clone(), 20, UndeployedLandBlockType::BoundToAddress)
+	}: _(RawOrigin::Root, caller.clone(), 20, 100, UndeployedLandBlockType::BoundToAddress)
 	verify {
 		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
 				assert_eq!(a.owner, caller.clone());
-				assert_eq!(a.number_land_units, 20);
+				assert_eq!(a.number_land_units, 100);
 				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
 				assert_eq!(a.is_frozen, false);
 			}
@@ -198,7 +198,7 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 20, UndeployedLandBlockType::BoundToAddress);
+		issue_new_undeployed_land_block::<T>(5)?;
 	}: _(RawOrigin::Root, 0)
 	verify {
 				let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
@@ -219,7 +219,7 @@ benchmarks! {
 	let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 20, UndeployedLandBlockType::BoundToAddress);
+		issue_new_undeployed_land_block::<T>(5)?;
 		crate::Pallet::<T>::freeze_undeployed_land_blocks(RawOrigin::Root.into(), Default::default());
 	}: _(RawOrigin::Root, 0)
 	verify {
@@ -241,7 +241,7 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 20, UndeployedLandBlockType::BoundToAddress);
+		issue_new_undeployed_land_block::<T>(5)?;
 		crate::Pallet::<T>::freeze_undeployed_land_blocks(RawOrigin::Root.into(), Default::default());
 	}: _(RawOrigin::Root, 0)
 	verify {
@@ -256,7 +256,7 @@ benchmarks! {
 		let target: T::AccountId = account("target", 0, SEED);
 		let target_lookup = T::Lookup::unlookup(target.clone());
 
-		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 20, UndeployedLandBlockType::BoundToAddress);
+		issue_new_undeployed_land_block::<T>(5)?;
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
 	verify {
 		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
@@ -277,7 +277,7 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 20, UndeployedLandBlockType::BoundToAddress);
+		issue_new_undeployed_land_block::<T>(5)?;
 	}: _(RawOrigin::Signed(caller.clone()), Default::default())
 	verify {
 		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
@@ -301,7 +301,7 @@ benchmarks! {
 		let target: T::AccountId = account("target", 0, SEED);
 		let target_lookup = T::Lookup::unlookup(target.clone());
 
-		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 20, UndeployedLandBlockType::Transferable);
+		issue_new_undeployed_land_block::<T>(5)?;
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
 	verify {
 		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
@@ -316,6 +316,7 @@ benchmarks! {
 			}
 		}
 	}
+
 	active_issue_undeploy_land_block{
 		// INITIALIZE RUNTIME STATE
 		let minting_info = 	MintingRateInfo {
@@ -353,11 +354,6 @@ benchmarks! {
 	}: {
 		EstateModule::<T>::on_initialize(6u32.into());
 	}
-
-	issue_undeployed_land_blocks{
-		let caller = funded_account::<T>("caller", 0);
-	}: _(RawOrigin::Root, caller, 5, 100, UndeployedLandBlockType::Transferable)
-
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);
