@@ -74,19 +74,14 @@ benchmarks! {
 		assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
 	}
 
-
 	// mint_land
 	mint_land {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-		// <T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
-
 	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, COORDINATE_IN_1)
 	verify {
-		// assert_last_event::<T, I>(Event::NewLandUnitMinted(caller.clone(), METAVERSE_ID, COORDINATE_IN_1).into());
-
 		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), caller.clone())
 	}
 
@@ -95,9 +90,7 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-		// <T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
-
 	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), caller.clone());
@@ -120,6 +113,7 @@ benchmarks! {
 
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), METAVERSE_ID, COORDINATE_IN_1)
 	verify {
+		// TODO: issue with blow line
 		// assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), target.clone())
 	}
 
@@ -168,7 +162,6 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-		//Default::default() ?
 	}: _(RawOrigin::Root, caller.clone(), 20, UndeployedLandBlockType::BoundToAddress)
 	verify {
 		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
@@ -279,6 +272,30 @@ benchmarks! {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
 				assert_eq!(a.approved, None);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	}
+
+	// transfer_undeployed_land_blocks
+	transfer_undeployed_land_blocks {
+		let caller: T::AccountId = whitelisted_caller();
+		let caller_lookup = T::Lookup::unlookup(caller.clone());
+
+		let target: T::AccountId = account("target", 0, SEED);
+		let target_lookup = T::Lookup::unlookup(target.clone());
+
+		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 20, UndeployedLandBlockType::Transferable);
+	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
+	verify {
+		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, target.clone());
 			}
 			_ => {
 				// Should fail test
