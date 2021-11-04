@@ -35,12 +35,19 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 mod rate;
 
 #[cfg(test)]
 mod tests;
+
+pub mod weights;
+
+pub use weights::WeightInfo;
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
 pub struct TestCollectionData {
@@ -116,6 +123,8 @@ pub mod pallet {
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
 		#[pallet::constant]
 		type MinBlocksPerRound: Get<u32>;
+		/// Weight implementation for estate extrinsics
+		type WeightInfo: WeightInfo;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -172,7 +181,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn round)]
 	/// Current round index and next round scheduled transition
-	type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn minting_rate_config)]
@@ -213,19 +222,33 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Beneficial Account Id, Metaverse Id, Coordinates
 		NewLandsMinted(T::AccountId, MetaverseId, Vec<(i32, i32)>),
+		/// Metaverse Id, Coordinates, From Account Id, To Account Id
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
+		/// Estate Id, From Account Id, To Account Id
 		TransferredEstate(EstateId, T::AccountId, T::AccountId),
+		/// Beneficial Account Id, Metaverse Id, Coordinates
 		NewLandUnitMinted(T::AccountId, MetaverseId, (i32, i32)),
+		/// Estate Id, Beneficial Account Id, Metaverse Id, Coordinates
 		NewEstateMinted(EstateId, T::AccountId, MetaverseId, Vec<(i32, i32)>),
+		/// Metaverse Id, Min and Max Coordinate
 		MaxBoundSet(MetaverseId, (i32, i32)),
+		/// From Account Id, Metaverse Id, Undeployed Land Block Id, Coordinates
 		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>),
+		/// Beneficial Account Id, Undeployed Land Block Id
 		UndeployedLandBlockIssued(T::AccountId, UndeployedLandBlockId),
+		/// From Account Id, To Account Id, Undeployed Land Block Id
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		/// Owner Account Id, Approved Account Id, Undeployed Land Block Id
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		/// Undeployed Land Block Id
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
 		UndeployedLandBlockFreezed(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
 		UndeployedLandBlockUnfreezed(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
 		/// Starting Block, Round, Total Land Unit
 		NewRound(T::BlockNumber, RoundIndex, u64),
@@ -267,7 +290,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_max_bounds())]
 		pub fn set_max_bounds(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -491,12 +514,18 @@ pub mod pallet {
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
 			beneficiary: T::AccountId,
-			number_land_units: u32,
+			number_of_land_block: u32,
+			number_land_units_per_land_block: u32,
 			undeployed_land_block_type: UndeployedLandBlockType,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(who)?;
 
-			Self::do_issue_undeployed_land_blocks(&beneficiary, number_land_units, undeployed_land_block_type)?;
+			Self::do_issue_undeployed_land_blocks(
+				&beneficiary,
+				number_of_land_block,
+				number_land_units_per_land_block,
+				undeployed_land_block_type,
+			)?;
 
 			Ok(().into())
 		}
@@ -650,31 +679,30 @@ pub mod pallet {
 				round.update(n);
 				let round_issuance_per_round = round_issuance_range::<T>(minting_config);
 				//TODO do actual minting new undeployed land block
+				let land_register_treasury = T::LandTreasury::get().into_account();
+				<Round<T>>::put(round);
+
+				Self::do_issue_undeployed_land_blocks(
+					&land_register_treasury,
+					round_issuance_per_round.ideal as u32,
+					100,
+					UndeployedLandBlockType::Transferable,
+				);
 
 				Self::deposit_event(Event::NewRound(
 					round.first,
 					round.current,
 					round_issuance_per_round.max,
 				));
-
-				T::BlockWeights::get().max_block
+				<T as pallet::Config>::WeightInfo::active_issue_undeploy_land_block()
 			} else {
-				T::BlockWeights::get().max_block
+				0
 			}
 		}
 	}
 }
 
 impl<T: Config> Pallet<T> {
-	//    fn new_round_minting(now: T::BlockNumber) -> DispatchResult {
-	//        Ok(())
-	//    }
-
-	//    fn compute_land_issuance() -> u64 {
-	//        let config = <MintingRateConfig<T>>::get();
-	//        let round
-	//    }
-
 	fn get_new_estate_id() -> Result<EstateId, DispatchError> {
 		let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
 			let current_id = *id;
@@ -845,33 +873,40 @@ impl<T: Config> Pallet<T> {
 
 	fn do_issue_undeployed_land_blocks(
 		beneficiary: &T::AccountId,
-		number_land_units: u32,
+		number_of_land_block: u32,
+		number_land_units_per_land_block: u32,
 		undeployed_land_block_type: UndeployedLandBlockType,
-	) -> Result<UndeployedLandBlockId, DispatchError> {
-		let new_undeployed_land_block_id = Self::get_new_undeployed_land_block_id()?;
+	) -> Result<Vec<UndeployedLandBlockId>, DispatchError> {
+		let mut undeployed_land_block_ids: Vec<UndeployedLandBlockId> = Vec::new();
 
-		let undeployed_land_block = UndeployedLandBlock {
-			id: new_undeployed_land_block_id,
-			number_land_units,
-			undeployed_land_block_type,
-			approved: None,
-			is_frozen: false,
-			owner: beneficiary.clone(),
-		};
+		for _ in 0..number_of_land_block {
+			let new_undeployed_land_block_id = Self::get_new_undeployed_land_block_id()?;
 
-		UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block);
+			let undeployed_land_block = UndeployedLandBlock {
+				id: new_undeployed_land_block_id,
+				number_land_units: number_land_units_per_land_block,
+				undeployed_land_block_type,
+				approved: None,
+				is_frozen: false,
+				owner: beneficiary.clone(),
+			};
 
-		UndeployedLandBlocksOwner::<T>::insert(beneficiary.clone(), new_undeployed_land_block_id, ());
+			UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block);
 
-		// Update total undeployed land  count
-		Self::set_total_undeployed_land_unit(number_land_units as u64, false)?;
+			UndeployedLandBlocksOwner::<T>::insert(beneficiary.clone(), new_undeployed_land_block_id, ());
 
-		Self::deposit_event(Event::<T>::UndeployedLandBlockIssued(
-			beneficiary.clone(),
-			new_undeployed_land_block_id.clone(),
-		));
+			// Update total undeployed land  count
+			Self::set_total_undeployed_land_unit(number_land_units_per_land_block as u64, false)?;
 
-		Ok(new_undeployed_land_block_id)
+			Self::deposit_event(Event::<T>::UndeployedLandBlockIssued(
+				beneficiary.clone(),
+				new_undeployed_land_block_id.clone(),
+			));
+
+			undeployed_land_block_ids.push(new_undeployed_land_block_id);
+		}
+
+		Ok(undeployed_land_block_ids)
 	}
 	fn do_transfer_estate(
 		estate_id: EstateId,
@@ -1006,11 +1041,16 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 	fn issue_undeployed_land_blocks(
 		beneficiary: &T::AccountId,
-		number_land_units: u32,
+		number_of_land_block: u32,
+		number_land_units_per_land_block: u32,
 		undeployed_land_block_type: UndeployedLandBlockType,
-	) -> Result<UndeployedLandBlockId, DispatchError> {
-		let new_undeployed_land_block_id =
-			Self::do_issue_undeployed_land_blocks(&beneficiary, number_land_units, undeployed_land_block_type)?;
+	) -> Result<Vec<UndeployedLandBlockId>, DispatchError> {
+		let new_undeployed_land_block_id = Self::do_issue_undeployed_land_blocks(
+			&beneficiary,
+			number_of_land_block,
+			number_land_units_per_land_block,
+			undeployed_land_block_type,
+		)?;
 
 		Ok(new_undeployed_land_block_id)
 	}

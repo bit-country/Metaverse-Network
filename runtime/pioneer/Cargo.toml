@@ -15,6 +15,7 @@ log = { version = "0.4.14", default-features = false }
 serde = { version = '1.0.119', optional = true, features = ['derive'] }
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 smallvec = "1.6.1"
+hex-literal = { version = "0.3.3" }
 #evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
 
 # external crates - orml packages
@@ -92,6 +93,7 @@ cumulus-pallet-xcmp-queue = { git = 'https://github.com/paritytech/cumulus', bra
 cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
 cumulus-primitives-timestamp = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
 cumulus-primitives-utility = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
+cumulus-pallet-session-benchmarking = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
 parachain-info = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.11', default-features = false }
 pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.11" }
 
@@ -107,14 +109,19 @@ polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot', bran
 default = ['std']
 runtime-benchmarks = [
     'sp-runtime/runtime-benchmarks',
+    "xcm-builder/runtime-benchmarks",
     'frame-benchmarking',
     'frame-support/runtime-benchmarks',
     'frame-system-benchmarking',
     'frame-system/runtime-benchmarks',
     'pallet-balances/runtime-benchmarks',
+    "pallet-collator-selection/runtime-benchmarks",
     'pallet-timestamp/runtime-benchmarks',
-    #    'template/runtime-benchmarks',
+    "pallet-xcm/runtime-benchmarks",
+    "pallet-collective/runtime-benchmarks",
+    "cumulus-pallet-session-benchmarking/runtime-benchmarks",
 ]
+
 std = [
     "codec/std",
     "scale-info/std",

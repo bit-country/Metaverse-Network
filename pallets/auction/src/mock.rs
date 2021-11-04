@@ -116,6 +116,14 @@ impl Estate<u128> for EstateHandler {
 			_ => Ok(false),
 		}
 	}
+
+	fn get_total_land_units() -> u64 {
+		100
+	}
+
+	fn get_total_undeploy_land_units() -> u64 {
+		100
+	}
 }
 
 pub struct Handler;

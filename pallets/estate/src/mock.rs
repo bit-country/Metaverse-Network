@@ -218,6 +218,7 @@ impl Config for Runtime {
 	type CouncilOrigin = EnsureSignedBy<One, AccountId>;
 	type AuctionHandler = MockAuctionManager;
 	type MinBlocksPerRound = MinBlocksPerRound;
+	type WeightInfo = ();
 }
 
 construct_runtime!(

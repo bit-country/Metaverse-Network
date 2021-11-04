@@ -77,6 +77,7 @@ pub mod constants;
 
 use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
+use estate::weights::WeightInfo;
 use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
 use frame_support::ConsensusEngineId;
 use scale_info::TypeInfo;
@@ -448,6 +449,7 @@ impl estate::Config for Runtime {
 	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type AuctionHandler = Auction;
 	type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
+	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1062,12 +1064,16 @@ impl_runtime_apis! {
 			use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
 			use frame_support::traits::StorageInfoTrait;
 			use frame_system_benchmarking::Pallet as SystemBench;
+			use nft::benchmarking::Pallet as NftBench;
+			use estate::benchmarking::EstateModule as EstateBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
 			list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_balances, Balances);
 			list_benchmark!(list, extra, pallet_timestamp, Timestamp);
+			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
+			list_benchmark!(list, extra, estate, EstateBench::<Runtime>);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1081,6 +1087,9 @@ impl_runtime_apis! {
 
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {}
+
+			use nft::benchmarking::Pallet as NftBench;
+			use estate::benchmarking::EstateModule as EstateBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1101,6 +1110,8 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_balances, Balances);
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
+			add_benchmark!(params, batches, nft, NftBench::<Runtime>);
+			add_benchmark!(params, batches, estate, EstateBench::<Runtime>);
 
 			Ok(batches)
 		}
