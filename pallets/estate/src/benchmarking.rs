@@ -256,7 +256,7 @@ benchmarks! {
 		let target: T::AccountId = account("target", 0, SEED);
 		let target_lookup = T::Lookup::unlookup(target.clone());
 
-		issue_new_undeployed_land_block::<T>(5)?;
+		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
 	verify {
 		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
@@ -277,7 +277,7 @@ benchmarks! {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
-		issue_new_undeployed_land_block::<T>(5)?;
+		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
 	}: _(RawOrigin::Signed(caller.clone()), Default::default())
 	verify {
 		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
@@ -301,7 +301,7 @@ benchmarks! {
 		let target: T::AccountId = account("target", 0, SEED);
 		let target_lookup = T::Lookup::unlookup(target.clone());
 
-		issue_new_undeployed_land_block::<T>(5)?;
+		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::Transferable);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
 	verify {
 		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
@@ -309,6 +309,28 @@ benchmarks! {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
 				assert_eq!(a.owner, target.clone());
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	}
+
+	// deploy_land_block
+	deploy_land_block {
+		let caller: T::AccountId = whitelisted_caller();
+		let caller_lookup = T::Lookup::unlookup(caller.clone());
+
+		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
+		crate::Pallet::<T>::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::Transferable);
+	}: _(RawOrigin::Signed(caller.clone()), Default::default(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
+	verify {
+		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.number_land_units, 98);
 			}
 			_ => {
 				// Should fail test
