@@ -51,120 +51,79 @@ impl<T: frame_system::Config> estate::WeightInfo for WeightInfo<T> {
         (29_000_000 as Weight)
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    fn active_issue_undeploy_land_block() -> Weight {
-        (49_000_000 as Weight)
-            .saturating_add(T::DbWeight::get().reads(4 as Weight))
-            .saturating_add(T::DbWeight::get().writes(1 as Weight))
-    }
-    // Storage: Estate MaxBounds (r:1 w:0)
-    // Storage: Estate LandUnits (r:1 w:1)
-    // Storage: Estate AllLandUnitsCount (r:1 w:1)
     fn mint_land() -> Weight {
-        (61_000_000 as Weight)
+        (57_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(3 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
-    // Storage: Estate MaxBounds (r:1 w:0)
-    // Storage: Estate LandUnits (r:2 w:2)
-    // Storage: Estate AllLandUnitsCount (r:1 w:1)
     fn mint_lands() -> Weight {
-        (77_000_000 as Weight)
+        (76_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
-    // Storage: Auction ItemsInAuction (r:1 w:0)
-    // Storage: Estate LandUnits (r:1 w:1)
     fn transfer_land() -> Weight {
-        (52_000_000 as Weight)
+        (51_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    // Storage: Estate NextEstateId (r:1 w:1)
-    // Storage: Estate MaxBounds (r:1 w:0)
-    // Storage: Estate LandUnits (r:1 w:1)
-    // Storage: Estate AllEstatesCount (r:1 w:1)
-    // Storage: Estate EstateOwner (r:0 w:1)
-    // Storage: Estate Estates (r:0 w:1)
     fn mint_estate() -> Weight {
-        (76_000_000 as Weight)
+        (73_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
-    // Storage: Estate NextEstateId (r:1 w:1)
-    // Storage: Estate MaxBounds (r:1 w:0)
-    // Storage: Estate LandUnits (r:2 w:2)
-    // Storage: Estate AllEstatesCount (r:1 w:1)
-    // Storage: Estate EstateOwner (r:0 w:1)
-    // Storage: Estate Estates (r:0 w:1)
     fn create_estate() -> Weight {
-        (114_000_000 as Weight)
+        (95_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(5 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
-    // Storage: Auction ItemsInAuction (r:1 w:0)
-    // Storage: Estate EstateOwner (r:1 w:2)
     fn transfer_estate() -> Weight {
-        (63_000_000 as Weight)
+        (49_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
-    // Storage: Estate NextUndeployedLandBlockId (r:1 w:1)
-    // Storage: Estate TotalUndeployedLandUnit (r:1 w:1)
-    // Storage: Estate UndeployedLandBlocks (r:0 w:20)
-    // Storage: Estate UndeployedLandBlocksOwner (r:0 w:20)
     fn issue_undeployed_land_blocks() -> Weight {
-        (739_000_000 as Weight)
+        (598_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(42 as Weight))
     }
-    // Storage: Estate UndeployedLandBlocks (r:1 w:1)
     fn freeze_undeployed_land_blocks() -> Weight {
-        (43_000_000 as Weight)
+        (39_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    // Storage: Estate UndeployedLandBlocks (r:1 w:1)
     fn unfreeze_undeployed_land_blocks() -> Weight {
-        (42_000_000 as Weight)
+        (38_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    // Storage: Estate UndeployedLandBlocks (r:1 w:1)
-    // Storage: Estate TotalUndeployedLandUnit (r:1 w:1)
-    // Storage: Estate UndeployedLandBlocksOwner (r:0 w:1)
     fn burn_undeployed_land_blocks() -> Weight {
-        (55_000_000 as Weight)
+        (52_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
-    // Storage: Estate UndeployedLandBlocks (r:1 w:1)
     fn approve_undeployed_land_blocks() -> Weight {
-        (42_000_000 as Weight)
+        (40_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    // Storage: Estate UndeployedLandBlocks (r:1 w:1)
     fn unapprove_undeployed_land_blocks() -> Weight {
-        (46_000_000 as Weight)
+        (39_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
-    // Storage: Estate UndeployedLandBlocks (r:1 w:1)
-    // Storage: Estate UndeployedLandBlocksOwner (r:0 w:2)
     fn transfer_undeployed_land_blocks() -> Weight {
-        (56_000_000 as Weight)
+        (50_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(1 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
     }
-    // Storage: Estate UndeployedLandBlocks (r:1 w:1)
-    // Storage: Estate MaxBounds (r:1 w:0)
-    // Storage: Estate LandUnits (r:2 w:2)
-    // Storage: Estate AllLandUnitsCount (r:1 w:1)
-    // Storage: Estate TotalUndeployedLandUnit (r:1 w:1)
     fn deploy_land_block() -> Weight {
-        (111_000_000 as Weight)
+        (93_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(6 as Weight))
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
-
+    fn active_issue_undeploy_land_block() -> Weight {
+        (53_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
 }
