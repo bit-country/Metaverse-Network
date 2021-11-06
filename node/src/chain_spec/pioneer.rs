@@ -190,6 +190,10 @@ pub fn pioneer_network_config(id: ParaId) -> ChainSpec {
 	)
 }
 
+pub fn live_pioneer_config() -> Result<ChainSpec, String> {
+	ChainSpec::from_json_bytes(&include_bytes!("../../../node/res/pioneerSpecRaw.json")[..])
+}
+
 fn pioneer_genesis(
 	root_key: AccountId,
 	initial_authorities: Vec<(AccountId, AuraId)>,
