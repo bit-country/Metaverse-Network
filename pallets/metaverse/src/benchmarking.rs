@@ -57,11 +57,11 @@ fn dollar(d: u32) -> Balance {
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
 
-// fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
-// 	let caller: T::AccountId = account(name, index, SEED);
-// 	T::Currency::make_free_balance_be(&caller, dollar(100).unique_saturated_into());
-// 	caller
-// }
+fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
+	let caller: T::AccountId = account(name, index, SEED);
+	T::Currency::make_free_balance_be(&caller, dollar(100).unique_saturated_into());
+	caller
+}
 
 // fn issue_new_undeployed_land_block<T: Config>(n: u32) -> Result<bool, &'static str> {
 // 	let caller = funded_account::<T>("caller", 0);
@@ -86,8 +86,8 @@ benchmarks! {
 
 	// create_metaverse
 	create_metaverse{
-		let caller: T::AccountId = whitelisted_caller();
-		let caller_lookup = T::Lookup::unlookup(caller.clone());
+		let caller = funded_account::<T>("caller", 0);
+		// let caller_lookup = T::Lookup::unlookup(caller.clone());
 	}: _(RawOrigin::Signed(caller.clone()), vec![1])
 	verify {
 		// assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)

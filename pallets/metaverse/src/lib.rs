@@ -37,6 +37,10 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
+
+pub use weights::WeightInfo;
+
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
 pub use pallet::*;
 
@@ -65,6 +69,8 @@ pub mod pallet {
 		type MinContribution: Get<BalanceOf<Self>>;
 		/// Origin to add new metaverse
 		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
+		/// Weight implementation for estate extrinsics
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::storage]
@@ -129,7 +135,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::create_metaverse())]
 		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 

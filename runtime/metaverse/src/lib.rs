@@ -78,6 +78,7 @@ pub mod constants;
 use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
 use estate::weights::WeightInfo;
+// use metaverse::weights::WeightInfo;
 use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
 use frame_support::ConsensusEngineId;
 use scale_info::TypeInfo;
@@ -432,6 +433,7 @@ impl metaverse::Config for Runtime {
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureRootOrHalfMetaverseCouncil;
+	type WeightInfo = weights::module_metaverse::WeightInfo<Runtime>;
 }
 
 parameter_types! {
