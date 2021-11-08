@@ -47,14 +47,28 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> metaverse::WeightInfo for WeightInfo<T> {
     fn create_metaverse() -> Weight {
-        (132_000_000 as Weight)
+        (140_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
-
     fn transfer_metaverse() -> Weight {
-        (53_000_000 as Weight)
+        (56_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(2 as Weight))
             .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn freeze_metaverse() -> Weight {
+        (48_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn unfreeze_metaverse() -> Weight {
+        (38_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn destroy_metaverse() -> Weight {
+        (44_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
 }

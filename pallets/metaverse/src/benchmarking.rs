@@ -32,16 +32,11 @@ use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use primitives::Balance;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
-// use orml_traits::BasicCurrencyExtended;
-// use primitives::{UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
 
 pub type AccountId = u128;
-// pub type LandId = u64;
-// pub type EstateId = u64;
 
 const SEED: u32 = 0;
 
-const METAVERSE_ID: u64 = 1;
 const ALICE: AccountId = 1;
 const BENEFICIARY_ID: AccountId = 99;
 
@@ -50,7 +45,6 @@ const COORDINATE_IN_1: (i32, i32) = (-10, 10);
 const COORDINATE_IN_2: (i32, i32) = (-5, 5);
 const COORDINATE_OUT: (i32, i32) = (0, 101);
 const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
-// const ESTATE_IN_AUCTION: EstateId = 99;
 
 fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
@@ -63,56 +57,101 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	caller
 }
 
-// fn create_new_metaverse<T: Config>(n: u32) -> Result<bool, &'static str> {
-// 	let caller = funded_account::<T>("caller", 0);
-// 	MetaverseModule::<T>::create_metaverse(
-// 		RawOrigin::Signed(caller.clone()),
-// 		vec![1],
-// 	);
-//
-// 	Ok(true)
-// }
-
 benchmarks! {
-	// // set_max_bounds
-	// set_max_bounds{
-	// }: _(RawOrigin::Root, METAVERSE_ID, MAX_BOUND)
-	// verify {
-	// 	assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
-	// }
-
 	// create_metaverse
 	create_metaverse{
 		let caller = funded_account::<T>("caller", 0);
-		// let caller_lookup = T::Lookup::unlookup(caller.clone());
 	}: _(RawOrigin::Signed(caller.clone()), vec![1])
 	verify {
-		// assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
+		let metaverse = crate::Pallet::<T>::get_metaverse(0);
+		match metaverse {
+			Some(a) => {
+				assert_eq!(a.owner, caller.clone());
+				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.metadata, vec![1]);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	}
 
 	// transfer_metaverse
-	transfer_metaverse{
+	transfer_metaverse {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		// MetaverseModule::<T>::create_metaverse(RawOrigin::Signed(caller.clone()), vec![1]);
 		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
-
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), 0)
 	verify {
-		// assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
+		let metaverse = crate::Pallet::<T>::get_metaverse(0);
+		match metaverse {
+			Some(a) => {
+				assert_eq!(a.owner, target.clone());
+				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.metadata, vec![1]);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	}
 
-	// // freeze_metaverse
-	// freeze_metaverse{
-	// 	let caller = funded_account::<T>("caller", 0);
-	// 	let target = funded_account::<T>("target", 0);
-	//
-	// 	MetaverseModule::<T>::create_metaverse(RawOrigin::Signed(caller.clone()), vec![1]);
-	// }: _(RawOrigin::Signed(caller.clone()), target.clone(), 0)
-	// verify {
-	// 	// assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
-	// }
+	// freeze_metaverse
+	freeze_metaverse{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+	}: _(RawOrigin::Root, 0)
+	verify {
+		let metaverse = crate::Pallet::<T>::get_metaverse(0);
+		match metaverse {
+			Some(a) => {
+				assert_eq!(a.is_frozen, true);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	}
+
+	// unfreeze_metaverse
+	unfreeze_metaverse{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		crate::Pallet::<T>::freeze_metaverse(RawOrigin::Root.into(), 0);
+	}: _(RawOrigin::Root, 0)
+	verify {
+		let metaverse = crate::Pallet::<T>::get_metaverse(0);
+		match metaverse {
+			Some(a) => {
+				// Verify details of Metaverse
+				assert_eq!(a.is_frozen, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	}
+
+	// destroy_metaverse
+	destroy_metaverse{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		crate::Pallet::<T>::freeze_metaverse(RawOrigin::Root.into(), 0);
+	}: _(RawOrigin::Root, 0)
+	verify {
+		assert_eq!(crate::Pallet::<T>::get_metaverse(0), None);
+	}
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

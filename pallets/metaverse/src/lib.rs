@@ -205,7 +205,7 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::freeze_metaverse())]
 		pub fn freeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can free a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
@@ -221,7 +221,7 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::unfreeze_metaverse())]
 		pub fn unfreeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can free a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
@@ -237,7 +237,7 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::destroy_metaverse())]
 		pub fn destroy_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can destroy a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
