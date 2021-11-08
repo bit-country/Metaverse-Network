@@ -37,7 +37,9 @@ use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto}
 pub struct Pallet<T: Config>(crate::Pallet<T>);
 
 const SEED: u32 = 0;
-// pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
+
+// TODO: below line got compile error, need to mock ClassId and use for mint call
+// const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
 
 fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
@@ -59,7 +61,9 @@ benchmarks! {
 	create_class{
 		let caller = whitelisted_caller();
 		let initial_balance = dollar(1000);
+
 		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1],vec![1]);
 	}: _(RawOrigin::Signed(caller), vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable)
 
@@ -67,6 +71,8 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
+
+		// let collectionId = crate::Pallet::<T>::get_class_collection(0u32.into());
 	}: _(RawOrigin::Signed(caller), 0u32.into(), vec![1], vec![2], vec![1, 2, 3], 3 )
 }
 
