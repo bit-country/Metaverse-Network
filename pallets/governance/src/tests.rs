@@ -593,7 +593,6 @@ fn referendum_proposal_is_enacted() {
 fn referendum_proposal_rejected_as_out_of_scope() {
 	ExtBuilder::default().build().execute_with(|| {
 		let root = Origin::root();
-		let proposer = Origin::signed(ALICE);
 		let preimage_hash = set_balance_proposal_hash(1);
 		add_preimage(preimage_hash);
 		add_out_of_scope_proposal(preimage_hash);

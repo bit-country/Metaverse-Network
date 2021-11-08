@@ -9,8 +9,8 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
-		BalanceStatus, Currency, Get, InstanceFilter, LockIdentifier, LockableCurrency, OnUnbalanced,
-		ReservableCurrency, WithdrawReasons,
+		Currency, Get, InstanceFilter, LockIdentifier, LockableCurrency, OnUnbalanced, ReservableCurrency,
+		WithdrawReasons,
 	},
 };
 use metaverse_primitive::MetaverseTrait;
@@ -316,7 +316,7 @@ pub mod pallet {
 			proposal: ProposalId,
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
-			let from = T::MetaverseCouncil::ensure_origin(origin)?;
+			let _from = T::MetaverseCouncil::ensure_origin(origin)?;
 
 			let mut proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
@@ -349,10 +349,10 @@ pub mod pallet {
 				vote.balance <= T::Currency::free_balance(&from),
 				Error::<T>::InsufficientBalance
 			);
-			<VotingOf<T>>::try_mutate(from.clone(), |mut voting_record| -> DispatchResultWithPostInfo {
+			<VotingOf<T>>::try_mutate(from.clone(), |voting_record| -> DispatchResultWithPostInfo {
 				let votes = &mut voting_record.votes;
 				match votes.binary_search_by_key(&referendum, |i| i.0) {
-					Ok(i) => Err(Error::<T>::AccountAlreadyVoted.into()),
+					Ok(_i) => Err(Error::<T>::AccountAlreadyVoted.into()),
 					Err(i) => {
 						votes.insert(i, (referendum, vote.clone()));
 
@@ -393,7 +393,7 @@ pub mod pallet {
 								Self::deposit_event(Event::VoteRemoved(from, referendum));
 							}
 							Some(ReferendumInfo::Finished { end, passed }) => {
-								let mut prior = &mut voting_record.prior;
+								let prior = &mut voting_record.prior;
 								if let Some((lock_periods, balance)) = vote.locked_if(passed) {
 									let mut lock_value: T::BlockNumber =
 										ReferendumParameters::default().local_vote_locking_period;
@@ -414,7 +414,7 @@ pub mod pallet {
 						}
 						Ok(().into())
 					}
-					Err(i) => Err(Error::<T>::AccountHasNotVoted.into()),
+					Err(_i) => Err(Error::<T>::AccountHasNotVoted.into()),
 				}
 			})
 		}
@@ -521,7 +521,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<u64, DispatchError> {
 		let referendum_id = Self::get_next_referendum_id()?;
 
-		let mut referendum_end = current_block;
+		let referendum_end;
 		let mut referendum_threshold = ReferendumParameters::<T::BlockNumber>::default()
 			.voting_threshold
 			.ok_or("Invalid Default Referendum Threshold")?;

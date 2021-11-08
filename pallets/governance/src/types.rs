@@ -1,10 +1,9 @@
 use crate::*;
 use codec::{Decode, Encode};
-use frame_support::traits::CurrencyToVote;
-use primitives::{AccountId, Balance, MetaverseId, ProposalId, ReferendumId};
+use primitives::{MetaverseId, ProposalId, ReferendumId};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Hash, IntegerSquareRoot, One, Saturating, Zero},
+	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, IntegerSquareRoot, Saturating, Zero},
 	RuntimeDebug,
 };
 use sp_std::convert::TryFrom;
