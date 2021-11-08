@@ -46,23 +46,34 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for metaverse.
 pub trait WeightInfo {
 	fn create_metaverse() -> Weight;
+	fn transfer_metaverse() -> Weight;
 }
 
 /// Weights for metaverse using the Acala node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn create_metaverse() -> Weight {
-		(165_000_000 as Weight)
+		(137_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
+	}
+	fn transfer_metaverse() -> Weight {
+		(54_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(2 as Weight))
+			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
 	fn create_metaverse() -> Weight {
-		(165_000_000 as Weight)
+		(137_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(6 as Weight))
+	}
+	fn transfer_metaverse() -> Weight {
+		(54_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
 	}
 }

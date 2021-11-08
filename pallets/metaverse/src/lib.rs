@@ -170,7 +170,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_metaverse())]
 		pub fn transfer_metaverse(
 			origin: OriginFor<T>,
 			to: T::AccountId,

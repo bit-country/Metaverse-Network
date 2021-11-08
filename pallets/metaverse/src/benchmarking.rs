@@ -63,14 +63,11 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	caller
 }
 
-// fn issue_new_undeployed_land_block<T: Config>(n: u32) -> Result<bool, &'static str> {
+// fn create_new_metaverse<T: Config>(n: u32) -> Result<bool, &'static str> {
 // 	let caller = funded_account::<T>("caller", 0);
-// 	EstateModule::<T>::issue_undeployed_land_blocks(
-// 		RawOrigin::Root.into(),
-// 		caller,
-// 		n,
-// 		100,
-// 		UndeployedLandBlockType::Transferable,
+// 	MetaverseModule::<T>::create_metaverse(
+// 		RawOrigin::Signed(caller.clone()),
+// 		vec![1],
 // 	);
 //
 // 	Ok(true)
@@ -92,6 +89,30 @@ benchmarks! {
 	verify {
 		// assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
 	}
+
+	// transfer_metaverse
+	transfer_metaverse{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+
+		// MetaverseModule::<T>::create_metaverse(RawOrigin::Signed(caller.clone()), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+
+	}: _(RawOrigin::Signed(caller.clone()), target.clone(), 0)
+	verify {
+		// assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
+	}
+
+	// // freeze_metaverse
+	// freeze_metaverse{
+	// 	let caller = funded_account::<T>("caller", 0);
+	// 	let target = funded_account::<T>("target", 0);
+	//
+	// 	MetaverseModule::<T>::create_metaverse(RawOrigin::Signed(caller.clone()), vec![1]);
+	// }: _(RawOrigin::Signed(caller.clone()), target.clone(), 0)
+	// verify {
+	// 	// assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
+	// }
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

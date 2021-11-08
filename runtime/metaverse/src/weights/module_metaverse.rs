@@ -51,4 +51,10 @@ impl<T: frame_system::Config> metaverse::WeightInfo for WeightInfo<T> {
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(6 as Weight))
     }
+
+    fn transfer_metaverse() -> Weight {
+        (53_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
 }
