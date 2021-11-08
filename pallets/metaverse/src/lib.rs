@@ -28,6 +28,9 @@ use sp_runtime::{
 };
 use sp_std::{convert::TryInto, vec::Vec};
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 

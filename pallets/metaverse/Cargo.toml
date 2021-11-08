@@ -30,6 +30,7 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false, optional = true }
 
 # local packages
 bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
@@ -46,6 +47,11 @@ path = '../nft'
 version = '2.0.0-rc6'
 
 [features]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+]
 default = ['std']
 std = [
     'serde',
@@ -60,5 +66,6 @@ std = [
     "orml-tokens/std",
     'nft/std',
     'primitives/std',
-    'scale-info/std'
+    'scale-info/std',
+    'frame-benchmarking/std'
 ]
