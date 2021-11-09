@@ -40,6 +40,9 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
