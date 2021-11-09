@@ -92,6 +92,7 @@ impl Config for Runtime {
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+	type WeightInfo = ();
 }
 
 pub type MetaverseModule = Module<Runtime>;
