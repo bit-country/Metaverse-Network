@@ -305,7 +305,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::mint_land())]
 		pub fn mint_land(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -332,7 +332,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::mint_lands())]
 		pub fn mint_lands(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -358,7 +358,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_land())]
 		pub fn transfer_land(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -377,7 +377,7 @@ pub mod pallet {
 		}
 
 		/// Mint new estate with no existing land unit
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::mint_estate())]
 		pub fn mint_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -403,7 +403,7 @@ pub mod pallet {
 		}
 
 		/// Create new estate from existing land units
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::create_estate())]
 		pub fn create_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -429,7 +429,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_estate())]
 		pub fn transfer_estate(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -447,7 +447,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::deploy_land_block())]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -510,7 +510,7 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::issue_undeployed_land_blocks())]
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -530,7 +530,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::freeze_undeployed_land_blocks())]
 		pub fn freeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -542,7 +542,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::unfreeze_undeployed_land_blocks())]
 		pub fn unfreeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -570,7 +570,7 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_undeployed_land_blocks())]
 		pub fn transfer_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -583,7 +583,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::burn_undeployed_land_blocks())]
 		pub fn burn_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -595,7 +595,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::approve_undeployed_land_blocks())]
 		pub fn approve_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -633,7 +633,7 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::unapprove_undeployed_land_blocks())]
 		pub fn unapprove_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
