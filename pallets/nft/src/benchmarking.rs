@@ -52,6 +52,31 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	caller
 }
 
+// fn create_token_class<T: Config>(caller: T::AccountId) -> Result<T::AccountId,
+// DispatchErrorWithPostInfo> { 	let base_currency_amount = dollar(1000);
+// 	T::Currency::make_free_balance_be(&caller, base_currency_amount.unique_saturated_into());
+//
+// 	let module_account: T::AccountId =
+// T::PalletId::get().into_sub_account(orml_nft::Pallet::<T>::next_class_id()); 	crate::Pallet::<T>::
+// create_class( 		RawOrigin::Signed(caller).into(),
+// 		vec![1],
+// 		Properties(
+// 			ClassProperty::Transferable
+// 				| ClassProperty::Burnable
+// 				| ClassProperty::Mintable
+// 				| ClassProperty::ClassPropertiesMutable,
+// 		),
+// 		test_attr(),
+// 	)?;
+//
+// 	<T as module::Config>::Currency::make_free_balance_be(
+// 		&module_account,
+// 		base_currency_amount.unique_saturated_into(),
+// 	);
+//
+// 	Ok(module_account)
+// }
+
 benchmarks! {
 
 	// create NFT group
@@ -64,16 +89,53 @@ benchmarks! {
 
 		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 
-		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1],vec![1]);
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 	}: _(RawOrigin::Signed(caller), vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable)
 
 	mint{
 		let caller = funded_account::<T>("caller", 0);
+		let initial_balance = dollar(1000);
 
+		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
-
-		// let collectionId = crate::Pallet::<T>::get_class_collection(0u32.into());
 	}: _(RawOrigin::Signed(caller), 0u32.into(), vec![1], vec![2], vec![1, 2, 3], 3 )
+
+	transfer{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+		let initial_balance = dollar(1000);
+
+		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
+		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], vec![2], vec![1, 2, 3], 3);
+	}: _(RawOrigin::Signed(caller), target.clone(),  0u32.into() )
+
+	transfer_batch{
+		let caller = funded_account::<T>("caller", 0);
+		let target1 = funded_account::<T>("target1", 0);
+		let target2 = funded_account::<T>("target2", 0);
+		let initial_balance = dollar(1000);
+
+		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
+		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], vec![2], vec![1, 2, 3], 3);
+		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], vec![2], vec![1, 2, 3], 3);
+	}: _(RawOrigin::Signed(caller), vec![(target1.clone(), 0u32.into()), (target2.clone(), 1u32.into())] )
+
+	sign_asset{
+		let caller = funded_account::<T>("caller", 0);
+		let signer = funded_account::<T>("target", 0);
+		let initial_balance = dollar(1000);
+
+		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
+		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], vec![2], vec![1, 2, 3], 3);
+	}: _(RawOrigin::Signed(signer), 0u32.into() )
+
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

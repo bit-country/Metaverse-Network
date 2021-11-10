@@ -36,9 +36,13 @@ mod tests;
 
 pub use pallet::*;
 
-pub mod default_weight;
+// pub mod default_weight;
+//
+// pub use default_weight::WeightInfo;
 
-pub use default_weight::WeightInfo;
+pub mod weights;
+
+pub use weights::WeightInfo;
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct NftGroupCollectionData {
@@ -265,7 +269,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::create_group())]
 		pub fn create_group(origin: OriginFor<T>, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			let next_group_collection_id = Self::do_create_group_collection(name.clone(), properties.clone())?;
@@ -285,7 +289,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::create_class())]
 		pub fn create_class(
 			origin: OriginFor<T>,
 			metadata: Vec<u8>,
@@ -327,6 +331,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(< T as Config >::WeightInfo::mint(* quantity))]
+		// #[pallet::weight(< T as Config >::WeightInfo::mint())]
 		pub fn mint(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -401,7 +406,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer())]
 		pub fn transfer(origin: OriginFor<T>, to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
@@ -417,7 +422,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_batch(tos.len() as u32))]
 		pub fn transfer_batch(origin: OriginFor<T>, tos: Vec<(T::AccountId, AssetId)>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
@@ -450,7 +455,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn sign_asset(origin: OriginFor<T>, asset_id: AssetId) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
