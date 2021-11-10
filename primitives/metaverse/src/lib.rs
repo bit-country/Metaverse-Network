@@ -96,6 +96,8 @@ pub type LandId = u64;
 pub type EstateId = u64;
 /// Social Token Id type
 pub type TokenId = u64;
+/// Undeployed LandBlock Id type
+pub type UndeployedLandBlockId = u128;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -241,4 +243,43 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 			.checked_mul(&unrealized.into())
 			.expect("ensured non-overflow total amount; qed")
 	}
+}
+
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum UndeployedLandBlockType {
+	Transferable,
+	BoundToAddress,
+}
+
+impl UndeployedLandBlockType {
+	pub fn is_transferable(&self) -> bool {
+		match *self {
+			UndeployedLandBlockType::Transferable => true,
+			_ => false,
+		}
+	}
+}
+
+impl Default for UndeployedLandBlockType {
+	fn default() -> Self {
+		UndeployedLandBlockType::Transferable
+	}
+}
+
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct UndeployedLandBlock<AccountId> {
+	// Minimum balance to create a collection of Asset
+	pub id: UndeployedLandBlockId,
+	// Metadata from ipfs
+	pub number_land_units: u32,
+	pub undeployed_land_block_type: UndeployedLandBlockType,
+
+	/// The owner of this asset.
+	pub owner: AccountId,
+	/// The approved transferrer of this asset, if one is set.
+	pub approved: Option<AccountId>,
+	/// Whether the asset can be transferred or not.
+	pub is_frozen: bool,
 }

@@ -23,29 +23,88 @@ use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{estate::Estate, EstateId, ItemId, MetaverseId};
+use primitives::{
+	estate::Estate, Balance, EstateId, ItemId, LandId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
+	UndeployedLandBlockType,
+};
+pub use rate::{MintingRateInfo, Range};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
 	DispatchError,
 };
 use sp_std::vec::Vec;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 #[cfg(test)]
 mod mock;
+mod rate;
 
 #[cfg(test)]
 mod tests;
+
+pub mod weights;
+
+pub use weights::WeightInfo;
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
+pub struct TestCollectionData {
+	pub name: Vec<u8>,
+	// Metadata from ipfs
+	pub properties: Vec<u8>,
+}
 
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::traits::{Currency, ReservableCurrency};
+	use crate::rate::{round_issuance_range, MintingRateInfo};
+	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
+	use primitives::{AccountId, UndeployedLandBlockId};
+	use sp_runtime::traits::Zero;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
+
+	type RoundIndex = u32;
+
+	#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
+	/// The current round index and transition information
+	pub struct RoundInfo<BlockNumber> {
+		/// Current round index
+		pub current: RoundIndex,
+		/// The first block of the current round
+		pub first: BlockNumber,
+		/// The length of the current round in number of blocks
+		pub length: u32,
+	}
+
+	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> RoundInfo<B> {
+		pub fn new(current: RoundIndex, first: B, length: u32) -> RoundInfo<B> {
+			RoundInfo { current, first, length }
+		}
+		/// Check if the round should be updated
+		pub fn should_update(&self, now: B) -> bool {
+			now - self.first >= self.length.into()
+		}
+		/// New round
+		pub fn update(&mut self, now: B) {
+			self.current += 1u32;
+			self.first = now;
+		}
+	}
+
+	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> Default
+		for RoundInfo<B>
+	{
+		fn default() -> RoundInfo<B> {
+			RoundInfo::new(1u32, 1u32.into(), 20u32)
+		}
+	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -62,6 +121,10 @@ pub mod pallet {
 		type CouncilOrigin: EnsureOrigin<Self::Origin>;
 		/// Auction Handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
+		#[pallet::constant]
+		type MinBlocksPerRound: Get<u32>;
+		/// Weight implementation for estate extrinsics
+		type WeightInfo: WeightInfo;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -74,6 +137,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn all_land_units_count)]
 	pub(super) type AllLandUnitsCount<T: Config> = StorageValue<_, u64, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn all_undeployed_land_unit)]
+	pub(super) type TotalUndeployedLandUnit<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_land_units)]
@@ -97,15 +164,94 @@ pub mod pallet {
 	pub type EstateOwner<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn next_undeployed_land_block_id)]
+	pub(super) type NextUndeployedLandBlockId<T: Config> = StorageValue<_, UndeployedLandBlockId, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_undeployed_land_block)]
+	pub(super) type UndeployedLandBlocks<T: Config> =
+		StorageMap<_, Blake2_128Concat, UndeployedLandBlockId, UndeployedLandBlock<T::AccountId>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_undeployed_land_block_owner)]
+	pub type UndeployedLandBlocksOwner<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn round)]
+	/// Current round index and next round scheduled transition
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn minting_rate_config)]
+	/// Minting rate configuration
+	pub type MintingRateConfig<T: Config> = StorageValue<_, MintingRateInfo, ValueQuery>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {
+		pub minting_rate_config: MintingRateInfo,
+	}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			Self { ..Default::default() }
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			<MintingRateConfig<T>>::put(self.minting_rate_config.clone());
+
+			// Start Round 1 at Block 0
+			let round: RoundInfo<T::BlockNumber> = RoundInfo::new(1u32, 0u32.into(), T::MinBlocksPerRound::get());
+
+			let round_issuance_per_round = round_issuance_range::<T>(self.minting_rate_config.clone());
+
+			<Round<T>>::put(round);
+			<Pallet<T>>::deposit_event(Event::NewRound(
+				T::BlockNumber::zero(),
+				1u32,
+				round_issuance_per_round.max,
+			));
+		}
+	}
+
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Beneficial Account Id, Metaverse Id, Coordinates
 		NewLandsMinted(T::AccountId, MetaverseId, Vec<(i32, i32)>),
+		/// Metaverse Id, Coordinates, From Account Id, To Account Id
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
+		/// Estate Id, From Account Id, To Account Id
 		TransferredEstate(EstateId, T::AccountId, T::AccountId),
+		/// Beneficial Account Id, Metaverse Id, Coordinates
 		NewLandUnitMinted(T::AccountId, MetaverseId, (i32, i32)),
+		/// Estate Id, Beneficial Account Id, Metaverse Id, Coordinates
 		NewEstateMinted(EstateId, T::AccountId, MetaverseId, Vec<(i32, i32)>),
+		/// Metaverse Id, Min and Max Coordinate
 		MaxBoundSet(MetaverseId, (i32, i32)),
+		/// From Account Id, Metaverse Id, Undeployed Land Block Id, Coordinates
+		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>),
+		/// Beneficial Account Id, Undeployed Land Block Id
+		UndeployedLandBlockIssued(T::AccountId, UndeployedLandBlockId),
+		/// From Account Id, To Account Id, Undeployed Land Block Id
+		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		/// Owner Account Id, Approved Account Id, Undeployed Land Block Id
+		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		/// Undeployed Land Block Id
+		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
+		UndeployedLandBlockFreezed(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
+		UndeployedLandBlockUnfreezed(UndeployedLandBlockId),
+		/// Undeployed Land Block Id
+		UndeployedLandBlockBurnt(UndeployedLandBlockId),
+		/// Starting Block, Round, Total Land Unit
+		NewRound(T::BlockNumber, RoundIndex, u64),
 	}
 
 	#[pallet::error]
@@ -124,6 +270,13 @@ pub mod pallet {
 		LandUnitIsOutOfBound,
 		// No max bound set
 		NoMaxBoundSet,
+		UndeployedLandBlockNotFound,
+		UndeployedLandBlockIsNotTransferable,
+		UndeployedLandBlockDoesNotHaveEnoughLandUnits,
+		AlreadyOwnTheUndeployedLandBlock,
+		UndeployedLandBlockFreezed,
+		UndeployedLandBlockAlreadyFreezed,
+		UndeployedLandBlockNotFrozen,
 		AlreadyOwnTheEstate,
 		AlreadyOwnTheLandUnit,
 		EstateNotInAuction,
@@ -132,11 +285,12 @@ pub mod pallet {
 		LandUnitAlreadyInAuction,
 		EstateDoesNotExist,
 		LandUnitDoesNotExist,
+		OnlyFrozenUndeployedLandBlockCanBeDestroyed,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::set_max_bounds())]
 		pub fn set_max_bounds(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -151,7 +305,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::mint_land())]
 		pub fn mint_land(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -164,11 +318,7 @@ pub mod pallet {
 			Self::mint_land_unit(metaverse_id, &beneficiary, coordinate, false)?;
 
 			// Update total land count
-			let total_land_units_count = Self::all_land_units_count();
-			let new_total_land_units_count = total_land_units_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding new count to total lands")?;
-			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+			Self::set_total_land_unit(One::one(), false)?;
 
 			// Update land units
 			LandUnits::<T>::insert(metaverse_id, coordinate, beneficiary.clone());
@@ -182,7 +332,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::mint_lands())]
 		pub fn mint_lands(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -197,12 +347,8 @@ pub mod pallet {
 			}
 
 			// Update total land count
-			let total_land_unit_count = Self::all_land_units_count();
+			Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
-			let new_total_land_unit_count = total_land_unit_count
-				.checked_add(coordinates.len() as u64)
-				.ok_or("Overflow adding new count to total lands")?;
-			AllLandUnitsCount::<T>::put(new_total_land_unit_count);
 			Self::deposit_event(Event::<T>::NewLandsMinted(
 				beneficiary.clone(),
 				metaverse_id.clone(),
@@ -212,7 +358,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_land())]
 		pub fn transfer_land(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -231,8 +377,7 @@ pub mod pallet {
 		}
 
 		/// Mint new estate with no existing land unit
-		#[pallet::weight(10_000)]
-
+		#[pallet::weight(T::WeightInfo::mint_estate())]
 		pub fn mint_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -258,7 +403,7 @@ pub mod pallet {
 		}
 
 		/// Create new estate from existing land units
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::create_estate())]
 		pub fn create_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -284,7 +429,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_estate())]
 		pub fn transfer_estate(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -298,12 +443,263 @@ pub mod pallet {
 			);
 
 			Self::do_transfer_estate(estate_id, &who, &to)?;
+
 			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::deploy_land_block())]
+		pub fn deploy_land_block(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+			metaverse_id: MetaverseId,
+			coordinates: Vec<(i32, i32)>,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.owner == who.clone(),
+						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockFreezed
+					);
+
+					let land_units_to_mint = coordinates.len() as u32;
+					ensure!(
+						undeployed_land_block_record.number_land_units > land_units_to_mint,
+						Error::<T>::UndeployedLandBlockDoesNotHaveEnoughLandUnits
+					);
+
+					// Mint land units
+					for coordinate in coordinates.clone() {
+						Self::mint_land_unit(metaverse_id, &who, coordinate, false)?;
+					}
+
+					// Update total land count
+					Self::set_total_land_unit(coordinates.len() as u64, false)?;
+
+					// Update undeployed land block
+					if undeployed_land_block_record.number_land_units == land_units_to_mint {
+						Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
+					} else {
+						undeployed_land_block_record.number_land_units = undeployed_land_block_record
+							.number_land_units
+							.checked_sub(land_units_to_mint)
+							.ok_or("Overflow deduct land units from undeployed land block")?;
+					}
+					Self::set_total_undeployed_land_unit(land_units_to_mint as u64, true)?;
+
+					Self::deposit_event(Event::<T>::LandBlockDeployed(
+						who.clone(),
+						metaverse_id,
+						undeployed_land_block_id,
+						coordinates,
+					));
+
+					Ok(().into())
+				},
+			)
+		}
+
+		#[pallet::weight(T::WeightInfo::issue_undeployed_land_blocks())]
+		pub fn issue_undeployed_land_blocks(
+			who: OriginFor<T>,
+			beneficiary: T::AccountId,
+			number_of_land_block: u32,
+			number_land_units_per_land_block: u32,
+			undeployed_land_block_type: UndeployedLandBlockType,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(who)?;
+
+			Self::do_issue_undeployed_land_blocks(
+				&beneficiary,
+				number_of_land_block,
+				number_land_units_per_land_block,
+				undeployed_land_block_type,
+			)?;
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::freeze_undeployed_land_blocks())]
+		pub fn freeze_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			Self::do_freeze_undeployed_land_block(undeployed_land_block_id)?;
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::unfreeze_undeployed_land_blocks())]
+		pub fn unfreeze_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == true,
+						Error::<T>::UndeployedLandBlockNotFrozen
+					);
+
+					undeployed_land_block_record.is_frozen = false;
+
+					Self::deposit_event(Event::<T>::UndeployedLandBlockUnfreezed(undeployed_land_block_id));
+
+					Ok(().into())
+				},
+			)
+		}
+
+		#[pallet::weight(T::WeightInfo::transfer_undeployed_land_blocks())]
+		pub fn transfer_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			Self::do_transfer_undeployed_land_block(&who, &to, undeployed_land_block_id)?;
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::burn_undeployed_land_blocks())]
+		pub fn burn_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::approve_undeployed_land_blocks())]
+		pub fn approve_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.owner == who.clone(),
+						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockAlreadyFreezed
+					);
+
+					undeployed_land_block_record.approved = Some(to.clone());
+
+					Self::deposit_event(Event::<T>::UndeployedLandBlockApproved(
+						who.clone(),
+						to.clone(),
+						undeployed_land_block_id.clone(),
+					));
+
+					Ok(().into())
+				},
+			)
+		}
+
+		#[pallet::weight(T::WeightInfo::unapprove_undeployed_land_blocks())]
+		pub fn unapprove_undeployed_land_blocks(
+			origin: OriginFor<T>,
+			undeployed_land_block_id: UndeployedLandBlockId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			UndeployedLandBlocks::<T>::try_mutate_exists(
+				&undeployed_land_block_id,
+				|undeployed_land_block| -> DispatchResultWithPostInfo {
+					let mut undeployed_land_block_record = undeployed_land_block
+						.as_mut()
+						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+					ensure!(
+						undeployed_land_block_record.owner == who.clone(),
+						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_frozen == false,
+						Error::<T>::UndeployedLandBlockAlreadyFreezed
+					);
+
+					undeployed_land_block_record.approved = None;
+
+					Self::deposit_event(Event::<T>::UndeployedLandBlockUnapproved(
+						undeployed_land_block_id.clone(),
+					));
+
+					Ok(().into())
+				},
+			)
 		}
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_initialize(n: T::BlockNumber) -> Weight {
+			let minting_config = <MintingRateConfig<T>>::get();
+			let mut round = <Round<T>>::get();
+			if round.should_update(n) {
+				// mutate round
+				round.update(n);
+				let round_issuance_per_round = round_issuance_range::<T>(minting_config);
+				//TODO do actual minting new undeployed land block
+				let land_register_treasury = T::LandTreasury::get().into_account();
+				<Round<T>>::put(round);
+
+				Self::do_issue_undeployed_land_blocks(
+					&land_register_treasury,
+					round_issuance_per_round.ideal as u32,
+					100,
+					UndeployedLandBlockType::Transferable,
+				);
+
+				Self::deposit_event(Event::NewRound(
+					round.first,
+					round.current,
+					round_issuance_per_round.max,
+				));
+				<T as pallet::Config>::WeightInfo::active_issue_undeploy_land_block()
+			} else {
+				0
+			}
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -379,6 +775,139 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	fn get_new_undeployed_land_block_id() -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id =
+			NextUndeployedLandBlockId::<T>::try_mutate(|id| -> Result<UndeployedLandBlockId, DispatchError> {
+				let current_id = *id;
+				*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableEstateId)?;
+				Ok(current_id)
+			})?;
+		Ok(undeployed_land_block_id)
+	}
+
+	fn do_transfer_undeployed_land_block(
+		who: &T::AccountId,
+		to: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		UndeployedLandBlocks::<T>::try_mutate_exists(
+			&undeployed_land_block_id,
+			|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
+				let mut undeployed_land_block_record = undeployed_land_block
+					.as_mut()
+					.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+				ensure!(
+					undeployed_land_block_record.owner == who.clone(),
+					Error::<T>::NoPermission
+				);
+
+				ensure!(
+					undeployed_land_block_record.is_frozen == false,
+					Error::<T>::UndeployedLandBlockAlreadyFreezed
+				);
+
+				ensure!(
+					undeployed_land_block_record.undeployed_land_block_type == UndeployedLandBlockType::Transferable,
+					Error::<T>::UndeployedLandBlockIsNotTransferable
+				);
+
+				undeployed_land_block_record.owner = to.clone();
+
+				UndeployedLandBlocksOwner::<T>::remove(who.clone(), &undeployed_land_block_id);
+				UndeployedLandBlocksOwner::<T>::insert(to.clone(), &undeployed_land_block_id, ());
+
+				Self::deposit_event(Event::<T>::UndeployedLandBlockTransferred(
+					who.clone(),
+					to.clone(),
+					undeployed_land_block_id.clone(),
+				));
+
+				Ok(undeployed_land_block_id)
+			},
+		)
+	}
+
+	fn do_burn_undeployed_land_block(
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_info =
+			UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+		ensure!(
+			undeployed_land_block_info.is_frozen,
+			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
+		);
+		Self::set_total_undeployed_land_unit(undeployed_land_block_info.number_land_units as u64, true)?;
+		UndeployedLandBlocksOwner::<T>::remove(undeployed_land_block_info.owner, &undeployed_land_block_id);
+		UndeployedLandBlocks::<T>::remove(&undeployed_land_block_id);
+
+		Self::deposit_event(Event::<T>::UndeployedLandBlockBurnt(undeployed_land_block_id.clone()));
+
+		Ok(undeployed_land_block_id)
+	}
+
+	fn do_freeze_undeployed_land_block(
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		UndeployedLandBlocks::<T>::try_mutate_exists(
+			&undeployed_land_block_id,
+			|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
+				let mut undeployed_land_block_record = undeployed_land_block
+					.as_mut()
+					.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+				ensure!(
+					undeployed_land_block_record.is_frozen == false,
+					Error::<T>::UndeployedLandBlockAlreadyFreezed
+				);
+
+				undeployed_land_block_record.is_frozen = true;
+
+				Self::deposit_event(Event::<T>::UndeployedLandBlockFreezed(undeployed_land_block_id));
+
+				Ok(undeployed_land_block_id)
+			},
+		)
+	}
+
+	fn do_issue_undeployed_land_blocks(
+		beneficiary: &T::AccountId,
+		number_of_land_block: u32,
+		number_land_units_per_land_block: u32,
+		undeployed_land_block_type: UndeployedLandBlockType,
+	) -> Result<Vec<UndeployedLandBlockId>, DispatchError> {
+		let mut undeployed_land_block_ids: Vec<UndeployedLandBlockId> = Vec::new();
+
+		for _ in 0..number_of_land_block {
+			let new_undeployed_land_block_id = Self::get_new_undeployed_land_block_id()?;
+
+			let undeployed_land_block = UndeployedLandBlock {
+				id: new_undeployed_land_block_id,
+				number_land_units: number_land_units_per_land_block,
+				undeployed_land_block_type,
+				approved: None,
+				is_frozen: false,
+				owner: beneficiary.clone(),
+			};
+
+			UndeployedLandBlocks::<T>::insert(new_undeployed_land_block_id, undeployed_land_block);
+
+			UndeployedLandBlocksOwner::<T>::insert(beneficiary.clone(), new_undeployed_land_block_id, ());
+
+			// Update total undeployed land  count
+			Self::set_total_undeployed_land_unit(number_land_units_per_land_block as u64, false)?;
+
+			Self::deposit_event(Event::<T>::UndeployedLandBlockIssued(
+				beneficiary.clone(),
+				new_undeployed_land_block_id.clone(),
+			));
+
+			undeployed_land_block_ids.push(new_undeployed_land_block_id);
+		}
+
+		Ok(undeployed_land_block_ids)
+	}
 	fn do_transfer_estate(
 		estate_id: EstateId,
 		from: &T::AccountId,
@@ -441,6 +970,41 @@ impl<T: Config> Pallet<T> {
 			},
 		)
 	}
+
+	fn set_total_undeployed_land_unit(total: u64, deduct: bool) -> Result<(), DispatchError> {
+		let total_undeployed_land_units = Self::all_undeployed_land_unit();
+
+		if deduct {
+			let new_total_undeployed_land_unit_count = total_undeployed_land_units
+				.checked_sub(total)
+				.ok_or("Overflow deducting new count to total undeployed lands")?;
+			TotalUndeployedLandUnit::<T>::put(new_total_undeployed_land_unit_count);
+		} else {
+			let new_total_undeployed_land_unit_count = total_undeployed_land_units
+				.checked_add(total)
+				.ok_or("Overflow adding new count to total undeployed lands")?;
+			TotalUndeployedLandUnit::<T>::put(new_total_undeployed_land_unit_count);
+		}
+
+		Ok(())
+	}
+
+	fn set_total_land_unit(total: u64, deduct: bool) -> Result<(), DispatchError> {
+		let total_land_units_count = Self::all_land_units_count();
+
+		if deduct {
+			let new_total_land_units_count = total_land_units_count
+				.checked_sub(total)
+				.ok_or("Overflow deducting new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+		} else {
+			let new_total_land_units_count = total_land_units_count
+				.checked_add(total)
+				.ok_or("Overflow adding new count to total lands")?;
+			AllLandUnitsCount::<T>::put(new_total_land_units_count);
+		}
+		Ok(())
+	}
 }
 
 impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
@@ -471,6 +1035,50 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 
 	fn is_user_own_metaverse_land(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
 		Self::get_user_land_units(&who, metaverse_id).len() > 0
+	}
+}
+
+impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
+	fn issue_undeployed_land_blocks(
+		beneficiary: &T::AccountId,
+		number_of_land_block: u32,
+		number_land_units_per_land_block: u32,
+		undeployed_land_block_type: UndeployedLandBlockType,
+	) -> Result<Vec<UndeployedLandBlockId>, DispatchError> {
+		let new_undeployed_land_block_id = Self::do_issue_undeployed_land_blocks(
+			&beneficiary,
+			number_of_land_block,
+			number_land_units_per_land_block,
+			undeployed_land_block_type,
+		)?;
+
+		Ok(new_undeployed_land_block_id)
+	}
+
+	fn transfer_undeployed_land_block(
+		who: &T::AccountId,
+		to: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id = Self::do_transfer_undeployed_land_block(who, to, undeployed_land_block_id)?;
+
+		Ok(undeployed_land_block_id)
+	}
+
+	fn burn_undeployed_land_block(
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id = Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
+
+		Ok(undeployed_land_block_id)
+	}
+
+	fn freeze_undeployed_land_block(
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id = Self::do_freeze_undeployed_land_block(undeployed_land_block_id)?;
+
+		Ok(undeployed_land_block_id)
 	}
 }
 
@@ -505,5 +1113,13 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 
 	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		Ok(LandUnits::<T>::contains_key(metaverse_id, coordinate))
+	}
+
+	fn get_total_land_units() -> u64 {
+		AllLandUnitsCount::<T>::get()
+	}
+
+	fn get_total_undeploy_land_units() -> u64 {
+		TotalUndeployedLandUnit::<T>::get()
 	}
 }

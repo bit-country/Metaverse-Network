@@ -23,19 +23,18 @@
 use sp_std::prelude::*;
 use sp_std::vec;
 
+use crate::Call;
+#[allow(unused)]
+use crate::Pallet as NftModule;
+pub use crate::*;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::Get;
 use frame_system::RawOrigin;
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
-
-pub use crate::Pallet as NFTModule;
-pub use crate::*;
 use orml_traits::BasicCurrencyExtended;
 use primitives::Balance;
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 
 pub struct Pallet<T: Config>(crate::Pallet<T>);
-
-pub trait Config: crate::Config + orml_nft::Config + social_currencies::Config {}
 
 const SEED: u32 = 0;
 
@@ -52,7 +51,9 @@ benchmarks! {
 	create_class{
 		let caller = whitelisted_caller();
 		let initial_balance = dollar(1000);
-		<T as social_currencies::Config>::NativeCurrency::update_balance(&caller, initial_balance.unique_saturated_into())?;
+		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1],vec![1]);
 	}: _(RawOrigin::Signed(caller),vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable)
 }
+
+impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

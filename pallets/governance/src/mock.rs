@@ -177,6 +177,7 @@ impl pallet_metaverse::Config for Runtime {
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+	type WeightInfo = ();
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]

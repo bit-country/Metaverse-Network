@@ -208,7 +208,7 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, AssetId, Vec<T::AccountId>, OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// New NFT Group Collection created
 		NewNftCollectionCreated(GroupCollectionId),

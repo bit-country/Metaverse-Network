@@ -33,6 +33,7 @@ use pallet_continuum::Pallet as ContinuumModule;
 use pallet_estate::Module as EstateModule;
 use pallet_nft::Module as NFTModule;
 use primitives::{continuum::Continuum, estate::Estate, AssetId, AuctionId, ItemId};
+use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
 	traits::{One, Zero},
@@ -275,7 +276,8 @@ pub mod pallet {
 				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 
 				ensure!(
-					T::FungibleTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(),
+					T::FungibleTokenCurrency::free_balance(social_currency_id, &from)
+						>= TryInto::<Balance>::try_into(value).unwrap_or_default(),
 					Error::<T>::InsufficientFreeBalance
 				);
 
@@ -420,7 +422,8 @@ pub mod pallet {
 
 			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
 			ensure!(
-				T::FungibleTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(),
+				T::FungibleTokenCurrency::free_balance(social_currency_id, &from)
+					>= TryInto::<Balance>::try_into(value).unwrap_or_default(),
 				Error::<T>::InsufficientFunds
 			);
 

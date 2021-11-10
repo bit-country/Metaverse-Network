@@ -57,7 +57,7 @@ build-docker-pioneer:
 .PHONY: run-dev
 run-dev:
 	./target/release/metaverse-node purge-chain --dev
-	./target/release/metaverse-node --dev --tmp -lruntime=debug
+	./target/release/metaverse-node --dev --tmp --alice -lruntime=debug
 
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))

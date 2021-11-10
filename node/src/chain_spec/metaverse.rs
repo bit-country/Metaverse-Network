@@ -2,7 +2,8 @@ use hex_literal::hex;
 use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, Signature, SudoConfig, SystemConfig,
+	ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig, InflationInfo, MintingRange,
+	MintingRateInfo, Range, SessionConfig, Signature, StakingConfig, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 use sc_service::{ChainType, Properties};
@@ -211,6 +212,16 @@ pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
 	}
 }
 
+pub fn metaverse_land_minting_config() -> MintingRateInfo {
+	MintingRateInfo {
+		expect: Default::default(),
+		// 10% minting rate per annual
+		annual: 10,
+		// Max 100 millions land unit
+		max: 100_000_000,
+	}
+}
+
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
 	initial_authorities: Vec<(AccountId, AuraId, GrandpaId)>,
@@ -247,17 +258,19 @@ fn testnet_genesis(
 				.collect(),
 		},
 		aura: AuraConfig {
-			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+			//            authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+			authorities: vec![],
 		},
 		grandpa: GrandpaConfig {
-			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+			//            authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+			authorities: vec![],
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
 		},
 		council: Default::default(),
-		//        democracy: DemocracyConfig::default(),
+		democracy: DemocracyConfig::default(),
 		tokens: Default::default(),
 		vesting: Default::default(),
 		continuum: ContinuumConfig {
@@ -266,17 +279,20 @@ fn testnet_genesis(
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
 		},
-		/*        staking: StakingConfig {
-		 *            candidates: staking_candidate,
-		 *            nominations: vec![],
-		 *            inflation_config: metaverse_network_inflation_config(),
-		 *        },
-		 *        session: SessionConfig {
-		 *            keys: initial_authorities
-		 *                .iter()
-		 *                .map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
-		 *                .collect::<Vec<_>>(),
-		 *        }, */
+		staking: StakingConfig {
+			candidates: staking_candidate,
+			nominations: vec![],
+			inflation_config: metaverse_network_inflation_config(),
+		},
+		session: SessionConfig {
+			keys: initial_authorities
+				.iter()
+				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
+				.collect::<Vec<_>>(),
+		},
+		estate: EstateConfig {
+			minting_rate_config: metaverse_land_minting_config(),
+		},
 		/*		evm: EVMConfig {
 		 *			accounts: {
 		 *				let mut map = BTreeMap::new();

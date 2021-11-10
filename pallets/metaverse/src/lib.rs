@@ -28,11 +28,18 @@ use sp_runtime::{
 };
 use sp_std::{convert::TryInto, vec::Vec};
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 
 #[cfg(test)]
 mod tests;
+
+pub mod weights;
+
+pub use weights::WeightInfo;
 
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
 pub use pallet::*;
@@ -62,6 +69,8 @@ pub mod pallet {
 		type MinContribution: Get<BalanceOf<Self>>;
 		/// Origin to add new metaverse
 		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
+		/// Weight implementation for estate extrinsics
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::storage]
@@ -126,7 +135,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::create_metaverse())]
 		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
@@ -161,7 +170,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_metaverse())]
 		pub fn transfer_metaverse(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -196,7 +205,7 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::freeze_metaverse())]
 		pub fn freeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can free a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
@@ -212,7 +221,7 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::unfreeze_metaverse())]
 		pub fn unfreeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can free a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
@@ -228,7 +237,7 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::destroy_metaverse())]
 		pub fn destroy_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			/// Only Council can destroy a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
