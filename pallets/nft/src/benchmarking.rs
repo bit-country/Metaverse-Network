@@ -38,9 +38,6 @@ pub struct Pallet<T: Config>(crate::Pallet<T>);
 
 const SEED: u32 = 0;
 
-// TODO: below line got compile error, need to mock ClassId and use for mint call
-// const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
-
 fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(1_000_000_000_000_000_000)
@@ -51,31 +48,6 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	T::Currency::make_free_balance_be(&caller, dollar(100).unique_saturated_into());
 	caller
 }
-
-// fn create_token_class<T: Config>(caller: T::AccountId) -> Result<T::AccountId,
-// DispatchErrorWithPostInfo> { 	let base_currency_amount = dollar(1000);
-// 	T::Currency::make_free_balance_be(&caller, base_currency_amount.unique_saturated_into());
-//
-// 	let module_account: T::AccountId =
-// T::PalletId::get().into_sub_account(orml_nft::Pallet::<T>::next_class_id()); 	crate::Pallet::<T>::
-// create_class( 		RawOrigin::Signed(caller).into(),
-// 		vec![1],
-// 		Properties(
-// 			ClassProperty::Transferable
-// 				| ClassProperty::Burnable
-// 				| ClassProperty::Mintable
-// 				| ClassProperty::ClassPropertiesMutable,
-// 		),
-// 		test_attr(),
-// 	)?;
-//
-// 	<T as module::Config>::Currency::make_free_balance_be(
-// 		&module_account,
-// 		base_currency_amount.unique_saturated_into(),
-// 	);
-//
-// 	Ok(module_account)
-// }
 
 benchmarks! {
 
