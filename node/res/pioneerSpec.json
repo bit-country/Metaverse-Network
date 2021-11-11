@@ -2,7 +2,9 @@
   "name": "Pioneer Network",
   "id": "pioneer-live",
   "chainType": "Live",
-  "bootNodes": [],
+  "bootNodes": [
+    "/ip4/13.237.164.216/tcp/40333/p2p/12D3KooWKwCqzNdvHUxZFFdh9FTLzuNbqzps8kf61AVHFUiNaRsd"
+  ],
   "telemetryEndpoints": null,
   "protocolId": null,
   "properties": {
