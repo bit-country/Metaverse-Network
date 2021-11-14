@@ -52,7 +52,6 @@ pub trait WeightInfo {
 	fn destroy_metaverse() -> Weight;
 }
 
-/// Weights for metaverse using the Acala node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn create_metaverse() -> Weight {

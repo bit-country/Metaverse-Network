@@ -63,7 +63,6 @@ pub trait WeightInfo {
 	fn active_issue_undeploy_land_block() -> Weight;
 }
 
-/// Weights for estate using the Acala node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn set_max_bounds() -> Weight {
