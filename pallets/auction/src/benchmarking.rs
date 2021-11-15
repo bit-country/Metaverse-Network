@@ -124,7 +124,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 }
 
 benchmarks! {
-	// create_new_auction
+	// create_new_auction at global level
 	// create_new_auction{
 	// 	frame_system::Pallet::<T>::set_block_number(1u32.into());
 	//
@@ -133,7 +133,7 @@ benchmarks! {
 	// 	mint_NFT::<T>(caller.clone());
 	// }: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global)
 
-	// create_new_auction
+	// create_new_auction at local metaverse level
 	create_new_auction{
 		frame_system::Pallet::<T>::set_block_number(1u32.into());
 		// <T as pallet::Config>::MetaverseInfoSource = MetaverseInfoSource;
@@ -146,47 +146,50 @@ benchmarks! {
 		mint_NFT::<T>(caller.clone());
 	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID))
 
-	// // create_new_buy_now
-	// create_new_buy_now{
-	// 	frame_system::Pallet::<T>::set_block_number(1u32.into());
-	// 	// let blockNumber: BlockNumber = T::MinimumAuctionDuration::get().into().saturating_add(5u32.into());
-	//
-	// 	let caller = funded_account::<T>("caller", 0);
-	// 	mint_NFT::<T>(caller.clone());
-	// }: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global)
-	//
-	// // bid
-	// bid{
-	// 	frame_system::Pallet::<T>::set_block_number(1u32.into());
-	//
-	// 	let caller = funded_account::<T>("caller", 0);
-	// 	let bidder = funded_account::<T>("bidder", 0);
-	// 	mint_NFT::<T>(caller.clone());
-	//
-	// 	crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
-	// }: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
-	//
-	// // buy_now
-	// buy_now{
-	// 	frame_system::Pallet::<T>::set_block_number(1u32.into());
-	//
-	// 	let caller = funded_account::<T>("caller", 0);
-	// 	let bidder = funded_account::<T>("bidder", 0);
-	// 	mint_NFT::<T>(caller.clone());
-	//
-	// 	crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
-	// }: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
+	// create_new_buy_now
+	create_new_buy_now{
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+		// let blockNumber: BlockNumber = T::MinimumAuctionDuration::get().into().saturating_add(5u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		mint_NFT::<T>(caller.clone());
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+
+	// bid
+	bid{
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		let bidder = funded_account::<T>("bidder", 0);
+		mint_NFT::<T>(caller.clone());
+
+		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
+
+	// buy_now
+	buy_now{
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		let bidder = funded_account::<T>("bidder", 0);
+		mint_NFT::<T>(caller.clone());
+
+		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
 	// bid_local
-	// bid_local{
-	// 	frame_system::Pallet::<T>::set_block_number(1u32.into());
-	//
-	// 	let caller = funded_account::<T>("caller", 0);
-	// 	let bidder = funded_account::<T>("bidder", 0);
-	// 	mint_NFT::<T>(caller.clone());
-	//
-	// 	crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID));
-	// }: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), METAVERSE_ID, 100u32.into())
+	bid_local{
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		let bidder = funded_account::<T>("bidder", 0);
+		mint_NFT::<T>(caller.clone());
+
+		// TODO: need to set FungibleTokenCurrency balance
+		// 	<T as pallet::Config>::FungibleTokenCurrency::reserve( FungibleTokenId::FungibleToken(0u32.into()), &caller, initial_balance.unique_saturated_into());
+
+		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID));
+	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), METAVERSE_ID, 10u32.into())
 
 	// buy_now_local
 	// buy_now_local{
@@ -195,8 +198,11 @@ benchmarks! {
 	// 	let caller = funded_account::<T>("caller", 0);
 	// 	let bidder = funded_account::<T>("bidder", 0);
 	// 	mint_NFT::<T>(caller.clone());
-	//
-	// 	crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID));
+
+	// TODO: need to set FungibleTokenCurrency balance
+	// 	<T as pallet::Config>::FungibleTokenCurrency::reserve( FungibleTokenId::FungibleToken(0u32.into()), &caller, initial_balance.unique_saturated_into());
+
+	// 	crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 1u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID));
 	// }: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), METAVERSE_ID, 100u32.into())
 }
 
