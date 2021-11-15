@@ -51,7 +51,6 @@ pub trait WeightInfo {
 	fn buy_now() -> Weight;
 }
 
-/// Weights for auction using the Acala node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn create_new_auction() -> Weight {

@@ -146,6 +146,7 @@ pub mod pallet {
 	pub enum Error<T> {
 		AuctionNotExist,
 		AssetIsNotExist,
+		NFTAssetIsNotExist,
 		AuctionNotStarted,
 		AuctionIsExpired,
 		AuctionTypeIsNotSupported,
@@ -170,6 +171,7 @@ pub mod pallet {
 		AuctionEndIsLessThanMinimumDuration,
 		/// Overflow
 		Overflow,
+		OverflowXYZ,
 		EstateDoesNotExist,
 		LandUnitDoesNotExist,
 	}
@@ -509,12 +511,12 @@ pub mod pallet {
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
+			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::OverflowXYZ)?;
 
-			ensure!(
-				remaining_time >= T::MinimumAuctionDuration::get(),
-				Error::<T>::AuctionEndIsLessThanMinimumDuration
-			);
+			// ensure!(
+			// 	remaining_time >= T::MinimumAuctionDuration::get(),
+			// 	Error::<T>::AuctionEndIsLessThanMinimumDuration
+			// );
 
 			let auction_id = Self::create_auction(
 				AuctionType::Auction,
@@ -548,12 +550,12 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
+			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::OverflowXYZ)?;
 
-			ensure!(
-				remaining_time >= T::MinimumAuctionDuration::get(),
-				Error::<T>::AuctionEndIsLessThanMinimumDuration
-			);
+			// ensure!(
+			// 	remaining_time >= T::MinimumAuctionDuration::get(),
+			// 	Error::<T>::AuctionEndIsLessThanMinimumDuration
+			// );
 
 			let auction_id = Self::create_auction(
 				AuctionType::BuyNow,
@@ -840,7 +842,7 @@ pub mod pallet {
 			match item_id {
 				ItemId::NFT(asset_id) => {
 					// Get asset detail
-					let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
+					let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::NFTAssetIsNotExist)?;
 					// Check ownership
 					let class_info =
 						orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
@@ -862,6 +864,9 @@ pub mod pallet {
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 					if let ListingLevel::Local(bc_id) = listing_level {
+						// currency_id = T::MetaverseInfoSource::get_metaverse_token(bc_id)
+						// 	.ok_or(Error::<T>::FungibleTokenCurrencyNotFound)?;
+
 						currency_id = T::MetaverseInfoSource::get_metaverse_token(bc_id)
 							.ok_or(Error::<T>::FungibleTokenCurrencyNotFound)?;
 					}

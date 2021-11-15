@@ -42,6 +42,7 @@ orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-librar
 pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft' }
 pallet-continuum = { default-features = false, package = 'pallet-continuum', path = '../continuum' }
 pallet-estate = { default-features = false, package = 'pallet-estate', path = '../estate' }
+pallet-metaverse = { default-features = false, package = 'pallet-metaverse', path = '../metaverse' }
 auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
 bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 
@@ -68,6 +69,8 @@ std = [
     'orml-tokens/std',
     'pallet-nft/std',
     'pallet-continuum/std',
+    'pallet-metaverse/std',
+    'pallet-estate/std',
     'bc-primitives/std',
     'frame-benchmarking/std'
 ]
