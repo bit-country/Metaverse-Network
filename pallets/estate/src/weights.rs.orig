@@ -63,7 +63,10 @@ pub trait WeightInfo {
     fn active_issue_undeploy_land_block() -> Weight;
 }
 
+<<<<<<< HEAD
+=======
 /// Weights for estate using the collator node and recommended hardware.
+>>>>>>> master
 pub struct SubstrateWeight<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
