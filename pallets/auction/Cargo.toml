@@ -69,7 +69,6 @@ std = [
     'orml-tokens/std',
     'pallet-nft/std',
     'pallet-continuum/std',
-    'pallet-metaverse/std',
     'pallet-estate/std',
     'bc-primitives/std',
     'frame-benchmarking/std'

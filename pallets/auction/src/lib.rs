@@ -150,7 +150,6 @@ pub mod pallet {
 	pub enum Error<T> {
 		AuctionNotExist,
 		AssetIsNotExist,
-		NFTAssetIsNotExist,
 		AuctionNotStarted,
 		AuctionIsExpired,
 		AuctionTypeIsNotSupported,
@@ -502,8 +501,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		// #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[pallet::weight(T::WeightInfo::create_new_auction())]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn create_new_auction(
 			origin: OriginFor<T>,
 			item_id: ItemId,
@@ -846,7 +844,7 @@ pub mod pallet {
 			match item_id {
 				ItemId::NFT(asset_id) => {
 					// Get asset detail
-					let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::NFTAssetIsNotExist)?;
+					let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
 					// Check ownership
 					let class_info =
 						orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;

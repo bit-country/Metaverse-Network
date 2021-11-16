@@ -27,7 +27,7 @@ use sp_std::vec;
 #[allow(unused)]
 pub use crate::Pallet as AuctionModule;
 // use pallet_estate::Pallet as EstateModule;
-use pallet_metaverse::Pallet as MetaverseModule;
+// use pallet_metaverse::Pallet as MetaverseModule;
 use pallet_nft::Pallet as NFTModule;
 use pallet_nft::{CollectionType, TokenType};
 
