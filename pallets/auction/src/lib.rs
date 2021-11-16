@@ -48,6 +48,10 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+pub mod weights;
+
+pub use weights::WeightInfo;
+
 pub struct AuctionLogicHandler;
 
 #[frame_support::pallet]
@@ -171,7 +175,6 @@ pub mod pallet {
 		AuctionEndIsLessThanMinimumDuration,
 		/// Overflow
 		Overflow,
-		OverflowXYZ,
 		EstateDoesNotExist,
 		LandUnitDoesNotExist,
 	}
@@ -499,7 +502,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		// #[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::create_new_auction())]
 		pub fn create_new_auction(
 			origin: OriginFor<T>,
 			item_id: ItemId,
@@ -511,13 +515,12 @@ pub mod pallet {
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::OverflowXYZ)?;
+			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
-			// TODO: below code was commented out due issue of setting MinimumAuctionDuration in benchmarking
-			// ensure!(
-			// 	remaining_time >= T::MinimumAuctionDuration::get(),
-			// 	Error::<T>::AuctionEndIsLessThanMinimumDuration
-			// );
+			ensure!(
+				remaining_time >= T::MinimumAuctionDuration::get(),
+				Error::<T>::AuctionEndIsLessThanMinimumDuration
+			);
 
 			let auction_id = Self::create_auction(
 				AuctionType::Auction,
@@ -551,13 +554,12 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::OverflowXYZ)?;
+			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
-			// TODO: below code was commented out due issue of setting MinimumAuctionDuration in benchmarking
-			// ensure!(
-			// 	remaining_time >= T::MinimumAuctionDuration::get(),
-			// 	Error::<T>::AuctionEndIsLessThanMinimumDuration
-			// );
+			ensure!(
+				remaining_time >= T::MinimumAuctionDuration::get(),
+				Error::<T>::AuctionEndIsLessThanMinimumDuration
+			);
 
 			let auction_id = Self::create_auction(
 				AuctionType::BuyNow,
@@ -866,11 +868,8 @@ pub mod pallet {
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 					if let ListingLevel::Local(bc_id) = listing_level {
-						// TODO: below code was commented out due issue of setting FungibleTokenCurrency in benchmarking
-						// currency_id = T::MetaverseInfoSource::get_metaverse_token(bc_id)
-						// 	.ok_or(Error::<T>::FungibleTokenCurrencyNotFound)?;
-
-						currency_id = FungibleTokenId::FungibleToken(0u32.into());
+						currency_id = T::MetaverseInfoSource::get_metaverse_token(bc_id)
+							.ok_or(Error::<T>::FungibleTokenCurrencyNotFound)?;
 					}
 
 					let new_auction_item = AuctionItem {
