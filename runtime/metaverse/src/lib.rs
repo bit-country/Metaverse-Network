@@ -79,12 +79,13 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
 use estate::weights::WeightInfo;
 // use metaverse::weights::WeightInfo;
+#[cfg(feature = "runtime-benchmarks")]
+use frame_benchmarking::frame_support::pallet_prelude::Get;
 use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
 use frame_support::ConsensusEngineId;
 use scale_info::TypeInfo;
 use sp_core::sp_std::marker::PhantomData;
 use sp_runtime::traits::OpaqueKeys;
-//use frame_benchmarking::frame_support::pallet_prelude::Get;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -395,6 +396,8 @@ impl currencies::Config for Runtime {
 parameter_types! {
 	pub CreateClassDeposit: Balance = 500 * MILLICENTS;
 	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+	pub MaxBatchTransfer: u32 = 100;
+	pub MaxBatchMinting: u32 = 1000;
 }
 
 impl nft::Config for Runtime {
@@ -405,6 +408,8 @@ impl nft::Config for Runtime {
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
 	type AuctionHandler = Auction;
+	type MaxBatchTransfer = MaxBatchTransfer;
+	type MaxBatchMinting = MaxBatchMinting;
 }
 
 parameter_types! {

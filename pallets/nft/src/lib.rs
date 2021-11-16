@@ -165,6 +165,11 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 		/// Auction Handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
+		/// Max transfer batch
+		#[pallet::constant]
+		type MaxBatchTransfer: Get<u32>;
+		/// Max batch minting
+		type MaxBatchMinting: Get<u32>;
 	}
 
 	type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -265,6 +270,10 @@ pub mod pallet {
 		AssetAlreadyInAuction,
 		/// Sign your own Asset
 		SignOwnAsset,
+		/// Exceed maximum batch transfer
+		ExceedMaximumBatchTransfer,
+		/// Exceed maximum batch minting
+		ExceedMaximumBatchMinting,
 	}
 
 	#[pallet::call]
@@ -345,7 +354,10 @@ pub mod pallet {
 			ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
 			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
 			ensure!(sender == class_info.owner, Error::<T>::NoPermission);
-
+			ensure!(
+				quantity <= T::MaxBatchMinting::get(),
+				Error::<T>::ExceedMaximumBatchTransfer
+			);
 			let deposit = T::CreateAssetDeposit::get();
 			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
 			let total_deposit = deposit * Into::<BalanceOf<T>>::into(quantity);
@@ -425,6 +437,11 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::transfer_batch(tos.len() as u32))]
 		pub fn transfer_batch(origin: OriginFor<T>, tos: Vec<(T::AccountId, AssetId)>) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+
+			ensure!(
+				tos.len() as u32 <= T::MaxBatchTransfer::get(),
+				Error::<T>::ExceedMaximumBatchTransfer
+			);
 
 			for (_i, x) in tos.iter().enumerate() {
 				let item = &x;
