@@ -221,6 +221,9 @@ parameter_types! {
 	pub CreateClassDeposit: Balance = 2;
 	pub CreateAssetDeposit: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
+	pub MaxBatchTransfer: u32 = 100;
+	pub MaxBatchMinting: u32 = 1000;
+	pub MaxNftMetadata: u32 = 1024;
 }
 
 impl pallet_nft::Config for Runtime {
@@ -231,6 +234,9 @@ impl pallet_nft::Config for Runtime {
 	type PalletId = NftPalletId;
 	type WeightInfo = ();
 	type AuctionHandler = MockAuctionManager;
+	type MaxBatchTransfer = MaxBatchTransfer;
+	type MaxBatchMinting = MaxBatchMinting;
+	type MaxMetadata = MaxNftMetadata;
 }
 
 parameter_types! {
