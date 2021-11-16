@@ -165,6 +165,26 @@ fn mint_asset_should_fail() {
 }
 
 #[test]
+fn mint_exceed_max_batch_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		let invalid_owner = Origin::signed(BOB);
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+		));
+		assert_noop!(
+			Nft::mint(origin.clone(), CLASS_ID, vec![1], vec![1], vec![1], 20),
+			Error::<Runtime>::ExceedMaximumBatchMinting
+		);
+	})
+}
+
+#[test]
 fn transfer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
@@ -187,10 +207,30 @@ fn transfer_batch_should_work() {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 		));
-		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 1));
+		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 4));
 		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, 0), (BOB, 1)]));
 		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0));
 		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn transfer_batch_exceed_length_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+		));
+		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 4));
+		assert_noop!(
+			Nft::transfer_batch(origin, vec![(BOB, 0), (BOB, 1), (BOB, 2), (BOB, 3)]),
+			Error::<Runtime>::ExceedMaximumBatchTransfer
+		);
 	})
 }
 
@@ -234,7 +274,6 @@ fn do_handle_asset_ownership_transfer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::handle_asset_ownership_transfer(&ALICE, &BOB, 0));
-		assert_eq!(Nft::get_assets_by_owner(ALICE), Vec::<u64>::new());
 		assert_eq!(Nft::get_assets_by_owner(BOB), vec![0]);
 	})
 }
@@ -245,7 +284,6 @@ fn do_transfer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::do_transfer(&ALICE, &BOB, 0));
-		assert_eq!(Nft::get_assets_by_owner(ALICE), Vec::<u64>::new());
 		assert_eq!(Nft::get_assets_by_owner(BOB), vec![0]);
 	})
 }

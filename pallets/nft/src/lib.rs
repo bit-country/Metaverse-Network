@@ -44,11 +44,13 @@ pub mod weights;
 
 pub use weights::WeightInfo;
 
+pub type NftMetadata = Vec<u8>;
+
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct NftGroupCollectionData {
-	pub name: Vec<u8>,
+	pub name: NftMetadata,
 	// Metadata from ipfs
-	pub properties: Vec<u8>,
+	pub properties: NftMetadata,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
@@ -57,7 +59,7 @@ pub struct NftClassData<Balance> {
 	// Minimum balance to create a collection of Asset
 	pub deposit: Balance,
 	// Metadata from ipfs
-	pub metadata: Vec<u8>,
+	pub metadata: NftMetadata,
 	pub token_type: TokenType,
 	pub collection_type: CollectionType,
 	pub total_supply: u64,
@@ -69,9 +71,9 @@ pub struct NftClassData<Balance> {
 pub struct NftAssetData<Balance> {
 	// Deposit balance to create each token
 	pub deposit: Balance,
-	pub name: Vec<u8>,
-	pub description: Vec<u8>,
-	pub properties: Vec<u8>,
+	pub name: NftMetadata,
+	pub description: NftMetadata,
+	pub properties: NftMetadata,
 }
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -169,7 +171,11 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxBatchTransfer: Get<u32>;
 		/// Max batch minting
+		#[pallet::constant]
 		type MaxBatchMinting: Get<u32>;
+		/// Max metadata length
+		#[pallet::constant]
+		type MaxMetadata: Get<u32>;
 	}
 
 	type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -274,13 +280,25 @@ pub mod pallet {
 		ExceedMaximumBatchTransfer,
 		/// Exceed maximum batch minting
 		ExceedMaximumBatchMinting,
+		/// Exceed maximum length metadata
+		ExceedMaximumMetadataLength,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(T::WeightInfo::create_group())]
-		pub fn create_group(origin: OriginFor<T>, name: Vec<u8>, properties: Vec<u8>) -> DispatchResultWithPostInfo {
+		pub fn create_group(
+			origin: OriginFor<T>,
+			name: NftMetadata,
+			properties: NftMetadata,
+		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
+
+			ensure!(
+				name.len() as u32 <= T::MaxMetadata::get() && properties.len() as u32 <= T::MaxMetadata::get(),
+				Error::<T>::ExceedMaximumMetadataLength
+			);
+
 			let next_group_collection_id = Self::do_create_group_collection(name.clone(), properties.clone())?;
 
 			let collection_data = NftGroupCollectionData { name, properties };
@@ -301,25 +319,31 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::create_class())]
 		pub fn create_class(
 			origin: OriginFor<T>,
-			metadata: Vec<u8>,
+			metadata: NftMetadata,
 			collection_id: GroupCollectionId,
 			token_type: TokenType,
 			collection_type: CollectionType,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			ensure!(
+				metadata.len() as u32 <= T::MaxMetadata::get(),
+				Error::<T>::ExceedMaximumMetadataLength
+			);
+
 			let next_class_id = NftModule::<T>::next_class_id();
 			ensure!(
 				GroupCollections::<T>::contains_key(collection_id),
 				Error::<T>::CollectionIsNotExist
 			);
+
 			// Class fund
 			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(next_class_id);
 
-			// Secure deposit of token class owner -- TODO - support customise deposit
+			// Secure deposit of token class owner
 			let class_deposit = T::CreateClassDeposit::get();
 			// Transfer fund to pot
 			<T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
-
+			// Reserve pot fund
 			<T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
 
 			let class_data = NftClassData {
@@ -340,24 +364,30 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(< T as Config >::WeightInfo::mint(* quantity))]
-		// #[pallet::weight(< T as Config >::WeightInfo::mint())]
 		pub fn mint(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
-			name: Vec<u8>,
-			description: Vec<u8>,
-			metadata: Vec<u8>,
+			name: NftMetadata,
+			description: NftMetadata,
+			metadata: NftMetadata,
 			quantity: u32,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
 			ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
-			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
-			ensure!(sender == class_info.owner, Error::<T>::NoPermission);
 			ensure!(
 				quantity <= T::MaxBatchMinting::get(),
-				Error::<T>::ExceedMaximumBatchTransfer
+				Error::<T>::ExceedMaximumBatchMinting
 			);
+			ensure!(
+				name.len() as u32 <= T::MaxMetadata::get()
+					&& description.len() as u32 <= T::MaxMetadata::get()
+					&& metadata.len() as u32 <= T::MaxMetadata::get(),
+				Error::<T>::ExceedMaximumMetadataLength
+			);
+
+			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+			ensure!(sender == class_info.owner, Error::<T>::NoPermission);
 			let deposit = T::CreateAssetDeposit::get();
 			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
 			let total_deposit = deposit * Into::<BalanceOf<T>>::into(quantity);

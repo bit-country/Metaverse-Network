@@ -500,6 +500,7 @@ parameter_types! {
 use frame_election_provider_support::onchain;
 use frame_support::traits::FindAuthor;
 use sp_core::sp_std::marker::PhantomData;
+use frame_benchmarking::frame_support::pallet_prelude::Get;
 
 impl pallet_staking::Config for Runtime {
     const MAX_NOMINATIONS: u32 = MAX_NOMINATIONS;
@@ -966,6 +967,7 @@ parameter_types! {
 	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
 	pub MaxBatchTransfer: u32 = 100;
     pub MaxBatchMinting: u32 = 1000;
+    pub MaxNftMetadata: u32 = 1024;
 }
 
 impl nft::Config for Runtime {
@@ -978,6 +980,7 @@ impl nft::Config for Runtime {
     type AuctionHandler = Auction;
     type MaxBatchTransfer = MaxBatchTransfer;
     type MaxBatchMinting = MaxBatchMinting;
+    type MaxMetadata = MaxNftMetadata;
 }
 
 parameter_types! {

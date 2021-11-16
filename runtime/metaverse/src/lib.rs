@@ -398,6 +398,7 @@ parameter_types! {
 	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
+	pub MaxNftMetadata: u32 = 1024;
 }
 
 impl nft::Config for Runtime {
@@ -410,6 +411,7 @@ impl nft::Config for Runtime {
 	type AuctionHandler = Auction;
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
+	type MaxMetadata = MaxNftMetadata;
 }
 
 parameter_types! {
