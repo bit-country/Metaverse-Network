@@ -282,6 +282,10 @@ pub mod pallet {
 		ExceedMaximumBatchMinting,
 		/// Exceed maximum length metadata
 		ExceedMaximumMetadataLength,
+		/// Error when signing support
+		EmptySupporters,
+		/// Insufficient Balance
+		InsufficientBalance,
 	}
 
 	#[pallet::call]
@@ -503,25 +507,42 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::sign_asset())]
-		pub fn sign_asset(origin: OriginFor<T>, asset_id: AssetId) -> DispatchResultWithPostInfo {
+		pub fn sign_asset(
+			origin: OriginFor<T>,
+			asset_id: AssetId,
+			contribution: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
 			let asset_by_owner: Vec<AssetId> = Self::get_assets_by_owner(&sender);
 			ensure!(!asset_by_owner.contains(&asset_id), Error::<T>::SignOwnAsset);
 
+			// Add contribution into class fund
+			let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+
+			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(asset.0);
+
+			ensure!(
+				<T as Config>::Currency::free_balance(&sender) > contribution,
+				Error::<T>::InsufficientBalance
+			);
+			// Transfer contribution to class fund pot
+			<T as Config>::Currency::transfer(&sender, &class_fund, contribution, ExistenceRequirement::KeepAlive)?;
+			// Reserve pot fund
+			<T as Config>::Currency::reserve(&class_fund, contribution)?;
+
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
-					let supporters = supporters.as_mut().ok_or("Empty supporters")?;
+					let supporters = supporters.as_mut().ok_or(Error::<T>::EmptySupporters)?;
 					supporters.push(sender);
 					Ok(())
 				});
-				Ok(().into())
 			} else {
 				let mut new_supporters = Vec::new();
 				new_supporters.push(sender);
 				AssetSupporters::<T>::insert(asset_id, new_supporters);
-				Ok(().into())
 			}
+			Ok(().into())
 		}
 	}
 
