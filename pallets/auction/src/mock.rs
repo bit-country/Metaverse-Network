@@ -179,6 +179,7 @@ impl orml_tokens::Config for Runtime {
 parameter_types! {
 	pub const AuctionTimeToClose: u64 = 100; //Test auction end within 100 blocks
 	pub const MinimumAuctionDuration: u64 = 10; //Test auction end within 100 blocks
+	pub const LoyaltyFee: u16 = 100; // Test 1% loyalty fee
 }
 
 pub struct MetaverseInfoSource {}
@@ -215,6 +216,7 @@ impl Config for Runtime {
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
+	type LoyaltyFee = LoyaltyFee;
 }
 
 parameter_types! {
@@ -370,6 +372,15 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
+	}
+
+	fn collect_loyalty_fee(
+		high_bid_price: &Self::Balance,
+		high_bidder: &u128,
+		asset_id: &u64,
+		social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		todo!()
 	}
 }
 

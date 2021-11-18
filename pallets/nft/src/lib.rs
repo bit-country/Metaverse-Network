@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 use frame_system::pallet_prelude::*;
 use orml_nft::Pallet as NftModule;
-use primitives::{AssetId, GroupCollectionId};
+use primitives::{AssetId, Balance, GroupCollectionId};
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
@@ -42,6 +42,7 @@ pub use pallet::*;
 
 pub mod weights;
 
+use primitives::nft::NftTrait;
 pub use weights::WeightInfo;
 
 pub type NftMetadata = Vec<u8>;
@@ -136,8 +137,6 @@ impl Default for CollectionType {
 	}
 }
 
-pub use pallet::*;
-
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -178,9 +177,9 @@ pub mod pallet {
 		type MaxMetadata: Get<u32>;
 	}
 
-	type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
-	type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
-	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
+	pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
+	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_asset)]
@@ -520,7 +519,7 @@ pub mod pallet {
 			// Add contribution into class fund
 			let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
 
-			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(asset.0);
+			let class_fund = Self::get_class_fund(&asset.0);
 
 			ensure!(
 				<T as Config>::Currency::free_balance(&sender) > contribution,
@@ -551,6 +550,10 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	pub fn get_class_fund(class_id: &ClassIdOf<T>) -> T::AccountId {
+		T::PalletId::get().into_sub_account(class_id)
+	}
+
 	fn do_create_group_collection(name: Vec<u8>, properties: Vec<u8>) -> Result<GroupCollectionId, DispatchError> {
 		let next_group_collection_id =
 			NextGroupCollectionId::<T>::try_mutate(|collection_id| -> Result<GroupCollectionId, DispatchError> {
@@ -605,6 +608,31 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		to: &T::AccountId,
 		asset_id: AssetId,
+	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
+		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+
+		let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
+		let data = class_info.data;
+
+		match data.token_type {
+			TokenType::Transferable => {
+				let check_ownership = Self::check_nft_ownership(&sender, &asset_id)?;
+				ensure!(check_ownership, Error::<T>::NoPermission);
+
+				Self::handle_asset_ownership_transfer(&sender, &to, asset_id);
+
+				NftModule::<T>::transfer(&sender, &to, asset.clone())?;
+				Ok(asset.1)
+			}
+			TokenType::BoundToAddress => Err(Error::<T>::NonTransferable.into()),
+		}
+	}
+
+	pub fn do_transfer_with_loyalty(
+		sender: &T::AccountId,
+		to: &T::AccountId,
+		asset_id: AssetId,
+		loyalty_fee: BalanceOf<T>,
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
 

@@ -15,7 +15,7 @@ use sp_std::{
 	fmt::Debug,
 };
 
-use primitives::{AuctionId, FungibleTokenId, ItemId, MetaverseId};
+use primitives::{AssetId, AuctionId, FungibleTokenId, ItemId, MetaverseId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum Change<Value> {
@@ -110,6 +110,13 @@ pub trait Auction<AccountId, BlockNumber> {
 		id: AuctionId,
 		new_bid: (AccountId, Self::Balance),
 		last_bid: Option<(AccountId, Self::Balance)>,
+		social_currency_id: FungibleTokenId,
+	) -> DispatchResult;
+
+	fn collect_loyalty_fee(
+		high_bid_price: &Self::Balance,
+		high_bidder: &AccountId,
+		asset_id: &AssetId,
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult;
 }
