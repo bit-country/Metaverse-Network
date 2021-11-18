@@ -162,6 +162,8 @@ pub mod pallet {
 		TooManyVestingSchedules,
 		/// Invalid vesting schedule
 		InvalidVestingSchedule,
+		/// Invalid request
+		InvalidRequest,
 	}
 
 	#[pallet::call]
@@ -284,10 +286,7 @@ impl<T: Config> Pallet<T> {
 			.unwrap_or(0);
 		let initial_supply_ratio = Price::checked_from_rational(initial_pool_supply, total_supply).unwrap_or_default();
 		let supply_percent: u128 = initial_supply_ratio.saturating_mul_int(100.saturated_into());
-		ensure!(
-			supply_percent > 0u128 && supply_percent >= 20u128,
-			Error::<T>::InitialFungibleTokenSupplyIsTooLow
-		);
+		ensure!(supply_percent >= 20u128, Error::<T>::InitialFungibleTokenSupplyIsTooLow);
 		// Remaining balance for metaverse owner
 		let owner_supply = total_supply.saturating_sub(initial_pool_supply);
 		// Generate new TokenId
@@ -374,7 +373,7 @@ impl<T: Config> Pallet<T> {
 		amount: Balance,
 	) -> DispatchResult {
 		if amount.is_zero() || from == to {
-			return Ok(());
+			return Err("Invalid request".into());
 		}
 
 		T::MetaverseMultiCurrency::transfer(currency_id, from, to, amount)?;

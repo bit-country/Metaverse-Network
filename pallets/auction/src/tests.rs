@@ -53,7 +53,7 @@ fn create_new_auction_work() {
 			Some(AuctionInfo {
 				bid: None,
 				start: 1,
-				end: Some(101)
+				end: Some(101),
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), Some(true));
@@ -81,7 +81,7 @@ fn create_new_auction_should_work_for_valid_estate() {
 			Some(AuctionInfo {
 				bid: None,
 				start: 1,
-				end: Some(101)
+				end: Some(101),
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
@@ -123,7 +123,7 @@ fn create_new_auction_should_work_for_valid_landunit() {
 			Some(AuctionInfo {
 				bid: None,
 				start: 1,
-				end: Some(101)
+				end: Some(101),
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
@@ -422,8 +422,9 @@ fn asset_transfers_after_auction() {
 			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
 		);
 
-		/// Verify transfer of funs (minus gas)
-		assert_eq!(Balances::free_balance(BOB), 697);
+		/// Verify transfer of fund (minus gas)
+		/// BOB only receive 697 - 2 (1% of 200 as loyalty fee) = 695
+		assert_eq!(Balances::free_balance(BOB), 695);
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 
 		/// Verify Alice has the NFT and Bob doesn't
@@ -463,6 +464,10 @@ fn buy_now_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = Origin::signed(BOB);
 		let buyer = Origin::signed(ALICE);
+
+		let owner_balance = Balances::free_balance(BOB);
+		let buyer_balance = Balances::free_balance(ALICE);
+
 		init_test_nft(owner.clone());
 
 		/// call create_auction
@@ -471,13 +476,13 @@ fn buy_now_work() {
 			ItemId::NFT(0),
 			None,
 			BOB,
-			150,
+			200,
 			0,
 			ListingLevel::Global
 		));
 
 		//buy now successful
-		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		assert_ok!(NFTModule::<Runtime>::mint(
 			owner.clone(),
@@ -493,22 +498,25 @@ fn buy_now_work() {
 			ItemId::NFT(1),
 			None,
 			BOB,
-			150,
+			200,
 			0,
 			ListingLevel::Global
 		));
 
-		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 200));
 
 		assert_eq!(AuctionModule::auctions(0), None);
 		/// check account received asset
 		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0, 1]);
 		/// check balances were transferred
-		assert_eq!(Balances::free_balance(ALICE), 99700);
-		assert_eq!(Balances::free_balance(BOB), 796);
+		assert_eq!(Balances::free_balance(ALICE), 99600);
+		/// initial balance is 500 - sold 2 x 200 = 900
+		/// loyalty fee is 1% for both sales is 8
+		/// 900 - 8 = 892
+		assert_eq!(Balances::free_balance(BOB), 892);
 
 		//event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
+		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
 		assert_eq!(last_event(), event);
 
 		//Check that auction is over
@@ -766,7 +774,8 @@ fn on_finalize_should_work() {
 		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
 		/// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99900);
-		assert_eq!(Balances::free_balance(BOB), 597);
+		/// BOB only receive 597 - 1 (1% of 100 as loyalty fee) = 596
+		assert_eq!(Balances::free_balance(BOB), 596);
 		//asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), None);
 		//event was triggered

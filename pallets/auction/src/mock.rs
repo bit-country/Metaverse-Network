@@ -179,6 +179,7 @@ impl orml_tokens::Config for Runtime {
 parameter_types! {
 	pub const AuctionTimeToClose: u64 = 100; //Test auction end within 100 blocks
 	pub const MinimumAuctionDuration: u64 = 10; //Test auction end within 100 blocks
+	pub const LoyaltyFee: u16 = 100; // Test 1% loyalty fee
 }
 
 pub struct MetaverseInfoSource {}
@@ -215,15 +216,16 @@ impl Config for Runtime {
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
+	type LoyaltyFee = LoyaltyFee;
 }
 
 parameter_types! {
 	pub CreateClassDeposit: Balance = 2;
 	pub CreateAssetDeposit: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
-	pub MaxBatchTransfer: u32 = 100;
-	pub MaxBatchMinting: u32 = 1000;
-	pub MaxNftMetadata: u32 = 1024;
+	pub MaxBatchTransfer: u32 = 3;
+	pub MaxBatchMinting: u32 = 10;
+	pub MaxMetadata: u32 = 10;
 }
 
 impl pallet_nft::Config for Runtime {
@@ -236,7 +238,7 @@ impl pallet_nft::Config for Runtime {
 	type AuctionHandler = MockAuctionManager;
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
-	type MaxMetadata = MaxNftMetadata;
+	type MaxMetadata = MaxMetadata;
 }
 
 parameter_types! {
@@ -370,6 +372,15 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
+	}
+
+	fn collect_loyalty_fee(
+		high_bid_price: &Self::Balance,
+		high_bidder: &u128,
+		asset_id: &u64,
+		social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		todo!()
 	}
 }
 

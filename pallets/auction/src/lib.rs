@@ -36,7 +36,7 @@ use primitives::{continuum::Continuum, estate::Estate, AssetId, AuctionId, ItemI
 use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
-	traits::{One, Zero},
+	traits::{CheckedDiv, One, Saturating, Zero},
 	DispatchError, DispatchResult,
 };
 
@@ -63,14 +63,13 @@ pub mod pallet {
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
-	use primitives::{Balance, FungibleTokenId, MetaverseId};
+	use primitives::FungibleTokenId::FungibleToken;
+	use primitives::{AssetId, Balance, FungibleTokenId, MetaverseId};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	// pub(super) type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
-	// pub(super) type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 	pub(super) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -95,8 +94,11 @@ pub mod pallet {
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 		#[pallet::constant]
 		type MinimumAuctionDuration: Get<Self::BlockNumber>;
-
+		/// Handle Estate logic
 		type EstateHandler: Estate<Self::AccountId>;
+		/// Loyalty fee in percentage applied NFT promotion
+		#[pallet::constant]
+		type LoyaltyFee: Get<u16>;
 	}
 
 	#[pallet::storage]
@@ -332,6 +334,7 @@ pub mod pallet {
 			);
 
 			Self::remove_auction(auction_id.clone(), auction_item.item_id);
+
 			// Transfer balance from buy it now user to asset owner
 			let currency_transfer = <T as Config>::Currency::transfer(
 				&from,
@@ -346,6 +349,13 @@ pub mod pallet {
 					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
+							Self::collect_loyalty_fee(
+								&value,
+								&auction_item.recipient,
+								&asset_id,
+								FungibleTokenId::NativeToken(0),
+							);
+
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
 							match asset_transfer {
 								Err(_) => (),
@@ -450,6 +460,8 @@ pub mod pallet {
 					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
+							Self::collect_loyalty_fee(&value, &auction_item.recipient, &asset_id, social_currency_id);
+
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
 							match asset_transfer {
 								Err(_) => (),
@@ -594,12 +606,15 @@ pub mod pallet {
 							// Handle global listing
 							if auction_item.listing_level == ListingLevel::Global {
 								<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+
+								// Handle balance transfer
 								let currency_transfer = <T as Config>::Currency::transfer(
 									&high_bidder,
 									&auction_item.recipient,
 									high_bid_price,
 									ExistenceRequirement::KeepAlive,
 								);
+
 								match currency_transfer {
 									Err(_e) => continue,
 									Ok(_v) => {
@@ -608,11 +623,19 @@ pub mod pallet {
 
 										match auction_item.item_id {
 											ItemId::NFT(asset_id) => {
+												Self::collect_loyalty_fee(
+													&high_bid_price,
+													&auction_item.recipient,
+													&asset_id,
+													FungibleTokenId::NativeToken(0),
+												);
+
 												let asset_transfer = NFTModule::<T>::do_transfer(
 													&auction_item.recipient,
 													&high_bidder,
 													asset_id,
 												);
+
 												match asset_transfer {
 													Err(_) => continue,
 													Ok(_) => {
@@ -702,6 +725,13 @@ pub mod pallet {
 
 										match auction_item.item_id {
 											ItemId::NFT(asset_id) => {
+												Self::collect_loyalty_fee(
+													&high_bid_price,
+													&auction_item.recipient,
+													&asset_id,
+													social_currency_id,
+												);
+
 												let asset_transfer = NFTModule::<T>::do_transfer(
 													&auction_item.recipient,
 													&high_bidder,
@@ -1082,6 +1112,47 @@ pub mod pallet {
 
 		fn auction_info(id: AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
 			Self::auctions(id)
+		}
+
+		fn collect_loyalty_fee(
+			high_bid_price: &Self::Balance,
+			high_bidder: &T::AccountId,
+			asset_id: &AssetId,
+			social_currency_id: FungibleTokenId,
+		) -> DispatchResult {
+			let fee_scale = T::LoyaltyFee::get();
+			// Calculate loyalty fee and deposit to pot fund
+			let loyalty_fee = high_bid_price
+				.saturating_mul(fee_scale.into())
+				.checked_div(&10000u128.saturated_into())
+				.ok_or("Overflow")?;
+
+			// Collect loyalty fee
+			// and deposit to class fund
+			// Get asset detail from id
+			let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
+			let class_fund = NFTModule::<T>::get_class_fund(&asset.0);
+			// Transfer loyalty fee from winner to class fund pot
+			if social_currency_id == FungibleTokenId::NativeToken(0) {
+				<T as Config>::Currency::transfer(
+					&high_bidder,
+					&class_fund,
+					loyalty_fee,
+					ExistenceRequirement::KeepAlive,
+				)?;
+				// Reserve class fund pot
+				<T as Config>::Currency::reserve(&class_fund, loyalty_fee)?;
+			} else {
+				T::FungibleTokenCurrency::transfer(
+					social_currency_id.clone(),
+					&high_bidder,
+					&class_fund,
+					loyalty_fee.saturated_into(),
+				)?;
+				// Reserve class fund pot
+				T::FungibleTokenCurrency::reserve(social_currency_id, &class_fund, loyalty_fee.saturated_into())?;
+			}
+			Ok(())
 		}
 	}
 

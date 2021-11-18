@@ -141,6 +141,15 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	) -> Result<(), sp_runtime::DispatchError> {
 		todo!()
 	}
+
+	fn collect_loyalty_fee(
+		high_bid_price: &Self::Balance,
+		high_bidder: &u128,
+		asset_id: &u64,
+		social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		todo!()
+	}
 }
 
 impl CheckAuctionItemHandler for MockAuctionManager {
