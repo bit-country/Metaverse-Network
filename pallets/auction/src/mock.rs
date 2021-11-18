@@ -179,7 +179,7 @@ impl orml_tokens::Config for Runtime {
 parameter_types! {
 	pub const AuctionTimeToClose: u64 = 100; //Test auction end within 100 blocks
 	pub const MinimumAuctionDuration: u64 = 10; //Test auction end within 100 blocks
-	pub const LoyaltyFee: u16 = 100; // Test 1% loyalty fee
+	pub const RoyaltyFee: u16 = 100; // Test 1% loyalty fee
 }
 
 pub struct MetaverseInfoSource {}
@@ -216,7 +216,7 @@ impl Config for Runtime {
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
-	type LoyaltyFee = LoyaltyFee;
+	type RoyaltyFee = RoyaltyFee;
 }
 
 parameter_types! {
@@ -224,7 +224,7 @@ parameter_types! {
 	pub CreateAssetDeposit: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
 	pub MaxBatchTransfer: u32 = 3;
-	pub MaxBatchMinting: u32 = 10;
+	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
 }
 
@@ -291,7 +291,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 500)],
+			balances: vec![(ALICE, 100000), (BOB, 50000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -374,7 +374,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		Ok(())
 	}
 
-	fn collect_loyalty_fee(
+	fn collect_royalty_fee(
 		high_bid_price: &Self::Balance,
 		high_bidder: &u128,
 		asset_id: &u64,

@@ -632,7 +632,7 @@ impl<T: Config> Pallet<T> {
 		sender: &T::AccountId,
 		to: &T::AccountId,
 		asset_id: AssetId,
-		loyalty_fee: BalanceOf<T>,
+		royalty_fee: BalanceOf<T>,
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
 

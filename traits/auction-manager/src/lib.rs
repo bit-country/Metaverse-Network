@@ -113,7 +113,7 @@ pub trait Auction<AccountId, BlockNumber> {
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult;
 
-	fn collect_loyalty_fee(
+	fn collect_royalty_fee(
 		high_bid_price: &Self::Balance,
 		high_bidder: &AccountId,
 		asset_id: &AssetId,

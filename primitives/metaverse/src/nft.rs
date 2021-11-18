@@ -6,6 +6,6 @@ pub trait NftTrait<AccountId, Balance, TokenId> {
 		sender: AccountId,
 		to: &AccountId,
 		asset_id: AssetId,
-		loyalty_fee: Balance,
+		royalty_fee: Balance,
 	) -> Result<TokenId, DispatchError>;
 }

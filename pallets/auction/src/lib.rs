@@ -91,7 +91,7 @@ pub mod pallet {
 		type EstateHandler: Estate<Self::AccountId>;
 		/// Loyalty fee in percentage applied NFT promotion
 		#[pallet::constant]
-		type LoyaltyFee: Get<u16>;
+		type RoyaltyFee: Get<u16>;
 	}
 
 	#[pallet::storage]
@@ -342,7 +342,7 @@ pub mod pallet {
 					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
-							Self::collect_loyalty_fee(
+							Self::collect_royalty_fee(
 								&value,
 								&auction_item.recipient,
 								&asset_id,
@@ -453,7 +453,7 @@ pub mod pallet {
 					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
-							Self::collect_loyalty_fee(&value, &auction_item.recipient, &asset_id, social_currency_id);
+							Self::collect_royalty_fee(&value, &auction_item.recipient, &asset_id, social_currency_id);
 
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
 							match asset_transfer {
@@ -616,7 +616,7 @@ pub mod pallet {
 
 										match auction_item.item_id {
 											ItemId::NFT(asset_id) => {
-												Self::collect_loyalty_fee(
+												Self::collect_royalty_fee(
 													&high_bid_price,
 													&auction_item.recipient,
 													&asset_id,
@@ -718,7 +718,7 @@ pub mod pallet {
 
 										match auction_item.item_id {
 											ItemId::NFT(asset_id) => {
-												Self::collect_loyalty_fee(
+												Self::collect_royalty_fee(
 													&high_bid_price,
 													&auction_item.recipient,
 													&asset_id,
@@ -1107,15 +1107,15 @@ pub mod pallet {
 			Self::auctions(id)
 		}
 
-		fn collect_loyalty_fee(
+		fn collect_royalty_fee(
 			high_bid_price: &Self::Balance,
 			high_bidder: &T::AccountId,
 			asset_id: &AssetId,
 			social_currency_id: FungibleTokenId,
 		) -> DispatchResult {
-			let fee_scale = T::LoyaltyFee::get();
+			let fee_scale = T::RoyaltyFee::get();
 			// Calculate loyalty fee and deposit to pot fund
-			let loyalty_fee = high_bid_price
+			let royalty_fee = high_bid_price
 				.saturating_mul(fee_scale.into())
 				.checked_div(&10000u128.saturated_into())
 				.ok_or("Overflow")?;
@@ -1130,20 +1130,20 @@ pub mod pallet {
 				<T as Config>::Currency::transfer(
 					&high_bidder,
 					&class_fund,
-					loyalty_fee,
+					royalty_fee,
 					ExistenceRequirement::KeepAlive,
 				)?;
 				// Reserve class fund pot
-				<T as Config>::Currency::reserve(&class_fund, loyalty_fee)?;
+				<T as Config>::Currency::reserve(&class_fund, royalty_fee)?;
 			} else {
 				T::FungibleTokenCurrency::transfer(
 					social_currency_id.clone(),
 					&high_bidder,
 					&class_fund,
-					loyalty_fee.saturated_into(),
+					royalty_fee.saturated_into(),
 				)?;
 				// Reserve class fund pot
-				T::FungibleTokenCurrency::reserve(social_currency_id, &class_fund, loyalty_fee.saturated_into())?;
+				T::FungibleTokenCurrency::reserve(social_currency_id, &class_fund, royalty_fee.saturated_into())?;
 			}
 			Ok(())
 		}

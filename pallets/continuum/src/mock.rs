@@ -152,7 +152,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		Ok(())
 	}
 
-	fn collect_loyalty_fee(
+	fn collect_royalty_fee(
 		high_bid_price: &Self::Balance,
 		high_bidder: &u128,
 		asset_id: &u64,
