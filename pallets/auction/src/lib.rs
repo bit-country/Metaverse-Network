@@ -40,10 +40,17 @@ use sp_runtime::{
 	DispatchError, DispatchResult,
 };
 
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
+
+pub mod weights;
+
+pub use weights::WeightInfo;
 
 pub struct AuctionLogicHandler;
 

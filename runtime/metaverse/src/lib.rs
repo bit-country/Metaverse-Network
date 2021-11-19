@@ -1086,6 +1086,7 @@ impl_runtime_apis! {
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use nft::benchmarking::Pallet as NftBench;
 			use estate::benchmarking::EstateModule as EstateBench;
+			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
@@ -1095,6 +1096,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_timestamp, Timestamp);
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
 			list_benchmark!(list, extra, estate, EstateBench::<Runtime>);
+			list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
 			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
@@ -1112,6 +1114,7 @@ impl_runtime_apis! {
 
 			use nft::benchmarking::Pallet as NftBench;
 			use estate::benchmarking::EstateModule as EstateBench;
+			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
@@ -1135,6 +1138,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
 			add_benchmark!(params, batches, nft, NftBench::<Runtime>);
 			add_benchmark!(params, batches, estate, EstateBench::<Runtime>);
+			add_benchmark!(params, batches, auction, AuctionBench::<Runtime>);
 			add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
 
 			Ok(batches)
