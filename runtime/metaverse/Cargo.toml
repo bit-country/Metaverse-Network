@@ -159,5 +159,6 @@ runtime-benchmarks = [
     "pallet-collective/runtime-benchmarks",
     "nft/runtime-benchmarks",
     "estate/runtime-benchmarks",
-    "metaverse/runtime-benchmarks",
+    "auction/runtime-benchmarks",
+    "metaverse/runtime-benchmarks"
 ]
