@@ -33,7 +33,7 @@ pub type ReferendumIndex = u64;
 pub struct ContinuumSpot {
 	pub(crate) x: i32,
 	pub(crate) y: i32,
-	pub(crate) country: MetaverseId,
+	pub(crate) metaverse_id: MetaverseId,
 }
 
 impl ContinuumSpot {

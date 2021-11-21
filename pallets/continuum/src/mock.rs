@@ -48,8 +48,9 @@ pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
-pub const ALICE_COUNTRY_ID: MetaverseId = 1;
-pub const BOB_COUNTRY_ID: MetaverseId = 2;
+pub const ALICE_METAVERSE_ID: MetaverseId = 1;
+pub const BOB_METAVERSE_ID: MetaverseId = 2;
+pub const CHARLIE_METAVERSE_ID: MetaverseId = 3;
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -180,8 +181,9 @@ pub struct MetaverseInfoSource {}
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
-			ALICE => *metaverse_id == ALICE_COUNTRY_ID,
-			BOB => *metaverse_id == BOB_COUNTRY_ID,
+			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
+			BOB => *metaverse_id == BOB_METAVERSE_ID,
+			CHARLIE => *metaverse_id == CHARLIE_METAVERSE_ID,
 			_ => false,
 		}
 	}
@@ -247,7 +249,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 500)],
+			balances: vec![(ALICE, 100000), (BOB, 500), (CHARLIE, 100000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -256,7 +258,7 @@ impl ExtBuilder {
 			initial_active_session: 0,
 			initial_auction_rate: 5,
 			initial_max_bound: (-100, 100),
-			spot_price: 10000,
+			spot_price: 100,
 		}
 		.assimilate_storage((&mut t))
 		.unwrap();

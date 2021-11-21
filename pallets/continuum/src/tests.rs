@@ -19,13 +19,8 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
+use mock::BlockNumber as MBlockNumber;
 use mock::{Event, *};
-
-#[test]
-// Private test continuum pallet to ensure mocking and unit tests working
-fn test() {
-	ExtBuilder::default().build().execute_with(|| assert_eq!(0, 0));
-}
 
 #[test]
 fn find_neighborhood_spot_should_work() {
@@ -33,7 +28,7 @@ fn find_neighborhood_spot_should_work() {
 		let continuum_spot = ContinuumSpot {
 			x: 0,
 			y: 0,
-			country: ALICE_COUNTRY_ID,
+			metaverse_id: ALICE_METAVERSE_ID,
 		};
 
 		let correct_neighbors = vec![(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
@@ -55,7 +50,7 @@ fn register_interest_should_work() {
 		let origin = Origin::signed(ALICE);
 
 		System::set_block_number(1);
-		assert_ok!(ContinuumModule::register_interest(origin, ALICE_COUNTRY_ID, (0, 0)));
+		assert_ok!(ContinuumModule::register_interest(origin, ALICE_METAVERSE_ID, (0, 0)));
 		assert_eq!(
 			last_event(),
 			Event::Continuum(crate::Event::NewExpressOfInterestAdded(ALICE, 0))
@@ -69,24 +64,33 @@ fn register_interest_should_not_work_for_non_owner() {
 		let origin = Origin::signed(ALICE);
 		System::set_block_number(1);
 		assert_noop!(
-			ContinuumModule::register_interest(origin, BOB_COUNTRY_ID, (0, 0)),
+			ContinuumModule::register_interest(origin, BOB_METAVERSE_ID, (0, 0)),
 			Error::<Runtime>::NoPermission
 		);
 	})
 }
 
 #[test]
-fn rotate_session_should_work() {
+fn try_vote_works_if_voter_is_neighbour() {
 	ExtBuilder::default().build().execute_with(|| {
 		let alice = Origin::signed(ALICE);
 		let bob = Origin::signed(BOB);
 
 		System::set_block_number(1);
-		assert_ok!(ContinuumModule::register_interest(alice, ALICE_COUNTRY_ID, (0, 0)));
-		assert_ok!(ContinuumModule::register_interest(bob, BOB_COUNTRY_ID, (0, 0)));
 
+		// Alice & Bob register for slot 0,0
+		assert_ok!(ContinuumModule::register_interest(alice, ALICE_METAVERSE_ID, (0, 0)));
+		assert_ok!(ContinuumModule::register_interest(bob, BOB_METAVERSE_ID, (0, 0)));
+
+		// Charlie buy neighbor slot using buy now option
+		assert_ok!(ContinuumModule::set_allow_buy_now(Origin::root(), true));
+		assert_ok!(ContinuumModule::buy_continuum_spot(
+			Origin::signed(CHARLIE),
+			(-1, 1),
+			CHARLIE_METAVERSE_ID
+		));
 		run_to_block(10);
-
+		// Start auction slot on continuum
 		let auction_slot = AuctionSlot {
 			spot_id: 0,
 			participants: vec![ALICE, BOB],
@@ -94,9 +98,9 @@ fn rotate_session_should_work() {
 			status: ContinuumAuctionSlotStatus::AcceptParticipates,
 		};
 
-		let auction_slots: Vec<AuctionSlot<BlockNumber, AccountId>> = vec![auction_slot];
+		let auction_slots: Vec<AuctionSlot<MBlockNumber, AccountId>> = vec![auction_slot];
 
-		let active_auctions: Option<Vec<AuctionSlot<BlockNumber, AccountId>>> =
+		let active_auctions: Option<Vec<AuctionSlot<MBlockNumber, AccountId>>> =
 			ContinuumModule::get_active_auction_slots(10);
 		match active_auctions {
 			Some(a) => {
@@ -111,7 +115,164 @@ fn rotate_session_should_work() {
 
 		//Test starting GNP should work
 		run_to_block(20);
-		let gnp_started_auctions: Option<Vec<AuctionSlot<BlockNumber, AccountId>>> =
+		let gnp_started_auctions: Option<Vec<AuctionSlot<MBlockNumber, AccountId>>> =
+			ContinuumModule::get_active_gnp_slots(20);
+		match gnp_started_auctions {
+			Some(a) => {
+				// Verify Auction slots move to good neighborhood protocol Slots
+				assert_eq!(a[0].spot_id, a[0].spot_id);
+				assert_eq!(a[0].status, ContinuumAuctionSlotStatus::GNPStarted);
+
+				// Test start referendum should work
+				let status = ContinuumModule::referendum_status(0);
+				match status {
+					Ok(r) => {
+						assert_eq!(r.end, 30);
+					}
+					_ => {
+						assert_eq!(0, 1);
+					}
+				}
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		// Try vote while referendum is active - charlie vote should be accepted
+		assert_ok!(ContinuumModule::try_vote(
+			&CHARLIE,
+			0,
+			AccountVote::Standard {
+				vote: Vote { nay: true, who: ALICE }
+			}
+		));
+	})
+}
+
+#[test]
+fn try_vote_should_fail_if_not_truly_neighbor() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice = Origin::signed(ALICE);
+		let bob = Origin::signed(BOB);
+
+		System::set_block_number(1);
+
+		// Alice & Bob register for slot 0,0
+		assert_ok!(ContinuumModule::register_interest(alice, ALICE_METAVERSE_ID, (0, 0)));
+		assert_ok!(ContinuumModule::register_interest(bob, BOB_METAVERSE_ID, (0, 0)));
+
+		run_to_block(10);
+		// Start auction slot on continuum
+		let auction_slot = AuctionSlot {
+			spot_id: 0,
+			participants: vec![ALICE, BOB],
+			active_session_index: 1,
+			status: ContinuumAuctionSlotStatus::AcceptParticipates,
+		};
+
+		let auction_slots: Vec<AuctionSlot<MBlockNumber, AccountId>> = vec![auction_slot];
+
+		let active_auctions: Option<Vec<AuctionSlot<MBlockNumber, AccountId>>> =
+			ContinuumModule::get_active_auction_slots(10);
+		match active_auctions {
+			Some(a) => {
+				// Verify EOI move to Auction Slots
+				assert_eq!(a[0].spot_id, auction_slots[0].spot_id);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		//Test starting GNP should work
+		run_to_block(20);
+		let gnp_started_auctions: Option<Vec<AuctionSlot<MBlockNumber, AccountId>>> =
+			ContinuumModule::get_active_gnp_slots(20);
+		match gnp_started_auctions {
+			Some(a) => {
+				// Verify Auction slots move to good neighborhood protocol Slots
+				assert_eq!(a[0].spot_id, a[0].spot_id);
+				assert_eq!(a[0].status, ContinuumAuctionSlotStatus::GNPStarted);
+
+				// Test start referendum should work
+				let status = ContinuumModule::referendum_status(0);
+				match status {
+					Ok(r) => {
+						assert_eq!(r.end, 30);
+					}
+					_ => {
+						assert_eq!(0, 1);
+					}
+				}
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		// Try vote while referendum is active - Bob vote should be rejected
+		assert_noop!(
+			ContinuumModule::try_vote(
+				&CHARLIE,
+				0,
+				AccountVote::Standard {
+					vote: Vote { nay: true, who: BOB }
+				}
+			),
+			Error::<Runtime>::NoPermission
+		);
+	})
+}
+
+#[test]
+fn rotate_session_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice = Origin::signed(ALICE);
+		let bob = Origin::signed(BOB);
+
+		System::set_block_number(1);
+
+		assert_ok!(ContinuumModule::register_interest(alice, ALICE_METAVERSE_ID, (0, 0)));
+		assert_ok!(ContinuumModule::register_interest(bob, BOB_METAVERSE_ID, (0, 0)));
+
+		assert_ok!(ContinuumModule::set_allow_buy_now(Origin::root(), true));
+		assert_ok!(ContinuumModule::buy_continuum_spot(
+			Origin::signed(CHARLIE),
+			(-1, 1),
+			CHARLIE_METAVERSE_ID
+		));
+
+		run_to_block(10);
+
+		let auction_slot = AuctionSlot {
+			spot_id: 0,
+			participants: vec![ALICE, BOB],
+			active_session_index: 1,
+			status: ContinuumAuctionSlotStatus::AcceptParticipates,
+		};
+
+		let auction_slots: Vec<AuctionSlot<MBlockNumber, AccountId>> = vec![auction_slot];
+
+		let active_auctions: Option<Vec<AuctionSlot<MBlockNumber, AccountId>>> =
+			ContinuumModule::get_active_auction_slots(10);
+		match active_auctions {
+			Some(a) => {
+				// Verify EOI move to Auction Slots
+				assert_eq!(a[0].spot_id, auction_slots[0].spot_id);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		//Test starting GNP should work
+		run_to_block(20);
+		let gnp_started_auctions: Option<Vec<AuctionSlot<MBlockNumber, AccountId>>> =
 			ContinuumModule::get_active_gnp_slots(20);
 		match gnp_started_auctions {
 			Some(a) => {
@@ -149,7 +310,7 @@ fn rotate_session_should_work() {
 		// Conduct the referendum and finalise vote
 		run_to_block(30);
 
-		let finalised_votes: Option<Vec<AuctionSlot<BlockNumber, AccountId>>> =
+		let finalised_votes: Option<Vec<AuctionSlot<MBlockNumber, AccountId>>> =
 			ContinuumModule::get_active_auction_slots(20);
 		match finalised_votes {
 			Some(v) => {
@@ -171,7 +332,7 @@ fn buy_now_continuum_should_fail_when_not_owner() {
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root, true));
 		assert_noop!(
-			ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0, 1), BOB_COUNTRY_ID),
+			ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0, 1), BOB_METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
 	})
@@ -187,8 +348,21 @@ fn buy_now_continuum_should_work() {
 		assert_ok!(ContinuumModule::buy_continuum_spot(
 			Origin::signed(ALICE),
 			(0, 1),
-			ALICE_COUNTRY_ID
+			ALICE_METAVERSE_ID
 		));
+		assert_ok!(ContinuumModule::buy_continuum_spot(
+			Origin::signed(ALICE),
+			(0, 2),
+			ALICE_METAVERSE_ID
+		));
+
+		let continuum_spot_1 = ContinuumModule::get_continuum_spot(0);
+		let continuum_spot_2 = ContinuumModule::get_continuum_spot(1);
+
+		assert_eq!(ContinuumModule::get_continuum_position((0, 1)), 0);
+		assert_eq!(ContinuumModule::get_continuum_position((0, 2)), 1);
+
+		assert_eq!(continuum_spot_1.metaverse_id, ALICE_METAVERSE_ID)
 	})
 }
 
@@ -196,7 +370,7 @@ fn buy_now_continuum_should_work() {
 fn buy_now_continuum_should_fail_if_buy_now_setting_is_disabled() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0, 1), ALICE_COUNTRY_ID),
+			ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0, 1), ALICE_METAVERSE_ID),
 			Error::<Runtime>::ContinuumBuyNowIsDisabled
 		);
 	})
