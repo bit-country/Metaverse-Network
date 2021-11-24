@@ -140,7 +140,8 @@ impl Default for CollectionType {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use primitives::ItemId;
+	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+	use primitives::{FungibleTokenId, ItemId};
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
@@ -175,6 +176,16 @@ pub mod pallet {
 		/// Max metadata length
 		#[pallet::constant]
 		type MaxMetadata: Get<u32>;
+		/// Multi currency type for promotion incentivization
+		type MultiCurrency: MultiCurrencyExtended<
+			Self::AccountId,
+			CurrencyId = FungibleTokenId,
+			Balance = BalanceOf<Self>,
+		>;
+		/// Fungible token id for promotion incentive
+		type MiningResourceId: Get<FungibleTokenId>;
+		/// Incentive for promotion
+		type PromotionIncentive: Get<BalanceOf<Self>>;
 	}
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -221,6 +232,10 @@ pub mod pallet {
 	pub(super) type AssetSupporters<T: Config> =
 		StorageMap<_, Blake2_128Concat, AssetId, Vec<T::AccountId>, OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn get_promotion_enabled)]
+	pub(super) type PromotionEnabled<T: Config> = StorageValue<_, bool, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -245,6 +260,8 @@ pub mod pallet {
 		),
 		/// Signed on NFT
 		SignedNft(TokenIdOf<T>, <T as frame_system::Config>::AccountId),
+		/// Promotion enabled
+		PromotionEnabled(bool),
 	}
 
 	#[pallet::error]
@@ -420,7 +437,7 @@ pub mod pallet {
 
 				if AssetsByOwner::<T>::contains_key(&sender) {
 					AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
-						/// Check if the asset_id already in the owner
+						// Check if the asset_id already in the owner
 						ensure!(
 							!asset_ids.iter().any(|i| asset_id == *i),
 							Error::<T>::AssetIdAlreadyExist
@@ -438,6 +455,11 @@ pub mod pallet {
 				Assets::<T>::insert(asset_id, (class_id, token_id));
 				last_token_id = token_id;
 			}
+
+			// If promotion enabled
+			if Self::is_promotion_enabled() {
+				T::MultiCurrency::deposit(T::MiningResourceId::get(), &sender, T::PromotionIncentive::get())?;
+			};
 
 			Self::deposit_event(Event::<T>::NewNftMinted(
 				*new_asset_ids.first().unwrap(),
@@ -543,6 +565,16 @@ pub mod pallet {
 			}
 			Ok(().into())
 		}
+
+		#[pallet::weight(T::WeightInfo::sign_asset())]
+		pub fn enable_promotion(origin: OriginFor<T>, enable: bool) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			PromotionEnabled::<T>::put(enable);
+
+			Self::deposit_event(Event::<T>::PromotionEnabled(enable));
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -550,6 +582,10 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	pub fn is_promotion_enabled() -> bool {
+		Self::get_promotion_enabled()
+	}
+
 	pub fn get_class_fund(class_id: &ClassIdOf<T>) -> T::AccountId {
 		T::PalletId::get().into_sub_account(class_id)
 	}

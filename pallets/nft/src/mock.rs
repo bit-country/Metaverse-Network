@@ -4,8 +4,9 @@ use super::*;
 
 use crate as nft;
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionType, Change, ListingLevel, OnNewBidResult};
+use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, parameter_types, traits::EnsureOrigin, weights::Weight};
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, MultiCurrencyExtended};
 use primitives::{Amount, CurrencyId, FungibleTokenId, ItemId};
 use sp_core::H256;
 use sp_runtime::testing::Header;
@@ -70,7 +71,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
 	};
 }
@@ -85,11 +86,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
 	fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
-		todo!()
+		None
 	}
 
 	fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
-		todo!()
+		Ok(())
 	}
 
 	fn new_auction(
@@ -98,7 +99,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		start: u64,
 		end: Option<u64>,
 	) -> Result<u64, DispatchError> {
-		todo!()
+		Ok(0)
 	}
 
 	fn create_auction(
@@ -110,12 +111,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		start: u64,
 		listing_level: ListingLevel,
 	) -> Result<u64, DispatchError> {
-		todo!()
+		Ok(0)
 	}
 
-	fn remove_auction(id: u64, item_id: ItemId) {
-		todo!()
-	}
+	fn remove_auction(id: u64, item_id: ItemId) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -123,7 +122,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		new_bid: (u128, Self::Balance),
 		last_bid: Option<(u128, Self::Balance)>,
 	) -> DispatchResult {
-		todo!()
+		Ok(())
 	}
 
 	fn local_auction_bid_handler(
@@ -139,7 +138,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		)>,
 		_: FungibleTokenId,
 	) -> Result<(), sp_runtime::DispatchError> {
-		todo!()
+		Ok(())
 	}
 
 	fn collect_royalty_fee(
@@ -148,7 +147,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		asset_id: &u64,
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
-		todo!()
+		Ok(())
 	}
 }
 
@@ -165,6 +164,35 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 10;
 	pub MaxMetadata: u32 = 10;
+	pub PromotionIncentive: Balance = 1;
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
+}
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = FungibleTokenId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = Nothing;
+}
+
+pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
+parameter_types! {
+	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl currencies::Config for Runtime {
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 impl Config for Runtime {
@@ -178,6 +206,9 @@ impl Config for Runtime {
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxMetadata;
+	type MultiCurrency = Currencies;
+	type MiningResourceId = MiningCurrencyId;
+	type PromotionIncentive = PromotionIncentive;
 }
 
 parameter_types! {
@@ -204,6 +235,8 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		Tokens: orml_tokens::{ Pallet, Storage, Call, Event<T>},
 		Nft: nft::{Pallet, Call, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},

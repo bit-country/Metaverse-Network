@@ -2,16 +2,22 @@
 use super::*;
 use mock::{Event, *};
 
-use primitives::Balance;
+use primitives::{Balance, FungibleTokenId};
 
 use orml_nft::Pallet as NftModule;
 use sp_std::vec::Vec;
 
 use frame_support::{assert_noop, assert_ok};
+use orml_traits::MultiCurrency;
+use sp_runtime::traits::BadOrigin;
 use sp_runtime::AccountId32;
 
 fn free_balance(who: &AccountId) -> Balance {
 	<Runtime as Config>::Currency::free_balance(who)
+}
+
+fn free_bit_balance(who: &AccountId) -> Balance {
+	<Runtime as Config>::MultiCurrency::free_balance(mining_resource_id(), &who)
 }
 
 fn reserved_balance(who: &AccountId) -> Balance {
@@ -20,6 +26,10 @@ fn reserved_balance(who: &AccountId) -> Balance {
 
 fn class_id_account() -> AccountId {
 	<Runtime as Config>::PalletId::get().into_sub_account(CLASS_ID)
+}
+
+fn mining_resource_id() -> FungibleTokenId {
+	<Runtime as Config>::MiningResourceId::get()
 }
 
 fn init_test_nft(owner: Origin) {
@@ -35,10 +45,36 @@ fn init_test_nft(owner: Origin) {
 }
 
 #[test]
+fn enable_promotion_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::root();
+		assert_ok!(Nft::enable_promotion(origin, true));
+
+		assert_eq!(Nft::get_promotion_enabled(), true);
+
+		let event = mock::Event::Nft(crate::Event::PromotionEnabled(true));
+		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+fn disable_promotion_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::root();
+		assert_ok!(Nft::enable_promotion(origin, false));
+
+		assert_eq!(Nft::get_promotion_enabled(), false);
+
+		let event = mock::Event::Nft(crate::Event::PromotionEnabled(false));
+		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
 fn create_group_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::root();
-		assert_ok!(Nft::create_group(origin, vec![1], vec![1],));
+		assert_ok!(Nft::create_group(origin, vec![1], vec![1]));
 
 		let collection_data = NftGroupCollectionData {
 			name: vec![1],
@@ -57,7 +93,8 @@ fn create_group_should_work() {
 fn create_group_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		//TODO: find way to set next collection id
+
+		assert_noop!(Nft::create_group(origin, vec![1], vec![1]), BadOrigin);
 	});
 }
 
@@ -112,7 +149,7 @@ fn create_class_should_work() {
 fn mint_asset_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-
+		assert_ok!(Nft::enable_promotion(Origin::root(), true));
 		init_test_nft(origin.clone());
 
 		assert_eq!(
@@ -126,13 +163,40 @@ fn mint_asset_should_work() {
 		let event = mock::Event::Nft(crate::Event::NewNftMinted(0, 0, ALICE, CLASS_ID, 1, 0));
 		assert_eq!(last_event(), event);
 
-		//mint two assets
+		// mint two assets
 		assert_ok!(Nft::mint(origin.clone(), CLASS_ID, vec![1], vec![1], vec![1], 2));
+
+		// bit balance should be 2 (minted 2 NFT)
+		assert_eq!(free_bit_balance(&ALICE), 2);
 
 		assert_eq!(Nft::next_asset_id(), 3);
 		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![0, 1, 2]);
 		assert_eq!(Nft::get_asset(1), Some((CLASS_ID, 1)));
 		assert_eq!(Nft::get_asset(2), Some((CLASS_ID, 2)));
+	})
+}
+
+#[test]
+fn mint_asset_with_promotion_enabled_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		assert_ok!(Nft::enable_promotion(Origin::root(), true));
+		init_test_nft(origin.clone());
+
+		// bit balance should be 1 (minted 1 NFT)
+		assert_eq!(free_bit_balance(&ALICE), 1);
+	})
+}
+
+#[test]
+fn mint_asset_with_promotion_disabled_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		assert_ok!(Nft::enable_promotion(Origin::root(), false));
+		init_test_nft(origin.clone());
+
+		// bit balance should be 1 (minted 1 NFT)
+		assert_eq!(free_bit_balance(&ALICE), 0);
 	})
 }
 
@@ -251,8 +315,6 @@ fn transfer_batch_should_fail() {
 			Nft::transfer_batch(origin.clone(), vec![(BOB, 3), (BOB, 4)]),
 			Error::<Runtime>::AssetIdNotFound
 		);
-		//TODO add test case for ClassIdNotFound
-		//TODO add test case for AssetInfoNotFound
 	})
 }
 
@@ -293,7 +355,6 @@ fn do_transfer_should_fail() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(Nft::do_transfer(&ALICE, &BOB, 0), Error::<Runtime>::AssetIdNotFound);
-		//TODO add test for ClassIdNotFound
 
 		init_test_nft(origin.clone());
 
@@ -330,7 +391,5 @@ fn do_check_nft_ownership_should_fail() {
 			Nft::check_nft_ownership(&ALICE, &TOKEN_ID),
 			Error::<Runtime>::AssetIdNotFound
 		);
-		//TODO: ClassIdNotFound
-		//TODO: add test case for AssetInfoNotFound
 	})
 }

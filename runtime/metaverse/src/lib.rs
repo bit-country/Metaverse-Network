@@ -399,6 +399,7 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
+	pub PromotionIncentive: Balance = 1 * DOLLARS;
 }
 
 impl nft::Config for Runtime {
@@ -406,12 +407,15 @@ impl nft::Config for Runtime {
 	type CreateClassDeposit = CreateClassDeposit;
 	type CreateAssetDeposit = CreateAssetDeposit;
 	type Currency = Balances;
+	type MultiCurrency = Currencies;
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
 	type AuctionHandler = Auction;
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxNftMetadata;
+	type MiningResourceId = MiningResourceCurrencyId;
+	type PromotionIncentive = PromotionIncentive;
 }
 
 parameter_types! {
