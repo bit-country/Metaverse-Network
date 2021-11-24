@@ -1,7 +1,29 @@
+// This file is part of Bit.Country.
+
+// Copyright (C) 2020-2021 Bit.Country.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection
 // of Substrate runtime modules. Thanks to all contributors of orml.
-// https://github.com/open-web3-stack/open-runtime-module-library
+// Ref: https://github.com/open-web3-stack/open-runtime-module-library
 
+#![cfg_attr(not(feature = "std"), no_std)]
+#![allow(clippy::string_lit_as_bytes)]
+#![allow(clippy::unnecessary_cast)]
+#![allow(clippy::unused_unit)]
+#![allow(clippy::upper_case_acronyms)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};

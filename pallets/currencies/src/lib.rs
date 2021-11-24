@@ -15,6 +15,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection
+// of Substrate runtime modules. Thanks to all contributors of orml.
+// Ref: https://github.com/open-web3-stack/open-runtime-module-library
+
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]

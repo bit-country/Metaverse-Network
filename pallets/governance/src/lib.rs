@@ -1,7 +1,7 @@
 // This file is part of Bit.Country.
 
-// The metaverse governance module is inspired by frame democracy of how to store hash
-// and preimages
+// The multi-metaverse governance module is inspired by frame democracy of how to store hash
+// and preimages. Ref: https://github.com/paritytech/substrate/tree/master/frame/democracy
 
 // Copyright (C) 2020-2021 Bit.Country.
 // SPDX-License-Identifier: Apache-2.0

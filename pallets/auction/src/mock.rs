@@ -3,7 +3,7 @@
 use super::*;
 use crate as auction;
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
-use orml_traits::parameter_type_with_key;
+use orml_traits::{parameter_type_with_key, MultiCurrencyExtended};
 use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, CurrencyId, EstateId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
@@ -219,6 +219,20 @@ impl Config for Runtime {
 	type RoyaltyFee = RoyaltyFee;
 }
 
+pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
+parameter_types! {
+	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl currencies::Config for Runtime {
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = NativeCurrencyId;
+}
+
 parameter_types! {
 	pub CreateClassDeposit: Balance = 2;
 	pub CreateAssetDeposit: Balance = 1;
@@ -226,6 +240,7 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
+	pub PromotionIncentive: Balance = 1;
 }
 
 impl pallet_nft::Config for Runtime {
@@ -239,6 +254,9 @@ impl pallet_nft::Config for Runtime {
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxMetadata;
+	type MultiCurrency = Currencies;
+	type MiningResourceId = MiningCurrencyId;
+	type PromotionIncentive = PromotionIncentive;
 }
 
 parameter_types! {
@@ -266,6 +284,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},

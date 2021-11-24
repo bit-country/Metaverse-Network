@@ -4797,6 +4797,7 @@ dependencies = [
  "auction-manager",
  "bc-primitives",
  "bit-country-primitives",
+ "currencies",
  "frame-benchmarking",
  "frame-executive",
  "frame-support",

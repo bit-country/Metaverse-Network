@@ -14,6 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 // This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection
 // of Substrate runtime modules. Thanks to all contributors of orml.
 // Ref: https://github.com/open-web3-stack/open-runtime-module-library
