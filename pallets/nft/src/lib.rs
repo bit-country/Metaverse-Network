@@ -40,7 +40,7 @@ use serde::{Deserialize, Serialize};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 use frame_system::pallet_prelude::*;
 use orml_nft::Pallet as NftModule;
-use primitives::{AssetId, Balance, GroupCollectionId};
+use primitives::{AssetId, Balance, BlockNumber, GroupCollectionId};
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
@@ -78,13 +78,13 @@ pub struct NftGroupCollectionData {
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct NftClassData<Balance> {
+pub struct NftClassData<Balance, BlockNumber> {
 	// Minimum balance to create a collection of Asset
 	pub deposit: Balance,
 	// Metadata from ipfs
 	pub metadata: NftMetadata,
 	pub token_type: TokenType,
-	pub collection_type: CollectionType,
+	pub collection_type: CollectionType<BlockNumber>,
 	pub total_supply: u64,
 	pub initial_supply: u64,
 }
@@ -123,14 +123,14 @@ impl Default for TokenType {
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum CollectionType {
+pub enum CollectionType<BlockNumber> {
 	Collectable,
 	Wearable,
-	Executable,
+	Executable(BlockNumber),
 }
 
 // Collection extension for fast retrieval
-impl CollectionType {
+impl CollectionType<BlockNumber> {
 	pub fn is_collectable(&self) -> bool {
 		match *self {
 			CollectionType::Collectable => true,
@@ -140,7 +140,7 @@ impl CollectionType {
 
 	pub fn is_executable(&self) -> bool {
 		match *self {
-			CollectionType::Executable => true,
+			CollectionType::Executable(_) => true,
 			_ => false,
 		}
 	}
@@ -153,7 +153,7 @@ impl CollectionType {
 	}
 }
 
-impl Default for CollectionType {
+impl Default for CollectionType<BlockNumber> {
 	fn default() -> Self {
 		CollectionType::Collectable
 	}
@@ -171,7 +171,10 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config
-		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
+		+ orml_nft::Config<
+			TokenData = NftAssetData<BalanceOf<Self>>,
+			ClassData = NftClassData<BalanceOf<Self>, <Self as frame_system::Config>::BlockNumber>,
+		>
 	{
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The minimum balance to create class
@@ -284,6 +287,10 @@ pub mod pallet {
 		SignedNft(TokenIdOf<T>, <T as frame_system::Config>::AccountId),
 		/// Promotion enabled
 		PromotionEnabled(bool),
+		/// Burn NFT
+		BurnedNft(AssetId),
+		/// Executed NFT
+		ExecutedNft(AssetId),
 	}
 
 	#[pallet::error]
@@ -324,6 +331,8 @@ pub mod pallet {
 		EmptySupporters,
 		/// Insufficient Balance
 		InsufficientBalance,
+		/// Time-capsule executed too early
+		TimecapsuleExecutedTooEarly,
 	}
 
 	#[pallet::call]
@@ -364,7 +373,7 @@ pub mod pallet {
 			metadata: NftMetadata,
 			collection_id: GroupCollectionId,
 			token_type: TokenType,
-			collection_type: CollectionType,
+			collection_type: CollectionType<T::BlockNumber>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			ensure!(
@@ -595,6 +604,34 @@ pub mod pallet {
 			PromotionEnabled::<T>::put(enable);
 
 			Self::deposit_event(Event::<T>::PromotionEnabled(enable));
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::sign_asset())]
+		pub fn burn(origin: OriginFor<T>, asset_id: AssetId) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+			let asset_by_owner: Vec<AssetId> = Self::get_assets_by_owner(&sender);
+
+			ensure!(asset_by_owner.contains(&asset_id), Error::<T>::NoPermission);
+			let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+
+			let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
+			let data = class_info.data;
+
+			match data.collection_type {
+				CollectionType::Executable(block_number) => {
+					let now = <frame_system::Pallet<T>>::block_number();
+					ensure!(now >= block_number, Error::<T>::TimecapsuleExecutedTooEarly);
+					NftModule::<T>::burn(&sender, (asset))?;
+
+					Self::deposit_event(Event::<T>::ExecutedNft(asset_id));
+				}
+				_ => {
+					NftModule::<T>::burn(&sender, (asset))?;
+				}
+			}
+			Assets::<T>::remove(asset_id);
+			Self::deposit_event(Event::<T>::BurnedNft(asset_id));
 			Ok(().into())
 		}
 	}

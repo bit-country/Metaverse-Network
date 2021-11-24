@@ -1,7 +1,7 @@
 #[cfg(test)]
 use super::*;
+use mock::BlockNumber;
 use mock::{Event, *};
-
 use primitives::{Balance, FungibleTokenId};
 
 use orml_nft::Pallet as NftModule;
@@ -40,6 +40,18 @@ fn init_test_nft(owner: Origin) {
 		COLLECTION_ID,
 		TokenType::Transferable,
 		CollectionType::Collectable,
+	));
+	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], vec![1], vec![1], 1));
+}
+
+fn init_executable_nft(owner: Origin) {
+	assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+	assert_ok!(Nft::create_class(
+		owner.clone(),
+		vec![1],
+		COLLECTION_ID,
+		TokenType::Transferable,
+		CollectionType::Executable(5),
 	));
 	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], vec![1], vec![1], 1));
 }
@@ -112,7 +124,7 @@ fn create_class_should_work() {
 			CollectionType::Collectable,
 		));
 
-		let class_data = NftClassData {
+		let class_data: NftClassData<Balance, BlockNumber> = NftClassData {
 			deposit: 2,
 			metadata: vec![1],
 			token_type: TokenType::Transferable,
@@ -255,6 +267,39 @@ fn transfer_should_work() {
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::transfer(origin, BOB, 0));
 		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0));
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn burn_nft_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		assert_ok!(Nft::burn(origin, 0));
+		let event = mock::Event::Nft(crate::Event::BurnedNft(0));
+		assert_eq!(Nft::get_asset(0), None);
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn burn_executable_nft_should_fail_when_execute_too_early() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_executable_nft(origin.clone());
+		assert_noop!(Nft::burn(origin, 0), Error::<Runtime>::TimecapsuleExecutedTooEarly);
+	})
+}
+
+#[test]
+fn burn_executable_nft_should_work_when_time_is_up() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_executable_nft(origin.clone());
+		System::set_block_number(System::block_number() + 10);
+		assert_ok!(Nft::burn(origin, 0));
+		let event = mock::Event::Nft(crate::Event::BurnedNft(0));
 		assert_eq!(last_event(), event);
 	})
 }
