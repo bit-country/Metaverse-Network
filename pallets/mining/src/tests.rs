@@ -18,7 +18,7 @@ fn get_mining_balance_of(who: &AccountId) -> Balance {
 }
 
 fn setup_minting_resource() -> DispatchResult {
-	//Add ALICE as minting resource
+	// Add ALICE as minting resource
 	MiningModule::add_minting_origin(Origin::signed(ALICE), ALICE);
 	Ok(())
 }

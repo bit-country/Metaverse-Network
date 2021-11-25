@@ -18,15 +18,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use bc_primitives::*;
-use codec::{Decode, Encode};
-use frame_support::{ensure, pallet_prelude::*, traits::Currency, BoundedVec, PalletId};
-use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use frame_support::{ensure, pallet_prelude::*, traits::Currency, PalletId};
+use frame_system::{ensure_signed, pallet_prelude::*};
+use primitives::{FungibleTokenId, MetaverseId};
 use sp_runtime::{
 	traits::{AccountIdConversion, One},
-	DispatchError, DispatchResult, RuntimeDebug,
+	DispatchError,
 };
-use sp_std::{convert::TryInto, vec::Vec};
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -177,17 +175,17 @@ pub mod pallet {
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			/// Get owner of the metaverse
+			// Get owner of the metaverse
 			MetaverseOwner::<T>::try_mutate_exists(
 				&metaverse_id,
 				&who,
 				|metaverse_by_owner| -> DispatchResultWithPostInfo {
-					/// Ensure there is record of the metaverse owner with metaverse id, account
-					/// id and delete them
+					// Ensure there is record of the metaverse owner with metaverse id, account
+					// id and delete them
 					ensure!(metaverse_by_owner.is_some(), Error::<T>::NoPermission);
 
 					if who == to {
-						/// No change needed
+						// No change needed
 						return Ok(().into());
 					}
 
@@ -207,7 +205,7 @@ pub mod pallet {
 
 		#[pallet::weight(T::WeightInfo::freeze_metaverse())]
 		pub fn freeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
-			/// Only Council can free a metaverse
+			// Only Council can freeze a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			Metaverses::<T>::try_mutate(metaverse_id, |maybe_metaverse| {
@@ -223,7 +221,7 @@ pub mod pallet {
 
 		#[pallet::weight(T::WeightInfo::unfreeze_metaverse())]
 		pub fn unfreeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
-			/// Only Council can free a metaverse
+			// Only Council can freeze a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			Metaverses::<T>::try_mutate(metaverse_id, |maybe_metaverse| {
@@ -239,7 +237,7 @@ pub mod pallet {
 
 		#[pallet::weight(T::WeightInfo::destroy_metaverse())]
 		pub fn destroy_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
-			/// Only Council can destroy a metaverse
+			// Only Council can destroy a metaverse
 			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			let metaverse_info = Metaverses::<T>::get(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;

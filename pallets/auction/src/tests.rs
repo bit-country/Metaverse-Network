@@ -5,7 +5,6 @@ use auction_manager::ListingLevel;
 use frame_support::{assert_noop, assert_ok};
 use mock::{Event, *};
 use pallet_nft::{CollectionType, TokenType};
-use sp_runtime::print;
 
 fn init_test_nft(owner: Origin) {
 	//Create group collection before class
@@ -29,16 +28,13 @@ fn init_test_nft(owner: Origin) {
 	));
 }
 
-fn mint_landunit(owner: Origin, coordinate: (i32, i32), metaverse_id: MetaverseId) {}
-
-fn mint_estate(owner: Origin, coordinates: Vec<(i32, i32)>) {}
-
 #[test]
 // Creating auction should work
 fn create_new_auction_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		init_test_nft(origin.clone());
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::NFT(0),
@@ -48,12 +44,13 @@ fn create_new_auction_work() {
 			0,
 			ListingLevel::Global
 		));
+
 		assert_eq!(
 			AuctionModule::auctions(0),
 			Some(AuctionInfo {
 				bid: None,
 				start: 1,
-				end: Some(101)
+				end: Some(101),
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), Some(true));
@@ -64,8 +61,6 @@ fn create_new_auction_work() {
 // Creating auction should work
 fn create_new_auction_should_work_for_valid_estate() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-
 		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -81,7 +76,7 @@ fn create_new_auction_should_work_for_valid_estate() {
 			Some(AuctionInfo {
 				bid: None,
 				start: 1,
-				end: Some(101)
+				end: Some(101),
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
@@ -92,8 +87,6 @@ fn create_new_auction_should_work_for_valid_estate() {
 // Creating auction should work
 fn create_new_auction_should_fail_for_non_exist_estate() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-
 		let item_id: ItemId = ItemId::Estate(ESTATE_ID_NOT_EXIST);
 		assert_noop!(
 			AuctionModule::create_auction(AuctionType::Auction, item_id, None, ALICE, 100, 0, ListingLevel::Global),
@@ -106,8 +99,6 @@ fn create_new_auction_should_fail_for_non_exist_estate() {
 // Creating auction should work
 fn create_new_auction_should_work_for_valid_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-
 		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -123,7 +114,7 @@ fn create_new_auction_should_work_for_valid_landunit() {
 			Some(AuctionInfo {
 				bid: None,
 				start: 1,
-				end: Some(101)
+				end: Some(101),
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
@@ -134,8 +125,6 @@ fn create_new_auction_should_work_for_valid_landunit() {
 // Creating auction should work
 fn create_new_auction_should_work_for_non_exist_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-
 		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
 		assert_noop!(
 			AuctionModule::create_auction(AuctionType::Auction, item_id, None, ALICE, 100, 0, ListingLevel::Global),
@@ -393,11 +382,11 @@ fn asset_transfers_after_auction() {
 		let owner = Origin::signed(BOB);
 		let bidder = Origin::signed(ALICE);
 
-		/// Make sure balances start off as we expect
+		// Make sure balances start off as we expect
 		assert_eq!(Balances::free_balance(BOB), 500);
 		assert_eq!(Balances::free_balance(ALICE), 100000);
 
-		/// Setup NFT and verify that BOB has ownership
+		// Setup NFT and verify that BOB has ownership
 		init_test_nft(owner.clone());
 		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), [0]);
 
@@ -415,18 +404,18 @@ fn asset_transfers_after_auction() {
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
 
 		run_to_block(102);
-
-		/// Verify asset transfers to alice after end of auction
+		// Verify asset transfers to alice after end of auction
 		assert_eq!(
 			last_event(),
 			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
 		);
 
-		/// Verify transfer of funs (minus gas)
-		assert_eq!(Balances::free_balance(BOB), 697);
+		// Verify transfer of fund (minus gas)
+		// BOB only receive 697 - 2 (1% of 200 as loyalty fee) = 695
+		assert_eq!(Balances::free_balance(BOB), 695);
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 
-		/// Verify Alice has the NFT and Bob doesn't
+		// Verify Alice has the NFT and Bob doesn't
 		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
 		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), Vec::<u64>::new());
 	});
@@ -463,21 +452,22 @@ fn buy_now_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = Origin::signed(BOB);
 		let buyer = Origin::signed(ALICE);
+
 		init_test_nft(owner.clone());
 
-		/// call create_auction
+		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
 			ItemId::NFT(0),
 			None,
 			BOB,
-			150,
+			200,
 			0,
 			ListingLevel::Global
 		));
 
-		//buy now successful
-		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
+		// buy now successful
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		assert_ok!(NFTModule::<Runtime>::mint(
 			owner.clone(),
@@ -493,25 +483,28 @@ fn buy_now_work() {
 			ItemId::NFT(1),
 			None,
 			BOB,
-			150,
+			200,
 			0,
 			ListingLevel::Global
 		));
 
-		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 200));
 
 		assert_eq!(AuctionModule::auctions(0), None);
-		/// check account received asset
+		// check account received asset
 		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0, 1]);
-		/// check balances were transferred
-		assert_eq!(Balances::free_balance(ALICE), 99700);
-		assert_eq!(Balances::free_balance(BOB), 796);
+		// check balances were transferred
+		assert_eq!(Balances::free_balance(ALICE), 99600);
+		// initial balance is 500 - sold 2 x 200 = 900
+		// loyalty fee is 1% for both sales is 8
+		// 900 - 8 = 892
+		assert_eq!(Balances::free_balance(BOB), 892);
 
-		//event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
+		// event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
 		assert_eq!(last_event(), event);
 
-		//Check that auction is over
+		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
 			Error::<Runtime>::AuctionNotExist
@@ -527,7 +520,7 @@ fn buy_now_works_for_valid_estate() {
 		let buyer = Origin::signed(ALICE);
 
 		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
-		/// call create_auction
+		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
 			item_id,
@@ -538,7 +531,7 @@ fn buy_now_works_for_valid_estate() {
 			ListingLevel::Global
 		));
 
-		//buy now successful
+		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
 
 		assert_eq!(Balances::free_balance(BOB), 650);
@@ -558,15 +551,15 @@ fn buy_now_works_for_valid_estate() {
 
 		assert_eq!(AuctionModule::auctions(0), None);
 
-		/// check balances were transferred
+		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99700);
 		assert_eq!(Balances::free_balance(BOB), 800);
 
-		//event was triggered
+		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
 		assert_eq!(last_event(), event);
 
-		//Check that auction is over
+		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
 			Error::<Runtime>::AuctionNotExist
@@ -582,7 +575,7 @@ fn buy_now_works_for_valid_landunit() {
 		let buyer = Origin::signed(ALICE);
 
 		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
-		/// call create_auction
+		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
 			item_id,
@@ -593,7 +586,7 @@ fn buy_now_works_for_valid_landunit() {
 			ListingLevel::Global
 		));
 
-		//buy now successful
+		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
 
 		assert_eq!(Balances::free_balance(BOB), 650);
@@ -613,15 +606,15 @@ fn buy_now_works_for_valid_landunit() {
 
 		assert_eq!(AuctionModule::auctions(0), None);
 
-		/// check balances were transferred
+		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99700);
 		assert_eq!(Balances::free_balance(BOB), 800);
 
-		//event was triggered
+		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
 		assert_eq!(last_event(), event);
 
-		//Check that auction is over
+		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
 			Error::<Runtime>::AuctionNotExist
@@ -635,11 +628,11 @@ fn buy_now_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = Origin::signed(BOB);
 		let buyer = Origin::signed(ALICE);
-		/// we need this to test auction not started scenario
+		// we need this to test auction not started scenario
 		System::set_block_number(1);
 		init_test_nft(owner.clone());
 
-		/// call create_auction
+		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
 			ItemId::NFT(0),
@@ -650,34 +643,34 @@ fn buy_now_should_fail() {
 			ListingLevel::Global
 		));
 
-		/// no auction id
+		// no auction id
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
 			Error::<Runtime>::AuctionNotExist
 		);
-		/// user is seller
+		// user is seller
 		assert_noop!(
 			AuctionModule::buy_now(owner.clone(), 0, 150),
 			Error::<Runtime>::CannotBidOnOwnAuction
 		);
-		//buy it now value is less than buy_now_amount
+		// buy it now value is less than buy_now_amount
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 100),
 			Error::<Runtime>::InvalidBuyItNowPrice
 		);
-		//buy it now value is more than buy_now_amount
+		// buy it now value is more than buy_now_amount
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 200),
 			Error::<Runtime>::InvalidBuyItNowPrice
 		);
-		/// user does not have enough balance in wallet
+		// user does not have enough balance in wallet
 		assert_ok!(Balances::reserve(&ALICE, 100000));
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 150),
 			Error::<Runtime>::InsufficientFunds
 		);
 		assert_eq!(Balances::unreserve(&ALICE, 100000), 0);
-		//auction has not started or is over
+		// auction has not started or is over
 		System::set_block_number(0);
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 150),
@@ -762,14 +755,15 @@ fn on_finalize_should_work() {
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
-		/// check account received asset
+		// check account received asset
 		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
-		/// check balances were transferred
+		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99900);
-		assert_eq!(Balances::free_balance(BOB), 597);
-		//asset is not longer in auction
+		// BOB only receive 597 - 1 (1% of 100 as loyalty fee) = 596
+		assert_eq!(Balances::free_balance(BOB), 596);
+		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), None);
-		//event was triggered
+		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
 		assert_eq!(last_event(), event);
 	});

@@ -20,7 +20,6 @@
 use super::*;
 use frame_support::{assert_err, assert_noop, assert_ok};
 use mock::{Event, *};
-use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
 
 #[test]
@@ -492,7 +491,7 @@ fn mint_estate_should_work() {
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
-		let mut estate_id: u64 = 0;
+		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
@@ -518,7 +517,7 @@ fn mint_estate_and_land_should_return_correct_total_land_unit() {
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
-		let mut estate_id: u64 = 0;
+		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
@@ -555,7 +554,7 @@ fn mint_estate_should_return_none_for_non_exist_estate() {
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
-		let mut estate_id: u64 = 0;
+		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
@@ -584,7 +583,7 @@ fn transfer_estate_should_work() {
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
-		let mut estate_id: u64 = 0;
+		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		assert_ok!(EstateModule::transfer_estate(
@@ -614,7 +613,7 @@ fn transfer_estate_should_reject_no_permission() {
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
-		let mut estate_id: u64 = 0;
+		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		assert_noop!(
@@ -645,7 +644,7 @@ fn transfer_estate_should_fail_with_same_account() {
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
-		let mut estate_id: u64 = 0;
+		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
 		assert_noop!(
@@ -708,7 +707,7 @@ fn create_estate_should_work() {
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
-		let mut estate_id: u64 = 0;
+		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
@@ -738,7 +737,7 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
-		let mut estate_id: u64 = 0;
+		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(

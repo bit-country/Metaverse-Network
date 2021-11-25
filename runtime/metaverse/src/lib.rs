@@ -79,12 +79,13 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
 use estate::weights::WeightInfo;
 // use metaverse::weights::WeightInfo;
+#[cfg(feature = "runtime-benchmarks")]
+use frame_benchmarking::frame_support::pallet_prelude::Get;
 use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
 use frame_support::ConsensusEngineId;
 use scale_info::TypeInfo;
 use sp_core::sp_std::marker::PhantomData;
 use sp_runtime::traits::OpaqueKeys;
-//use frame_benchmarking::frame_support::pallet_prelude::Get;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -395,6 +396,10 @@ impl currencies::Config for Runtime {
 parameter_types! {
 	pub CreateClassDeposit: Balance = 500 * MILLICENTS;
 	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+	pub MaxBatchTransfer: u32 = 100;
+	pub MaxBatchMinting: u32 = 1000;
+	pub MaxNftMetadata: u32 = 1024;
+	pub PromotionIncentive: Balance = 1 * DOLLARS;
 }
 
 impl nft::Config for Runtime {
@@ -402,9 +407,15 @@ impl nft::Config for Runtime {
 	type CreateClassDeposit = CreateClassDeposit;
 	type CreateAssetDeposit = CreateAssetDeposit;
 	type Currency = Balances;
+	type MultiCurrency = Currencies;
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
 	type AuctionHandler = Auction;
+	type MaxBatchTransfer = MaxBatchTransfer;
+	type MaxBatchMinting = MaxBatchMinting;
+	type MaxMetadata = MaxNftMetadata;
+	type MiningResourceId = MiningResourceCurrencyId;
+	type PromotionIncentive = PromotionIncentive;
 }
 
 parameter_types! {
@@ -415,7 +426,7 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
-	type ClassData = nft::NftClassData<Balance>;
+	type ClassData = nft::NftClassData<Balance, BlockNumber>;
 	type TokenData = nft::NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
@@ -459,6 +470,7 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
+	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
 }
 
 impl auction::Config for Runtime {
@@ -471,6 +483,7 @@ impl auction::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = Estate;
+	type RoyaltyFee = RoyaltyFee;
 }
 
 impl continuum::Config for Runtime {
@@ -1068,6 +1081,7 @@ impl_runtime_apis! {
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use nft::benchmarking::Pallet as NftBench;
 			use estate::benchmarking::EstateModule as EstateBench;
+			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
@@ -1077,6 +1091,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_timestamp, Timestamp);
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
 			list_benchmark!(list, extra, estate, EstateBench::<Runtime>);
+			list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
 			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
@@ -1094,6 +1109,7 @@ impl_runtime_apis! {
 
 			use nft::benchmarking::Pallet as NftBench;
 			use estate::benchmarking::EstateModule as EstateBench;
+			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
@@ -1117,6 +1133,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
 			add_benchmark!(params, batches, nft, NftBench::<Runtime>);
 			add_benchmark!(params, batches, estate, EstateBench::<Runtime>);
+			add_benchmark!(params, batches, auction, AuctionBench::<Runtime>);
 			add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
 
 			Ok(batches)

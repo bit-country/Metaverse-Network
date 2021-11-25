@@ -24,6 +24,7 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch =
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.11", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.11", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.11", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
 
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.11", default-features = false }
@@ -49,12 +50,13 @@ std = [
     'frame-system/std',
     'primitives/std',
     'orml-traits/std',
+    'orml-tokens/std',
     'orml-nft/std',
     'pallet-balances/std',
     'pallet-timestamp/std',
     'auction-manager/std',
     'currencies/std',
-    'scale-info/std'
+    'scale-info/std',
 ]
 
 

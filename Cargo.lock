@@ -4797,6 +4797,8 @@ dependencies = [
  "auction-manager",
  "bc-primitives",
  "bit-country-primitives",
+ "currencies",
+ "frame-benchmarking",
  "frame-executive",
  "frame-support",
  "frame-system",
@@ -4807,6 +4809,7 @@ dependencies = [
  "pallet-balances",
  "pallet-continuum",
  "pallet-estate",
+ "pallet-metaverse",
  "pallet-nft",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -5332,6 +5335,7 @@ version = "2.0.0-rc6"
 dependencies = [
  "bc-primitives",
  "bit-country-primitives",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "orml-currencies",
@@ -5457,6 +5461,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-nft",
+ "orml-tokens",
  "orml-traits",
  "pallet-balances",
  "pallet-timestamp",
@@ -10890,7 +10895,7 @@ version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f559b464de2e2bdabcac6a210d12e9b5a5973c251e102c44c585c71d51bd78e"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "rand 0.8.4",
  "static_assertions",
 ]

@@ -45,187 +45,188 @@ use sp_std::marker::PhantomData;
 
 /// Weight functions needed for estate.
 pub trait WeightInfo {
-	fn set_max_bounds() -> Weight;
-	fn mint_land() -> Weight;
-	fn mint_lands() -> Weight;
-	fn transfer_land() -> Weight;
-	fn mint_estate() -> Weight;
-	fn create_estate() -> Weight;
-	fn transfer_estate() -> Weight;
-	fn issue_undeployed_land_blocks() -> Weight;
-	fn freeze_undeployed_land_blocks() -> Weight;
-	fn unfreeze_undeployed_land_blocks() -> Weight;
-	fn burn_undeployed_land_blocks() -> Weight;
-	fn approve_undeployed_land_blocks() -> Weight;
-	fn unapprove_undeployed_land_blocks() -> Weight;
-	fn transfer_undeployed_land_blocks() -> Weight;
-	fn deploy_land_block() -> Weight;
-	fn active_issue_undeploy_land_block() -> Weight;
+    fn set_max_bounds() -> Weight;
+    fn mint_land() -> Weight;
+    fn mint_lands() -> Weight;
+    fn transfer_land() -> Weight;
+    fn mint_estate() -> Weight;
+    fn create_estate() -> Weight;
+    fn transfer_estate() -> Weight;
+    fn issue_undeployed_land_blocks() -> Weight;
+    fn freeze_undeployed_land_blocks() -> Weight;
+    fn unfreeze_undeployed_land_blocks() -> Weight;
+    fn burn_undeployed_land_blocks() -> Weight;
+    fn approve_undeployed_land_blocks() -> Weight;
+    fn unapprove_undeployed_land_blocks() -> Weight;
+    fn transfer_undeployed_land_blocks() -> Weight;
+    fn deploy_land_block() -> Weight;
+    fn active_issue_undeploy_land_block() -> Weight;
 }
 
-/// Weights for estate using the Acala node and recommended hardware.
+/// Weights for estate using the collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
+
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
-	fn set_max_bounds() -> Weight {
-		(29_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn mint_land() -> Weight {
-		(57_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
-	}
-	fn mint_lands() -> Weight {
-		(76_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
-	}
-	fn transfer_land() -> Weight {
-		(51_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn mint_estate() -> Weight {
-		(73_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))
-	}
-	fn create_estate() -> Weight {
-		(95_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(5 as Weight))
-			.saturating_add(T::DbWeight::get().writes(6 as Weight))
-	}
-	fn transfer_estate() -> Weight {
-		(49_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
-	}
-	fn issue_undeployed_land_blocks() -> Weight {
-		(598_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(42 as Weight))
-	}
-	fn freeze_undeployed_land_blocks() -> Weight {
-		(39_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn unfreeze_undeployed_land_blocks() -> Weight {
-		(38_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn burn_undeployed_land_blocks() -> Weight {
-		(52_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
-	}
-	fn approve_undeployed_land_blocks() -> Weight {
-		(40_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn unapprove_undeployed_land_blocks() -> Weight {
-		(39_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
-	fn transfer_undeployed_land_blocks() -> Weight {
-		(50_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
-	}
-	fn deploy_land_block() -> Weight {
-		(93_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))
-	}
-	fn active_issue_undeploy_land_block() -> Weight {
-		(53_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}
+    fn set_max_bounds() -> Weight {
+        (29_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn mint_land() -> Weight {
+        (57_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(3 as Weight))
+            .saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+    fn mint_lands() -> Weight {
+        (76_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn transfer_land() -> Weight {
+        (51_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn mint_estate() -> Weight {
+        (73_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(5 as Weight))
+    }
+    fn create_estate() -> Weight {
+        (95_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(5 as Weight))
+            .saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
+    fn transfer_estate() -> Weight {
+        (49_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+    fn issue_undeployed_land_blocks() -> Weight {
+        (598_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(42 as Weight))
+    }
+    fn freeze_undeployed_land_blocks() -> Weight {
+        (39_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn unfreeze_undeployed_land_blocks() -> Weight {
+        (38_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn burn_undeployed_land_blocks() -> Weight {
+        (52_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(2 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn approve_undeployed_land_blocks() -> Weight {
+        (40_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn unapprove_undeployed_land_blocks() -> Weight {
+        (39_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn transfer_undeployed_land_blocks() -> Weight {
+        (50_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(1 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn deploy_land_block() -> Weight {
+        (93_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(6 as Weight))
+            .saturating_add(T::DbWeight::get().writes(5 as Weight))
+    }
+    fn active_issue_undeploy_land_block() -> Weight {
+        (53_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
-	fn set_max_bounds() -> Weight {
-		(29_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn mint_land() -> Weight {
-		(57_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-	}
-	fn mint_lands() -> Weight {
-		(76_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
-	}
-	fn transfer_land() -> Weight {
-		(51_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn mint_estate() -> Weight {
-		(73_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
-	}
-	fn create_estate() -> Weight {
-		(95_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(6 as Weight))
-	}
-	fn transfer_estate() -> Weight {
-		(49_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
-	}
-	fn issue_undeployed_land_blocks() -> Weight {
-		(598_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(42 as Weight))
-	}
-	fn freeze_undeployed_land_blocks() -> Weight {
-		(39_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn unfreeze_undeployed_land_blocks() -> Weight {
-		(38_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn burn_undeployed_land_blocks() -> Weight {
-		(52_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(2 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
-	}
-	fn approve_undeployed_land_blocks() -> Weight {
-		(40_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn unapprove_undeployed_land_blocks() -> Weight {
-		(39_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
-	fn transfer_undeployed_land_blocks() -> Weight {
-		(50_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
-	}
-	fn deploy_land_block() -> Weight {
-		(93_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(5 as Weight))
-	}
-	fn active_issue_undeploy_land_block() -> Weight {
-		(53_000_000 as Weight)
-			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
-			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
-	}
+    fn set_max_bounds() -> Weight {
+        (29_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn mint_land() -> Weight {
+        (57_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(3 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+    fn mint_lands() -> Weight {
+        (76_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(4 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn transfer_land() -> Weight {
+        (51_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn mint_estate() -> Weight {
+        (73_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(4 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(5 as Weight))
+    }
+    fn create_estate() -> Weight {
+        (95_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(5 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn transfer_estate() -> Weight {
+        (49_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+    fn issue_undeployed_land_blocks() -> Weight {
+        (598_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(42 as Weight))
+    }
+    fn freeze_undeployed_land_blocks() -> Weight {
+        (39_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn unfreeze_undeployed_land_blocks() -> Weight {
+        (38_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn burn_undeployed_land_blocks() -> Weight {
+        (52_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(2 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn approve_undeployed_land_blocks() -> Weight {
+        (40_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn unapprove_undeployed_land_blocks() -> Weight {
+        (39_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn transfer_undeployed_land_blocks() -> Weight {
+        (50_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(1 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn deploy_land_block() -> Weight {
+        (93_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(6 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(5 as Weight))
+    }
+    fn active_issue_undeploy_land_block() -> Weight {
+        (53_000_000 as Weight)
+            .saturating_add(RocksDbWeight::get().reads(4 as Weight))
+            .saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
 }

@@ -1,3 +1,23 @@
+// This file is part of Bit.Country.
+
+// The multi-metaverse governance module is inspired by frame democracy of how to store hash
+// and preimages. Ref: https://github.com/paritytech/substrate/tree/master/frame/democracy
+
+// Copyright (C) 2020-2021 Bit.Country.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
@@ -316,7 +336,7 @@ pub mod pallet {
 			proposal: ProposalId,
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
-			let _from = T::MetaverseCouncil::ensure_origin(origin)?;
+			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			let mut proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
@@ -627,6 +647,24 @@ impl<T: Config> Pallet<T> {
 		match r {
 			ReferendumInfo::Ongoing(s) => Ok(s),
 			_ => Err(Error::<T>::ReferendumIsOver.into()),
+		}
+	}
+
+	fn find_referendum_result(threshold: Option<VoteThreshold>, tally: Tally) -> Result<bool, DispatchError> {
+		if tally.turnout == 0 {
+			return Ok(false);
+		}
+
+		match threshold {
+			Some(ref threshold_type) => match threshold_type {
+				VoteThreshold::StandardQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.72),
+				VoteThreshold::TwoThirdsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6666),
+				VoteThreshold::ThreeFifthsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6),
+				VoteThreshold::ReinforcedQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.55),
+				VoteThreshold::RelativeMajority => Ok(tally.ayes > tally.nays),
+			},
+			// If no threshold is selected, the proposal will pass with relative majority
+			None => Ok(tally.ayes > tally.nays),
 		}
 	}
 

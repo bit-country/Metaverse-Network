@@ -3,26 +3,20 @@
 use super::*;
 use crate as swap;
 use currencies::BasicCurrencyAdapter;
-use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
+use frame_support::pallet_prelude::GenesisBuild;
 use frame_support::traits::Nothing;
-use frame_support::{
-	construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
-};
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_support::{construct_runtime, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, CurrencyId};
+use primitives::Amount;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
 }
 
 pub type AccountId = u128;
-pub type AuctionId = u64;
 pub type Balance = u128;
-pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;

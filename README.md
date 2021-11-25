@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="http://uat.bit.country/blackteal.png" width="130">
+  <img src="https://github.com/bit-country/Metaverse-Network/blob/master/node/res/bm-logo.png?raw=true" width="200">
 </p>
 
 <p align="center">  
@@ -10,7 +10,6 @@
 <h1>[Bit.Country] Metaverse.Network</h1>
 
 ## Start your own metaverse. An Ethereum-compatible Network for Metaverses & Games
-
 
 [![Substrate version](https://img.shields.io/badge/Substrate-3.0.0-brightgreen?logo=Parity%20Substrate)](https://substrate.dev/)
 [![Twitter URL](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2Fbitdotcountry)](https://twitter.com/bitdotcountry)
@@ -33,7 +32,8 @@ Development Note: It is still a WIP.
 
 Metaverse Network is an EVM-enabled blockchain network for user-created metaverses and games.
 
-Everyone can start their own metaverse for their people with the 3D world, NFTs, play-to-earn & build communities to earn, and takes community engagement to a new dimension on web3.0.
+Everyone can start their own metaverse for their people with the 3D world, NFTs, play-to-earn & build communities to
+earn, and takes community engagement to a new dimension on web3.0.
 
 # 2. Build
 
