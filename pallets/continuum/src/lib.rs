@@ -19,20 +19,36 @@
 //!
 //! ## Overview
 //!
+//! Metaverse network is a multi-metaverse protocol so individual metaverse need to be connected and
+//! located in the map. The map called Continuum on mainnet and Pioneer on canary network.
+//!
+//! Continuum Slot Protocol will determine the location of the metaverse by going through auction
+//! and buy spot process. The slot will go through the auction process, highest bid before end time
+//! will secure the slot unless the allow buy now feature is enabled, the slot will secure with
+//! fixed price.
+//!
 //! The core module of Continuum Spot protocol. Continuum Spot engine is responsible for handling
 //! slot registration, slot expression of interest, slot auction and good neighborhood voting
 //! protocol.
+//!
+//! Continuum Spot Auction Process (rotate every x block):
+//! - Slot Registration (Express of Interest) - metaverse owner can register for their favourite
+//!   slot
+//! - Highest registered slot will move to Auction slots.
+//! - The Auction slot will move to Good neighborhood protocol to start voting by neighbor of the
+//!   spot
+//! - Simple majority negative voting applied - the bidder who has more than 51% vote nay will be
+//!   rejected
+//! - The auction will start on pallet_auction.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
-use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{continuum::Continuum, Balance, BlockNumber, CurrencyId, ItemId, MetaverseId, SpotId};
+use frame_system::{ensure_root, ensure_signed};
+use primitives::{continuum::Continuum, ItemId, MetaverseId, SpotId};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	DispatchError, RuntimeDebug,
@@ -43,7 +59,6 @@ use sp_std::vec::Vec;
 use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use bc_primitives::MetaverseTrait;
 use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
-use sp_arithmetic::Perbill;
 
 #[cfg(feature = "std")]
 use frame_support::traits::GenesisBuild;
@@ -93,7 +108,6 @@ pub struct AuctionSlot<BlockNumber, AccountId> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use crate::Event::NewMaxBoundSet;
 	use frame_support::traits::ExistenceRequirement;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::OriginFor;
@@ -339,7 +353,7 @@ pub mod pallet {
 			let continuum_price_spot = SpotPrice::<T>::get();
 
 			let continuum_treasury = Self::account_id();
-			//Define how many NUUM for continuum spot - default 1 NUUM - need to change to variable
+
 			ensure!(
 				T::Currency::free_balance(&sender) > continuum_price_spot,
 				Error::<T>::InsufficientFund
@@ -385,25 +399,25 @@ pub mod pallet {
 
 			let spot_id = Self::check_spot_ownership(maybe_spot_id, coordinate)?;
 
-			/// Get current active session
+			// Get current active session
 			let current_active_session_id = CurrentIndex::<T>::get();
 
 			if EOISlots::<T>::contains_key(current_active_session_id) {
-				/// Mutate current active EOI Slot session
+				// Mutate current active EOI Slot session
 				EOISlots::<T>::try_mutate(current_active_session_id, |spot_eoi| -> DispatchResult {
-					/// Check if the interested Spot exists
+					// Check if the interested Spot exists
 					let interested_spot_index: Option<usize> = spot_eoi.iter().position(|x| x.spot_id == spot_id);
 					match interested_spot_index {
-						/// Already got participants
+						// Already got participants
 						Some(index) => {
-							/// Works on existing eoi index
+							// Works on existing eoi index
 							let interested_spot = spot_eoi.get_mut(index).ok_or("No Spot EOI exist")?;
 
 							interested_spot.participants.push(sender.clone());
 						}
-						/// No participants - add one
+						// No participants - add one
 						None => {
-							/// No spot found - first one in EOI
+							// No spot found - first one in EOI
 							let mut new_list: Vec<T::AccountId> = Vec::new();
 							new_list.push(sender.clone());
 
@@ -417,7 +431,7 @@ pub mod pallet {
 					Ok(())
 				})?;
 			} else {
-				/// Never get to this logic but it's safe to handle it nicely.
+				// Never get to this logic but it's safe to handle it nicely.
 				let mut eoi_slots: Vec<SpotEOI<T::AccountId>> = Vec::new();
 				eoi_slots.push(SpotEOI {
 					spot_id,
@@ -431,16 +445,17 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		/// Council set maximum bound on continuum map
+		// Council set maximum bound on continuum map
 		pub fn set_max_bounds(origin: OriginFor<T>, new_bound: (i32, i32)) -> DispatchResultWithPostInfo {
-			/// Only execute by governance
+			// Only execute by governance
 			ensure_root(origin)?;
 			MaxBound::<T>::set(new_bound.clone());
 			Self::deposit_event(Event::NewMaxBoundSet(new_bound));
 			Ok(().into())
 		}
+
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		/// Council set how many auction can run per period
+		// Council set how many auction can run per period
 		pub fn set_new_auction_rate(origin: OriginFor<T>, new_rate: u8) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			MaxDesiredAuctionSlot::<T>::set(new_rate.clone());
@@ -474,7 +489,7 @@ impl<T: Config> Pallet<T> {
 		T::ContinuumTreasury::get().into_account()
 	}
 	//noinspection ALL
-	/// Started auction slot and referendum
+	// Started auction slot and referendum
 	fn rotate_auction_slots(now: T::BlockNumber) -> DispatchResult {
 		// Get current active session
 		let current_active_session_id = CurrentIndex::<T>::get();
@@ -524,7 +539,7 @@ impl<T: Config> Pallet<T> {
 				let banned_list: Vec<T::AccountId> = referendum_info
 					.tallies
 					.into_iter()
-					.filter(|mut t| Self::check_approved(t) == true)
+					.filter(|t| Self::check_approved(t) == true)
 					.map(|tally| tally.who)
 					.collect();
 
@@ -546,8 +561,8 @@ impl<T: Config> Pallet<T> {
 					treasury,
 					Default::default(),
 					now,
-					ListingLevel::Global,
-				);
+					ListingLevel::NetworkSpot(recent_slot.participants),
+				)?;
 				Self::deposit_event(Event::FinalizedVote(referendum_info.spot_id))
 			}
 		}
@@ -616,7 +631,7 @@ impl<T: Config> Pallet<T> {
 			.take(desired_slots as usize)
 			.collect::<Vec<SpotEOI<T::AccountId>>>();
 		// Add highest ranked EOI to New Active Auction slot
-		for (x, item) in highest_ranked_sorted.iter().enumerate() {
+		for (_x, item) in highest_ranked_sorted.iter().enumerate() {
 			let auction_slot = AuctionSlot {
 				spot_id: item.spot_id,
 				participants: item.participants.clone(),
@@ -644,22 +659,21 @@ impl<T: Config> Pallet<T> {
 
 		for (x, y) in neighbors {
 			// if spot exists
-			if let neighbor_spot_id = ContinuumCoordinates::<T>::get((x, y)) {
-				let continuum_spot = ContinuumSpots::<T>::get(neighbor_spot_id);
-				if T::MetaverseInfoSource::check_ownership(&who, &continuum_spot.metaverse_id) {
-					is_neighbour = true;
-					break;
-				}
+			let neighbor_spot_id = ContinuumCoordinates::<T>::get((x, y));
+			let continuum_spot = ContinuumSpots::<T>::get(neighbor_spot_id);
+			if T::MetaverseInfoSource::check_ownership(&who, &continuum_spot.metaverse_id) {
+				is_neighbour = true;
+				break;
 			}
 		}
 
 		ensure!(is_neighbour, Error::<T>::NoPermission);
 
-		VotingOf::<T>::try_mutate(who, |mut voting| -> DispatchResult {
+		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
 			let votes = &mut voting.votes;
 			match votes.binary_search_by_key(&spot_id, |i| i.0) {
 				// Already voted
-				Ok(i) => {}
+				Ok(_i) => {}
 				Err(i) => {
 					// Haven't vote for this spot id
 					// Add votes under user
@@ -672,8 +686,6 @@ impl<T: Config> Pallet<T> {
 						// Existing vote
 						if tally.who == who.who {
 							tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?
-						} else {
-							//Create new vote
 						}
 					}
 				}
