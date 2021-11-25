@@ -650,23 +650,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn find_referendum_result(threshold: Option<VoteThreshold>, tally: Tally) -> Result<bool, DispatchError> {
-		if tally.turnout == 0 {
-			return Ok(false);
-		}
-
-		match threshold {
-			Some(ref threshold_type) => match threshold_type {
-				VoteThreshold::StandardQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.72),
-				VoteThreshold::TwoThirdsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6666),
-				VoteThreshold::ThreeFifthsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6),
-				VoteThreshold::ReinforcedQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.55),
-				VoteThreshold::RelativeMajority => Ok(tally.ayes > tally.nays),
-			},
-			// If no threshold is selected, the proposal will pass with relative majority
-			None => Ok(tally.ayes > tally.nays),
-		}
-	}
+	
 
 	fn finalize_vote(
 		referendum_id: ReferendumId,
