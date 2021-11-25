@@ -1,20 +1,13 @@
 #[cfg(test)]
 use super::*;
-use mock::BlockNumber;
-use mock::{Event, *};
+use mock::*;
 use primitives::{Balance, FungibleTokenId};
 
 use orml_nft::Pallet as NftModule;
-use sp_std::vec::Vec;
 
 use frame_support::{assert_noop, assert_ok};
 use orml_traits::MultiCurrency;
 use sp_runtime::traits::BadOrigin;
-use sp_runtime::AccountId32;
-
-fn free_balance(who: &AccountId) -> Balance {
-	<Runtime as Config>::Currency::free_balance(who)
-}
 
 fn free_bit_balance(who: &AccountId) -> Balance {
 	<Runtime as Config>::MultiCurrency::free_balance(mining_resource_id(), &who)
@@ -123,15 +116,6 @@ fn create_class_should_work() {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 		));
-
-		let class_data: NftClassData<Balance, BlockNumber> = NftClassData {
-			deposit: 2,
-			metadata: vec![1],
-			token_type: TokenType::Transferable,
-			collection_type: CollectionType::Collectable,
-			total_supply: Default::default(),
-			initial_supply: Default::default(),
-		};
 
 		assert_eq!(Nft::get_class_collection(0), 0);
 		assert_eq!(Nft::all_nft_collection_count(), 1);
@@ -244,7 +228,6 @@ fn mint_asset_should_fail() {
 fn mint_exceed_max_batch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		let invalid_owner = Origin::signed(BOB);
 		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -430,7 +413,6 @@ fn do_check_nft_ownership_should_work() {
 
 #[test]
 fn do_check_nft_ownership_should_fail() {
-	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
 			Nft::check_nft_ownership(&ALICE, &TOKEN_ID),

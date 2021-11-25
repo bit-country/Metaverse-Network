@@ -17,16 +17,12 @@
 
 // Helper methods to compute the issuance rate for undeployed land.
 use crate::pallet::{Config, Pallet};
-use crate::{AllLandUnitsCount, MintingRateConfig, TotalUndeployedLandUnit};
+use crate::{AllLandUnitsCount, TotalUndeployedLandUnit};
 use codec::{Decode, Encode};
-use frame_support::traits::Currency;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::PerThing;
 use sp_runtime::{Perbill, RuntimeDebug};
-use substrate_fixed::transcendental::pow as floatpow;
-use substrate_fixed::types::{I32F32, I64F64};
 
 const SECONDS_PER_YEAR: u32 = 31557600;
 const SECONDS_PER_BLOCK: u32 = 12;
@@ -37,6 +33,7 @@ fn rounds_per_year<T: Config>() -> u32 {
 	BLOCKS_PER_YEAR / blocks_per_round
 }
 
+#[warn(dead_code)]
 fn get_annual_max_issuance<T: Config>(max_supply: u64, annual_percentage: u64) -> u64 {
 	let total_land_unit_circulating = <AllLandUnitsCount<T>>::get();
 	let total_undeployed_land_unit_circulating = <TotalUndeployedLandUnit<T>>::get();
@@ -46,28 +43,28 @@ fn get_annual_max_issuance<T: Config>(max_supply: u64, annual_percentage: u64) -
 
 /// Compute round issuance range from round inflation range and current total issuance
 pub fn round_issuance_range<T: Config>(config: MintingRateInfo) -> Range<u64> {
-	/// Get total round per year
+	// Get total round per year
 	let total_round_per_year = rounds_per_year::<T>();
 
-	/// Get total land unit circulating
+	// Get total land unit circulating
 	let total_land_unit_circulating = <AllLandUnitsCount<T>>::get();
 
-	/// Get total undeployed land unit circulating
+	// Get total undeployed land unit circulating
 	let total_undeployed_land_unit_circulating = <TotalUndeployedLandUnit<T>>::get();
 
-	/// Total circulating
+	// Total circulating
 	let circulating = total_land_unit_circulating.saturating_add(total_undeployed_land_unit_circulating);
 
-	/// Total annual minting percent
+	// Total annual minting percent
 	let annual_percentage = Perbill::from_percent(config.annual as u32).deconstruct();
 
-	/// Round percentage minting rate
+	// Round percentage minting rate
 	let round_percentage = annual_percentage.checked_div(total_round_per_year).unwrap();
 
-	/// Convert to percentage
+	// Convert to percentage
 	let round_percentage_per_bill = Perbill::from_parts(round_percentage);
 
-	/// Return range - could implement more cases in the future.
+	// Return range - could implement more cases in the future.
 	Range {
 		min: round_percentage_per_bill * circulating,
 		ideal: round_percentage_per_bill * circulating,

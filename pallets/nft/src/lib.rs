@@ -40,7 +40,7 @@ use serde::{Deserialize, Serialize};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 use frame_system::pallet_prelude::*;
 use orml_nft::Pallet as NftModule;
-use primitives::{AssetId, Balance, BlockNumber, GroupCollectionId};
+use primitives::{AssetId, BlockNumber, GroupCollectionId};
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
@@ -64,7 +64,6 @@ pub use pallet::*;
 
 pub mod weights;
 
-use primitives::nft::NftTrait;
 pub use weights::WeightInfo;
 
 pub type NftMetadata = Vec<u8>;
@@ -543,7 +542,7 @@ pub mod pallet {
 						let asset_info =
 							NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
 						ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
-						Self::handle_asset_ownership_transfer(&owner, &item.0, item.1);
+						Self::handle_asset_ownership_transfer(&owner, &item.0, item.1)?;
 						NftModule::<T>::transfer(&owner, &item.0, (asset.0, asset.1))?;
 						Self::deposit_event(Event::<T>::TransferedNft(
 							owner.clone(),
@@ -588,7 +587,7 @@ pub mod pallet {
 					let supporters = supporters.as_mut().ok_or(Error::<T>::EmptySupporters)?;
 					supporters.push(sender);
 					Ok(())
-				});
+				})?;
 			} else {
 				let mut new_supporters = Vec::new();
 				new_supporters.push(sender);
@@ -622,12 +621,12 @@ pub mod pallet {
 				CollectionType::Executable(block_number) => {
 					let now = <frame_system::Pallet<T>>::block_number();
 					ensure!(now >= block_number, Error::<T>::TimecapsuleExecutedTooEarly);
-					NftModule::<T>::burn(&sender, (asset))?;
+					NftModule::<T>::burn(&sender, asset)?;
 
 					Self::deposit_event(Event::<T>::ExecutedNft(asset_id));
 				}
 				_ => {
-					NftModule::<T>::burn(&sender, (asset))?;
+					NftModule::<T>::burn(&sender, asset)?;
 				}
 			}
 			Assets::<T>::remove(asset_id);
@@ -669,9 +668,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn handle_asset_ownership_transfer(sender: &T::AccountId, to: &T::AccountId, asset_id: AssetId) -> DispatchResult {
-		//Remove asset from sender
+		// Remove asset from sender
 		AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
-			/// Check if the asset_id already in the owner
+			// Check if the asset_id already in the owner
 			let asset_index = asset_ids.iter().position(|x| *x == asset_id).unwrap();
 			asset_ids.remove(asset_index);
 
@@ -714,32 +713,7 @@ impl<T: Config> Pallet<T> {
 				let check_ownership = Self::check_nft_ownership(&sender, &asset_id)?;
 				ensure!(check_ownership, Error::<T>::NoPermission);
 
-				Self::handle_asset_ownership_transfer(&sender, &to, asset_id);
-
-				NftModule::<T>::transfer(&sender, &to, asset.clone())?;
-				Ok(asset.1)
-			}
-			TokenType::BoundToAddress => Err(Error::<T>::NonTransferable.into()),
-		}
-	}
-
-	pub fn do_transfer_with_loyalty(
-		sender: &T::AccountId,
-		to: &T::AccountId,
-		asset_id: AssetId,
-		royalty_fee: BalanceOf<T>,
-	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
-		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
-
-		let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
-		let data = class_info.data;
-
-		match data.token_type {
-			TokenType::Transferable => {
-				let check_ownership = Self::check_nft_ownership(&sender, &asset_id)?;
-				ensure!(check_ownership, Error::<T>::NoPermission);
-
-				Self::handle_asset_ownership_transfer(&sender, &to, asset_id);
+				Self::handle_asset_ownership_transfer(&sender, &to, asset_id)?;
 
 				NftModule::<T>::transfer(&sender, &to, asset.clone())?;
 				Ok(asset.1)

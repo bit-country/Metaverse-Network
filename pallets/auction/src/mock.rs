@@ -3,15 +3,15 @@
 use super::*;
 use crate as auction;
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
-use orml_traits::{parameter_type_with_key, MultiCurrencyExtended};
-use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, CurrencyId, EstateId, FungibleTokenId};
+use orml_traits::parameter_type_with_key;
+use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
-use frame_support::traits::{Contains, Nothing};
+use frame_support::traits::Nothing;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -81,7 +81,7 @@ impl pallet_balances::Config for Runtime {
 pub struct Continuumm;
 
 impl Continuum<u128> for Continuumm {
-	fn transfer_spot(spot_id: u64, from: &AccountId, to: &(AccountId, u64)) -> Result<u64, DispatchError> {
+	fn transfer_spot(_spot_id: u64, _from: &AccountId, _to: &(AccountId, u64)) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 }
@@ -89,14 +89,14 @@ impl Continuum<u128> for Continuumm {
 pub struct EstateHandler;
 
 impl Estate<u128> for EstateHandler {
-	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId) -> Result<EstateId, DispatchError> {
+	fn transfer_estate(_estate_id: EstateId, _from: &AccountId, _to: &AccountId) -> Result<EstateId, DispatchError> {
 		Ok(1)
 	}
 
 	fn transfer_landunit(
-		coordinate: (i32, i32),
-		from: &AccountId,
-		to: &(AccountId, MetaverseId),
+		_coordinate: (i32, i32),
+		_from: &AccountId,
+		_to: &(AccountId, MetaverseId),
 	) -> Result<(i32, i32), DispatchError> {
 		Ok((0, 0))
 	}
@@ -109,7 +109,7 @@ impl Estate<u128> for EstateHandler {
 		}
 	}
 
-	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+	fn check_landunit(_metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		match coordinate {
 			LAND_UNIT_EXIST | LAND_UNIT_EXIST_1 => Ok(true),
 			LAND_UNIT_NOT_EXIST => Ok(false),
@@ -130,12 +130,12 @@ pub struct Handler;
 
 impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 	fn on_new_bid(
-		now: BlockNumber,
-		id: AuctionId,
+		_now: BlockNumber,
+		_id: AuctionId,
 		new_bid: (AccountId, Balance),
-		last_bid: Option<(AccountId, Balance)>,
+		_last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
-		//Test with Alice bid
+		// Test with Alice bid
 		if new_bid.0 == ALICE {
 			OnNewBidResult {
 				accept_bid: true,
@@ -177,9 +177,12 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AuctionTimeToClose: u64 = 100; //Test auction end within 100 blocks
-	pub const MinimumAuctionDuration: u64 = 10; //Test auction end within 100 blocks
-	pub const RoyaltyFee: u16 = 100; // Test 1% loyalty fee
+	// Test auction end within 100 blocks
+	pub const AuctionTimeToClose: u64 = 100;
+	// Test auction end within 100 blocks
+	pub const MinimumAuctionDuration: u64 = 10;
+	// Test 1% loyalty fee
+	pub const RoyaltyFee: u16 = 100;
 }
 
 pub struct MetaverseInfoSource {}
@@ -193,15 +196,15 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 	}
 
-	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
+	fn get_metaverse(_metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
 		None
 	}
 
-	fn get_metaverse_token(metaverse_id: u64) -> Option<FungibleTokenId> {
+	fn get_metaverse_token(_metaverse_id: u64) -> Option<FungibleTokenId> {
 		None
 	}
 
-	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
+	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
 }
@@ -343,68 +346,68 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
 		None
 	}
 
-	fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
 	fn new_auction(
-		recipient: u128,
-		initial_amount: Self::Balance,
-		start: u64,
-		end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_end: Option<u64>,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
 	fn create_auction(
-		auction_type: AuctionType,
-		item_id: ItemId,
-		end: Option<u64>,
-		recipient: u128,
-		initial_amount: Self::Balance,
-		start: u64,
-		listing_level: ListingLevel,
+		_auction_type: AuctionType,
+		_item_id: ItemId,
+		_end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_listing_level: ListingLevel<AccountId>,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
-	fn remove_auction(id: u64, item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId) {}
 
 	fn auction_bid_handler(
 		_now: u64,
-		id: u64,
-		new_bid: (u128, Self::Balance),
-		last_bid: Option<(u128, Self::Balance)>,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn local_auction_bid_handler(
 		_now: u64,
-		id: u64,
-		new_bid: (u128, Self::Balance),
-		last_bid: Option<(u128, Self::Balance)>,
-		social_currency_id: FungibleTokenId,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
+		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn collect_royalty_fee(
-		high_bid_price: &Self::Balance,
-		high_bidder: &u128,
-		asset_id: &u64,
-		social_currency_id: FungibleTokenId,
+		_high_bid_price: &Self::Balance,
+		_high_bidder: &u128,
+		_asset_id: &u64,
+		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
-		todo!()
+		Ok(())
 	}
 }
 
 impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(item_id: ItemId) -> bool {
+	fn check_item_in_auction(_item_id: ItemId) -> bool {
 		return false;
 	}
 }
