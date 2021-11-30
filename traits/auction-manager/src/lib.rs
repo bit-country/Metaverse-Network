@@ -13,6 +13,7 @@ use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, RuntimeDebug};
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
+	vec::Vec,
 };
 
 use primitives::{AssetId, AuctionId, FungibleTokenId, ItemId, MetaverseId};
