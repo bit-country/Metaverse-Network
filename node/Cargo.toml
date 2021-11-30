@@ -1,5 +1,5 @@
 [package]
-authors = ['Metaverse Developers <https://mvp.studio>']
+authors = ['Metaverse Developers <https://metaverse.network>']
 build = 'build.rs'
 description = 'A decentralised world powered by economy.'
 edition = '2018'
@@ -7,7 +7,7 @@ homepage = 'https://bit.country'
 license = 'Unlicense'
 name = 'metaverse-node'
 repository = 'https://github.com/bit-country/Bit-Country-Blockchain/'
-version = '0.0.1'
+version = '0.0.2'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']
