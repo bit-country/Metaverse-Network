@@ -185,9 +185,9 @@ fn pioneer_genesis(
         aura: Default::default(),
         aura_ext: Default::default(),
         parachain_system: Default::default(),
-        council: Default::default(),
-        tokens: Default::default(),
-        vesting: Default::default(),
+//        council: Default::default(),
+//        tokens: Default::default(),
+//        vesting: Default::default(),
 //		continuum: ContinuumConfig {
 //			initial_active_session: Default::default(),
 //			initial_auction_rate: 5,
