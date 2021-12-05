@@ -559,7 +559,7 @@ pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
 >;
 
 parameter_types! {
-	pub const MinVestedTransfer: Balance = 100 * DOLLARS;
+	pub const MinVestedTransfer: Balance = 0;
 }
 
 impl pallet_vesting::Config for Runtime {
