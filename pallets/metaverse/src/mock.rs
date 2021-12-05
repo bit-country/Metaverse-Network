@@ -2,18 +2,12 @@
 
 use super::*;
 use crate as metaverse;
-use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
-use frame_support::{
-	construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
-};
-use frame_system::{EnsureRoot, EnsureSignedBy};
-use primitives::{Amount, CurrencyId};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 pub type AccountId = u128;
-pub type AuctionId = u64;
 pub type Balance = u64;
 pub type MetaverseId = u64;
 pub type BlockNumber = u64;
@@ -22,7 +16,6 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const METAVERSE_ID: MetaverseId = 0;
 pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
-pub const NUUM: CurrencyId = 0;
 
 // Configure a mock runtime to test the pallet.
 
@@ -95,7 +88,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 }
 
-pub type MetaverseModule = Module<Runtime>;
+pub type MetaverseModule = Pallet<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -139,7 +132,7 @@ impl ExtBuilder {
 }
 
 pub fn last_event() -> Event {
-	frame_system::Module::<Runtime>::events()
+	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
 		.event

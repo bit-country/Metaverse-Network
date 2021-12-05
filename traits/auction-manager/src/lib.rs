@@ -13,6 +13,7 @@ use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, RuntimeDebug};
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
+	vec::Vec,
 };
 
 use primitives::{AssetId, AuctionId, FungibleTokenId, ItemId, MetaverseId};
@@ -32,9 +33,11 @@ pub enum AuctionType {
 	BuyNow,
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum ListingLevel {
+pub enum ListingLevel<AccountId> {
+	// Accepted bidders
+	NetworkSpot(Vec<AccountId>),
 	Global,
 	Local(MetaverseId),
 }
@@ -51,7 +54,7 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	pub start_time: BlockNumber,
 	pub end_time: BlockNumber,
 	pub auction_type: AuctionType,
-	pub listing_level: ListingLevel,
+	pub listing_level: ListingLevel<AccountId>,
 	pub currency_id: FungibleTokenId,
 }
 
@@ -92,7 +95,7 @@ pub trait Auction<AccountId, BlockNumber> {
 		recipient: AccountId,
 		initial_amount: Self::Balance,
 		start: BlockNumber,
-		listing_level: ListingLevel,
+		listing_level: ListingLevel<AccountId>,
 	) -> Result<AuctionId, DispatchError>;
 
 	/// Remove auction by `id`

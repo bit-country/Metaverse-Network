@@ -3,10 +3,11 @@
 use super::*;
 
 use crate as nft;
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionType, Change, ListingLevel, OnNewBidResult};
+use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
 use frame_support::traits::Nothing;
-use frame_support::{construct_runtime, parameter_types, traits::EnsureOrigin, weights::Weight};
-use orml_traits::{parameter_type_with_key, MultiCurrencyExtended};
+use frame_support::{construct_runtime, parameter_types};
+use frame_system::{EnsureRoot, EnsureSignedBy};
+use orml_traits::parameter_type_with_key;
 use primitives::{Amount, CurrencyId, FungibleTokenId, ItemId};
 use sp_core::H256;
 use sp_runtime::testing::Header;
@@ -23,9 +24,7 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
-pub const CLASS_ID_NOT_EXIST: <Runtime as orml_nft::Config>::ClassId = 1;
 pub const TOKEN_ID: <Runtime as orml_nft::Config>::TokenId = 0;
-pub const TOKEN_ID_NOT_EXIST: <Runtime as orml_nft::Config>::TokenId = 1;
 pub const COLLECTION_ID: u64 = 0;
 
 impl frame_system::Config for Runtime {
@@ -85,42 +84,42 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
 		None
 	}
 
-	fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
 	fn new_auction(
-		recipient: u128,
-		initial_amount: Self::Balance,
-		start: u64,
-		end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_end: Option<u64>,
 	) -> Result<u64, DispatchError> {
 		Ok(0)
 	}
 
 	fn create_auction(
-		auction_type: AuctionType,
-		item_id: ItemId,
-		end: Option<u64>,
-		recipient: u128,
-		initial_amount: Self::Balance,
-		start: u64,
-		listing_level: ListingLevel,
+		_auction_type: AuctionType,
+		_item_id: ItemId,
+		_end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_listing_level: ListingLevel<AccountId>,
 	) -> Result<u64, DispatchError> {
 		Ok(0)
 	}
 
-	fn remove_auction(id: u64, item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId) {}
 
 	fn auction_bid_handler(
 		_now: u64,
-		id: u64,
-		new_bid: (u128, Self::Balance),
-		last_bid: Option<(u128, Self::Balance)>,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
 	) -> DispatchResult {
 		Ok(())
 	}
@@ -142,17 +141,17 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn collect_royalty_fee(
-		high_bid_price: &Self::Balance,
-		high_bidder: &u128,
-		asset_id: &u64,
-		social_currency_id: FungibleTokenId,
+		_high_bid_price: &Self::Balance,
+		_high_bidder: &u128,
+		_asset_id: &u64,
+		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
 	}
 }
 
 impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(item_id: ItemId) -> bool {
+	fn check_item_in_auction(_item_id: ItemId) -> bool {
 		return false;
 	}
 }
@@ -195,6 +194,20 @@ impl currencies::Config for Runtime {
 	type GetNativeCurrencyId = NativeCurrencyId;
 }
 
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = 128;
+}
+impl pallet_scheduler::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = ();
+	type WeightInfo = ();
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type CreateClassDeposit = CreateClassDeposit;
@@ -209,6 +222,9 @@ impl Config for Runtime {
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
+	type PalletsOrigin = OriginCaller;
+	type TimeCapsuleDispatch = Call;
+	type TimeCapsuleScheduler = Scheduler;
 }
 
 parameter_types! {
@@ -235,6 +251,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{ Pallet, Storage, Call, Event<T>},
 		Nft: nft::{Pallet, Call, Event<T>},
@@ -270,7 +287,7 @@ impl ExtBuilder {
 }
 
 pub fn last_event() -> Event {
-	frame_system::Module::<Runtime>::events()
+	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
 		.event

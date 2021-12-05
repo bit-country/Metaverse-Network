@@ -17,15 +17,14 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use auction_manager::{Auction, CheckAuctionItemHandler};
 use bc_primitives::*;
 use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use primitives::{
-	estate::Estate, Balance, EstateId, ItemId, LandId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
-	UndeployedLandBlockType,
+	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
 use scale_info::TypeInfo;
@@ -62,8 +61,8 @@ pub use pallet::*;
 pub mod pallet {
 	use super::*;
 	use crate::rate::{round_issuance_range, MintingRateInfo};
-	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
-	use primitives::{AccountId, UndeployedLandBlockId};
+	use frame_support::traits::{Currency, ReservableCurrency};
+	use primitives::UndeployedLandBlockId;
 	use sp_runtime::traits::Zero;
 
 	#[pallet::pallet]
@@ -196,7 +195,9 @@ pub mod pallet {
 	#[cfg(feature = "std")]
 	impl Default for GenesisConfig {
 		fn default() -> Self {
-			Self { ..Default::default() }
+			GenesisConfig {
+				minting_rate_config: Default::default(),
+			}
 		}
 	}
 
@@ -398,7 +399,7 @@ pub mod pallet {
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates);
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates)?;
 			Ok(().into())
 		}
 
@@ -424,7 +425,7 @@ pub mod pallet {
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone());
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone())?;
 
 			Ok(().into())
 		}
@@ -950,7 +951,7 @@ impl<T: Config> Pallet<T> {
 				ensure!(land_unit_owner.is_some(), Error::<T>::NoPermission);
 
 				// Check ownership
-				let owner = land_unit_owner.as_ref().map(|(t)| t);
+				let owner = land_unit_owner.as_ref().map(|t| t);
 				ensure!(owner == Some(&from), Error::<T>::NoPermission);
 
 				ensure!(from != to, Error::<T>::AlreadyOwnTheLandUnit);
@@ -1014,16 +1015,15 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 
 		let land_in_metaverse = LandUnits::<T>::iter_prefix(metaverse_id)
 			.filter(|(_, owner)| owner == who)
-			.collect::<Vec<(_)>>();
+			.collect::<Vec<_>>();
 
 		for land_unit in land_in_metaverse {
 			let land = land_unit.0;
 			total_land_units.push(land);
 		}
 
-		let estate_ids_by_owner: Vec<EstateId> = EstateOwner::<T>::iter_prefix(who)
-			.map(|res| res.0)
-			.collect::<Vec<(_)>>();
+		let estate_ids_by_owner: Vec<EstateId> =
+			EstateOwner::<T>::iter_prefix(who).map(|res| res.0).collect::<Vec<_>>();
 
 		for estate_id in estate_ids_by_owner {
 			let mut coordinates = Estates::<T>::get(&estate_id).unwrap();

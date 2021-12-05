@@ -316,7 +316,7 @@ pub mod pallet {
 			proposal: ProposalId,
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
-			let from = T::MetaverseCouncil::ensure_origin(origin)?;
+			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			let mut proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
@@ -341,10 +341,10 @@ pub mod pallet {
 				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &status.metaverse),
 				Error::<T>::AccountIsNotMetaverseMember
 			);
-			<VotingOf<T>>::try_mutate(from.clone(), |mut voting_record| -> DispatchResultWithPostInfo {
+			<VotingOf<T>>::try_mutate(from.clone(), |voting_record| -> DispatchResultWithPostInfo {
 				let votes = &mut voting_record.votes;
 				match votes.binary_search_by_key(&referendum, |i| i.0) {
-					Ok(i) => Err(Error::<T>::AccountAlreadyVoted.into()),
+					Ok(_i) => Err(Error::<T>::AccountAlreadyVoted.into()),
 					Err(i) => {
 						let vote = Vote {
 							aye: vote_aye,
@@ -390,7 +390,7 @@ pub mod pallet {
 						Self::deposit_event(Event::VoteRemoved(from, referendum));
 						Ok(().into())
 					}
-					Err(i) => Err(Error::<T>::AccountHasNotVoted.into()),
+					Err(_i) => Err(Error::<T>::AccountHasNotVoted.into()),
 				}
 			})
 		}
@@ -604,7 +604,6 @@ impl<T: Config> Pallet<T> {
 				VoteThreshold::ThreeFifthsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6),
 				VoteThreshold::ReinforcedQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.55),
 				VoteThreshold::RelativeMajority => Ok(tally.ayes > tally.nays),
-				_ => Err(Error::<T>::InvalidReferendumOutcome.into()),
 			},
 			// If no threshold is selected, the proposal will pass with relative majority
 			None => Ok(tally.ayes > tally.nays),

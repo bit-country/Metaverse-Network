@@ -49,12 +49,6 @@ use sp_std::{
 	marker, result,
 };
 
-// #[cfg(test)]
-// mod mock;
-//
-// #[cfg(test)]
-// mod tests;
-
 pub use pallet::*;
 
 type BalanceOf<T> =

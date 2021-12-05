@@ -19,7 +19,7 @@
 
 use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event, *};
+use mock::*;
 
 #[test]
 fn add_liquidity_should_fail_with_invalid_pair() {

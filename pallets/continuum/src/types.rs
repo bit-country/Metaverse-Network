@@ -85,7 +85,6 @@ impl<AccountId> ContinuumSpotTally<AccountId> {
 				self.nays = self.nays.checked_add(One::one())?;
 				self.who = vote.who;
 			}
-			_ => {}
 		}
 		Some(())
 	}
@@ -93,11 +92,10 @@ impl<AccountId> ContinuumSpotTally<AccountId> {
 	/// Remove an account's vote from the tally.
 	pub fn remove(&mut self, vote: AccountVote<AccountId>) -> Option<()> {
 		match vote {
-			AccountVote::Standard { vote } => {
+			AccountVote::Standard { vote: _ } => {
 				self.turnout = self.turnout.checked_add(Zero::zero())?;
 				self.nays = self.nays.checked_add(Zero::zero())?;
 			}
-			_ => {}
 		}
 		Some(())
 	}
@@ -123,12 +121,10 @@ impl<AccountId> ContinuumSpotTally<AccountId> {
 	}
 
 	pub fn result(&mut self) -> Option<bool> {
-		/// let total_nay =
-		/// self.nays.checked_div(&self.turnout).unwrap().saturating_mul(Into::<Balance>::
-		/// into(100)); let approve_threshold = 49 as u128;
-		//
-		/// Some(total_nay > Into::<Balance>::into(approve_threshold))
-		Some(true)
+		let total_nay = self.nays.checked_div(self.turnout).unwrap().saturating_mul(100);
+		let approve_threshold = 49;
+
+		Some(total_nay > approve_threshold)
 	}
 }
 

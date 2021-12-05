@@ -422,6 +422,9 @@ impl nft::Config for Runtime {
 	type MaxMetadata = MaxNftMetadata;
 	type MiningResourceId = MiningResourceCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
+	type PalletsOrigin = OriginCaller;
+	type TimeCapsuleDispatch = Call;
+	type TimeCapsuleScheduler = Scheduler;
 }
 
 parameter_types! {
@@ -472,10 +475,10 @@ impl estate::Config for Runtime {
 }
 
 parameter_types! {
-	pub const AuctionTimeToClose: u32 = 100800; // Default 100800 Blocks
-	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
-	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
-	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
+	pub const AuctionTimeToClose: u32 = 100; // Default 100800 Blocks
+	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
+	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
+	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
 	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
 }
 
@@ -597,7 +600,6 @@ impl pallet_session::Config for Runtime {
 	type SessionManager = Staking;
 	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
-	type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
 	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
 

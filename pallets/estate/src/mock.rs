@@ -2,32 +2,17 @@
 
 use super::*;
 use crate as estate;
-// use crate::{Config, Module};
-use bc_primitives::*;
-// use bit_country_primitives::*;
-// // use sp_std::vec::Vec;
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, CheckAuctionItemHandler, OnNewBidResult};
-use frame_support::ensure;
-use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
-use frame_support::{
-	construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight, PalletId,
-};
-use frame_system::{ensure_root, ensure_signed};
-use frame_system::{EnsureRoot, EnsureSignedBy};
-use primitives::{Amount, CurrencyId, FungibleTokenId};
-use sp_core::{
-	u32_trait::{_1, _2, _3, _4, _5},
-	H256,
-};
+use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_system::EnsureSignedBy;
+use primitives::FungibleTokenId;
+use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
 
 pub type AccountId = u128;
-pub type AuctionId = u64;
 pub type Balance = u128;
 pub type MetaverseId = u64;
 pub type BlockNumber = u64;
-pub type LandId = u64;
 pub type EstateId = u64;
 
 pub const ALICE: AccountId = 1;
@@ -120,15 +105,15 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 	}
 
-	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
+	fn get_metaverse(_metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
 		None
 	}
 
-	fn get_metaverse_token(metaverse_id: u64) -> Option<FungibleTokenId> {
+	fn get_metaverse_token(_metaverse_id: u64) -> Option<FungibleTokenId> {
 		None
 	}
 
-	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
+	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
 }
@@ -138,63 +123,63 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
 		None
 	}
 
-	fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
 	fn new_auction(
-		recipient: u128,
-		initial_amount: Self::Balance,
-		start: u64,
-		end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_end: Option<u64>,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
 	fn create_auction(
-		auction_type: AuctionType,
-		item_id: ItemId,
-		end: Option<u64>,
-		recipient: u128,
-		initial_amount: Self::Balance,
-		start: u64,
-		listing_level: ListingLevel,
+		_auction_type: AuctionType,
+		_item_id: ItemId,
+		_end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_listing_level: ListingLevel<AccountId>,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
-	fn remove_auction(id: u64, item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId) {}
 
 	fn auction_bid_handler(
 		_now: u64,
-		id: u64,
-		new_bid: (u128, Self::Balance),
-		last_bid: Option<(u128, Self::Balance)>,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn local_auction_bid_handler(
 		_now: u64,
-		id: u64,
-		new_bid: (u128, Self::Balance),
-		last_bid: Option<(u128, Self::Balance)>,
-		social_currency_id: FungibleTokenId,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
+		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn collect_royalty_fee(
-		high_bid_price: &Self::Balance,
-		high_bidder: &u128,
-		asset_id: &u64,
-		social_currency_id: FungibleTokenId,
+		_high_bid_price: &Self::Balance,
+		_high_bidder: &u128,
+		_asset_id: &u64,
+		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
-		todo!()
+		Ok(())
 	}
 }
 
@@ -274,7 +259,7 @@ impl ExtBuilder {
 }
 
 pub fn last_event() -> Event {
-	frame_system::Module::<Runtime>::events()
+	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
 		.event

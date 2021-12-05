@@ -357,7 +357,6 @@ fn buy_now_continuum_should_work() {
 		));
 
 		let continuum_spot_1 = ContinuumModule::get_continuum_spot(0);
-		let continuum_spot_2 = ContinuumModule::get_continuum_spot(1);
 
 		assert_eq!(ContinuumModule::get_continuum_position((0, 1)), 0);
 		assert_eq!(ContinuumModule::get_continuum_position((0, 2)), 1);

@@ -30,10 +30,8 @@ use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, Re
 use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
-use pallet_continuum::Pallet as ContinuumModule;
-use pallet_estate::Module as EstateModule;
-use pallet_nft::Module as NFTModule;
-use primitives::{continuum::Continuum, estate::Estate, AssetId, AuctionId, ItemId};
+use pallet_nft::Pallet as NFTModule;
+use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
 use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
@@ -64,7 +62,6 @@ pub mod pallet {
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
-	use primitives::FungibleTokenId::FungibleToken;
 	use primitives::{AssetId, Balance, FungibleTokenId, MetaverseId};
 
 	#[pallet::pallet]
@@ -138,7 +135,7 @@ pub mod pallet {
 		NewAuctionItem(
 			AuctionId,
 			T::AccountId,
-			ListingLevel,
+			ListingLevel<T::AccountId>,
 			BalanceOf<T>,
 			BalanceOf<T>,
 			T::BlockNumber,
@@ -314,6 +311,7 @@ pub mod pallet {
 
 			let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
 			let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
+
 			ensure!(
 				auction_item.auction_type == AuctionType::BuyNow,
 				Error::<T>::InvalidAuctionType
@@ -520,9 +518,14 @@ pub mod pallet {
 			item_id: ItemId,
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
-			listing_level: ListingLevel,
+			listing_level: ListingLevel<T::AccountId>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
+
+			ensure!(
+				matches!(item_id, ItemId::NFT(_)),
+				Error::<T>::NoPermissionToCreateAuction
+			);
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
@@ -540,12 +543,12 @@ pub mod pallet {
 				from.clone(),
 				value.clone(),
 				start_time,
-				listing_level,
+				listing_level.clone(),
 			)?;
 			Self::deposit_event(Event::NewAuctionItem(
 				auction_id,
 				from,
-				listing_level,
+				listing_level.clone(),
 				value,
 				value,
 				end_time,
@@ -560,9 +563,13 @@ pub mod pallet {
 			item_id: ItemId,
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
-			listing_level: ListingLevel,
+			listing_level: ListingLevel<T::AccountId>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
+			ensure!(
+				matches!(item_id, ItemId::NFT(_)),
+				Error::<T>::NoPermissionToCreateAuction
+			);
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
@@ -579,12 +586,12 @@ pub mod pallet {
 				from.clone(),
 				value.clone(),
 				start_time,
-				listing_level,
+				listing_level.clone(),
 			)?;
 			Self::deposit_event(Event::NewAuctionItem(
 				auction_id,
 				from,
-				listing_level,
+				listing_level.clone(),
 				value,
 				value,
 				end_time,
@@ -866,12 +873,13 @@ pub mod pallet {
 			recipient: T::AccountId,
 			initial_amount: Self::Balance,
 			_start: T::BlockNumber,
-			listing_level: ListingLevel,
+			listing_level: ListingLevel<T::AccountId>,
 		) -> Result<AuctionId, DispatchError> {
 			ensure!(
 				Self::items_in_auction(item_id) == None,
 				Error::<T>::ItemAlreadyInAuction
 			);
+
 			match item_id {
 				ItemId::NFT(asset_id) => {
 					// Get asset detail
@@ -909,7 +917,7 @@ pub mod pallet {
 						start_time,
 						end_time,
 						auction_type,
-						listing_level,
+						listing_level: listing_level.clone(),
 						currency_id,
 					};
 
@@ -928,7 +936,7 @@ pub mod pallet {
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
 					let start_time = <system::Pallet<T>>::block_number();
-					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
+					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get();
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
 					let new_auction_item = AuctionItem {
@@ -939,7 +947,7 @@ pub mod pallet {
 						start_time,
 						end_time,
 						auction_type,
-						listing_level: ListingLevel::Global,
+						listing_level: listing_level.clone(),
 						currency_id: FungibleTokenId::NativeToken(0),
 					};
 
@@ -963,7 +971,7 @@ pub mod pallet {
 						Error::<T>::EstateDoesNotExist
 					);
 
-					let start_time = <system::Module<T>>::block_number();
+					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
@@ -999,7 +1007,7 @@ pub mod pallet {
 						Error::<T>::LandUnitDoesNotExist
 					);
 
-					let start_time = <system::Module<T>>::block_number();
+					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
@@ -1053,6 +1061,13 @@ pub mod pallet {
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
 				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+
+				match auction_item.clone().listing_level {
+					ListingLevel::NetworkSpot(allowed_bidders) => {
+						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidNotAccepted);
+					}
+					_ => {}
+				}
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
