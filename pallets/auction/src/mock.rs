@@ -12,6 +12,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup};
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
 use frame_support::traits::Nothing;
+use frame_system::EnsureRoot;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -237,6 +238,20 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
+	pub MaximumSchedulerWeight: Weight = 128;
+}
+impl pallet_scheduler::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = ();
+	type WeightInfo = ();
+}
+
+parameter_types! {
 	pub CreateClassDeposit: Balance = 2;
 	pub CreateAssetDeposit: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
@@ -260,6 +275,9 @@ impl pallet_nft::Config for Runtime {
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
+	type PalletsOrigin = OriginCaller;
+	type TimeCapsuleDispatch = Call;
+	type TimeCapsuleScheduler = Scheduler;
 }
 
 parameter_types! {
@@ -286,6 +304,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},

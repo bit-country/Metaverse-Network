@@ -31,7 +31,10 @@ use frame_support::{
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
-	traits::{Currency, ExistenceRequirement, Get, ReservableCurrency},
+	traits::{
+		schedule::{DispatchTime, Named as ScheduleNamed},
+		Currency, ExistenceRequirement, Get, LockIdentifier, ReservableCurrency,
+	},
 	PalletId,
 };
 #[cfg(feature = "std")]
@@ -40,11 +43,11 @@ use serde::{Deserialize, Serialize};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 use frame_system::pallet_prelude::*;
 use orml_nft::Pallet as NftModule;
-use primitives::{AssetId, BlockNumber, GroupCollectionId};
+use primitives::{AssetId, BlockNumber, GroupCollectionId, Hash};
 use scale_info::TypeInfo;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
-	traits::{AccountIdConversion, One},
+	traits::{AccountIdConversion, Dispatchable, One},
 	DispatchError,
 };
 use sp_std::vec::Vec;
@@ -67,6 +70,8 @@ pub mod weights;
 pub use weights::WeightInfo;
 
 pub type NftMetadata = Vec<u8>;
+
+const TIMECAPSULE_ID: LockIdentifier = *b"bctimeca";
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct NftGroupCollectionData {
@@ -120,12 +125,12 @@ impl Default for TokenType {
 	}
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CollectionType<BlockNumber> {
 	Collectable,
 	Wearable,
-	Executable(BlockNumber),
+	Executable(BlockNumber, Vec<u8>),
 }
 
 // Collection extension for fast retrieval
@@ -139,7 +144,7 @@ impl CollectionType<BlockNumber> {
 
 	pub fn is_executable(&self) -> bool {
 		match *self {
-			CollectionType::Executable(_) => true,
+			CollectionType::Executable(_, ..) => true,
 			_ => false,
 		}
 	}
@@ -210,6 +215,10 @@ pub mod pallet {
 		type MiningResourceId: Get<FungibleTokenId>;
 		/// Incentive for promotion
 		type PromotionIncentive: Get<BalanceOf<Self>>;
+		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
+		type TimeCapsuleDispatch: Parameter + Dispatchable<Origin = Self::Origin> + From<Call<Self>>;
+		/// The Scheduler that executes on chain logic
+		type TimeCapsuleScheduler: ScheduleNamed<Self::BlockNumber, Self::TimeCapsuleDispatch, Self::PalletsOrigin>;
 	}
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -260,6 +269,10 @@ pub mod pallet {
 	#[pallet::getter(fn get_promotion_enabled)]
 	pub(super) type PromotionEnabled<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn get_timecapsule_execution)]
+	pub(super) type TimeCapsuleExecution<T: Config> = StorageMap<_, Identity, ClassIdOf<T>, T::Hash, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -276,6 +289,15 @@ pub mod pallet {
 			u32,
 			TokenIdOf<T>,
 		),
+		/// Emit event when new time capsule minted
+		NewTimeCapsuleMinted(
+			AssetId,
+			<T as frame_system::Config>::AccountId,
+			ClassIdOf<T>,
+			TokenIdOf<T>,
+			T::BlockNumber,
+			Vec<u8>,
+		),
 		/// Successfully transfer NFT
 		TransferedNft(
 			<T as frame_system::Config>::AccountId,
@@ -290,6 +312,8 @@ pub mod pallet {
 		BurnedNft(AssetId),
 		/// Executed NFT
 		ExecutedNft(AssetId),
+		/// Scheduled time capsule
+		ScheduledTimeCapsule(AssetId, Vec<u8>, T::BlockNumber),
 	}
 
 	#[pallet::error]
@@ -332,6 +356,12 @@ pub mod pallet {
 		InsufficientBalance,
 		/// Time-capsule executed too early
 		TimecapsuleExecutedTooEarly,
+		/// Only Time capsule collection
+		OnlyForTimeCapsuleCollectionType,
+		/// Timecapsule execution logic is invalid
+		TimeCapsuleExecutionLogicIsInvalid,
+		/// Timecapsule scheduled error
+		ErrorWhenScheduledTimeCapsule,
 	}
 
 	#[pallet::call]
@@ -503,6 +533,97 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		#[pallet::weight(< T as Config >::WeightInfo::mint(1))]
+		pub fn create_timecapsule(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+			name: NftMetadata,
+			description: NftMetadata,
+			metadata: NftMetadata,
+			encoded: Vec<u8>,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+
+			ensure!(
+				name.len() as u32 <= T::MaxMetadata::get()
+					&& description.len() as u32 <= T::MaxMetadata::get()
+					&& metadata.len() as u32 <= T::MaxMetadata::get(),
+				Error::<T>::ExceedMaximumMetadataLength
+			);
+
+			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+			ensure!(sender == class_info.owner, Error::<T>::NoPermission);
+
+			let class_data = class_info.data;
+
+			ensure!(
+				matches!(class_data.collection_type, CollectionType::Executable(_, _)),
+				Error::<T>::OnlyForTimeCapsuleCollectionType
+			);
+			let deposit = T::CreateAssetDeposit::get();
+			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
+			let total_deposit = deposit * Into::<BalanceOf<T>>::into(2 as u32);
+
+			<T as Config>::Currency::transfer(&sender, &class_fund, total_deposit, ExistenceRequirement::KeepAlive)?;
+			<T as Config>::Currency::reserve(&class_fund, total_deposit)?;
+
+			let new_nft_data = NftAssetData {
+				deposit,
+				name,
+				description,
+				properties: metadata.clone(),
+			};
+
+			let asset_id = NextAssetId::<T>::try_mutate(|id| -> Result<AssetId, DispatchError> {
+				let current_id = *id;
+				*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableAssetId)?;
+
+				Ok(current_id)
+			})?;
+
+			if AssetsByOwner::<T>::contains_key(&sender) {
+				AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
+					// Check if the asset_id already in the owner
+					ensure!(
+						!asset_ids.iter().any(|i| asset_id == *i),
+						Error::<T>::AssetIdAlreadyExist
+					);
+					asset_ids.push(asset_id);
+					Ok(())
+				})?;
+			} else {
+				let mut assets = Vec::<AssetId>::new();
+				assets.push(asset_id);
+				AssetsByOwner::<T>::insert(&sender, assets)
+			}
+
+			let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
+			Assets::<T>::insert(asset_id, (class_id, token_id));
+
+			// If promotion enabled
+			if Self::is_promotion_enabled() {
+				T::MultiCurrency::deposit(T::MiningResourceId::get(), &sender, T::PromotionIncentive::get())?;
+			};
+
+			match class_data.collection_type {
+				CollectionType::Executable(block_number, encoded) => {
+					Self::schedule_timecapsule(asset_id, sender.clone(), block_number, encoded.clone());
+
+					Self::deposit_event(Event::<T>::NewTimeCapsuleMinted(
+						asset_id.clone(),
+						sender,
+						class_id,
+						token_id,
+						block_number,
+						encoded,
+					));
+				}
+				_ => {}
+			};
+
+			Ok(().into())
+		}
+
 		#[pallet::weight(T::WeightInfo::transfer())]
 		pub fn transfer(origin: OriginFor<T>, to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
@@ -618,12 +739,18 @@ pub mod pallet {
 			let data = class_info.data;
 
 			match data.collection_type {
-				CollectionType::Executable(block_number) => {
+				CollectionType::Executable(block_number, encoded) => {
 					let now = <frame_system::Pallet<T>>::block_number();
 					ensure!(now >= block_number, Error::<T>::TimecapsuleExecutedTooEarly);
 					NftModule::<T>::burn(&sender, asset)?;
-
-					Self::deposit_event(Event::<T>::ExecutedNft(asset_id));
+					if let Ok(execution_hash) = T::TimeCapsuleDispatch::decode(&mut &encoded[..]) {
+						let result = execution_hash
+							.dispatch(frame_system::RawOrigin::Signed(sender).into())
+							.map(|_| ())
+							.map_err(|e| e.error);
+					} else {
+						return Err(Error::<T>::TimeCapsuleExecutionLogicIsInvalid.into());
+					}
 				}
 				_ => {
 					NftModule::<T>::burn(&sender, asset)?;
@@ -731,5 +858,29 @@ impl<T: Config> Pallet<T> {
 		}
 
 		return Ok(false);
+	}
+
+	fn schedule_timecapsule(
+		asset_id: AssetId,
+		sender: T::AccountId,
+		block_number: T::BlockNumber,
+		encoded: Vec<u8>,
+	) -> DispatchResult {
+		if T::TimeCapsuleScheduler::schedule_named(
+			(TIMECAPSULE_ID, block_number, encoded.clone()).encode(),
+			DispatchTime::At(block_number),
+			None,
+			255,
+			frame_system::RawOrigin::Signed(sender).into(),
+			Call::burn { asset_id: asset_id }.into(),
+		)
+		.is_err()
+		{
+			frame_support::print("LOGIC ERROR: scheduled time capsule failed");
+			Err(Error::<T>::ErrorWhenScheduledTimeCapsule.into())
+		} else {
+			Self::deposit_event(Event::<T>::ScheduledTimeCapsule(asset_id, encoded, block_number));
+			Ok(())
+		}
 	}
 }

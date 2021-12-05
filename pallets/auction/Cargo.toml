@@ -46,6 +46,7 @@ pallet-metaverse = { default-features = false, package = 'pallet-metaverse', pat
 auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
 bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
+pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false, optional = true }
 
 [features]
 runtime-benchmarks = [
@@ -72,5 +73,6 @@ std = [
     'pallet-continuum/std',
     'pallet-estate/std',
     'bc-primitives/std',
-    'frame-benchmarking/std'
+    'frame-benchmarking/std',
+    'pallet-scheduler/std',
 ]

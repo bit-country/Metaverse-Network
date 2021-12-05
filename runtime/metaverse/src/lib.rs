@@ -416,6 +416,9 @@ impl nft::Config for Runtime {
 	type MaxMetadata = MaxNftMetadata;
 	type MiningResourceId = MiningResourceCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
+	type PalletsOrigin = OriginCaller;
+	type TimeCapsuleDispatch = Call;
+	type TimeCapsuleScheduler = Scheduler;
 }
 
 parameter_types! {
