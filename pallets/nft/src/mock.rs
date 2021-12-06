@@ -292,3 +292,7 @@ pub fn last_event() -> Event {
 		.expect("Event expected")
 		.event
 }
+
+pub fn transfer_balance_encode(to: AccountId, value: u128) -> Vec<u8> {
+	Call::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
+}

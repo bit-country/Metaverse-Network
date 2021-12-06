@@ -13,6 +13,10 @@ fn free_bit_balance(who: &AccountId) -> Balance {
 	<Runtime as Config>::MultiCurrency::free_balance(mining_resource_id(), &who)
 }
 
+fn free_native_balance(who: AccountId) -> Balance {
+	<Runtime as Config>::Currency::free_balance(who)
+}
+
 fn reserved_balance(who: &AccountId) -> Balance {
 	<Runtime as Config>::Currency::reserved_balance(who)
 }
@@ -44,9 +48,15 @@ fn init_executable_nft(owner: Origin) {
 		vec![1],
 		COLLECTION_ID,
 		TokenType::Transferable,
-		CollectionType::Executable(5, vec![1]),
+		CollectionType::Executable(5, transfer_balance_encode(BOB, 100)),
 	));
-	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], vec![1], vec![1], 1));
+	assert_ok!(Nft::create_timecapsule(
+		owner.clone(),
+		CLASS_ID,
+		vec![1],
+		vec![1],
+		vec![1]
+	));
 }
 
 #[test]
@@ -275,17 +285,21 @@ fn burn_executable_nft_should_fail_when_execute_too_early() {
 	})
 }
 
-//#[test]
-//fn burn_executable_nft_should_work_when_time_is_up() {
-//    ExtBuilder::default().build().execute_with(|| {
-//        let origin = Origin::signed(ALICE);
-//        init_executable_nft(origin.clone());
-//        System::set_block_number(System::block_number() + 10);
-//        assert_ok!(Nft::burn(origin, 0));
-//        let event = mock::Event::Nft(crate::Event::BurnedNft(0));
-//        assert_eq!(last_event(), event);
-//    })
-//}
+#[test]
+fn burn_executable_nft_should_work_when_time_is_up() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_executable_nft(origin.clone());
+		// BOB balance has 0 fund
+		assert_eq!(free_native_balance(BOB), 0);
+		System::set_block_number(System::block_number() + 10);
+		assert_ok!(Nft::burn(origin, 0));
+		// BOB balance will be 100 after time capsule executed burn NFT (execution balance transfer logic)
+		assert_eq!(free_native_balance(BOB), 100);
+		let event = mock::Event::Nft(crate::Event::BurnedNft(0));
+		assert_eq!(last_event(), event);
+	})
+}
 
 #[test]
 fn transfer_batch_should_work() {

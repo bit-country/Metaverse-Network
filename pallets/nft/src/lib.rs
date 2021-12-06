@@ -82,13 +82,13 @@ pub struct NftGroupCollectionData {
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct NftClassData<Balance, BlockNumber> {
+pub struct NftClassData<Balance> {
 	// Minimum balance to create a collection of Asset
 	pub deposit: Balance,
 	// Metadata from ipfs
 	pub metadata: NftMetadata,
 	pub token_type: TokenType,
-	pub collection_type: CollectionType<BlockNumber>,
+	pub collection_type: CollectionType,
 	pub total_supply: u64,
 	pub initial_supply: u64,
 }
@@ -127,14 +127,14 @@ impl Default for TokenType {
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum CollectionType<BlockNumber> {
+pub enum CollectionType {
 	Collectable,
 	Wearable,
-	Executable(BlockNumber, Vec<u8>),
+	Executable(Vec<u8>),
 }
 
 // Collection extension for fast retrieval
-impl CollectionType<BlockNumber> {
+impl CollectionType {
 	pub fn is_collectable(&self) -> bool {
 		match *self {
 			CollectionType::Collectable => true,
@@ -144,7 +144,7 @@ impl CollectionType<BlockNumber> {
 
 	pub fn is_executable(&self) -> bool {
 		match *self {
-			CollectionType::Executable(_, ..) => true,
+			CollectionType::Executable(_) => true,
 			_ => false,
 		}
 	}
@@ -157,7 +157,7 @@ impl CollectionType<BlockNumber> {
 	}
 }
 
-impl Default for CollectionType<BlockNumber> {
+impl Default for CollectionType {
 	fn default() -> Self {
 		CollectionType::Collectable
 	}
@@ -175,10 +175,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config:
 		frame_system::Config
-		+ orml_nft::Config<
-			TokenData = NftAssetData<BalanceOf<Self>>,
-			ClassData = NftClassData<BalanceOf<Self>, <Self as frame_system::Config>::BlockNumber>,
-		>
+		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
 	{
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The minimum balance to create class
@@ -402,7 +399,7 @@ pub mod pallet {
 			metadata: NftMetadata,
 			collection_id: GroupCollectionId,
 			token_type: TokenType,
-			collection_type: CollectionType<T::BlockNumber>,
+			collection_type: CollectionType,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			ensure!(
@@ -539,15 +536,12 @@ pub mod pallet {
 			class_id: ClassIdOf<T>,
 			name: NftMetadata,
 			description: NftMetadata,
-			metadata: NftMetadata,
-			encoded: Vec<u8>,
+			at: T::BlockNumber,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
 			ensure!(
-				name.len() as u32 <= T::MaxMetadata::get()
-					&& description.len() as u32 <= T::MaxMetadata::get()
-					&& metadata.len() as u32 <= T::MaxMetadata::get(),
+				name.len() as u32 <= T::MaxMetadata::get() && description.len() as u32 <= T::MaxMetadata::get(),
 				Error::<T>::ExceedMaximumMetadataLength
 			);
 
@@ -557,7 +551,7 @@ pub mod pallet {
 			let class_data = class_info.data;
 
 			ensure!(
-				matches!(class_data.collection_type, CollectionType::Executable(_, _)),
+				matches!(class_data.collection_type, CollectionType::Executable(_)),
 				Error::<T>::OnlyForTimeCapsuleCollectionType
 			);
 			let deposit = T::CreateAssetDeposit::get();
@@ -571,7 +565,7 @@ pub mod pallet {
 				deposit,
 				name,
 				description,
-				properties: metadata.clone(),
+				properties: at.encode(),
 			};
 
 			let asset_id = NextAssetId::<T>::try_mutate(|id| -> Result<AssetId, DispatchError> {
@@ -597,7 +591,7 @@ pub mod pallet {
 				AssetsByOwner::<T>::insert(&sender, assets)
 			}
 
-			let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
+			let token_id = NftModule::<T>::mint(&sender, class_id, at.encode(), new_nft_data.clone())?;
 			Assets::<T>::insert(asset_id, (class_id, token_id));
 
 			// If promotion enabled
@@ -606,15 +600,15 @@ pub mod pallet {
 			};
 
 			match class_data.collection_type {
-				CollectionType::Executable(block_number, encoded) => {
-					Self::schedule_timecapsule(asset_id, sender.clone(), block_number, encoded.clone());
+				CollectionType::Executable(encoded) => {
+					Self::schedule_timecapsule(asset_id, sender.clone(), at.clone(), encoded.clone());
 
 					Self::deposit_event(Event::<T>::NewTimeCapsuleMinted(
 						asset_id.clone(),
 						sender,
 						class_id,
 						token_id,
-						block_number,
+						at,
 						encoded,
 					));
 				}
@@ -739,15 +733,22 @@ pub mod pallet {
 			let data = class_info.data;
 
 			match data.collection_type {
-				CollectionType::Executable(block_number, encoded) => {
-					let now = <frame_system::Pallet<T>>::block_number();
-					ensure!(now >= block_number, Error::<T>::TimecapsuleExecutedTooEarly);
-					NftModule::<T>::burn(&sender, asset)?;
-					if let Ok(execution_hash) = T::TimeCapsuleDispatch::decode(&mut &encoded[..]) {
-						let result = execution_hash
-							.dispatch(frame_system::RawOrigin::Signed(sender).into())
-							.map(|_| ())
-							.map_err(|e| e.error);
+				CollectionType::Executable(encoded) => {
+					let token_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+					let token_data = token_info.data;
+
+					if let Ok(block_number) = T::BlockNumber::decode(&mut &token_data.properties[..]) {
+						let now = <frame_system::Pallet<T>>::block_number();
+						ensure!(now >= block_number, Error::<T>::TimecapsuleExecutedTooEarly);
+						NftModule::<T>::burn(&sender, asset)?;
+						if let Ok(execution_hash) = T::TimeCapsuleDispatch::decode(&mut &encoded[..]) {
+							execution_hash
+								.dispatch(frame_system::RawOrigin::Signed(sender).into())
+								.map(|_| ())
+								.map_err(|e| e.error);
+						} else {
+							return Err(Error::<T>::TimeCapsuleExecutionLogicIsInvalid.into());
+						}
 					} else {
 						return Err(Error::<T>::TimeCapsuleExecutionLogicIsInvalid.into());
 					}
