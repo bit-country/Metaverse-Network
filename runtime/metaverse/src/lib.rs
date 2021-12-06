@@ -140,7 +140,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 102,
+	spec_version: 103,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -562,7 +562,7 @@ pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
 >;
 
 parameter_types! {
-	pub const MinVestedTransfer: Balance = 0;
+	pub const MinVestedTransfer: Balance = 10;
 }
 
 impl pallet_vesting::Config for Runtime {
