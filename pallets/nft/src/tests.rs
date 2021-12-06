@@ -48,15 +48,10 @@ fn init_executable_nft(owner: Origin) {
 		vec![1],
 		COLLECTION_ID,
 		TokenType::Transferable,
-		CollectionType::Executable(5, transfer_balance_encode(BOB, 100)),
+		CollectionType::Executable(transfer_balance_encode(BOB, 100)),
 	));
-	assert_ok!(Nft::create_timecapsule(
-		owner.clone(),
-		CLASS_ID,
-		vec![1],
-		vec![1],
-		vec![1]
-	));
+	// Create Time capsule NFT that execute on 5th block.
+	assert_ok!(Nft::create_timecapsule(owner.clone(), CLASS_ID, vec![1], vec![1], 5));
 }
 
 #[test]
