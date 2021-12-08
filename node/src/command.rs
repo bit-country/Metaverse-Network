@@ -40,7 +40,6 @@ fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_servic
 	Ok(match id {
 		"dev" => Box::new(chain_spec::metaverse::development_config()?),
 		"" | "local" => Box::new(chain_spec::metaverse::local_testnet_config()?),
-		#[cfg(feature = "with-metaverse-runtime")]
 		"metaverse" => Box::new(chain_spec::metaverse::development_config()?),
 		#[cfg(feature = "with-tewai-runtime")]
 		"tewai" => Box::new(chain_spec::tewai::tewai_testnet_config()?),
@@ -84,11 +83,7 @@ impl SubstrateCli for Cli {
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-		if (id.starts_with("pioneer")) {
-			polkadot_cli::Cli::from_iter([RelayChainCli::executable_name()].iter()).load_spec(id)
-		} else {
-			load_spec(id, 2096.into())
-		}
+		load_spec(id, 2096.into())
 	}
 
 	fn native_runtime_version(spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {

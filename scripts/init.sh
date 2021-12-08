@@ -5,9 +5,10 @@ set -e
 echo "*** Initializing WASM build environment"
 
 if [ -z $CI_PROJECT_NAME ]; then
-  rustup update nightly-2021-09-12
+  rustup default nightly && rustup update
+  rustup update nightly-2021-11-07
   rustup update stable
 fi
 
-rustup target add wasm32-unknown-unknown --toolchain nightly-2021-06-17
-rustup default nightly-2021-09-12
+rustup target add wasm32-unknown-unknown --toolchain nightly-2021-11-07
+rustup default nightly-2021-11-07

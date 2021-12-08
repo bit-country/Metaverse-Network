@@ -123,17 +123,21 @@ pub mod pallet {
 		/// New Slot Duration
 		/// How long the new auction slot will be released. If set to zero, no new auctions are
 		/// generated
+		#[pallet::constant]
 		type SessionDuration: Get<Self::BlockNumber>;
 		/// Auction Slot Chilling Duration
 		/// How long the participates in the New Auction Slots will get confirmed by neighbours
+		#[pallet::constant]
 		type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
 		/// Emergency shutdown origin which allow cancellation in an emergency
 		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
 		/// Auction Handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
 		/// Auction duration
+		#[pallet::constant]
 		type AuctionDuration: Get<Self::BlockNumber>;
 		/// Continuum Treasury
+		#[pallet::constant]
 		type ContinuumTreasury: Get<PalletId>;
 		/// Currency
 		type Currency: ReservableCurrency<Self::AccountId>

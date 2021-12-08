@@ -6,6 +6,7 @@ use crate as nft;
 use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, parameter_types};
+use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use primitives::{Amount, CurrencyId, FungibleTokenId, ItemId};
 use sp_core::H256;
@@ -193,6 +194,20 @@ impl currencies::Config for Runtime {
 	type GetNativeCurrencyId = NativeCurrencyId;
 }
 
+parameter_types! {
+	pub MaximumSchedulerWeight: Weight = 128;
+}
+impl pallet_scheduler::Config for Runtime {
+	type Event = Event;
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type MaxScheduledPerBlock = ();
+	type WeightInfo = ();
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type CreateClassDeposit = CreateClassDeposit;
@@ -207,6 +222,9 @@ impl Config for Runtime {
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
+	type PalletsOrigin = OriginCaller;
+	type TimeCapsuleDispatch = Call;
+	type TimeCapsuleScheduler = Scheduler;
 }
 
 parameter_types! {
@@ -217,7 +235,7 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
-	type ClassData = nft::NftClassData<Balance, BlockNumber>;
+	type ClassData = nft::NftClassData<Balance>;
 	type TokenData = nft::NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
@@ -233,6 +251,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{ Pallet, Storage, Call, Event<T>},
 		Nft: nft::{Pallet, Call, Event<T>},
@@ -272,4 +291,8 @@ pub fn last_event() -> Event {
 		.pop()
 		.expect("Event expected")
 		.event
+}
+
+pub fn transfer_balance_encode(to: AccountId, value: u128) -> Vec<u8> {
+	Call::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
 }
