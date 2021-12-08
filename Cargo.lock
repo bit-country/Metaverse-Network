@@ -6239,6 +6239,7 @@ dependencies = [
  "pallet-mining",
  "pallet-nft",
  "pallet-randomness-collective-flip",
+ "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
  "pallet-swap",
