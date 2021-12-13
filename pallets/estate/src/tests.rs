@@ -507,7 +507,7 @@ fn destroy_estate_should_work() {
 		);
 
 		// Destroy estate
-		assert_ok!(EstateModule::destroy_estate(
+		assert_ok!(EstateModule::dissolve_estate(
 			Origin::signed(BENEFICIARY_ID),
 			estate_id,
 			METAVERSE_ID,
@@ -518,7 +518,7 @@ fn destroy_estate_should_work() {
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), None);
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
-			0
+			2
 		);
 	});
 }
@@ -537,7 +537,7 @@ fn destroy_estate_should_reject_non_owner() {
 		));
 
 		assert_err!(
-			EstateModule::destroy_estate(Origin::signed(ALICE), 0, METAVERSE_ID),
+			EstateModule::dissolve_estate(Origin::signed(ALICE), 0, METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
 	});
@@ -557,7 +557,7 @@ fn update_estate_should_reject_non_owner() {
 		));
 
 		assert_err!(
-			EstateModule::destroy_estate(Origin::signed(ALICE), 0, METAVERSE_ID),
+			EstateModule::dissolve_estate(Origin::signed(ALICE), 0, METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
 	});

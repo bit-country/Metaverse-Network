@@ -141,8 +141,8 @@ benchmarks! {
 		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(vec![COORDINATE_IN_1]))
 	}
 
-	// destroy_estate
-	destroy_estate {
+	// dissolve_estate
+	dissolve_estate {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 

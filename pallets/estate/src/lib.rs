@@ -675,8 +675,8 @@ pub mod pallet {
 			)
 		}
 
-		#[pallet::weight(T::WeightInfo::destroy_estate())]
-		pub fn destroy_estate(
+		#[pallet::weight(T::WeightInfo::dissolve_estate())]
+		pub fn dissolve_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
 			metaverse_id: MetaverseId,
@@ -707,11 +707,15 @@ pub mod pallet {
 					.ok_or("Overflow adding new count to total estates")?;
 				AllEstatesCount::<T>::put(new_total_estates_count);
 
-				// Remove land units
+				// Remove land units - remove relationship between landunit and estate
 				for landUnit in landUnits.clone() {
 					LandUnits::<T>::remove(metaverse_id, landUnit);
 				}
-				Self::set_total_land_unit(landUnits.len() as u64, true);
+
+				// Mint land units - add relationship between landunit and owner
+				for coordinate in landUnits.clone() {
+					Self::mint_land_unit(metaverse_id, &who, coordinate, false)?;
+				}
 
 				Self::deposit_event(Event::<T>::EstateDestroyed(estate_id.clone(), who.clone()));
 
