@@ -141,6 +141,18 @@ benchmarks! {
 		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(vec![COORDINATE_IN_1]))
 	}
 
+	// destroy_estate
+	destroy_estate {
+		let caller: T::AccountId = whitelisted_caller();
+		let caller_lookup = T::Lookup::unlookup(caller.clone());
+
+		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
+		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+	}: _(RawOrigin::Signed(caller.clone()), 0, METAVERSE_ID)
+	verify {
+		assert_eq!(crate::Pallet::<T>::get_estates(0), None)
+	}
+
 	// create_estate
 	create_estate {
 		let caller: T::AccountId = whitelisted_caller();

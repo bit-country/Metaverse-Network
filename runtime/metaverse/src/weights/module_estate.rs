@@ -71,6 +71,11 @@ impl<T: frame_system::Config> estate::WeightInfo for WeightInfo<T> {
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
+    fn destroy_estate() -> Weight {
+        (21_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(4 as Weight))
+    }
     fn create_estate() -> Weight {
         (95_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(5 as Weight))

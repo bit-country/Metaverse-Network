@@ -243,6 +243,8 @@ pub mod pallet {
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
 		/// Owner Account Id, Approved Account Id, Undeployed Land Block Id
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		/// Owner Account Id, Estate Id
+		EstateDestroyed(EstateId, T::AccountId),
 		/// Undeployed Land Block Id
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
 		/// Undeployed Land Block Id
@@ -668,6 +670,49 @@ pub mod pallet {
 				},
 			)
 		}
+
+		#[pallet::weight(T::WeightInfo::destroy_estate())]
+		pub fn destroy_estate(
+			origin: OriginFor<T>,
+			estate_id: EstateId,
+			metaverse_id: MetaverseId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
+				Error::<T>::EstateAlreadyInAuction
+			);
+
+			let landUnits = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| {
+				//ensure there is record of the estate owner with estate id and account id
+				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
+
+				// Reset estate ownership
+				*estate_by_owner = None;
+
+				// Remove estate
+				Estates::<T>::remove(&estate_id);
+
+				// Update total estates
+				let total_estates_count = Self::all_estates_count();
+				let new_total_estates_count = total_estates_count
+					.checked_sub(One::one())
+					.ok_or("Overflow adding new count to total estates")?;
+				AllEstatesCount::<T>::put(new_total_estates_count);
+
+				// Remove land units
+				for landUnit in landUnits.clone() {
+					LandUnits::<T>::remove(metaverse_id, landUnit);
+				}
+
+				Self::deposit_event(Event::<T>::EstateDestroyed(estate_id.clone(), who.clone()));
+
+				Ok(().into())
+			})
+		}
 	}
 
 	#[pallet::hooks]
@@ -909,6 +954,7 @@ impl<T: Config> Pallet<T> {
 
 		Ok(undeployed_land_block_ids)
 	}
+
 	fn do_transfer_estate(
 		estate_id: EstateId,
 		from: &T::AccountId,

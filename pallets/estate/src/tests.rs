@@ -481,9 +481,11 @@ fn mint_estate_should_fail_for_minted_land() {
 }
 
 #[test]
-fn mint_estate_should_work() {
+fn destroy_estate_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+
+		// Mint estate
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -502,6 +504,41 @@ fn mint_estate_should_work() {
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
+		);
+
+		// Destroy estate
+		assert_ok!(EstateModule::destroy_estate(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			METAVERSE_ID,
+		));
+
+		assert_eq!(EstateModule::all_estates_count(), 0);
+		assert_eq!(EstateModule::get_estates(estate_id), None);
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), None);
+		assert_eq!(
+			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
+			0
+		);
+	});
+}
+
+#[test]
+fn destroy_estate_should_reject_non_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+
+		// Mint estate
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_err!(
+			EstateModule::destroy_estate(Origin::signed(ALICE), 0, METAVERSE_ID),
+			Error::<Runtime>::NoPermission
 		);
 	});
 }
