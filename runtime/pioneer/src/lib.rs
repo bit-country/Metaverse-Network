@@ -140,6 +140,14 @@ impl frame_support::traits::OnRuntimeUpgrade for OnRuntimeUpgrade {
 	}
 }
 
+//pub struct PalletMigrationUpgrade;
+//
+//impl frame_support::traits::OnRuntimeUpgrade for PalletMigrationUpgrade {
+//    fn on_runtime_upgrade() -> frame_support::weights::Weight {
+//        <pallet_vesting::Pallet<Runtime> as pallet_vesting::Store>::
+//    }
+//}
+
 /// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
 /// node's balance type.
 ///
@@ -742,35 +750,35 @@ parameter_types! {
 	pub PromotionIncentive: Balance = 1 * DOLLARS;
 }
 
-impl nft::Config for Runtime {
-	type Event = Event;
-	type CreateClassDeposit = CreateClassDeposit;
-	type CreateAssetDeposit = CreateAssetDeposit;
-	type Currency = Balances;
-	type MultiCurrency = Currencies;
-	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
-	type PalletId = NftPalletId;
-	type AuctionHandler = Auction;
-	type MaxBatchTransfer = MaxBatchTransfer;
-	type MaxBatchMinting = MaxBatchMinting;
-	type MaxMetadata = MaxNftMetadata;
-	type MiningResourceId = MiningResourceCurrencyId;
-	type PromotionIncentive = PromotionIncentive;
-}
-
-parameter_types! {
-	pub MaxClassMetadata: u32 = 1024;
-	pub MaxTokenMetadata: u32 = 1024;
-}
-
-impl orml_nft::Config for Runtime {
-	type ClassId = u32;
-	type TokenId = u64;
-	type ClassData = nft::NftClassData<Balance>;
-	type TokenData = nft::NftAssetData<Balance>;
-	type MaxClassMetadata = MaxClassMetadata;
-	type MaxTokenMetadata = MaxTokenMetadata;
-}
+//impl nft::Config for Runtime {
+//    type Event = Event;
+//    type CreateClassDeposit = CreateClassDeposit;
+//    type CreateAssetDeposit = CreateAssetDeposit;
+//    type Currency = Balances;
+//    type MultiCurrency = Currencies;
+//    type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+//    type PalletId = NftPalletId;
+//    type AuctionHandler = Auction;
+//    type MaxBatchTransfer = MaxBatchTransfer;
+//    type MaxBatchMinting = MaxBatchMinting;
+//    type MaxMetadata = MaxNftMetadata;
+//    type MiningResourceId = MiningResourceCurrencyId;
+//    type PromotionIncentive = PromotionIncentive;
+//}
+//
+//parameter_types! {
+//	pub MaxClassMetadata: u32 = 1024;
+//	pub MaxTokenMetadata: u32 = 1024;
+//}
+//
+//impl orml_nft::Config for Runtime {
+//    type ClassId = u32;
+//    type TokenId = u64;
+//    type ClassData = nft::NftClassData<Balance>;
+//    type TokenData = nft::NftAssetData<Balance>;
+//    type MaxClassMetadata = MaxClassMetadata;
+//    type MaxTokenMetadata = MaxTokenMetadata;
+//}
 
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
@@ -787,56 +795,56 @@ impl metaverse::Config for Runtime {
 	type WeightInfo = weights::module_metaverse::WeightInfo<Runtime>;
 }
 
-parameter_types! {
-	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
-	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
-	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
-}
-
-impl estate::Config for Runtime {
-	type Event = Event;
-	type LandTreasury = LandTreasuryPalletId;
-	type MetaverseInfoSource = Metaverse;
-	type Currency = Balances;
-	type MinimumLandPrice = MinimumLandPrice;
-	type CouncilOrigin = EnsureRoot<AccountId>;
-	type AuctionHandler = Auction;
-	type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
-	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
-}
-
-parameter_types! {
-	pub const AuctionTimeToClose: u32 = 100; // Default 100800 Blocks
-	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
-	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
-	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
-	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
-}
-
-impl auction::Config for Runtime {
-	type Event = Event;
-	type AuctionTimeToClose = AuctionTimeToClose;
-	type Handler = Auction;
-	type Currency = Balances;
-	type ContinuumHandler = Continuum;
-	type FungibleTokenCurrency = Tokens;
-	type MetaverseInfoSource = Metaverse;
-	type MinimumAuctionDuration = MinimumAuctionDuration;
-	type EstateHandler = Estate;
-	type RoyaltyFee = RoyaltyFee;
-}
-
-impl continuum::Config for Runtime {
-	type Event = Event;
-	type SessionDuration = ContinuumSessionDuration;
-	type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
-	type EmergencyOrigin = EnsureRoot<AccountId>;
-	type AuctionHandler = Auction;
-	type AuctionDuration = SpotAuctionChillingDuration;
-	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
-	type Currency = Balances;
-	type MetaverseInfoSource = Metaverse;
-}
+//parameter_types! {
+//	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
+//	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
+//	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
+//}
+//
+//impl estate::Config for Runtime {
+//    type Event = Event;
+//    type LandTreasury = LandTreasuryPalletId;
+//    type MetaverseInfoSource = Metaverse;
+//    type Currency = Balances;
+//    type MinimumLandPrice = MinimumLandPrice;
+//    type CouncilOrigin = EnsureRoot<AccountId>;
+//    type AuctionHandler = Auction;
+//    type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
+//    type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
+//}
+//
+//parameter_types! {
+//	pub const AuctionTimeToClose: u32 = 100; // Default 100800 Blocks
+//	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
+//	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
+//	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
+//	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
+//}
+//
+//impl auction::Config for Runtime {
+//    type Event = Event;
+//    type AuctionTimeToClose = AuctionTimeToClose;
+//    type Handler = Auction;
+//    type Currency = Balances;
+//    type ContinuumHandler = Continuum;
+//    type FungibleTokenCurrency = Tokens;
+//    type MetaverseInfoSource = Metaverse;
+//    type MinimumAuctionDuration = MinimumAuctionDuration;
+//    type EstateHandler = Estate;
+//    type RoyaltyFee = RoyaltyFee;
+//}
+//
+//impl continuum::Config for Runtime {
+//    type Event = Event;
+//    type SessionDuration = ContinuumSessionDuration;
+//    type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
+//    type EmergencyOrigin = EnsureRoot<AccountId>;
+//    type AuctionHandler = Auction;
+//    type AuctionDuration = SpotAuctionChillingDuration;
+//    type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
+//    type Currency = Balances;
+//    type MetaverseInfoSource = Metaverse;
+//}
 
 impl tokenization::Config for Runtime {
 	type Event = Event;
@@ -886,7 +894,7 @@ construct_runtime!(
 
 		// Currencies
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>} = 13,
-		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>} = 14,
+		Tokens: orml_tokens::{Pallet, Storage, Event<T>} = 14,
 
 		// Scheduler
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
@@ -907,16 +915,17 @@ construct_runtime!(
 
 		// Pioneer pallets
 		// Metaverse & Related
-		OrmlNFT: orml_nft::{Pallet, Storage} = 40,
-		Nft: nft::{Pallet, Storage, Event<T>} = 41,
-		Auction: auction::{Pallet ,Storage, Event<T>} = 42,
-		Metaverse: metaverse::{Pallet, Storage, Event<T>} = 43,
-		Continuum: continuum::{Pallet, Storage, Config<T>, Event<T>} = 44,
-		Tokenization: tokenization:: {Pallet, Storage, Event<T>} = 45,
-		Swap: swap:: {Pallet, Storage ,Event<T>} = 46,
-		Vesting: pallet_vesting::{Pallet, Storage, Event<T>, Config<T>} = 47,
-		Mining: mining:: {Pallet, Storage ,Event<T>} = 48,
-		Estate: estate::{Pallet, Storage, Event<T>, Config} = 49,
+		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>} = 40,
+		Tokenization: tokenization:: {Pallet, Call ,Storage, Event<T>} = 41,
+		Swap: swap:: {Pallet, Storage ,Event<T>} = 42,
+		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 43,
+		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 44,
+//		OrmlNFT: orml_nft::{Pallet, Storage} = 41,
+//		Nft: nft::{Pallet, Storage, Event<T>} = 42,
+//		Auction: auction::{Pallet ,Storage, Event<T>} = 43,
+
+//		Continuum: continuum::{Pallet, Storage, Config<T>, Event<T>} = 44,
+//		Estate: estate::{Pallet, Storage, Event<T>, Config} = 49,
 	}
 );
 
