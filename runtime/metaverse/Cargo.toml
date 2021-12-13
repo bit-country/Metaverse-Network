@@ -47,6 +47,7 @@ pallet-authorship = { version = "4.0.0-dev", default-features = false, git = "ht
 pallet-session = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 pallet-scheduler = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 pallet-democracy = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
+pallet-utility = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 
 # Used for the node template"s RPCs
 frame-system-rpc-runtime-api = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
@@ -147,7 +148,8 @@ std = [
     #    "pallet-evm/std",
     #    "fp-rpc/std",
     #    "evm/std",
-    "governance/std"
+    "governance/std",
+    "pallet-utility/std"
 ]
 runtime-benchmarks = [
     "frame-benchmarking",
@@ -160,5 +162,6 @@ runtime-benchmarks = [
     "nft/runtime-benchmarks",
     "estate/runtime-benchmarks",
     "auction/runtime-benchmarks",
-    "metaverse/runtime-benchmarks"
+    "metaverse/runtime-benchmarks",
+    "pallet-utility/runtime-benchmarks"
 ]

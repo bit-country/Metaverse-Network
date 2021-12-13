@@ -300,6 +300,7 @@ pub mod pallet {
 			<T as frame_system::Config>::AccountId,
 			<T as frame_system::Config>::AccountId,
 			TokenIdOf<T>,
+			AssetId,
 		),
 		/// Signed on NFT
 		SignedNft(TokenIdOf<T>, <T as frame_system::Config>::AccountId),
@@ -629,7 +630,7 @@ pub mod pallet {
 
 			let token_id = Self::do_transfer(&sender, &to, asset_id)?;
 
-			Self::deposit_event(Event::<T>::TransferedNft(sender, to, token_id));
+			Self::deposit_event(Event::<T>::TransferedNft(sender, to, token_id, asset_id.clone()));
 
 			Ok(().into())
 		}
@@ -663,6 +664,7 @@ pub mod pallet {
 							owner.clone(),
 							item.0.clone(),
 							asset.1.clone(),
+							item.1.clone(),
 						));
 					}
 					_ => (),

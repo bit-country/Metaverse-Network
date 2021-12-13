@@ -254,7 +254,7 @@ fn transfer_should_work() {
 		let origin = Origin::signed(ALICE);
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::transfer(origin, BOB, 0));
-		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0));
+		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0, 0));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -310,7 +310,7 @@ fn transfer_batch_should_work() {
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 4));
 		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, 0), (BOB, 1)]));
-		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0));
+		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0, 1));
 		assert_eq!(last_event(), event);
 	})
 }
