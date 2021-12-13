@@ -524,7 +524,7 @@ fn destroy_estate_should_work() {
 }
 
 #[test]
-fn destroy_estate_should_reject_non_root() {
+fn destroy_estate_should_reject_non_owner() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
@@ -540,6 +540,71 @@ fn destroy_estate_should_reject_non_root() {
 			EstateModule::destroy_estate(Origin::signed(ALICE), 0, METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
+	});
+}
+
+#[test]
+fn update_estate_should_reject_non_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+
+		// Mint estate
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_err!(
+			EstateModule::destroy_estate(Origin::signed(ALICE), 0, METAVERSE_ID),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn update_estate_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+
+		// Mint estate
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::all_estates_count(), 1);
+		assert_eq!(EstateModule::next_estate_id(), 1);
+		assert_eq!(EstateModule::get_estates(estate_id), Some(vec![COORDINATE_IN_1])); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(
+			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
+			1
+		);
+		assert_eq!(EstateModule::all_land_units_count(), 1);
+
+		// Update estate
+		assert_ok!(EstateModule::update_estate(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_eq!(
+			EstateModule::get_estates(estate_id),
+			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
+		);
+
+		assert_eq!(
+			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
+			2
+		);
+		assert_eq!(EstateModule::all_land_units_count(), 2);
 	});
 }
 

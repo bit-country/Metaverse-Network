@@ -245,6 +245,8 @@ pub mod pallet {
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
 		/// Owner Account Id, Estate Id
 		EstateDestroyed(EstateId, T::AccountId),
+		/// Estate Id, Owner Account Id, Coordinates
+		EstateUpdated(EstateId, T::AccountId, Vec<(i32, i32)>),
 		/// Undeployed Land Block Id
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
 		/// Undeployed Land Block Id
@@ -399,6 +401,8 @@ pub mod pallet {
 			for coordinate in coordinates.clone() {
 				Self::mint_land_unit(metaverse_id, &estate_account_id, coordinate, false)?;
 			}
+			// Update total land count
+			Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
 			// Update estate information
 			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates)?;
@@ -707,8 +711,61 @@ pub mod pallet {
 				for landUnit in landUnits.clone() {
 					LandUnits::<T>::remove(metaverse_id, landUnit);
 				}
+				Self::set_total_land_unit(landUnits.len() as u64, true);
 
 				Self::deposit_event(Event::<T>::EstateDestroyed(estate_id.clone(), who.clone()));
+
+				Ok(().into())
+			})
+		}
+
+		#[pallet::weight(T::WeightInfo::update_estate())]
+		pub fn update_estate(
+			origin: OriginFor<T>,
+			estate_id: EstateId,
+			metaverse_id: MetaverseId,
+			coordinates: Vec<(i32, i32)>,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
+				Error::<T>::EstateAlreadyInAuction
+			);
+
+			let landUnits = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			// Remove old land units
+			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| {
+				//ensure there is record of the estate owner with estate id and account id
+				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
+
+				// Remove existing land units
+				for landUnit in landUnits.clone() {
+					LandUnits::<T>::remove(metaverse_id, landUnit);
+				}
+				Self::set_total_land_unit(landUnits.len() as u64, true);
+
+				Estates::<T>::remove(estate_id);
+
+				// Add new land untis
+				// Generate sub account from estate
+				let estate_account_id = T::LandTreasury::get().into_sub_account(estate_id);
+
+				// Mint land units
+				for coordinate in coordinates.clone() {
+					Self::mint_land_unit(metaverse_id, &estate_account_id, coordinate, false)?;
+				}
+				Estates::<T>::insert(estate_id, coordinates.clone());
+
+				// Update total land units
+				Self::set_total_land_unit(coordinates.len() as u64, false);
+
+				Self::deposit_event(Event::<T>::EstateUpdated(
+					estate_id.clone(),
+					who.clone(),
+					coordinates.clone(),
+				));
 
 				Ok(().into())
 			})
