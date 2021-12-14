@@ -275,9 +275,9 @@ impl pallet_nft::Config for Runtime {
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
-	type PalletsOrigin = OriginCaller;
-	type TimeCapsuleDispatch = Call;
-	type TimeCapsuleScheduler = Scheduler;
+	//	type PalletsOrigin = OriginCaller;
+	//	type TimeCapsuleDispatch = Call;
+	//	type TimeCapsuleScheduler = Scheduler;
 }
 
 parameter_types! {

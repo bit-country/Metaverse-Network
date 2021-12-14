@@ -672,6 +672,30 @@ impl pallet_collator_selection::Config for Runtime {
 	type WeightInfo = ();
 }
 
+impl pallet_utility::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type WeightInfo = ();
+}
+
+parameter_types! {
+	// One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
+	pub const DepositBase: Balance = deposit(1, 88);
+	// Additional storage item size of 32 bytes.
+	pub const DepositFactor: Balance = deposit(0, 32);
+	pub const MaxSignatories: u16 = 100;
+}
+
+impl pallet_multisig::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type Currency = Balances;
+	type DepositBase = DepositBase;
+	type DepositFactor = DepositFactor;
+	type MaxSignatories = MaxSignatories;
+	type WeightInfo = ();
+}
+
 // Metaverse related implementation
 pub struct EnsureRootOrMetaverseTreasury;
 
@@ -712,7 +736,7 @@ impl pallet_scheduler::Config for Runtime {
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
-	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = ();
 }
 
 parameter_types! {
@@ -884,8 +908,12 @@ construct_runtime!(
 		RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage} = 2,
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 3,
 		ParachainInfo: parachain_info::{Pallet, Storage, Config} = 4,
+		// Scheduler
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 5,
+		Utility: pallet_utility::{Pallet, Call, Event} = 6,
+		Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 7,
 
-		// Monetary stuff.
+		// Monetary.
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 11,
 
@@ -896,8 +924,6 @@ construct_runtime!(
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>} = 13,
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>} = 14,
 
-		// Scheduler
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 15,
 
 		// Collator support. The order of these 4 are important and shall not change.
 		Authorship: pallet_authorship::{Pallet, Call, Storage} = 20,
@@ -915,11 +941,11 @@ construct_runtime!(
 
 		// Pioneer pallets
 		// Metaverse & Related
-		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>} = 40,
-		Tokenization: tokenization:: {Pallet, Call ,Storage, Event<T>} = 41,
-		Swap: swap:: {Pallet, Storage ,Event<T>} = 42,
-		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 43,
-		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 44,
+		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>} = 50,
+		Tokenization: tokenization:: {Pallet, Call ,Storage, Event<T>} = 51,
+		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
+		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
+		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
 //		OrmlNFT: orml_nft::{Pallet, Storage} = 41,
 //		Nft: nft::{Pallet, Storage, Event<T>} = 42,
 //		Auction: auction::{Pallet ,Storage, Event<T>} = 43,
