@@ -153,8 +153,8 @@ benchmarks! {
 		assert_eq!(crate::Pallet::<T>::get_estates(0), None)
 	}
 
-	// update_estate
-	update_estate {
+	// add_land_unit
+	add_land_unit {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
