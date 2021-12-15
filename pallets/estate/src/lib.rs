@@ -243,6 +243,14 @@ pub mod pallet {
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
 		/// Owner Account Id, Approved Account Id, Undeployed Land Block Id
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
+		/// Owner Account Id, Estate Id
+		EstateDestroyed(EstateId, T::AccountId),
+		/// Estate Id, Owner Account Id, Coordinates
+		EstateUpdated(EstateId, T::AccountId, Vec<(i32, i32)>),
+		/// Estate Id, Owner Account Id, Coordinates
+		LandUnitAdded(EstateId, T::AccountId, Vec<(i32, i32)>),
+		/// Estate Id, Owner Account Id, Coordinates
+		LandUnitsRemoved(EstateId, T::AccountId, Vec<(i32, i32)>),
 		/// Undeployed Land Block Id
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
 		/// Undeployed Land Block Id
@@ -397,6 +405,8 @@ pub mod pallet {
 			for coordinate in coordinates.clone() {
 				Self::mint_land_unit(metaverse_id, &estate_account_id, coordinate, false)?;
 			}
+			// Update total land count
+			Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
 			// Update estate information
 			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates)?;
@@ -668,6 +678,172 @@ pub mod pallet {
 				},
 			)
 		}
+
+		#[pallet::weight(T::WeightInfo::dissolve_estate())]
+		pub fn dissolve_estate(
+			origin: OriginFor<T>,
+			estate_id: EstateId,
+			metaverse_id: MetaverseId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
+				Error::<T>::EstateAlreadyInAuction
+			);
+
+			let land_units = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| {
+				//ensure there is record of the estate owner with estate id and account id
+				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
+
+				// Reset estate ownership
+				*estate_by_owner = None;
+
+				// Remove estate
+				Estates::<T>::remove(&estate_id);
+
+				// Update total estates
+				let total_estates_count = Self::all_estates_count();
+				let new_total_estates_count = total_estates_count
+					.checked_sub(One::one())
+					.ok_or("Overflow adding new count to total estates")?;
+				AllEstatesCount::<T>::put(new_total_estates_count);
+
+				// Update land units relationship
+				for land_unit in land_units.clone() {
+					LandUnits::<T>::try_mutate_exists(
+						&metaverse_id,
+						&land_unit,
+						|maybe_account| -> Result<(), DispatchError> {
+							*maybe_account = Some(who.clone());
+
+							Ok(())
+						},
+					);
+				}
+
+				Self::deposit_event(Event::<T>::EstateDestroyed(estate_id.clone(), who.clone()));
+
+				Ok(().into())
+			})
+		}
+
+		#[pallet::weight(T::WeightInfo::add_land_unit_to_estate())]
+		pub fn add_land_unit_to_estate(
+			origin: OriginFor<T>,
+			estate_id: EstateId,
+			metaverse_id: MetaverseId,
+			land_units: Vec<(i32, i32)>,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
+				Error::<T>::EstateAlreadyInAuction
+			);
+
+			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			// Check estate ownership
+			ensure!(
+				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Error::<T>::NoPermission
+			);
+
+			// Check land unit ownership
+			for land_unit in land_units.clone() {
+				ensure!(
+					Self::get_land_units(metaverse_id, land_unit) == who,
+					Error::<T>::LandUnitDoesNotExist
+				);
+			}
+
+			// Mutate estates
+			Estates::<T>::try_mutate_exists(&estate_id, |maybe_land_units| {
+				// Append new coordinates to estate
+				let mut land_units_by_estate = maybe_land_units.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+				land_units_by_estate.append(&mut land_units.clone());
+
+				// Mutate land unit ownership
+				let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
+
+				// Mutate land unit ownership
+				for land_unit in land_units.clone() {
+					LandUnits::<T>::try_mutate_exists(
+						&metaverse_id,
+						&land_unit,
+						|maybe_account| -> Result<(), DispatchError> {
+							*maybe_account = Some(estate_account_id.clone());
+
+							Ok(())
+						},
+					);
+				}
+
+				Self::deposit_event(Event::<T>::LandUnitAdded(
+					estate_id.clone(),
+					who.clone(),
+					land_units.clone(),
+				));
+
+				Ok(().into())
+			})
+		}
+
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		pub fn remove_land_unit_from_estate(
+			origin: OriginFor<T>,
+			estate_id: EstateId,
+			metaverse_id: MetaverseId,
+			land_units: Vec<(i32, i32)>,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
+				Error::<T>::EstateAlreadyInAuction
+			);
+
+			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			// Check estate ownership
+			ensure!(
+				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Error::<T>::NoPermission
+			);
+
+			// Mutate estates
+			Estates::<T>::try_mutate_exists(&estate_id, |maybe_land_units| {
+				let mut land_units_by_estate = maybe_land_units.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+
+				// Mutate land unit ownership
+				for land_unit in land_units.clone() {
+					// Remove coordinates from estate
+					let index = land_units_by_estate.iter().position(|x| *x == land_unit).unwrap();
+					land_units_by_estate.remove(index);
+
+					LandUnits::<T>::try_mutate_exists(
+						&metaverse_id,
+						&land_unit,
+						|maybe_account| -> Result<(), DispatchError> {
+							*maybe_account = Some(who.clone());
+
+							Ok(())
+						},
+					);
+				}
+
+				Self::deposit_event(Event::<T>::LandUnitsRemoved(
+					estate_id.clone(),
+					who.clone(),
+					land_units.clone(),
+				));
+
+				Ok(().into())
+			})
+		}
 	}
 
 	#[pallet::hooks]
@@ -909,6 +1085,7 @@ impl<T: Config> Pallet<T> {
 
 		Ok(undeployed_land_block_ids)
 	}
+
 	fn do_transfer_estate(
 		estate_id: EstateId,
 		from: &T::AccountId,

@@ -106,7 +106,7 @@ benchmarks! {
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], vec![2], vec![1, 2, 3], 3);
-	}: _(RawOrigin::Signed(signer), 0u32.into() )
+	}: _(RawOrigin::Signed(signer), 0u32.into(), 100u32.into() )
 
 }
 
