@@ -544,7 +544,7 @@ fn dissolve_estate_should_reject_non_owner() {
 }
 
 #[test]
-fn add_land_unit_should_reject_non_owner() {
+fn add_land_unit_to_estate_should_reject_non_owner() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
@@ -557,14 +557,14 @@ fn add_land_unit_should_reject_non_owner() {
 		));
 
 		assert_err!(
-			EstateModule::add_land_unit(Origin::signed(ALICE), 0, METAVERSE_ID, vec![COORDINATE_IN_2]),
+			EstateModule::add_land_unit_to_estate(Origin::signed(ALICE), 0, METAVERSE_ID, vec![COORDINATE_IN_2]),
 			Error::<Runtime>::NoPermission
 		);
 	});
 }
 
 #[test]
-fn add_land_unit_should_work() {
+fn add_land_unit_to_estate_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
@@ -594,7 +594,7 @@ fn add_land_unit_should_work() {
 			COORDINATE_IN_2
 		));
 		// Update estate
-		assert_ok!(EstateModule::add_land_unit(
+		assert_ok!(EstateModule::add_land_unit_to_estate(
 			Origin::signed(BENEFICIARY_ID),
 			estate_id,
 			METAVERSE_ID,
@@ -615,7 +615,7 @@ fn add_land_unit_should_work() {
 }
 
 #[test]
-fn remove_land_unit_should_reject_non_owner() {
+fn remove_land_unit_from_estate_should_reject_non_owner() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
@@ -628,14 +628,14 @@ fn remove_land_unit_should_reject_non_owner() {
 		));
 
 		assert_err!(
-			EstateModule::remove_land_unit(Origin::signed(ALICE), 0, METAVERSE_ID, vec![COORDINATE_IN_2]),
+			EstateModule::remove_land_unit_from_estate(Origin::signed(ALICE), 0, METAVERSE_ID, vec![COORDINATE_IN_2]),
 			Error::<Runtime>::NoPermission
 		);
 	});
 }
 
 #[test]
-fn remove_land_unit_should_work() {
+fn remove_land_unit_from_estate_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
@@ -662,7 +662,7 @@ fn remove_land_unit_should_work() {
 		assert_eq!(EstateModule::all_land_units_count(), 2);
 
 		// Update estate
-		assert_ok!(EstateModule::remove_land_unit(
+		assert_ok!(EstateModule::remove_land_unit_from_estate(
 			Origin::signed(BENEFICIARY_ID),
 			estate_id,
 			METAVERSE_ID,

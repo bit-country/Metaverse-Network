@@ -153,8 +153,8 @@ benchmarks! {
 		assert_eq!(crate::Pallet::<T>::get_estates(0), None)
 	}
 
-	// add_land_unit
-	add_land_unit {
+	// add_land_unit_to_estate
+	add_land_unit_to_estate {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
@@ -166,8 +166,8 @@ benchmarks! {
 		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(vec![COORDINATE_IN_1, COORDINATE_IN_2]))
 	}
 
-	// remove_land_unit
-	remove_land_unit {
+	// remove_land_unit_from_estate
+	remove_land_unit_from_estate {
 		let caller: T::AccountId = whitelisted_caller();
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 

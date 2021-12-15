@@ -730,8 +730,8 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(T::WeightInfo::add_land_unit())]
-		pub fn add_land_unit(
+		#[pallet::weight(T::WeightInfo::add_land_unit_to_estate())]
+		pub fn add_land_unit_to_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
 			metaverse_id: MetaverseId,
@@ -792,8 +792,8 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(T::WeightInfo::remove_land_unit())]
-		pub fn remove_land_unit(
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		pub fn remove_land_unit_from_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
 			metaverse_id: MetaverseId,

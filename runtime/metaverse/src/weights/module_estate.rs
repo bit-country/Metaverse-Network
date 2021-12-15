@@ -76,13 +76,13 @@ impl<T: frame_system::Config> estate::WeightInfo for WeightInfo<T> {
             .saturating_add(T::DbWeight::get().reads(5 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
     }
-    fn add_land_unit() -> Weight {
+    fn add_land_unit_to_estate() -> Weight {
         (24_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
-    fn remove_land_unit() -> Weight {
-        (22_000_000 as Weight)
+    fn remove_land_unit_from_estate() -> Weight {
+        (21_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
             .saturating_add(T::DbWeight::get().writes(2 as Weight))
     }
