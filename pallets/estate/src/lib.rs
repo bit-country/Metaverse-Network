@@ -730,7 +730,7 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(T::WeightInfo::update_estate())]
+		#[pallet::weight(T::WeightInfo::add_land_unit())]
 		pub fn add_land_unit(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
@@ -792,7 +792,7 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(T::WeightInfo::update_estate())]
+		#[pallet::weight(T::WeightInfo::remove_land_unit())]
 		pub fn remove_land_unit(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
