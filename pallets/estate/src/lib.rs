@@ -247,6 +247,10 @@ pub mod pallet {
 		EstateDestroyed(EstateId, T::AccountId),
 		/// Estate Id, Owner Account Id, Coordinates
 		EstateUpdated(EstateId, T::AccountId, Vec<(i32, i32)>),
+		/// Estate Id, Owner Account Id, Coordinates
+		LandUnitAdded(EstateId, T::AccountId, Vec<(i32, i32)>),
+		/// Estate Id, Owner Account Id, Coordinates
+		LandUnitsRemoved(EstateId, T::AccountId, Vec<(i32, i32)>),
 		/// Undeployed Land Block Id
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
 		/// Undeployed Land Block Id
@@ -731,7 +735,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			estate_id: EstateId,
 			metaverse_id: MetaverseId,
-			coordinates: Vec<(i32, i32)>,
+			land_units: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -749,35 +753,39 @@ pub mod pallet {
 			);
 
 			// Check land unit ownership
-			for coordinate in coordinates.clone() {
+			for land_unit in land_units.clone() {
 				ensure!(
-					Self::get_land_units(metaverse_id, coordinate) == who,
-					Error::<T>::NoPermission
+					Self::get_land_units(metaverse_id, land_unit) == who,
+					Error::<T>::LandUnitDoesNotExist
 				);
 			}
 
 			// Mutate estates
-			Estates::<T>::try_mutate_exists(&estate_id, |land_units_by_estate| {
+			Estates::<T>::try_mutate_exists(&estate_id, |maybe_land_units| {
 				// Append new coordinates to estate
-				// let mut tt = land_units_by_estate.unwrap();
-				// tt.append(&mut coordinates.clone());
+				let mut land_units_by_estate = maybe_land_units.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+				land_units_by_estate.append(&mut land_units.clone());
 
 				// Mutate land unit ownership
-				// let estate_account_id = T::LandTreasury::get().into_sub_account(estate_id);
-				// for coordinate in coordinates.clone() {
-				//     LandUnits::<T>::try_mutate_exists(&metaverse_id, coordinate, |maybe_account {
-				//         let mut account = maybe_account.take().unwrap_or_default();
-				//
-				//         *maybe_account = who.clone();
-				//     })?;
-				// }
+				let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
 
-				Self::set_total_land_unit(coordinates.len() as u64, false);
+				// Mutate land unit ownership
+				for land_unit in land_units.clone() {
+					LandUnits::<T>::try_mutate_exists(
+						&metaverse_id,
+						&land_unit,
+						|maybe_account| -> Result<(), DispatchError> {
+							*maybe_account = Some(estate_account_id.clone());
 
-				Self::deposit_event(Event::<T>::EstateUpdated(
+							Ok(())
+						},
+					);
+				}
+
+				Self::deposit_event(Event::<T>::LandUnitAdded(
 					estate_id.clone(),
 					who.clone(),
-					coordinates.clone(),
+					land_units.clone(),
 				));
 
 				Ok(().into())
@@ -789,7 +797,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			estate_id: EstateId,
 			metaverse_id: MetaverseId,
-			coordinates: Vec<(i32, i32)>,
+			land_units: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -807,27 +815,30 @@ pub mod pallet {
 			);
 
 			// Mutate estates
-			Estates::<T>::try_mutate_exists(&estate_id, |land_units_by_estate| {
-				// Append new coordinates to estate
-				// let mut tt = land_units_by_estate.unwrap();
-				// tt.append(&mut coordinates.clone());
+			Estates::<T>::try_mutate_exists(&estate_id, |maybe_land_units| {
+				let mut land_units_by_estate = maybe_land_units.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
 
 				// Mutate land unit ownership
-				// let estate_account_id = T::LandTreasury::get().into_sub_account(estate_id);
-				// for coordinate in coordinates.clone() {
-				//     LandUnits::<T>::try_mutate_exists(&metaverse_id, coordinate, |maybe_account {
-				//         let mut account = maybe_account.take().unwrap_or_default();
-				//
-				//         *maybe_account = who.clone();
-				//     })?;
-				// }
+				for land_unit in land_units.clone() {
+					// Remove coordinates from estate
+					let index = land_units_by_estate.iter().position(|x| *x == land_unit).unwrap();
+					land_units_by_estate.remove(index);
 
-				Self::set_total_land_unit(coordinates.len() as u64, true);
+					LandUnits::<T>::try_mutate_exists(
+						&metaverse_id,
+						&land_unit,
+						|maybe_account| -> Result<(), DispatchError> {
+							*maybe_account = Some(who.clone());
 
-				Self::deposit_event(Event::<T>::EstateUpdated(
+							Ok(())
+						},
+					);
+				}
+
+				Self::deposit_event(Event::<T>::LandUnitsRemoved(
 					estate_id.clone(),
 					who.clone(),
-					coordinates.clone(),
+					land_units.clone(),
 				));
 
 				Ok(().into())
