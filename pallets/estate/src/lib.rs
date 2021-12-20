@@ -83,6 +83,19 @@ pub mod pallet {
 		pub length: u32,
 	}
 
+	#[derive(Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+	/// Snapshot of collator state at the start of the round for which they are selected
+	pub struct StakeSnapshot<AccountId, Balance> {
+		pub stakers: Vec<Bond<AccountId, Balance>>,
+		pub total_bond: Balance,
+	}
+
+	#[derive(Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+	pub struct Bond<AccountId, Balance> {
+		pub owner: AccountId,
+		pub amount: Balance,
+	}
+
 	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> RoundInfo<B> {
 		pub fn new(current: RoundIndex, first: B, length: u32) -> RoundInfo<B> {
 			RoundInfo { current, first, length }
@@ -204,8 +217,15 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn at_stake)]
 	/// Snapshot of estate staking per session
-	pub type AtStake<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, SessionIndex, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+	pub type AtStake<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		SessionIndex,
+		Twox64Concat,
+		EstateId,
+		StakeSnapshot<T::AccountId, BalanceOf<T>>,
+		ValueQuery,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn estate_stake)]
