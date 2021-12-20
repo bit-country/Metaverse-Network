@@ -201,6 +201,7 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 
 parameter_types! {
 	pub const MinBlocksPerRound: u32 = 10;
+	pub const MinimumStake: u32 = 5;
 }
 
 impl Config for Runtime {
@@ -213,6 +214,7 @@ impl Config for Runtime {
 	type AuctionHandler = MockAuctionManager;
 	type MinBlocksPerRound = MinBlocksPerRound;
 	type WeightInfo = ();
+	type MinimumStake = MinimumStake;
 }
 
 construct_runtime!(

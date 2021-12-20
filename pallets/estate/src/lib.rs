@@ -29,7 +29,7 @@ use primitives::{
 pub use rate::{MintingRateInfo, Range};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, One},
+	traits::{AccountIdConversion, One, Saturating},
 	DispatchError,
 };
 use sp_std::vec::Vec;
@@ -63,13 +63,14 @@ pub mod pallet {
 	use crate::rate::{round_issuance_range, MintingRateInfo};
 	use frame_support::traits::{Currency, ReservableCurrency};
 	use primitives::UndeployedLandBlockId;
-	use sp_runtime::traits::Zero;
+	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	type RoundIndex = u32;
+	type SessionIndex = u32;
 
 	#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
 	/// The current round index and transition information
@@ -124,6 +125,8 @@ pub mod pallet {
 		type MinBlocksPerRound: Get<u32>;
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
+		#[pallet::constant]
+		type MinimumStake: Get<BalanceOf<Self>>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -186,6 +189,29 @@ pub mod pallet {
 	#[pallet::getter(fn minting_rate_config)]
 	/// Minting rate configuration
 	pub type MintingRateConfig<T: Config> = StorageValue<_, MintingRateInfo, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn total_stake)]
+	/// Total NEER locked by estate
+	type TotalStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn exit_queue)]
+	/// A queue of account awaiting exit
+	type ExitQueue<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn at_stake)]
+	/// Snapshot of estate staking per session
+	pub type AtStake<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, SessionIndex, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn estate_stake)]
+	/// Estate staking
+	pub type EstateStake<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -261,6 +287,12 @@ pub mod pallet {
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
 		/// Starting Block, Round, Total Land Unit
 		NewRound(T::BlockNumber, RoundIndex, u64),
+		/// Owner Account Id, Estate Id, Balance
+		EstateStakeIncreased(T::AccountId, EstateId, BalanceOf<T>),
+		/// Owner Account Id, Estate Id, Balance
+		EstateStakeDecreased(T::AccountId, EstateId, BalanceOf<T>),
+		/// Owner Account Id, Estate Id
+		EstateStakeLeft(T::AccountId, EstateId),
 	}
 
 	#[pallet::error]
@@ -295,6 +327,10 @@ pub mod pallet {
 		EstateDoesNotExist,
 		LandUnitDoesNotExist,
 		OnlyFrozenUndeployedLandBlockCanBeDestroyed,
+		BelowMinimumStake,
+		Overflow,
+		EstateStakeAlreadyLeft,
+		AccountHasNoStake,
 	}
 
 	#[pallet::call]
@@ -843,6 +879,105 @@ pub mod pallet {
 
 				Ok(().into())
 			})
+		}
+
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		pub fn bond_more(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			// Check estate ownership
+			ensure!(
+				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Error::<T>::NoPermission
+			);
+
+			// Check exit queue
+			ensure!(
+				<ExitQueue<T>>::get(&who, estate_id) == None,
+				Error::<T>::EstateStakeAlreadyLeft
+			);
+
+			// Reserve balance
+			T::Currency::reserve(&who, more)?;
+
+			// Update EstateStake
+			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
+			let total = staked_balance.checked_add(&more).ok_or(Error::<T>::Overflow)?;
+
+			ensure!(total >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
+
+			<EstateStake<T>>::insert(estate_id, &who, total);
+
+			// Update TotalStake
+			let new_total_staked = <TotalStake<T>>::get().saturating_add(more);
+			<TotalStake<T>>::put(new_total_staked);
+
+			Self::deposit_event(Event::EstateStakeIncreased(who, estate_id, more));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		pub fn bond_less(origin: OriginFor<T>, estate_id: EstateId, less: BalanceOf<T>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			// Check estate ownership
+			ensure!(
+				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Error::<T>::NoPermission
+			);
+
+			// Check exit queue
+			ensure!(
+				<ExitQueue<T>>::get(&who, estate_id) == None,
+				Error::<T>::EstateStakeAlreadyLeft
+			);
+
+			// Check stake balance
+			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
+			let remaining = staked_balance.checked_sub(&less).ok_or(Error::<T>::Overflow)?;
+
+			ensure!(remaining >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
+
+			// Reserve balance
+			T::Currency::unreserve(&who, less);
+
+			<EstateStake<T>>::insert(estate_id, &who, remaining);
+
+			// Update TotalStake
+			let new_total_staked = <TotalStake<T>>::get().saturating_add(less);
+			<TotalStake<T>>::put(new_total_staked);
+
+			Self::deposit_event(Event::EstateStakeDecreased(who, estate_id, less));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			ensure!(
+				<ExitQueue<T>>::get(&who, estate_id) == None,
+				Error::<T>::EstateStakeAlreadyLeft
+			);
+
+			ensure!(
+				<EstateStake<T>>::get(estate_id, &who) > BalanceOf::<T>::zero(),
+				Error::<T>::AccountHasNoStake
+			);
+
+			<ExitQueue<T>>::insert(&who, estate_id, ());
+
+			Self::deposit_event(Event::EstateStakeLeft(who, estate_id));
+
+			Ok(().into())
 		}
 	}
 
