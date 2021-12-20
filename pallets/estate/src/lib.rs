@@ -48,13 +48,6 @@ pub mod weights;
 
 pub use weights::WeightInfo;
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
-pub struct TestCollectionData {
-	pub name: Vec<u8>,
-	// Metadata from ipfs
-	pub properties: Vec<u8>,
-}
-
 pub use pallet::*;
 
 #[frame_support::pallet]
@@ -70,7 +63,6 @@ pub mod pallet {
 	pub struct Pallet<T>(PhantomData<T>);
 
 	type RoundIndex = u32;
-	type SessionIndex = u32;
 
 	#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
 	/// The current round index and transition information
@@ -220,7 +212,7 @@ pub mod pallet {
 	pub type AtStake<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
-		SessionIndex,
+		RoundIndex,
 		Twox64Concat,
 		EstateId,
 		StakeSnapshot<T::AccountId, BalanceOf<T>>,
