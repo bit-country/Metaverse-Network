@@ -881,7 +881,7 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::bond_more())]
 		pub fn bond_more(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -919,7 +919,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::bond_less())]
 		pub fn bond_less(origin: OriginFor<T>, estate_id: EstateId, less: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -957,7 +957,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::leave_staking())]
 		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
