@@ -471,6 +471,7 @@ impl estate::Config for Runtime {
 	type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
 	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
 	type MinimumStake = MinimumStake;
+	type RewardPaymentDelay = RewardPaymentDelay;
 }
 
 parameter_types! {

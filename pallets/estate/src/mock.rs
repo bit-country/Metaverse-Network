@@ -202,6 +202,8 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 parameter_types! {
 	pub const MinBlocksPerRound: u32 = 10;
 	pub const MinimumStake: u32 = 5;
+	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
+	pub const RewardPaymentDelay: u32 = 2;
 }
 
 impl Config for Runtime {
@@ -215,6 +217,7 @@ impl Config for Runtime {
 	type MinBlocksPerRound = MinBlocksPerRound;
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
+	type RewardPaymentDelay = RewardPaymentDelay;
 }
 
 construct_runtime!(

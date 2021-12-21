@@ -54,7 +54,7 @@ pub use pallet::*;
 pub mod pallet {
 	use super::*;
 	use crate::rate::{round_issuance_range, MintingRateInfo};
-	use frame_support::traits::{Currency, ReservableCurrency};
+	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
 	use primitives::UndeployedLandBlockId;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
 
@@ -84,7 +84,7 @@ pub mod pallet {
 
 	#[derive(Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 	pub struct Bond<AccountId, Balance> {
-		pub owner: AccountId,
+		pub staker: AccountId,
 		pub amount: Balance,
 	}
 
@@ -132,6 +132,8 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
+		#[pallet::constant]
+		type RewardPaymentDelay: Get<u32>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -199,6 +201,11 @@ pub mod pallet {
 	#[pallet::getter(fn total_stake)]
 	/// Total NEER locked by estate
 	type TotalStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn staked)]
+	/// Total backing stake for selected candidates in the round
+	pub type Staked<T: Config> = StorageMap<_, Twox64Concat, RoundIndex, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn exit_queue)]
@@ -305,6 +312,8 @@ pub mod pallet {
 		EstateStakeDecreased(T::AccountId, EstateId, BalanceOf<T>),
 		/// Owner Account Id, Estate Id
 		EstateStakeLeft(T::AccountId, EstateId),
+		/// Account Id, Balance
+		StakingRewarded(T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -993,6 +1002,87 @@ pub mod pallet {
 		}
 	}
 
+	impl<T: Config> Pallet<T> {
+		fn pay_stakers(next: RoundIndex) {
+			// payout is next - duration rounds ago => next - duration > 0 else return early
+			let duration = T::RewardPaymentDelay::get();
+			if next <= duration {
+				return;
+			}
+			let round_to_payout = next - duration;
+
+			// issue BIT for rewards distribution
+			let total_staked = <Staked<T>>::get(round_to_payout);
+			let total_issuance = Self::compute_issuance(total_staked);
+
+			let mut left_issuance = total_issuance;
+
+			// reserve portion of issuance for parachain bond account
+			// TODO: TBD on percentage and account config
+			// let bond_config = <ParachainBondInfo<T>>::get();
+			// let parachain_bond_reserve = bond_config.percent * total_issuance;
+			// if let Ok(imb) = T::Currency::deposit_into_existing(&bond_config.account, parachain_bond_reserve)
+			// { 	// update round issuance iff transfer succeeds
+			// 	left_issuance -= imb.peek();
+			// 	Self::deposit_event(Event::ReservedForParachainBond(bond_config.account, imb.peek()));
+			// }
+
+			// a local fn to transfer rewards to the account specified
+			let mint = |amt: BalanceOf<T>, to: T::AccountId| {
+				if let Ok(imb) = T::Currency::deposit_into_existing(&to, amt) {
+					Self::deposit_event(Event::StakingRewarded(to.clone(), imb.peek()));
+				}
+			};
+
+			for (estate_id, stake_snapshot) in <AtStake<T>>::drain_prefix(round_to_payout) {
+				for Bond { staker: owner, amount } in stake_snapshot.stakers {
+					// TODO: TBD on the rewards amount
+					let amount_due = amount;
+					mint(amount, owner);
+				}
+			}
+		}
+
+		/// Clear exit queue. return stake to account
+		fn clear_exit_queue(now: RoundIndex) {
+			for (account_id, estate_id, val) in <ExitQueue<T>>::drain() {
+				let staked_amount = <EstateStake<T>>::get(estate_id, &account_id);
+
+				// return stake to account
+				T::Currency::unreserve(&account_id, staked_amount);
+
+				<EstateStake<T>>::remove(estate_id, &account_id);
+			}
+		}
+
+		fn update_stake_snapshot(next: RoundIndex) -> BalanceOf<T> {
+			let mut total = BalanceOf::<T>::zero();
+
+			for estate_id in <Estates<T>>::iter_keys() {
+				let mut total_bond = BalanceOf::<T>::zero();
+				let mut stakers: Vec<Bond<T::AccountId, BalanceOf<T>>> = Vec::new();
+
+				for (account_id, amount) in <EstateStake<T>>::iter_prefix(estate_id) {
+					stakers.push(Bond {
+						staker: account_id,
+						amount,
+					});
+
+					total += amount;
+					total_bond += amount;
+				}
+				<AtStake<T>>::insert(next, estate_id, StakeSnapshot { stakers, total_bond });
+			}
+
+			total
+		}
+
+		fn compute_issuance(staked: BalanceOf<T>) -> BalanceOf<T> {
+			//TODO: need to decide on how much BIT need to be issued per session
+			staked.saturating_add(staked)
+		}
+	}
+
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
@@ -1001,10 +1091,22 @@ pub mod pallet {
 			if round.should_update(n) {
 				// mutate round
 				round.update(n);
+
 				let round_issuance_per_round = round_issuance_range::<T>(minting_config);
+
 				//TODO do actual minting new undeployed land block
 				let land_register_treasury = T::LandTreasury::get().into_account();
+
+				// Pay all stakers for T::RewardPaymentDelay rounds ago
+				Self::pay_stakers(round.current);
+				// Clear exit queue
+				Self::clear_exit_queue(round.current);
+				// Update stake snapshot
+				Self::update_stake_snapshot(round.current);
+
 				<Round<T>>::put(round);
+
+				<Staked<T>>::insert(round.current, <TotalStake<T>>::get());
 
 				Self::do_issue_undeployed_land_blocks(
 					&land_register_treasury,
