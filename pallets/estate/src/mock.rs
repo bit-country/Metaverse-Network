@@ -201,7 +201,7 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 
 parameter_types! {
 	pub const MinBlocksPerRound: u32 = 10;
-	pub const MinimumStake: u32 = 5;
+	pub const MinimumStake: Balance = 5 * DOLLARS;
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
 }

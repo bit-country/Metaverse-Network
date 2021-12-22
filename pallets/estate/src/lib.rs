@@ -306,6 +306,9 @@ pub mod pallet {
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
 		/// Starting Block, Round, Total Land Unit
 		NewRound(T::BlockNumber, RoundIndex, u64),
+		StakeSnapshotUpdated(RoundIndex, BalanceOf<T>),
+		StakersPaid(RoundIndex),
+		ExitQueueCleared(RoundIndex),
 		/// Owner Account Id, Estate Id, Balance
 		EstateStakeIncreased(T::AccountId, EstateId, BalanceOf<T>),
 		/// Owner Account Id, Estate Id, Balance
@@ -970,7 +973,7 @@ pub mod pallet {
 			<EstateStake<T>>::insert(estate_id, &who, remaining);
 
 			// Update TotalStake
-			let new_total_staked = <TotalStake<T>>::get().saturating_add(less);
+			let new_total_staked = <TotalStake<T>>::get().saturating_sub(less);
 			<TotalStake<T>>::put(new_total_staked);
 
 			Self::deposit_event(Event::EstateStakeDecreased(who, estate_id, less));
@@ -1038,7 +1041,7 @@ pub mod pallet {
 				for Bond { staker: owner, amount } in stake_snapshot.stakers {
 					// TODO: TBD on the rewards amount
 					let amount_due = amount;
-					mint(amount, owner);
+					mint(1u32.into(), owner);
 				}
 			}
 		}
@@ -1064,16 +1067,19 @@ pub mod pallet {
 
 				for (account_id, amount) in <EstateStake<T>>::iter_prefix(estate_id) {
 					stakers.push(Bond {
-						staker: account_id,
+						staker: account_id.clone(),
 						amount,
 					});
 
 					total += amount;
 					total_bond += amount;
 				}
-				<AtStake<T>>::insert(next, estate_id, StakeSnapshot { stakers, total_bond });
+				if stakers.len() > 0 {
+					<AtStake<T>>::insert(next, estate_id, StakeSnapshot { stakers, total_bond });
+				}
 			}
 
+			<TotalStake<T>>::put(total);
 			total
 		}
 
@@ -1099,14 +1105,20 @@ pub mod pallet {
 
 				// Pay all stakers for T::RewardPaymentDelay rounds ago
 				Self::pay_stakers(round.current);
+				Self::deposit_event(Event::StakersPaid(round.current));
+
 				// Clear exit queue
 				Self::clear_exit_queue(round.current);
+				Self::deposit_event(Event::ExitQueueCleared(round.current));
+
 				// Update stake snapshot
-				Self::update_stake_snapshot(round.current);
+				let total = Self::update_stake_snapshot(round.current);
 
 				<Round<T>>::put(round);
 
 				<Staked<T>>::insert(round.current, <TotalStake<T>>::get());
+
+				Self::deposit_event(Event::StakeSnapshotUpdated(round.current, total));
 
 				Self::do_issue_undeployed_land_blocks(
 					&land_register_treasury,
