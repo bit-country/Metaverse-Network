@@ -923,14 +923,14 @@ pub mod pallet {
 				Error::<T>::EstateStakeAlreadyLeft
 			);
 
-			// Reserve balance
-			T::Currency::reserve(&who, more)?;
-
 			// Update EstateStake
 			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
 			let total = staked_balance.checked_add(&more).ok_or(Error::<T>::Overflow)?;
 
 			ensure!(total >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
+
+			// Reserve balance
+			T::Currency::reserve(&who, more)?;
 
 			<EstateStake<T>>::insert(estate_id, &who, total);
 

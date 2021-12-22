@@ -1870,3 +1870,414 @@ fn burn_undeployed_land_block_should_work() {
 		assert_eq!(EstateModule::get_undeployed_land_block(undeployed_land_block_id), None)
 	});
 }
+
+#[test]
+fn bond_more_should_reject_estate_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		let estate_id_does_not_exist: u64 = 1;
+		assert_noop!(
+			EstateModule::bond_more(Origin::signed(BOB), estate_id_does_not_exist, 100),
+			Error::<Runtime>::EstateDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn bond_more_should_reject_no_permission() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_noop!(
+			EstateModule::bond_more(Origin::signed(BOB), estate_id, BOND_AMOUNT_1),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn bond_more_should_reject_below_minimum() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_err!(
+			EstateModule::bond_more(Origin::signed(BENEFICIARY_ID), estate_id, BOND_AMOUNT_BELOW_MINIMUM),
+			Error::<Runtime>::BelowMinimumStake
+		);
+	});
+}
+
+#[test]
+fn bond_more_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_1
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateStakeIncreased(
+				BENEFICIARY_ID,
+				estate_id,
+				BOND_AMOUNT_1
+			))
+		);
+
+		assert_eq!(Balances::reserved_balance(BENEFICIARY_ID), BOND_AMOUNT_1);
+
+		assert_eq!(EstateModule::estate_stake(estate_id, BENEFICIARY_ID), BOND_AMOUNT_1);
+
+		assert_eq!(EstateModule::total_stake(), BOND_AMOUNT_1);
+	});
+}
+
+#[test]
+fn bond_more_should_work_with_more_than_one_operation() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_1
+		));
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_2
+		));
+
+		let total_bond = BOND_AMOUNT_1 + BOND_AMOUNT_2;
+		assert_eq!(Balances::reserved_balance(BENEFICIARY_ID), total_bond);
+
+		assert_eq!(EstateModule::estate_stake(estate_id, BENEFICIARY_ID), total_bond);
+
+		assert_eq!(EstateModule::total_stake(), total_bond);
+	});
+}
+
+#[test]
+fn bond_less_should_reject_estate_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		let estate_id_does_not_exist: u64 = 1;
+		assert_noop!(
+			EstateModule::bond_less(Origin::signed(BOB), estate_id_does_not_exist, 100),
+			Error::<Runtime>::EstateDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn bond_less_should_reject_no_permission() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_noop!(
+			EstateModule::bond_less(Origin::signed(BOB), estate_id, BOND_AMOUNT_1),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn bond_less_should_reject_below_minimum() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_1
+		));
+
+		assert_err!(
+			EstateModule::bond_less(Origin::signed(BENEFICIARY_ID), estate_id, BOND_AMOUNT_1),
+			Error::<Runtime>::BelowMinimumStake
+		);
+	});
+}
+
+#[test]
+fn bond_less_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_2
+		));
+
+		assert_ok!(EstateModule::bond_less(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_1
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateStakeDecreased(
+				BENEFICIARY_ID,
+				estate_id,
+				BOND_AMOUNT_1
+			))
+		);
+
+		let remaining_bond = BOND_AMOUNT_2 - BOND_AMOUNT_1;
+		assert_eq!(Balances::reserved_balance(BENEFICIARY_ID), remaining_bond);
+
+		assert_eq!(EstateModule::estate_stake(estate_id, BENEFICIARY_ID), remaining_bond);
+
+		assert_eq!(EstateModule::total_stake(), remaining_bond);
+	});
+}
+
+#[test]
+fn leave_staking_should_reject_estate_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		let estate_id_does_not_exist: u64 = 1;
+		assert_noop!(
+			EstateModule::leave_staking(Origin::signed(BOB), estate_id_does_not_exist),
+			Error::<Runtime>::EstateDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn leave_staking_should_reject_no_staking() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_noop!(
+			EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id),
+			Error::<Runtime>::AccountHasNoStake
+		);
+	});
+}
+
+#[test]
+fn leave_staking_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_1
+		));
+
+		assert_ok!(EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateStakeLeft(BENEFICIARY_ID, estate_id))
+		);
+
+		assert_eq!(EstateModule::exit_queue(BENEFICIARY_ID, estate_id), Some(()));
+	});
+}
+
+#[test]
+fn leave_staking_should_reject_has_already_left() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_1
+		));
+
+		assert_ok!(EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id));
+
+		assert_eq!(EstateModule::exit_queue(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_noop!(
+			EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id),
+			Error::<Runtime>::EstateStakeAlreadyLeft
+		);
+	});
+}
+
+#[test]
+fn bond_less_should_reject_stake_has_already_left() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_2
+		));
+
+		assert_ok!(EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id));
+
+		assert_noop!(
+			EstateModule::bond_less(Origin::signed(BENEFICIARY_ID), estate_id, BOND_AMOUNT_1),
+			Error::<Runtime>::EstateStakeAlreadyLeft
+		);
+	});
+}
+
+#[test]
+fn bond_more_should_reject_stake_has_already_left() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_ok!(EstateModule::bond_more(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_1
+		));
+
+		assert_ok!(EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id));
+
+		assert_noop!(
+			EstateModule::bond_more(Origin::signed(BENEFICIARY_ID), estate_id, BOND_AMOUNT_1),
+			Error::<Runtime>::EstateStakeAlreadyLeft
+		);
+	});
+}

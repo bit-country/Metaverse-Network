@@ -29,6 +29,11 @@ pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 pub const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 pub const ESTATE_IN_AUCTION: EstateId = 99;
 
+pub const BOND_AMOUNT_1: Balance = 1000;
+pub const BOND_AMOUNT_2: Balance = 2000;
+pub const BOND_AMOUNT_BELOW_MINIMUM: Balance = 100;
+pub const BOND_LESS_AMOUNT_1: Balance = 100;
+
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
 }
@@ -201,7 +206,7 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 
 parameter_types! {
 	pub const MinBlocksPerRound: u32 = 10;
-	pub const MinimumStake: Balance = 5 * DOLLARS;
+	pub const MinimumStake: Balance = 200;
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
 }
@@ -252,7 +257,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 100000), (BENEFICIARY_ID, 100000)],
+			balances: vec![(ALICE, 100000), (BOB, 100000), (BENEFICIARY_ID, 1000000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
