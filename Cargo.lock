@@ -4178,6 +4178,7 @@ dependencies = [
  "pallet-tokenization",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-utility",
  "pallet-vesting",
  "parachain-staking",
  "parity-scale-codec",
@@ -5790,6 +5791,7 @@ name = "pallet-utility"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12#d76f39995315ec36980908e4b99709bd14927044"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",

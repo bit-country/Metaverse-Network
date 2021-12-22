@@ -251,10 +251,6 @@ pub mod pallet {
 	pub(super) type AllNftGroupCollection<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_class_type)]
-	pub(super) type ClassDataType<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, TokenType, ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn next_asset_id)]
 	pub(super) type NextAssetId<T: Config> = StorageValue<_, AssetId, ValueQuery>;
 
@@ -266,6 +262,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_promotion_enabled)]
 	pub(super) type PromotionEnabled<T: Config> = StorageValue<_, bool, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_locked_collection)]
+	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -309,6 +309,10 @@ pub mod pallet {
 		ExecutedNft(AssetId),
 		/// Scheduled time capsule
 		ScheduledTimeCapsule(AssetId, Vec<u8>, T::BlockNumber),
+		/// Collection is locked
+		CollectionLocked(ClassIdOf<T>),
+		/// Collection is unlocked
+		CollectionUnlocked(ClassIdOf<T>),
 	}
 
 	#[pallet::error]
@@ -357,6 +361,12 @@ pub mod pallet {
 		TimeCapsuleExecutionLogicIsInvalid,
 		/// Timecapsule scheduled error
 		ErrorWhenScheduledTimeCapsule,
+		/// Collection already locked
+		CollectionAlreadyLocked,
+		/// Collection is locked
+		CollectionIsLocked,
+		/// Collection is not locked
+		CollectionIsNotLocked,
 	}
 
 	#[pallet::call]
@@ -640,13 +650,40 @@ pub mod pallet {
 			ensure!(asset_by_owner.contains(&asset_id), Error::<T>::NoPermission);
 			let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
 
-			let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
-			let data = class_info.data;
-
 			NftModule::<T>::burn(&sender, asset)?;
 			Assets::<T>::remove(asset_id);
 			Self::deposit_event(Event::<T>::BurnedNft(asset_id));
 			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::sign_asset())]
+		pub fn force_lock_collection(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResult {
+			ensure_root(origin)?;
+
+			ensure!(
+				!LockedCollection::<T>::contains_key(class_id),
+				Error::<T>::CollectionAlreadyLocked
+			);
+
+			LockedCollection::<T>::insert(class_id.clone(), ());
+			Self::deposit_event(Event::<T>::CollectionLocked(class_id));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::sign_asset())]
+		pub fn force_unlock_collection(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResult {
+			ensure_root(origin)?;
+
+			ensure!(
+				LockedCollection::<T>::contains_key(class_id),
+				Error::<T>::CollectionIsNotLocked
+			);
+
+			LockedCollection::<T>::remove(class_id.clone());
+			Self::deposit_event(Event::<T>::CollectionUnlocked(class_id));
+
+			Ok(())
 		}
 	}
 
