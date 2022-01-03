@@ -238,7 +238,7 @@ benchmarks! {
 		issue_new_undeployed_land_block::<T>(5)?;
 	}: _(RawOrigin::Root, 0)
 	verify {
-				let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
+		let issued_undeployed_land_block = crate::Pallet::<T>::get_undeployed_land_block(0);
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
@@ -412,6 +412,41 @@ benchmarks! {
 
 	}: {
 		EstateModule::<T>::on_initialize(6u32.into());
+	}
+
+	// bond_more
+	bond_more {
+		let caller = funded_account::<T>("caller", 10000);
+
+		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
+		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+	}: _(RawOrigin::Signed(caller.clone()), 0, 100u32.into())
+	verify {
+		assert_eq!(crate::Pallet::<T>::estate_stake(0, caller.clone()), 100u32.into())
+	}
+
+	// bond_less
+	bond_less {
+		let caller = funded_account::<T>("caller", 10000);
+
+		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
+		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, 100u32.into());
+	}: _(RawOrigin::Signed(caller.clone()), 0, 10u32.into())
+	verify {
+		assert_eq!(crate::Pallet::<T>::estate_stake(0, caller.clone()), 90u32.into())
+	}
+
+	// leave_staking
+	leave_staking {
+		let caller = funded_account::<T>("caller", 10000);
+
+		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
+		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, 100u32.into());
+	}: _(RawOrigin::Signed(caller.clone()), 0)
+	verify {
+		assert_eq!(crate::Pallet::<T>::exit_queue(caller.clone(), 0), Some(()))
 	}
 }
 

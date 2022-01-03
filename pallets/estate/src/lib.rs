@@ -29,7 +29,7 @@ use primitives::{
 pub use rate::{MintingRateInfo, Range};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, One},
+	traits::{AccountIdConversion, One, Saturating},
 	DispatchError,
 };
 use sp_std::vec::Vec;
@@ -48,22 +48,15 @@ pub mod weights;
 
 pub use weights::WeightInfo;
 
-#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq)]
-pub struct TestCollectionData {
-	pub name: Vec<u8>,
-	// Metadata from ipfs
-	pub properties: Vec<u8>,
-}
-
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
 	use crate::rate::{round_issuance_range, MintingRateInfo};
-	use frame_support::traits::{Currency, ReservableCurrency};
+	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
 	use primitives::UndeployedLandBlockId;
-	use sp_runtime::traits::Zero;
+	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -80,6 +73,19 @@ pub mod pallet {
 		pub first: BlockNumber,
 		/// The length of the current round in number of blocks
 		pub length: u32,
+	}
+
+	#[derive(Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+	/// Snapshot of collator state at the start of the round for which they are selected
+	pub struct StakeSnapshot<AccountId, Balance> {
+		pub stakers: Vec<Bond<AccountId, Balance>>,
+		pub total_bond: Balance,
+	}
+
+	#[derive(Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+	pub struct Bond<AccountId, Balance> {
+		pub staker: AccountId,
+		pub amount: Balance,
 	}
 
 	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> RoundInfo<B> {
@@ -124,6 +130,10 @@ pub mod pallet {
 		type MinBlocksPerRound: Get<u32>;
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
+		#[pallet::constant]
+		type MinimumStake: Get<BalanceOf<Self>>;
+		#[pallet::constant]
+		type RewardPaymentDelay: Get<u32>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -186,6 +196,41 @@ pub mod pallet {
 	#[pallet::getter(fn minting_rate_config)]
 	/// Minting rate configuration
 	pub type MintingRateConfig<T: Config> = StorageValue<_, MintingRateInfo, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn total_stake)]
+	/// Total NEER locked by estate
+	type TotalStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn staked)]
+	/// Total backing stake for selected candidates in the round
+	pub type Staked<T: Config> = StorageMap<_, Twox64Concat, RoundIndex, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn exit_queue)]
+	/// A queue of account awaiting exit
+	type ExitQueue<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn at_stake)]
+	/// Snapshot of estate staking per session
+	pub type AtStake<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		RoundIndex,
+		Twox64Concat,
+		EstateId,
+		StakeSnapshot<T::AccountId, BalanceOf<T>>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn estate_stake)]
+	/// Estate staking
+	pub type EstateStake<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -261,6 +306,17 @@ pub mod pallet {
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
 		/// Starting Block, Round, Total Land Unit
 		NewRound(T::BlockNumber, RoundIndex, u64),
+		StakeSnapshotUpdated(RoundIndex, BalanceOf<T>),
+		StakersPaid(RoundIndex),
+		ExitQueueCleared(RoundIndex),
+		/// Owner Account Id, Estate Id, Balance
+		EstateStakeIncreased(T::AccountId, EstateId, BalanceOf<T>),
+		/// Owner Account Id, Estate Id, Balance
+		EstateStakeDecreased(T::AccountId, EstateId, BalanceOf<T>),
+		/// Owner Account Id, Estate Id
+		EstateStakeLeft(T::AccountId, EstateId),
+		/// Account Id, Balance
+		StakingRewarded(T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -295,6 +351,10 @@ pub mod pallet {
 		EstateDoesNotExist,
 		LandUnitDoesNotExist,
 		OnlyFrozenUndeployedLandBlockCanBeDestroyed,
+		BelowMinimumStake,
+		Overflow,
+		EstateStakeAlreadyLeft,
+		AccountHasNoStake,
 	}
 
 	#[pallet::call]
@@ -844,6 +904,189 @@ pub mod pallet {
 				Ok(().into())
 			})
 		}
+
+		#[pallet::weight(T::WeightInfo::bond_more())]
+		pub fn bond_more(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			// Check estate ownership
+			ensure!(
+				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Error::<T>::NoPermission
+			);
+
+			// Check exit queue
+			ensure!(
+				<ExitQueue<T>>::get(&who, estate_id) == None,
+				Error::<T>::EstateStakeAlreadyLeft
+			);
+
+			// Update EstateStake
+			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
+			let total = staked_balance.checked_add(&more).ok_or(Error::<T>::Overflow)?;
+
+			ensure!(total >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
+
+			// Reserve balance
+			T::Currency::reserve(&who, more)?;
+
+			<EstateStake<T>>::insert(estate_id, &who, total);
+
+			// Update TotalStake
+			let new_total_staked = <TotalStake<T>>::get().saturating_add(more);
+			<TotalStake<T>>::put(new_total_staked);
+
+			Self::deposit_event(Event::EstateStakeIncreased(who, estate_id, more));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::bond_less())]
+		pub fn bond_less(origin: OriginFor<T>, estate_id: EstateId, less: BalanceOf<T>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			// Check estate ownership
+			ensure!(
+				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Error::<T>::NoPermission
+			);
+
+			// Check exit queue
+			ensure!(
+				<ExitQueue<T>>::get(&who, estate_id) == None,
+				Error::<T>::EstateStakeAlreadyLeft
+			);
+
+			// Check stake balance
+			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
+			let remaining = staked_balance.checked_sub(&less).ok_or(Error::<T>::Overflow)?;
+
+			ensure!(remaining >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
+
+			// Reserve balance
+			T::Currency::unreserve(&who, less);
+
+			<EstateStake<T>>::insert(estate_id, &who, remaining);
+
+			// Update TotalStake
+			let new_total_staked = <TotalStake<T>>::get().saturating_sub(less);
+			<TotalStake<T>>::put(new_total_staked);
+
+			Self::deposit_event(Event::EstateStakeDecreased(who, estate_id, less));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::leave_staking())]
+		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+
+			ensure!(
+				<ExitQueue<T>>::get(&who, estate_id) == None,
+				Error::<T>::EstateStakeAlreadyLeft
+			);
+
+			ensure!(
+				<EstateStake<T>>::get(estate_id, &who) > BalanceOf::<T>::zero(),
+				Error::<T>::AccountHasNoStake
+			);
+
+			<ExitQueue<T>>::insert(&who, estate_id, ());
+
+			Self::deposit_event(Event::EstateStakeLeft(who, estate_id));
+
+			Ok(().into())
+		}
+	}
+
+	impl<T: Config> Pallet<T> {
+		fn pay_stakers(next: RoundIndex) {
+			// payout is next - duration rounds ago => next - duration > 0 else return early
+			let duration = T::RewardPaymentDelay::get();
+			if next <= duration {
+				return;
+			}
+			let round_to_payout = next - duration;
+
+			// issue BIT for rewards distribution
+			let total_staked = <Staked<T>>::get(round_to_payout);
+			let total_issuance = Self::compute_issuance(total_staked);
+
+			let mut left_issuance = total_issuance;
+
+			// reserve portion of issuance for parachain bond account
+			// TODO: TBD on percentage and account config
+			// let bond_config = <ParachainBondInfo<T>>::get();
+			// let parachain_bond_reserve = bond_config.percent * total_issuance;
+			// if let Ok(imb) = T::Currency::deposit_into_existing(&bond_config.account, parachain_bond_reserve)
+			// { 	// update round issuance iff transfer succeeds
+			// 	left_issuance -= imb.peek();
+			// 	Self::deposit_event(Event::ReservedForParachainBond(bond_config.account, imb.peek()));
+			// }
+
+			// a local fn to transfer rewards to the account specified
+			let mint = |amt: BalanceOf<T>, to: T::AccountId| {
+				if let Ok(imb) = T::Currency::deposit_into_existing(&to, amt) {
+					Self::deposit_event(Event::StakingRewarded(to.clone(), imb.peek()));
+				}
+			};
+
+			for (estate_id, stake_snapshot) in <AtStake<T>>::drain_prefix(round_to_payout) {
+				for Bond { staker: owner, amount } in stake_snapshot.stakers {
+					// TODO: TBD on the rewards amount
+					let amount_due = amount;
+					mint(1u32.into(), owner);
+				}
+			}
+		}
+
+		/// Clear exit queue. return stake to account
+		fn clear_exit_queue(now: RoundIndex) {
+			for (account_id, estate_id, val) in <ExitQueue<T>>::drain() {
+				let staked_amount = <EstateStake<T>>::get(estate_id, &account_id);
+
+				// return stake to account
+				T::Currency::unreserve(&account_id, staked_amount);
+
+				<EstateStake<T>>::remove(estate_id, &account_id);
+			}
+		}
+
+		fn update_stake_snapshot(next: RoundIndex) -> BalanceOf<T> {
+			let mut total = BalanceOf::<T>::zero();
+
+			for estate_id in <Estates<T>>::iter_keys() {
+				let mut total_bond = BalanceOf::<T>::zero();
+				let mut stakers: Vec<Bond<T::AccountId, BalanceOf<T>>> = Vec::new();
+
+				for (account_id, amount) in <EstateStake<T>>::iter_prefix(estate_id) {
+					stakers.push(Bond {
+						staker: account_id.clone(),
+						amount,
+					});
+
+					total += amount;
+					total_bond += amount;
+				}
+				if stakers.len() > 0 {
+					<AtStake<T>>::insert(next, estate_id, StakeSnapshot { stakers, total_bond });
+				}
+			}
+
+			<TotalStake<T>>::put(total);
+			total
+		}
+
+		fn compute_issuance(staked: BalanceOf<T>) -> BalanceOf<T> {
+			//TODO: need to decide on how much BIT need to be issued per session
+			staked.saturating_add(staked)
+		}
 	}
 
 	#[pallet::hooks]
@@ -854,10 +1097,28 @@ pub mod pallet {
 			if round.should_update(n) {
 				// mutate round
 				round.update(n);
+
 				let round_issuance_per_round = round_issuance_range::<T>(minting_config);
+
 				//TODO do actual minting new undeployed land block
 				let land_register_treasury = T::LandTreasury::get().into_account();
+
+				// Pay all stakers for T::RewardPaymentDelay rounds ago
+				Self::pay_stakers(round.current);
+				Self::deposit_event(Event::StakersPaid(round.current));
+
+				// Clear exit queue
+				Self::clear_exit_queue(round.current);
+				Self::deposit_event(Event::ExitQueueCleared(round.current));
+
+				// Update stake snapshot
+				let total = Self::update_stake_snapshot(round.current);
+
 				<Round<T>>::put(round);
+
+				<Staked<T>>::insert(round.current, <TotalStake<T>>::get());
+
+				Self::deposit_event(Event::StakeSnapshotUpdated(round.current, total));
 
 				Self::do_issue_undeployed_land_blocks(
 					&land_register_treasury,

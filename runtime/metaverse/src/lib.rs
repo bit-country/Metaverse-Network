@@ -457,6 +457,7 @@ parameter_types! {
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
+	pub const MinimumStake: Balance = 5 * DOLLARS;
 }
 
 impl estate::Config for Runtime {
@@ -469,6 +470,8 @@ impl estate::Config for Runtime {
 	type AuctionHandler = Auction;
 	type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
 	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
+	type MinimumStake = MinimumStake;
+	type RewardPaymentDelay = RewardPaymentDelay;
 }
 
 parameter_types! {
