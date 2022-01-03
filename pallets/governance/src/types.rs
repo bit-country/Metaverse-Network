@@ -130,10 +130,10 @@ impl<BlockNumber: From<u32>> Default for ReferendumParameters<BlockNumber> {
 		ReferendumParameters {
 			voting_threshold: Some(VoteThreshold::RelativeMajority),
 			min_proposal_launch_period: 15u32.into(),
-			voting_period: 10u32.into(),
-			enactment_period: 2u32.into(),
+			voting_period: 100u32.into(),
+			enactment_period: 10u32.into(),
 			local_vote_locking_period: 28u32.into(),
-			max_proposals_per_metaverse: 2,
+			max_proposals_per_metaverse: 20,
 		}
 	}
 }
