@@ -40,7 +40,8 @@ pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumP
 	min_proposal_launch_period: 12,
 	voting_period: 5,
 	enactment_period: 10,
-	max_proposals_per_metaverse: 1,
+	max_proposals_per_metaverse: 10,
+	local_vote_locking_period: 1,
 };
 
 impl frame_system::Config for Runtime {
@@ -196,11 +197,6 @@ impl InstanceFilter<Call> for ProposalType {
 
 impl Config for Runtime {
 	type Event = Event;
-	type DefaultVotingPeriod = DefaultVotingPeriod;
-	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
-	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
-	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
-	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
@@ -212,6 +208,7 @@ impl Config for Runtime {
 	type MetaverseLandInfo = MetaverseLandInfo;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 	type ProposalType = ProposalType;
+	type Slash = ();
 }
 
 pub type GovernanceModule = Pallet<Runtime>;
@@ -252,7 +249,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 500)],
+			balances: vec![(ALICE, 100000), (BOB, 100000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -283,10 +280,8 @@ pub fn run_to_block(n: u64) {
 }
 
 pub fn set_balance_proposal(value: u64) -> Vec<u8> {
-	Call::Balances(pallet_balances::Call::set_balance {
-		who: BOB,
-		new_free: value,
-		new_reserved: 100,
+	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse {
+		metaverse_id: value
 	})
 	.encode()
 }
