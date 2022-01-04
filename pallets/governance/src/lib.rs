@@ -187,7 +187,6 @@ pub mod pallet {
 		InvalidProposalParameters,
 		ProposalQueueFull,
 		ProposalDoesNotExist,
-		ProposalIsReferendum,
 		NotProposalCreator,
 		InsufficientPrivileges,
 		ReferendumDoesNotExist,
@@ -345,10 +344,6 @@ pub mod pallet {
 			let proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
 			ensure!(proposal_info.proposed_by == from, Error::<T>::NotProposalCreator);
-			ensure!(
-				proposal_info.referendum_launch_block > <frame_system::Pallet<T>>::block_number(),
-				Error::<T>::ProposalIsReferendum
-			);
 			<Proposals<T>>::remove(metaverse_id, proposal);
 			Self::update_proposals_per_metaverse_number(metaverse_id, false);
 
@@ -372,10 +367,6 @@ pub mod pallet {
 			let mut proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
 			let current_block_number = <frame_system::Pallet<T>>::block_number();
-			ensure!(
-				proposal_info.referendum_launch_block > current_block_number,
-				Error::<T>::ProposalIsReferendum
-			);
 			proposal_info.referendum_launch_block = current_block_number + T::OneBlock::get();
 			<Proposals<T>>::remove(metaverse_id, proposal);
 			<Proposals<T>>::insert(metaverse_id, proposal, proposal_info);

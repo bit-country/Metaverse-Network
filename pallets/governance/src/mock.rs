@@ -32,16 +32,27 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const ALICE_COUNTRY_ID: CountryId = 1;
 pub const BOB_COUNTRY_ID: CountryId = 2;
+pub const PROPOSAL_BLOCK: BlockNumber = 12;
 pub const PROPOSAL_DESCRIPTION: [u8; 2] = [1, 2];
-//pub const PROPOSAL_PARAMETER: MetaverseParameter =
-// MetaverseParameter::MaxParametersPerProposal(2);
 pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumParameters {
 	voting_threshold: Some(VoteThreshold::RelativeMajority),
 	min_proposal_launch_period: 12,
 	voting_period: 5,
 	enactment_period: 10,
+	local_vote_locking_period: 30,
 	max_proposals_per_metaverse: 10,
-	local_vote_locking_period: 1,
+};
+
+pub const VOTE_FOR: Vote<Balance> = Vote {
+	aye: true,
+	balance: 10,
+	conviction: Conviction::None,
+};
+
+pub const VOTE_AGAINST: Vote<Balance> = Vote {
+	aye: false,
+	balance: 10,
+	conviction: Conviction::None,
 };
 
 impl frame_system::Config for Runtime {
@@ -140,11 +151,7 @@ impl MetaverseLandTrait<AccountId> for MetaverseLandInfo {
 }
 
 parameter_types! {
-	pub const DefaultVotingPeriod: BlockNumber = 10;
-	pub const DefaultEnactmentPeriod: BlockNumber = 2;
-	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
-	pub const DefaultMaxParametersPerProposal: u8 = 3;
-	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
+
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50;
 	pub const DefaultPreimageByteDeposit: Balance = 1;
@@ -201,6 +208,7 @@ impl Config for Runtime {
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
+	type Slash = ();
 	type MetaverseInfo = MetaverseInfo;
 	type PalletsOrigin = OriginCaller;
 	type Proposal = Call;
@@ -208,7 +216,6 @@ impl Config for Runtime {
 	type MetaverseLandInfo = MetaverseLandInfo;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 	type ProposalType = ProposalType;
-	type Slash = ();
 }
 
 pub type GovernanceModule = Pallet<Runtime>;
@@ -249,7 +256,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 100000)],
+			balances: vec![(ALICE, 100000), (BOB, 500)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -280,8 +287,10 @@ pub fn run_to_block(n: u64) {
 }
 
 pub fn set_balance_proposal(value: u64) -> Vec<u8> {
-	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse {
-		metaverse_id: value
+	Call::Balances(pallet_balances::Call::set_balance {
+		who: BOB,
+		new_free: value,
+		new_reserved: 100,
 	})
 	.encode()
 }
@@ -332,4 +341,14 @@ pub fn add_metaverse_preimage(hash: H256) {
 		expiry: Some(150),
 	};
 	Preimages::<Runtime>::insert(hash, preimage_status);
+}
+
+pub fn add_out_of_scope_proposal(preimage_hash: H256) {
+	let proposal_info = ProposalInfo {
+		proposed_by: ALICE,
+		hash: preimage_hash,
+		description: PROPOSAL_DESCRIPTION.to_vec(),
+		referendum_launch_block: PROPOSAL_BLOCK,
+	};
+	Proposals::<Runtime>::insert(BOB_COUNTRY_ID, 0, proposal_info);
 }
