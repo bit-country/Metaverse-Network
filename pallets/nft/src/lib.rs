@@ -299,6 +299,13 @@ pub mod pallet {
 			TokenIdOf<T>,
 			AssetId,
 		),
+		/// Successfully force transfer NFT
+		ForceTransferredNft(
+			<T as frame_system::Config>::AccountId,
+			<T as frame_system::Config>::AccountId,
+			TokenIdOf<T>,
+			AssetId,
+		),
 		/// Signed on NFT
 		SignedNft(TokenIdOf<T>, <T as frame_system::Config>::AccountId),
 		/// Promotion enabled
@@ -685,6 +692,27 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		/// Force NFT transfer which only triggered by governance
+		#[pallet::weight(T::WeightInfo::transfer())]
+		pub fn force_transfer(
+			origin: OriginFor<T>,
+			from: T::AccountId,
+			to: T::AccountId,
+			asset_id: AssetId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(ItemId::NFT(asset_id)),
+				Error::<T>::AssetAlreadyInAuction
+			);
+
+			let token_id = Self::do_force_transfer(&from, &to, asset_id)?;
+
+			Self::deposit_event(Event::<T>::ForceTransferredNft(from, to, token_id, asset_id.clone()));
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -790,5 +818,20 @@ impl<T: Config> Pallet<T> {
 	pub fn is_collection_locked(class_id: &ClassIdOf<T>) -> bool {
 		let is_locked = LockedCollection::<T>::get(class_id).is_some();
 		return is_locked;
+	}
+
+	/// Force transfer NFT only for governance override action
+	fn do_force_transfer(
+		sender: &T::AccountId,
+		to: &T::AccountId,
+		asset_id: AssetId,
+	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
+		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+		ensure!(!Self::is_collection_locked(&asset.0), Error::<T>::CollectionIsLocked);
+
+		Self::handle_asset_ownership_transfer(&sender, &to, asset_id)?;
+
+		NftModule::<T>::transfer(&sender, &to, asset.clone())?;
+		Ok(asset.1)
 	}
 }
