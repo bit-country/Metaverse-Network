@@ -37,20 +37,22 @@ use frame_support::{
 	},
 	PalletId,
 };
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-
-use auction_manager::{Auction, CheckAuctionItemHandler};
 use frame_system::pallet_prelude::*;
 use orml_nft::Pallet as NftModule;
-use primitives::{AssetId, BlockNumber, GroupCollectionId, Hash};
 use scale_info::TypeInfo;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	traits::{AccountIdConversion, Dispatchable, One},
 	DispatchError,
 };
 use sp_std::vec::Vec;
+
+use auction_manager::{Auction, CheckAuctionItemHandler};
+pub use pallet::*;
+use primitives::{AssetId, BlockNumber, GroupCollectionId, Hash};
+pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -59,15 +61,11 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub use pallet::*;
-
 // pub mod default_weight;
 //
 // pub use default_weight::WeightInfo;
 
 pub mod weights;
-
-pub use weights::WeightInfo;
 
 pub type NftMetadata = Vec<u8>;
 
@@ -165,9 +163,11 @@ impl Default for CollectionType {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+
 	use primitives::{FungibleTokenId, ItemId};
+
+	use super::*;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
@@ -459,6 +459,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
+			ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
 			ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
 			ensure!(
 				quantity <= T::MaxBatchMinting::get(),
@@ -541,7 +542,6 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::transfer())]
 		pub fn transfer(origin: OriginFor<T>, to: T::AccountId, asset_id: AssetId) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-
 			ensure!(
 				!T::AuctionHandler::check_item_in_auction(ItemId::NFT(asset_id)),
 				Error::<T>::AssetAlreadyInAuction
@@ -756,6 +756,7 @@ impl<T: Config> Pallet<T> {
 		asset_id: AssetId,
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+		ensure!(!Self::is_collection_locked(&asset.0), Error::<T>::CollectionIsLocked);
 
 		let class_info = NftModule::<T>::classes(asset.0).ok_or(Error::<T>::ClassIdNotFound)?;
 		let data = class_info.data;
@@ -783,5 +784,11 @@ impl<T: Config> Pallet<T> {
 		}
 
 		return Ok(false);
+	}
+
+	/// Check if the NFT collection is locked
+	pub fn is_collection_locked(class_id: &ClassIdOf<T>) -> bool {
+		let is_locked = LockedCollection::<T>::get(class_id).is_some();
+		return is_locked;
 	}
 }
