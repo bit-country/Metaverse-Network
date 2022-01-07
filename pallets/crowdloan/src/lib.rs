@@ -160,7 +160,10 @@ pub mod pallet {
 		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_max_bounds())]
 		pub fn set_distributor_origin(origin: OriginFor<T>, to: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
-			ensure!(Self::is_accepted_origin(&to), Error::<T>::AlreadySetAsDistributorOrigin);
+			ensure!(
+				!Self::is_accepted_origin(&to),
+				Error::<T>::AlreadySetAsDistributorOrigin
+			);
 
 			CrowdloanDistributorOrigins::<T>::insert(to.clone(), ());
 			Self::deposit_event(Event::AddedDistributorOrigin(to));
