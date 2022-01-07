@@ -209,6 +209,7 @@ pub mod pallet {
 			Balance = BalanceOf<Self>,
 		>;
 		/// Fungible token id for promotion incentive
+		#[pallet::constant]
 		type MiningResourceId: Get<FungibleTokenId>;
 		/// Incentive for promotion
 		type PromotionIncentive: Get<BalanceOf<Self>>;

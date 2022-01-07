@@ -5067,6 +5067,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-crowdloan"
+version = "2.0.0-rc6"
+dependencies = [
+ "auction-manager",
+ "bc-primitives",
+ "bit-country-primitives",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-vesting",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
+ "substrate-fixed",
+]
+
+[[package]]
 name = "pallet-democracy"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12#d76f39995315ec36980908e4b99709bd14927044"

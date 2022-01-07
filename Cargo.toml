@@ -13,6 +13,7 @@ members = [
     'pallets/nft',
     'pallets/swap',
     'pallets/tokenization',
+    'pallets/crowdloan',
     'traits/*',
     'node',
     'runtime/pioneer',
