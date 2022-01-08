@@ -110,6 +110,8 @@ pub mod pallet {
 		UserAlreadyGotExistingVestingInfo,
 		/// Already set as distributor origin
 		AlreadySetAsDistributorOrigin,
+		/// Distributor origin does not exist
+		DistributorOriginDoesNotExist,
 	}
 
 	#[pallet::call]
@@ -136,7 +138,15 @@ pub mod pallet {
 			to: <T::Lookup as StaticLookup>::Source,
 			schedule: VestingInfo<VestingBalanceOf<T>, T::BlockNumber>,
 		) -> DispatchResultWithPostInfo {
-			ensure_signed(origin.clone())?;
+			let who = ensure_signed(origin.clone())?;
+
+			ensure!(Self::is_accepted_origin(&who), Error::<T>::NoPermission);
+			let target = T::Lookup::lookup(to.clone())?;
+			// Get existing vesting schedule
+			let vesting_info = T::VestingSchedule::vesting_balance(&target);
+			// Ensure user doesn't have any vested reward
+			ensure!(vesting_info == None, Error::<T>::UserAlreadyGotExistingVestingInfo);
+
 			VestingModule::<T>::vested_transfer(origin, to, schedule)?;
 
 			Ok(().into())
@@ -174,7 +184,7 @@ pub mod pallet {
 		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_max_bounds())]
 		pub fn remove_distributor_origin(origin: OriginFor<T>, to: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
-			ensure!(Self::is_accepted_origin(&to), Error::<T>::AlreadySetAsDistributorOrigin);
+			ensure!(Self::is_accepted_origin(&to), Error::<T>::DistributorOriginDoesNotExist);
 
 			CrowdloanDistributorOrigins::<T>::remove(to.clone());
 			Self::deposit_event(Event::RemovedDistributorOrigin(to));
