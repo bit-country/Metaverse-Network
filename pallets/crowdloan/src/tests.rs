@@ -47,3 +47,89 @@ fn set_distribution_origin_should_work() {
 		assert_eq!(CrowdloanModule::is_accepted_origin(&ALICE), true);
 	});
 }
+
+#[test]
+fn remove_distribution_origin_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+
+		assert_eq!(
+			last_event(),
+			Event::Crowdloan(crate::Event::AddedDistributorOrigin(ALICE))
+		);
+
+		assert_ok!(CrowdloanModule::remove_distributor_origin(Origin::root(), ALICE));
+		assert_eq!(
+			last_event(),
+			Event::Crowdloan(crate::Event::RemovedDistributorOrigin(ALICE))
+		);
+
+		assert_eq!(CrowdloanModule::is_accepted_origin(&ALICE), false);
+	});
+}
+
+#[test]
+fn remove_distribution_origin_not_exist_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			CrowdloanModule::remove_distributor_origin(Origin::root(), ALICE),
+			Error::<Runtime>::DistributorOriginDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn transfer_unlocked_reward_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+
+		assert_ok!(CrowdloanModule::transfer_unlocked_reward(
+			Origin::signed(ALICE),
+			BOB,
+			100
+		));
+		assert_eq!(Balances::free_balance(&BOB), 100100);
+		assert_eq!(Balances::free_balance(&ALICE), 99900);
+	});
+}
+
+#[test]
+fn transfer_unlocked_reward_non_accepted_origin_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			CrowdloanModule::transfer_unlocked_reward(Origin::signed(ALICE), BOB, 100),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn transfer_vested_reward_non_accepted_origin_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let vested_schedule = VestingInfo::new(100, 10, 1);
+
+		assert_noop!(
+			CrowdloanModule::transfer_vested_reward(Origin::signed(ALICE), BOB, vested_schedule),
+			Error::<Runtime>::NoPermission
+		);
+	});
+}
+
+#[test]
+fn transfer_vested_reward_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+
+		let vested_schedule = VestingInfo::new(100, 10, 1);
+
+		assert_ok!(CrowdloanModule::transfer_vested_reward(
+			Origin::signed(ALICE),
+			BOB,
+			vested_schedule
+		));
+
+		let vesting_balance = Vesting::vesting_balance(&BOB);
+
+		assert_eq!(1, 1);
+	});
+}
