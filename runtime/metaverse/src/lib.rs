@@ -200,6 +200,30 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 42;
 }
 
+// Filter call that we don't enable before governance launch
+// Allow base system calls needed for block production and runtime upgrade
+// Other calls will be disallowed
+pub struct BaseFilter;
+
+impl Contains<Call> for BaseFilter {
+	fn contains(c: &Call) -> bool {
+		matches!(
+			c,
+			// Calls from Sudo
+			Call::Sudo(..)
+			// Calls for runtime upgrade.
+			| Call::System(..)
+			| Call::Timestamp(..)
+			// Enable session
+			| Call::Session(..)
+			// Enable vesting
+			| Call::Vesting(..)
+			// Enable ultility
+			| Call::Utility{..}
+		)
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
@@ -837,6 +861,14 @@ impl governance::Config for Runtime {
 	type ProposalType = ProposalType;
 }
 
+impl crowdloan::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type VestingSchedule = Vesting;
+	type BlockNumberToBalance = ConvertInto;
+	type WeightInfo = ();
+}
+
 //parameter_types! {
 //	pub const LocalChainId: chainbridge::ChainId = 1;
 //	pub const ProposalLifetime: BlockNumber = 5 * MINUTES;
@@ -908,6 +940,9 @@ construct_runtime!(
 		// External consensus support
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+
+		// Crowdloan
+		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>},
 
 //		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
 

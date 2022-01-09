@@ -6259,6 +6259,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-continuum",
+ "pallet-crowdloan",
  "pallet-estate",
  "pallet-grandpa",
  "pallet-metaverse",
