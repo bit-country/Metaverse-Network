@@ -4162,6 +4162,7 @@ dependencies = [
  "pallet-balances",
  "pallet-collective",
  "pallet-continuum",
+ "pallet-crowdloan",
  "pallet-democracy",
  "pallet-estate",
  "pallet-governance",

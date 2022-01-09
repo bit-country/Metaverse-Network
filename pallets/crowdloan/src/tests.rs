@@ -127,9 +127,47 @@ fn transfer_vested_reward_should_work() {
 			BOB,
 			vested_schedule
 		));
+		assert_eq!(Vesting::vesting_balance(&BOB), Some(100));
+	});
+}
 
-		let vesting_balance = Vesting::vesting_balance(&BOB);
+#[test]
+fn remove_vested_reward_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
 
-		assert_eq!(1, 1);
+		let vested_schedule = VestingInfo::new(100, 10, 1);
+
+		assert_ok!(CrowdloanModule::transfer_vested_reward(
+			Origin::signed(ALICE),
+			BOB,
+			vested_schedule
+		));
+		assert_eq!(Vesting::vesting_balance(&BOB), Some(100));
+
+		assert_ok!(CrowdloanModule::remove_vested_reward(Origin::root(), BOB, 0));
+		// remove vesting balance
+		assert_eq!(Vesting::vesting_balance(&BOB), None);
+	});
+}
+
+#[test]
+fn remove_vested_reward_should_fail_for_non_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+
+		let vested_schedule = VestingInfo::new(100, 10, 1);
+
+		assert_ok!(CrowdloanModule::transfer_vested_reward(
+			Origin::signed(ALICE),
+			BOB,
+			vested_schedule
+		));
+		assert_eq!(Vesting::vesting_balance(&BOB), Some(100));
+
+		assert_noop!(
+			CrowdloanModule::remove_vested_reward(Origin::signed(ALICE), BOB, 0),
+			BadOrigin
+		);
 	});
 }

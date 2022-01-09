@@ -146,7 +146,7 @@ impl VestingSchedule<AccountId> for VestingScheduleTrait {
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type VestingSchedule = VestingScheduleTrait;
+	type VestingSchedule = Vesting;
 	type BlockNumberToBalance = ConvertInto;
 	type WeightInfo = ();
 }

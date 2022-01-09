@@ -85,6 +85,7 @@ currencies = { package = "currencies", path = "../../pallets/currencies", versio
 swap = { package = "pallet-swap", path = "../../pallets/swap", version = "2.0.0-rc6", default-features = false }
 mining = { package = "pallet-mining", path = "../../pallets/mining", version = "2.0.0-rc6", default-features = false }
 governance = { package = "pallet-governance", path = "../../pallets/governance", version = "2.0.0-rc6", default-features = false }
+crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
 
 #modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
 
@@ -149,6 +150,7 @@ std = [
     #    "fp-rpc/std",
     #    "evm/std",
     "governance/std",
+    "crowdloan/std",
     "pallet-utility/std"
 ]
 runtime-benchmarks = [
