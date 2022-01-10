@@ -47,23 +47,67 @@ use sp_std::marker::PhantomData;
 /// Weight functions needed for crowdloan.
 pub trait WeightInfo {
 	fn set_distributor_origin() -> Weight;
+	fn remove_distributor_origin() -> Weight;
+	fn transfer_unlocked_reward() -> Weight;
+	fn transfer_vested_reward() -> Weight;
+	fn remove_vested_reward() -> Weight;
 }
 
 /// Weights for crowdloan using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn set_distributor_origin() -> Weight {
-		(12_000_000 as Weight)
+		(13_000_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	fn remove_distributor_origin() -> Weight {
+		(13_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	fn transfer_unlocked_reward() -> Weight {
+		(37_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(3 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
+	fn transfer_vested_reward() -> Weight {
+		(60_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(5 as Weight))
+			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+	}
+	fn remove_vested_reward() -> Weight {
+		(32_000_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(3 as Weight))
+			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {
 	fn set_distributor_origin() -> Weight {
-		(12_000_000 as Weight)
+		(13_000_000 as Weight)
 			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
 			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	fn remove_distributor_origin() -> Weight {
+		(13_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	fn transfer_unlocked_reward() -> Weight {
+		(37_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+	fn transfer_vested_reward() -> Weight {
+		(60_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(5 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(4 as Weight))
+	}
+	fn remove_vested_reward() -> Weight {
+		(32_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
 	}
 }

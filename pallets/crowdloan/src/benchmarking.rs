@@ -95,7 +95,7 @@ benchmarks! {
 
 		let target: T::AccountId = account("target", 0, SEED);
 
-	}: _(RawOrigin::Signed(caller.clone()), target, 100u32.into())
+	}: _(RawOrigin::Signed(caller.clone()), target, 700u32.into())
 
 	// transfer_vested_reward
 	transfer_vested_reward{

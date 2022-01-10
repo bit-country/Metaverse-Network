@@ -329,7 +329,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 500;
+	pub const ExistentialDeposit: u128 = 1;
 	pub const MaxLocks: u32 = 50;
 }
 
@@ -586,7 +586,7 @@ pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
 >;
 
 parameter_types! {
-	pub const MinVestedTransfer: Balance = 10 * DOLLARS;
+	pub const MinVestedTransfer: Balance = 10;
 }
 
 impl pallet_vesting::Config for Runtime {
