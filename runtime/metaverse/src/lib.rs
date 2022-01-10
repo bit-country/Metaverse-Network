@@ -709,6 +709,11 @@ parameter_types! {
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50 * DOLLARS;
 	pub const DefaultPreimageByteDeposit: Balance = 1 * DOLLARS;
+	pub const DefaultVotingPeriod: u32 = 100;
+	pub const DefaultLocalVoteLockingPeriod: u32 = 28;
+	pub const DefaultEnactmentPeriod: u32 = 10;
+	pub const DefaultProposalLaunchPeriod: u32 = 15;
+	pub const DefaultMaxParametersPerProposal: u8 = 20;
 }
 
 parameter_types! {
@@ -816,6 +821,11 @@ impl governance::Config for Runtime {
 	type Event = Event;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
+	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+	type DefaultVotingPeriod = DefaultVotingPeriod;
+	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+	type DefaultLocalVoteLockingPeriod = DefaultLocalVoteLockingPeriod;
+	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
 	type Slash = ();

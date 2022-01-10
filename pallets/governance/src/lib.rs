@@ -74,10 +74,25 @@ pub mod pallet {
 		type OneBlock: Get<Self::BlockNumber>;
 
 		#[pallet::constant]
+		type DefaultPreimageByteDeposit: Get<BalanceOf<Self>>;
+
+		#[pallet::constant]
 		type MinimumProposalDeposit: Get<BalanceOf<Self>>;
 
 		#[pallet::constant]
-		type DefaultPreimageByteDeposit: Get<BalanceOf<Self>>;
+		type DefaultProposalLaunchPeriod: Get<u32>;
+
+		#[pallet::constant]
+		type DefaultVotingPeriod: Get<u32>;
+
+		#[pallet::constant]
+		type DefaultEnactmentPeriod:  Get<u32>;
+
+		#[pallet::constant]
+		type DefaultLocalVoteLockingPeriod:  Get<u32>;
+
+		#[pallet::constant]
+		type DefaultMaxParametersPerProposal:  Get<u32>;
 
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
@@ -163,7 +178,7 @@ pub mod pallet {
 		ReferendumParametersUpdated(MetaverseId),
 		ProposalRefused(MetaverseId, T::Hash),
 		ProposalSubmitted(T::AccountId, MetaverseId, ProposalId),
-		ProposalCancelled(T::AccountId, MetaverseId, ProposalId),
+		ProposalCancelled(MetaverseId, ProposalId),
 		ProposalFastTracked(MetaverseId, ProposalId),
 		ProposalEnacted(MetaverseId, ReferendumId),
 		ReferendumStarted(ReferendumId, VoteThreshold),
@@ -340,17 +355,17 @@ pub mod pallet {
 			proposal: ProposalId,
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
-			let from = ensure_signed(origin)?;
+			ensure_root(origin)?;
 			let proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
+			if let Some((depositors, deposit)) = <DepositOf<T>>::take(proposal) {
+				<Proposals<T>>::remove(metaverse_id, proposal);
+				Self::update_proposals_per_metaverse_number(metaverse_id, false);				// slash depositors
+				for d in &depositors {
+					T::Slash::on_unbalanced(T::Currency::slash_reserved(d, deposit).0);
+				}
+			}
 
-			ensure!(proposal_info.proposed_by == from, Error::<T>::NotProposalCreator);
-			<Proposals<T>>::remove(metaverse_id, proposal);
-			Self::update_proposals_per_metaverse_number(metaverse_id, false);
-
-			T::Currency::unreserve(&from, Self::deposit_of(proposal).ok_or(Error::<T>::DepositNotFound)?.1);
-			<DepositOf<T>>::remove(proposal);
-
-			Self::deposit_event(Event::ProposalCancelled(from, metaverse_id, proposal));
+			Self::deposit_event(Event::ProposalCancelled(metaverse_id, proposal));
 			Ok(().into())
 		}
 
