@@ -165,5 +165,6 @@ runtime-benchmarks = [
     "estate/runtime-benchmarks",
     "auction/runtime-benchmarks",
     "metaverse/runtime-benchmarks",
+    "crowdloan/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks"
 ]

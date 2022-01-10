@@ -228,7 +228,7 @@ impl Contains<Call> for BaseFilter {
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = frame_support::traits::Everything;
+	type BaseCallFilter = BaseFilter;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -1136,6 +1136,7 @@ impl_runtime_apis! {
 			use estate::benchmarking::EstateModule as EstateBench;
 			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
+			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1146,6 +1147,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, estate, EstateBench::<Runtime>);
 			list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
 			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
+			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
@@ -1165,6 +1167,7 @@ impl_runtime_apis! {
 			use estate::benchmarking::EstateModule as EstateBench;
 			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
+			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1189,6 +1192,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, estate, EstateBench::<Runtime>);
 			add_benchmark!(params, batches, auction, AuctionBench::<Runtime>);
 			add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
+			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 
 

@@ -116,7 +116,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_max_bounds())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_distributor_origin())]
 		pub fn transfer_unlocked_reward(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -132,7 +132,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_max_bounds())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_distributor_origin())]
 		pub fn transfer_vested_reward(
 			origin: OriginFor<T>,
 			to: <T::Lookup as StaticLookup>::Source,
@@ -152,7 +152,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_max_bounds())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_distributor_origin())]
 		pub fn remove_vested_reward(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -167,7 +167,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_max_bounds())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_distributor_origin())]
 		pub fn set_distributor_origin(origin: OriginFor<T>, to: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(
@@ -181,7 +181,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_max_bounds())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::set_distributor_origin())]
 		pub fn remove_distributor_origin(origin: OriginFor<T>, to: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(Self::is_accepted_origin(&to), Error::<T>::DistributorOriginDoesNotExist);
