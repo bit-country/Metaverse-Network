@@ -2,6 +2,71 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
+use codec::{Decode, Encode, MaxEncodedLen};
+// use metaverse::weights::WeightInfo;
+#[cfg(feature = "runtime-benchmarks")]
+use frame_benchmarking::frame_support::pallet_prelude::Get;
+use frame_support::ConsensusEngineId;
+pub use frame_support::{
+	construct_runtime, parameter_types,
+	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
+	weights::{
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+		DispatchClass, IdentityFee, Weight,
+	},
+	PalletId, RuntimeDebug, StorageValue,
+};
+// A few exports that help ease life for downstream crates.
+use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
+use frame_system::{
+	limits::{BlockLength, BlockWeights},
+	Config, EnsureOneOf, EnsureRoot, RawOrigin,
+};
+use orml_traits::parameter_type_with_key;
+pub use pallet_balances::Call as BalancesCall;
+use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
+pub use pallet_timestamp::Call as TimestampCall;
+pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
+pub use parachain_staking::{InflationInfo, Range};
+use scale_info::TypeInfo;
+use sp_api::impl_runtime_apis;
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::crypto::Public;
+use sp_core::sp_std::marker::PhantomData;
+use sp_core::{
+	crypto::KeyTypeId,
+	u32_trait::{_1, _2, _3, _4},
+	OpaqueMetadata, H160, U256,
+};
+use sp_runtime::traits::OpaqueKeys;
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
+use sp_runtime::{
+	create_runtime_str, generic, impl_opaque_keys,
+	traits::{
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, NumberFor,
+		Verify, Zero,
+	},
+	transaction_validity::{TransactionSource, TransactionValidity},
+	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Percent, Perquintill,
+};
+pub use sp_runtime::{Perbill, Permill};
+use sp_std::prelude::*;
+#[cfg(feature = "std")]
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
+
+use constants::{currency::*, time::*};
+// External imports
+use currencies::BasicCurrencyAdapter;
+pub use estate::{MintingRateInfo, Range as MintingRange};
+//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
+use estate::weights::WeightInfo;
+use primitives::{Amount, Balance, BlockNumber, FungibleTokenId};
+
+// primitives imports
+use crate::opaque::SessionKeys;
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -16,76 +81,10 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 	)
 }
 
-// External imports
-use currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
-
 mod weights;
-
-// primitives imports
-use crate::opaque::SessionKeys;
-//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
-pub use estate::{MintingRateInfo, Range as MintingRange};
-use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
-pub use parachain_staking::{InflationInfo, Range};
-use sp_api::impl_runtime_apis;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::crypto::Public;
-use sp_core::{
-	crypto::KeyTypeId,
-	u32_trait::{_1, _2, _3, _4},
-	OpaqueMetadata, H160, U256,
-};
-use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
-	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, NumberFor,
-		Verify, Zero,
-	},
-	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Percent, Perquintill,
-};
-use sp_std::prelude::*;
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
-
-// A few exports that help ease life for downstream crates.
-pub use frame_support::{
-	construct_runtime, parameter_types,
-	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
-	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-		DispatchClass, IdentityFee, Weight,
-	},
-	PalletId, RuntimeDebug, StorageValue,
-};
-use frame_system::{
-	limits::{BlockLength, BlockWeights},
-	Config, EnsureOneOf, EnsureRoot, RawOrigin,
-};
-pub use pallet_balances::Call as BalancesCall;
-pub use pallet_timestamp::Call as TimestampCall;
-pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
-use primitives::{Amount, Balance, BlockNumber, FungibleTokenId};
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
-pub use sp_runtime::{Perbill, Permill};
 
 /// Constant values used within the runtime.
 pub mod constants;
-
-use codec::{Decode, Encode, MaxEncodedLen};
-use constants::{currency::*, time::*};
-use estate::weights::WeightInfo;
-// use metaverse::weights::WeightInfo;
-#[cfg(feature = "runtime-benchmarks")]
-use frame_benchmarking::frame_support::pallet_prelude::Get;
-use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
-use frame_support::ConsensusEngineId;
-use scale_info::TypeInfo;
-use sp_core::sp_std::marker::PhantomData;
-use sp_runtime::traits::OpaqueKeys;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -106,8 +105,9 @@ pub type Hash = sp_core::H256;
 /// to even the core data structures.
 
 pub mod opaque {
-	use super::*;
 	pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+	use super::*;
 
 	//	pub type Block = BlockP;
 	//	/// Opaque block header type.
@@ -140,7 +140,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 103,
+	spec_version: 6,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -200,11 +200,35 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 42;
 }
 
+// Filter call that we don't enable before governance launch
+// Allow base system calls needed for block production and runtime upgrade
+// Other calls will be disallowed
+pub struct BaseFilter;
+
+impl Contains<Call> for BaseFilter {
+	fn contains(c: &Call) -> bool {
+		matches!(
+			c,
+			// Calls from Sudo
+			Call::Sudo(..)
+			// Calls for runtime upgrade.
+			| Call::System(..)
+			| Call::Timestamp(..)
+			// Enable session
+			| Call::Session(..)
+			// Enable vesting
+			| Call::Vesting(..)
+			// Enable ultility
+			| Call::Utility{..}
+		)
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = frame_support::traits::Everything;
+	type BaseCallFilter = BaseFilter;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -305,7 +329,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 500;
+	pub const ExistentialDeposit: u128 = 1;
 	pub const MaxLocks: u32 = 50;
 }
 
@@ -562,7 +586,7 @@ pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
 >;
 
 parameter_types! {
-	pub const MinVestedTransfer: Balance = 10 * DOLLARS;
+	pub const MinVestedTransfer: Balance = 10;
 }
 
 impl pallet_vesting::Config for Runtime {
@@ -837,6 +861,14 @@ impl governance::Config for Runtime {
 	type ProposalType = ProposalType;
 }
 
+impl crowdloan::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type VestingSchedule = Vesting;
+	type BlockNumberToBalance = ConvertInto;
+	type WeightInfo = ();
+}
+
 //parameter_types! {
 //	pub const LocalChainId: chainbridge::ChainId = 1;
 //	pub const ProposalLifetime: BlockNumber = 5 * MINUTES;
@@ -908,6 +940,9 @@ construct_runtime!(
 		// External consensus support
 		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+
+		// Crowdloan
+		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>},
 
 //		EVM: pallet_evm::{Pallet, Config, Call, Storage, Event<T>},
 
@@ -1101,6 +1136,7 @@ impl_runtime_apis! {
 			use estate::benchmarking::EstateModule as EstateBench;
 			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
+			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1111,6 +1147,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, estate, EstateBench::<Runtime>);
 			list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
 			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
+			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
@@ -1130,6 +1167,7 @@ impl_runtime_apis! {
 			use estate::benchmarking::EstateModule as EstateBench;
 			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
+			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1154,6 +1192,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, estate, EstateBench::<Runtime>);
 			add_benchmark!(params, batches, auction, AuctionBench::<Runtime>);
 			add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
+			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 
 

@@ -199,7 +199,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 4,
+	spec_version: 6,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -272,7 +272,7 @@ impl Contains<Call> for BaseFilter {
 			// Enable session
 			| Call::Session(..)
 			// Enable collator selection
-			| Call::Vesting(..)
+			| Call::CollatorSelection(..)
 			// Enable vesting
 			| Call::Vesting(..)
 			// Enable ultility
@@ -915,6 +915,14 @@ impl swap::Config for Runtime {
 	type GetSwapFee = SwapFee;
 }
 
+impl crowdloan::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type VestingSchedule = Vesting;
+	type BlockNumberToBalance = ConvertInto;
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -968,12 +976,16 @@ construct_runtime!(
 		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
+
 //		OrmlNFT: orml_nft::{Pallet, Storage} = 41,
 //		Nft: nft::{Pallet, Storage, Event<T>} = 42,
 //		Auction: auction::{Pallet ,Storage, Event<T>} = 43,
 
 //		Continuum: continuum::{Pallet, Storage, Config<T>, Event<T>} = 44,
 //		Estate: estate::{Pallet, Storage, Event<T>, Config} = 49,
+
+		// Crowdloan
+		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}
 );
 
