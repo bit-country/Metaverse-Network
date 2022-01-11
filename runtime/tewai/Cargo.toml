@@ -265,5 +265,8 @@ runtime-benchmarks = [
     "pallet-session-benchmarking",
     "frame-system-benchmarking",
     "hex-literal",
-    #    'nft/runtime-benchmarks'
+    "nft/runtime-benchmarks",
+    "estate/runtime-benchmarks",
+    "auction/runtime-benchmarks",
+    "metaverse/runtime-benchmarks",
 ]
