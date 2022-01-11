@@ -94,9 +94,6 @@ impl OnUnbalanced<NegativeImbalance> for Author {
 /// Constant values used within the runtime.
 pub mod constants;
 
-/// Generated voter bag information.
-mod voter_bags;
-
 use constants::{currency::*, time::*};
 use sp_runtime::generic::Era;
 

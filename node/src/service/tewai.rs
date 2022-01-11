@@ -57,14 +57,6 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
 	}
 }
 
-//// Our native executor instance.
-// native_executor_instance!(
-// 	pub Executor,
-// 	tewai_runtime::api::dispatch,
-// 	tewai_runtime::native_version,
-// 	frame_benchmarking::benchmarking::HostFunctions,
-// );
-
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
