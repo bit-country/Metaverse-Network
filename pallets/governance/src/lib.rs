@@ -808,6 +808,16 @@ impl<T: Config> Pallet<T> {
 				Self::deposit_event(Event::ReferendumPassed(referendum_id));
 			}
 		} else {
+			let preimage = <Preimages<T>>::take(&referendum_status.proposal_hash);
+			if let Some(PreimageStatus::Available {
+				data,
+				provider,
+				deposit,
+				..
+			}) = preimage
+			{
+				T::Currency::unreserve(&provider, deposit);
+			}
 			Self::deposit_event(Event::ReferendumNotPassed(referendum_id));
 		}
 
@@ -825,8 +835,8 @@ impl<T: Config> Pallet<T> {
 		{
 			if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
 				let proposal_type = T::ProposalType::default();
-
 				if !proposal_type.filter(&proposal) {
+					T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
 					Self::deposit_event(Event::<T>::PreimageInvalid(
 						metaverse_id,
 						proposal_hash,
@@ -834,6 +844,7 @@ impl<T: Config> Pallet<T> {
 					));
 					Err(Error::<T>::PreimageInvalid.into())
 				} else {
+					T::Currency::unreserve(&provider, deposit);
 					Self::deposit_event(Event::<T>::PreimageUsed(proposal_hash, provider, deposit));
 					let result = proposal
 						.dispatch(frame_system::RawOrigin::Root.into())
