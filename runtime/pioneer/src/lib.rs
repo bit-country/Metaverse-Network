@@ -2,28 +2,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-// Make the WASM binary available.
-#[cfg(feature = "std")]
-include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
-
-use smallvec::smallvec;
-use sp_api::impl_runtime_apis;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
-	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,
-};
-
-mod weights;
-
-use sp_std::prelude::*;
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
-
-use frame_support::traits::{EnsureOrigin, Nothing};
+use frame_support::traits::{Contains, EnsureOrigin, Nothing};
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
 	traits::Everything,
@@ -37,29 +16,29 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureOneOf, EnsureRoot, RawOrigin,
 };
-
-// External imports
-use currencies::BasicCurrencyAdapter;
 use orml_traits::{arithmetic::Zero, parameter_type_with_key};
-
-/// Constant values used within the runtime.
-pub mod constants;
-
-use constants::{currency::*, time::*};
-pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-pub use sp_runtime::{MultiAddress, Perbill, Permill};
-
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
-
 // Polkadot Imports
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::{BlockHashCount, RocksDbWeight, SlowAdjustingFeeUpdate};
+use smallvec::smallvec;
+use sp_api::impl_runtime_apis;
+pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::traits::{AccountIdConversion, ConvertInto};
-
-// XCM Imports
-use primitives::{Amount, FungibleTokenId};
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
+use sp_runtime::{
+	create_runtime_str, generic, impl_opaque_keys,
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+	transaction_validity::{TransactionSource, TransactionValidity},
+	ApplyExtrinsicResult, MultiSignature,
+};
+pub use sp_runtime::{MultiAddress, Perbill, Permill};
+use sp_std::prelude::*;
+#[cfg(feature = "std")]
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
@@ -68,6 +47,21 @@ use xcm_builder::{
 	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
+
+use constants::{currency::*, time::*};
+// External imports
+use currencies::BasicCurrencyAdapter;
+// XCM Imports
+use primitives::{Amount, FungibleTokenId};
+
+// Make the WASM binary available.
+#[cfg(feature = "std")]
+include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
+
+mod weights;
+
+/// Constant values used within the runtime.
+pub mod constants;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -181,10 +175,10 @@ impl WeightToFeePolynomial for WeightToFee {
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core data structures.
 pub mod opaque {
-	use super::*;
+	pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 	use sp_runtime::{generic, traits::BlakeTwo256};
 
-	pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+	use super::*;
 
 	/// Opaque block header type.
 	pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
@@ -205,7 +199,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 4,
+	spec_version: 6,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -256,6 +250,34 @@ pub fn native_version() -> NativeVersion {
 	NativeVersion {
 		runtime_version: VERSION,
 		can_author_with: Default::default(),
+	}
+}
+
+// Filter call that we don't enable before governance launch
+// Allow base system calls needed for block production and runtime upgrade
+// Other calls will be disallowed
+pub struct BaseFilter;
+
+impl Contains<Call> for BaseFilter {
+	fn contains(c: &Call) -> bool {
+		matches!(
+			c,
+			// Calls from Sudo
+			Call::Sudo(..)
+			// Calls for runtime upgrade.
+			| Call::System(..)
+			| Call::Timestamp(..)
+			// Calls that are present in each block
+			| Call::ParachainSystem(..)
+			// Enable session
+			| Call::Session(..)
+			// Enable collator selection
+			| Call::CollatorSelection(..)
+			// Enable vesting
+			| Call::Vesting(..)
+			// Enable ultility
+			| Call::Utility{..}
+		)
 	}
 }
 
@@ -893,6 +915,14 @@ impl swap::Config for Runtime {
 	type GetSwapFee = SwapFee;
 }
 
+impl crowdloan::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type VestingSchedule = Vesting;
+	type BlockNumberToBalance = ConvertInto;
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -946,12 +976,16 @@ construct_runtime!(
 		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
+
 //		OrmlNFT: orml_nft::{Pallet, Storage} = 41,
 //		Nft: nft::{Pallet, Storage, Event<T>} = 42,
 //		Auction: auction::{Pallet ,Storage, Event<T>} = 43,
 
 //		Continuum: continuum::{Pallet, Storage, Config<T>, Event<T>} = 44,
 //		Estate: estate::{Pallet, Storage, Event<T>, Config} = 49,
+
+		// Crowdloan
+		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}
 );
 

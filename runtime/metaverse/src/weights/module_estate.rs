@@ -72,7 +72,7 @@ impl<T: frame_system::Config> estate::WeightInfo for WeightInfo<T> {
             .saturating_add(T::DbWeight::get().writes(5 as Weight))
     }
     fn dissolve_estate() -> Weight {
-        (27_000_000 as Weight)
+        (23_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(5 as Weight))
             .saturating_add(T::DbWeight::get().writes(4 as Weight))
     }
@@ -139,6 +139,21 @@ impl<T: frame_system::Config> estate::WeightInfo for WeightInfo<T> {
     fn active_issue_undeploy_land_block() -> Weight {
         (53_000_000 as Weight)
             .saturating_add(T::DbWeight::get().reads(4 as Weight))
+            .saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn bond_more() -> Weight {
+        (33_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(6 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn bond_less() -> Weight {
+        (36_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(6 as Weight))
+            .saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn leave_staking() -> Weight {
+        (18_000_000 as Weight)
+            .saturating_add(T::DbWeight::get().reads(3 as Weight))
             .saturating_add(T::DbWeight::get().writes(1 as Weight))
     }
 }

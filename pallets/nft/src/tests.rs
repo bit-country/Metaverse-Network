@@ -1,13 +1,13 @@
-#[cfg(test)]
-use super::*;
+use frame_support::{assert_noop, assert_ok};
+use orml_nft::Pallet as NftModule;
+use orml_traits::MultiCurrency;
+use sp_runtime::traits::BadOrigin;
+
 use mock::*;
 use primitives::{Balance, FungibleTokenId};
 
-use orml_nft::Pallet as NftModule;
-
-use frame_support::{assert_noop, assert_ok};
-use orml_traits::MultiCurrency;
-use sp_runtime::traits::BadOrigin;
+#[cfg(test)]
+use super::*;
 
 fn free_bit_balance(who: &AccountId) -> Balance {
 	<Runtime as Config>::MultiCurrency::free_balance(mining_resource_id(), &who)
@@ -30,6 +30,18 @@ fn mining_resource_id() -> FungibleTokenId {
 }
 
 fn init_test_nft(owner: Origin) {
+	assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+	assert_ok!(Nft::create_class(
+		owner.clone(),
+		vec![1],
+		COLLECTION_ID,
+		TokenType::Transferable,
+		CollectionType::Collectable,
+	));
+	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], vec![1], vec![1], 1));
+}
+
+fn init_bound_to_address_nft(owner: Origin) {
 	assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
 	assert_ok!(Nft::create_class(
 		owner.clone(),

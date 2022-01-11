@@ -1,13 +1,17 @@
 #![cfg(test)]
 
-use super::*;
-use crate as estate;
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
-use primitives::FungibleTokenId;
 use sp_core::H256;
+use sp_runtime::traits::{ConvertInto, Identity};
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
+
+use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use primitives::FungibleTokenId;
+
+use crate as crowdloan;
+
+use super::*;
 
 pub type AccountId = u128;
 pub type Balance = u128;
@@ -75,6 +79,7 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
+	pub const MinVestedTransfer: Balance = 10;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -89,119 +94,13 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = ();
 }
 
-// pub type AdaptedBasicCurrency =
-// currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-
-parameter_types! {
-	pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
-	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
-	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
-	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
-}
-
-pub struct MetaverseInfoSource {}
-
-impl MetaverseTrait<AccountId> for MetaverseInfoSource {
-	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
-		match *who {
-			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
-			BOB => *metaverse_id == BOB_METAVERSE_ID,
-			_ => false,
-		}
-	}
-
-	fn get_metaverse(_metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
-		None
-	}
-
-	fn get_metaverse_token(_metaverse_id: u64) -> Option<FungibleTokenId> {
-		None
-	}
-
-	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
-		Ok(())
-	}
-}
-
-pub struct MockAuctionManager;
-
-impl Auction<AccountId, BlockNumber> for MockAuctionManager {
-	type Balance = Balance;
-
-	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
-		None
-	}
-
-	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
-		Ok(())
-	}
-
-	fn new_auction(
-		_recipient: u128,
-		_initial_amount: Self::Balance,
-		_start: u64,
-		_end: Option<u64>,
-	) -> Result<u64, DispatchError> {
-		Ok(1)
-	}
-
-	fn create_auction(
-		_auction_type: AuctionType,
-		_item_id: ItemId,
-		_end: Option<u64>,
-		_recipient: u128,
-		_initial_amount: Self::Balance,
-		_start: u64,
-		_listing_level: ListingLevel<AccountId>,
-	) -> Result<u64, DispatchError> {
-		Ok(1)
-	}
-
-	fn remove_auction(_id: u64, _item_id: ItemId) {}
-
-	fn auction_bid_handler(
-		_now: u64,
-		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
-	) -> DispatchResult {
-		Ok(())
-	}
-
-	fn local_auction_bid_handler(
-		_now: u64,
-		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
-		_social_currency_id: FungibleTokenId,
-	) -> DispatchResult {
-		Ok(())
-	}
-
-	fn collect_royalty_fee(
-		_high_bid_price: &Self::Balance,
-		_high_bidder: &u128,
-		_asset_id: &u64,
-		_social_currency_id: FungibleTokenId,
-	) -> DispatchResult {
-		Ok(())
-	}
-}
-
-impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(item_id: ItemId) -> bool {
-		match item_id {
-			ItemId::Estate(ESTATE_IN_AUCTION) => {
-				return true;
-			}
-			ItemId::LandUnit(COORDINATE_IN_AUCTION, METAVERSE_ID) => {
-				return true;
-			}
-			_ => {
-				return false;
-			}
-		}
-	}
+impl pallet_vesting::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type BlockNumberToBalance = ConvertInto;
+	type MinVestedTransfer = MinVestedTransfer;
+	type WeightInfo = ();
+	const MAX_VESTING_SCHEDULES: u32 = 20;
 }
 
 parameter_types! {
@@ -211,18 +110,45 @@ parameter_types! {
 	pub const RewardPaymentDelay: u32 = 2;
 }
 
+pub struct VestingScheduleTrait;
+
+impl VestingSchedule<AccountId> for VestingScheduleTrait {
+	type Moment = ();
+	type Currency = Balances;
+
+	fn vesting_balance(who: &AccountId) -> Option<Balance> {
+		None
+	}
+
+	fn add_vesting_schedule(
+		who: &AccountId,
+		locked: Balance,
+		per_block: Balance,
+		starting_block: Self::Moment,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn can_add_vesting_schedule(
+		who: &AccountId,
+		locked: Balance,
+		per_block: Balance,
+		starting_block: Self::Moment,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn remove_vesting_schedule(who: &AccountId, schedule_index: u32) -> DispatchResult {
+		Ok(())
+	}
+}
+
 impl Config for Runtime {
 	type Event = Event;
-	type LandTreasury = LandTreasuryPalletId;
-	type MetaverseInfoSource = MetaverseInfoSource;
 	type Currency = Balances;
-	type MinimumLandPrice = MinimumLandPrice;
-	type CouncilOrigin = EnsureSignedBy<One, AccountId>;
-	type AuctionHandler = MockAuctionManager;
-	type MinBlocksPerRound = MinBlocksPerRound;
+	type VestingSchedule = Vesting;
+	type BlockNumberToBalance = ConvertInto;
 	type WeightInfo = ();
-	type MinimumStake = MinimumStake;
-	type RewardPaymentDelay = RewardPaymentDelay;
 }
 
 construct_runtime!(
@@ -233,11 +159,12 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Estate: estate:: {Pallet, Call, Storage, Event<T>}
+		Vesting: pallet_vesting::{Pallet, Call, Storage, Config<T> ,Event<T>},
+		Crowdloan: crowdloan:: {Pallet, Call, Storage, Event<T>},
 	}
 );
 
-pub type EstateModule = Pallet<Runtime>;
+pub type CrowdloanModule = Pallet<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;

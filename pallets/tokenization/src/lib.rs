@@ -179,10 +179,11 @@ pub mod pallet {
 			total_supply: Balance,
 			initial_lp: (u32, u32),
 			initial_backing: Balance,
+			metaverse_owner: T::AccountId,
 		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
+			ensure_root(origin)?;
 			ensure!(
-				T::MetaverseInfoSource::check_ownership(&who, &metaverse_id),
+				T::MetaverseInfoSource::check_ownership(&metaverse_owner, &metaverse_id),
 				Error::<T>::NoPermissionTokenIssuance
 			);
 			ensure!(
@@ -190,7 +191,14 @@ pub mod pallet {
 				Error::<T>::FungibleTokenAlreadyIssued
 			);
 
-			Self::mint_social_token(who, ticker, metaverse_id, total_supply, initial_lp, initial_backing)?;
+			Self::mint_social_token(
+				metaverse_owner,
+				ticker,
+				metaverse_id,
+				total_supply,
+				initial_lp,
+				initial_backing,
+			)?;
 
 			Ok(().into())
 		}
