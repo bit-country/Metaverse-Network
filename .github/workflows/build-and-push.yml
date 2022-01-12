@@ -42,14 +42,13 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-#          echo "REGISTRY_ENDPOINT=jerryjren"dddddd
         shell: bash
 
       - name: Run docker script
         shell: bash
-        #run: sudo -E scripts/d"$DOCKER_SCRIPT"
-        run: |
-          echo "script name $DOCKER_SCRIPT"
+        run: sudo -E scripts/d"$DOCKER_SCRIPT"
+        # run: |
+        #   echo "script name $DOCKER_SCRIPT"
         working-directory: .
         env:
           REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
@@ -76,15 +75,14 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-#          echo "REGISTRY_ENDPOINT=jerryjren"dddddd
         shell: bash
 
       - name: Run docker script
         shell: bash
-        #run: sudo -E scripts/d"$DOCKER_SCRIPT"
-        run: |
-          echo "script name $DOCKER_SCRIPT"
-          echo "environment name $ENV_NAME"
+        run: sudo -E scripts/d"$DOCKER_SCRIPT"
+        # run: |
+        #   echo "script name $DOCKER_SCRIPT"
+        #   echo "environment name $ENV_NAME"
         working-directory: .
         env:
           REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
