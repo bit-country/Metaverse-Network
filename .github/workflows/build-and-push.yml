@@ -31,13 +31,13 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-          echo "REGISTRY_ENDPOINT=jerryjren"
+#          echo "REGISTRY_ENDPOINT=jerryjren"
         shell: bash
 
       - name: Run docker script
         shell: bash
-        run: sudo -E scripts/docker_build_tewai.sh
+        run: sudo -E scripts/${{ secrets.DOCKER_SCRIPT }}
         working-directory: .
         env:
           TAG: ${{ env.BRANCH }}
-          REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
+          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
