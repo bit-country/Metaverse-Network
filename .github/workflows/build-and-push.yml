@@ -10,12 +10,23 @@ on:
 
 #   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      job:
+        description: 'Job to run.'
+        required: true
+        default: 'metaverse'
+      release:
+        description: 'Version to be released.'
+        required: false
+        default: 'master'
 
-jobs:
-  build:
+jobs: 
+  tewai:
       runs-on: ubuntu-latest
+      environment: 
+        name: tewai
 
-      if: ${{ github.event_name != 'pull_request' }}
+      if: ${{  github.event.inputs.job == 'tewai' }}
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -34,23 +45,6 @@ jobs:
 #          echo "REGISTRY_ENDPOINT=jerryjren"dddddd
         shell: bash
 
-      # - name: Run docker script
-      #   shell: bash
-      #   #run: sudo -E scripts/d"$DOCKER_SCRIPT"
-      #   run: |
-      #     echo "script name $DOCKER_SCRIPT"
-      #   working-directory: .
-      #   env:
-      #     TAG: ${{ env.BRANCH }}
-      #     REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
-      #     DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
-  
-  tewai:
-      runs-on: ubuntu-latest
-      environment: 
-        name: tewai
-
-      steps:
       - name: Run docker script
         shell: bash
         #run: sudo -E scripts/d"$DOCKER_SCRIPT"
@@ -66,7 +60,25 @@ jobs:
       environment: 
         name: metaverse
 
+      if: ${{  github.event.inputs.job == 'metaverse' }}
       steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set branch name as env variable
+        run: |
+          currentbranch=$(echo ${GITHUB_REF##*/})
+          echo "running on $currentbranch"
+          echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+#          echo "REGISTRY_ENDPOINT=jerryjren"dddddd
+        shell: bash
+
       - name: Run docker script
         shell: bash
         #run: sudo -E scripts/d"$DOCKER_SCRIPT"
