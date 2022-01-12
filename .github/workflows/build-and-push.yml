@@ -33,14 +33,50 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-#          echo "REGISTRY_ENDPOINT=jerryjren"
+#          echo "REGISTRY_ENDPOINT=jerryjren"dddddd
         shell: bash
 
       - name: Run docker script
         shell: bash
-        run: sudo -E scripts/"$DOCKER_SCRIPT"
+        #run: sudo -E scripts/d"$DOCKER_SCRIPT"
+        run: |
+          echo "script name $DOCKER_SCRIPT"
         working-directory: .
         env:
           TAG: ${{ env.BRANCH }}
           REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
           DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
+  
+  tewai:
+      runs-on: ubuntu-latest
+      environment: 
+        name: tewai
+
+      steps:
+      - name: Run docker script
+        shell: bash
+        #run: sudo -E scripts/d"$DOCKER_SCRIPT"
+        run: |
+          echo "script name $DOCKER_SCRIPT"
+        working-directory: .
+        env:
+          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
+          DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
+
+  metaverse:
+      runs-on: ubuntu-latest
+      environment: 
+        name: metaverse
+
+      steps:
+      - name: Run docker script
+        shell: bash
+        #run: sudo -E scripts/d"$DOCKER_SCRIPT"
+        run: |
+          echo "script name $DOCKER_SCRIPT"
+          echo "environment name $ENV_NAME"
+        working-directory: .
+        env:
+          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
+          DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
+          ENV_NAME: ${{ env.name }}
