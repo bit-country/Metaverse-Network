@@ -14,8 +14,6 @@ on:
 jobs:
   build:
       runs-on: ubuntu-latest
-      environment: 
-        name: tewai
 
       if: ${{ github.event_name != 'pull_request' }}
       steps:
@@ -36,16 +34,16 @@ jobs:
 #          echo "REGISTRY_ENDPOINT=jerryjren"dddddd
         shell: bash
 
-      - name: Run docker script
-        shell: bash
-        #run: sudo -E scripts/d"$DOCKER_SCRIPT"
-        run: |
-          echo "script name $DOCKER_SCRIPT"
-        working-directory: .
-        env:
-          TAG: ${{ env.BRANCH }}
-          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
-          DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
+      # - name: Run docker script
+      #   shell: bash
+      #   #run: sudo -E scripts/d"$DOCKER_SCRIPT"
+      #   run: |
+      #     echo "script name $DOCKER_SCRIPT"
+      #   working-directory: .
+      #   env:
+      #     TAG: ${{ env.BRANCH }}
+      #     REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
+      #     DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
   
   tewai:
       runs-on: ubuntu-latest
