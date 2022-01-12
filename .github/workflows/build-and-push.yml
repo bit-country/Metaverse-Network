@@ -38,8 +38,9 @@ jobs:
 
       - name: Run docker script
         shell: bash
-        run: sudo -E scripts/${{ env.DOCKER_SCRIPT }}
+        run: sudo -E scripts/"$DOCKER_SCRIPT"
         working-directory: .
         env:
           TAG: ${{ env.BRANCH }}
-          REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
+          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
+          DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
