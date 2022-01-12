@@ -11,7 +11,7 @@ ARG GIT_COMMIT=
 ENV GIT_COMMIT=$GIT_COMMIT
 WORKDIR /metaverse
 
-COPY . /metavers
+COPY . /metaverse
 
 RUN apt-get update && \
 	apt-get dist-upgrade -y -o Dpkg::Options::="--force-confold" && \
