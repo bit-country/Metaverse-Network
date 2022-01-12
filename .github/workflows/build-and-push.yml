@@ -46,7 +46,7 @@ jobs:
 
       - name: Run docker script
         shell: bash
-        run: sudo -E scripts/d"$DOCKER_SCRIPT"
+        run: sudo -E scripts/"$DOCKER_SCRIPT"
         # run: |
         #   echo "script name $DOCKER_SCRIPT"
         working-directory: .
@@ -79,7 +79,7 @@ jobs:
 
       - name: Run docker script
         shell: bash
-        run: sudo -E scripts/d"$DOCKER_SCRIPT"
+        run: sudo -E scripts/"$DOCKER_SCRIPT"
         # run: |
         #   echo "script name $DOCKER_SCRIPT"
         #   echo "environment name $ENV_NAME"
