@@ -121,7 +121,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn preimages)]
 	pub type Preimages<T: Config> =
-		StorageMap<_, Identity, T::Hash, PreimageStatus<T::AccountId, BalanceOf<T>, T::BlockNumber>>;
+		StorageDoubleMap<_, Twox64Concat, MetaverseId, Identity, T::Hash, PreimageStatus<T::AccountId, BalanceOf<T>, T::BlockNumber>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn proposals)]
@@ -170,10 +170,10 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		PreimageNoted(T::Hash, T::AccountId, BalanceOf<T>),
+		PreimageNoted(MetaverseId, T::Hash, T::AccountId, BalanceOf<T>),
 		PreimageInvalid(MetaverseId, T::Hash, ReferendumId),
 		PreimageMissing(MetaverseId, T::Hash, ReferendumId),
-		PreimageUsed(T::Hash, T::AccountId, BalanceOf<T>),
+		PreimageUsed(MetaverseId, T::Hash, T::AccountId, BalanceOf<T>),
 		PreimageEnacted(MetaverseId, T::Hash, DispatchResult),
 		ReferendumParametersUpdated(MetaverseId),
 		ProposalRefused(MetaverseId, T::Hash),
@@ -248,9 +248,9 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn note_preimage(origin: OriginFor<T>, encoded_proposal: Vec<u8>) -> DispatchResultWithPostInfo {
+		pub fn note_preimage(origin: OriginFor<T>, metaverse_id: MetaverseId, encoded_proposal: Vec<u8>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
-			Self::note_preimage_inner(from, encoded_proposal.clone())?;
+			Self::note_preimage_inner(from, metaverse_id, encoded_proposal.clone())?;
 			Ok(().into())
 		}
 
@@ -275,8 +275,8 @@ pub mod pallet {
 				T::Currency::free_balance(&from) >= balance,
 				Error::<T>::InsufficientBalance
 			);
-			ensure!(<Preimages<T>>::contains_key(preimage_hash), Error::<T>::PreimageInvalid);
-			let preimage = Self::preimages(preimage_hash);
+			ensure!(<Preimages<T>>::contains_key(metaverse_id, preimage_hash), Error::<T>::PreimageInvalid);
+			let preimage = Self::preimages(metaverse_id, preimage_hash);
 			if let Some(PreimageStatus::Available {
 				data,
 				provider,
@@ -576,10 +576,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	// See `note_preimage`
-	fn note_preimage_inner(who: T::AccountId, encoded_proposal: Vec<u8>) -> DispatchResult {
+	fn note_preimage_inner(who: T::AccountId, metaverse_id: MetaverseId, encoded_proposal: Vec<u8>) -> DispatchResult {
 		let preimage_hash = T::Hashing::hash(&encoded_proposal[..]);
 		ensure!(
-			!<Preimages<T>>::contains_key(&preimage_hash),
+			!<Preimages<T>>::contains_key(&metaverse_id, &preimage_hash),
 			Error::<T>::DuplicatePreimage
 		);
 
@@ -595,9 +595,9 @@ impl<T: Config> Pallet<T> {
 			since: now,
 			expiry: None,
 		};
-		<Preimages<T>>::insert(preimage_hash, a);
+		<Preimages<T>>::insert(metaverse_id, preimage_hash, a);
 
-		Self::deposit_event(Event::<T>::PreimageNoted(preimage_hash, who, deposit));
+		Self::deposit_event(Event::<T>::PreimageNoted(metaverse_id, preimage_hash, who, deposit));
 
 		Ok(())
 	}
@@ -808,7 +808,7 @@ impl<T: Config> Pallet<T> {
 				Self::deposit_event(Event::ReferendumPassed(referendum_id));
 			}
 		} else {
-			let preimage = <Preimages<T>>::take(&referendum_status.proposal_hash);
+			let preimage = <Preimages<T>>::take(&metaverse_id, &referendum_status.proposal_hash);
 			if let Some(PreimageStatus::Available {
 				data,
 				provider,
@@ -825,7 +825,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_enact_proposal(proposal_id: ProposalId, metaverse_id: MetaverseId,referendum_id: ReferendumId, proposal_hash: T::Hash) -> DispatchResult {
-		let preimage = <Preimages<T>>::take(&proposal_hash);
+		let preimage = <Preimages<T>>::take(&metaverse_id, &proposal_hash);
 		if let Some(PreimageStatus::Available {
 			data,
 			provider,
@@ -845,7 +845,7 @@ impl<T: Config> Pallet<T> {
 					Err(Error::<T>::PreimageInvalid.into())
 				} else {
 					T::Currency::unreserve(&provider, deposit);
-					Self::deposit_event(Event::<T>::PreimageUsed(proposal_hash, provider, deposit));
+					Self::deposit_event(Event::<T>::PreimageUsed(metaverse_id, proposal_hash, provider, deposit));
 					let result = proposal
 						.dispatch(frame_system::RawOrigin::Root.into())
 						.map(|_| ())
