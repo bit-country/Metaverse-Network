@@ -110,13 +110,19 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          echo "REGISTRY_ENDPOINT=pioneer-collattor-node" >> $GITHUB_ENV
+          echo "DOCKER_SCRIPT=docker_build_tewai.sh" >> $GITHUB_ENV
         shell: bash
 
       - name: Run docker script
         shell: bash
-        run: sudo -E scripts/"$DOCKER_SCRIPT"
+        run: |
+          echo "DOCKER_SCRIPT: $DOCKER_SCRIPT"
+          echo "SCRIPT: $SCRIPT"
+          sudo -E scripts/"$SCRIPT"
         working-directory: .
         env:
           REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
           DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
+          SCRIPT: ${{ env.DOCKER_SCRIPT }}
           ENV_NAME: ${{ env.name }}
