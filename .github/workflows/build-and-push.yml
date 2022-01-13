@@ -16,7 +16,7 @@ on:
         required: true
         default: 'metaverse'
       release:
-        description: 'Version to be released.'
+        description: 'Commit or tag to be released.'
         required: false
         default: 'master'
 
@@ -27,6 +27,8 @@ jobs:
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.release }}
 
       - name: Login to Container Registry
         uses: docker/login-action@v1
@@ -44,6 +46,7 @@ jobs:
 
   metaverse:
       runs-on: ubuntu-latest
+      needs: ["setup"]
       environment: 
         name: metaverse
 
