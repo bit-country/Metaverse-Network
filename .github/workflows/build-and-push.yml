@@ -94,7 +94,7 @@ jobs:
       environment: 
         name: pioneer
 
-      if: ${{  github.event.inputs.job == 'pioneer' }}
+      if: ${{  github.event.inputs.job == 'metaverse' }}
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -110,21 +110,13 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-          echo "REGISTRY_ENDPOINT=pioneer-collattor-node" >> $GITHUB_ENV
-          echo "DOCKER_SCRIPT=docker_build_pioneer.sh" >> $GITHUB_ENV
         shell: bash
 
       - name: Run docker script
         shell: bash
-        # run: |
-        #   echo "script name $DOCKER_SCRIPT"
-        #   echo "registry $REGISTRY"
-        #   echo "branch $TAG"
-        #   sudo -E scripts/"$DOCKER_SCRIPT"
-        run: sudo -E scripts/"$SCRIPT"
+        run: sudo -E scripts/"$DOCKER_SCRIPT"
         working-directory: .
         env:
-          REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
-          DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
-          SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
-          TAG: ${{ env.BRANCH }}
+          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
+          DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
+          ENV_NAME: ${{ env.name }}
