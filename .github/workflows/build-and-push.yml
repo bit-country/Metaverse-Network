@@ -120,7 +120,8 @@ jobs:
           echo "script name $DOCKER_SCRIPT"
           echo "registry $REGISTRY"
           echo "environment name $ENV_NAME"
-          sudo -E scripts/"$DOCKER_SCRIPT"
+          echo "branch $TAG"
+        # sudo -E scripts/"$DOCKER_SCRIPT"
         # run: |
         #   echo "script name $DOCKER_SCRIPT"
         #   echo "environment name $ENV_NAME"
@@ -129,3 +130,4 @@ jobs:
           REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
           DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
           ENV_NAME: ${{ env.name }}
+          TAG: ${{ env.BRANCH }}
