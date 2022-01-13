@@ -14,7 +14,7 @@ on:
         default: 'master'
 
 env:
-  REGISTRY: jerryjren
+  REGISTRY: bitcountry
 
 jobs: 
   metaverse:
