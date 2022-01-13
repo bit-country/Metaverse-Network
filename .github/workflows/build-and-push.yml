@@ -121,9 +121,10 @@ jobs:
         #   echo "registry $REGISTRY"
         #   echo "branch $TAG"
         #   sudo -E scripts/"$DOCKER_SCRIPT"
-        run: sudo -E scripts/"$DOCKER_SCRIPT"
+        run: sudo -E scripts/"$SCRIPT"
         working-directory: .
         env:
           REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
           DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
+          SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
           TAG: ${{ env.BRANCH }}
