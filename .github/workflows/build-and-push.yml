@@ -111,7 +111,7 @@ jobs:
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
           echo "REGISTRY_ENDPOINT=pioneer-collattor-node" >> $GITHUB_ENV
-          echo "DOCKER_SCRIPT=docker_build_tewai.sh" >> $GITHUB_ENV
+          echo "DOCKER_SCRIPT=docker_build_pioneer.sh" >> $GITHUB_ENV
         shell: bash
 
       - name: Run docker script
