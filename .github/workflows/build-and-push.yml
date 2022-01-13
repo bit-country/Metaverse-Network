@@ -11,8 +11,8 @@ on:
 #   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
-      job:
-        description: 'Job to run.'
+      runtime:
+        description: 'Runtime to run.'
         required: true
         default: 'metaverse'
       release:
@@ -21,12 +21,9 @@ on:
         default: 'master'
 
 jobs: 
-  tewai:
+  setup:
       runs-on: ubuntu-latest
-      environment: 
-        name: tewai
-
-      if: ${{  github.event.inputs.job == 'tewai' }}
+      
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -37,29 +34,44 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Set branch name as env variable
+      - name: Set env variable
         run: |
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          echo "REGISTRY=jerryjren" >> $GITHUB_ENV
         shell: bash
-
-      - name: Run docker script
-        shell: bash
-        run: sudo -E scripts/"$DOCKER_SCRIPT"
-        # run: |
-        #   echo "script name $DOCKER_SCRIPT"
-        working-directory: .
-        env:
-          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
-          DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
 
   metaverse:
       runs-on: ubuntu-latest
       environment: 
         name: metaverse
 
-      if: ${{  github.event.inputs.job == 'metaverse' }}
+      if: ${{  github.event.inputs.runtime == 'metaverse' }}
+      steps:
+      - name: Set env variable for ${{ github.event.inputs.runtime }}
+        run: |
+          echo "REGISTRY_ENDPOINT=metaverse-node" >> $GITHUB_ENV
+          echo "DOCKER_SCRIPT=docker_run.sh" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Run docker script
+        shell: bash
+        run: |
+          echo "REGISTRY_ENDPOINT: $REGISTRY_ENDPOINT"
+          echo "DOCKER_SCRIPT: $DOCKER_SCRIPT"
+          sudo -E scripts/"$DOCKER_SCRIPT"
+        working-directory: .
+        env:
+          REGISTRY_ENDPOINT: ${{ env.REGISTRY_ENDPOINT }}
+          DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
+
+  tewai:
+      runs-on: ubuntu-latest
+      environment: 
+        name: tewai
+
+      if: ${{  github.event.inputs.runtime == 'tewai' }}
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -80,21 +92,18 @@ jobs:
       - name: Run docker script
         shell: bash
         run: sudo -E scripts/"$DOCKER_SCRIPT"
-        # run: |
-        #   echo "script name $DOCKER_SCRIPT"
-        #   echo "environment name $ENV_NAME"
         working-directory: .
         env:
-          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
+          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
           DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
-          ENV_NAME: ${{ env.name }}
+
 
   pioneer:
       runs-on: ubuntu-latest
       environment: 
         name: pioneer
 
-      if: ${{  github.event.inputs.job == 'pioneer' }}
+      if: ${{  github.event.inputs.runtime == 'pioneer' }}
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -118,11 +127,9 @@ jobs:
         shell: bash
         run: |
           echo "DOCKER_SCRIPT: $DOCKER_SCRIPT"
-          echo "SCRIPT: $SCRIPT"
-          sudo -E scripts/"$SCRIPT"
+          sudo -E scripts/"$DOCKER_SCRIPT"
         working-directory: .
         env:
-          REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
-          DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
-          SCRIPT: ${{ env.DOCKER_SCRIPT }}
+          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
+          DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
           ENV_NAME: ${{ env.name }}
