@@ -110,7 +110,7 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-          echo "REGISTRY_ENDPOINT=pioneer-collattor-node"
+          echo "REGISTRY_ENDPOINT=pioneer-collattor-node" >> $GITHUB_ENV
           echo "DOCKER_SCRIPT=docker_build_pioneer.sh"
         shell: bash
 
@@ -118,8 +118,7 @@ jobs:
         shell: bash
         run: |
           echo "script name $DOCKER_SCRIPT"
-          echo "registry $REGISTRY"
-          echo "environment name $ENV_NAME"
+          echo "registry $REGISTRY"          
           echo "branch $TAG"
         # sudo -E scripts/"$DOCKER_SCRIPT"
         # run: |
@@ -129,5 +128,4 @@ jobs:
         env:
           REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
           DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
-          ENV_NAME: ${{ env.name }}
           TAG: ${{ env.BRANCH }}
