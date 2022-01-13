@@ -20,10 +20,16 @@ on:
         required: false
         default: 'master'
 
+env:
+  REGISTRY: jerryjren
+
 jobs: 
-  setup:
+  metaverse:
       runs-on: ubuntu-latest
-      
+      environment: 
+        name: metaverse
+
+      if: ${{  github.event.inputs.runtime == 'metaverse' }}
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -41,17 +47,8 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-          echo "REGISTRY=jerryjren" >> $GITHUB_ENV
         shell: bash
 
-  metaverse:
-      runs-on: ubuntu-latest
-      needs: ["setup"]
-      environment: 
-        name: metaverse
-
-      if: ${{  github.event.inputs.runtime == 'metaverse' }}
-      steps:
       - name: Set env variable for ${{ github.event.inputs.runtime }}
         run: |
           echo "REGISTRY_ENDPOINT=metaverse-node" >> $GITHUB_ENV
@@ -61,6 +58,7 @@ jobs:
       - name: Run docker script
         shell: bash
         run: |
+          echo "REGISTRY: ${{ env.REGISTRY }}"
           echo "REGISTRY_ENDPOINT: $REGISTRY_ENDPOINT"
           echo "DOCKER_SCRIPT: $DOCKER_SCRIPT"
           sudo -E scripts/"$DOCKER_SCRIPT"
