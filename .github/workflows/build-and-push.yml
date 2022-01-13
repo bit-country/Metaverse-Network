@@ -88,3 +88,44 @@ jobs:
           REGISTRY: ${{ secrets.REGISTRY_ENDPOINT }}
           DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
           ENV_NAME: ${{ env.name }}
+
+  pioneer:
+      runs-on: ubuntu-latest
+      environment: 
+        name: pioneer
+
+      if: ${{  github.event.inputs.job == 'metaverse' }}
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set branch name as env variable
+        run: |
+          currentbranch=$(echo ${GITHUB_REF##*/})
+          echo "running on $currentbranch"
+          echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          echo "REGISTRY_ENDPOINT=pioneer-collattor-node"
+          echo "DOCKER_SCRIPT=docker_build_pioneer.sh"
+        shell: bash
+
+      - name: Run docker script
+        shell: bash
+        run: |
+          echo "script name $DOCKER_SCRIPT"
+          echo "registry $REGISTRY"
+          echo "environment name $ENV_NAME"
+          sudo -E scripts/"$DOCKER_SCRIPT"
+        # run: |
+        #   echo "script name $DOCKER_SCRIPT"
+        #   echo "environment name $ENV_NAME"
+        working-directory: .
+        env:
+          REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
+          DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
+          ENV_NAME: ${{ env.name }}
