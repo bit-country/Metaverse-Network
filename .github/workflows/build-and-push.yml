@@ -116,14 +116,12 @@ jobs:
 
       - name: Run docker script
         shell: bash
-        run: |
-          echo "script name $DOCKER_SCRIPT"
-          echo "registry $REGISTRY"
-          echo "branch $TAG"
-          sudo -E scripts/"$DOCKER_SCRIPT"
         # run: |
         #   echo "script name $DOCKER_SCRIPT"
-        #   echo "environment name $ENV_NAME"
+        #   echo "registry $REGISTRY"
+        #   echo "branch $TAG"
+        #   sudo -E scripts/"$DOCKER_SCRIPT"
+        run: sudo -E scripts/"$DOCKER_SCRIPT"
         working-directory: .
         env:
           REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
