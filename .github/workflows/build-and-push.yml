@@ -17,7 +17,7 @@ env:
   REGISTRY: jerryjren
 
 jobs: 
-  test:
+  metaverse:
       runs-on: ubuntu-latest
       environment: 
         name: metaverse
@@ -45,23 +45,6 @@ jobs:
           echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
         shell: bash
 
-      - name: Set env variable for ${{ github.event.inputs.runtime }}
-        run: |
-          echo "REGISTRY_ENDPOINT=metaverse-node" >> $GITHUB_ENV
-          echo "DOCKER_SCRIPT=docker_run.sh" >> $GITHUB_ENV
-        shell: bash
-
-      # - name: Run docker script
-      #   shell: bash
-      #   run: |
-      #     echo "REGISTRY: ${{ env.REGISTRY }}"
-      #     echo "REGISTRY_ENDPOINT: $REGISTRY_ENDPOINT"
-      #     echo "DOCKER_SCRIPT: $DOCKER_SCRIPT"
-      #     sudo -E scripts/"$DOCKER_SCRIPT"
-      #   working-directory: .
-      #   env:
-      #     REGISTRY_ENDPOINT: ${{ env.REGISTRY_ENDPOINT }}
-      #     DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
       - name: Build and push
         id:   docker_build
         uses: docker/build-push-action@v2
@@ -69,55 +52,12 @@ jobs:
           push: true
           file: "scripts/${{ secrets.DOCKERFILE }}"
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_ENDPOINT }}:latest
-            ${{ env.REGISTRY }}/${{ env.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
           build-args: |
-            GIT_COMMIT=${{ env.GIT_VERSION }}          
+            GIT_COMMIT=${{ env.GIT_VERSION }}
       - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}      
-
-  metaverse:
-      runs-on: ubuntu-latest
-      environment: 
-        name: metaverse
-
-      if: ${{  github.event.inputs.runtime == 'metaverse' }}
-      steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.event.inputs.release }}
-
-      - name: Login to Container Registry
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
-
-      - name: Set env variable
-        run: |
-          currentbranch=$(echo ${GITHUB_REF##*/})
-          echo "running on $currentbranch"
-          echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Set env variable for ${{ github.event.inputs.runtime }}
-        run: |
-          echo "REGISTRY_ENDPOINT=metaverse-node" >> $GITHUB_ENV
-          echo "DOCKER_SCRIPT=docker_run.sh" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Run docker script
-        shell: bash
-        run: |
-          echo "REGISTRY: ${{ env.REGISTRY }}"
-          echo "REGISTRY_ENDPOINT: $REGISTRY_ENDPOINT"
-          echo "DOCKER_SCRIPT: $DOCKER_SCRIPT"
-          sudo -E scripts/"$DOCKER_SCRIPT"
-        working-directory: .
-        env:
-          REGISTRY_ENDPOINT: ${{ env.REGISTRY_ENDPOINT }}
-          DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
+        run: echo ${{ steps.docker_build.outputs.digest }}
 
   tewai:
       runs-on: ubuntu-latest
@@ -140,15 +80,24 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          gitversion=$(git rev-parse --short HEAD)
+          echo "running on $gitversion"
+          echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
         shell: bash
 
-      - name: Run docker script
-        shell: bash
-        run: sudo -E scripts/"$DOCKER_SCRIPT"
-        working-directory: .
-        env:
-          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
-          DOCKER_SCRIPT: ${{ secrets.DOCKER_SCRIPT }}
+      - name: Build and push
+        id:   docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: "scripts/${{ secrets.DOCKERFILE }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+          build-args: |
+            GIT_COMMIT=${{ env.GIT_VERSION }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
 
 
   pioneer:
@@ -172,17 +121,21 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-          echo "REGISTRY_ENDPOINT=pioneer-collattor-node" >> $GITHUB_ENV
-          echo "DOCKER_SCRIPT=docker_build_pioneer.sh" >> $GITHUB_ENV
+          gitversion=$(git rev-parse --short HEAD)
+          echo "running on $gitversion"
+          echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
         shell: bash
 
-      - name: Run docker script
-        shell: bash
-        run: |
-          echo "DOCKER_SCRIPT: $DOCKER_SCRIPT"
-          sudo -E scripts/"$DOCKER_SCRIPT"
-        working-directory: .
-        env:
-          REGISTRY_ENDPOINT: ${{ secrets.REGISTRY_ENDPOINT }}
-          DOCKER_SCRIPT: ${{ env.DOCKER_SCRIPT }}
-          ENV_NAME: ${{ env.name }}
+      - name: Build and push
+        id:   docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: "scripts/${{ secrets.DOCKERFILE }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+          build-args: |
+            GIT_COMMIT=${{ env.GIT_VERSION }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
