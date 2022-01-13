@@ -94,7 +94,7 @@ jobs:
       environment: 
         name: pioneer
 
-      if: ${{  github.event.inputs.job == 'metaverse' }}
+      if: ${{  github.event.inputs.job == 'pioneer' }}
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
