@@ -22,7 +22,7 @@ jobs:
       environment: 
         name: metaverse
 
-      if: ${{  github.event.inputs.runtime == 'test' }}
+      if: ${{  github.event.inputs.runtime == 'metaverse' }}
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
