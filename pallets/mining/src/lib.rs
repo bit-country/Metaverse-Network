@@ -18,8 +18,6 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::SwapManager;
-use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::traits::{Currency, Get, WithdrawReasons};
 use frame_support::PalletId;
@@ -37,7 +35,6 @@ use orml_traits::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
@@ -45,11 +42,21 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
+use auction_manager::SwapManager;
+use bc_primitives::*;
+pub use pallet::*;
+use primitives::estate::Estate;
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+
+use crate::mining::Range;
+
 #[cfg(test)]
 mod mock;
 
 #[cfg(test)]
 mod tests;
+
+mod mining;
 
 /// A wrapper for a token name.
 pub type TokenName = Vec<u8>;
@@ -63,8 +70,6 @@ pub struct Token<Balance> {
 	pub total_supply: Balance,
 }
 
-pub use pallet::*;
-
 /// The maximum number of vesting schedules an account can have.
 pub const MAX_VESTINGS: usize = 20;
 
@@ -72,26 +77,61 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
+	use frame_support::pallet_prelude::*;
 	use frame_support::sp_runtime::traits::Saturating;
 	use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
 	use frame_support::traits::OnUnbalanced;
 	use pallet_balances::NegativeImbalance;
-	use primitives::dex::Price;
-	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
 	use sp_std::convert::TryInto;
+
+	use primitives::dex::Price;
+	use primitives::estate::Estate;
+	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
+
+	use crate::mining::MiningResourceRateInfo;
+
+	use super::*;
+
+	type IssuanceRoundIndex = u32;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
-	pub type ScheduledItem<T> = (
-		<T as frame_system::Config>::AccountId,
-		<T as frame_system::Config>::BlockNumber,
-		<T as frame_system::Config>::BlockNumber,
-		u32,
-		Balance,
-	);
+	#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
+	/// The current round index and transition information
+	pub struct IssuanceRoundInfo<BlockNumber> {
+		/// Current round index
+		pub current: IssuanceRoundIndex,
+		/// The first block of the current round
+		pub first: BlockNumber,
+		/// The length of the current round in number of blocks
+		pub length: u32,
+	}
+
+	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd>
+		IssuanceRoundInfo<B>
+	{
+		pub fn new(current: IssuanceRoundIndex, first: B, length: u32) -> IssuanceRoundInfo<B> {
+			IssuanceRoundInfo { current, first, length }
+		}
+		/// Check if the round should be updated
+		pub fn should_update(&self, now: B) -> bool {
+			now - self.first >= self.length.into()
+		}
+		/// New round
+		pub fn update(&mut self, now: B) {
+			self.current += 1u32;
+			self.first = now;
+		}
+	}
+
+	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> Default
+		for IssuanceRoundInfo<B>
+	{
+		fn default() -> IssuanceRoundInfo<B> {
+			IssuanceRoundInfo::new(1u32, 1u32.into(), 20u32)
+		}
+	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -102,12 +142,24 @@ pub mod pallet {
 		type BitMiningResourceId: Get<FungibleTokenId>;
 		/// Origin used to administer the pallet
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		/// Handle Estate logic
+		type EstateHandler: Estate<Self::AccountId>;
 	}
 
 	/// Minting origins
 	#[pallet::storage]
 	#[pallet::getter(fn minting_origin)]
 	pub type MintingOrigins<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn issuance_round)]
+	/// Current round index and next round scheduled transition
+	pub type IssuanceRound<T: Config> = StorageValue<_, IssuanceRoundInfo<T::BlockNumber>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn mining_ratio_config)]
+	/// Mining ratio config
+	pub type MiningConfig<T: Config> = StorageValue<_, MiningResourceRateInfo, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
@@ -123,8 +175,9 @@ pub mod pallet {
 		/// Add new mining origins [who]
 		AddNewMiningOrigin(T::AccountId),
 		/// Remove mining origin [who]
-		/// Add new mining origins [who]
 		RemoveMiningOrigin(T::AccountId),
+		/// New minting round [start, round]
+		NewMintingRound(T::BlockNumber, IssuanceRoundIndex),
 	}
 
 	#[pallet::error]
@@ -207,7 +260,22 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(n: T::BlockNumber) -> Weight {
+			let mut mining_issuance_round = <IssuanceRound<T>>::get();
+			if mining_issuance_round.should_update(n) {
+				mining_issuance_round.update(n);
+
+				<IssuanceRound<T>>::put(mining_issuance_round);
+				let issuance_range = Self::compute_round_issuance();
+				// Pay self stake land estate
+				// Pay metaverse staking
+				0
+			} else {
+				0
+			}
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -316,5 +384,13 @@ impl<T: Config> Pallet<T> {
 		MintingOrigins::<T>::remove(who.clone());
 		Self::deposit_event(Event::RemoveMiningOrigin(who));
 		Ok(())
+	}
+
+	// Calculate round issuance based on total staked for the given round
+	fn compute_round_issuance() -> Range<u64> {
+		let config = <MiningConfig<T>>::get();
+		let round_issuance = crate::mining::round_issuance_range::<T>(config);
+
+		round_issuance
 	}
 }

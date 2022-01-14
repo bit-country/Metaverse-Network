@@ -1,20 +1,23 @@
-use super::*;
-use crate as mining;
-use crate::{Config, Module};
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
-use primitives::FungibleTokenId::FungibleToken;
-use primitives::{Amount, CurrencyId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
 	Perbill,
 };
+
+use primitives::FungibleTokenId::FungibleToken;
+use primitives::{Amount, CurrencyId, EstateId, FungibleTokenId};
+
+use crate as mining;
+use crate::{Config, Module};
+
+use super::*;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -120,6 +123,38 @@ impl currencies::Config for Runtime {
 	type GetNativeCurrencyId = GetNativeCurrencyId;
 }
 
+pub struct EstateHandler;
+
+impl Estate<u128> for EstateHandler {
+	fn transfer_estate(estate_id: EstateId, from: &u128, to: &u128) -> Result<EstateId, DispatchError> {
+		Ok(estate_id)
+	}
+
+	fn transfer_landunit(
+		coordinate: (i32, i32),
+		from: &u128,
+		to: &(u128, primitives::MetaverseId),
+	) -> Result<(i32, i32), DispatchError> {
+		Ok(coordinate)
+	}
+
+	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn check_landunit(metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn get_total_land_units() -> u64 {
+		10
+	}
+
+	fn get_total_undeploy_land_units() -> u64 {
+		10
+	}
+}
+
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 100;
 }
@@ -130,6 +165,7 @@ impl Config for Runtime {
 	type BitMiningTreasury = MiningTreasuryPalletId;
 	type BitMiningResourceId = MiningCurrencyId;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
+	type EstateHandler = EstateHandler;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

@@ -609,6 +609,7 @@ impl mining::Config for Runtime {
 	type BitMiningTreasury = BitMiningTreasury;
 	type BitMiningResourceId = MiningResourceCurrencyId;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
+	type EstateHandler = Estate;
 }
 
 parameter_types! {
