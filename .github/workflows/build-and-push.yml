@@ -1,48 +1,70 @@
 name: Docker build & push
 
 on:
-#   pull_request:
-#     branches:
-#       - master
-#   push:
-#     branches:
-#       - master
-
 #   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      runtime:
+        description: 'Runtime to run.'
+        required: true
+        default: 'metaverse'
+      release:
+        description: 'Commit or tag to be released.'
+        required: false
+        default: 'master'
 
-jobs:
-  check:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+env:
+  REGISTRY: bitcountry
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-
-      - name: Set-Up
-        run: sudo apt install -y cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
-
-      - name: Install Rustup
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
-          source ~/.cargo/env
-          rustup default nightly && rustup update
-          rustup default nightly-2021-11-07
-          rustup target add wasm32-unknown-unknown --toolchain nightly-2021-11-07
-
-      - name: Check Rust version
-        run: rustup show
-      - name: Check Build
-        run: |
-          SKIP_WASM_BUILD=1 cargo check --release
-      - name: Run all test cases
-        run: |
-          SKIP_WASM_BUILD= cargo test --all
-  build:
+jobs: 
+  metaverse:
       runs-on: ubuntu-latest
-      if: ${{ github.event_name != 'pull_request' }}
+      environment: 
+        name: metaverse
+
+      if: ${{  github.event.inputs.runtime == 'metaverse' }}
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.release }}
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set env variable
+        run: |
+          currentbranch=$(echo ${GITHUB_REF##*/})
+          echo "running on $currentbranch"
+          echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          gitversion=$(git rev-parse --short HEAD)
+          echo "running on $gitversion"
+          echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Build and push
+        id:   docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: "scripts/${{ secrets.DOCKERFILE }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+          build-args: |
+            GIT_COMMIT=${{ env.GIT_VERSION }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+  tewai:
+      runs-on: ubuntu-latest
+      environment: 
+        name: tewai
+
+      if: ${{  github.event.inputs.runtime == 'tewai' }}
       steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -58,13 +80,62 @@ jobs:
           currentbranch=$(echo ${GITHUB_REF##*/})
           echo "running on $currentbranch"
           echo "BRANCH=$currentbranch" >> $GITHUB_ENV
-          echo "REGISTRY_ENDPOINT=jerryjren"
+          gitversion=$(git rev-parse --short HEAD)
+          echo "running on $gitversion"
+          echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
         shell: bash
 
-      - name: Run docker script
+      - name: Build and push
+        id:   docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: "scripts/${{ secrets.DOCKERFILE }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+          build-args: |
+            GIT_COMMIT=${{ env.GIT_VERSION }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+
+  pioneer:
+      runs-on: ubuntu-latest
+      environment: 
+        name: pioneer
+
+      if: ${{  github.event.inputs.runtime == 'pioneer' }}
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set branch name as env variable
+        run: |
+          currentbranch=$(echo ${GITHUB_REF##*/})
+          echo "running on $currentbranch"
+          echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          gitversion=$(git rev-parse --short HEAD)
+          echo "running on $gitversion"
+          echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
         shell: bash
-        run: sudo -E scripts/docker_build_tewai.sh
-        working-directory: .
-        env:
-          TAG: ${{ env.BRANCH }}
-          REGISTRY: ${{ env.REGISTRY_ENDPOINT }}
+
+      - name: Build and push
+        id:   docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: "scripts/${{ secrets.DOCKERFILE }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+          build-args: |
+            GIT_COMMIT=${{ env.GIT_VERSION }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
