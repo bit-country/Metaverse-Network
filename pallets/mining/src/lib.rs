@@ -45,10 +45,9 @@ use sp_std::vec::Vec;
 use auction_manager::SwapManager;
 use bc_primitives::*;
 pub use pallet::*;
-use primitives::estate::Estate;
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
-
-use crate::mining::Range;
+use primitives::{
+	estate::Estate, Balance, CurrencyId, FungibleTokenId, IssuanceRoundIndex, MetaverseId, TokenId, VestingSchedule,
+};
 
 #[cfg(test)]
 mod mock;
@@ -84,15 +83,7 @@ pub mod pallet {
 	use pallet_balances::NegativeImbalance;
 	use sp_std::convert::TryInto;
 
-	use primitives::dex::Price;
-	use primitives::estate::Estate;
-	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
-
-	use crate::mining::MiningResourceRateInfo;
-
 	use super::*;
-
-	type IssuanceRoundIndex = u32;
 
 	#[pallet::pallet]
 	pub struct Pallet<T>(PhantomData<T>);
@@ -144,6 +135,8 @@ pub mod pallet {
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 		/// Handle Estate logic
 		type EstateHandler: Estate<Self::AccountId>;
+		/// Land Staking Reward handler
+		type EstateStakingHandler: LandStakingRewardTrait<Balance>;
 	}
 
 	/// Minting origins
@@ -162,7 +155,7 @@ pub mod pallet {
 	pub type MiningConfig<T: Config> = StorageValue<_, MiningResourceRateInfo, ValueQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Mining resource minted [amount]
 		MiningResourceMinted(Balance),
@@ -269,7 +262,12 @@ pub mod pallet {
 				<IssuanceRound<T>>::put(mining_issuance_round);
 				let issuance_range = Self::compute_round_issuance();
 				// Pay self stake land estate
-				// Pay metaverse staking
+				T::EstateStakingHandler::payout_land_staker(
+					mining_issuance_round.current,
+					issuance_range.land_allocation.into(),
+				);
+				// TODO Pay metaverse staking
+				// TODO Replace with weight after benchmarking
 				0
 			} else {
 				0
@@ -387,7 +385,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	// Calculate round issuance based on total staked for the given round
-	fn compute_round_issuance() -> Range<u64> {
+	fn compute_round_issuance() -> MiningRange<u64> {
 		let config = <MiningConfig<T>>::get();
 		let round_issuance = crate::mining::round_issuance_range::<T>(config);
 

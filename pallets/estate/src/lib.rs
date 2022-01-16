@@ -17,22 +17,27 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::{Auction, CheckAuctionItemHandler};
-use bc_primitives::*;
 use frame_support::pallet_prelude::*;
+use frame_support::traits::{Currency, Imbalance};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{
-	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
-};
-pub use rate::{MintingRateInfo, Range};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating},
-	DispatchError,
+	DispatchError, Perbill,
 };
 use sp_std::vec::Vec;
+
+use auction_manager::{Auction, CheckAuctionItemHandler};
+use bc_primitives::*;
+pub use pallet::*;
+use primitives::{
+	estate::Estate, EstateId, IssuanceRoundIndex, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
+	UndeployedLandBlockType,
+};
+pub use rate::{MintingRateInfo, Range};
+pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -46,17 +51,17 @@ mod tests;
 
 pub mod weights;
 
-pub use weights::WeightInfo;
-
-pub use pallet::*;
-
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
-	use crate::rate::{round_issuance_range, MintingRateInfo};
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
-	use primitives::UndeployedLandBlockId;
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
+	use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Zero};
+	use sp_runtime::Perbill;
+
+	use primitives::{Balance, UndeployedLandBlockId};
+
+	use crate::rate::{round_issuance_range, MintingRateInfo};
+
+	use super::*;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -136,7 +141,7 @@ pub mod pallet {
 		type RewardPaymentDelay: Get<u32>;
 	}
 
-	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	/// Get max bound
 	#[pallet::storage]
@@ -316,7 +321,7 @@ pub mod pallet {
 		/// Owner Account Id, Estate Id
 		EstateStakeLeft(T::AccountId, EstateId),
 		/// Account Id, Balance
-		StakingRewarded(T::AccountId, BalanceOf<T>),
+		LandStakingRewarded(T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -1006,46 +1011,6 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn pay_stakers(next: RoundIndex) {
-			// payout is next - duration rounds ago => next - duration > 0 else return early
-			let duration = T::RewardPaymentDelay::get();
-			if next <= duration {
-				return;
-			}
-			let round_to_payout = next - duration;
-
-			// issue BIT for rewards distribution
-			let total_staked = <Staked<T>>::get(round_to_payout);
-			let total_issuance = Self::compute_issuance(total_staked);
-
-			let mut left_issuance = total_issuance;
-
-			// reserve portion of issuance for parachain bond account
-			// TODO: TBD on percentage and account config
-			// let bond_config = <ParachainBondInfo<T>>::get();
-			// let parachain_bond_reserve = bond_config.percent * total_issuance;
-			// if let Ok(imb) = T::Currency::deposit_into_existing(&bond_config.account, parachain_bond_reserve)
-			// { 	// update round issuance iff transfer succeeds
-			// 	left_issuance -= imb.peek();
-			// 	Self::deposit_event(Event::ReservedForParachainBond(bond_config.account, imb.peek()));
-			// }
-
-			// a local fn to transfer rewards to the account specified
-			let mint = |amt: BalanceOf<T>, to: T::AccountId| {
-				if let Ok(imb) = T::Currency::deposit_into_existing(&to, amt) {
-					Self::deposit_event(Event::StakingRewarded(to.clone(), imb.peek()));
-				}
-			};
-
-			for (estate_id, stake_snapshot) in <AtStake<T>>::drain_prefix(round_to_payout) {
-				for Bond { staker: owner, amount } in stake_snapshot.stakers {
-					// TODO: TBD on the rewards amount
-					let amount_due = amount;
-					mint(1u32.into(), owner);
-				}
-			}
-		}
-
 		/// Clear exit queue. return stake to account
 		fn clear_exit_queue(now: RoundIndex) {
 			for (account_id, estate_id, val) in <ExitQueue<T>>::drain() {
@@ -1102,10 +1067,6 @@ pub mod pallet {
 
 				//TODO do actual minting new undeployed land block
 				let land_register_treasury = T::LandTreasury::get().into_account();
-
-				// Pay all stakers for T::RewardPaymentDelay rounds ago
-				Self::pay_stakers(round.current);
-				Self::deposit_event(Event::StakersPaid(round.current));
 
 				// Clear exit queue
 				Self::clear_exit_queue(round.current);
@@ -1559,5 +1520,32 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 
 	fn get_total_undeploy_land_units() -> u64 {
 		TotalUndeployedLandUnit::<T>::get()
+	}
+}
+
+impl<T: Config> LandStakingRewardTrait<BalanceOf<T>> for Pallet<T> {
+	/// Pay land staker handler that will reward BIT to stakers and only triggered by mining controller
+	fn payout_land_staker(payout_round: IssuanceRoundIndex, total_reward: BalanceOf<T>) -> DispatchResult {
+		// issue BIT for rewards distribution
+		let total_staked = <Staked<T>>::get(payout_round);
+		// TODO taking staking snapshot
+		let mut left_issuance = total_reward;
+
+		// a local fn to transfer rewards to the account specified
+		let mint = |amt: BalanceOf<T>, to: T::AccountId| {
+			if let Ok(imb) = T::Currency::deposit_into_existing(&to, amt) {
+				Self::deposit_event(Event::LandStakingRewarded(to.clone(), imb.peek()));
+			}
+		};
+
+		for (_estate_id, stake_snapshot) in <AtStake<T>>::drain_prefix(payout_round) {
+			for Bond { staker: owner, amount } in stake_snapshot.stakers {
+				let amount_due_percent = Perbill::from_rational(amount, total_staked);
+				let mut reward_due = amount_due_percent * left_issuance;
+				mint(reward_due, owner);
+			}
+		}
+
+		Ok(())
 	}
 }

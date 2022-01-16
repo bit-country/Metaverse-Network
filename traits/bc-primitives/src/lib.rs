@@ -1,10 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use primitives::{FungibleTokenId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType};
 use scale_info::TypeInfo;
-use sp_runtime::{DispatchError, RuntimeDebug};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+use sp_runtime::{DispatchError, DispatchResult, RuntimeDebug};
 use sp_std::vec::Vec;
+
+use primitives::{FungibleTokenId, IssuanceRoundIndex, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseAssetData {
@@ -76,4 +79,73 @@ pub trait UndeployedLandBlocksTrait<AccountId> {
 	fn freeze_undeployed_land_block(
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError>;
+}
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Eq, PartialEq, Clone, Copy, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+pub struct MiningRange<T> {
+	pub min: T,
+	pub ideal: T,
+	pub max: T,
+	pub land_allocation: T,
+	pub metaverse_allocation: T,
+}
+
+impl<T: Ord> MiningRange<T> {
+	pub fn is_valid(&self) -> bool {
+		self.max >= self.ideal && self.ideal >= self.min
+	}
+}
+
+impl<T: Ord + Copy> From<T> for MiningRange<T> {
+	fn from(other: T) -> MiningRange<T> {
+		MiningRange {
+			min: other,
+			ideal: other,
+			max: other,
+			land_allocation: other,
+			metaverse_allocation: other,
+		}
+	}
+}
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+pub struct MiningResourceRateInfo {
+	/// kBIT and Land unit ratio
+	pub ratio: u64,
+	/// land staking reward percentage
+	pub land_reward: u32,
+	/// metaverse staking reward percentage
+	pub metaverse_reward: u32,
+}
+
+impl MiningResourceRateInfo {
+	pub fn new(ratio: u64, land_reward: u32, metaverse_reward: u32) -> MiningResourceRateInfo {
+		MiningResourceRateInfo {
+			ratio,
+			land_reward,
+			metaverse_reward,
+		}
+	}
+
+	/// kBIT and Land unit ratio
+	pub fn set_ratio(&mut self, ratio: u64) {
+		self.ratio = ratio;
+	}
+
+	/// Set land reward
+	pub fn set_land_reward(&mut self, land_reward: u32) {
+		self.land_reward = land_reward;
+	}
+
+	/// Set metaverse reward
+	pub fn set_metaverse_reward(&mut self, metaverse_reward: u32) {
+		self.metaverse_reward = metaverse_reward;
+	}
+}
+
+pub trait LandStakingRewardTrait<Balance> {
+	/// Payout staker
+	fn payout_land_staker(payout_round: IssuanceRoundIndex, total_issuance: Balance) -> DispatchResult;
 }

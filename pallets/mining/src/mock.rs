@@ -155,6 +155,14 @@ impl Estate<u128> for EstateHandler {
 	}
 }
 
+pub struct EstateStakingHandler;
+
+impl LandStakingRewardTrait<Balance> for EstateStakingHandler {
+	fn payout_land_staker(_payout_round: IssuanceRoundIndex, _total_issuance: Balance) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+}
+
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 100;
 }
@@ -166,6 +174,7 @@ impl Config for Runtime {
 	type BitMiningResourceId = MiningCurrencyId;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type EstateHandler = EstateHandler;
+	type EstateStakingHandler = EstateStakingHandler;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

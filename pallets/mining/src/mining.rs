@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::traits::Zero;
 use sp_runtime::{Perbill, RuntimeDebug};
 
+use bc_primitives::{MiningRange, MiningResourceRateInfo};
 use primitives::estate::Estate;
 
 // Helper methods to compute the issuance rate for undeployed land.
@@ -37,7 +38,7 @@ fn rounds_per_year<T: Config>() -> u32 {
 }
 
 /// Compute round issuance range from round inflation range and current total issuance
-pub fn round_issuance_range<T: Config>(config: MiningResourceRateInfo) -> Range<u64> {
+pub fn round_issuance_range<T: Config>(config: MiningResourceRateInfo) -> MiningRange<u64> {
 	// Get total round per year
 	let total_round_per_year = rounds_per_year::<T>();
 	// Initial minting ratio per land unit
@@ -62,7 +63,7 @@ pub fn round_issuance_range<T: Config>(config: MiningResourceRateInfo) -> Range<
 		.unwrap();
 
 	// Return range - could implement more cases in the future.
-	Range {
+	MiningRange {
 		min: issuance_per_round,
 		ideal: issuance_per_round,
 		max: issuance_per_round,
@@ -71,76 +72,15 @@ pub fn round_issuance_range<T: Config>(config: MiningResourceRateInfo) -> Range<
 	}
 }
 
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Eq, PartialEq, Clone, Copy, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
-pub struct Range<T> {
-	pub min: T,
-	pub ideal: T,
-	pub max: T,
-	pub land_allocation: T,
-	pub metaverse_allocation: T,
-}
-
-impl<T: Ord> Range<T> {
-	pub fn is_valid(&self) -> bool {
-		self.max >= self.ideal && self.ideal >= self.min
-	}
-}
-
-impl<T: Ord + Copy> From<T> for Range<T> {
-	fn from(other: T) -> Range<T> {
-		Range {
-			min: other,
-			ideal: other,
-			max: other,
-			land_allocation: other,
-			metaverse_allocation: other,
-		}
-	}
-}
-
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
-pub struct MiningResourceRateInfo {
-	/// kBIT and Land unit ratio
-	pub ratio: u64,
-	/// land staking reward percentage
-	pub land_reward: u32,
-	/// metaverse staking reward percentage
-	pub metaverse_reward: u32,
-}
-
-impl MiningResourceRateInfo {
-	pub fn new<T: Config>(ratio: u64, land_reward: u32, metaverse_reward: u32) -> MiningResourceRateInfo {
-		MiningResourceRateInfo {
-			ratio,
-			land_reward,
-			metaverse_reward,
-		}
-	}
-
-	/// kBIT and Land unit ratio
-	pub fn set_ratio(&mut self, ratio: u64) {
-		self.ratio = ratio;
-	}
-
-	/// Set land reward
-	pub fn set_land_reward(&mut self, land_reward: u32) {
-		self.land_reward = land_reward;
-	}
-
-	/// Set metaverse reward
-	pub fn set_metaverse_reward(&mut self, metaverse_reward: u32) {
-		self.metaverse_reward = metaverse_reward;
-	}
-}
-
 #[cfg(test)]
 mod tests {
 	use super::*;
 
 	/// Compute round issuance range from round inflation range and current total issuance
-	pub fn mock_round_issuance_per_year(config: MiningResourceRateInfo, land_unit_circulation: u64) -> Range<u64> {
+	pub fn mock_round_issuance_per_year(
+		config: MiningResourceRateInfo,
+		land_unit_circulation: u64,
+	) -> MiningRange<u64> {
 		let issuance_per_round = land_unit_circulation.checked_mul(config.ratio).unwrap_or(Zero::zero());
 
 		let land_allocation = issuance_per_round
@@ -156,7 +96,7 @@ mod tests {
 			.unwrap();
 
 		// Return range - could implement more cases in the future.
-		Range {
+		MiningRange {
 			min: issuance_per_round,
 			ideal: issuance_per_round,
 			max: issuance_per_round,
