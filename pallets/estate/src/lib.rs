@@ -139,6 +139,8 @@ pub mod pallet {
 		type MinimumStake: Get<BalanceOf<Self>>;
 		#[pallet::constant]
 		type RewardPaymentDelay: Get<u32>;
+		#[pallet::constant]
+		type ExitQueueDelay: Get<u32>;
 	}
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -216,7 +218,7 @@ pub mod pallet {
 	#[pallet::getter(fn exit_queue)]
 	/// A queue of account awaiting exit
 	type ExitQueue<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, RoundIndex, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn at_stake)]
@@ -1002,7 +1004,10 @@ pub mod pallet {
 				Error::<T>::AccountHasNoStake
 			);
 
-			<ExitQueue<T>>::insert(&who, estate_id, ());
+			let round = <Round<T>>::get();
+
+			let exit_round = round.current.checked_add(T::ExitQueueDelay::get()).unwrap_or_default();
+			<ExitQueue<T>>::insert(&who, estate_id, exit_round);
 
 			Self::deposit_event(Event::EstateStakeLeft(who, estate_id));
 
@@ -1046,11 +1051,6 @@ pub mod pallet {
 
 			<TotalStake<T>>::put(total);
 			total
-		}
-
-		fn compute_issuance(staked: BalanceOf<T>) -> BalanceOf<T> {
-			//TODO: need to decide on how much BIT need to be issued per session
-			staked.saturating_add(staked)
 		}
 	}
 
@@ -1528,7 +1528,6 @@ impl<T: Config> LandStakingRewardTrait<BalanceOf<T>> for Pallet<T> {
 	fn payout_land_staker(payout_round: IssuanceRoundIndex, total_reward: BalanceOf<T>) -> DispatchResult {
 		// issue BIT for rewards distribution
 		let total_staked = <Staked<T>>::get(payout_round);
-		// TODO taking staking snapshot
 		let mut left_issuance = total_reward;
 
 		// a local fn to transfer rewards to the account specified
@@ -1538,8 +1537,10 @@ impl<T: Config> LandStakingRewardTrait<BalanceOf<T>> for Pallet<T> {
 			}
 		};
 
-		for (_estate_id, stake_snapshot) in <AtStake<T>>::drain_prefix(payout_round) {
-			for Bond { staker: owner, amount } in stake_snapshot.stakers {
+		for (estate_id, _stake_snapshot) in <AtStake<T>>::drain_prefix(payout_round) {
+			// Remove snapshot afterward
+			let stake = <AtStake<T>>::take(payout_round, &estate_id);
+			for Bond { staker: owner, amount } in stake.stakers {
 				let amount_due = Perbill::from_rational(amount, total_staked);
 				let amount_due_percent = amount_due / 100;
 				let mut reward_due = amount_due_percent * left_issuance;

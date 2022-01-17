@@ -1,13 +1,16 @@
 #![cfg(test)]
 
-use super::*;
-use crate as estate;
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
-use primitives::FungibleTokenId;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
+
+use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use primitives::FungibleTokenId;
+
+use crate as estate;
+
+use super::*;
 
 pub type AccountId = u128;
 pub type Balance = u128;
@@ -223,6 +226,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
+	type ExitQueueDelay = RewardPaymentDelay;
 }
 
 construct_runtime!(
