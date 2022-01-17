@@ -1540,7 +1540,8 @@ impl<T: Config> LandStakingRewardTrait<BalanceOf<T>> for Pallet<T> {
 
 		for (_estate_id, stake_snapshot) in <AtStake<T>>::drain_prefix(payout_round) {
 			for Bond { staker: owner, amount } in stake_snapshot.stakers {
-				let amount_due_percent = Perbill::from_rational(amount, total_staked);
+				let amount_due = Perbill::from_rational(amount, total_staked);
+				let amount_due_percent = amount_due / 100;
 				let mut reward_due = amount_due_percent * left_issuance;
 				mint(reward_due, owner);
 			}
