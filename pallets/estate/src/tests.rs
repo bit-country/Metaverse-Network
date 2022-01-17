@@ -2192,7 +2192,7 @@ fn leave_staking_should_work() {
 			Event::Estate(crate::Event::EstateStakeLeft(BENEFICIARY_ID, estate_id))
 		);
 
-		assert_eq!(EstateModule::exit_queue(BENEFICIARY_ID, estate_id), Some(2));
+		assert_eq!(EstateModule::exit_queue(BENEFICIARY_ID, estate_id), Some(3));
 	});
 }
 
@@ -2218,7 +2218,7 @@ fn leave_staking_should_reject_has_already_left() {
 
 		assert_ok!(EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id));
 
-		assert_eq!(EstateModule::exit_queue(BENEFICIARY_ID, estate_id), Some(2));
+		assert_eq!(EstateModule::exit_queue(BENEFICIARY_ID, estate_id), Some(3));
 
 		assert_noop!(
 			EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id),
