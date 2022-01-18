@@ -6,7 +6,7 @@ license = 'Unlicense'
 name = 'tewai-runtime'
 description = 'Tewai Public Testnet'
 repository = 'https://github.com/bit-country/Bit-Country-Blockchain'
-version = '2.0.0-rc6'
+version = '0.0.3'
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -23,7 +23,7 @@ scale-info = { version = "1.0", default-features = false, features = ["derive"] 
 log = { version = "0.4.14", default-features = false }
 
 # primitives
-sp-authority-discovery = {  default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
+sp-authority-discovery = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 sp-consensus-babe = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 sp-block-builder = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 sp-inherents = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
@@ -38,7 +38,7 @@ sp-session = { default-features = false, git = "https://github.com/paritytech/su
 sp-version = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 node-primitives = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 sp-transaction-pool = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
-sp-npos-elections = {  default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
+sp-npos-elections = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
 
 # frame dependencies
 frame-executive = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
@@ -219,7 +219,7 @@ std = [
     #    "chainbridge/std",
     #    "modules-chainsafe/std",
     "mining/std",
-#    "parachain-staking/std",
+    #    "parachain-staking/std",
     #    "pallet-evm/std",
     #    "fp-rpc/std",
     #    "evm/std",

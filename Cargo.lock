@@ -4058,7 +4058,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-node"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "bit-country-primitives",
  "cumulus-client-cli",
@@ -4140,7 +4140,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-runtime"
-version = "2.0.0-rc6"
+version = "0.0.3"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
@@ -6227,7 +6227,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "pioneer-runtime"
-version = "2.0.0-rc6"
+version = "0.0.3"
 dependencies = [
  "bit-country-primitives",
  "cumulus-pallet-aura-ext",
@@ -10380,7 +10380,7 @@ dependencies = [
 
 [[package]]
 name = "tewai-runtime"
-version = "2.0.0-rc6"
+version = "0.0.3"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
