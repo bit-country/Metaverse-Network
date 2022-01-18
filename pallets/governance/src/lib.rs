@@ -181,7 +181,7 @@ pub mod pallet {
 		ProposalCancelled(MetaverseId, ProposalId),
 		ProposalFastTracked(MetaverseId, ProposalId),
 		ProposalEnacted(MetaverseId, ReferendumId),
-		ReferendumStarted(ReferendumId, VoteThreshold),
+		ReferendumStarted(MetaverseId, ProposalId, ReferendumId, VoteThreshold),
 		ReferendumPassed(ReferendumId),
 		ReferendumNotPassed(ReferendumId),
 		ReferendumCancelled(ReferendumId),
@@ -250,6 +250,10 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn note_preimage(origin: OriginFor<T>, metaverse_id: MetaverseId, encoded_proposal: Vec<u8>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
+			ensure!(
+				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &metaverse_id),
+				Error::<T>::AccountIsNotMetaverseMember
+			);
 			Self::note_preimage_inner(from, metaverse_id, encoded_proposal.clone())?;
 			Ok(().into())
 		}
@@ -642,7 +646,7 @@ impl<T: Config> Pallet<T> {
 		let referendum_info = ReferendumInfo::Ongoing(referendum_status);
 		<ReferendumInfoOf<T>>::insert(metaverse_id, referendum_id, referendum_info);
 
-		Self::deposit_event(Event::ReferendumStarted(referendum_id, referendum_threshold));
+		Self::deposit_event(Event::ReferendumStarted(metaverse_id, proposal_id, referendum_id, referendum_threshold));
 		Ok(referendum_id)
 	}
 
