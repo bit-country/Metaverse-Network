@@ -77,3 +77,8 @@ pub trait UndeployedLandBlocksTrait<AccountId> {
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError>;
 }
+
+pub trait Convert<A, B> {
+	/// Make conversion.
+	fn convert(a: A) -> B;
+}

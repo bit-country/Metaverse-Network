@@ -18,6 +18,7 @@ use frame_system::{
 };
 use orml_traits::{arithmetic::Zero, parameter_type_with_key};
 // Polkadot Imports
+pub use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::{BlockHashCount, RocksDbWeight, SlowAdjustingFeeUpdate};
@@ -30,7 +31,7 @@ use sp_runtime::traits::{AccountIdConversion, ConvertInto};
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Convert, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
 };
@@ -49,6 +50,7 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 use constants::{currency::*, time::*};
+use r#impl::FungibleTokenIdConvert;
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
@@ -62,6 +64,7 @@ mod weights;
 
 /// Constant values used within the runtime.
 pub mod constants;
+pub mod r#impl;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -453,6 +456,47 @@ impl orml_tokens::Config for Runtime {
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = MaxLocks;
 	type DustRemovalWhitelist = Nothing;
+}
+
+parameter_types! {
+	pub const BaseXcmWeight: Weight = 100_000_000;
+	// pub const RelayCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
+	// pub SelfLocation: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+	// pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+}
+
+pub struct AccountIdToMultiLocation;
+impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
+	fn convert(account: AccountId) -> MultiLocation {
+		X1(AccountId32 {
+			network: NetworkId::Any,
+			id: account.into(),
+		})
+		.into()
+	}
+}
+
+impl orml_xtokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type CurrencyId = FungibleTokenId;
+	type CurrencyIdConvert = FungibleTokenIdConvert<ParachainInfo>;
+	type AccountIdToMultiLocation = AccountIdToMultiLocation;
+	type SelfLocation = SelfLocation;
+	type XcmExecutor = XcmExecutor<XcmConfig>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+	type BaseXcmWeight = BaseXcmWeight;
+	type LocationInverter = LocationInverter<Ancestry>;
+}
+
+impl orml_unknown_tokens::Config for Runtime {
+	type Event = Event;
+}
+
+impl orml_xcm::Config for Runtime {
+	type Event = Event;
+	type SovereignOrigin = EnsureRootOrMetaverseTreasury; //EnsureRootOrThreeFourthsGeneralCouncil
 }
 
 parameter_types! {
@@ -954,7 +998,6 @@ construct_runtime!(
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>} = 13,
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>} = 14,
 
-
 		// Collator support. The order of these 4 are important and shall not change.
 		Authorship: pallet_authorship::{Pallet, Call, Storage} = 20,
 		CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 21,
@@ -968,6 +1011,9 @@ construct_runtime!(
 		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin} = 31,
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
+		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 55,
+		UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 56,
+		OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 57,
 
 		// Pioneer pallets
 		// Metaverse & Related

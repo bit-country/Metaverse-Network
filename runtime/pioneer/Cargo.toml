@@ -21,8 +21,17 @@ hex-literal = { version = "0.3.3" }
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
+orml-unknown-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
+orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
+
+orml-xcm-support = { path = "../../orml/xcm-support", default-features = false }
+orml-xtokens = { path = "../../orml/xtokens", default-features = false }
+#orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
+#orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.12", default-features = false }
+#orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", rev = "17a791edf431d7d7aee1ea3dfaeeb7bc21944301", default-features = false }
+#orml-xtokens = { version = "0.4.1-dev", default-features = false }
 
 
 # Metaverse Dependencies
@@ -37,6 +46,8 @@ mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '
 tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', default-features = false }
 estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
+
+bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
 
 # ecosystem dependencies
 parachain-staking = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }

@@ -61,3 +61,12 @@ pub mod time {
 	pub const HOURS: BlockNumber = MINUTES * 60;
 	pub const DAYS: BlockNumber = HOURS * 24;
 }
+
+#[allow(non_snake_case)]
+pub mod parachains {
+	pub mod karura {
+		pub const ID: u32 = 2000;
+		pub const KAR_KEY: &[u8] = &[0, 128];
+		pub const KUSD_KEY: &[u8] = &[0, 129];
+	}
+}

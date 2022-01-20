@@ -249,9 +249,22 @@ pub fn authority_keys_from_seed(s: &str) -> (AccountId, AuraId) {
 pub fn pioneer_properties() -> Properties {
 	let mut properties = Properties::new();
 
+	let mut token_symbol: Vec<String> = vec![];
+	let mut token_decimals: Vec<u32> = vec![];
+
+	token_symbol.push("NEER".into());
+	token_symbol.push("KSM".into());
+	token_symbol.push("KAR".into());
+	token_symbol.push("KUSD".into());
+	token_decimals.push(18 as u32);
+	token_decimals.push(12 as u32);
+	token_decimals.push(12 as u32);
+	token_decimals.push(12 as u32);
+
+	properties.insert("tokenSymbol".into(), token_symbol.into());
+	properties.insert("tokenDecimals".into(), token_decimals.into());
+
 	properties.insert("ss58Format".into(), 268.into());
-	properties.insert("tokenDecimals".into(), 18.into());
-	properties.insert("tokenSymbol".into(), "NEER".into());
 
 	properties
 }

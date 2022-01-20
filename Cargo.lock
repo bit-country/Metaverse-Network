@@ -1615,7 +1615,7 @@ dependencies = [
  "bit-country-primitives",
  "frame-support",
  "frame-system",
- "orml-traits",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
@@ -4154,8 +4154,8 @@ dependencies = [
  "hex-literal",
  "orml-currencies",
  "orml-nft",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-auction",
  "pallet-aura",
  "pallet-authorship",
@@ -4649,8 +4649,8 @@ source = "git+https://github.com/bit-country/open-runtime-module-library?branch=
 dependencies = [
  "frame-support",
  "frame-system",
- "orml-traits",
- "orml-utilities",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-utilities 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4676,11 +4676,29 @@ dependencies = [
 [[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "orml-traits 0.4.1-dev",
+ "pallet-elections-phragmen",
+ "pallet-treasury",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "orml-tokens"
+version = "0.4.1-dev"
 source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12#03fe5543968c3774738ab38c64323b1d1c7d58d4"
 dependencies = [
  "frame-support",
  "frame-system",
- "orml-traits",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4691,12 +4709,11 @@ dependencies = [
 [[package]]
 name = "orml-traits"
 version = "0.4.1-dev"
-source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12#03fe5543968c3774738ab38c64323b1d1c7d58d4"
 dependencies = [
  "frame-support",
  "impl-trait-for-tuples",
  "num-traits",
- "orml-utilities",
+ "orml-utilities 0.4.1-dev",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4704,6 +4721,53 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "xcm",
+]
+
+[[package]]
+name = "orml-traits"
+version = "0.4.1-dev"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12#03fe5543968c3774738ab38c64323b1d1c7d58d4"
+dependencies = [
+ "frame-support",
+ "impl-trait-for-tuples",
+ "num-traits",
+ "orml-utilities 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
+name = "orml-unknown-tokens"
+version = "0.4.1-dev"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12#03fe5543968c3774738ab38c64323b1d1c7d58d4"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "orml-xcm-support 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
+name = "orml-utilities"
+version = "0.4.1-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -4718,6 +4782,93 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "orml-xcm"
+version = "0.4.1-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-xcm",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
+]
+
+[[package]]
+name = "orml-xcm"
+version = "0.4.1-dev"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12#03fe5543968c3774738ab38c64323b1d1c7d58d4"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-xcm",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
+name = "orml-xcm-support"
+version = "0.4.1-dev"
+dependencies = [
+ "frame-support",
+ "orml-traits 0.4.1-dev",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
+]
+
+[[package]]
+name = "orml-xcm-support"
+version = "0.4.1-dev"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12#03fe5543968c3774738ab38c64323b1d1c7d58d4"
+dependencies = [
+ "frame-support",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
+]
+
+[[package]]
+name = "orml-xtokens"
+version = "0.4.1-dev"
+dependencies = [
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-xcm",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "frame-support",
+ "frame-system",
+ "orml-tokens 0.4.1-dev",
+ "orml-traits 0.4.1-dev",
+ "orml-xcm 0.4.1-dev",
+ "orml-xcm-support 0.4.1-dev",
+ "pallet-balances",
+ "pallet-xcm",
+ "parachain-info",
+ "parity-scale-codec",
+ "polkadot-parachain",
+ "polkadot-runtime-parachains",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
+ "xcm-simulator",
 ]
 
 [[package]]
@@ -4757,8 +4908,8 @@ dependencies = [
  "frame-system",
  "frame-system-rpc-runtime-api",
  "orml-nft",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-balances",
  "pallet-continuum",
  "pallet-estate",
@@ -4987,8 +5138,8 @@ dependencies = [
  "frame-system",
  "orml-currencies",
  "orml-nft",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-balances",
  "pallet-nft",
  "parity-scale-codec",
@@ -5317,8 +5468,8 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-currencies",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-balances",
  "pallet-nft",
  "pallet-randomness-collective-flip",
@@ -5348,8 +5499,8 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-currencies",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-balances",
  "pallet-metaverse",
  "pallet-swap",
@@ -5439,8 +5590,8 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-nft",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-balances",
  "pallet-scheduler",
  "pallet-timestamp",
@@ -5635,8 +5786,8 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-currencies",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-balances",
  "pallet-nft",
  "pallet-randomness-collective-flip",
@@ -5702,8 +5853,8 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-currencies",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-balances",
  "pallet-metaverse",
  "pallet-swap",
@@ -5850,6 +6001,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-core",
  "sp-runtime",
  "sp-std",
@@ -6229,6 +6381,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "pioneer-runtime"
 version = "2.0.0-rc6"
 dependencies = [
+ "bc-primitives",
  "bit-country-primitives",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
@@ -6250,8 +6403,12 @@ dependencies = [
  "log",
  "orml-currencies",
  "orml-nft",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-unknown-tokens",
+ "orml-xcm 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-xcm-support 0.4.1-dev",
+ "orml-xtokens",
  "pallet-auction",
  "pallet-aura",
  "pallet-authorship",
@@ -10395,8 +10552,8 @@ dependencies = [
  "node-primitives",
  "orml-currencies",
  "orml-nft",
- "orml-tokens",
- "orml-traits",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.12)",
  "pallet-assets",
  "pallet-auction",
  "pallet-authority-discovery",
@@ -11544,6 +11701,23 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "xcm-simulator"
+version = "0.9.12"
+source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.12#5feed981cf0fe671447eabaa9c0d235a8dd0003e"
+dependencies = [
+ "frame-support",
+ "parity-scale-codec",
+ "paste",
+ "polkadot-core-primitives",
+ "polkadot-parachain",
+ "polkadot-runtime-parachains",
+ "sp-io",
+ "sp-std",
+ "xcm",
+ "xcm-executor",
 ]
 
 [[package]]
