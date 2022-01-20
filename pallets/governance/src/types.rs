@@ -329,8 +329,7 @@ impl<Balance: Saturating + Ord + Zero + Copy, BlockNumber: Ord + Copy + Zero> Vo
 pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
 	pub(crate) proposed_by: AccountId,
 	pub(crate) hash: Hash,
-	pub(crate) description: Vec<u8>,
-	// link to proposal description
+	pub(crate) title: Vec<u8>,
 	pub(crate) referendum_launch_block: BlockNumber,
 }
 
@@ -340,6 +339,7 @@ pub struct ReferendumStatus<BlockNumber, Balance, Hash> {
 	pub(crate) metaverse: MetaverseId,
 	pub(crate) proposal: ProposalId,
 	pub(crate) tally: Tally<Balance>,
+	pub(crate) title: Vec<u8>,
 	pub(crate) threshold: VoteThreshold,
 	pub(crate) proposal_hash: Hash,
 
@@ -348,5 +348,5 @@ pub struct ReferendumStatus<BlockNumber, Balance, Hash> {
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum ReferendumInfo<BlockNumber, Balance, Hash> {
 	Ongoing(ReferendumStatus<BlockNumber, Balance, Hash>),
-	Finished { passed: bool, end: BlockNumber },
+	Finished { title: Vec<u8>, passed: bool, end: BlockNumber },
 }

@@ -92,7 +92,7 @@ pub mod pallet {
 		type DefaultLocalVoteLockingPeriod:  Get<u32>;
 
 		#[pallet::constant]
-		type DefaultMaxParametersPerProposal:  Get<u32>;
+		type DefaultMaxProposalsPerMetaverse:  Get<u32>;
 
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
@@ -299,7 +299,7 @@ pub mod pallet {
 						let proposal_info = ProposalInfo {
 							proposed_by: from.clone(),
 							hash: preimage_hash,
-							description: proposal_description,
+							title: proposal_description.clone(),
 							referendum_launch_block: launch_block,
 						};
 
@@ -334,7 +334,7 @@ pub mod pallet {
 									proposal_id,
 									deposit,
 									depositors));
-							    Self::start_referendum(metaverse_id, proposal_id, preimage_hash, launch_block);
+							    Self::start_referendum(metaverse_id, proposal_id, preimage_hash, proposal_description, launch_block);
 							}
 						}
 
@@ -474,7 +474,7 @@ pub mod pallet {
 								ReferendumInfoOf::<T>::insert(&metaverse, &referendum, ReferendumInfo::Ongoing(status));
 								Self::deposit_event(Event::VoteRemoved(from, referendum));
 							}
-							Some(ReferendumInfo::Finished { end, passed }) => {
+							Some(ReferendumInfo::Finished { end, passed, title }) => {
 								let prior = &mut voting_record.prior;
 								if let Some((lock_periods, balance)) = vote.locked_if(passed) {
 									let mut lock_value: T::BlockNumber =
@@ -589,27 +589,42 @@ impl<T: Config> Pallet<T> {
 
 		let deposit =
 			<BalanceOf<T>>::from(encoded_proposal.len() as u32).saturating_mul(T::DefaultPreimageByteDeposit::get());
-		T::Currency::reserve(&who, deposit)?;
 
-		let now = <frame_system::Pallet<T>>::block_number();
-		let a = PreimageStatus::Available {
-			data: encoded_proposal,
-			provider: who.clone(),
-			deposit,
-			since: now,
-			expiry: None,
-		};
-		<Preimages<T>>::insert(metaverse_id, preimage_hash, a);
+		if let Ok(proposal) = T::Proposal::decode(&mut &encoded_proposal[..]) {
+			let proposal_type = T::ProposalType::default();
+			if !proposal_type.filter(&proposal) {
+				T::Slash::on_unbalanced(T::Currency::slash_reserved(&who, deposit).0);
+				Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
+				Err(Error::<T>::PreimageInvalid.into())
+			} else {
+				T::Currency::reserve(&who, deposit)?;
 
-		Self::deposit_event(Event::<T>::PreimageNoted(metaverse_id, preimage_hash, who, deposit));
-
-		Ok(())
+				let now = <frame_system::Pallet<T>>::block_number();
+				let a = PreimageStatus::Available {
+					data: encoded_proposal,
+					provider: who.clone(),
+					deposit,
+					since: now,
+					expiry: None,
+				};
+				<Preimages<T>>::insert(metaverse_id, preimage_hash, a);
+		
+				Self::deposit_event(Event::<T>::PreimageNoted(metaverse_id, preimage_hash, who, deposit));
+		
+				Ok(())
+			}
+		} else {
+			T::Slash::on_unbalanced(T::Currency::slash_reserved(&who, deposit).0);
+			Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
+			Err(Error::<T>::PreimageInvalid.into())
+		}
 	}
 
 	fn start_referendum(
 		metaverse_id: MetaverseId,
 		proposal_id: ProposalId,
 		proposal_hash: T::Hash,
+		proposal_description: Vec<u8>,
 		current_block: T::BlockNumber,
 	) -> Result<u64, DispatchError> {
 		let referendum_id = Self::get_next_referendum_id()?;
@@ -639,6 +654,7 @@ impl<T: Config> Pallet<T> {
 			end: referendum_end,
 			metaverse: metaverse_id,
 			proposal: proposal_id,
+			title: proposal_description,
 			tally: initial_tally,
 			proposal_hash: proposal_hash,
 			threshold: referendum_threshold.clone(),
@@ -676,6 +692,7 @@ impl<T: Config> Pallet<T> {
 					metaverse_id,
 					winner_proposal_id,
 					proposal_hash,
+					proposal.1.title,
 					launch_block
 				);
 			}
@@ -776,6 +793,7 @@ impl<T: Config> Pallet<T> {
 		// Update referendum info
 		<ReferendumInfoOf<T>>::try_mutate(metaverse_id, referendum_id, |referendum_info| -> DispatchResult {
 			*referendum_info = Some(ReferendumInfo::Finished {
+				title: referendum_status.title.clone(),
 				passed: is_referendum_approved,
 				end: referendum_status.end,
 			});
