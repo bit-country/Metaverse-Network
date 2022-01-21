@@ -462,8 +462,6 @@ parameter_types! {
 	pub const BaseXcmWeight: Weight = 100_000_000;
 	// pub const RelayCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-	// pub SelfLocation: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
-	// pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 }
 
 pub struct AccountIdToMultiLocation;
@@ -496,7 +494,7 @@ impl orml_unknown_tokens::Config for Runtime {
 
 impl orml_xcm::Config for Runtime {
 	type Event = Event;
-	type SovereignOrigin = EnsureRootOrMetaverseTreasury; //EnsureRootOrThreeFourthsGeneralCouncil
+	type SovereignOrigin = EnsureRoot<AccountId>; //EnsureRootOrMetaverseTreasury; //EnsureRootOrThreeFourthsGeneralCouncil
 }
 
 parameter_types! {
