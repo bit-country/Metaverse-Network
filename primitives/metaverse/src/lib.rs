@@ -32,7 +32,6 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::traits::AtLeast32Bit;
 
 pub mod continuum;
-pub mod currency;
 pub mod dex;
 pub mod estate;
 
