@@ -220,6 +220,8 @@ impl Contains<Call> for BaseFilter {
 			| Call::Vesting(..)
 			// Enable ultility
 			| Call::Utility{..}
+			// Enable crowdloan
+			| Call::Crowdloan{..}
 		)
 	}
 }
