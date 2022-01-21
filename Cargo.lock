@@ -6261,6 +6261,7 @@ dependencies = [
  "pallet-collective",
  "pallet-continuum",
  "pallet-crowdloan",
+ "pallet-democracy",
  "pallet-estate",
  "pallet-grandpa",
  "pallet-metaverse",
