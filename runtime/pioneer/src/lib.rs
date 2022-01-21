@@ -954,8 +954,7 @@ impl mining::Config for Runtime {
 }
 
 parameter_types! {
-	pub CreateClassDeposit: Balance = 500 * MILLICENTS;
-	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+	pub MetadataDepositPerByte: Balance = 1 * CENTS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -963,19 +962,18 @@ parameter_types! {
 }
 
 //impl nft::Config for Runtime {
-//    type Event = Event;
-//    type CreateClassDeposit = CreateClassDeposit;
-//    type CreateAssetDeposit = CreateAssetDeposit;
-//    type Currency = Balances;
-//    type MultiCurrency = Currencies;
-//    type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
-//    type PalletId = NftPalletId;
-//    type AuctionHandler = Auction;
-//    type MaxBatchTransfer = MaxBatchTransfer;
-//    type MaxBatchMinting = MaxBatchMinting;
-//    type MaxMetadata = MaxNftMetadata;
-//    type MiningResourceId = MiningResourceCurrencyId;
-//    type PromotionIncentive = PromotionIncentive;
+//	type Event = Event;
+//	type Currency = Balances;
+//	type MultiCurrency = Currencies;
+//	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+//	type PalletId = NftPalletId;
+//	type AuctionHandler = Auction;
+//	type MaxBatchTransfer = MaxBatchTransfer;
+//	type MaxBatchMinting = MaxBatchMinting;
+//	type MaxMetadata = MaxNftMetadata;
+//	type MiningResourceId = MiningResourceCurrencyId;
+//	type PromotionIncentive = PromotionIncentive;
+//	type DataDepositPerByte = MetadataDepositPerByte;
 //}
 //
 //parameter_types! {
