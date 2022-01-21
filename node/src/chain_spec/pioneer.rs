@@ -1,12 +1,8 @@
-use crate::chain_spec::Extensions;
+use std::collections::BTreeMap;
+use std::str::FromStr;
+
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
-use metaverse_runtime::MintingRateInfo;
-use pioneer_runtime::{
-	constants::currency::*, AccountId, AuraConfig, BalancesConfig, GenesisConfig, SessionKeys, Signature, SudoConfig,
-	SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
-};
-use primitives::Balance;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
 use sc_service::{ChainType, Properties};
 use serde::{Deserialize, Serialize};
@@ -17,8 +13,15 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
-use std::collections::BTreeMap;
-use std::str::FromStr;
+
+use metaverse_runtime::MintingRateInfo;
+use pioneer_runtime::{
+	constants::currency::*, AccountId, AuraConfig, BalancesConfig, GenesisConfig, SessionKeys, Signature, SudoConfig,
+	SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
+};
+use primitives::Balance;
+
+use crate::chain_spec::Extensions;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<pioneer_runtime::GenesisConfig, Extensions>;
@@ -201,7 +204,11 @@ fn testnet_genesis(
 			changes_trie_config: Default::default(),
 		},
 		balances: pioneer_runtime::BalancesConfig {
-			balances: endowed_accounts.iter().cloned().map(|k| (k, 1 << 60)).collect(),
+			balances: endowed_accounts
+				.iter()
+				.cloned()
+				.map(|k| (k, 250 * KILODOLLARS))
+				.collect(),
 		},
 		sudo: pioneer_runtime::SudoConfig { key: root_key },
 		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
