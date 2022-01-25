@@ -48,10 +48,10 @@ mod pioneer_imports {
 
 	pub use pioneer_runtime::{
 		constants::parachains, create_x2_parachain_multilocation, r#impl::FungibleTokenIdConvert, AccountId, Balance,
-		Balances, BlockNumber, Call, Currencies, CurrencyId, Event, ExistentialDeposits, Get, MultiLocation, NetworkId,
-		NftPalletId, Origin, OriginCaller, ParachainAccount, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
-		Scheduler, Session, System, Timestamp, TreasuryModuleAccount, TreasuryPalletId, Utility, Vesting, XTokens,
-		XcmConfig, XcmExecutor, NFT,
+		Balances, BlockNumber, Call, Currencies, Event, ExistentialDeposits, MultiLocation, NetworkId, NftPalletId,
+		Origin, OriginCaller, ParachainAccount, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, Scheduler,
+		Session, System, Timestamp, TreasuryModuleAccount, TreasuryPalletId, Utility, Vesting, XTokens, XcmConfig,
+		XcmExecutor,
 	};
 
 	use primitives::FungibleTokenId::*;
@@ -67,10 +67,10 @@ mod pioneer_imports {
 	pub const PARA_CHAIN_CURRENCY: FungibleTokenId = FungibleToken(2);
 	pub const STABLE_CURRENCY: FungibleTokenId = Stable(3);
 
-	pub const NativeCurrencyId: CurrencyId = 0;
-	pub const RelayChainCurrencyId: CurrencyId = 1;
-	pub const ParachainCurrencyId: CurrencyId = 2;
-	pub const StableCurrencyId: CurrencyId = 3;
+	pub const NATIVE_CURRENCY_ID: CurrencyId = 0;
+	pub const RELAY_CHAIN_CURRENCY_ID: CurrencyId = 1;
+	pub const PARA_CHAIN_CURRENCY_ID: CurrencyId = 2;
+	pub const STABLE_CURRENCY_ID: CurrencyId = 3;
 }
 
 const ORACLE1: [u8; 32] = [0u8; 32];
@@ -124,7 +124,7 @@ pub fn set_relaychain_block_number(number: BlockNumber) {
 }
 
 pub struct ExtBuilder {
-	balances: Vec<(AccountId, CurrencyId, Balance)>,
+	balances: Vec<(AccountId, FungibleTokenId, Balance)>,
 	parachain_id: u32,
 }
 
@@ -138,7 +138,7 @@ impl Default for ExtBuilder {
 }
 
 impl ExtBuilder {
-	pub fn balances(mut self, balances: Vec<(AccountId, CurrencyId, Balance)>) -> Self {
+	pub fn balances(mut self, balances: Vec<(AccountId, FungibleTokenId, Balance)>) -> Self {
 		self.balances = balances;
 		self
 	}
@@ -150,14 +150,14 @@ impl ExtBuilder {
 	}
 
 	pub fn build(self) -> sp_io::TestExternalities {
-		let evm_genesis_accounts = evm_genesis(vec![]);
+		// let evm_genesis_accounts = evm_genesis(vec![]);
 
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
 
-		let native_currency_id = NativeCurrencyId::get();
-		let existential_deposit = ExistentialDeposits::get();
+		let native_currency_id = NATIVE_CURRENCY_ID;
+		let existential_deposit = ExistentialDeposits::get(&NATIVE_CURRENCY);
 
 		#[cfg(feature = "with-mandala-runtime")]
 		GenesisBuild::<Runtime>::assimilate_storage(
@@ -173,13 +173,13 @@ impl ExtBuilder {
 				.balances
 				.clone()
 				.into_iter()
-				.filter(|(_, currency_id, _)| *currency_id == native_currency_id)
+				.filter(|(_, currency_id, _)| *currency_id == NATIVE_CURRENCY)
 				.map(|(account_id, _, initial_balance)| (account_id, initial_balance))
-				.chain(
-					get_all_module_accounts()
-						.iter()
-						.map(|x| (x.clone(), existential_deposit)),
-				)
+				// .chain(
+				// 	get_all_module_accounts()
+				// 		.iter()
+				// 		.map(|x| (x.clone(), existential_deposit)),
+				// )
 				.collect::<Vec<_>>(),
 		}
 		.assimilate_storage(&mut t)
@@ -189,34 +189,34 @@ impl ExtBuilder {
 			balances: self
 				.balances
 				.into_iter()
-				.filter(|(_, currency_id, _)| *currency_id != native_currency_id)
+				.filter(|(_, currency_id, _)| *currency_id != RELAY_CHAIN_CURRENCY)
 				.collect::<Vec<_>>(),
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
 
-		pallet_membership::GenesisConfig::<Runtime, pallet_membership::Instance5> {
-			members: vec![
-				AccountId::from(ORACLE1),
-				AccountId::from(ORACLE2),
-				AccountId::from(ORACLE3),
-				AccountId::from(ORACLE4),
-				AccountId::from(ORACLE5),
-			],
-			phantom: Default::default(),
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
+		// pallet_membership::GenesisConfig::<Runtime, pallet_membership::Instance5> {
+		// 	members: vec![
+		// 		AccountId::from(ORACLE1),
+		// 		AccountId::from(ORACLE2),
+		// 		AccountId::from(ORACLE3),
+		// 		AccountId::from(ORACLE4),
+		// 		AccountId::from(ORACLE5),
+		// 	],
+		// 	phantom: Default::default(),
+		// }
+		// .assimilate_storage(&mut t)
+		// .unwrap();
 
-		module_evm::GenesisConfig::<Runtime> {
-			accounts: evm_genesis_accounts,
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
+		// module_evm::GenesisConfig::<Runtime> {
+		// 	accounts: evm_genesis_accounts,
+		// }
+		// .assimilate_storage(&mut t)
+		// .unwrap();
 
-		module_session_manager::GenesisConfig::<Runtime> { session_duration: 10 }
-			.assimilate_storage(&mut t)
-			.unwrap();
+		// module_session_manager::GenesisConfig::<Runtime> { session_duration: 10 }
+		// 	.assimilate_storage(&mut t)
+		// 	.unwrap();
 
 		<parachain_info::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
 			&parachain_info::GenesisConfig {
@@ -248,18 +248,18 @@ impl ExtBuilder {
 // 	libsecp256k1::SecretKey::parse(&keccak_256(b"Bob")).unwrap()
 // }
 
-pub fn alice() -> AccountId {
-	// let address = EvmAccounts::eth_address(&alice_key());
-	let mut data = [0u8; 32];
-	// data[0..4].copy_from_slice(b"evm:");
-	data[4..24].copy_from_slice(&address[..]);
-	AccountId::from(Into::<[u8; 32]>::into(data))
-}
-
-pub fn bob() -> AccountId {
-	// let address = EvmAccounts::eth_address(&bob_key());
-	let mut data = [0u8; 32];
-	// data[0..4].copy_from_slice(b"evm:");
-	data[4..24].copy_from_slice(&address[..]);
-	AccountId::from(Into::<[u8; 32]>::into(data))
-}
+// pub fn alice() -> AccountId {
+// 	// let address = EvmAccounts::eth_address(&alice_key());
+// 	let mut data = [0u8; 32];
+// 	// data[0..4].copy_from_slice(b"evm:");
+// 	data[4..24].copy_from_slice(&address[..]);
+// 	AccountId::from(Into::<[u8; 32]>::into(data))
+// }
+//
+// pub fn bob() -> AccountId {
+// 	// let address = EvmAccounts::eth_address(&bob_key());
+// 	let mut data = [0u8; 32];
+// 	// data[0..4].copy_from_slice(b"evm:");
+// 	data[4..24].copy_from_slice(&address[..]);
+// 	AccountId::from(Into::<[u8; 32]>::into(data))
+// }

@@ -41,14 +41,14 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-use xcm::latest::prelude::*;
+pub use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
 	FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsDefault,
 	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
 	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
 };
-use xcm_executor::{Config, XcmExecutor};
+pub use xcm_executor::{Config, XcmExecutor};
 
 pub use constants::{currency::*, time::*};
 use r#impl::FungibleTokenIdConvert;
@@ -555,6 +555,7 @@ parameter_types! {
 	pub const BaseXcmWeight: Weight = 100_000_000;
 	// pub const RelayCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
+	pub ParachainAccount: AccountId = ParachainInfo::parachain_id().into_account();
 }
 
 pub fn create_x2_parachain_multilocation(index: u16) -> MultiLocation {

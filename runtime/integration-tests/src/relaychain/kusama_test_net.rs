@@ -108,8 +108,8 @@ pub fn kusama_ext() -> sp_io::TestExternalities {
 
 	pallet_balances::GenesisConfig::<Runtime> {
 		balances: vec![
-			(AccountId::from(ALICE), 2002 * dollar(KSM)),
-			(ParaId::from(2000).into_account(), 2 * dollar(KSM)),
+			(AccountId::from(ALICE), 2002 * dollar(RELAY_CHAIN_CURRENCY_ID)),
+			(ParaId::from(2000).into_account(), 2 * dollar(RELAY_CHAIN_CURRENCY_ID)),
 		],
 	}
 	.assimilate_storage(&mut t)
@@ -137,8 +137,16 @@ pub fn kusama_ext() -> sp_io::TestExternalities {
 pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
 	ExtBuilder::default()
 		.balances(vec![
-			(AccountId::from(ALICE), KSM, 10 * dollar(KSM)),
-			(pioneer_runtime::TreasuryModuleAccount::get(), KSM, dollar(KSM)),
+			(
+				AccountId::from(ALICE),
+				RELAY_CHAIN_CURRENCY,
+				10 * dollar(RELAY_CHAIN_CURRENCY_ID),
+			),
+			(
+				pioneer_runtime::TreasuryModuleAccount::get(),
+				RELAY_CHAIN_CURRENCY,
+				dollar(RELAY_CHAIN_CURRENCY_ID),
+			),
 		])
 		.parachain_id(parachain_id)
 		.build()

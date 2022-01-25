@@ -122,3 +122,16 @@ impl<T: Get<ParaId>> Convert<MultiLocation, Option<FungibleTokenId>> for Fungibl
 		}
 	}
 }
+
+impl<T: Get<ParaId>> Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert<T> {
+	fn convert(asset: MultiAsset) -> Option<FungibleTokenId> {
+		if let MultiAsset {
+			id: Concrete(location), ..
+		} = asset
+		{
+			Self::convert(location)
+		} else {
+			None
+		}
+	}
+}
