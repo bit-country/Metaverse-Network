@@ -65,7 +65,7 @@ mod pioneer_imports {
 	pub const NATIVE_CURRENCY: FungibleTokenId = NativeToken(0);
 	pub const RELAY_CHAIN_CURRENCY: FungibleTokenId = FungibleToken(1);
 	pub const PARA_CHAIN_CURRENCY: FungibleTokenId = FungibleToken(2);
-	pub const USD_CURRENCY: FungibleTokenId = Stable(3);
+	pub const STABLE_CURRENCY: FungibleTokenId = Stable(3);
 
 	pub const NativeCurrencyId: CurrencyId = 0;
 	pub const RelayChainCurrencyId: CurrencyId = 1;
@@ -156,8 +156,8 @@ impl ExtBuilder {
 			.build_storage::<Runtime>()
 			.unwrap();
 
-		let native_currency_id = GetNativeCurrencyId::get();
-		let existential_deposit = NativeTokenExistentialDeposit::get();
+		let native_currency_id = NativeCurrencyId::get();
+		let existential_deposit = ExistentialDeposits::get();
 
 		#[cfg(feature = "with-mandala-runtime")]
 		GenesisBuild::<Runtime>::assimilate_storage(
@@ -240,26 +240,26 @@ impl ExtBuilder {
 	}
 }
 
-pub fn alice_key() -> libsecp256k1::SecretKey {
-	libsecp256k1::SecretKey::parse(&keccak_256(b"Alice")).unwrap()
-}
-
-pub fn bob_key() -> libsecp256k1::SecretKey {
-	libsecp256k1::SecretKey::parse(&keccak_256(b"Bob")).unwrap()
-}
+// pub fn alice_key() -> libsecp256k1::SecretKey {
+// 	libsecp256k1::SecretKey::parse(&keccak_256(b"Alice")).unwrap()
+// }
+//
+// pub fn bob_key() -> libsecp256k1::SecretKey {
+// 	libsecp256k1::SecretKey::parse(&keccak_256(b"Bob")).unwrap()
+// }
 
 pub fn alice() -> AccountId {
-	let address = EvmAccounts::eth_address(&alice_key());
+	// let address = EvmAccounts::eth_address(&alice_key());
 	let mut data = [0u8; 32];
-	data[0..4].copy_from_slice(b"evm:");
+	// data[0..4].copy_from_slice(b"evm:");
 	data[4..24].copy_from_slice(&address[..]);
 	AccountId::from(Into::<[u8; 32]>::into(data))
 }
 
 pub fn bob() -> AccountId {
-	let address = EvmAccounts::eth_address(&bob_key());
+	// let address = EvmAccounts::eth_address(&bob_key());
 	let mut data = [0u8; 32];
-	data[0..4].copy_from_slice(b"evm:");
+	// data[0..4].copy_from_slice(b"evm:");
 	data[4..24].copy_from_slice(&address[..]);
 	AccountId::from(Into::<[u8; 32]>::into(data))
 }

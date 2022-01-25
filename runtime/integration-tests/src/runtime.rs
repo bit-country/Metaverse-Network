@@ -36,8 +36,11 @@ fn fungible_token_id_convert() {
 			))
 		);
 		assert_eq!(
-			FungibleTokenIdConvert::convert(USD_CURRENCY),
-			Some(MultiLocation::sibling_parachain_general_key(id, USD_CURRENCY.encode()))
+			FungibleTokenIdConvert::convert(STABLE_CURRENCY),
+			Some(MultiLocation::sibling_parachain_general_key(
+				id,
+				STABLE_CURRENCY.encode()
+			))
 		);
 		assert_eq!(
 			FungibleTokenIdConvert::convert(LIQUID_CURRENCY),
@@ -58,8 +61,11 @@ fn fungible_token_id_convert() {
 			Some(NATIVE_CURRENCY)
 		);
 		assert_eq!(
-			FungibleTokenIdConvert::convert(MultiLocation::sibling_parachain_general_key(id, USD_CURRENCY.encode())),
-			Some(USD_CURRENCY)
+			FungibleTokenIdConvert::convert(MultiLocation::sibling_parachain_general_key(
+				id,
+				STABLE_CURRENCY.encode()
+			)),
+			Some(STABLE_CURRENCY)
 		);
 		assert_eq!(
 			FungibleTokenIdConvert::convert(MultiLocation::sibling_parachain_general_key(
