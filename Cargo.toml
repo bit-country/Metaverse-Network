@@ -19,6 +19,9 @@ members = [
     'runtime/pioneer',
     'runtime/metaverse',
     'primitives/metaverse',
+    'modules/relaychain',
+    'modules/support',
+    'runtime/integration-tests'
 ]
 exclude = [
     '/dapps/luckydraw',
