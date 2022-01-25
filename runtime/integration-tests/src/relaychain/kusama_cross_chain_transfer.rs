@@ -18,43 +18,46 @@
 
 //! Cross-chain transfer tests within Kusama network.
 
-// use crate::relaychain::kusama_test_net::*;
-// use crate::setup::*;
-//
-// use frame_support::assert_ok;
-//
-// use pioneer_runtime::TreasuryModuleAccount;
-// // use module_asset_registry::AssetMetadata;
-// use module_relaychain::RelayChainCallBuilder;
-// use module_support::CallBuilder;
-// use orml_traits::MultiCurrency;
-// use xcm::v0::OriginKind::Native;
-// use xcm_emulator::TestExt;
-//
-// #[test]
-// fn transfer_from_relay_chain() {
-// 	KusamaNet::execute_with(|| {
-// 		assert_ok!(kusama_runtime::XcmPallet::reserve_transfer_assets(
-// 			kusama_runtime::Origin::signed(ALICE.into()),
-// 			Box::new(Parachain(2000).into().into()),
-// 			Box::new(
-// 				Junction::AccountId32 {
-// 					id: BOB,
-// 					network: NetworkId::Any
-// 				}
-// 				.into()
-// 				.into()
-// 			),
-// 			Box::new((Here, dollar(KSM)).into()),
-// 			0
-// 		));
-// 	});
-//
-// 	Pioneer::execute_with(|| {
-// 		assert_eq!(Currencies::free_balance(RELAY_CHAIN_CURRENCY_ID, &AccountId::from(BOB)),
-// 999_872_000_000); 	});
-// }
-//
+use frame_support::assert_ok;
+use orml_traits::MultiCurrency;
+use xcm::v0::OriginKind::Native;
+use xcm_emulator::TestExt;
+
+// use module_asset_registry::AssetMetadata;
+use module_relaychain::RelayChainCallBuilder;
+use module_support::CallBuilder;
+use pioneer_runtime::TreasuryModuleAccount;
+
+use crate::relaychain::kusama_test_net::*;
+use crate::setup::*;
+
+#[test]
+fn transfer_from_relay_chain() {
+	KusamaNet::execute_with(|| {
+		assert_ok!(kusama_runtime::XcmPallet::reserve_transfer_assets(
+			kusama_runtime::Origin::signed(ALICE.into()),
+			Box::new(Parachain(2000).into().into()),
+			Box::new(
+				Junction::AccountId32 {
+					id: BOB,
+					network: NetworkId::Any
+				}
+				.into()
+				.into()
+			),
+			Box::new((Here, dollar(KSM)).into()),
+			0
+		));
+	});
+
+	Pioneer::execute_with(|| {
+		assert_eq!(
+			Currencies::free_balance(RELAY_CHAIN_CURRENCY_ID, &AccountId::from(BOB)),
+			999_872_000_000
+		);
+	});
+}
+
 // #[test]
 // fn transfer_to_relay_chain() {
 // 	Pioneer::execute_with(|| {

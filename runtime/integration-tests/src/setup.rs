@@ -21,30 +21,26 @@ use cumulus_test_relay_sproof_builder::RelayStateSproofBuilder;
 use frame_support::traits::{GenesisBuild, OnFinalize, OnIdle, OnInitialize};
 pub use frame_support::{assert_noop, assert_ok, traits::Currency};
 pub use frame_system::RawOrigin;
-
 pub use orml_traits::{location::RelativeLocations, Change, GetByKey, MultiCurrency};
-
-pub use primitives::{AccountId, BlockNumber, CurrencyId, FungibleTokenId};
-
 pub use sp_core::H160;
 use sp_io::hashing::keccak_256;
 pub use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin, BlakeTwo256, Convert, Hash, Zero},
 	DispatchError, DispatchResult, FixedPointNumber, MultiAddress, Perbill, Permill,
 };
-
 pub use xcm::latest::prelude::*;
+
+pub use pioneer_imports::*;
+pub use primitives::{AccountId, BlockNumber, CurrencyId, FungibleTokenId};
 
 pub fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
 
-#[cfg(feature = "with-pioneer-runtime")]
-pub use pioneer_imports::*;
-#[cfg(feature = "with-pioneer-runtime")]
 mod pioneer_imports {
 	pub use frame_support::{parameter_types, weights::Weight};
+	pub use sp_runtime::{traits::AccountIdConversion, FixedPointNumber};
 
 	pub use pioneer_runtime::{
 		constants::parachains, create_x2_parachain_multilocation, r#impl::FungibleTokenIdConvert, AccountId, Balance,
@@ -53,10 +49,8 @@ mod pioneer_imports {
 		Session, System, Timestamp, TreasuryModuleAccount, TreasuryPalletId, Utility, Vesting, XTokens, XcmConfig,
 		XcmExecutor,
 	};
-
 	use primitives::FungibleTokenId::*;
 	use primitives::{CurrencyId, FungibleTokenId};
-	pub use sp_runtime::{traits::AccountIdConversion, FixedPointNumber};
 
 	// 0 => NEER
 	// 1 => KSM

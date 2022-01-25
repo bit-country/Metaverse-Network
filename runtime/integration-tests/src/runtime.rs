@@ -42,13 +42,7 @@ fn fungible_token_id_convert() {
 				STABLE_CURRENCY.encode()
 			))
 		);
-		// assert_eq!(
-		// 	FungibleTokenIdConvert::convert(LIQUID_CURRENCY),
-		// 	Some(MultiLocation::sibling_parachain_general_key(
-		// 		id,
-		// 		LIQUID_CURRENCY.encode()
-		// 	))
-		// );
+
 		assert_eq!(
 			FungibleTokenIdConvert::convert(MultiLocation::parent()),
 			Some(RELAY_CHAIN_CURRENCY)
@@ -67,13 +61,6 @@ fn fungible_token_id_convert() {
 			)),
 			Some(STABLE_CURRENCY)
 		);
-		// assert_eq!(
-		// 	FungibleTokenIdConvert::convert(MultiLocation::sibling_parachain_general_key(
-		// 		id,
-		// 		LIQUID_CURRENCY.encode()
-		// 	)),
-		// 	Some(LIQUID_CURRENCY)
-		// );
 
 		#[cfg(feature = "with-pioneer-runtime")]
 		{

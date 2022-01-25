@@ -17,12 +17,6 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg(test)]
-
-#[cfg(any(feature = "with-pioneer-runtime"))]
-mod setup;
-
-#[cfg(any(feature = "with-pioneer-runtime"))]
-mod runtime;
-
-#[cfg(feature = "with-pioneer-runtime")]
 mod relaychain;
+mod runtime;
+mod setup;
