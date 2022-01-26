@@ -706,11 +706,10 @@ match_type! {
 fn native_currency_location(id: FungibleTokenId) -> MultiLocation {
 	// MultiLocation::new(1, X2(Parachain(ParachainInfo::parachain_id().into()),
 	// GeneralKey(id.encode())))
-	MultiLocation::new(
-		1,
-		X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(id.encode())),
-	)
+	MultiLocation::new(1, X2(Parachain(PARA_ID), GeneralKey(id.encode())))
 }
+
+pub const PARA_ID: u32 = 2096u32;
 
 /// **************************************
 // Below is for the network of Kusama.
@@ -748,6 +747,8 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 	fn convert(location: MultiLocation) -> Option<FungibleTokenId> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 		use TokenSymbol::*;
+
+		let para_id: u32 = u32::from(ParachainInfo::parachain_id());
 		// TODO: use TokenSymbol enum
 		// 0 => NEER
 		// 1 => KSM
@@ -759,7 +760,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 		}
 		match location {
 			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(id), GeneralKey(key)) if id == u32::from(ParachainInfo::parachain_id()) => {
+				X2(Parachain(id), GeneralKey(key)) if id == PARA_ID => {
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
 						match currency_id {

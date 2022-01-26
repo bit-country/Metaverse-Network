@@ -62,6 +62,8 @@ mod pioneer_imports {
 	pub const PARA_CHAIN_CURRENCY: FungibleTokenId = FungibleToken(2);
 	pub const STABLE_CURRENCY: FungibleTokenId = Stable(3);
 
+	pub const PARA_CHAIN_CURRENCY_NONE: FungibleTokenId = Stable(99);
+
 	pub const NATIVE_CURRENCY_ID: CurrencyId = 0;
 	pub const RELAY_CHAIN_CURRENCY_ID: CurrencyId = 1;
 	pub const PARA_CHAIN_CURRENCY_ID: CurrencyId = 2;
