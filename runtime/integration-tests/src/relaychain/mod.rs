@@ -16,6 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+#[rustfmt::skip]
 mod kusama_cross_chain_transfer;
+#[rustfmt::skip]
 pub mod kusama_test_net;
-mod relay_chain;

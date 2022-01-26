@@ -19,17 +19,16 @@
 //! Tests Relay Chain related things.
 //! Currently only Pioneer XCM is tested.
 
-#[cfg(feature = "with-pioneer-runtime")]
 mod pioneer_tests {
-	use crate::relaychain::kusama_test_net::*;
-	use crate::setup::*;
-
-	use frame_support::{assert_noop, assert_ok};
-
 	use codec::Decode;
+	use frame_support::{assert_noop, assert_ok};
+	use xcm_emulator::TestExt;
+
 	use module_relaychain::RelayChainCallBuilder;
 	use module_support::CallBuilder;
-	use xcm_emulator::TestExt;
+
+	use crate::relaychain::kusama_test_net::*;
+	use crate::setup::*;
 
 	type KusamaCallBuilder = RelayChainCallBuilder<Runtime, ParachainInfo>;
 

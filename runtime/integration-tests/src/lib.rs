@@ -17,6 +17,9 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 #![cfg(test)]
-mod relaychain;
-mod runtime;
+
 mod setup;
+#[rustfmt::skip]
+mod runtime;
+#[rustfmt::skip]
+mod relaychain;
