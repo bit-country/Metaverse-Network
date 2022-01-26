@@ -2,10 +2,10 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-use frame_support::traits::{Contains, EnsureOrigin, Nothing};
+use frame_support::traits::{Contains, Currency, EnsureOrigin, Nothing, OnUnbalanced};
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
-	traits::Everything,
+	traits::{Everything, Imbalance},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
 		DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
@@ -234,8 +234,6 @@ impl Contains<Call> for BaseFilter {
 			| Call::Session(..)
 			// Enable collator selection
 			| Call::CollatorSelection(..)
-			// Enable vesting
-			| Call::Vesting(..)
 			// Enable ultility
 			| Call::Utility{..}
 			// Enable Crowdloan
@@ -370,12 +368,31 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
-	pub const TransactionByteFee: Balance = 10 * MICROUNIT;
+	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
 	pub const OperationalFeeMultiplier: u8 = 5;
 }
 
+pub struct DealWithFees;
+
+type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+
+impl OnUnbalanced<NegativeImbalance> for DealWithFees {
+	fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
+		if let Some(fees) = fees_then_tips.next() {
+			// for fees, 80% to treasury, 20% to author
+			let mut split = fees.ration(80, 20);
+			if let Some(tips) = fees_then_tips.next() {
+				// for tips, if any, 80% to treasury, 20% to staking pot (though this can be anything)
+				tips.ration_merge_into(80, 20, &mut split);
+			}
+			Treasury::on_unbalanced(split.0);
+			Balances::resolve_creating(&CollatorSelection::account_id(), split.1);
+		}
+	}
+}
+
 impl pallet_transaction_payment::Config for Runtime {
-	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, ()>;
+	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
 	type TransactionByteFee = TransactionByteFee;
 	type WeightToFee = WeightToFee;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
@@ -393,12 +410,13 @@ parameter_types! {
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
-	pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
+	pub const BitMiningTreasury: PalletId = PalletId(*b"bit/mine");
+	pub const PotId: PalletId = PalletId(*b"bit/cpot");
 }
 
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
-		Zero::zero()
+		10 * CENTS
 	};
 }
 
@@ -629,10 +647,9 @@ impl pallet_aura::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PotId: PalletId = PalletId(*b"PotStake");
-	pub const MaxCandidates: u32 = 10;
+	pub const MaxCandidates: u32 = 20;
 	pub const MinCandidates: u32 = 5;
-	pub const SessionLength: BlockNumber = 2 * MINUTES;
+	pub const SessionLength: BlockNumber = 1 * DAYS;
 	pub const MaxInvulnerables: u32 = 100;
 	pub const ExecutiveBody: BodyId = BodyId::Executive;
 }
