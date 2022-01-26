@@ -24,19 +24,19 @@ fn fungible_token_id_convert() {
 		let id: u32 = ParachainInfo::parachain_id().into();
 
 		assert_eq!(
-			FungibleTokenIdConvert::<ParachainInfo>::convert(RELAY_CHAIN_CURRENCY),
+			FungibleTokenIdConvert::convert(RELAY_CHAIN_CURRENCY),
 			Some(MultiLocation::parent())
 		);
 
 		assert_eq!(
-			FungibleTokenIdConvert::<ParachainInfo>::convert(NATIVE_CURRENCY),
+			FungibleTokenIdConvert::convert(NATIVE_CURRENCY),
 			Some(MultiLocation::sibling_parachain_general_key(
 				id,
 				NATIVE_CURRENCY.encode()
 			))
 		);
 		assert_eq!(
-			FungibleTokenIdConvert::<ParachainInfo>::convert(STABLE_CURRENCY),
+			FungibleTokenIdConvert::convert(STABLE_CURRENCY),
 			Some(MultiLocation::sibling_parachain_general_key(
 				id,
 				STABLE_CURRENCY.encode()
@@ -44,18 +44,18 @@ fn fungible_token_id_convert() {
 		);
 
 		assert_eq!(
-			FungibleTokenIdConvert::<ParachainInfo>::convert(MultiLocation::parent()),
+			FungibleTokenIdConvert::convert(MultiLocation::parent()),
 			Some(RELAY_CHAIN_CURRENCY)
 		);
 		assert_eq!(
-			FungibleTokenIdConvert::<ParachainInfo>::convert(MultiLocation::sibling_parachain_general_key(
+			FungibleTokenIdConvert::convert(MultiLocation::sibling_parachain_general_key(
 				id,
 				NATIVE_CURRENCY.encode()
 			)),
 			Some(NATIVE_CURRENCY)
 		);
 		assert_eq!(
-			FungibleTokenIdConvert::<ParachainInfo>::convert(MultiLocation::sibling_parachain_general_key(
+			FungibleTokenIdConvert::convert(MultiLocation::sibling_parachain_general_key(
 				id,
 				STABLE_CURRENCY.encode()
 			)),
@@ -64,26 +64,26 @@ fn fungible_token_id_convert() {
 
 		#[cfg(feature = "with-pioneer-runtime")]
 		{
-			assert_eq!(FungibleTokenIdConvert::<ParachainInfo>::convert(NATIVE_CURRENCY), None);
+			assert_eq!(FungibleTokenIdConvert::convert(NATIVE_CURRENCY), None);
 			assert_eq!(
-				FungibleTokenIdConvert::<ParachainInfo>::convert(RELAY_CHAIN_CURRENCY),
+				FungibleTokenIdConvert::convert(RELAY_CHAIN_CURRENCY),
 				None
 			);
 			assert_eq!(
-				FungibleTokenIdConvert::<ParachainInfo>::convert(PARA_CHAIN_CURRENCY),
+				FungibleTokenIdConvert::convert(PARA_CHAIN_CURRENCY),
 				None
 			);
-			assert_eq!(FungibleTokenIdConvert::<ParachainInfo>::convert(STABLE_CURRENCY), None);
+			assert_eq!(FungibleTokenIdConvert::convert(STABLE_CURRENCY), None);
 
 			assert_eq!(
-				FungibleTokenIdConvert::<ParachainInfo>::convert(MultiLocation::sibling_parachain_general_key(
+				FungibleTokenIdConvert::convert(MultiLocation::sibling_parachain_general_key(
 					id,
 					PARA_CHAIN_CURRENCY_ID.encode()
 				)),
 				None
 			);
 			assert_eq!(
-				FungibleTokenIdConvert::<ParachainInfo>::convert(MultiLocation::sibling_parachain_general_key(
+				FungibleTokenIdConvert::convert(MultiLocation::sibling_parachain_general_key(
 					id,
 					STABLE_CURRENCY_ID.encode()
 				)),
@@ -112,7 +112,7 @@ fn fungible_token_id_convert() {
 				.into();
 
 			assert_eq!(
-				FungibleTokenIdConvert::<ParachainInfo>::convert(native_currency),
+				FungibleTokenIdConvert::convert(native_currency),
 				Some(NATIVE_CURRENCY)
 			);
 		}
