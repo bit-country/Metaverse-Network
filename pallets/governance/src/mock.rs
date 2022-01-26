@@ -3,10 +3,10 @@
 use super::*;
 use crate as governance;
 use codec::Encode;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Parameter};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
+use scale_info::TypeInfo;
 
 use frame_support::dispatch::DispatchError;
-use frame_support::pallet_prelude::{EnsureOrigin, Member};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use metaverse_primitive::{MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseTrait};
@@ -15,7 +15,6 @@ use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
-	Perbill,
 };
 
 parameter_types! {
@@ -64,7 +63,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
@@ -110,15 +109,15 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 		}
 	}
 
-	fn get_metaverse(metaverse_id: u64) -> Option<MetaversePrimitiveInfo<AccountId>> {
+	fn get_metaverse(_metaverse_id: u64) -> Option<MetaversePrimitiveInfo<AccountId>> {
 		None
 	}
 
-	fn get_metaverse_token(metaverse_id: u64) -> Option<FungibleTokenId> {
+	fn get_metaverse_token(_metaverse_id: u64) -> Option<FungibleTokenId> {
 		None
 	}
 
-	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
+	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
 }
@@ -126,7 +125,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 pub struct MetaverseLandInfo {}
 
 impl MetaverseLandTrait<AccountId> for MetaverseLandInfo {
-	fn get_user_land_units(who: &u64, metaverse_id: &u64) -> Vec<(i32, i32)> {
+	fn get_user_land_units(_who: &u64, _metaverse_id: &u64) -> Vec<(i32, i32)> {
 		Vec::default()
 	}
 
@@ -168,9 +167,10 @@ impl pallet_metaverse::Config for Runtime {
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+	type WeightInfo = ();
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalType {
 	Any,
 	JustTransfer,
@@ -283,11 +283,16 @@ pub fn run_to_block(n: u64) {
 }
 
 pub fn set_balance_proposal(value: u64) -> Vec<u8> {
-	Call::Balances(pallet_balances::Call::set_balance(BOB, value, 100)).encode()
+	Call::Balances(pallet_balances::Call::set_balance {
+		who: BOB,
+		new_free: value,
+		new_reserved: 100,
+	})
+	.encode()
 }
 
 pub fn set_freeze_metaverse_proposal(value: u64) -> Vec<u8> {
-	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse(value)).encode()
+	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse { metaverse_id: value }).encode()
 }
 
 pub fn set_balance_proposal_hash(value: u64) -> H256 {

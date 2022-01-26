@@ -19,8 +19,7 @@
 use metaverse_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
-use sc_executor::native_executor_instance;
-pub use sc_executor::NativeExecutor;
+use sc_executor::NativeElseWasmExecutor;
 use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
@@ -30,14 +29,26 @@ use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use std::{sync::Arc, time::Duration};
 
 // Our native executor instance.
-native_executor_instance!(
-	pub Executor,
-	metaverse_runtime::api::dispatch,
-	metaverse_runtime::native_version,
-	frame_benchmarking::benchmarking::HostFunctions,
-);
+pub struct ExecutorDispatch;
 
-type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
+impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
+	/// Only enable the benchmarking host functions when we actually want to benchmark.
+	#[cfg(feature = "runtime-benchmarks")]
+	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+	/// Otherwise we only use the default Substrate host functions.
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type ExtendHostFunctions = ();
+
+	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+		metaverse_runtime::api::dispatch(method, data)
+	}
+
+	fn native_version() -> sc_executor::NativeVersion {
+		metaverse_runtime::native_version()
+	}
+}
+
+type FullClient = sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
@@ -73,9 +84,16 @@ pub fn new_partial(
 		})
 		.transpose()?;
 
-	let (client, backend, keystore_container, task_manager) = sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
+	let (client, backend, keystore_container, task_manager) = sc_service::new_full_parts::<Block, RuntimeApi, _>(
 		&config,
 		telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+		executor,
 	)?;
 	let client = Arc::new(client);
 
@@ -163,7 +181,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 				return Err(ServiceError::Other(format!(
 					"Error hooking up remote keystore for {}: {}",
 					url, e
-				)))
+				)));
 			}
 		};
 	}
@@ -175,6 +193,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	let warp_sync = Arc::new(sc_finality_grandpa::warp_proof::NetworkProvider::new(
 		backend.clone(),
 		grandpa_link.shared_authority_set().clone(),
+		Vec::default(),
 	));
 
 	let (network, system_rpc_tx, network_starter) = sc_service::build_network(sc_service::BuildNetworkParams {
@@ -335,10 +354,17 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
 		})
 		.transpose()?;
 
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
 	let (client, backend, keystore_container, mut task_manager, on_demand) =
-		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(
+		sc_service::new_light_parts::<Block, RuntimeApi, _>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+			executor,
 		)?;
 
 	let mut telemetry = telemetry.map(|(worker, telemetry)| {
@@ -394,6 +420,7 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
 	let warp_sync = Arc::new(sc_finality_grandpa::warp_proof::NetworkProvider::new(
 		backend.clone(),
 		grandpa_link.shared_authority_set().clone(),
+		Vec::default(),
 	));
 
 	let (network, system_rpc_tx, network_starter) = sc_service::build_network(sc_service::BuildNetworkParams {

@@ -14,9 +14,9 @@ use sp_runtime::{
 };
 use tewai_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, Block,
-	ContinuumConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig, ImOnlineConfig, IndicesConfig,
-	SessionConfig, SessionKeys, StakerStatus, StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig,
-	MAX_NOMINATIONS,
+	ContinuumConfig, CouncilConfig, DemocracyConfig, ElectionsConfig, EstateConfig, GrandpaConfig, ImOnlineConfig,
+	IndicesConfig, MintingRateInfo, SessionConfig, SessionKeys, StakerStatus, StakingConfig, SudoConfig, SystemConfig,
+	TechnicalCommitteeConfig, MAX_NOMINATIONS,
 };
 
 pub use primitives::{AccountId, Balance, Signature};
@@ -203,6 +203,16 @@ pub fn authority_keys_from_seed(
 	)
 }
 
+pub fn metaverse_land_minting_config() -> MintingRateInfo {
+	MintingRateInfo {
+		expect: Default::default(),
+		// 10% minting rate per annual
+		annual: 10,
+		// Max 100 millions land unit
+		max: 100_000_000,
+	}
+}
+
 /// Helper function to create GenesisConfig for testing
 pub fn testnet_genesis(
 	initial_authorities: Vec<(
@@ -333,6 +343,9 @@ pub fn testnet_genesis(
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
 		},
+		estate: EstateConfig {
+			minting_rate_config: metaverse_land_minting_config(),
+		},
 	}
 }
 
@@ -348,7 +361,7 @@ fn development_config_genesis() -> GenesisConfig {
 /// Development config (single validator Alice)
 pub fn development_config() -> ChainSpec {
 	ChainSpec::from_genesis(
-		"Bit.Country Dev Chain",
+		"Tewai Dev Chain",
 		"tewai-dev",
 		ChainType::Development,
 		development_config_genesis,

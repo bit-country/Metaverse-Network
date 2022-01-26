@@ -3,19 +3,31 @@ panic = 'unwind'
 
 [workspace]
 members = [
-    'pallets/*',
+    'pallets/auction',
+    'pallets/continuum',
+    'pallets/currencies',
+    'pallets/estate',
+    'pallets/governance',
+    'pallets/metaverse',
+    'pallets/mining',
+    'pallets/nft',
+    'pallets/swap',
+    'pallets/tokenization',
+    'pallets/crowdloan',
     'traits/*',
     'node',
-    'modules/chainsafe',
-    'runtime/metaverse',
     'runtime/pioneer',
-    'runtime/tewai',
-    'primitives/evm',
+    'runtime/metaverse',
     'primitives/metaverse',
 ]
 exclude = [
     '/dapps/luckydraw',
     '/dapps/airdrop',
     '/dapps/countrytoken',
-    'pallets/oracle'
+    'pallets/oracle',
+    'pallet/evm',
+    'pallet/evm/*',
+    'primitives/evm/',
+    'modules/chainsafe',
+    'runtime/tewai',
 ]

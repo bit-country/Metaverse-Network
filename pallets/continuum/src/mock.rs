@@ -19,12 +19,12 @@
 
 use super::*;
 use crate as continuum;
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, Change, CheckAuctionItemHandler, OnNewBidResult};
-use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, weights::Weight, PalletId};
-use frame_system::{EnsureRoot, EnsureSignedBy};
-use primitives::{Amount, AssetId, CurrencyId, FungibleTokenId};
+use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
+use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use frame_support::pallet_prelude::{GenesisBuild, Hooks};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_system::EnsureSignedBy;
+use primitives::FungibleTokenId;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
@@ -37,7 +37,6 @@ parameter_types! {
 // Configure a mock runtime to test the pallet.
 
 pub type AccountId = u128;
-pub type AuctionId = u64;
 pub type Balance = u64;
 pub type MetaverseId = u64;
 pub type BlockNumber = u64;
@@ -45,10 +44,9 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CHARLIE: AccountId = 3;
-pub const CLASS_ID: u32 = 0;
-pub const COLLECTION_ID: u64 = 0;
-pub const ALICE_COUNTRY_ID: MetaverseId = 1;
-pub const BOB_COUNTRY_ID: MetaverseId = 2;
+pub const ALICE_METAVERSE_ID: MetaverseId = 1;
+pub const BOB_METAVERSE_ID: MetaverseId = 2;
+pub const CHARLIE_METAVERSE_ID: MetaverseId = 3;
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -74,7 +72,7 @@ impl frame_system::Config for Runtime {
 	type OnNewAccount = ();
 	type OnKilledAccount = ();
 	type DbWeight = ();
-	type BaseCallFilter = ();
+	type BaseCallFilter = frame_support::traits::Everything;
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
@@ -101,68 +99,80 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
 		None
 	}
 
-	fn update_auction(id: u64, info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
 	fn new_auction(
-		recipient: u128,
-		initial_amount: Self::Balance,
-		start: u64,
-		end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_end: Option<u64>,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
 	fn create_auction(
-		auction_type: AuctionType,
-		item_id: ItemId,
-		end: Option<u64>,
-		recipient: u128,
-		initial_amount: Self::Balance,
-		start: u64,
-		listing_level: ListingLevel,
+		_auction_type: AuctionType,
+		_item_id: ItemId,
+		_end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_listing_level: ListingLevel<AccountId>,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
-	fn remove_auction(id: u64, item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId) {}
 
 	fn auction_bid_handler(
 		_now: u64,
-		id: u64,
-		new_bid: (u128, Self::Balance),
-		last_bid: Option<(u128, Self::Balance)>,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn local_auction_bid_handler(
 		_now: u64,
-		id: u64,
-		new_bid: (u128, Self::Balance),
-		last_bid: Option<(u128, Self::Balance)>,
-		social_currency_id: FungibleTokenId,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
+		_social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn collect_royalty_fee(
+		_high_bid_price: &Self::Balance,
+		_high_bidder: &u128,
+		_asset_id: &u64,
+		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
 	}
 }
 
 impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(item_id: ItemId) -> bool {
+	fn check_item_in_auction(_item_id: ItemId) -> bool {
 		return false;
 	}
 }
 
 parameter_types! {
 	pub const ContinuumTreasuryPalletId: PalletId = PalletId(*b"bit/ctmu");
-	pub const AuctionTimeToClose: u32 = 10; //Default 100800 Blocks
-	pub const SessionDuration: BlockNumber = 10; //Default 43200 Blocks
-	pub const SpotAuctionChillingDuration: BlockNumber = 10; //Default 43200 Blocks
+	// Default 100800 Blocks
+	pub const AuctionTimeToClose: u32 = 10;
+	// Default 43200 Blocks
+	pub const SessionDuration: BlockNumber = 10;
+	// Default 43200 Blocks
+	pub const SpotAuctionChillingDuration: BlockNumber = 10;
 }
 
 pub struct MetaverseInfoSource {}
@@ -170,21 +180,22 @@ pub struct MetaverseInfoSource {}
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
-			ALICE => *metaverse_id == ALICE_COUNTRY_ID,
-			BOB => *metaverse_id == BOB_COUNTRY_ID,
+			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
+			BOB => *metaverse_id == BOB_METAVERSE_ID,
+			CHARLIE => *metaverse_id == CHARLIE_METAVERSE_ID,
 			_ => false,
 		}
 	}
 
-	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
+	fn get_metaverse(_metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
 		None
 	}
 
-	fn get_metaverse_token(metaverse_id: u64) -> Option<FungibleTokenId> {
+	fn get_metaverse_token(_metaverse_id: u64) -> Option<FungibleTokenId> {
 		None
 	}
 
-	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
+	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
 }
@@ -237,7 +248,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 500)],
+			balances: vec![(ALICE, 100000), (BOB, 500), (CHARLIE, 100000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -246,9 +257,9 @@ impl ExtBuilder {
 			initial_active_session: 0,
 			initial_auction_rate: 5,
 			initial_max_bound: (-100, 100),
-			spot_price: 10000,
+			spot_price: 100,
 		}
-		.assimilate_storage((&mut t))
+		.assimilate_storage(&mut t)
 		.unwrap();
 
 		let mut ext = sp_io::TestExternalities::new(t);

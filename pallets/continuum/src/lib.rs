@@ -15,27 +15,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! # Continuum Spot Module
+//!
+//! ## Overview
+//!
+//! Metaverse network is a multi-metaverse protocol so individual metaverse need to be connected and
+//! located in the map. The map called Continuum on mainnet and Pioneer on canary network.
+//!
+//! Continuum Slot Protocol will determine the location of the metaverse by going through auction
+//! and buy spot process. The slot will go through the auction process, highest bid before end time
+//! will secure the slot unless the allow buy now feature is enabled, the slot will secure with
+//! fixed price.
+//!
+//! The core module of Continuum Spot protocol. Continuum Spot engine is responsible for handling
+//! slot registration, slot expression of interest, slot auction and good neighborhood voting
+//! protocol.
+//!
+//! Continuum Spot Auction Process (rotate every x block):
+//! - Slot Registration (Express of Interest) - metaverse owner can register for their favourite
+//!   slot
+//! - Highest registered slot will move to Auction slots.
+//! - The Auction slot will move to Good neighborhood protocol to start voting by neighbor of the
+//!   spot
+//! - Simple majority negative voting applied - the bidder who has more than 51% vote nay will be
+//!   rejected
+//! - The auction will start on pallet_auction.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
-use frame_system::{self as system, ensure_root, ensure_signed};
-use primitives::{continuum::Continuum, Balance, CurrencyId, ItemId, MetaverseId, SpotId};
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
+use frame_system::{ensure_root, ensure_signed};
+use primitives::{continuum::Continuum, ItemId, MetaverseId, SpotId};
+use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, CheckedAdd, CheckedDiv, One, Zero},
-	DispatchError, FixedPointNumber, RuntimeDebug,
+	traits::{AccountIdConversion, One, Zero},
+	DispatchError, RuntimeDebug,
 };
 use sp_std::vec;
 use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use bc_primitives::MetaverseTrait;
 use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
-use sp_arithmetic::Perbill;
-// use crate::pallet::{Config, Pallet, ActiveAuctionSlots};
+
 #[cfg(feature = "std")]
 use frame_support::traits::GenesisBuild;
 
@@ -51,8 +75,9 @@ mod mock;
 mod tests;
 
 pub use pallet::*;
+use sp_runtime::traits::CheckedAdd;
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum ContinuumAuctionSlotStatus {
 	/// Accept participation
 	AcceptParticipates,
@@ -64,7 +89,7 @@ pub enum ContinuumAuctionSlotStatus {
 
 /// Information of EOI on Continuum spot
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct SpotEOI<AccountId> {
 	spot_id: SpotId,
 	participants: Vec<AccountId>,
@@ -72,7 +97,7 @@ pub struct SpotEOI<AccountId> {
 
 /// Information of an active auction slot
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct AuctionSlot<BlockNumber, AccountId> {
 	spot_id: SpotId,
 	participants: Vec<AccountId>,
@@ -98,17 +123,21 @@ pub mod pallet {
 		/// New Slot Duration
 		/// How long the new auction slot will be released. If set to zero, no new auctions are
 		/// generated
+		#[pallet::constant]
 		type SessionDuration: Get<Self::BlockNumber>;
 		/// Auction Slot Chilling Duration
 		/// How long the participates in the New Auction Slots will get confirmed by neighbours
+		#[pallet::constant]
 		type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
 		/// Emergency shutdown origin which allow cancellation in an emergency
 		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
 		/// Auction Handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
 		/// Auction duration
+		#[pallet::constant]
 		type AuctionDuration: Get<Self::BlockNumber>;
 		/// Continuum Treasury
+		#[pallet::constant]
 		type ContinuumTreasury: Get<PalletId>;
 		/// Currency
 		type Currency: ReservableCurrency<Self::AccountId>
@@ -163,7 +192,7 @@ pub mod pallet {
 			let auction_duration: T::BlockNumber = T::SessionDuration::get();
 			if !auction_duration.is_zero() && (now % auction_duration).is_zero() {
 				Self::rotate_auction_slots(now);
-				T::BlockWeights::get().max_block
+				20_000_000
 			} else {
 				0
 			}
@@ -178,12 +207,12 @@ pub mod pallet {
 	/// Continuum Spot
 	#[pallet::storage]
 	#[pallet::getter(fn get_continuum_spot)]
-	pub type ContinuumSpots<T: Config> = StorageMap<_, Twox64Concat, SpotId, ContinuumSpot, OptionQuery>;
+	pub type ContinuumSpots<T: Config> = StorageMap<_, Twox64Concat, SpotId, ContinuumSpot, ValueQuery>;
 
 	/// Continuum Spot Position
 	#[pallet::storage]
 	#[pallet::getter(fn get_continuum_position)]
-	pub type ContinuumCoordinates<T: Config> = StorageMap<_, Twox64Concat, (i32, i32), SpotId, OptionQuery>;
+	pub type ContinuumCoordinates<T: Config> = StorageMap<_, Twox64Concat, (i32, i32), SpotId, ValueQuery>;
 
 	/// Active Auction Slots of current session index that accepting participants
 	#[pallet::storage]
@@ -245,6 +274,22 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// New express of interest
 		NewExpressOfInterestAdded(T::AccountId, SpotId),
+		/// New max bound set on continuum map
+		NewMaxBoundSet((i32, i32)),
+		/// Emergency shutdown is on
+		ContinuumEmergencyShutdownEnabled(),
+		/// Start new referendum
+		NewContinuumReferendumStarted(T::BlockNumber, SpotId),
+		/// Start new good neighbourhood protocol round
+		NewContinuumNeighbourHoodProtocolStarted(T::BlockNumber, SpotId),
+		/// Spot transferred
+		ContinuumSpotTransferred(T::AccountId, T::AccountId, SpotId),
+		/// New max auction slot set
+		NewMaxAuctionSlotSet(u8),
+		/// Rotated new auction slot
+		NewAuctionSlotRotated(T::BlockNumber),
+		/// Finalize vote
+		FinalizedVote(SpotId),
 	}
 
 	#[pallet::error]
@@ -287,6 +332,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Buy continuum slot with fixed price
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn buy_continuum_spot(
 			origin: OriginFor<T>,
@@ -299,12 +345,19 @@ pub mod pallet {
 				Error::<T>::NoPermission
 			);
 			ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
-			let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
-			let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
+
+			let mut maybe_spot_id = Option::None;
+
+			if ContinuumCoordinates::<T>::contains_key(coordinate) {
+				let spot_id_from_coordinate = ContinuumCoordinates::<T>::get(coordinate);
+				maybe_spot_id = Some(spot_id_from_coordinate);
+			}
+
+			let spot_id = Self::check_spot_ownership(maybe_spot_id, coordinate)?;
 			let continuum_price_spot = SpotPrice::<T>::get();
 
 			let continuum_treasury = Self::account_id();
-			//Define how many NUUM for continuum spot - default 1 NUUM - need to change to variable
+
 			ensure!(
 				T::Currency::free_balance(&sender) > continuum_price_spot,
 				Error::<T>::InsufficientFund
@@ -322,6 +375,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		/// Whether council enable buy now option
 		pub fn set_allow_buy_now(origin: OriginFor<T>, enable: bool) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 			AllowBuyNow::<T>::set(enable);
@@ -329,6 +383,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		/// Register continuum slot interest
 		pub fn register_interest(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -339,27 +394,34 @@ pub mod pallet {
 				T::MetaverseInfoSource::check_ownership(&sender, &metaverse_id),
 				Error::<T>::NoPermission
 			);
-			let spot_from_coordinates = ContinuumCoordinates::<T>::get(coordinate);
-			let spot_id = Self::check_spot_ownership(spot_from_coordinates, coordinate)?;
-			/// Get current active session
+			let mut maybe_spot_id = Option::None;
+
+			if ContinuumCoordinates::<T>::contains_key(coordinate) {
+				let spot_id_from_coordinate = ContinuumCoordinates::<T>::get(coordinate);
+				maybe_spot_id = Some(spot_id_from_coordinate);
+			}
+
+			let spot_id = Self::check_spot_ownership(maybe_spot_id, coordinate)?;
+
+			// Get current active session
 			let current_active_session_id = CurrentIndex::<T>::get();
 
 			if EOISlots::<T>::contains_key(current_active_session_id) {
-				/// Mutate current active EOI Slot session
+				// Mutate current active EOI Slot session
 				EOISlots::<T>::try_mutate(current_active_session_id, |spot_eoi| -> DispatchResult {
-					/// Check if the interested Spot exists
+					// Check if the interested Spot exists
 					let interested_spot_index: Option<usize> = spot_eoi.iter().position(|x| x.spot_id == spot_id);
 					match interested_spot_index {
-						/// Already got participants
+						// Already got participants
 						Some(index) => {
-							/// Works on existing eoi index
+							// Works on existing eoi index
 							let interested_spot = spot_eoi.get_mut(index).ok_or("No Spot EOI exist")?;
 
 							interested_spot.participants.push(sender.clone());
 						}
-						/// No participants - add one
+						// No participants - add one
 						None => {
-							/// No spot found - first one in EOI
+							// No spot found - first one in EOI
 							let mut new_list: Vec<T::AccountId> = Vec::new();
 							new_list.push(sender.clone());
 
@@ -373,7 +435,7 @@ pub mod pallet {
 					Ok(())
 				})?;
 			} else {
-				/// Never get to this logic but it's safe to handle it nicely.
+				// Never get to this logic but it's safe to handle it nicely.
 				let mut eoi_slots: Vec<SpotEOI<T::AccountId>> = Vec::new();
 				eoi_slots.push(SpotEOI {
 					spot_id,
@@ -385,27 +447,23 @@ pub mod pallet {
 			Self::deposit_event(Event::NewExpressOfInterestAdded(sender, spot_id));
 			Ok(().into())
 		}
+
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn enable_bidder_rejection_voting(origin: OriginFor<T>, spot_id: SpotId) -> DispatchResultWithPostInfo {
-			let root = ensure_root(origin);
-			//TODO Check if neighborhood
-			//Enable democracy pallet
-			//Propose bidder removal action on democracy
-			Ok(().into())
-		}
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		// Council set maximum bound on continuum map
 		pub fn set_max_bounds(origin: OriginFor<T>, new_bound: (i32, i32)) -> DispatchResultWithPostInfo {
-			/// Only execute by governance
+			// Only execute by governance
 			ensure_root(origin)?;
-			MaxBound::<T>::set(new_bound);
-			//TODO Emit event
+			MaxBound::<T>::set(new_bound.clone());
+			Self::deposit_event(Event::NewMaxBoundSet(new_bound));
 			Ok(().into())
 		}
+
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		// Council set how many auction can run per period
 		pub fn set_new_auction_rate(origin: OriginFor<T>, new_rate: u8) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-			MaxDesiredAuctionSlot::<T>::set(new_rate);
-			//TODO Emit event
+			MaxDesiredAuctionSlot::<T>::set(new_rate.clone());
+			Self::deposit_event(Event::NewMaxAuctionSlotSet(new_rate));
 			Ok(().into())
 		}
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -435,6 +493,7 @@ impl<T: Config> Pallet<T> {
 		T::ContinuumTreasury::get().into_account()
 	}
 	//noinspection ALL
+	// Started auction slot and referendum
 	fn rotate_auction_slots(now: T::BlockNumber) -> DispatchResult {
 		// Get current active session
 		let current_active_session_id = CurrentIndex::<T>::get();
@@ -443,7 +502,7 @@ impl<T: Config> Pallet<T> {
 		Self::eoi_to_auction_slots(current_active_session_id, now)?;
 		// Finalise due vote
 		Self::finalize_vote(now);
-		let mut active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id);
+		let active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id);
 
 		match active_auction_slots {
 			Some(s) => {
@@ -462,15 +521,14 @@ impl<T: Config> Pallet<T> {
 					// Start referedum
 					Self::start_gnp_protocol(started_gnp_auction_slots, now)?;
 				}
-				// TODO Emit event Auction slot start GNP
 			}
 			None => {}
 		}
 		// Remove the old active auction slots
 		ActiveAuctionSlots::<T>::remove(&current_active_session_id);
 
-		CurrentIndex::<T>::set(now);
-		// TODO Emit event
+		CurrentIndex::<T>::set(now.clone());
+		Self::deposit_event(Event::NewAuctionSlotRotated(now));
 		Ok(().into())
 	}
 
@@ -482,11 +540,10 @@ impl<T: Config> Pallet<T> {
 				Self::referendum_status(recent_slot.spot_id)?;
 
 			if referendum_info.end == now {
-				// let tallies = referendum_info.tallies;
 				let banned_list: Vec<T::AccountId> = referendum_info
 					.tallies
 					.into_iter()
-					.filter(|mut t| Self::check_approved(t) == true)
+					.filter(|t| Self::check_approved(t) == true)
 					.map(|tally| tally.who)
 					.collect();
 
@@ -508,9 +565,9 @@ impl<T: Config> Pallet<T> {
 					treasury,
 					Default::default(),
 					now,
-					ListingLevel::Global,
-				);
-				// TODO Emit event
+					ListingLevel::NetworkSpot(recent_slot.participants),
+				)?;
+				Self::deposit_event(Event::FinalizedVote(referendum_info.spot_id))
 			}
 		}
 
@@ -523,23 +580,20 @@ impl<T: Config> Pallet<T> {
 	) -> DispatchResult {
 		for slot in slots {
 			let end = end + T::SessionDuration::get();
-			Self::start_referendum(end, slot.spot_id)?;
-			// TODO Emit event
+			Self::start_referendum(end, slot.spot_id.clone())?;
+			Self::deposit_event(Event::NewContinuumReferendumStarted(end, slot.spot_id));
 		}
 		Ok(())
 	}
 
 	fn start_referendum(end: T::BlockNumber, spot_id: SpotId) -> Result<SpotId, DispatchError> {
-		let spot = ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound)?;
+		let spot = ContinuumSpots::<T>::get(spot_id);
 		let neighbors = spot.find_neighbour();
 		let mut available_neighbors: u8 = 0;
 
 		for (x, y) in neighbors {
-			match ContinuumCoordinates::<T>::get((x, y)) {
-				Some(i) => {
-					available_neighbors = available_neighbors.checked_add(One::one()).ok_or("Overflow")?;
-				}
-				_ => (),
+			if ContinuumCoordinates::<T>::contains_key((x, y)) {
+				available_neighbors = available_neighbors.checked_add(One::one()).ok_or("Overflow")?;
 			}
 		}
 
@@ -560,7 +614,7 @@ impl<T: Config> Pallet<T> {
 
 		let item: ReferendumInfo<T::AccountId, T::BlockNumber> = ReferendumInfo::Ongoing(status);
 		ReferendumInfoOf::<T>::insert(spot_id, item);
-		// TODO Emit event
+		Self::deposit_event(Event::NewContinuumReferendumStarted(end, spot_id));
 		Ok(spot_id)
 	}
 
@@ -581,11 +635,11 @@ impl<T: Config> Pallet<T> {
 			.take(desired_slots as usize)
 			.collect::<Vec<SpotEOI<T::AccountId>>>();
 		// Add highest ranked EOI to New Active Auction slot
-		for (x, item) in highest_ranked_sorted.iter().enumerate() {
+		for (_x, item) in highest_ranked_sorted.iter().enumerate() {
 			let auction_slot = AuctionSlot {
 				spot_id: item.spot_id,
 				participants: item.participants.clone(),
-				active_session_index: now + session_duration,
+				active_session_index: now.checked_add(&session_duration).ok_or("Overflow")?,
 				status: ContinuumAuctionSlotStatus::AcceptParticipates,
 			};
 			new_valid_auction_slot.push(auction_slot);
@@ -597,19 +651,33 @@ impl<T: Config> Pallet<T> {
 		let empty_eoi_spots: Vec<SpotEOI<T::AccountId>> = Vec::new();
 		// Add new EOISlot for current session - ensure active session has entry
 		EOISlots::<T>::insert(now, empty_eoi_spots);
-		// TODO Emit event
 		Ok(())
 	}
 
 	fn try_vote(who: &T::AccountId, spot_id: SpotId, vote: AccountVote<T::AccountId>) -> DispatchResult {
-		// TODO ensure is actual neighbor once metaverse trait is completed
-		let mut status = Self::referendum_status(spot_id)?;
+		let status = Self::referendum_status(spot_id)?;
 
-		VotingOf::<T>::try_mutate(who, |mut voting| -> DispatchResult {
-			let mut votes = &mut voting.votes;
+		let spot = ContinuumSpots::<T>::get(spot_id);
+		let neighbors = spot.find_neighbour();
+		let mut is_neighbour: bool = false;
+
+		for (x, y) in neighbors {
+			// if spot exists
+			let neighbor_spot_id = ContinuumCoordinates::<T>::get((x, y));
+			let continuum_spot = ContinuumSpots::<T>::get(neighbor_spot_id);
+			if T::MetaverseInfoSource::check_ownership(&who, &continuum_spot.metaverse_id) {
+				is_neighbour = true;
+				break;
+			}
+		}
+
+		ensure!(is_neighbour, Error::<T>::NoPermission);
+
+		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
+			let votes = &mut voting.votes;
 			match votes.binary_search_by_key(&spot_id, |i| i.0) {
 				// Already voted
-				Ok(i) => {}
+				Ok(_i) => {}
 				Err(i) => {
 					// Haven't vote for this spot id
 					// Add votes under user
@@ -617,15 +685,11 @@ impl<T: Config> Pallet<T> {
 					let who = new_vote.vote_who();
 					votes.insert(i, (spot_id, vote.clone()));
 
-					let mut tallies = status.tallies.clone();
-
 					// Find existing tally of bidder
 					for mut tally in status.tallies {
 						// Existing vote
 						if tally.who == who.who {
 							tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?
-						} else {
-							//Create new vote
 						}
 					}
 				}
@@ -639,11 +703,6 @@ impl<T: Config> Pallet<T> {
 		Self::ensure_ongoing(info.into())
 	}
 
-	fn referendum_info(spot_id: SpotId) -> Result<ReferendumInfo<T::AccountId, T::BlockNumber>, DispatchError> {
-		let info = ReferendumInfoOf::<T>::get(spot_id).ok_or(Error::<T>::ReferendumIsInValid.into());
-		info
-	}
-
 	/// Ok if the given referendum is active, Err otherwise
 	fn ensure_ongoing(
 		r: ReferendumInfo<T::AccountId, T::BlockNumber>,
@@ -652,14 +711,6 @@ impl<T: Config> Pallet<T> {
 			ReferendumInfo::Ongoing(s) => Ok(s),
 			_ => Err(Error::<T>::ReferendumIsInValid.into()),
 		}
-	}
-
-	fn do_register(who: &T::AccountId, spot_id: &SpotId) -> SpotId {
-		return 5;
-	}
-
-	fn get_spot(spot_id: SpotId) -> Result<ContinuumSpot, DispatchError> {
-		ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound.into())
 	}
 
 	fn do_transfer_spot(
@@ -691,7 +742,7 @@ impl<T: Config> Pallet<T> {
 				let spot = ContinuumSpot {
 					x: coordinate.0,
 					y: coordinate.1,
-					country: 0,
+					metaverse_id: 0,
 				};
 
 				let next_spot_id = NextContinuumSpotId::<T>::try_mutate(|id| -> Result<SpotId, DispatchError> {
@@ -705,8 +756,8 @@ impl<T: Config> Pallet<T> {
 				Ok(next_spot_id)
 			}
 			Some(spot_id) => {
-				let spot = ContinuumSpots::<T>::get(spot_id).ok_or(Error::<T>::SpotNotFound)?;
-				ensure!(spot.country == 0, Error::<T>::SpotIsNotAvailable);
+				let spot = ContinuumSpots::<T>::get(spot_id);
+				ensure!(spot.metaverse_id == 0, Error::<T>::SpotIsNotAvailable);
 				Ok(spot_id)
 			}
 		}
@@ -726,10 +777,13 @@ impl<T: Config> Continuum<T::AccountId> for Pallet<T> {
 		ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError> {
 			let treasury = Self::account_id();
 			if *from != treasury {
-				// TODO Check account Id own country spot.country
+				ensure!(
+					T::MetaverseInfoSource::check_ownership(&from, &to.1),
+					Error::<T>::NoPermission
+				)
 			}
-			let mut spot = maybe_spot.take().ok_or(Error::<T>::SpotNotFound)?;
-			spot.country = to.1;
+			let mut spot = maybe_spot;
+			spot.metaverse_id = to.1;
 			Ok(spot_id)
 		})
 	}

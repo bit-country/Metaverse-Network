@@ -18,14 +18,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
+use scale_info::TypeInfo;
+use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiSignature, OpaqueExtrinsic,
+	MultiSignature,
 };
-
-use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -33,6 +33,7 @@ use sp_runtime::traits::AtLeast32Bit;
 
 pub mod continuum;
 pub mod dex;
+pub mod estate;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -95,18 +96,22 @@ pub type LandId = u64;
 pub type EstateId = u64;
 /// Social Token Id type
 pub type TokenId = u64;
+/// Undeployed LandBlock Id type
+pub type UndeployedLandBlockId = u128;
 
 /// Public item id for auction
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
 	NFT(AssetId),
 	Spot(u64, MetaverseId),
 	Country(MetaverseId),
 	Block(u64),
+	Estate(EstateId),
+	LandUnit((i32, i32), MetaverseId),
 }
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum FungibleTokenId {
 	NativeToken(TokenId),
@@ -192,7 +197,7 @@ pub mod report {
 ///
 /// Benefits would be granted gradually, `per_period` amount every `period`
 /// of blocks after `start`.
-#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug)]
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct VestingSchedule<BlockNumber, Balance: HasCompact> {
 	/// Vesting token
 	pub token: FungibleTokenId,
@@ -238,4 +243,43 @@ impl<BlockNumber: AtLeast32Bit + Copy, Balance: AtLeast32Bit + Copy> VestingSche
 			.checked_mul(&unrealized.into())
 			.expect("ensured non-overflow total amount; qed")
 	}
+}
+
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum UndeployedLandBlockType {
+	Transferable,
+	BoundToAddress,
+}
+
+impl UndeployedLandBlockType {
+	pub fn is_transferable(&self) -> bool {
+		match *self {
+			UndeployedLandBlockType::Transferable => true,
+			_ => false,
+		}
+	}
+}
+
+impl Default for UndeployedLandBlockType {
+	fn default() -> Self {
+		UndeployedLandBlockType::Transferable
+	}
+}
+
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct UndeployedLandBlock<AccountId> {
+	// Minimum balance to create a collection of Asset
+	pub id: UndeployedLandBlockId,
+	// Metadata from ipfs
+	pub number_land_units: u32,
+	pub undeployed_land_block_type: UndeployedLandBlockType,
+
+	/// The owner of this asset.
+	pub owner: AccountId,
+	/// The approved transferrer of this asset, if one is set.
+	pub approved: Option<AccountId>,
+	/// Whether the asset can be transferred or not.
+	pub is_frozen: bool,
 }

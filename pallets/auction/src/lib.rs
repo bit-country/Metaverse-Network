@@ -14,6 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 // This pallet use The Open Runtime Module Library (ORML) which is a community maintained collection
 // of Substrate runtime modules. Thanks to all contributors of orml.
 // Ref: https://github.com/open-web3-stack/open-runtime-module-library
@@ -29,19 +30,26 @@ use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, Re
 use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{self as system, ensure_signed};
 pub use pallet::*;
-use pallet_continuum::Pallet as ContinuumModule;
-use pallet_nft::Module as NFTModule;
-use primitives::{continuum::Continuum, AssetId, AuctionId, ItemId};
+use pallet_nft::Pallet as NFTModule;
+use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
+use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
-	traits::{One, Zero},
+	traits::{CheckedDiv, One, Saturating, Zero},
 	DispatchError, DispatchResult,
 };
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
+
+pub mod weights;
+
+pub use weights::WeightInfo;
 
 pub struct AuctionLogicHandler;
 
@@ -51,17 +59,15 @@ pub mod pallet {
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use bc_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
-	use frame_support::sp_runtime::traits::{CheckedAdd, CheckedSub};
+	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
-	use orml_traits::{MultiCurrency, MultiCurrencyExtended, MultiReservableCurrency};
-	use primitives::{Balance, FungibleTokenId, MetaverseId};
+	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use primitives::{AssetId, Balance, FungibleTokenId, MetaverseId};
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	pub(super) type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
-	pub(super) type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 	pub(super) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -86,6 +92,11 @@ pub mod pallet {
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 		#[pallet::constant]
 		type MinimumAuctionDuration: Get<Self::BlockNumber>;
+		/// Handle Estate logic
+		type EstateHandler: Estate<Self::AccountId>;
+		/// Loyalty fee in percentage applied NFT promotion
+		#[pallet::constant]
+		type RoyaltyFee: Get<u16>;
 	}
 
 	#[pallet::storage]
@@ -117,15 +128,14 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
 
 	#[pallet::event]
-	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata()]
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A bid is placed. [auction_id, bidder, bidding_amount]
 		Bid(AuctionId, T::AccountId, BalanceOf<T>),
 		NewAuctionItem(
 			AuctionId,
 			T::AccountId,
-			ListingLevel,
+			ListingLevel<T::AccountId>,
 			BalanceOf<T>,
 			BalanceOf<T>,
 			T::BlockNumber,
@@ -164,6 +174,8 @@ pub mod pallet {
 		AuctionEndIsLessThanMinimumDuration,
 		/// Overflow
 		Overflow,
+		EstateDoesNotExist,
+		LandUnitDoesNotExist,
 	}
 
 	#[pallet::call]
@@ -271,7 +283,8 @@ pub mod pallet {
 				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
 
 				ensure!(
-					T::FungibleTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(),
+					T::FungibleTokenCurrency::free_balance(social_currency_id, &from)
+						>= TryInto::<Balance>::try_into(value).unwrap_or_default(),
 					Error::<T>::InsufficientFreeBalance
 				);
 
@@ -298,6 +311,7 @@ pub mod pallet {
 
 			let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
 			let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
+
 			ensure!(
 				auction_item.auction_type == AuctionType::BuyNow,
 				Error::<T>::InvalidAuctionType
@@ -319,6 +333,7 @@ pub mod pallet {
 			);
 
 			Self::remove_auction(auction_id.clone(), auction_item.item_id);
+
 			// Transfer balance from buy it now user to asset owner
 			let currency_transfer = <T as Config>::Currency::transfer(
 				&from,
@@ -333,6 +348,13 @@ pub mod pallet {
 					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
+							Self::collect_royalty_fee(
+								&value,
+								&auction_item.recipient,
+								&asset_id,
+								FungibleTokenId::NativeToken(0),
+							);
+
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
 							match asset_transfer {
 								Err(_) => (),
@@ -348,6 +370,29 @@ pub mod pallet {
 								&(from.clone(), metaverse_id),
 							);
 							match continuum_spot {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
+						ItemId::Estate(estate_id) => {
+							let estate =
+								T::EstateHandler::transfer_estate(estate_id, &auction_item.recipient, &from.clone());
+							match estate {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
+						ItemId::LandUnit(coordinate, metaverse_id) => {
+							let land_unit = T::EstateHandler::transfer_landunit(
+								coordinate,
+								&auction_item.recipient,
+								&(from.clone(), metaverse_id),
+							);
+							match land_unit {
 								Err(_) => (),
 								Ok(_) => {
 									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
@@ -393,7 +438,8 @@ pub mod pallet {
 
 			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
 			ensure!(
-				T::FungibleTokenCurrency::free_balance(social_currency_id, &from) >= value.saturated_into(),
+				T::FungibleTokenCurrency::free_balance(social_currency_id, &from)
+					>= TryInto::<Balance>::try_into(value).unwrap_or_default(),
 				Error::<T>::InsufficientFunds
 			);
 
@@ -413,6 +459,8 @@ pub mod pallet {
 					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
 						ItemId::NFT(asset_id) => {
+							Self::collect_royalty_fee(&value, &auction_item.recipient, &asset_id, social_currency_id);
+
 							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
 							match asset_transfer {
 								Err(_) => (),
@@ -434,6 +482,29 @@ pub mod pallet {
 								}
 							}
 						}
+						ItemId::Estate(estate_id) => {
+							let estate =
+								T::EstateHandler::transfer_estate(estate_id, &auction_item.recipient, &from.clone());
+							match estate {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
+						ItemId::LandUnit(coordinate, metaverse_id) => {
+							let land_unit = T::EstateHandler::transfer_landunit(
+								coordinate,
+								&auction_item.recipient,
+								&(from.clone(), metaverse_id),
+							);
+							match land_unit {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
 						_ => {} // Future implementation for Spot, Metaverse
 					}
 				}
@@ -447,11 +518,16 @@ pub mod pallet {
 			item_id: ItemId,
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
-			listing_level: ListingLevel,
+			listing_level: ListingLevel<T::AccountId>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+			ensure!(
+				matches!(item_id, ItemId::NFT(_)),
+				Error::<T>::NoPermissionToCreateAuction
+			);
+
+			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
@@ -467,12 +543,12 @@ pub mod pallet {
 				from.clone(),
 				value.clone(),
 				start_time,
-				listing_level,
+				listing_level.clone(),
 			)?;
 			Self::deposit_event(Event::NewAuctionItem(
 				auction_id,
 				from,
-				listing_level,
+				listing_level.clone(),
 				value,
 				value,
 				end_time,
@@ -487,11 +563,15 @@ pub mod pallet {
 			item_id: ItemId,
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
-			listing_level: ListingLevel,
+			listing_level: ListingLevel<T::AccountId>,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
+			ensure!(
+				matches!(item_id, ItemId::NFT(_)),
+				Error::<T>::NoPermissionToCreateAuction
+			);
 
-			let start_time: T::BlockNumber = <system::Module<T>>::block_number();
+			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
 			ensure!(
@@ -506,12 +586,12 @@ pub mod pallet {
 				from.clone(),
 				value.clone(),
 				start_time,
-				listing_level,
+				listing_level.clone(),
 			)?;
 			Self::deposit_event(Event::NewAuctionItem(
 				auction_id,
 				from,
-				listing_level,
+				listing_level.clone(),
 				value,
 				value,
 				end_time,
@@ -534,12 +614,15 @@ pub mod pallet {
 							// Handle global listing
 							if auction_item.listing_level == ListingLevel::Global {
 								<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+
+								// Handle balance transfer
 								let currency_transfer = <T as Config>::Currency::transfer(
 									&high_bidder,
 									&auction_item.recipient,
 									high_bid_price,
 									ExistenceRequirement::KeepAlive,
 								);
+
 								match currency_transfer {
 									Err(_e) => continue,
 									Ok(_v) => {
@@ -548,11 +631,19 @@ pub mod pallet {
 
 										match auction_item.item_id {
 											ItemId::NFT(asset_id) => {
+												Self::collect_royalty_fee(
+													&high_bid_price,
+													&auction_item.recipient,
+													&asset_id,
+													FungibleTokenId::NativeToken(0),
+												);
+
 												let asset_transfer = NFTModule::<T>::do_transfer(
 													&auction_item.recipient,
 													&high_bidder,
 													asset_id,
 												);
+
 												match asset_transfer {
 													Err(_) => continue,
 													Ok(_) => {
@@ -572,6 +663,40 @@ pub mod pallet {
 												);
 												match continuum_spot {
 													Err(_) => continue,
+													Ok(_) => {
+														Self::deposit_event(Event::AuctionFinalized(
+															auction_id,
+															high_bidder,
+															high_bid_price,
+														));
+													}
+												}
+											}
+											ItemId::Estate(estate_id) => {
+												let estate = T::EstateHandler::transfer_estate(
+													estate_id,
+													&auction_item.recipient,
+													&high_bidder.clone(),
+												);
+												match estate {
+													Err(_) => (),
+													Ok(_) => {
+														Self::deposit_event(Event::AuctionFinalized(
+															auction_id,
+															high_bidder,
+															high_bid_price,
+														));
+													}
+												}
+											}
+											ItemId::LandUnit(coordinate, metaverse_id) => {
+												let land_unit = T::EstateHandler::transfer_landunit(
+													coordinate,
+													&auction_item.recipient,
+													&(high_bidder.clone(), metaverse_id),
+												);
+												match land_unit {
+													Err(_) => (),
 													Ok(_) => {
 														Self::deposit_event(Event::AuctionFinalized(
 															auction_id,
@@ -608,6 +733,13 @@ pub mod pallet {
 
 										match auction_item.item_id {
 											ItemId::NFT(asset_id) => {
+												Self::collect_royalty_fee(
+													&high_bid_price,
+													&auction_item.recipient,
+													&asset_id,
+													social_currency_id,
+												);
+
 												let asset_transfer = NFTModule::<T>::do_transfer(
 													&auction_item.recipient,
 													&high_bidder,
@@ -633,6 +765,40 @@ pub mod pallet {
 												);
 												match continuum_spot {
 													Err(_) => continue,
+													Ok(_) => {
+														Self::deposit_event(Event::AuctionFinalized(
+															auction_id,
+															high_bidder,
+															high_bid_price,
+														));
+													}
+												}
+											}
+											ItemId::Estate(estate_id) => {
+												let estate = T::EstateHandler::transfer_estate(
+													estate_id,
+													&auction_item.recipient,
+													&high_bidder.clone(),
+												);
+												match estate {
+													Err(_) => (),
+													Ok(_) => {
+														Self::deposit_event(Event::AuctionFinalized(
+															auction_id,
+															high_bidder,
+															high_bid_price,
+														));
+													}
+												}
+											}
+											ItemId::LandUnit(coordinate, metaverse_id) => {
+												let land_unit = T::EstateHandler::transfer_landunit(
+													coordinate,
+													&auction_item.recipient,
+													&(high_bidder.clone(), metaverse_id),
+												);
+												match land_unit {
+													Err(_) => (),
 													Ok(_) => {
 														Self::deposit_event(Event::AuctionFinalized(
 															auction_id,
@@ -707,12 +873,13 @@ pub mod pallet {
 			recipient: T::AccountId,
 			initial_amount: Self::Balance,
 			_start: T::BlockNumber,
-			listing_level: ListingLevel,
+			listing_level: ListingLevel<T::AccountId>,
 		) -> Result<AuctionId, DispatchError> {
 			ensure!(
 				Self::items_in_auction(item_id) == None,
 				Error::<T>::ItemAlreadyInAuction
 			);
+
 			match item_id {
 				ItemId::NFT(asset_id) => {
 					// Get asset detail
@@ -729,7 +896,7 @@ pub mod pallet {
 						Error::<T>::NoPermissionToCreateAuction
 					);
 
-					let start_time = <system::Module<T>>::block_number();
+					let start_time = <system::Pallet<T>>::block_number();
 
 					let mut end_time = start_time + T::AuctionTimeToClose::get();
 					if let Some(_end_block) = _end {
@@ -750,7 +917,7 @@ pub mod pallet {
 						start_time,
 						end_time,
 						auction_type,
-						listing_level,
+						listing_level: listing_level.clone(),
 						currency_id,
 					};
 
@@ -768,7 +935,79 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
-					let start_time = <system::Module<T>>::block_number();
+					let start_time = <system::Pallet<T>>::block_number();
+					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get();
+					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					let new_auction_item = AuctionItem {
+						item_id,
+						recipient: recipient.clone(),
+						initial_amount,
+						amount: initial_amount,
+						start_time,
+						end_time,
+						auction_type,
+						listing_level: listing_level.clone(),
+						currency_id: FungibleTokenId::NativeToken(0),
+					};
+
+					<AuctionItems<T>>::insert(auction_id, new_auction_item);
+
+					Self::deposit_event(Event::NewAuctionItem(
+						auction_id,
+						recipient,
+						listing_level,
+						initial_amount,
+						initial_amount,
+						end_time,
+					));
+					<ItemsInAuction<T>>::insert(item_id, true);
+					Ok(auction_id)
+				}
+				ItemId::Estate(_estate_id_) => {
+					// Ensure the _estate_id_ exist/minted
+					ensure!(
+						T::EstateHandler::check_estate(_estate_id_)?,
+						Error::<T>::EstateDoesNotExist
+					);
+
+					let start_time = <system::Pallet<T>>::block_number();
+					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
+					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					let new_auction_item = AuctionItem {
+						item_id,
+						recipient: recipient.clone(),
+						initial_amount,
+						amount: initial_amount,
+						start_time,
+						end_time,
+						auction_type,
+						listing_level: ListingLevel::Global,
+						currency_id: FungibleTokenId::NativeToken(0),
+					};
+
+					<AuctionItems<T>>::insert(auction_id, new_auction_item);
+
+					Self::deposit_event(Event::NewAuctionItem(
+						auction_id,
+						recipient,
+						listing_level,
+						initial_amount,
+						initial_amount,
+						end_time,
+					));
+					<ItemsInAuction<T>>::insert(item_id, true);
+					Ok(auction_id)
+				}
+				ItemId::LandUnit(_coordinate_, _metaverse_id_) => {
+					// Ensure the _coordinate_ exist/minted
+					ensure!(
+						T::EstateHandler::check_landunit(_metaverse_id_, _coordinate_)?,
+						Error::<T>::LandUnitDoesNotExist
+					);
+
+					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
@@ -822,6 +1061,13 @@ pub mod pallet {
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
 				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+
+				match auction_item.clone().listing_level {
+					ListingLevel::NetworkSpot(allowed_bidders) => {
+						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidNotAccepted);
+					}
+					_ => {}
+				}
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
@@ -883,6 +1129,47 @@ pub mod pallet {
 		fn auction_info(id: AuctionId) -> Option<AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>> {
 			Self::auctions(id)
 		}
+
+		fn collect_royalty_fee(
+			high_bid_price: &Self::Balance,
+			high_bidder: &T::AccountId,
+			asset_id: &AssetId,
+			social_currency_id: FungibleTokenId,
+		) -> DispatchResult {
+			let fee_scale = T::RoyaltyFee::get();
+			// Calculate loyalty fee and deposit to pot fund
+			let royalty_fee = high_bid_price
+				.saturating_mul(fee_scale.into())
+				.checked_div(&10000u128.saturated_into())
+				.ok_or("Overflow")?;
+
+			// Collect loyalty fee
+			// and deposit to class fund
+			// Get asset detail from id
+			let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
+			let class_fund = NFTModule::<T>::get_class_fund(&asset.0);
+			// Transfer loyalty fee from winner to class fund pot
+			if social_currency_id == FungibleTokenId::NativeToken(0) {
+				<T as Config>::Currency::transfer(
+					&high_bidder,
+					&class_fund,
+					royalty_fee,
+					ExistenceRequirement::KeepAlive,
+				)?;
+				// Reserve class fund pot
+				<T as Config>::Currency::reserve(&class_fund, royalty_fee)?;
+			} else {
+				T::FungibleTokenCurrency::transfer(
+					social_currency_id.clone(),
+					&high_bidder,
+					&class_fund,
+					royalty_fee.saturated_into(),
+				)?;
+				// Reserve class fund pot
+				T::FungibleTokenCurrency::reserve(social_currency_id, &class_fund, royalty_fee.saturated_into())?;
+			}
+			Ok(())
+		}
 	}
 
 	impl<T: Config> CheckAuctionItemHandler for Pallet<T> {
@@ -891,7 +1178,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Module<T> {
+	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Pallet<T> {
 		fn on_new_bid(
 			_now: T::BlockNumber,
 			_id: AuctionId,

@@ -1,7 +1,27 @@
+// This file is part of Bit.Country.
+
+// The multi-metaverse governance module is inspired by frame democracy of how to store hash
+// and preimages. Ref: https://github.com/paritytech/substrate/tree/master/frame/democracy
+
+// Copyright (C) 2020-2021 Bit.Country.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::unused_unit)]
 
-use codec::{Decode, Encode, Input, MaxEncodedLen};
+use codec::{Decode, Encode};
 
 use frame_support::{
 	dispatch::DispatchResult,
@@ -11,10 +31,7 @@ use frame_support::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
 		Currency, Get, InstanceFilter, LockIdentifier, ReservableCurrency,
 	},
-	weights::Weight,
-	RuntimeDebug,
 };
-use frame_system::ensure_signed;
 use metaverse_primitive::MetaverseTrait;
 use primitives::{MetaverseId, ProposalId, ReferendumId};
 use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
@@ -36,14 +53,7 @@ pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use frame_support::traits::OriginTrait;
-	use frame_support::{
-		dispatch::DispatchResultWithPostInfo,
-		pallet_prelude::*,
-		traits::EnsureOrigin,
-		weights::{DispatchClass, Pays},
-		Parameter,
-	};
+	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::EnsureOrigin, Parameter};
 	use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
 	use metaverse_primitive::MetaverseLandTrait;
 	use sp_runtime::DispatchResult;
@@ -150,7 +160,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata()]
 	pub enum Event<T: Config> {
 		PreimageNoted(T::Hash, T::AccountId, BalanceOf<T>),
 		PreimageInvalid(MetaverseId, T::Hash, ProposalId),
@@ -307,7 +316,7 @@ pub mod pallet {
 			proposal: ProposalId,
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
-			let from = T::MetaverseCouncil::ensure_origin(origin)?;
+			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			let mut proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 
@@ -332,10 +341,10 @@ pub mod pallet {
 				T::MetaverseLandInfo::is_user_own_metaverse_land(&from, &status.metaverse),
 				Error::<T>::AccountIsNotMetaverseMember
 			);
-			<VotingOf<T>>::try_mutate(from.clone(), |mut voting_record| -> DispatchResultWithPostInfo {
+			<VotingOf<T>>::try_mutate(from.clone(), |voting_record| -> DispatchResultWithPostInfo {
 				let votes = &mut voting_record.votes;
 				match votes.binary_search_by_key(&referendum, |i| i.0) {
-					Ok(i) => Err(Error::<T>::AccountAlreadyVoted.into()),
+					Ok(_i) => Err(Error::<T>::AccountAlreadyVoted.into()),
 					Err(i) => {
 						let vote = Vote {
 							aye: vote_aye,
@@ -365,7 +374,7 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 			let mut status = Self::referendum_status(referendum)?;
 			<VotingOf<T>>::try_mutate(from.clone(), |voting_record| -> DispatchResultWithPostInfo {
-				let mut votes = &mut voting_record.votes;
+				let votes = &mut voting_record.votes;
 				match votes.binary_search_by_key(&referendum, |i| i.0) {
 					Ok(i) => {
 						let vote = votes.remove(i).1;
@@ -381,7 +390,7 @@ pub mod pallet {
 						Self::deposit_event(Event::VoteRemoved(from, referendum));
 						Ok(().into())
 					}
-					Err(i) => Err(Error::<T>::AccountHasNotVoted.into()),
+					Err(_i) => Err(Error::<T>::AccountHasNotVoted.into()),
 				}
 			})
 		}
@@ -555,36 +564,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn pre_image_data_len(preimage_hash: T::Hash) -> Result<u32, DispatchError> {
-		// To decode the `data` field of Available variant we need:
-		// * one byte for the variant
-		// * at most 5 bytes to decode a `Compact<u32>`
-		let mut buf = [0u8; 6];
-		let key = <Preimages<T>>::hashed_key_for(preimage_hash);
-		let bytes = sp_io::storage::read(&key, &mut buf, 0).ok_or_else(|| Error::<T>::PreimageMissing)?;
-		// The value may be smaller that 6 bytes.
-		let mut input = &buf[0..buf.len().min(bytes as usize)];
-
-		match input.read_byte() {
-			Ok(1) => (), // Check that input exists and is second variant.
-			Ok(0) => return Err(Error::<T>::PreimageMissing.into()),
-			_ => {
-				sp_runtime::print("Failed to decode `PreimageStatus` variant");
-				return Err(Error::<T>::PreimageMissing.into());
-			}
-		}
-
-		// Decode the length of the vector.
-		let len = codec::Compact::<u32>::decode(&mut input)
-			.map_err(|_| {
-				sp_runtime::print("Failed to decode `PreimageStatus` variant");
-				DispatchError::from(Error::<T>::PreimageMissing)
-			})?
-			.0;
-
-		Ok(len)
-	}
-
 	fn update_proposals_per_metaverse_number(metaverse_id: MetaverseId, is_proposal_added: bool) -> DispatchResult {
 		<TotalProposalsPerMetaverse<T>>::try_mutate(metaverse_id, |number_of_proposals| -> DispatchResult {
 			if is_proposal_added {
@@ -625,7 +604,6 @@ impl<T: Config> Pallet<T> {
 				VoteThreshold::ThreeFifthsSupermajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.6),
 				VoteThreshold::ReinforcedQualifiedMajority => Ok((tally.ayes as f64 / tally.turnout as f64) > 0.55),
 				VoteThreshold::RelativeMajority => Ok(tally.ayes > tally.nays),
-				_ => Err(Error::<T>::InvalidReferendumOutcome.into()),
 			},
 			// If no threshold is selected, the proposal will pass with relative majority
 			None => Ok(tally.ayes > tally.nays),
@@ -670,7 +648,11 @@ impl<T: Config> Pallet<T> {
 				None,
 				63,
 				frame_system::RawOrigin::Root.into(),
-				Call::enact_proposal(referendum_status.proposal, referendum_status.metaverse).into(),
+				Call::enact_proposal {
+					proposal: referendum_status.proposal,
+					metaverse_id: referendum_status.metaverse,
+				}
+				.into(),
 			)
 			.is_err()
 			{

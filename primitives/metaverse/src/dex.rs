@@ -4,6 +4,7 @@
 
 use crate::FungibleTokenId;
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
 use sp_runtime::FixedU128;
 use sp_runtime::RuntimeDebug;
 
@@ -15,7 +16,7 @@ pub type Rate = FixedU128;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord)]
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct TradingPair(pub FungibleTokenId, pub FungibleTokenId);
 

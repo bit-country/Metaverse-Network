@@ -4,7 +4,6 @@ on:
   pull_request:
     branches:
       - master
-      - pioneer-network-0.1 
   push:
     branches:
       - master
@@ -29,9 +28,10 @@ jobs:
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           source ~/.cargo/env
-          rustup update nightly-2021-06-17
-          rustup target add wasm32-unknown-unknown --toolchain nightly-2021-06-17
-          rustup default nightly-2021-06-17
+          rustup default nightly && rustup update
+          rustup default nightly-2021-11-07
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2021-11-07
+
       - name: Check Rust version
         run: rustup show
       - name: Check Build

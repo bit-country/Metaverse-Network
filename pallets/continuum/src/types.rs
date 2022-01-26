@@ -20,7 +20,8 @@
 use crate::{AccountVote, Vote};
 use codec::{Decode, Encode};
 use primitives::{MetaverseId, SpotId};
-use sp_runtime::traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, Saturating, Zero};
+use scale_info::TypeInfo;
+use sp_runtime::traits::{One, Zero};
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec;
 use sp_std::vec::Vec;
@@ -28,11 +29,11 @@ use sp_std::vec::Vec;
 pub type ReferendumIndex = u64;
 
 /// Spot Struct
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ContinuumSpot {
 	pub(crate) x: i32,
 	pub(crate) y: i32,
-	pub(crate) country: MetaverseId,
+	pub(crate) metaverse_id: MetaverseId,
 }
 
 impl ContinuumSpot {
@@ -57,7 +58,7 @@ impl ContinuumSpot {
 }
 
 /// Info regarding an ongoing referendum.
-#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ContinuumSpotTally<AccountId> {
 	/// The number of nay votes, expressed in terms of post-conviction lock-vote.
 	pub(crate) nays: u8,
@@ -84,7 +85,6 @@ impl<AccountId> ContinuumSpotTally<AccountId> {
 				self.nays = self.nays.checked_add(One::one())?;
 				self.who = vote.who;
 			}
-			_ => {}
 		}
 		Some(())
 	}
@@ -92,11 +92,10 @@ impl<AccountId> ContinuumSpotTally<AccountId> {
 	/// Remove an account's vote from the tally.
 	pub fn remove(&mut self, vote: AccountVote<AccountId>) -> Option<()> {
 		match vote {
-			AccountVote::Standard { vote } => {
+			AccountVote::Standard { vote: _ } => {
 				self.turnout = self.turnout.checked_add(Zero::zero())?;
 				self.nays = self.nays.checked_add(Zero::zero())?;
 			}
-			_ => {}
 		}
 		Some(())
 	}
@@ -122,17 +121,15 @@ impl<AccountId> ContinuumSpotTally<AccountId> {
 	}
 
 	pub fn result(&mut self) -> Option<bool> {
-		/// let total_nay =
-		/// self.nays.checked_div(&self.turnout).unwrap().saturating_mul(Into::<Balance>::
-		/// into(100)); let approve_threshold = 49 as u128;
-		//
-		/// Some(total_nay > Into::<Balance>::into(approve_threshold))
-		Some(true)
+		let total_nay = self.nays.checked_div(self.turnout).unwrap().saturating_mul(100);
+		let approve_threshold = 49;
+
+		Some(total_nay > approve_threshold)
 	}
 }
 
 /// Info regarding an ongoing referendum.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ReferendumStatus<AccountId, BlockNumber> {
 	/// When voting on this referendum will end.
 	pub(crate) end: BlockNumber,
@@ -143,7 +140,7 @@ pub struct ReferendumStatus<AccountId, BlockNumber> {
 }
 
 /// Info regarding a referendum, present or past.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum ReferendumInfo<AccountId, BlockNumber> {
 	/// Referendum is happening, the arg is the block number at which it will end.
 	Ongoing(ReferendumStatus<AccountId, BlockNumber>),

@@ -13,24 +13,32 @@ targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
 serde = { version = "1.0.124", optional = true, features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false, optional = true }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "2.3.1", default-features = false, features = ["derive"] }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
+frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false, optional = true }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", rev = "59df1dfc1a", default-features = false }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
+pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false, optional = true }
 
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.9", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 
 [features]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+]
 default = ['std']
 std = [
     'serde',
@@ -43,15 +51,14 @@ std = [
     'frame-system/std',
     'primitives/std',
     'orml-traits/std',
+    'orml-tokens/std',
     'orml-nft/std',
     'pallet-balances/std',
     'pallet-timestamp/std',
     'auction-manager/std',
-    'currencies/std'
+    'currencies/std',
+    'scale-info/std',
+    'pallet-scheduler/std'
 ]
 
-runtime-benchmarks = [
-    "frame-benchmarking",
-    "frame-support/runtime-benchmarks",
-    "frame-system/runtime-benchmarks",
-]
+

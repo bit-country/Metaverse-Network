@@ -167,7 +167,7 @@ impl<T: Config> RunnerT<T> for Runner<T> {
 		config: &evm::Config,
 	) -> Result<CallInfo, Self::Error> {
 		Self::execute(source, value, gas_limit, gas_price, nonce, config, |executor| {
-			executor.transact_call(source, target, value, input, gas_limit)
+			executor.transact_call(source, target, value, input, gas_limit, vec![])
 		})
 	}
 
@@ -182,7 +182,10 @@ impl<T: Config> RunnerT<T> for Runner<T> {
 	) -> Result<CreateInfo, Self::Error> {
 		Self::execute(source, value, gas_limit, gas_price, nonce, config, |executor| {
 			let address = executor.create_address(evm::CreateScheme::Legacy { caller: source });
-			(executor.transact_create(source, value, init, gas_limit), address)
+			(
+				executor.transact_create(source, value, init, gas_limit, vec![]),
+				address,
+			)
 		})
 	}
 
@@ -203,7 +206,10 @@ impl<T: Config> RunnerT<T> for Runner<T> {
 				code_hash,
 				salt,
 			});
-			(executor.transact_create2(source, value, init, salt, gas_limit), address)
+			(
+				executor.transact_create2(source, value, init, salt, gas_limit, vec![]),
+				address,
+			)
 		})
 	}
 }
@@ -412,6 +418,14 @@ impl<'vicinity, 'config, T: Config> StackStateT<'config> for SubstrateStackState
 
 	fn deleted(&self, address: H160) -> bool {
 		self.substate.deleted(address)
+	}
+
+	fn is_cold(&self, address: H160) -> bool {
+		false
+	}
+
+	fn is_storage_cold(&self, address: H160, key: H256) -> bool {
+		false
 	}
 
 	fn inc_nonce(&mut self, address: H160) {

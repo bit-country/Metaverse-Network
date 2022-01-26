@@ -3,24 +3,22 @@
 // Ref: https://github.com/open-web3-stack/open-runtime-module-library
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::FullCodec;
 use codec::{Decode, Encode};
-use codec::{FullCodec, MaxEncodedLen};
 use frame_support::dispatch::DispatchResult;
+use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, Bounded, MaybeSerializeDeserialize, Member, One, Zero},
-	DispatchError, RuntimeDebug,
-};
+use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, RuntimeDebug};
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
+	vec::Vec,
 };
 
-use frame_support::Parameter;
 use primitives::{AssetId, AuctionId, FungibleTokenId, ItemId, MetaverseId};
 
-#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum Change<Value> {
 	/// No change.
 	NoChange,
@@ -28,22 +26,24 @@ pub enum Change<Value> {
 	NewValue(Value),
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum AuctionType {
 	Auction,
 	BuyNow,
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum ListingLevel {
+pub enum ListingLevel<AccountId> {
+	// Accepted bidders
+	NetworkSpot(Vec<AccountId>),
 	Global,
 	Local(MetaverseId),
 }
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, Clone, RuntimeDebug)]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	pub item_id: ItemId,
 	pub recipient: AccountId,
@@ -54,13 +54,13 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	pub start_time: BlockNumber,
 	pub end_time: BlockNumber,
 	pub auction_type: AuctionType,
-	pub listing_level: ListingLevel,
+	pub listing_level: ListingLevel<AccountId>,
 	pub currency_id: FungibleTokenId,
 }
 
 /// Auction info.
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
-#[derive(Encode, Decode, RuntimeDebug)]
+#[derive(Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct AuctionInfo<AccountId, Balance, BlockNumber> {
 	/// Current bidder and bid price.
 	pub bid: Option<(AccountId, Balance)>,
@@ -95,7 +95,7 @@ pub trait Auction<AccountId, BlockNumber> {
 		recipient: AccountId,
 		initial_amount: Self::Balance,
 		start: BlockNumber,
-		listing_level: ListingLevel,
+		listing_level: ListingLevel<AccountId>,
 	) -> Result<AuctionId, DispatchError>;
 
 	/// Remove auction by `id`
@@ -113,6 +113,13 @@ pub trait Auction<AccountId, BlockNumber> {
 		id: AuctionId,
 		new_bid: (AccountId, Self::Balance),
 		last_bid: Option<(AccountId, Self::Balance)>,
+		social_currency_id: FungibleTokenId,
+	) -> DispatchResult;
+
+	fn collect_royalty_fee(
+		high_bid_price: &Self::Balance,
+		high_bidder: &AccountId,
+		asset_id: &AssetId,
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult;
 }

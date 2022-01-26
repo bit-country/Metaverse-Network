@@ -21,24 +21,20 @@
 use auction_manager::SwapManager;
 use bc_primitives::*;
 use codec::{Decode, Encode};
-use frame_support::traits::{Currency, Get, WithdrawReasons};
+use frame_support::traits::Get;
 use frame_support::PalletId;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
 	transactional, Parameter,
 };
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use frame_system::{self as system, ensure_signed};
-use orml_traits::{
-	arithmetic::{Signed, SimpleArithmetic},
-	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
-};
+use orml_traits::{LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency};
 pub use pallet::*;
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId, VestingSchedule};
+use primitives::{Balance, FungibleTokenId, MetaverseId, VestingSchedule};
+use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,
@@ -59,7 +55,7 @@ pub type TokenName = Vec<u8>;
 /// A wrapper for a ticker name.
 pub type Ticker = Vec<u8>;
 
-#[derive(Encode, Decode, Default, Clone, PartialEq)]
+#[derive(Encode, Decode, Default, Clone, PartialEq, TypeInfo)]
 pub struct Token<Balance> {
 	pub ticker: Ticker,
 	pub total_supply: Balance,
@@ -166,6 +162,8 @@ pub mod pallet {
 		TooManyVestingSchedules,
 		/// Invalid vesting schedule
 		InvalidVestingSchedule,
+		/// Invalid request
+		InvalidRequest,
 	}
 
 	#[pallet::call]
@@ -181,10 +179,11 @@ pub mod pallet {
 			total_supply: Balance,
 			initial_lp: (u32, u32),
 			initial_backing: Balance,
+			metaverse_owner: T::AccountId,
 		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
+			ensure_root(origin)?;
 			ensure!(
-				T::MetaverseInfoSource::check_ownership(&who, &metaverse_id),
+				T::MetaverseInfoSource::check_ownership(&metaverse_owner, &metaverse_id),
 				Error::<T>::NoPermissionTokenIssuance
 			);
 			ensure!(
@@ -192,7 +191,14 @@ pub mod pallet {
 				Error::<T>::FungibleTokenAlreadyIssued
 			);
 
-			Self::mint_social_token(who, ticker, metaverse_id, total_supply, initial_lp, initial_backing)?;
+			Self::mint_social_token(
+				metaverse_owner,
+				ticker,
+				metaverse_id,
+				total_supply,
+				initial_lp,
+				initial_backing,
+			)?;
 
 			Ok(().into())
 		}
@@ -254,11 +260,6 @@ pub mod pallet {
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
-	#[pallet::metadata(
-    < T as frame_system::Config >::AccountId = "AccountId",
-    Balance = "Balance",
-    CurrencyId = "CurrencyId"
-    )]
 	pub enum Event<T: Config> {
 		/// Some assets were issued. \[asset_id, owner, fund_id ,total_supply\]
 		FungibleTokenIssued(FungibleTokenId, T::AccountId, T::AccountId, u128, u64),
@@ -293,10 +294,7 @@ impl<T: Config> Pallet<T> {
 			.unwrap_or(0);
 		let initial_supply_ratio = Price::checked_from_rational(initial_pool_supply, total_supply).unwrap_or_default();
 		let supply_percent: u128 = initial_supply_ratio.saturating_mul_int(100.saturated_into());
-		ensure!(
-			supply_percent > 0u128 && supply_percent >= 20u128,
-			Error::<T>::InitialFungibleTokenSupplyIsTooLow
-		);
+		ensure!(supply_percent >= 20u128, Error::<T>::InitialFungibleTokenSupplyIsTooLow);
 		// Remaining balance for metaverse owner
 		let owner_supply = total_supply.saturating_sub(initial_pool_supply);
 		// Generate new TokenId
@@ -383,7 +381,7 @@ impl<T: Config> Pallet<T> {
 		amount: Balance,
 	) -> DispatchResult {
 		if amount.is_zero() || from == to {
-			return Ok(());
+			return Err("Invalid request".into());
 		}
 
 		T::MetaverseMultiCurrency::transfer(currency_id, from, to, amount)?;

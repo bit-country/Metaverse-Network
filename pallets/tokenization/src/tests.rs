@@ -1,13 +1,15 @@
-// Unit testing for metaverse currency, metaverse treasury
-#[cfg(test)]
-use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event, *};
-use primitives::Balance;
 use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
 use sp_runtime::AccountId32;
 use sp_std::vec::Vec;
+
+use mock::{Event, *};
+use primitives::Balance;
+
+// Unit testing for metaverse currency, metaverse treasury
+#[cfg(test)]
+use super::*;
 
 fn metaverse_fund_account() -> AccountId {
 	TokenizationModule::get_metaverse_fund_id(METAVERSE_ID)
@@ -23,7 +25,7 @@ fn get_metaverse_fund_balance() -> Balance {
 #[test]
 fn mint_social_token_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = Origin::root();
 		assert_eq!(get_metaverse_fund_balance(), 0);
 
 		assert_ok!(TokenizationModule::mint_token(
@@ -32,7 +34,8 @@ fn mint_social_token_should_work() {
 			METAVERSE_ID,
 			400,
 			(3, 10),
-			10
+			10,
+			ALICE
 		));
 
 		assert_eq!(get_metaverse_fund_balance(), 400);
@@ -52,10 +55,10 @@ fn mint_social_token_should_work() {
 #[test]
 fn mint_social_token_should_fail_for_non_owner() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(BOB);
+		let origin = Origin::root();
 
 		assert_noop!(
-			TokenizationModule::mint_token(origin, vec![1], METAVERSE_ID, 0, (3, 10), 10),
+			TokenizationModule::mint_token(origin, vec![1], METAVERSE_ID, 0, (3, 10), 10, BOB),
 			Error::<Runtime>::NoPermissionTokenIssuance
 		);
 	});
@@ -64,18 +67,19 @@ fn mint_social_token_should_fail_for_non_owner() {
 #[test]
 fn mint_social_token_should_fail_if_already_exists() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = Origin::root();
 		assert_ok!(TokenizationModule::mint_token(
 			origin.clone(),
 			vec![1],
 			METAVERSE_ID,
 			100,
 			(3, 10),
-			10
+			10,
+			ALICE
 		));
 
 		assert_noop!(
-			TokenizationModule::mint_token(origin, vec![1], METAVERSE_ID, 100, (3, 10), 10),
+			TokenizationModule::mint_token(origin, vec![1], METAVERSE_ID, 100, (3, 10), 10, ALICE),
 			Error::<Runtime>::FungibleTokenAlreadyIssued
 		);
 	});
@@ -84,7 +88,7 @@ fn mint_social_token_should_fail_if_already_exists() {
 #[test]
 fn metaverse_treasury_pool_withdraw_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = Origin::root();
 
 		assert_eq!(get_metaverse_fund_balance(), 0);
 		assert_ok!(TokenizationModule::mint_token(
@@ -93,7 +97,8 @@ fn metaverse_treasury_pool_withdraw_should_work() {
 			METAVERSE_ID,
 			400,
 			(3, 10),
-			10
+			10,
+			ALICE
 		));
 		assert_ok!(Currencies::deposit(
 			METAVERSE_FUND,
@@ -113,7 +118,7 @@ fn metaverse_treasury_pool_withdraw_should_work() {
 #[test]
 fn metaverse_treasury_pool_withdraw_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = Origin::root();
 		assert_eq!(get_metaverse_fund_balance(), 0);
 		assert_ok!(TokenizationModule::mint_token(
 			origin,
@@ -121,7 +126,8 @@ fn metaverse_treasury_pool_withdraw_should_fail() {
 			METAVERSE_ID,
 			400,
 			(3, 10),
-			10
+			10,
+			ALICE
 		));
 		assert_eq!(get_metaverse_fund_balance(), 400);
 		assert_noop!(
@@ -134,7 +140,7 @@ fn metaverse_treasury_pool_withdraw_should_fail() {
 #[test]
 fn metaverse_treasury_pool_transfer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = Origin::root();
 		assert_eq!(get_metaverse_fund_balance(), 0);
 		assert_ok!(TokenizationModule::mint_token(
 			origin,
@@ -142,7 +148,8 @@ fn metaverse_treasury_pool_transfer_should_work() {
 			METAVERSE_ID,
 			400,
 			(3, 10),
-			10
+			10,
+			ALICE
 		));
 		assert_eq!(get_metaverse_fund_balance(), 400);
 		assert_ok!(Currencies::deposit(

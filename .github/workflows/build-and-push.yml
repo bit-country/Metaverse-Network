@@ -1,0 +1,141 @@
+name: Docker build & push
+
+on:
+#   # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: 'Runtime to run.'
+        required: true
+        default: 'metaverse'
+      release:
+        description: 'Commit or tag to be released.'
+        required: false
+        default: 'master'
+
+env:
+  REGISTRY: bitcountry
+
+jobs: 
+  metaverse:
+      runs-on: ubuntu-latest
+      environment: 
+        name: metaverse
+
+      if: ${{  github.event.inputs.runtime == 'metaverse' }}
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.release }}
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set env variable
+        run: |
+          currentbranch=$(echo ${GITHUB_REF##*/})
+          echo "running on $currentbranch"
+          echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          gitversion=$(git rev-parse --short HEAD)
+          echo "running on $gitversion"
+          echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Build and push
+        id:   docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: "scripts/${{ secrets.DOCKERFILE }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+          build-args: |
+            GIT_COMMIT=${{ env.GIT_VERSION }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+  tewai:
+      runs-on: ubuntu-latest
+      environment: 
+        name: tewai
+
+      if: ${{  github.event.inputs.runtime == 'tewai' }}
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set branch name as env variable
+        run: |
+          currentbranch=$(echo ${GITHUB_REF##*/})
+          echo "running on $currentbranch"
+          echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          gitversion=$(git rev-parse --short HEAD)
+          echo "running on $gitversion"
+          echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Build and push
+        id:   docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: "scripts/${{ secrets.DOCKERFILE }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+          build-args: |
+            GIT_COMMIT=${{ env.GIT_VERSION }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+
+
+  pioneer:
+      runs-on: ubuntu-latest
+      environment: 
+        name: pioneer
+
+      if: ${{  github.event.inputs.runtime == 'pioneer' }}
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Set branch name as env variable
+        run: |
+          currentbranch=$(echo ${GITHUB_REF##*/})
+          echo "running on $currentbranch"
+          echo "BRANCH=$currentbranch" >> $GITHUB_ENV
+          gitversion=$(git rev-parse --short HEAD)
+          echo "running on $gitversion"
+          echo "GIT_VERSION=$gitversion" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Build and push
+        id:   docker_build
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          file: "scripts/${{ secrets.DOCKERFILE }}"
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:latest
+            ${{ env.REGISTRY }}/${{ secrets.REGISTRY_ENDPOINT }}:${{ env.GIT_VERSION }}
+          build-args: |
+            GIT_COMMIT=${{ env.GIT_VERSION }}
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}

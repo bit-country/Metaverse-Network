@@ -23,7 +23,7 @@ fn get_country_fund_balance() -> Balance {
 #[test]
 fn mint_social_token_should_work() {
     ExtBuilder::default().build().execute_with(|| {
-        let origin = Origin::signed(ALICE);        
+        let origin = Origin::signed(ALICE);
         assert_eq!(get_country_fund_balance(), 0);
 
         assert_ok!(
@@ -33,12 +33,12 @@ fn mint_social_token_should_work() {
                 METAVERSE_ID,
                 400
             )
-        );      
+        );
 
         assert_eq!(get_country_fund_balance(), 400);
-        
+
         let event = mock::Event::tokenization(
-            crate::Event::FungibleTokenIssued(1, ALICE, country_fund_account(),  400)
+            crate::Event::FungibleTokenIssued(1, ALICE, country_fund_account(), 400)
         );
 
         assert_eq!(last_event(), event);
@@ -58,7 +58,7 @@ fn mint_social_token_should_fail_for_non_owner() {
                 0
             ),
             Error::<Runtime>::NoPermissionTokenIssuance
-        );        
+        );
     });
 }
 
@@ -73,7 +73,7 @@ fn mint_social_token_should_fail_if_already_exists() {
                 METAVERSE_ID,
                 0
             )
-        );        
+        );
 
         assert_noop!(
 			TokenizationModule::mint_token(
@@ -83,7 +83,7 @@ fn mint_social_token_should_fail_if_already_exists() {
                 0
             ),
             Error::<Runtime>::FungibleTokenAlreadyIssued
-        );        
+        );
     });
 }
 

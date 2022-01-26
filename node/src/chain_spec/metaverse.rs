@@ -2,8 +2,8 @@ use hex_literal::hex;
 use log::info;
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, DemocracyConfig, EVMConfig, GenesisConfig, GrandpaConfig, InflationInfo, Range, SessionConfig,
-	Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
+	ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig, InflationInfo, MintingRange,
+	MintingRateInfo, Range, SessionConfig, Signature, StakingConfig, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 use sc_service::{ChainType, Properties};
@@ -212,6 +212,16 @@ pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
 	}
 }
 
+pub fn metaverse_land_minting_config() -> MintingRateInfo {
+	MintingRateInfo {
+		expect: Default::default(),
+		// 10% minting rate per annual
+		annual: 10,
+		// Max 100 millions land unit
+		max: 100_000_000,
+	}
+}
+
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
 	initial_authorities: Vec<(AccountId, AuraId, GrandpaId)>,
@@ -248,11 +258,11 @@ fn testnet_genesis(
 				.collect(),
 		},
 		aura: AuraConfig {
-			//			authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
+			//            authorities: initial_authorities.iter().map(|x| (x.1.clone())).collect(),
 			authorities: vec![],
 		},
 		grandpa: GrandpaConfig {
-			//			authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
+			//            authorities: initial_authorities.iter().map(|x| (x.2.clone(), 1)).collect(),
 			authorities: vec![],
 		},
 		sudo: SudoConfig {
@@ -280,38 +290,41 @@ fn testnet_genesis(
 				.map(|x| (x.0.clone(), x.0.clone(), session_keys(x.1.clone(), x.2.clone())))
 				.collect::<Vec<_>>(),
 		},
-		evm: EVMConfig {
-			accounts: {
-				let mut map = BTreeMap::new();
-				map.insert(
-					// H160 address of Alice dev account
-					// Derived from SS58 (42 prefix) address
-					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
-					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
-					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558").expect("internal H160 is valid; qed"),
-					pallet_evm::GenesisAccount {
-						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-							.expect("internal U256 is valid; qed"),
-						code: Default::default(),
-						nonce: Default::default(),
-						storage: Default::default(),
-					},
-				);
-				map.insert(
-					// H160 address of CI test runner account
-					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b").expect("internal H160 is valid; qed"),
-					pallet_evm::GenesisAccount {
-						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-							.expect("internal U256 is valid; qed"),
-						code: Default::default(),
-						nonce: Default::default(),
-						storage: Default::default(),
-					},
-				);
-				map
-			},
+		estate: EstateConfig {
+			minting_rate_config: metaverse_land_minting_config(),
 		},
+		/*		evm: EVMConfig {
+		 *			accounts: {
+		 *				let mut map = BTreeMap::new();
+		 *				map.insert(
+		 *					// H160 address of Alice dev account
+		 *					// Derived from SS58 (42 prefix) address
+		 *					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+		 *					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
+		 *					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
+		 *					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558").expect("internal H160 is valid; qed"),
+		 *					pallet_evm::GenesisAccount {
+		 *						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+		 *							.expect("internal U256 is valid; qed"),
+		 *						code: Default::default(),
+		 *						nonce: Default::default(),
+		 *						storage: Default::default(),
+		 *					},
+		 *				);
+		 *				map.insert(
+		 *					// H160 address of CI test runner account
+		 *					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b").expect("internal H160 is valid; qed"),
+		 *					pallet_evm::GenesisAccount {
+		 *						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+		 *							.expect("internal U256 is valid; qed"),
+		 *						code: Default::default(),
+		 *						nonce: Default::default(),
+		 *						storage: Default::default(),
+		 *					},
+		 *				);
+		 *				map
+		 *			},
+		 *		}, */
 	}
 }
 
