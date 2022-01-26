@@ -2,6 +2,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
+use codec::{Decode, Encode};
 use frame_support::traits::{Contains, Currency, EnsureOrigin, Nothing, OnUnbalanced};
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
@@ -50,12 +51,11 @@ use xcm_builder::{
 };
 pub use xcm_executor::{Config, XcmExecutor};
 
-pub use constants::{currency::*, time::*};
-use r#impl::FungibleTokenIdConvert;
+pub use constants::{currency::*, parachains, time::*};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
-use primitives::{Amount, FungibleTokenId};
+use primitives::{Amount, FungibleTokenId, TokenSymbol};
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -65,7 +65,6 @@ mod weights;
 
 /// Constant values used within the runtime.
 pub mod constants;
-pub mod r#impl;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
@@ -583,7 +582,7 @@ impl orml_xtokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type CurrencyId = FungibleTokenId;
-	type CurrencyIdConvert = FungibleTokenIdConvert<ParachainInfo>;
+	type CurrencyIdConvert = FungibleTokenIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -702,6 +701,116 @@ match_type! {
 		MultiLocation { parents: 1, interior: Here } |
 		MultiLocation { parents: 1, interior: X1(Plurality { id: BodyId::Executive, .. }) }
 	};
+}
+
+fn native_currency_location(id: FungibleTokenId) -> MultiLocation {
+	// MultiLocation::new(1, X2(Parachain(ParachainInfo::parachain_id().into()),
+	// GeneralKey(id.encode())))
+	MultiLocation::new(
+		1,
+		X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(id.encode())),
+	)
+}
+
+/// **************************************
+// Below is for the network of Kusama.
+/// **************************************
+pub struct FungibleTokenIdConvert;
+impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert {
+	fn convert(id: FungibleTokenId) -> Option<MultiLocation> {
+		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
+		match id {
+			// KSM
+			FungibleToken(1) => Some(MultiLocation::parent()),
+			// NEER
+			NativeToken(0) => Some(native_currency_location(id)),
+			// Karura currencyId types
+			FungibleToken(2) => Some(MultiLocation::new(
+				1,
+				X2(
+					Parachain(parachains::karura::ID),
+					GeneralKey(parachains::karura::KAR_KEY.to_vec()),
+				),
+			)),
+			Stable(3) => Some(MultiLocation::new(
+				1,
+				X2(
+					Parachain(parachains::karura::ID),
+					GeneralKey(parachains::karura::KUSD_KEY.to_vec()),
+				),
+			)),
+			_ => None,
+		}
+	}
+}
+
+impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert {
+	fn convert(location: MultiLocation) -> Option<FungibleTokenId> {
+		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
+		use TokenSymbol::*;
+		// TODO: use TokenSymbol enum
+		// 0 => NEER
+		// 1 => KSM
+		// 2 => KAR
+		// 3 => KUSD
+
+		if location == MultiLocation::parent() {
+			return Some(FungibleToken(1));
+		}
+		match location {
+			MultiLocation { parents, interior } if parents == 1 => match interior {
+				X2(Parachain(id), GeneralKey(key)) if id == u32::from(ParachainInfo::parachain_id()) => {
+					// decode the general key
+					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
+						match currency_id {
+							NativeToken(0) | FungibleToken(1) => Some(currency_id),
+							_ => None,
+						}
+					} else {
+						None
+					}
+				}
+				X2(Parachain(id), GeneralKey(key)) if id == parachains::karura::ID => {
+					if key == parachains::karura::KAR_KEY.to_vec() {
+						Some(FungibleToken(2))
+					} else if key == parachains::karura::KUSD_KEY.to_vec() {
+						Some(Stable(3))
+					} else {
+						None
+					}
+				}
+				_ => None,
+			},
+			MultiLocation { parents, interior } if parents == 0 => match interior {
+				X1(GeneralKey(key)) => {
+					// decode the general key
+					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
+						match currency_id {
+							NativeToken(0) | FungibleToken(1) => Some(currency_id),
+							_ => None,
+						}
+					} else {
+						None
+					}
+				}
+				_ => None,
+			},
+			_ => None,
+		}
+	}
+}
+
+impl Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert {
+	fn convert(asset: MultiAsset) -> Option<FungibleTokenId> {
+		if let MultiAsset {
+			id: Concrete(location), ..
+		} = asset
+		{
+			Self::convert(location)
+		} else {
+			None
+		}
+	}
 }
 
 pub type Barrier = (
