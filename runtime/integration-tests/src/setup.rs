@@ -29,6 +29,7 @@ pub use sp_runtime::{
 	DispatchError, DispatchResult, FixedPointNumber, MultiAddress, Perbill, Permill,
 };
 pub use xcm::latest::prelude::*;
+use xcm_emulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain};
 
 pub use pioneer_imports::*;
 pub use primitives::{AccountId, BlockNumber, CurrencyId, FungibleTokenId};
@@ -44,10 +45,10 @@ mod pioneer_imports {
 
 	pub use pioneer_runtime::{
 		constants::parachains, create_x2_parachain_multilocation, r#impl::FungibleTokenIdConvert, AccountId, Balance,
-		Balances, BlockNumber, Call, Currencies, Event, ExistentialDeposits, MultiLocation, NetworkId, NftPalletId,
-		Origin, OriginCaller, ParachainAccount, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, Scheduler,
-		Session, System, Timestamp, TreasuryModuleAccount, TreasuryPalletId, Utility, Vesting, XTokens, XcmConfig,
-		XcmExecutor,
+		Balances, BlockNumber, Call, Currencies, DmpQueue, Event, ExistentialDeposits, MultiLocation, NetworkId,
+		NftPalletId, Origin, OriginCaller, ParachainAccount, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
+		Scheduler, Session, System, Timestamp, TreasuryModuleAccount, TreasuryPalletId, Utility, Vesting, XTokens,
+		XcmConfig, XcmExecutor, XcmpQueue,
 	};
 	use primitives::FungibleTokenId::*;
 	use primitives::{CurrencyId, FungibleTokenId};
@@ -150,18 +151,6 @@ impl ExtBuilder {
 			.build_storage::<Runtime>()
 			.unwrap();
 
-		let native_currency_id = NATIVE_CURRENCY_ID;
-		let existential_deposit = ExistentialDeposits::get(&NATIVE_CURRENCY);
-
-		#[cfg(feature = "with-mandala-runtime")]
-		GenesisBuild::<Runtime>::assimilate_storage(
-			&ecosystem_renvm_bridge::GenesisConfig {
-				ren_vm_public_key: hex_literal::hex!["4b939fc8ade87cb50b78987b1dda927460dc456a"],
-			},
-			&mut t,
-		)
-		.unwrap();
-
 		pallet_balances::GenesisConfig::<Runtime> {
 			balances: self
 				.balances
@@ -169,11 +158,6 @@ impl ExtBuilder {
 				.into_iter()
 				.filter(|(_, currency_id, _)| *currency_id == NATIVE_CURRENCY)
 				.map(|(account_id, _, initial_balance)| (account_id, initial_balance))
-				// .chain(
-				// 	get_all_module_accounts()
-				// 		.iter()
-				// 		.map(|x| (x.clone(), existential_deposit)),
-				// )
 				.collect::<Vec<_>>(),
 		}
 		.assimilate_storage(&mut t)
@@ -188,29 +172,6 @@ impl ExtBuilder {
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
-
-		// pallet_membership::GenesisConfig::<Runtime, pallet_membership::Instance5> {
-		// 	members: vec![
-		// 		AccountId::from(ORACLE1),
-		// 		AccountId::from(ORACLE2),
-		// 		AccountId::from(ORACLE3),
-		// 		AccountId::from(ORACLE4),
-		// 		AccountId::from(ORACLE5),
-		// 	],
-		// 	phantom: Default::default(),
-		// }
-		// .assimilate_storage(&mut t)
-		// .unwrap();
-
-		// module_evm::GenesisConfig::<Runtime> {
-		// 	accounts: evm_genesis_accounts,
-		// }
-		// .assimilate_storage(&mut t)
-		// .unwrap();
-
-		// module_session_manager::GenesisConfig::<Runtime> { session_duration: 10 }
-		// 	.assimilate_storage(&mut t)
-		// 	.unwrap();
 
 		<parachain_info::GenesisConfig as GenesisBuild<Runtime>>::assimilate_storage(
 			&parachain_info::GenesisConfig {

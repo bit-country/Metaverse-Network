@@ -45,14 +45,14 @@ fn transfer_from_relay_chain() {
 				.into()
 				.into()
 			),
-			Box::new((Here, dollar(KSM)).into()),
+			Box::new((Here, dollar(RELAY_CHAIN_CURRENCY_ID)).into()),
 			0
 		));
 	});
 
 	Pioneer::execute_with(|| {
 		assert_eq!(
-			Currencies::free_balance(RELAY_CHAIN_CURRENCY_ID, &AccountId::from(BOB)),
+			Currencies::free_balance(RELAY_CHAIN_CURRENCY, &AccountId::from(BOB)),
 			999_872_000_000
 		);
 	});
