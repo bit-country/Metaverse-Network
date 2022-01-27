@@ -47,8 +47,8 @@ mod pioneer_imports {
 		constants::parachains, create_x2_parachain_multilocation, AccountId, Balance, Balances, BlockNumber, Call,
 		Currencies, DmpQueue, Event, ExistentialDeposits, FungibleTokenIdConvert, MultiLocation, NetworkId,
 		NftPalletId, Origin, OriginCaller, ParachainAccount, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime,
-		Scheduler, Session, System, Timestamp, TreasuryModuleAccount, TreasuryPalletId, Utility, Vesting, XTokens,
-		XcmConfig, XcmExecutor, XcmpQueue,
+		Scheduler, Session, System, Timestamp, Tokens, TreasuryModuleAccount, TreasuryPalletId, Utility, Vesting,
+		XTokens, XcmConfig, XcmExecutor, XcmpQueue,
 	};
 	use primitives::FungibleTokenId::*;
 	use primitives::{CurrencyId, FungibleTokenId};
