@@ -723,19 +723,19 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 	fn convert(id: FungibleTokenId) -> Option<MultiLocation> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 		match id {
-			// KSM
-			FungibleToken(1) => Some(MultiLocation::parent()),
 			// NEER
 			NativeToken(0) => Some(native_currency_location(id)),
+			// KSM
+			NativeToken(1) => Some(MultiLocation::parent()),
 			// Karura currencyId types
-			FungibleToken(2) => Some(MultiLocation::new(
+			NativeToken(2) => Some(MultiLocation::new(
 				1,
 				X2(
 					Parachain(parachains::karura::ID),
 					GeneralKey(parachains::karura::KAR_KEY.to_vec()),
 				),
 			)),
-			Stable(3) => Some(MultiLocation::new(
+			Stable(0) => Some(MultiLocation::new(
 				1,
 				X2(
 					Parachain(parachains::karura::ID),
@@ -750,17 +750,19 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 	fn convert(location: MultiLocation) -> Option<FungibleTokenId> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
-		use TokenSymbol::*;
 
 		let para_id: u32 = u32::from(ParachainInfo::parachain_id());
 		// TODO: use TokenSymbol enum
+		// NativeToken
 		// 0 => NEER
 		// 1 => KSM
 		// 2 => KAR
-		// 3 => KUSD
+
+		// Stable
+		// 0 => KUSD
 
 		if location == MultiLocation::parent() {
-			return Some(FungibleToken(1));
+			return Some(NativeToken(1));
 		}
 		match location {
 			MultiLocation { parents, interior } if parents == 1 => match interior {
@@ -768,7 +770,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
 						match currency_id {
-							NativeToken(0) | FungibleToken(1) => Some(currency_id),
+							NativeToken(0) | NativeToken(1) => Some(currency_id),
 							_ => None,
 						}
 					} else {
@@ -777,9 +779,9 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 				}
 				X2(Parachain(id), GeneralKey(key)) if id == parachains::karura::ID => {
 					if key == parachains::karura::KAR_KEY.to_vec() {
-						Some(FungibleToken(2))
+						Some(NativeToken(2))
 					} else if key == parachains::karura::KUSD_KEY.to_vec() {
-						Some(Stable(3))
+						Some(Stable(0))
 					} else {
 						None
 					}
@@ -791,7 +793,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
 						match currency_id {
-							NativeToken(0) | FungibleToken(1) => Some(currency_id),
+							NativeToken(0) | NativeToken(1) => Some(currency_id),
 							_ => None,
 						}
 					} else {

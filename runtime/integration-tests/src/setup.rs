@@ -56,11 +56,12 @@ mod pioneer_imports {
 	// 0 => NEER
 	// 1 => KSM
 	// 2 => KAR
-	// 3 => KUSD
 	pub const NATIVE_CURRENCY: FungibleTokenId = NativeToken(0);
-	pub const RELAY_CHAIN_CURRENCY: FungibleTokenId = FungibleToken(1);
-	pub const PARA_CHAIN_CURRENCY: FungibleTokenId = FungibleToken(2);
-	pub const STABLE_CURRENCY: FungibleTokenId = Stable(3);
+	pub const RELAY_CHAIN_CURRENCY: FungibleTokenId = NativeToken(1);
+	pub const PARA_CHAIN_CURRENCY: FungibleTokenId = NativeToken(2);
+
+	// 0 => KUSD
+	pub const STABLE_CURRENCY: FungibleTokenId = Stable(0);
 
 	pub const PARA_CHAIN_CURRENCY_NONE: FungibleTokenId = Stable(99);
 
