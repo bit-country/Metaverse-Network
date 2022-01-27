@@ -653,17 +653,21 @@ pub type LocationToAccountId = (
 );
 
 /// Means for transacting assets on this chain.
-pub type LocalAssetTransactor = CurrencyAdapter<
+pub type LocalAssetTransactor = MultiCurrencyAdapter<
 	// Use this currency:
-	Balances,
+	Currencies,
+	// Tokens,
+	UnknownTokens,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<RocLocation>,
-	// Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
-	LocationToAccountId,
+	IsNativeConcrete<FungibleTokenId, FungibleTokenIdConvert>,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
+	// Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
+	LocationToAccountId,
 	// We don't track any teleports.
-	(),
+	FungibleTokenId,
+	FungibleTokenIdConvert,
+	// DepositToAlternative<TreasuryModuleAccount, Currencies, FungibleTokenId, AccountId, Balance>,
 >;
 
 /// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
@@ -823,7 +827,7 @@ pub type Barrier = (
 
 pub struct XcmConfig;
 
-impl Config for XcmConfig {
+impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = XcmRouter;
 	// How to withdraw and deposit an asset.

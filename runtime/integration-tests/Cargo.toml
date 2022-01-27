@@ -76,8 +76,9 @@ orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library",
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12", default-features = false }
 
-orml-xtokens = { path = "../../orml/xtokens" }
-orml-xcm-support = { path = "../../orml/xcm-support" }
+orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12",  default-features = false }
+orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.12",  default-features = false }
+
 
 primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
 metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', default-features = false }
