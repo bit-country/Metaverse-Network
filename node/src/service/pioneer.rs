@@ -1,9 +1,6 @@
 // std
 use std::sync::Arc;
 
-// Local Runtime Types
-use pioneer_runtime::{AccountId, Balance, Index as Nonce, RuntimeApi};
-
 // Cumulus Imports
 use cumulus_client_consensus_aura::{build_aura_consensus, BuildAuraConsensusParams, SlotProportion};
 use cumulus_client_consensus_common::ParachainConsensus;
@@ -12,7 +9,6 @@ use cumulus_client_service::{
 	prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
 use cumulus_primitives_core::ParaId;
-
 // Substrate Imports
 use sc_client_api::ExecutorProvider;
 use sc_executor::NativeElseWasmExecutor;
@@ -24,6 +20,9 @@ use sp_consensus::SlotData;
 use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use substrate_prometheus_endpoint::Registry;
+
+// Local Runtime Types
+use pioneer_runtime::{AccountId, Balance, Index as Nonce, RuntimeApi};
 
 // Runtime type overrides
 type BlockNumber = u32;
@@ -242,7 +241,6 @@ where
 		transaction_pool: transaction_pool.clone(),
 		spawn_handle: task_manager.spawn_handle(),
 		import_queue: import_queue.clone(),
-		on_demand: None,
 		block_announce_validator_builder: Some(Box::new(|_| block_announce_validator)),
 		warp_sync: None,
 	})?;

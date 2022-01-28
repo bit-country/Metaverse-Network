@@ -17,7 +17,7 @@ pub use frame_support::{
 	PalletId, RuntimeDebug, StorageValue,
 };
 // A few exports that help ease life for downstream crates.
-use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
+use frame_support::traits::{Contains, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing};
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	Config, EnsureOneOf, EnsureRoot, RawOrigin,
@@ -230,7 +230,7 @@ impl Contains<Call> for BaseFilter {
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = Everything;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -316,6 +316,7 @@ impl pallet_utility::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
 	type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+	type PalletsOrigin = OriginCaller;
 }
 
 parameter_types! {
@@ -755,6 +756,7 @@ impl pallet_scheduler::Config for Runtime {
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 }
 
 parameter_types! {
