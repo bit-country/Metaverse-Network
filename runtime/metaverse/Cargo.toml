@@ -88,10 +88,8 @@ governance = { package = "pallet-governance", path = "../../pallets/governance",
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
 
 #modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
-
-# ecosystem dependencies
 parachain-staking = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
-#chainbridge = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
+# ecosystem dependencies
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", default-features = false }
@@ -145,13 +143,13 @@ std = [
     #    "chainbridge/std",
     #    "modules-chainsafe/std",
     "mining/std",
-    "parachain-staking/std",
     #    "pallet-evm/std",
     #    "fp-rpc/std",
     #    "evm/std",
     "governance/std",
     "crowdloan/std",
-    "pallet-utility/std"
+    "pallet-utility/std",
+    "parachain-staking/std"
 ]
 runtime-benchmarks = [
     "frame-benchmarking",

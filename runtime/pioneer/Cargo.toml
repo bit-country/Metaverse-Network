@@ -1,8 +1,13 @@
 [package]
+authors = ["Bit.Country Developers <https://github.com/bit-country>"]
+edition = "2018"
+homepage = "https://bit.country"
+license = "Unlicense"
 name = "pioneer-runtime"
 description = "Pioneer Runtime"
+repository = "https://github.com/bit-country/Metaverse-Network"
 version = "0.0.3"
-edition = "2018"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -39,7 +44,6 @@ estate = { package = 'pallet-estate', path = '../../pallets/estate', default-fea
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
 
 # ecosystem dependencies
-parachain-staking = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
 
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
 #pallet-evm = { path = "../../pallets/evm", default-features = false }
@@ -186,7 +190,6 @@ std = [
     'mining/std',
     'tokenization/std',
     'estate/std',
-    'parachain-staking/std',
     'crowdloan/std',
     'pallet-collator-selection/std'
     #    'pallet-evm/std',
