@@ -1,0 +1,50 @@
+name: Publish Release
+
+# This script is used to build and publish the release WASM build of runtime:
+# - Checkout the selected branch
+# - Build WASM using Substrate Runtime Tool
+
+env:
+  SUBWASM_VERSION: 0.15.0
+
+on:
+  workflow_dispatch:
+    inputs:
+      # Get name of the chain
+      chain:
+        description: Chain Runtime (default = pioneer)
+        required: true
+        default: pioneer
+        type: choice
+        options:
+          - metaverse
+          - pioneer
+          - tewai
+      # Get the SR Tool image used to build
+      srtool_image:
+        description: Default to use the latest. You can use an alternate image, use with caution!
+        required: false
+
+jobs:
+  build-release:
+    name: Build and publish ${{ github.event.inputs.chain }}
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the Bit.Country codebase
+      - name: Checkout Codebase
+        uses: actions/checkout@v2
+
+      # Build WASM with Substrate Runtime Tool
+      - name: Srtool build
+        id: srtool_build
+        uses: chevdor/srtool-actions@build_opts_env
+        with:
+          chain: ${{ github.event.inputs.chain }}
+          tag: ${{ github.event.inputs.srtool_image }}
+
+      # Output the build summary
+      - name: Build Summary
+        run: |
+          echo '${{ steps.srtool_build.outputs.json }}' | jq . > ${{ github.event.inputs.chain }}-srtool-digest.json
+          cat ${{ github.event.inputs.chain }}-srtool-digest.json
+          echo "Runtime location: ${{ steps.srtool_build.outputs.wasm }}"
