@@ -1,6 +1,4 @@
-use crate::*;
 use codec::{Decode, Encode};
-use primitives::{MetaverseId, ProposalId, ReferendumId};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, IntegerSquareRoot, Saturating, Zero},
@@ -9,6 +7,10 @@ use sp_runtime::{
 use sp_std::convert::TryFrom;
 use sp_std::ops::{Add, Div, Mul, Rem};
 use sp_std::vec::Vec;
+
+use primitives::{MetaverseId, ProposalId, ReferendumId};
+
+use crate::*;
 
 #[derive(Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum PreimageStatus<AccountId, Balance, BlockNumber> {
@@ -38,13 +40,7 @@ impl<AccountId, Balance, BlockNumber> PreimageStatus<AccountId, Balance, BlockNu
 pub enum VoteThreshold {
 	SuperMajorityApprove,
 	SuperMajorityAgainst,
-	RelativeMajority, /* Most votes */
-	                  /* to be enabled later
-					  StandardQualifiedMajority, // 72%+ 72%+ representation
-					  TwoThirdsSupermajority, // 66%+
-					  ThreeFifthsSupermajority, // 60%+
-					  ReinforcedQualifiedMajority, // 55%+ 65%+ representation
-					  */
+	RelativeMajority,
 }
 
 pub trait ReferendumApproved<Balance> {
