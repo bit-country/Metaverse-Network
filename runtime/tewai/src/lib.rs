@@ -20,6 +20,9 @@
 #![recursion_limit = "256"]
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use constants::{currency::*, time::*};
+use frame_election_provider_support::onchain;
+use frame_support::traits::FindAuthor;
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
@@ -32,29 +35,36 @@ use frame_support::{
 	},
 	ConsensusEngineId, PalletId, RuntimeDebug,
 };
+#[cfg(any(feature = "std", test))]
+pub use frame_system::Call as SystemCall;
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	Config, EnsureOneOf, EnsureRoot, RawOrigin,
 };
+use orml_traits::parameter_type_with_key;
+#[cfg(any(feature = "std", test))]
+pub use pallet_balances::Call as BalancesCall;
 use pallet_contracts::weights::WeightInfo;
-// use pallet_election_provider_multi_phase::FallbackStrategy;
-//use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
-pub use estate::{MintingRateInfo, Range as MintingRange};
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use pallet_session::historical as pallet_session_historical;
+#[cfg(any(feature = "std", test))]
+pub use pallet_staking::StakerStatus;
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
-pub use primitives::{AccountId, Signature};
-use primitives::{AccountIndex, Amount, Balance, BlockNumber, FungibleTokenId, Hash, Index, Moment};
+use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
+use sp_core::sp_std::marker::PhantomData;
 use sp_core::{
 	crypto::KeyTypeId,
 	u32_trait::{_1, _2, _3, _4, _5},
 	OpaqueMetadata, H160, U256,
 };
 use sp_inherents::{CheckInherentsResult, InherentData};
+use sp_runtime::generic::Era;
+#[cfg(any(feature = "std", test))]
+pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	create_runtime_str,
 	curve::PiecewiseLinear,
@@ -72,16 +82,15 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use static_assertions::const_assert;
 
-#[cfg(any(feature = "std", test))]
-pub use frame_system::Call as SystemCall;
-#[cfg(any(feature = "std", test))]
-pub use pallet_balances::Call as BalancesCall;
-#[cfg(any(feature = "std", test))]
-pub use pallet_staking::StakerStatus;
-#[cfg(any(feature = "std", test))]
-pub use sp_runtime::BuildStorage;
-
-use scale_info::TypeInfo;
+// External imports
+use currencies::BasicCurrencyAdapter;
+// use pallet_election_provider_multi_phase::FallbackStrategy;
+//use pallet_evm::{Account as EVMAccount, EnsureAddressTruncated, HashedAddressMapping, Runner};
+pub use estate::{MintingRateInfo, Range as MintingRange};
+#[cfg(feature = "runtime-benchmarks")]
+use frame_benchmarking::frame_support::pallet_prelude::Get;
+pub use primitives::{AccountId, Signature};
+use primitives::{AccountIndex, Amount, Balance, BlockNumber, FungibleTokenId, Hash, Index, Moment};
 
 pub struct Author;
 
@@ -93,9 +102,6 @@ impl OnUnbalanced<NegativeImbalance> for Author {
 
 /// Constant values used within the runtime.
 pub mod constants;
-
-use constants::{currency::*, time::*};
-use sp_runtime::generic::Era;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -110,10 +116,6 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 		 the flag disabled.",
 	)
 }
-
-// External imports
-use currencies::BasicCurrencyAdapter;
-use orml_traits::parameter_type_with_key;
 
 mod weights;
 
@@ -504,17 +506,10 @@ parameter_types! {
 	pub OffchainRepeat: BlockNumber = 5;
 	pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(17);
 }
-#[cfg(feature = "runtime-benchmarks")]
-use frame_benchmarking::frame_support::pallet_prelude::Get;
-use frame_election_provider_support::onchain;
-
 impl onchain::Config for Runtime {
 	type Accuracy = Perbill;
 	type DataProvider = Staking;
 }
-
-use frame_support::traits::FindAuthor;
-use sp_core::sp_std::marker::PhantomData;
 
 impl pallet_staking::Config for Runtime {
 	const MAX_NOMINATIONS: u32 = MAX_NOMINATIONS;
@@ -1309,13 +1304,12 @@ impl InstanceFilter<Call> for ProposalType {
 
 impl governance::Config for Runtime {
 	type Event = Event;
-	type DefaultVotingPeriod = DefaultVotingPeriod;
-	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
-	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
-	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
-	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
+	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+	type DefaultVotingPeriod = DefaultVotingPeriod;
+	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
 	type MetaverseInfo = Metaverse;
@@ -1427,8 +1421,9 @@ pub type Executive =
 
 /// MMR helper types.
 mod mmr {
-	use super::Runtime;
 	pub use pallet_mmr::primitives::*;
+
+	use super::Runtime;
 
 	pub type Leaf = <<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider>::LeafData;
 	pub type Hash = <Runtime as pallet_mmr::Config>::Hash;
@@ -1768,8 +1763,9 @@ impl_runtime_apis! {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
 	use frame_system::offchain::CreateSignedTransaction;
+
+	use super::*;
 
 	#[test]
 	fn validate_transaction_submitter_bounds() {
