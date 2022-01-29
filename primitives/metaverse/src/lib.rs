@@ -19,6 +19,9 @@
 
 use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
 use scale_info::TypeInfo;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+use sp_runtime::traits::AtLeast32Bit;
 use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
@@ -26,10 +29,6 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature,
 };
-
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-use sp_runtime::traits::AtLeast32Bit;
 
 pub mod continuum;
 pub mod dex;
@@ -65,7 +64,7 @@ pub type Hash = sp_core::H256;
 /// time scale is milliseconds.
 pub type Timestamp = u64;
 /// Digest item type.
-pub type DigestItem = generic::DigestItem<Hash>;
+pub type DigestItem = generic::DigestItem;
 /// Header type.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type.
@@ -166,9 +165,10 @@ impl FungibleTokenId {
 /// GRANDPA. Any rewards for misbehavior reporting will be paid out to this
 /// account.
 pub mod report {
-	use super::{Signature, Verify};
 	use frame_system::offchain::AppCrypto;
 	use sp_core::crypto::{key_types, KeyTypeId};
+
+	use super::{Signature, Verify};
 
 	/// Key type for the reporting module. Used for reporting BABE and GRANDPA
 	/// equivocations.
@@ -176,6 +176,7 @@ pub mod report {
 
 	mod app {
 		use sp_application_crypto::{app_crypto, sr25519};
+
 		app_crypto!(sr25519, super::KEY_TYPE);
 	}
 

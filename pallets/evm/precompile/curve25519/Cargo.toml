@@ -9,9 +9,9 @@ repository = "https://github.com/paritytech/frontier/"
 description = "Curve25519 elliptic curve precompiles for EVM pallet."
 
 [dependencies]
-sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
-sp-io = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
-frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
+sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
+sp-io = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
+frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
 fp-evm = { version = "3.0.0-dev", default-features = false, path = "../../../../primitives/evm" }
 evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
 codec = { package = "parity-scale-codec", version = "2.3.1", default-features = false }

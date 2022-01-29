@@ -1,21 +1,24 @@
 #![cfg(test)]
 
-use super::*;
-use crate as governance;
 use codec::Encode;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
-use scale_info::TypeInfo;
-
 use frame_support::dispatch::DispatchError;
+use frame_support::traits::EqualPrivilegeOnly;
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use metaverse_primitive::{MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseTrait};
-use primitives::FungibleTokenId;
+use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, Hash, IdentityLookup},
 };
+
+use metaverse_primitive::{MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseTrait};
+use primitives::FungibleTokenId;
+
+use crate as governance;
+
+use super::*;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -106,6 +109,7 @@ impl pallet_scheduler::Config for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
 }

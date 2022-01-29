@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use frame_support::traits::Nothing;
+use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
@@ -249,6 +249,7 @@ impl pallet_scheduler::Config for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
 }
