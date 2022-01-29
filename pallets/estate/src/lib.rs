@@ -17,22 +17,25 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::{Auction, CheckAuctionItemHandler};
-use bc_primitives::*;
 use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{
-	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
-};
-pub use rate::{MintingRateInfo, Range};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating},
 	DispatchError,
 };
 use sp_std::vec::Vec;
+
+use auction_manager::{Auction, CheckAuctionItemHandler};
+use bc_primitives::*;
+pub use pallet::*;
+use primitives::{
+	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
+};
+pub use rate::{MintingRateInfo, Range};
+pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -46,70 +49,21 @@ mod tests;
 
 pub mod weights;
 
-pub use weights::WeightInfo;
-
-pub use pallet::*;
-
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
-	use crate::rate::{round_issuance_range, MintingRateInfo};
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
-	use primitives::UndeployedLandBlockId;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
+
+	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
+	use primitives::{RoundIndex, UndeployedLandBlockId};
+
+	use crate::rate::{round_issuance_range, MintingRateInfo};
+
+	use super::*;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
-
-	type RoundIndex = u32;
-
-	#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
-	/// The current round index and transition information
-	pub struct RoundInfo<BlockNumber> {
-		/// Current round index
-		pub current: RoundIndex,
-		/// The first block of the current round
-		pub first: BlockNumber,
-		/// The length of the current round in number of blocks
-		pub length: u32,
-	}
-
-	#[derive(Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-	/// Snapshot of collator state at the start of the round for which they are selected
-	pub struct StakeSnapshot<AccountId, Balance> {
-		pub stakers: Vec<Bond<AccountId, Balance>>,
-		pub total_bond: Balance,
-	}
-
-	#[derive(Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-	pub struct Bond<AccountId, Balance> {
-		pub staker: AccountId,
-		pub amount: Balance,
-	}
-
-	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> RoundInfo<B> {
-		pub fn new(current: RoundIndex, first: B, length: u32) -> RoundInfo<B> {
-			RoundInfo { current, first, length }
-		}
-		/// Check if the round should be updated
-		pub fn should_update(&self, now: B) -> bool {
-			now - self.first >= self.length.into()
-		}
-		/// New round
-		pub fn update(&mut self, now: B) {
-			self.current += 1u32;
-			self.first = now;
-		}
-	}
-
-	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> Default
-		for RoundInfo<B>
-	{
-		fn default() -> RoundInfo<B> {
-			RoundInfo::new(1u32, 1u32.into(), 20u32)
-		}
-	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -1019,16 +973,6 @@ pub mod pallet {
 			let total_issuance = Self::compute_issuance(total_staked);
 
 			let mut left_issuance = total_issuance;
-
-			// reserve portion of issuance for parachain bond account
-			// TODO: TBD on percentage and account config
-			// let bond_config = <ParachainBondInfo<T>>::get();
-			// let parachain_bond_reserve = bond_config.percent * total_issuance;
-			// if let Ok(imb) = T::Currency::deposit_into_existing(&bond_config.account, parachain_bond_reserve)
-			// { 	// update round issuance iff transfer succeeds
-			// 	left_issuance -= imb.peek();
-			// 	Self::deposit_event(Event::ReservedForParachainBond(bond_config.account, imb.peek()));
-			// }
 
 			// a local fn to transfer rewards to the account specified
 			let mint = |amt: BalanceOf<T>, to: T::AccountId| {

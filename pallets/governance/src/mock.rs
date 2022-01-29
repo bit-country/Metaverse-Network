@@ -184,6 +184,8 @@ impl pallet_metaverse::Config for Runtime {
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+	type MetaverseRegistrationDeposit = MinContribution;
+	type MinStakingAmount = MinContribution;
 	type WeightInfo = ();
 }
 

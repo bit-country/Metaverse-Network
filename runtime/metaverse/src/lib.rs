@@ -476,6 +476,8 @@ impl metaverse::Config for Runtime {
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureRootOrHalfMetaverseCouncil;
 	type WeightInfo = weights::module_metaverse::WeightInfo<Runtime>;
+	type MetaverseRegistrationDeposit = MinContribution;
+	type MinStakingAmount = MinContribution;
 }
 
 parameter_types! {

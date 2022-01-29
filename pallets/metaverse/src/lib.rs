@@ -17,14 +17,25 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use bc_primitives::*;
-use frame_support::{ensure, pallet_prelude::*, traits::Currency, PalletId};
+use codec::{Decode, Encode, HasCompact};
+use frame_support::{
+	ensure,
+	pallet_prelude::*,
+	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
+	PalletId,
+};
 use frame_system::{ensure_signed, pallet_prelude::*};
-use primitives::{FungibleTokenId, MetaverseId};
 use sp_runtime::{
-	traits::{AccountIdConversion, One},
+	traits::{AccountIdConversion, One, Zero},
 	DispatchError,
 };
+use sp_std::{collections::btree_map::BTreeMap, prelude::*};
+
+use bc_primitives::*;
+use bc_primitives::{MetaverseInfo, MetaverseTrait};
+pub use pallet::*;
+use primitives::{FungibleTokenId, MetaverseId};
+pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -37,15 +48,36 @@ mod tests;
 
 pub mod weights;
 
-pub use weights::WeightInfo;
+/// A record for total rewards and total amount staked for an era
+#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct MetaverseStakingSnapshot<Balance> {
+	/// Total amount of rewards for a staking round
+	rewards: Balance,
+	/// Total staked amount for a staking round
+	staked: Balance,
+}
 
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
-pub use pallet::*;
+/// Storing the reward detail of metaverse that store the list of stakers for each metaverse
+/// This will be used to reward metaverse owner and the stakers.
+#[derive(Clone, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+pub struct MetaverseStakingPoints<AccountId: Ord, Balance: HasCompact> {
+	/// Total staked amount.
+	total: Balance,
+	/// The map of stakers and the amount they staked.
+	stakers: BTreeMap<AccountId, Balance>,
+	/// Accrued and claimed rewards on this metaverse for both metaverse owner and stakers
+	claimed_rewards: Balance,
+}
 
 #[frame_support::pallet]
 pub mod pallet {
+	use sp_runtime::traits::Saturating;
+	use sp_runtime::ArithmeticError;
+
+	use primitives::staking::RoundInfo;
+	use primitives::RoundIndex;
+
 	use super::*;
-	use frame_support::traits::ExistenceRequirement;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -57,7 +89,8 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The currency type
-		type Currency: Currency<Self::AccountId>;
+		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+			+ ReservableCurrency<Self::AccountId>;
 		#[pallet::constant]
 		type MetaverseTreasury: Get<PalletId>;
 		#[pallet::constant]
@@ -67,6 +100,10 @@ pub mod pallet {
 		type MinContribution: Get<BalanceOf<Self>>;
 		/// Origin to add new metaverse
 		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
+		/// Mininum deposit for registering a metaverse
+		type MetaverseRegistrationDeposit: Get<BalanceOf<Self>>;
+		/// Mininum staking amount
+		type MinStakingAmount: Get<BalanceOf<Self>>;
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
 	}
@@ -77,12 +114,11 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse)]
-	pub type Metaverses<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, MetaverseInfo<T::AccountId>, OptionQuery>;
+	pub type Metaverses<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, MetaverseInfo<T::AccountId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse_owner)]
-	pub type MetaverseOwner<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, T::AccountId, (), OptionQuery>;
+	pub type MetaverseOwner<T: Config> = StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, MetaverseId, ()>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_metaverse_count)]
@@ -92,13 +128,42 @@ pub mod pallet {
 	#[pallet::getter(fn get_freezing_metaverse)]
 	pub(super) type FreezedMetaverses<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, (), OptionQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn is_init)]
-	pub(super) type Init<T: Config> = StorageValue<_, bool, ValueQuery>;
+	/// Metaverse staking related storage
 
+	/// Staking round info
 	#[pallet::storage]
-	#[pallet::getter(fn nonce)]
-	pub(super) type Nonce<T: Config> = StorageValue<_, u32, ValueQuery>;
+	#[pallet::getter(fn staking_round)]
+	/// Current round index and next round scheduled transition
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+
+	/// Registered metaverse for staking
+	#[pallet::storage]
+	#[pallet::getter(fn get_registered_metaverse)]
+	pub(crate) type RegisteredMetaverse<T: Config> =
+		StorageMap<_, Blake2_128Concat, MetaverseId, T::AccountId, OptionQuery>;
+
+	/// Metaverse Staking snapshot per staking round
+	#[pallet::storage]
+	#[pallet::getter(fn get_metaverse_staking_snapshots)]
+	pub(crate) type MetaverseStakingSnapshots<T: Config> =
+		StorageMap<_, Blake2_128Concat, RoundIndex, MetaverseStakingSnapshot<BalanceOf<T>>>;
+
+	/// Stores amount staked and stakers for individual metaverse per staking round
+	#[pallet::storage]
+	#[pallet::getter(fn get_metaverse_stake_per_round)]
+	pub(crate) type MetaverseRoundStake<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		MetaverseId,
+		Twox64Concat,
+		RoundIndex,
+		MetaverseStakingPoints<T::AccountId, BalanceOf<T>>,
+	>;
+
+	/// Keep track of staking ledger of individual staker
+	#[pallet::storage]
+	#[pallet::getter(fn staking_ledger)]
+	pub(crate) type StakingLedger<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -109,6 +174,7 @@ pub mod pallet {
 		MetaverseDestroyed(MetaverseId),
 		MetaverseUnfreezed(MetaverseId),
 		MetaverseMintedNewCurrency(MetaverseId, FungibleTokenId),
+		NewMetaverseRegisteredForStaking(MetaverseId, T::AccountId),
 	}
 
 	#[pallet::error]
@@ -129,13 +195,24 @@ pub mod pallet {
 		InsufficientContribution,
 		/// Only frozen metaverse can be destroy
 		OnlyFrozenMetaverseCanBeDestroyed,
+		/// Already registered for staking
+		AlreadyRegisteredForStaking,
+		/// Metaverse is not registered for staking
+		NotRegisteredForStaking,
+		/// Not enough balance to stake
+		NotEnoughBalanceToStake,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(T::WeightInfo::create_metaverse())]
-		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
-			let from = ensure_signed(origin)?;
+		pub fn create_metaverse(
+			origin: OriginFor<T>,
+			owner: T::AccountId,
+			metadata: MetaverseMetadata,
+		) -> DispatchResultWithPostInfo {
+			// Only Council can create a metaverse
+			T::MetaverseCouncil::ensure_origin(origin)?;
 
 			ensure!(
 				metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
@@ -143,27 +220,27 @@ pub mod pallet {
 			);
 
 			ensure!(
-				T::Currency::free_balance(&from) >= T::MinContribution::get(),
+				T::Currency::free_balance(&owner) >= T::MinContribution::get(),
 				Error::<T>::InsufficientContribution
 			);
 
 			T::Currency::transfer(
-				&from,
+				&owner,
 				&Self::account_id(),
 				T::MinContribution::get(),
 				ExistenceRequirement::KeepAlive,
 			)?;
 
-			let metaverse_id = Self::new_metaverse(&from, metadata)?;
+			let metaverse_id = Self::new_metaverse(&owner, metadata)?;
 
-			MetaverseOwner::<T>::insert(metaverse_id, from.clone(), ());
+			MetaverseOwner::<T>::insert(owner.clone(), metaverse_id, ());
 
 			let total_metaverse_count = Self::all_metaverse_count();
 			let new_total_metaverse_count = total_metaverse_count
 				.checked_add(One::one())
 				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 			AllMetaversesCount::<T>::put(new_total_metaverse_count);
-			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), from));
+			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), owner));
 
 			Ok(().into())
 		}
@@ -177,8 +254,8 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			// Get owner of the metaverse
 			MetaverseOwner::<T>::try_mutate_exists(
-				&metaverse_id,
 				&who,
+				&metaverse_id,
 				|metaverse_by_owner| -> DispatchResultWithPostInfo {
 					// Ensure there is record of the metaverse owner with metaverse id, account
 					// id and delete them
@@ -190,7 +267,7 @@ pub mod pallet {
 					}
 
 					*metaverse_by_owner = None;
-					MetaverseOwner::<T>::insert(metaverse_id.clone(), to.clone(), ());
+					MetaverseOwner::<T>::insert(to.clone(), metaverse_id.clone(), ());
 
 					Metaverses::<T>::try_mutate_exists(&metaverse_id, |metaverse| -> DispatchResultWithPostInfo {
 						let mut metaverse_record = metaverse.as_mut().ok_or(Error::<T>::NoPermission)?;
@@ -244,9 +321,113 @@ pub mod pallet {
 
 			ensure!(metaverse_info.is_frozen, Error::<T>::OnlyFrozenMetaverseCanBeDestroyed);
 
-			MetaverseOwner::<T>::remove(&metaverse_id, metaverse_info.owner);
+			MetaverseOwner::<T>::remove(metaverse_info.owner, &metaverse_id);
 			Metaverses::<T>::remove(&metaverse_id);
 			Self::deposit_event(Event::<T>::MetaverseDestroyed(metaverse_id));
+			Ok(().into())
+		}
+
+		/// Register metaverse for staking
+		/// only metaverse owner can register for staking
+		#[pallet::weight(10_000)]
+		pub fn register_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+			ensure!(metaverse_info.owner == who, Error::<T>::NoPermission);
+
+			ensure!(
+				!RegisteredMetaverse::<T>::contains_key(&metaverse_id),
+				Error::<T>::AlreadyRegisteredForStaking
+			);
+
+			T::Currency::reserve(&who, T::MetaverseRegistrationDeposit::get())?;
+
+			RegisteredMetaverse::<T>::insert(metaverse_id.clone(), who.clone());
+
+			Self::deposit_event(Event::<T>::NewMetaverseRegisteredForStaking(metaverse_id, who));
+
+			Ok(().into())
+		}
+
+		/// Lock up and stake balance of the origin account.
+		/// New stake will be applied at the beginning of the next round.
+		#[pallet::weight(100_000)]
+		pub fn stake(
+			origin: OriginFor<T>,
+			metaverse_id: MetaverseId,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let staker = ensure_signed(origin)?;
+
+			// Check that metaverse is registered for staking.
+			ensure!(
+				RegisteredMetaverse::<T>::contains_key(&metaverse_id),
+				Error::<T>::NotRegisteredForStaking
+			);
+
+			// Get the staking ledger or create an entry if it doesn't exist.
+			let mut staking_ledger = Self::staking_ledger(&staker);
+
+			// Ensure that staker has enough balance to stake.
+			let free_balance = T::Currency::free_balance(&staker).saturating_sub(T::MinStakingAmount::get());
+
+			// Remove already locked funds from the free balance
+			let available_balance = free_balance.saturating_sub(staking_ledger);
+			let value_to_stake = value.min(available_balance);
+			ensure!(value_to_stake > Zero::zero(), Error::<T>::NotEnoughBalanceToStake);
+
+			// Get the latest round staking point info or create it if metaverse hasn't been staked yet so far.
+			let current_staking_round = Self::staking_round();
+			// get staking info of metaverse and current round
+
+			// Ensure that we can add additional staker for the metaverse.
+
+			// Increment ledger and total staker value for a metaverse.
+			// Update total staked value in current round
+			// Update ledger and payee
+			// Update staked information for contract in current round
+			Ok(().into())
+		}
+
+		/// Unstake and withdraw balance of the origin account.
+		/// If user unstake below minimum staking amount, the entire staking of that origin will be
+		/// removed Unstake will on be kicked off from the begining of the next round.
+		#[pallet::weight(100_000)]
+		pub fn unstake_and_withdraw(
+			origin: OriginFor<T>,
+			metaverse_id: MetaverseId,
+			#[pallet::compact] value: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let staker = ensure_signed(origin)?;
+
+			// Check that metaverse is registered for staking.
+			ensure!(
+				RegisteredMetaverse::<T>::contains_key(&metaverse_id),
+				Error::<T>::NotRegisteredForStaking
+			);
+
+			// Get the staking ledger or create an entry if it doesn't exist.
+			let mut staking_ledger = Self::staking_ledger(&staker);
+
+			// Ensure that staker has enough balance to stake.
+			let free_balance = T::Currency::free_balance(&staker).saturating_sub(T::MinStakingAmount::get());
+
+			// Remove already locked funds from the free balance
+			let available_balance = free_balance.saturating_sub(staking_ledger);
+			let value_to_stake = value.min(available_balance);
+			ensure!(value_to_stake > Zero::zero(), Error::<T>::NotEnoughBalanceToStake);
+
+			// Get the latest round staking point info or create it if metaverse hasn't been staked yet so far.
+			let current_staking_round = Self::staking_round();
+			// get staking info of metaverse and current round
+
+			// Ensure that we can add additional staker for the metaverse.
+
+			// Increment ledger and total staker value for a metaverse.
+			// Update total staked value in current round
+			// Update ledger and payee
+			// Update staked information for contract in current round
 			Ok(().into())
 		}
 	}
@@ -256,9 +437,6 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	/// Reads the nonce from storage, increments the stored nonce, and returns
-	/// the encoded nonce to the caller.
-
 	fn new_metaverse(owner: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId, DispatchError> {
 		let metaverse_id = NextMetaverseId::<T>::try_mutate(|id| -> Result<MetaverseId, DispatchError> {
 			let current_id = *id;
@@ -289,7 +467,7 @@ impl<T: Config> Pallet<T> {
 
 impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	fn check_ownership(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
-		Self::get_metaverse_owner(metaverse_id, who) == Some(())
+		Self::get_metaverse_owner(who, metaverse_id) == Some(())
 	}
 
 	fn get_metaverse(metaverse_id: MetaverseId) -> Option<MetaverseInfo<T::AccountId>> {

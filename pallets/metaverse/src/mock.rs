@@ -1,11 +1,13 @@
 #![cfg(test)]
 
-use super::*;
-use crate as metaverse;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+
+use crate as metaverse;
+
+use super::*;
 
 pub type AccountId = u128;
 pub type Balance = u64;
@@ -85,6 +87,8 @@ impl Config for Runtime {
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+	type MetaverseRegistrationDeposit = MinContribution;
+	type MinStakingAmount = MinContribution;
 	type WeightInfo = ();
 }
 
