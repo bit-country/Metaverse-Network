@@ -1209,14 +1209,14 @@ impl mining::Config for Runtime {
 }
 
 parameter_types! {
-	pub const DefaultVotingPeriod: BlockNumber = 10;
-	pub const DefaultEnactmentPeriod: BlockNumber = 2;
-	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
-	pub const DefaultMaxParametersPerProposal: u8 = 3;
-	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50 * DOLLARS;
 	pub const DefaultPreimageByteDeposit: Balance = 1 * DOLLARS;
+	pub const DefaultVotingPeriod: u32 = 100;
+	pub const DefaultLocalVoteLockingPeriod: u32 = 28;
+	pub const DefaultEnactmentPeriod: u32 = 10;
+	pub const DefaultProposalLaunchPeriod: u32 = 15;
+	pub const DefaultMaxParametersPerProposal: u8 = 20;
 }
 
 parameter_types! {
@@ -1421,9 +1421,8 @@ pub type Executive =
 
 /// MMR helper types.
 mod mmr {
-	pub use pallet_mmr::primitives::*;
-
 	use super::Runtime;
+	pub use pallet_mmr::primitives::*;
 
 	pub type Leaf = <<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider>::LeafData;
 	pub type Hash = <Runtime as pallet_mmr::Config>::Hash;
@@ -1763,9 +1762,8 @@ impl_runtime_apis! {
 
 #[cfg(test)]
 mod tests {
-	use frame_system::offchain::CreateSignedTransaction;
-
 	use super::*;
+	use frame_system::offchain::CreateSignedTransaction;
 
 	#[test]
 	fn validate_transaction_submitter_bounds() {
