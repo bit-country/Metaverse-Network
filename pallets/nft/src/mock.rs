@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use codec::{Decode, Encode};
-use frame_support::traits::Nothing;
+use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, parameter_types};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
@@ -206,6 +206,7 @@ impl pallet_scheduler::Config for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
 }

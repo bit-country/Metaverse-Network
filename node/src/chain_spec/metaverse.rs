@@ -1,11 +1,8 @@
+use std::collections::BTreeMap;
+use std::str::FromStr;
+
 use hex_literal::hex;
 use log::info;
-use metaverse_runtime::{
-	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig, InflationInfo, MintingRange,
-	MintingRateInfo, Range, SessionConfig, Signature, StakingConfig, SudoConfig, SystemConfig,
-};
-use primitives::Balance;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
@@ -15,8 +12,13 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
-use std::collections::BTreeMap;
-use std::str::FromStr;
+
+use metaverse_runtime::{
+	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
+	ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig, InflationInfo, MintingRange,
+	MintingRateInfo, Range, SessionConfig, Signature, StakingConfig, SudoConfig, SystemConfig,
+};
+use primitives::Balance;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -247,7 +249,6 @@ fn testnet_genesis(
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary_unwrap().to_vec(),
-			changes_trie_config: Default::default(),
 		},
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
