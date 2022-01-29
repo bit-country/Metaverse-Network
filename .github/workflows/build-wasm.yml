@@ -26,7 +26,7 @@ on:
         required: false
 
 jobs:
-  build-release:
+  srtool:
     name: Build and publish ${{ github.event.inputs.chain }}
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +37,7 @@ jobs:
       # Build WASM with Substrate Runtime Tool
       - name: Srtool build
         id: srtool_build
-        uses: chevdor/srtool-actions@build_opts_env
+        uses: chevdor/srtool-actions@v0.3.0
         with:
           chain: ${{ github.event.inputs.chain }}
           tag: ${{ github.event.inputs.srtool_image }}
