@@ -466,6 +466,7 @@ impl orml_nft::Config for Runtime {
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
 	pub MinContribution: Balance = 1 * DOLLARS;
+	pub MaxNumberOfStakerPerMetaverse: u32 = 512;
 }
 
 impl metaverse::Config for Runtime {
@@ -478,6 +479,7 @@ impl metaverse::Config for Runtime {
 	type WeightInfo = weights::module_metaverse::WeightInfo<Runtime>;
 	type MetaverseRegistrationDeposit = MinContribution;
 	type MinStakingAmount = MinContribution;
+	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakerPerMetaverse;
 }
 
 parameter_types! {

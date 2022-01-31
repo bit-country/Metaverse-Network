@@ -34,7 +34,6 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use bc_primitives::*;
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
-use nft::BalanceOf;
 pub use pallet::*;
 use primitives::{FungibleTokenId, MetaverseId};
 pub use weights::WeightInfo;
@@ -87,7 +86,7 @@ pub mod pallet {
 	#[pallet::generate_store(trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -215,6 +214,8 @@ pub mod pallet {
 		MinimumStakingAmountRequired,
 		/// Exceed staked amount
 		InsufficientBalanceToUnstake,
+		/// Metaverse Staking Info not found
+		MetaverseStakingInfoNotFound,
 	}
 
 	#[pallet::call]
@@ -372,7 +373,7 @@ pub mod pallet {
 			metaverse_id: MetaverseId,
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
-			let staker = ensure_signed(origin)?;
+			let who = ensure_signed(origin)?;
 
 			// Check that metaverse is registered for staking.
 			ensure!(
@@ -381,21 +382,22 @@ pub mod pallet {
 			);
 
 			// Get the staking ledger or create an entry if it doesn't exist.
-			let mut staking_info = Self::staking_info(&staker);
+			let mut staking_info = Self::staking_info(&who);
 
 			// Ensure that staker has enough balance to stake.
-			let free_balance = T::Currency::free_balance(&staker).saturating_sub(T::MinStakingAmount::get());
+			let free_balance = T::Currency::free_balance(&who).saturating_sub(T::MinStakingAmount::get());
 
 			// Remove already locked funds from the free balance
 			let available_balance = free_balance.saturating_sub(staking_info);
 			let stake_amount = value.min(available_balance);
-			ensure!(value_to_stake > Zero::zero(), Error::<T>::NotEnoughBalanceToStake);
+			ensure!(stake_amount > Zero::zero(), Error::<T>::NotEnoughBalanceToStake);
 
 			// Get the latest round staking point info or create it if metaverse hasn't been staked yet so far.
 			let current_staking_round: RoundInfo<T::BlockNumber> = Self::staking_round();
 			// Get staking info of metaverse and current round
 			let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
-				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current);
+				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current)
+					.ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
 
 			// Ensure that we can add additional staker for the metaverse.
 			ensure!(
@@ -460,7 +462,8 @@ pub mod pallet {
 
 			// Get staking info of metaverse and current round
 			let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
-				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current);
+				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current)
+					.ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
 
 			ensure!(
 				metaverse_stake_per_round.stakers.contains_key(&who),
@@ -499,7 +502,11 @@ pub mod pallet {
 				metaverse_stake_per_round,
 			);
 
-			Self::deposit_event(Event::<T>::MetaverseUnstaked(who.clone(), metaverse_id, stake_amount));
+			Self::deposit_event(Event::<T>::MetaverseUnstaked(
+				who.clone(),
+				metaverse_id,
+				amount_to_unstake,
+			));
 
 			Ok(().into())
 		}

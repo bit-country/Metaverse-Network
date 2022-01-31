@@ -175,6 +175,7 @@ parameter_types! {
 	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
 	pub const MinContribution: Balance = 1;
+	pub const MaxNumberOfStakersPerMetaverse: u32 = 512;
 }
 
 impl pallet_metaverse::Config for Runtime {
@@ -186,6 +187,7 @@ impl pallet_metaverse::Config for Runtime {
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 	type MetaverseRegistrationDeposit = MinContribution;
 	type MinStakingAmount = MinContribution;
+	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type WeightInfo = ();
 }
 
