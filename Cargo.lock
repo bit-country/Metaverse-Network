@@ -5205,9 +5205,13 @@ version = "2.0.0-rc6"
 dependencies = [
  "bc-primitives",
  "bit-country-primitives",
+ "currencies",
  "frame-executive",
  "frame-support",
  "frame-system",
+ "orml-currencies",
+ "orml-tokens",
+ "orml-traits",
  "pallet-balances",
  "pallet-metaverse",
  "pallet-scheduler",
@@ -5332,6 +5336,7 @@ version = "2.0.0-rc6"
 dependencies = [
  "bc-primitives",
  "bit-country-primitives",
+ "currencies",
  "frame-benchmarking",
  "frame-support",
  "frame-system",

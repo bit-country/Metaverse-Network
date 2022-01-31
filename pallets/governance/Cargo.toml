@@ -30,6 +30,13 @@ pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 metaverse-primitive = { package = "bc-primitives", path = "../../traits/bc-primitives", default-features = false }
 pallet-metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
+
+# Orml packages
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
+currencies = { package = "currencies", path = "../currencies", default-features = false }
+
 [features]
 default = ['std']
 std = [
@@ -46,5 +53,7 @@ std = [
     'primitives/std',
     'metaverse-primitive/std',
     'pallet-metaverse/std',
-    'scale-info/std'
+    'scale-info/std',
+    "orml-tokens/std",
+    "currencies/std"
 ]

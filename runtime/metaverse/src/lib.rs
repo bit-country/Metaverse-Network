@@ -480,6 +480,7 @@ impl metaverse::Config for Runtime {
 	type MetaverseRegistrationDeposit = MinContribution;
 	type MinStakingAmount = MinContribution;
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakerPerMetaverse;
+	type MultiCurrency = Currencies;
 }
 
 parameter_types! {

@@ -26,16 +26,17 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
+use orml_traits::MultiCurrency;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	DispatchError,
+	DispatchError, Perbill,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use bc_primitives::*;
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
 pub use pallet::*;
-use primitives::{FungibleTokenId, MetaverseId};
+use primitives::{FungibleTokenId, MetaverseId, RoundIndex};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -74,6 +75,7 @@ pub struct MetaverseStakingPoints<AccountId: Ord, Balance: HasCompact> {
 
 #[frame_support::pallet]
 pub mod pallet {
+	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, Saturating};
 	use sp_runtime::ArithmeticError;
 
@@ -94,6 +96,12 @@ pub mod pallet {
 		/// The currency type
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
 			+ ReservableCurrency<Self::AccountId>;
+		/// The multicurrencies type
+		type MultiCurrency: MultiCurrencyExtended<
+			Self::AccountId,
+			CurrencyId = FungibleTokenId,
+			Balance = BalanceOf<Self>,
+		>;
 		#[pallet::constant]
 		type MetaverseTreasury: Get<PalletId>;
 		#[pallet::constant]
@@ -182,6 +190,7 @@ pub mod pallet {
 		NewMetaverseRegisteredForStaking(MetaverseId, T::AccountId),
 		MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
 		MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
+		MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -216,6 +225,10 @@ pub mod pallet {
 		InsufficientBalanceToUnstake,
 		/// Metaverse Staking Info not found
 		MetaverseStakingInfoNotFound,
+		/// Reward has been paid
+		MetaverseStakingAlreadyPaid,
+		/// Metaverse has no stake
+		MetaverseHasNoStake,
 	}
 
 	#[pallet::call]
@@ -553,6 +566,50 @@ impl<T: Config> Pallet<T> {
 			T::Currency::set_lock(LOCK_STAKING, &who, staking_info, WithdrawReasons::all());
 			StakingInfo::<T>::insert(who, staking_info);
 		}
+	}
+
+	/// This method will be exposed to mining trait to be executed to pay staker reward per round
+	fn pay_staker(
+		metaverse_id: MetaverseId,
+		round: RoundIndex,
+		total_reward: BalanceOf<T>,
+	) -> DispatchResultWithPostInfo {
+		// Get staking info of metaverse and current round
+		let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
+			Self::get_metaverse_stake_per_round(&metaverse_id, round)
+				.ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
+
+		ensure!(
+			metaverse_stake_per_round.claimed_rewards.is_zero(),
+			Error::<T>::MetaverseStakingAlreadyPaid
+		);
+
+		ensure!(
+			!metaverse_stake_per_round.stakers.is_empty(),
+			Error::<T>::MetaverseHasNoStake
+		);
+
+		let metaverse_staking_snapshot_by_round: MetaverseStakingSnapshot<BalanceOf<T>> =
+			Self::get_metaverse_staking_snapshots(round).ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
+
+		for (staker, staked_amount) in &metaverse_stake_per_round.stakers {
+			let ratio = Perbill::from_rational(*staked_amount, metaverse_stake_per_round.total);
+			let staking_reward = ratio * total_reward;
+
+			Self::deposit_event(Event::<T>::MetaverseStakingRewarded(
+				staker.clone(),
+				metaverse_id.clone(),
+				round,
+				staking_reward,
+			));
+
+			T::MultiCurrency::deposit(FungibleTokenId::MiningResource(0), staker, staking_reward);
+		}
+
+		metaverse_stake_per_round.claimed_rewards = total_reward;
+		<MetaverseRoundStake<T>>::insert(&metaverse_id, round, metaverse_stake_per_round);
+
+		Ok(().into())
 	}
 }
 
