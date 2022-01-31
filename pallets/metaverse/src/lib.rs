@@ -18,6 +18,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode, HasCompact};
+use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
@@ -33,6 +34,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use bc_primitives::*;
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use nft::BalanceOf;
 pub use pallet::*;
 use primitives::{FungibleTokenId, MetaverseId};
 pub use weights::WeightInfo;
@@ -57,6 +59,8 @@ pub struct MetaverseStakingSnapshot<Balance> {
 	staked: Balance,
 }
 
+const LOCK_STAKING: LockIdentifier = *b"stakelok";
+
 /// Storing the reward detail of metaverse that store the list of stakers for each metaverse
 /// This will be used to reward metaverse owner and the stakers.
 #[derive(Clone, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
@@ -71,7 +75,7 @@ pub struct MetaverseStakingPoints<AccountId: Ord, Balance: HasCompact> {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use sp_runtime::traits::Saturating;
+	use sp_runtime::traits::{CheckedAdd, Saturating};
 	use sp_runtime::ArithmeticError;
 
 	use primitives::staking::RoundInfo;
@@ -104,6 +108,8 @@ pub mod pallet {
 		type MetaverseRegistrationDeposit: Get<BalanceOf<Self>>;
 		/// Mininum staking amount
 		type MinStakingAmount: Get<BalanceOf<Self>>;
+		/// Maximum amount of stakers per metaverse
+		type MaxNumberOfStakersPerMetaverse: Get<u32>;
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
 	}
@@ -160,10 +166,10 @@ pub mod pallet {
 		MetaverseStakingPoints<T::AccountId, BalanceOf<T>>,
 	>;
 
-	/// Keep track of staking ledger of individual staker
+	/// Keep track of staking info of individual staker
 	#[pallet::storage]
-	#[pallet::getter(fn staking_ledger)]
-	pub(crate) type StakingLedger<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+	#[pallet::getter(fn staking_info)]
+	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -175,6 +181,8 @@ pub mod pallet {
 		MetaverseUnfreezed(MetaverseId),
 		MetaverseMintedNewCurrency(MetaverseId, FungibleTokenId),
 		NewMetaverseRegisteredForStaking(MetaverseId, T::AccountId),
+		MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
+		MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -201,6 +209,12 @@ pub mod pallet {
 		NotRegisteredForStaking,
 		/// Not enough balance to stake
 		NotEnoughBalanceToStake,
+		/// Maximum amount of allowed stakers per metaverse
+		MaximumAmountOfStakersPerMetaverse,
+		/// Minimum staking balance is not met
+		MinimumStakingAmountRequired,
+		/// Exceed staked amount
+		InsufficientBalanceToUnstake,
 	}
 
 	#[pallet::call]
@@ -367,26 +381,60 @@ pub mod pallet {
 			);
 
 			// Get the staking ledger or create an entry if it doesn't exist.
-			let mut staking_ledger = Self::staking_ledger(&staker);
+			let mut staking_info = Self::staking_info(&staker);
 
 			// Ensure that staker has enough balance to stake.
 			let free_balance = T::Currency::free_balance(&staker).saturating_sub(T::MinStakingAmount::get());
 
 			// Remove already locked funds from the free balance
-			let available_balance = free_balance.saturating_sub(staking_ledger);
-			let value_to_stake = value.min(available_balance);
+			let available_balance = free_balance.saturating_sub(staking_info);
+			let stake_amount = value.min(available_balance);
 			ensure!(value_to_stake > Zero::zero(), Error::<T>::NotEnoughBalanceToStake);
 
 			// Get the latest round staking point info or create it if metaverse hasn't been staked yet so far.
-			let current_staking_round = Self::staking_round();
-			// get staking info of metaverse and current round
+			let current_staking_round: RoundInfo<T::BlockNumber> = Self::staking_round();
+			// Get staking info of metaverse and current round
+			let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
+				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current);
 
 			// Ensure that we can add additional staker for the metaverse.
-
+			ensure!(
+				metaverse_stake_per_round.stakers.len() < T::MaxNumberOfStakersPerMetaverse::get() as usize,
+				Error::<T>::MaximumAmountOfStakersPerMetaverse
+			);
 			// Increment ledger and total staker value for a metaverse.
+			staking_info = staking_info
+				.checked_add(&stake_amount)
+				.ok_or(ArithmeticError::Overflow)?;
+
+			let individual_staker = metaverse_stake_per_round.stakers.entry(who.clone()).or_default();
+			*individual_staker = individual_staker
+				.checked_add(&stake_amount)
+				.ok_or(ArithmeticError::Overflow)?;
+
+			ensure!(
+				*individual_staker >= T::MinStakingAmount::get(),
+				Error::<T>::MinimumStakingAmountRequired,
+			);
+
 			// Update total staked value in current round
-			// Update ledger and payee
+			MetaverseStakingSnapshots::<T>::mutate(current_staking_round.current, |may_be_staking_snapshot| {
+				if let Some(snapshot) = may_be_staking_snapshot {
+					snapshot.staked = snapshot.staked.saturating_add(stake_amount)
+				}
+			});
+
+			// Update staking info of origin
+			Self::update_staking_info(&who, staking_info);
+
 			// Update staked information for contract in current round
+			MetaverseRoundStake::<T>::insert(
+				metaverse_id.clone(),
+				current_staking_round.current,
+				metaverse_stake_per_round,
+			);
+
+			Self::deposit_event(Event::<T>::MetaverseStaked(who.clone(), metaverse_id, stake_amount));
 			Ok(().into())
 		}
 
@@ -399,7 +447,7 @@ pub mod pallet {
 			metaverse_id: MetaverseId,
 			#[pallet::compact] value: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
-			let staker = ensure_signed(origin)?;
+			let who = ensure_signed(origin)?;
 
 			// Check that metaverse is registered for staking.
 			ensure!(
@@ -407,27 +455,52 @@ pub mod pallet {
 				Error::<T>::NotRegisteredForStaking
 			);
 
-			// Get the staking ledger or create an entry if it doesn't exist.
-			let mut staking_ledger = Self::staking_ledger(&staker);
+			// Get the latest round staking point info.
+			let current_staking_round: RoundInfo<T::BlockNumber> = Self::staking_round();
 
-			// Ensure that staker has enough balance to stake.
-			let free_balance = T::Currency::free_balance(&staker).saturating_sub(T::MinStakingAmount::get());
+			// Get staking info of metaverse and current round
+			let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
+				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current);
 
-			// Remove already locked funds from the free balance
-			let available_balance = free_balance.saturating_sub(staking_ledger);
-			let value_to_stake = value.min(available_balance);
-			ensure!(value_to_stake > Zero::zero(), Error::<T>::NotEnoughBalanceToStake);
+			ensure!(
+				metaverse_stake_per_round.stakers.contains_key(&who),
+				Error::<T>::NoPermission
+			);
 
-			// Get the latest round staking point info or create it if metaverse hasn't been staked yet so far.
-			let current_staking_round = Self::staking_round();
-			// get staking info of metaverse and current round
+			let staked_amount = metaverse_stake_per_round.stakers[&who];
 
-			// Ensure that we can add additional staker for the metaverse.
+			ensure!(value <= staked_amount, Error::<T>::InsufficientBalanceToUnstake);
 
-			// Increment ledger and total staker value for a metaverse.
+			let remaining = staked_amount.saturating_sub(value);
+			let amount_to_unstake = if remaining < T::MinStakingAmount::get() {
+				// Remaining amount below minimum, remove all staked amount
+				metaverse_stake_per_round.stakers.remove(&who);
+				staked_amount
+			} else {
+				metaverse_stake_per_round.stakers.insert(who.clone(), remaining);
+				value
+			};
+
+			let staking_info = Self::staking_info(&who);
+			Self::update_staking_info(&who, staking_info.saturating_sub(amount_to_unstake));
+
 			// Update total staked value in current round
-			// Update ledger and payee
+			MetaverseStakingSnapshots::<T>::mutate(current_staking_round.current, |may_be_staking_snapshot| {
+				if let Some(snapshot) = may_be_staking_snapshot {
+					snapshot.staked = snapshot.staked.saturating_sub(amount_to_unstake)
+				}
+			});
+
+			metaverse_stake_per_round.total = metaverse_stake_per_round.total.saturating_sub(amount_to_unstake);
 			// Update staked information for contract in current round
+			MetaverseRoundStake::<T>::insert(
+				metaverse_id.clone(),
+				current_staking_round.current,
+				metaverse_stake_per_round,
+			);
+
+			Self::deposit_event(Event::<T>::MetaverseUnstaked(who.clone(), metaverse_id, stake_amount));
+
 			Ok(().into())
 		}
 	}
@@ -462,6 +535,17 @@ impl<T: Config> Pallet<T> {
 	/// value and only call this once.
 	pub fn account_id() -> T::AccountId {
 		T::MetaverseTreasury::get().into_account()
+	}
+
+	/// Update staking info of origin
+	fn update_staking_info(who: &T::AccountId, staking_info: BalanceOf<T>) {
+		if staking_info.is_zero() {
+			StakingInfo::<T>::remove(&who);
+			T::Currency::remove_lock(LOCK_STAKING, &who);
+		} else {
+			T::Currency::set_lock(LOCK_STAKING, &who, staking_info, WithdrawReasons::all());
+			StakingInfo::<T>::insert(who, staking_info);
+		}
 	}
 }
 
