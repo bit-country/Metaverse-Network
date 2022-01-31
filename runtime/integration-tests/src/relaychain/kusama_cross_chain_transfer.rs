@@ -42,7 +42,7 @@ fn transfer_from_relay_chain() {
 	KusamaNet::execute_with(|| {
 		assert_ok!(kusama_runtime::XcmPallet::reserve_transfer_assets(
 			kusama_runtime::Origin::signed(ALICE.into()),
-			Box::new(Parachain(2000).into().into()),
+			Box::new(Parachain(2096).into().into()),
 			Box::new(
 				Junction::AccountId32 {
 					id: BOB,
@@ -101,7 +101,7 @@ fn transfer_to_sibling() {
 
 	fn neer_reserve_account() -> AccountId {
 		use sp_runtime::traits::AccountIdConversion;
-		polkadot_parachain::primitives::Sibling::from(2000).into_account()
+		polkadot_parachain::primitives::Sibling::from(2096).into_account()
 	}
 
 	Pioneer::execute_with(|| {
@@ -109,7 +109,7 @@ fn transfer_to_sibling() {
 	});
 
 	Sibling::execute_with(|| {
-		assert_ok!(Tokens::deposit(PARA_CHAIN_CURRENCY, &neer_reserve_account(), 100_000_000_000_000));
+		assert_ok!(Tokens::deposit(PARA_CHAIN_CURRENCY, &neer_reserve_account(), 50_000_000_000_000));
 	});
 
 	Pioneer::execute_with(|| {
@@ -123,9 +123,10 @@ fn transfer_to_sibling() {
 				MultiLocation::new(
 					1,
 					X2(
-						Parachain(2001),
+						Parachain(2000),
 						Junction::AccountId32 {
 							network: NetworkId::Any,
+							// network: NetworkId::Named("Sibling".into()),
 							id: BOB.into(),
 						}
 					)
@@ -139,36 +140,36 @@ fn transfer_to_sibling() {
 	});
 
 	Sibling::execute_with(|| {
-		assert_eq!(Tokens::free_balance(PARA_CHAIN_CURRENCY, &neer_reserve_account()), 100_000_000_000_000);
+		assert_eq!(Tokens::free_balance(PARA_CHAIN_CURRENCY, &neer_reserve_account()), 50_000_000_000_000);
 
 		// Check if token received correctly
 		assert_eq!(Tokens::free_balance(PARA_CHAIN_CURRENCY, &AccountId::from(BOB)), 10_000_000_000_000);
 		// assert_eq!(Currencies::free_balance(PARA_CHAIN_CURRENCY, &AccountId::from(BOB)), 10_000_000_000_000);
 
-		assert_ok!(XTokens::transfer(
-			Origin::signed(BOB.into()),
-			PARA_CHAIN_CURRENCY,
-			5_000_000_000_000,
-			Box::new(
-				MultiLocation::new(
-					1,
-					X2(
-						Parachain(2000),
-						Junction::AccountId32 {
-							network: NetworkId::Any,
-							id: ALICE.into(),
-						}
-					)
-				)
-				.into()
-			),
-			1_000_000_000,
-		));
-
-		assert_eq!(Tokens::free_balance(PARA_CHAIN_CURRENCY, &AccountId::from(BOB)), 5_000_000_000_000);
+		// assert_ok!(XTokens::transfer(
+		// 	Origin::signed(BOB.into()),
+		// 	PARA_CHAIN_CURRENCY,
+		// 	5_000_000_000_000,
+		// 	Box::new(
+		// 		MultiLocation::new(
+		// 			1,
+		// 			X2(
+		// 				Parachain(2096),
+		// 				Junction::AccountId32 {
+		// 					network: NetworkId::Any,
+		// 					id: ALICE.into(),
+		// 				}
+		// 			)
+		// 		)
+		// 		.into()
+		// 	),
+		// 	1_000_000_000,
+		// ));
+		//
+		// assert_eq!(Tokens::free_balance(PARA_CHAIN_CURRENCY, &AccountId::from(BOB)), 5_000_000_000_000);
 	});
 
-	Pioneer::execute_with(|| {
-		assert_eq!(Tokens::free_balance(PARA_CHAIN_CURRENCY, &AccountId::from(ALICE)), 95_000_000_000_000);
-	});
+	// Pioneer::execute_with(|| {
+	// 	assert_eq!(Tokens::free_balance(PARA_CHAIN_CURRENCY, &AccountId::from(ALICE)), 95_000_000_000_000);
+	// });
 }

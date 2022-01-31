@@ -41,7 +41,7 @@ decl_test_parachain! {
 		Origin = Origin,
 		XcmpMessageHandler = XcmpQueue,
 		DmpMessageHandler = DmpQueue,
-		new_ext = para_ext(2000),
+		new_ext = para_ext(2096),
 	}
 }
 
@@ -51,7 +51,7 @@ decl_test_parachain! {
 		Origin = Origin,
 		XcmpMessageHandler = XcmpQueue,
 		DmpMessageHandler = DmpQueue,
-		new_ext = para_ext(2001),
+		new_ext = para_ext(2000),
 	}
 }
 
@@ -59,8 +59,8 @@ decl_test_network! {
 	pub struct TestNet {
 		relay_chain = KusamaNet,
 		parachains = vec![
-			(2000, Pioneer),
-			(2001, Sibling),
+			(2096, Pioneer),
+			(2000, Sibling),
 		],
 	}
 }
@@ -112,7 +112,7 @@ pub fn kusama_ext() -> sp_io::TestExternalities {
 	pallet_balances::GenesisConfig::<Runtime> {
 		balances: vec![
 			(AccountId::from(ALICE), 2002 * dollar(RELAY_CHAIN_CURRENCY_ID)),
-			(ParaId::from(2000).into_account(), 2 * dollar(RELAY_CHAIN_CURRENCY_ID)),
+			(ParaId::from(2096).into_account(), 2 * dollar(RELAY_CHAIN_CURRENCY_ID)),
 		],
 	}
 	.assimilate_storage(&mut t)

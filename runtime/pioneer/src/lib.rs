@@ -770,7 +770,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
 						match currency_id {
-							NativeToken(0) | NativeToken(1) => Some(currency_id),
+							NativeToken(0) => Some(currency_id),
 							_ => None,
 						}
 					} else {
@@ -891,7 +891,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type Event = Event;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ChannelInfo = ParachainSystem;
-	type VersionWrapper = ();
+	type VersionWrapper = PolkadotXcm;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
