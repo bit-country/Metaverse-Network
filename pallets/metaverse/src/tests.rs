@@ -153,3 +153,42 @@ fn destroy_metaverse_with_no_id_should_fail() {
 		);
 	})
 }
+
+#[test]
+fn register_metaverse_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		let event = Event::Metaverse(crate::Event::NewMetaverseRegisteredForStaking(METAVERSE_ID, ALICE));
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn register_metaverse_should_fail_no_permission() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+
+		assert_noop!(
+			MetaverseModule::register_metaverse(Origin::signed(BOB), METAVERSE_ID),
+			Error::<Runtime>::NoPermission
+		);
+	})
+}
+
+#[test]
+fn register_metaverse_should_fail_already_registered() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+
+		let event = Event::Metaverse(crate::Event::NewMetaverseRegisteredForStaking(METAVERSE_ID, ALICE));
+		assert_eq!(last_event(), event);
+
+		assert_noop!(
+			MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID),
+			Error::<Runtime>::AlreadyRegisteredForStaking
+		);
+	})
+}
