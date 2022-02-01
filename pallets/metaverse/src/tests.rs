@@ -266,3 +266,59 @@ fn stake_should_work_with_min_value() {
 		assert_eq!(last_event(), event);
 	})
 }
+
+#[test]
+fn unstake_should_fail_not_registered() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_noop!(
+			MetaverseModule::unstake_and_withdraw(Origin::signed(ALICE), METAVERSE_ID, 100),
+			Error::<Runtime>::NotRegisteredForStaking
+		);
+	})
+}
+
+#[test]
+fn unstake_should_fail_no_staking_info() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+
+		assert_noop!(
+			MetaverseModule::unstake_and_withdraw(Origin::signed(ALICE), METAVERSE_ID, 100),
+			Error::<Runtime>::MetaverseStakingInfoNotFound
+		);
+	})
+}
+
+#[test]
+fn unstake_should_fail_no_permission() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
+
+		assert_noop!(
+			MetaverseModule::unstake_and_withdraw(Origin::signed(BOB), METAVERSE_ID, 100),
+			Error::<Runtime>::NoPermission
+		);
+	})
+}
+
+#[test]
+fn unstake_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
+
+		assert_ok!(MetaverseModule::unstake_and_withdraw(
+			Origin::signed(ALICE),
+			METAVERSE_ID,
+			100
+		));
+
+		let event = Event::Metaverse(crate::Event::MetaverseUnstaked(ALICE, METAVERSE_ID, 100));
+		assert_eq!(last_event(), event);
+	})
+}
