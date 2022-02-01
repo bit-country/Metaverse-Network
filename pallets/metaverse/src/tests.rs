@@ -17,7 +17,7 @@
 
 #![cfg(test)]
 
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
 
 use mock::{Event, *};
@@ -190,5 +190,79 @@ fn register_metaverse_should_fail_already_registered() {
 			MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID),
 			Error::<Runtime>::AlreadyRegisteredForStaking
 		);
+	})
+}
+
+#[test]
+fn stake_should_fail_not_registered() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_noop!(
+			MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 100),
+			Error::<Runtime>::NotRegisteredForStaking
+		);
+	})
+}
+
+#[test]
+fn stake_should_fail_not_enough_balance() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_noop!(
+			MetaverseModule::stake(Origin::signed(FREEDY), METAVERSE_ID, 10000),
+			Error::<Runtime>::NotEnoughBalanceToStake
+		);
+	})
+}
+
+#[test]
+fn stake_should_fail_min_staking_required() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+
+		assert_err!(
+			MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10),
+			Error::<Runtime>::MinimumStakingAmountRequired
+		);
+	})
+}
+
+#[test]
+fn stake_should_fail_max_stakers() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
+
+		assert_noop!(
+			MetaverseModule::stake(Origin::signed(BOB), METAVERSE_ID, 10000),
+			Error::<Runtime>::MaximumAmountOfStakersPerMetaverse
+		);
+	})
+}
+
+#[test]
+fn stake_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
+
+		let event = Event::Metaverse(crate::Event::MetaverseStaked(ALICE, METAVERSE_ID, 10000));
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn stake_should_work_with_min_value() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::stake(Origin::signed(BOB), METAVERSE_ID, 50000));
+
+		let event = Event::Metaverse(crate::Event::MetaverseStaked(BOB, METAVERSE_ID, 19900));
+		assert_eq!(last_event(), event);
 	})
 }

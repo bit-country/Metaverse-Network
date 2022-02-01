@@ -407,6 +407,25 @@ pub mod pallet {
 
 			// Get the latest round staking point info or create it if metaverse hasn't been staked yet so far.
 			let current_staking_round: RoundInfo<T::BlockNumber> = Self::staking_round();
+
+			if !MetaverseRoundStake::<T>::contains_key(&metaverse_id, current_staking_round.current) {
+				let stakers: BTreeMap<T::AccountId, BalanceOf<T>> = BTreeMap::new();
+
+				let new_metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
+					MetaverseStakingPoints {
+						total: 0u32.into(),
+						claimed_rewards: 0u32.into(),
+						stakers: stakers,
+					};
+
+				// Update staked information for contract in current round
+				MetaverseRoundStake::<T>::insert(
+					metaverse_id.clone(),
+					current_staking_round.current,
+					new_metaverse_stake_per_round,
+				);
+			}
+
 			// Get staking info of metaverse and current round
 			let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
 				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current)

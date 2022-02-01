@@ -20,8 +20,11 @@ pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const FREEDY: AccountId = 3;
 pub const METAVERSE_ID: MetaverseId = 0;
 pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
+
+pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 
 // Configure a mock runtime to test the pallet.
 
@@ -77,7 +80,8 @@ parameter_types! {
 	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
 	pub const MinContribution: Balance = 1;
-	pub const MaxNumberOfStakersPerMetaverse: u32 = 512;
+	pub const MinStakingAmount: Balance = 100;
+	pub const MaxNumberOfStakersPerMetaverse: u32 = 1;
 }
 
 ord_parameter_types! {
@@ -94,7 +98,7 @@ impl Config for Runtime {
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 	type MetaverseRegistrationDeposit = MinContribution;
-	type MinStakingAmount = MinContribution;
+	type MinStakingAmount = MinStakingAmount;
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type WeightInfo = ();
 }
@@ -170,7 +174,13 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000)],
+			balances: vec![(ALICE, 10 * DOLLARS)],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		pallet_balances::GenesisConfig::<Runtime> {
+			balances: vec![(BOB, 20000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
