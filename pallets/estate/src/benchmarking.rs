@@ -21,6 +21,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use super::*;
+use primitives::staking::RoundInfo;
 use sp_std::prelude::*;
 use sp_std::vec;
 
