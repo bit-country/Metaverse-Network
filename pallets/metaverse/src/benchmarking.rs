@@ -172,6 +172,33 @@ benchmarks! {
 			}
 		}
 	}
+
+	// stake
+	stake{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
+		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
+	}: _(RawOrigin::Signed(caller.clone()), 0, 100000000u32.into())
+	verify {
+		let staking_info = crate::Pallet::<T>::staking_info(caller);
+		assert_eq!(staking_info, 100000000u32.into());
+	}
+
+	// unstake_and_withdraw
+	unstake_and_withdraw{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
+		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
+		crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), 0, 100000000u32.into());
+	}: _(RawOrigin::Signed(caller.clone()), 0, 50000000u32.into())
+	verify {
+		let staking_info = crate::Pallet::<T>::staking_info(caller);
+		assert_eq!(staking_info, 50000000u32.into());
+	}
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

@@ -43,23 +43,71 @@ use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for metaverse.
-pub trait WeightInfo {	fn create_metaverse() -> Weight;	fn transfer_metaverse() -> Weight;	fn freeze_metaverse() -> Weight;	fn unfreeze_metaverse() -> Weight;	fn destroy_metaverse() -> Weight;	fn register_metaverse() -> Weight;}
+pub trait WeightInfo {
+    fn create_metaverse() -> Weight;
+    fn transfer_metaverse() -> Weight;
+    fn freeze_metaverse() -> Weight;
+    fn unfreeze_metaverse() -> Weight;
+    fn destroy_metaverse() -> Weight;
+    fn register_metaverse() -> Weight;
+    fn stake() -> Weight;
+    fn unstake_and_withdraw() -> Weight;
+}
 
 /// Weights for metaverse using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn create_metaverse() -> Weight {
-		(39_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(4 as Weight))			.saturating_add(T::DbWeight::get().writes(6 as Weight))	}	fn transfer_metaverse() -> Weight {
-		(16_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn freeze_metaverse() -> Weight {
-		(12_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn unfreeze_metaverse() -> Weight {
-		(12_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn destroy_metaverse() -> Weight {
-		(13_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn register_metaverse() -> Weight {
-		(24_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}}
+
+impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
+    fn create_metaverse() -> Weight {
+        (39_000_000 as Weight).saturating_add(T::DbWeight::get().reads(4 as Weight)).saturating_add(T::DbWeight::get().writes(6 as Weight))
+    }
+    fn transfer_metaverse() -> Weight {
+        (16_000_000 as Weight).saturating_add(T::DbWeight::get().reads(2 as Weight)).saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn freeze_metaverse() -> Weight {
+        (11_000_000 as Weight).saturating_add(T::DbWeight::get().reads(1 as Weight)).saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn unfreeze_metaverse() -> Weight {
+        (11_000_000 as Weight).saturating_add(T::DbWeight::get().reads(1 as Weight)).saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn destroy_metaverse() -> Weight {
+        (13_000_000 as Weight).saturating_add(T::DbWeight::get().reads(1 as Weight)).saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+    fn register_metaverse() -> Weight {
+        (24_000_000 as Weight).saturating_add(T::DbWeight::get().reads(3 as Weight)).saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+    fn stake() -> Weight {
+        (40_000_000 as Weight).saturating_add(T::DbWeight::get().reads(7 as Weight)).saturating_add(T::DbWeight::get().writes(5 as Weight))
+    }
+    fn unstake_and_withdraw() -> Weight {
+        (34_000_000 as Weight).saturating_add(T::DbWeight::get().reads(7 as Weight)).saturating_add(T::DbWeight::get().writes(5 as Weight))
+    }
+}
 
 // For backwards compatibility and tests
-impl WeightInfo for () {	fn create_metaverse() -> Weight {
-		(39_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(6 as Weight))	}	fn transfer_metaverse() -> Weight {
-		(16_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn freeze_metaverse() -> Weight {
-		(12_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn unfreeze_metaverse() -> Weight {
-		(12_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn destroy_metaverse() -> Weight {
-		(13_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn register_metaverse() -> Weight {
-		(24_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}}
+impl WeightInfo for () {
+    fn create_metaverse() -> Weight {
+        (39_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(4 as Weight)).saturating_add(RocksDbWeight::get().writes(6 as Weight))
+    }
+    fn transfer_metaverse() -> Weight {
+        (16_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(2 as Weight)).saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn freeze_metaverse() -> Weight {
+        (11_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(1 as Weight)).saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn unfreeze_metaverse() -> Weight {
+        (11_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(1 as Weight)).saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn destroy_metaverse() -> Weight {
+        (13_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(1 as Weight)).saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+    fn register_metaverse() -> Weight {
+        (24_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(3 as Weight)).saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+    fn stake() -> Weight {
+        (40_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(7 as Weight)).saturating_add(RocksDbWeight::get().writes(5 as Weight))
+    }
+    fn unstake_and_withdraw() -> Weight {
+        (34_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(7 as Weight)).saturating_add(RocksDbWeight::get().writes(5 as Weight))
+    }
+}
