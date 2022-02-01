@@ -55,7 +55,7 @@ fn create_metaverse_should_fail() {
 #[test]
 fn transfer_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(1), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
 		assert_ok!(MetaverseModule::transfer_metaverse(
 			Origin::signed(ALICE),
 			BOB,

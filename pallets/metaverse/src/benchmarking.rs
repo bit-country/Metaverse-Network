@@ -61,7 +61,7 @@ benchmarks! {
 	// create_metaverse
 	create_metaverse{
 		let caller = funded_account::<T>("caller", 0);
-	}: _(RawOrigin::Signed(caller.clone()), caller.clone(), vec![1])
+	}: _(RawOrigin::Root, caller.clone(), vec![1])
 	verify {
 		let metaverse = crate::Pallet::<T>::get_metaverse(0);
 		match metaverse {
@@ -82,7 +82,7 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), caller.clone(), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), 0)
 	verify {
 		let metaverse = crate::Pallet::<T>::get_metaverse(0);
@@ -104,7 +104,7 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), caller.clone(), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 	}: _(RawOrigin::Root, 0)
 	verify {
 		let metaverse = crate::Pallet::<T>::get_metaverse(0);
@@ -124,7 +124,7 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), caller.clone(), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 		crate::Pallet::<T>::freeze_metaverse(RawOrigin::Root.into(), 0);
 	}: _(RawOrigin::Root, 0)
 	verify {
@@ -146,20 +146,20 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), caller.clone(), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 		crate::Pallet::<T>::freeze_metaverse(RawOrigin::Root.into(), 0);
 	}: _(RawOrigin::Root, 0)
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_metaverse(0), None);
 	}
 
-	// freeze_metaverse
+	// register_metaverse
 	register_metaverse{
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), caller.clone(), vec![1]);
-	}: _(RawOrigin::Root, 0)
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
+	}: _(RawOrigin::Signed(caller.clone()), 0)
 	verify {
 		let metaverse = crate::Pallet::<T>::get_registered_metaverse(0);
 		match metaverse {

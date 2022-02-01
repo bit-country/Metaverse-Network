@@ -357,7 +357,7 @@ pub mod pallet {
 
 		/// Register metaverse for staking
 		/// only metaverse owner can register for staking
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::register_metaverse())]
 		pub fn register_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
