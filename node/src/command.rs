@@ -15,17 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-	chain_spec,
-	cli::{Cli, RelayChainCli, Subcommand},
-	service,
-};
+use std::{io::Write, net::SocketAddr};
 
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
 use log::info;
-use metaverse_runtime::Block;
 use sc_cli::{
 	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result, Role,
 	RuntimeVersion, SharedParams, SubstrateCli,
@@ -34,7 +29,14 @@ use sc_service::config::{BasePath, PrometheusConfig};
 use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
-use std::{io::Write, net::SocketAddr};
+
+use metaverse_runtime::Block;
+
+use crate::{
+	chain_spec,
+	cli::{Cli, RelayChainCli, Subcommand},
+	service,
+};
 
 fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 	Ok(match id {
@@ -336,7 +338,7 @@ pub fn run() -> sc_cli::Result<()> {
 							.chain(cli.relaychain_args.iter()),
 					);
 
-					let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2096));
+					let id = ParaId::from(para_id.unwrap_or(2096));
 
 					let parachain_account =
 						AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
@@ -369,7 +371,7 @@ pub fn run() -> sc_cli::Result<()> {
 			info!("Chain spec: {}", chain_spec.id());
 			runner.run_node_until_exit(|config| async move {
 				match config.role {
-					Role::Light => service::new_light(config),
+					Role::Light => service::new_full(config),
 					_ => service::new_full(config),
 				}
 				.map_err(sc_cli::Error::Service)

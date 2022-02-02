@@ -2,7 +2,7 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-use frame_support::traits::{Contains, Currency, EnsureOrigin, Nothing, OnUnbalanced};
+use frame_support::traits::{Contains, Currency, EnsureOrigin, EqualPrivilegeOnly, Nothing, OnUnbalanced};
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
 	traits::{Everything, Imbalance},
@@ -241,6 +241,10 @@ impl Contains<Call> for BaseFilter {
 			| Call::Utility{..}
 			// Enable Crowdloan
 			| Call::Crowdloan{..}
+			// Enable Democracy
+			| Call::Democracy{..}
+			// Enable Council
+			| Call::Council{..}
 		)
 	}
 }
@@ -439,6 +443,13 @@ parameter_types! {
 type CouncilCollective = pallet_collective::Instance1;
 type TechnicalCommitteeCollective = pallet_collective::Instance2;
 
+// Council
+pub type EnsureRootOrAllCouncilCollective = EnsureOneOf<
+	AccountId,
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
+>;
+
 type EnsureRootOrHalfCouncilCollective = EnsureOneOf<
 	AccountId,
 	EnsureRoot<AccountId>,
@@ -449,6 +460,14 @@ type EnsureRootOrTwoThirdsCouncilCollective = EnsureOneOf<
 	AccountId,
 	EnsureRoot<AccountId>,
 	pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>,
+>;
+
+// Technical Committee
+
+pub type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
+	AccountId,
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCommitteeCollective>,
 >;
 
 type EnsureRootOrHalfTechnicalCommittee = EnsureOneOf<
@@ -524,6 +543,61 @@ impl pallet_collective::Config<TechnicalCommitteeCollective> for Runtime {
 	type MaxMembers = TechnicalCouncilMaxMembers;
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
 	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const LaunchPeriod: BlockNumber = 7 * DAYS;
+	pub const VotingPeriod: BlockNumber = 7 * DAYS;
+	pub const FastTrackVotingPeriod: BlockNumber = 2 * HOURS;
+	pub const InstantAllowed: bool = true;
+	pub const MinimumDeposit: Balance = 100 * DOLLARS;
+	pub const EnactmentPeriod: BlockNumber = 3 * DAYS;
+	pub const CooloffPeriod: BlockNumber = 7 * MINUTES;
+	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+	pub const MaxVotes: u32 = 100;
+	pub const MaxProposals: u32 = 50;
+}
+
+impl pallet_democracy::Config for Runtime {
+	type Proposal = Call;
+	type Event = Event;
+	type Currency = Balances;
+	type EnactmentPeriod = EnactmentPeriod;
+	type LaunchPeriod = LaunchPeriod;
+	type VotingPeriod = VotingPeriod;
+	type VoteLockingPeriod = EnactmentPeriod;
+	type MinimumDeposit = MinimumDeposit;
+	/// A straight majority of the council can decide what their next motion is.
+	type ExternalOrigin = EnsureRootOrHalfCouncilCollective;
+	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
+	type ExternalMajorityOrigin = EnsureRootOrTwoThirdsCouncilCollective;
+	/// A unanimous council can have the next scheduled referendum be a straight default-carries
+	/// (NTB) vote.
+	type ExternalDefaultOrigin = EnsureRootOrAllCouncilCollective;
+	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
+	/// be tabled immediately and with a shorter voting/enactment period.
+	type FastTrackOrigin = EnsureRootOrTwoThirdsTechnicalCommittee;
+	type InstantOrigin = EnsureRootOrAllTechnicalCommittee;
+	type InstantAllowed = InstantAllowed;
+	type FastTrackVotingPeriod = FastTrackVotingPeriod;
+	/// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
+	type CancellationOrigin = EnsureRootOrTwoThirdsCouncilCollective;
+	/// To cancel a proposal before it has been passed, the technical committee must be unanimous or
+	/// Root must agree.
+	type CancelProposalOrigin = EnsureRootOrAllTechnicalCommittee;
+	type BlacklistOrigin = EnsureRoot<AccountId>;
+	/// Any single technical committee member may veto a coming council proposal, however they can
+	/// only do it once and it lasts only for the cooloff period.
+	type VetoOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+	type CooloffPeriod = CooloffPeriod;
+	type PreimageByteDeposit = PreimageByteDeposit;
+	type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
+	type Slash = ();
+	type Scheduler = Scheduler;
+	type PalletsOrigin = OriginCaller;
+	type MaxVotes = MaxVotes;
+	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
+	type MaxProposals = MaxProposals;
 }
 
 parameter_type_with_key! {
@@ -789,6 +863,7 @@ impl pallet_collator_selection::Config for Runtime {
 impl pallet_utility::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
+	type PalletsOrigin = OriginCaller;
 	type WeightInfo = ();
 }
 
@@ -849,6 +924,7 @@ impl pallet_scheduler::Config for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = ();
 }
@@ -880,8 +956,7 @@ impl mining::Config for Runtime {
 }
 
 parameter_types! {
-	pub CreateClassDeposit: Balance = 500 * MILLICENTS;
-	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+	pub MetadataDepositPerByte: Balance = 1 * CENTS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -889,19 +964,18 @@ parameter_types! {
 }
 
 //impl nft::Config for Runtime {
-//    type Event = Event;
-//    type CreateClassDeposit = CreateClassDeposit;
-//    type CreateAssetDeposit = CreateAssetDeposit;
-//    type Currency = Balances;
-//    type MultiCurrency = Currencies;
-//    type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
-//    type PalletId = NftPalletId;
-//    type AuctionHandler = Auction;
-//    type MaxBatchTransfer = MaxBatchTransfer;
-//    type MaxBatchMinting = MaxBatchMinting;
-//    type MaxMetadata = MaxNftMetadata;
-//    type MiningResourceId = MiningResourceCurrencyId;
-//    type PromotionIncentive = PromotionIncentive;
+//	type Event = Event;
+//	type Currency = Balances;
+//	type MultiCurrency = Currencies;
+//	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+//	type PalletId = NftPalletId;
+//	type AuctionHandler = Auction;
+//	type MaxBatchTransfer = MaxBatchTransfer;
+//	type MaxBatchMinting = MaxBatchMinting;
+//	type MaxMetadata = MaxNftMetadata;
+//	type MiningResourceId = MiningResourceCurrencyId;
+//	type PromotionIncentive = PromotionIncentive;
+//	type DataDepositPerByte = MetadataDepositPerByte;
 //}
 //
 //parameter_types! {
@@ -1066,13 +1140,14 @@ construct_runtime!(
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
 
 		// Governance
-		NetworkCouncil: pallet_collective::<Instance1>::{Pallet, Call, Origin<T>, Event<T>} = 40,
-		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Origin<T>, Event<T>} = 41,
+		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage ,Origin<T>, Event<T>} = 40,
+		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>} = 41,
+		Democracy: pallet_democracy::{Pallet, Call, Storage, Event<T>} = 42,
 
 		// Pioneer pallets
 		// Metaverse & Related
 		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>} = 50,
-		Tokenization: tokenization:: {Pallet, Call ,Storage, Event<T>} = 51,
+		SocialToken: tokenization:: {Pallet, Call ,Storage, Event<T>} = 51,
 		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,

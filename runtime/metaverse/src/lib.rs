@@ -17,7 +17,7 @@ pub use frame_support::{
 	PalletId, RuntimeDebug, StorageValue,
 };
 // A few exports that help ease life for downstream crates.
-use frame_support::traits::{Contains, FindAuthor, InstanceFilter, Nothing};
+use frame_support::traits::{Contains, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing};
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	Config, EnsureOneOf, EnsureRoot, RawOrigin,
@@ -230,7 +230,7 @@ impl Contains<Call> for BaseFilter {
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = Everything;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -316,6 +316,7 @@ impl pallet_utility::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
 	type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+	type PalletsOrigin = OriginCaller;
 }
 
 parameter_types! {
@@ -426,8 +427,7 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub CreateClassDeposit: Balance = 500 * MILLICENTS;
-	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+	pub MetadataDepositPerByte: Balance = 1 * CENTS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -436,8 +436,6 @@ parameter_types! {
 
 impl nft::Config for Runtime {
 	type Event = Event;
-	type CreateClassDeposit = CreateClassDeposit;
-	type CreateAssetDeposit = CreateAssetDeposit;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
@@ -448,6 +446,7 @@ impl nft::Config for Runtime {
 	type MaxMetadata = MaxNftMetadata;
 	type MiningResourceId = MiningResourceCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
+	type DataDepositPerByte = MetadataDepositPerByte;
 }
 
 parameter_types! {
@@ -732,14 +731,14 @@ impl<F: FindAuthor<u32>> FindAuthor<H160> for FindAuthorTruncated<F> {
 //}
 
 parameter_types! {
-	pub const DefaultVotingPeriod: BlockNumber = 10;
-	pub const DefaultEnactmentPeriod: BlockNumber = 2;
-	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
-	pub const DefaultMaxParametersPerProposal: u8 = 3;
-	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50 * DOLLARS;
 	pub const DefaultPreimageByteDeposit: Balance = 1 * DOLLARS;
+	pub const DefaultVotingPeriod: u32 = 100;
+	pub const DefaultLocalVoteLockingPeriod: u32 = 28;
+	pub const DefaultEnactmentPeriod: u32 = 10;
+	pub const DefaultProposalLaunchPeriod: u32 = 15;
+	pub const DefaultMaxProposalsPerMetaverse: u8 = 20;
 }
 
 parameter_types! {
@@ -757,6 +756,7 @@ impl pallet_scheduler::Config for Runtime {
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 }
 
 parameter_types! {
@@ -845,15 +845,16 @@ impl InstanceFilter<Call> for ProposalType {
 
 impl governance::Config for Runtime {
 	type Event = Event;
-	type DefaultVotingPeriod = DefaultVotingPeriod;
-	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
-	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
-	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
-	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
+	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
+	type DefaultVotingPeriod = DefaultVotingPeriod;
+	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+	type DefaultLocalVoteLockingPeriod = DefaultLocalVoteLockingPeriod;
+	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
+	type Slash = ();
 	type MetaverseInfo = Metaverse;
 	type PalletsOrigin = OriginCaller;
 	type Proposal = Call;

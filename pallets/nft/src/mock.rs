@@ -1,17 +1,20 @@
 #![cfg(test)]
 
-use super::*;
-
-use crate as nft;
-use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
-use frame_support::traits::Nothing;
+use codec::{Decode, Encode};
+use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, parameter_types};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, CurrencyId, FungibleTokenId, ItemId};
 use sp_core::H256;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
+
+use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
+use primitives::{Amount, CurrencyId, FungibleTokenId, ItemId};
+
+use crate as nft;
+
+use super::*;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -157,8 +160,7 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 }
 
 parameter_types! {
-	pub CreateClassDeposit: Balance = 2;
-	pub CreateAssetDeposit: Balance = 1;
+	pub MetadataDataDepositPerByte: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 10;
@@ -204,14 +206,13 @@ impl pallet_scheduler::Config for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
 }
 
 impl Config for Runtime {
 	type Event = Event;
-	type CreateClassDeposit = CreateClassDeposit;
-	type CreateAssetDeposit = CreateAssetDeposit;
 	type Currency = Balances;
 	type PalletId = NftPalletId;
 	type AuctionHandler = MockAuctionManager;
@@ -222,6 +223,7 @@ impl Config for Runtime {
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
+	type DataDepositPerByte = MetadataDataDepositPerByte;
 }
 
 parameter_types! {

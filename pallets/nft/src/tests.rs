@@ -2,6 +2,7 @@ use frame_support::{assert_noop, assert_ok};
 use orml_nft::Pallet as NftModule;
 use orml_traits::MultiCurrency;
 use sp_runtime::traits::BadOrigin;
+use sp_std::default::Default;
 
 use mock::*;
 use primitives::{Balance, FungibleTokenId};
@@ -25,6 +26,12 @@ fn class_id_account() -> AccountId {
 	<Runtime as Config>::PalletId::get().into_sub_account(CLASS_ID)
 }
 
+fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
+}
+
 fn mining_resource_id() -> FungibleTokenId {
 	<Runtime as Config>::MiningResourceId::get()
 }
@@ -34,11 +41,12 @@ fn init_test_nft(owner: Origin) {
 	assert_ok!(Nft::create_class(
 		owner.clone(),
 		vec![1],
+		test_attributes(1),
 		COLLECTION_ID,
 		TokenType::Transferable,
 		CollectionType::Collectable,
 	));
-	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], vec![1], vec![1], 1));
+	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
 
 fn init_bound_to_address_nft(owner: Origin) {
@@ -46,11 +54,12 @@ fn init_bound_to_address_nft(owner: Origin) {
 	assert_ok!(Nft::create_class(
 		owner.clone(),
 		vec![1],
+		test_attributes(1),
 		COLLECTION_ID,
 		TokenType::Transferable,
 		CollectionType::Collectable,
 	));
-	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], vec![1], vec![1], 1));
+	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
 
 #[test]
@@ -116,32 +125,30 @@ fn create_class_should_work() {
 		assert_ok!(Nft::create_class(
 			origin.clone(),
 			vec![1],
+			test_attributes(1),
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
 		));
-
+		let class_deposit = <Runtime as Config>::DataDepositPerByte::get() * 4; // Test 4 bytes
 		assert_eq!(Nft::get_class_collection(0), 0);
 		assert_eq!(Nft::all_nft_collection_count(), 1);
 		assert_eq!(
 			NftModule::<Runtime>::classes(CLASS_ID).unwrap().data,
 			NftClassData {
-				deposit: 2,
-				metadata: vec![1],
+				deposit: class_deposit,
 				token_type: TokenType::Transferable,
 				collection_type: CollectionType::Collectable,
 				total_supply: Default::default(),
 				initial_supply: Default::default(),
+				attributes: test_attributes(1)
 			}
 		);
 
 		let event = mock::Event::Nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
 		assert_eq!(last_event(), event);
 
-		assert_eq!(
-			reserved_balance(&class_id_account()),
-			<Runtime as Config>::CreateClassDeposit::get()
-		);
+		assert_eq!(reserved_balance(&class_id_account()), class_deposit);
 	});
 }
 
@@ -152,10 +159,8 @@ fn mint_asset_should_work() {
 		assert_ok!(Nft::enable_promotion(Origin::root(), true));
 		init_test_nft(origin.clone());
 
-		assert_eq!(
-			reserved_balance(&class_id_account()),
-			<Runtime as Config>::CreateClassDeposit::get() + <Runtime as Config>::CreateAssetDeposit::get()
-		);
+		// deposit 8 as 4 bytes for class deposit and 4 bytes for nft deposit
+		assert_eq!(reserved_balance(&class_id_account()), 8);
 		assert_eq!(Nft::next_asset_id(), 1);
 		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![0]);
 		assert_eq!(Nft::get_asset(0), Some((CLASS_ID, TOKEN_ID)));
@@ -164,7 +169,7 @@ fn mint_asset_should_work() {
 		assert_eq!(last_event(), event);
 
 		// mint two assets
-		assert_ok!(Nft::mint(origin.clone(), CLASS_ID, vec![1], vec![1], vec![1], 2));
+		assert_ok!(Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 2));
 
 		// bit balance should be 2 (minted 2 NFT)
 		assert_eq!(free_bit_balance(&ALICE), 2);
@@ -209,20 +214,21 @@ fn mint_asset_should_fail() {
 		assert_ok!(Nft::create_class(
 			origin.clone(),
 			vec![1],
+			test_attributes(1),
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
 		));
 		assert_noop!(
-			Nft::mint(origin.clone(), CLASS_ID, vec![1], vec![1], vec![1], 0),
+			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 0),
 			Error::<Runtime>::InvalidQuantity
 		);
 		assert_noop!(
-			Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 1),
+			Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1),
 			Error::<Runtime>::ClassIdNotFound
 		);
 		assert_noop!(
-			Nft::mint(invalid_owner.clone(), CLASS_ID, vec![1], vec![1], vec![1], 1),
+			Nft::mint(invalid_owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1),
 			Error::<Runtime>::NoPermission
 		);
 	})
@@ -232,16 +238,17 @@ fn mint_asset_should_fail() {
 fn mint_exceed_max_batch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1]));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
 			vec![1],
+			test_attributes(1),
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
 		));
 		assert_noop!(
-			Nft::mint(origin.clone(), CLASS_ID, vec![1], vec![1], vec![1], 20),
+			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 20),
 			Error::<Runtime>::ExceedMaximumBatchMinting
 		);
 	})
@@ -278,11 +285,12 @@ fn transfer_batch_should_work() {
 		assert_ok!(Nft::create_class(
 			origin.clone(),
 			vec![1],
+			test_attributes(1),
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
 		));
-		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 4));
+		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
 		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, 0), (BOB, 1)]));
 		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0, 1));
 		assert_eq!(last_event(), event);
@@ -297,11 +305,12 @@ fn transfer_batch_exceed_length_should_fail() {
 		assert_ok!(Nft::create_class(
 			origin.clone(),
 			vec![1],
+			test_attributes(1),
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
 		));
-		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 4));
+		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
 		assert_noop!(
 			Nft::transfer_batch(origin, vec![(BOB, 0), (BOB, 1), (BOB, 2), (BOB, 3)]),
 			Error::<Runtime>::ExceedMaximumBatchTransfer
@@ -317,11 +326,12 @@ fn transfer_batch_should_fail() {
 		assert_ok!(Nft::create_class(
 			origin.clone(),
 			vec![1],
+			test_attributes(1),
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
 		));
-		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 1));
+		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 		assert_noop!(
 			Nft::transfer_batch(origin.clone(), vec![(BOB, 3), (BOB, 4)]),
 			Error::<Runtime>::AssetIdNotFound
@@ -374,11 +384,12 @@ fn do_transfer_should_fail() {
 		assert_ok!(Nft::create_class(
 			origin.clone(),
 			vec![1],
+			test_attributes(1),
 			COLLECTION_ID,
 			TokenType::BoundToAddress,
 			CollectionType::Collectable,
 		));
-		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], vec![1], vec![1], 1));
+		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 
 		assert_noop!(Nft::do_transfer(&ALICE, &BOB, 1), Error::<Runtime>::NonTransferable);
 	})
