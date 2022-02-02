@@ -380,7 +380,7 @@ pub mod pallet {
 
 		/// Lock up and stake balance of the origin account.
 		/// New stake will be applied at the beginning of the next round.
-		#[pallet::weight(100_000)]
+		#[pallet::weight(T::WeightInfo::stake())]
 		pub fn stake(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -475,7 +475,7 @@ pub mod pallet {
 		/// Unstake and withdraw balance of the origin account.
 		/// If user unstake below minimum staking amount, the entire staking of that origin will be
 		/// removed Unstake will on be kicked off from the begining of the next round.
-		#[pallet::weight(100_000)]
+		#[pallet::weight(T::WeightInfo::unstake_and_withdraw())]
 		pub fn unstake_and_withdraw(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
