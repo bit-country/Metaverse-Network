@@ -7,6 +7,7 @@ use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
+use primitives::staking::RoundInfo;
 use primitives::Amount;
 
 use crate as metaverse;

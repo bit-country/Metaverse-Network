@@ -20,9 +20,9 @@
 use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
 
-use mock::{Event, *};
-
 use super::*;
+use mock::{Event, *};
+use primitives::staking::RoundInfo;
 
 #[test]
 fn create_metaverse_should_work() {
@@ -161,6 +161,8 @@ fn register_metaverse_should_work() {
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		let event = Event::Metaverse(crate::Event::NewMetaverseRegisteredForStaking(METAVERSE_ID, ALICE));
 		assert_eq!(last_event(), event);
+
+		assert_eq!(MetaverseModule::get_registered_metaverse(METAVERSE_ID), Some(ALICE));
 	})
 }
 
@@ -248,10 +250,22 @@ fn stake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
-		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
+		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 100000));
 
-		let event = Event::Metaverse(crate::Event::MetaverseStaked(ALICE, METAVERSE_ID, 10000));
+		let event = Event::Metaverse(crate::Event::MetaverseStaked(ALICE, METAVERSE_ID, 100000));
 		assert_eq!(last_event(), event);
+
+		assert_eq!(MetaverseModule::staking_info(ALICE), 100000);
+
+		let current_staking_round: RoundInfo<BlockNumber> = MetaverseModule::staking_round();
+		let mut metaverse_stake_per_round: MetaverseStakingPoints<AccountId, Balance> =
+			MetaverseModule::get_metaverse_stake_per_round(METAVERSE_ID, current_staking_round.current).unwrap();
+
+		assert_eq!(
+			*(metaverse_stake_per_round.stakers.entry(ALICE).or_default()),
+			100000u64
+		);
+		assert_eq!(metaverse_stake_per_round.stakers.len(), 1);
 	})
 }
 
@@ -264,6 +278,8 @@ fn stake_should_work_with_min_value() {
 
 		let event = Event::Metaverse(crate::Event::MetaverseStaked(BOB, METAVERSE_ID, 19900));
 		assert_eq!(last_event(), event);
+
+		assert_eq!(MetaverseModule::staking_info(BOB), 19900);
 	})
 }
 
@@ -320,5 +336,13 @@ fn unstake_should_work() {
 
 		let event = Event::Metaverse(crate::Event::MetaverseUnstaked(ALICE, METAVERSE_ID, 100));
 		assert_eq!(last_event(), event);
+
+		assert_eq!(MetaverseModule::staking_info(ALICE), 9900);
+
+		let current_staking_round: RoundInfo<BlockNumber> = MetaverseModule::staking_round();
+		let mut metaverse_stake_per_round: MetaverseStakingPoints<AccountId, Balance> =
+			MetaverseModule::get_metaverse_stake_per_round(METAVERSE_ID, current_staking_round.current).unwrap();
+
+		assert_eq!(*(metaverse_stake_per_round.stakers.entry(ALICE).or_default()), 9900u64);
 	})
 }
