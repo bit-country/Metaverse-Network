@@ -26,7 +26,7 @@ use sp_std::vec;
 
 #[allow(unused)]
 pub use crate::Pallet as MetaverseModule;
-use crate::{Call, Config};
+use crate::*;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
@@ -177,13 +177,14 @@ benchmarks! {
 	stake{
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
+		let amount = <<T as Config>::MinStakingAmount as Get<BalanceOf<T>>>::get();
 
 		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
-	}: _(RawOrigin::Signed(caller.clone()), 0, 100000000u32.into())
+	}: _(RawOrigin::Signed(caller.clone()), 0, (amount+1u32.into()).into())
 	verify {
 		let staking_info = crate::Pallet::<T>::staking_info(caller);
-		assert_eq!(staking_info, 100000000u32.into());
+		assert_eq!(staking_info, (amount+1u32.into()).into());
 	}
 
 	// unstake_and_withdraw
@@ -191,13 +192,16 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
+		let amount = <<T as Config>::MinStakingAmount as Get<BalanceOf<T>>>::get();
+
+
 		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
-		crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), 0, 100000000u32.into());
-	}: _(RawOrigin::Signed(caller.clone()), 0, 50000000u32.into())
+		crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), 0, (amount+1u32.into()).into());
+	}: _(RawOrigin::Signed(caller.clone()), 0, 1u32.into())
 	verify {
 		let staking_info = crate::Pallet::<T>::staking_info(caller);
-		assert_eq!(staking_info, 50000000u32.into());
+		assert_eq!(staking_info, amount.into());
 	}
 }
 
