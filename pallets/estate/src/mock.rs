@@ -226,7 +226,6 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
-	type ExitQueueDelay = RewardPaymentDelay;
 }
 
 construct_runtime!(

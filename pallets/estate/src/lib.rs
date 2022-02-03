@@ -18,13 +18,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
-use frame_support::traits::{Currency, Imbalance};
+use frame_support::traits::{Currency, Imbalance, LockIdentifier, LockableCurrency, WithdrawReasons};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, One, Saturating},
+	traits::{AccountIdConversion, One, Saturating, Zero},
 	DispatchError, Perbill,
 };
 use sp_std::vec::Vec;
@@ -51,11 +51,13 @@ mod tests;
 
 pub mod weights;
 
+const LOCK_STAKING: LockIdentifier = *b"stakelok";
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
 	use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Zero};
-	use sp_runtime::Perbill;
+	use sp_runtime::{ArithmeticError, Perbill};
 
 	use primitives::{Balance, UndeployedLandBlockId};
 
@@ -124,7 +126,10 @@ pub mod pallet {
 		/// Source of Bit Country Info
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 		/// Currency
-		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		// type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		/// The currency type
+		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+			+ ReservableCurrency<Self::AccountId>;
 		/// Minimum Land Price
 		type MinimumLandPrice: Get<BalanceOf<Self>>;
 		/// Council origin which allows to update max bound
@@ -139,8 +144,6 @@ pub mod pallet {
 		type MinimumStake: Get<BalanceOf<Self>>;
 		#[pallet::constant]
 		type RewardPaymentDelay: Get<u32>;
-		#[pallet::constant]
-		type ExitQueueDelay: Get<u32>;
 	}
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -215,12 +218,6 @@ pub mod pallet {
 	pub type Staked<T: Config> = StorageMap<_, Twox64Concat, RoundIndex, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn exit_queue)]
-	/// A queue of account awaiting exit
-	type ExitQueue<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, RoundIndex, OptionQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn at_stake)]
 	/// Snapshot of estate staking per session
 	pub type AtStake<T: Config> = StorageDoubleMap<
@@ -238,6 +235,11 @@ pub mod pallet {
 	/// Estate staking
 	pub type EstateStake<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+	/// Keep track of staking info of individual staker
+	#[pallet::storage]
+	#[pallet::getter(fn staking_info)]
+	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -315,7 +317,6 @@ pub mod pallet {
 		NewRound(T::BlockNumber, RoundIndex, u64),
 		StakeSnapshotUpdated(RoundIndex, BalanceOf<T>),
 		StakersPaid(RoundIndex),
-		ExitQueueCleared(RoundIndex),
 		/// Owner Account Id, Estate Id, Balance
 		EstateStakeIncreased(T::AccountId, EstateId, BalanceOf<T>),
 		/// Owner Account Id, Estate Id, Balance
@@ -913,7 +914,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::bond_more())]
-		pub fn bond_more(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
+		pub fn stake(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
@@ -924,12 +925,6 @@ pub mod pallet {
 				Error::<T>::NoPermission
 			);
 
-			// Check exit queue
-			ensure!(
-				<ExitQueue<T>>::get(&who, estate_id) == None,
-				Error::<T>::EstateStakeAlreadyLeft
-			);
-
 			// Update EstateStake
 			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
 			let total = staked_balance.checked_add(&more).ok_or(Error::<T>::Overflow)?;
@@ -938,6 +933,14 @@ pub mod pallet {
 
 			// Reserve balance
 			T::Currency::reserve(&who, more)?;
+
+			// Get the staking ledger or create an entry if it doesn't exist.
+			let mut staking_info = Self::staking_info(&who);
+			// Increment ledger and total staker value for a metaverse.
+			staking_info = staking_info.checked_add(&more).ok_or(ArithmeticError::Overflow)?;
+
+			// Update staking info of origin
+			Self::update_staking_info(&who, staking_info);
 
 			<EstateStake<T>>::insert(estate_id, &who, total);
 
@@ -962,12 +965,6 @@ pub mod pallet {
 				Error::<T>::NoPermission
 			);
 
-			// Check exit queue
-			ensure!(
-				<ExitQueue<T>>::get(&who, estate_id) == None,
-				Error::<T>::EstateStakeAlreadyLeft
-			);
-
 			// Check stake balance
 			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
 			let remaining = staked_balance.checked_sub(&less).ok_or(Error::<T>::Overflow)?;
@@ -987,47 +984,9 @@ pub mod pallet {
 
 			Ok(().into())
 		}
-
-		#[pallet::weight(T::WeightInfo::leave_staking())]
-		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-
-			ensure!(
-				<ExitQueue<T>>::get(&who, estate_id) == None,
-				Error::<T>::EstateStakeAlreadyLeft
-			);
-
-			ensure!(
-				<EstateStake<T>>::get(estate_id, &who) > BalanceOf::<T>::zero(),
-				Error::<T>::AccountHasNoStake
-			);
-
-			let round = <Round<T>>::get();
-
-			let exit_round = round.current.checked_add(T::ExitQueueDelay::get()).unwrap_or_default();
-			<ExitQueue<T>>::insert(&who, estate_id, exit_round);
-
-			Self::deposit_event(Event::EstateStakeLeft(who, estate_id));
-
-			Ok(().into())
-		}
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Clear exit queue. return stake to account
-		fn clear_exit_queue(now: RoundIndex) {
-			for (account_id, estate_id, val) in <ExitQueue<T>>::drain() {
-				let staked_amount = <EstateStake<T>>::get(estate_id, &account_id);
-
-				// return stake to account
-				T::Currency::unreserve(&account_id, staked_amount);
-
-				<EstateStake<T>>::remove(estate_id, &account_id);
-			}
-		}
-
 		fn update_stake_snapshot(next: RoundIndex) -> BalanceOf<T> {
 			let mut total = BalanceOf::<T>::zero();
 
@@ -1067,10 +1026,6 @@ pub mod pallet {
 
 				//TODO do actual minting new undeployed land block
 				let land_register_treasury = T::LandTreasury::get().into_account();
-
-				// Clear exit queue
-				Self::clear_exit_queue(round.current);
-				Self::deposit_event(Event::ExitQueueCleared(round.current));
 
 				// Update stake snapshot
 				let total = Self::update_stake_snapshot(round.current);
@@ -1405,6 +1360,17 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
+
+	/// Update staking info of origin
+	fn update_staking_info(who: &T::AccountId, staking_info: BalanceOf<T>) {
+		if staking_info.is_zero() {
+			StakingInfo::<T>::remove(&who);
+			T::Currency::remove_lock(LOCK_STAKING, &who);
+		} else {
+			T::Currency::set_lock(LOCK_STAKING, &who, staking_info, WithdrawReasons::all());
+			StakingInfo::<T>::insert(who, staking_info);
+		}
+	}
 }
 
 impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
@@ -1524,7 +1490,8 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 }
 
 impl<T: Config> LandStakingRewardTrait<BalanceOf<T>> for Pallet<T> {
-	/// Pay land staker handler that will reward BIT to stakers and only triggered by mining controller
+	/// Pay land staker handler that will reward BIT to stakers and only triggered by mining
+	/// controller
 	fn payout_land_staker(payout_round: IssuanceRoundIndex, total_reward: BalanceOf<T>) -> DispatchResult {
 		// issue BIT for rewards distribution
 		let total_staked = <Staked<T>>::get(payout_round);
