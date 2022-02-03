@@ -20,36 +20,51 @@
 
 //! Service implementation. Specialized wrapper over substrate service.
 
-#[cfg(feature = "with-tewai-runtime")]
-use crate::rpc::rpc_tewai::*;
-use futures::prelude::*;
+use std::sync::Arc;
 
-use primitives::Block;
+use futures::prelude::*;
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus_babe::{self, SlotProportion};
-use tewai_runtime::RuntimeApi;
 //use sc_executor::native_executor_instance;
-use sc_executor::native_executor_instance;
+use sc_executor::NativeElseWasmExecutor;
 use sc_finality_grandpa as grandpa;
 use sc_network::{Event, NetworkService};
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_runtime::traits::Block as BlockT;
-use std::sync::Arc;
+use tewai_runtime::RuntimeApi;
 
-//// Our native executor instance.
-native_executor_instance!(
-	pub Executor,
-	tewai_runtime::api::dispatch,
-	tewai_runtime::native_version,
-	frame_benchmarking::benchmarking::HostFunctions,
-);
+use primitives::Block;
 
-type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
+#[cfg(feature = "with-tewai-runtime")]
+use crate::rpc::rpc_tewai::*;
+
+// Our native executor instance.
+pub struct ExecutorDispatch;
+
+impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
+	/// Only enable the benchmarking host functions when we actually want to benchmark.
+	#[cfg(feature = "runtime-benchmarks")]
+	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
+	/// Otherwise we only use the default Substrate host functions.
+	#[cfg(not(feature = "runtime-benchmarks"))]
+	type ExtendHostFunctions = ();
+
+	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
+		tewai_runtime::api::dispatch(method, data)
+	}
+
+	fn native_version() -> sc_executor::NativeVersion {
+		tewai_runtime::native_version()
+	}
+}
+
+type FullClient = sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
+
 type FullGrandpaBlockImport = grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
-type LightClient = sc_service::TLightClient<Block, RuntimeApi, Executor>;
+type LightClient = sc_service::TLightClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 
 pub fn new_partial(
 	config: &Configuration,
@@ -84,9 +99,16 @@ pub fn new_partial(
 		})
 		.transpose()?;
 
-	let (client, backend, keystore_container, task_manager) = sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
+	let (client, backend, keystore_container, task_manager) = sc_service::new_full_parts::<Block, RuntimeApi, _>(
 		&config,
 		telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+		executor,
 	)?;
 	let client = Arc::new(client);
 
@@ -238,6 +260,7 @@ pub fn new_full_base(
 	let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
 		backend.clone(),
 		import_setup.1.shared_authority_set().clone(),
+		Vec::default(),
 	));
 
 	let (network, system_rpc_tx, network_starter) = sc_service::build_network(sc_service::BuildNetworkParams {
@@ -435,23 +458,23 @@ pub fn new_light_base(
 		.clone()
 		.filter(|x| !x.is_empty())
 		.map(|endpoints| -> Result<_, sc_telemetry::Error> {
-			#[cfg(feature = "browser")]
-			let transport = Some(sc_telemetry::ExtTransport::new(
-				libp2p_wasm_ext::ffi::websocket_transport(),
-			));
-			#[cfg(not(feature = "browser"))]
-			let transport = None;
-
-			let worker = TelemetryWorker::with_transport(16, transport)?;
+			let worker = TelemetryWorker::new(16)?;
 			let telemetry = worker.handle().new_telemetry(endpoints);
 			Ok((worker, telemetry))
 		})
 		.transpose()?;
 
+	let executor = NativeElseWasmExecutor::<ExecutorDispatch>::new(
+		config.wasm_method,
+		config.default_heap_pages,
+		config.max_runtime_instances,
+	);
+
 	let (client, backend, keystore_container, mut task_manager, on_demand) =
-		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(
+		sc_service::new_light_parts::<Block, RuntimeApi, _>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+			executor,
 		)?;
 
 	let mut telemetry = telemetry.map(|(worker, telemetry)| {
@@ -513,6 +536,7 @@ pub fn new_light_base(
 	let warp_sync = Arc::new(grandpa::warp_proof::NetworkProvider::new(
 		backend.clone(),
 		grandpa_link.shared_authority_set().clone(),
+		Vec::default(),
 	));
 
 	let (network, system_rpc_tx, network_starter) = sc_service::build_network(sc_service::BuildNetworkParams {
@@ -560,8 +584,6 @@ pub fn new_light_base(
 	let rpc_extensions = create_light(light_deps);
 
 	let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		on_demand: Some(on_demand),
-		remote_blockchain: Some(backend.remote_blockchain()),
 		rpc_extensions_builder: Box::new(sc_service::NoopRpcExtensionBuilder(rpc_extensions)),
 		client: client.clone(),
 		transaction_pool: transaction_pool.clone(),
@@ -585,7 +607,8 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 #[cfg(test)]
 mod tests {
-	use crate::service::{new_full_base, new_light_base, NewFullBase};
+	use std::{borrow::Cow, convert::TryInto, sync::Arc};
+
 	use codec::Encode;
 	use node_primitives::{Block, DigestItem, Signature};
 	use sc_client_api::BlockBackend;
@@ -593,12 +616,10 @@ mod tests {
 	use sc_consensus_babe::{BabeIntermediate, CompatibleDigestItem, INTERMEDIATE_KEY};
 	use sc_consensus_epochs::descendent_query;
 	use sc_keystore::LocalKeystore;
-	use sc_service_test::TestNetNode;
 	use sc_transaction_pool_api::{ChainEvent, MaintainedTransactionPool};
 	use sp_consensus::{BlockOrigin, Environment, Proposer};
 	use sp_core::{crypto::Pair as CryptoPair, Public, H256};
 	use sp_inherents::InherentDataProvider;
-	use sp_keyring::AccountKeyring;
 	use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 	use sp_runtime::{
 		generic::{BlockId, Digest, Era, SignedPayload},
@@ -607,11 +628,15 @@ mod tests {
 		RuntimeAppPublic,
 	};
 	use sp_timestamp;
-	use std::{borrow::Cow, convert::TryInto, sync::Arc};
 	use tewai_runtime::{
 		constants::{currency::CENTS, time::SLOT_DURATION},
 		Address, BalancesCall, Call, UncheckedExtrinsic,
 	};
+
+	use sc_service_test::TestNetNode;
+	use sp_keyring::AccountKeyring;
+
+	use crate::service::{new_full_base, new_light_base, NewFullBase};
 
 	type AccountPublic = <Signature as Verify>::Signer;
 

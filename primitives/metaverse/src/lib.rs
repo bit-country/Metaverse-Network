@@ -33,6 +33,7 @@ use sp_runtime::{
 pub mod continuum;
 pub mod dex;
 pub mod estate;
+pub mod staking;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -64,7 +65,7 @@ pub type Hash = sp_core::H256;
 /// time scale is milliseconds.
 pub type Timestamp = u64;
 /// Digest item type.
-pub type DigestItem = generic::DigestItem<Hash>;
+pub type DigestItem = generic::DigestItem;
 /// Header type.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type.
@@ -97,8 +98,8 @@ pub type EstateId = u64;
 pub type TokenId = u64;
 /// Undeployed LandBlock Id type
 pub type UndeployedLandBlockId = u128;
-/// Issuance Round Index
-pub type IssuanceRoundIndex = u32;
+/// Staking Round index
+pub type RoundIndex = u32;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]

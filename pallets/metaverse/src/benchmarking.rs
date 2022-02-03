@@ -26,7 +26,7 @@ use sp_std::vec;
 
 #[allow(unused)]
 pub use crate::Pallet as MetaverseModule;
-use crate::{Call, Config};
+use crate::*;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
@@ -61,7 +61,7 @@ benchmarks! {
 	// create_metaverse
 	create_metaverse{
 		let caller = funded_account::<T>("caller", 0);
-	}: _(RawOrigin::Signed(caller.clone()), vec![1])
+	}: _(RawOrigin::Root, caller.clone(), vec![1])
 	verify {
 		let metaverse = crate::Pallet::<T>::get_metaverse(0);
 		match metaverse {
@@ -82,7 +82,7 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), 0)
 	verify {
 		let metaverse = crate::Pallet::<T>::get_metaverse(0);
@@ -104,7 +104,7 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 	}: _(RawOrigin::Root, 0)
 	verify {
 		let metaverse = crate::Pallet::<T>::get_metaverse(0);
@@ -124,7 +124,7 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 		crate::Pallet::<T>::freeze_metaverse(RawOrigin::Root.into(), 0);
 	}: _(RawOrigin::Root, 0)
 	verify {
@@ -146,11 +146,62 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
 
-		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
 		crate::Pallet::<T>::freeze_metaverse(RawOrigin::Root.into(), 0);
 	}: _(RawOrigin::Root, 0)
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_metaverse(0), None);
+	}
+
+	// register_metaverse
+	register_metaverse{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
+	}: _(RawOrigin::Signed(caller.clone()), 0)
+	verify {
+		let metaverse = crate::Pallet::<T>::get_registered_metaverse(0);
+		match metaverse {
+			Some(a) => {
+				assert_eq!(1, 1);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	}
+
+	// stake
+	stake{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+		let amount = <<T as Config>::MinStakingAmount as Get<BalanceOf<T>>>::get();
+
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
+		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
+	}: _(RawOrigin::Signed(caller.clone()), 0, (amount+1u32.into()).into())
+	verify {
+		let staking_info = crate::Pallet::<T>::staking_info(caller);
+		assert_eq!(staking_info, (amount+1u32.into()).into());
+	}
+
+	// unstake_and_withdraw
+	unstake_and_withdraw{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+
+		let amount = <<T as Config>::MinStakingAmount as Get<BalanceOf<T>>>::get();
+
+
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
+		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
+		crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), 0, (amount+1u32.into()).into());
+	}: _(RawOrigin::Signed(caller.clone()), 0, 1u32.into())
+	verify {
+		let staking_info = crate::Pallet::<T>::staking_info(caller);
+		assert_eq!(staking_info, amount.into());
 	}
 }
 
