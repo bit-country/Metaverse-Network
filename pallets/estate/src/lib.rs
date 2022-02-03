@@ -17,6 +17,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::HasCompact;
 use frame_support::pallet_prelude::*;
 use frame_support::traits::{Currency, Imbalance, LockIdentifier, LockableCurrency, WithdrawReasons};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
@@ -27,7 +28,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating, Zero},
 	DispatchError, Perbill,
 };
-use sp_std::vec::Vec;
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 use bc_primitives::*;
@@ -116,6 +117,18 @@ pub mod pallet {
 		fn default() -> RoundInfo<B> {
 			RoundInfo::new(1u32, 1u32.into(), 20u32)
 		}
+	}
+
+	/// Storing the reward detail of estate that store the list of stakers for each estate
+	/// This will be used to reward estate owner and the stakers.
+	#[derive(Clone, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+	pub struct EstateStakingPoints<AccountId: Ord, Balance: HasCompact> {
+		/// Total staked amount.
+		total: Balance,
+		/// The map of stakers and the amount they staked.
+		stakers: BTreeMap<AccountId, Balance>,
+		/// Accrued and claimed rewards on this estate for both estate owner and stakers
+		claimed_rewards: Balance,
 	}
 
 	#[pallet::config]
@@ -241,6 +254,18 @@ pub mod pallet {
 	#[pallet::getter(fn staking_info)]
 	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
+	/// Stores amount staked and stakers for individual metaverse per staking round
+	#[pallet::storage]
+	#[pallet::getter(fn get_estate_stake_per_round)]
+	pub(crate) type EstateRoundStake<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		EstateId,
+		Twox64Concat,
+		RoundIndex,
+		EstateStakingPoints<T::AccountId, BalanceOf<T>>,
+	>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
 		pub minting_rate_config: MintingRateInfo,
@@ -363,6 +388,7 @@ pub mod pallet {
 		Overflow,
 		EstateStakeAlreadyLeft,
 		AccountHasNoStake,
+		InsufficientBalanceToUnstake,
 	}
 
 	#[pallet::call]
@@ -954,7 +980,11 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::bond_less())]
-		pub fn bond_less(origin: OriginFor<T>, estate_id: EstateId, less: BalanceOf<T>) -> DispatchResultWithPostInfo {
+		pub fn unstake_and_withdraw(
+			origin: OriginFor<T>,
+			estate_id: EstateId,
+			less: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
@@ -967,20 +997,33 @@ pub mod pallet {
 
 			// Check stake balance
 			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
-			let remaining = staked_balance.checked_sub(&less).ok_or(Error::<T>::Overflow)?;
+			ensure!(less <= staked_balance, Error::<T>::InsufficientBalanceToUnstake);
 
-			ensure!(remaining >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
+			let remaining = staked_balance.checked_sub(&less).ok_or(Error::<T>::Overflow)?;
+			let amount_to_unstake = if remaining < T::MinimumStake::get() {
+				// Remaining amount below minimum, remove all staked amount
+				<EstateStake<T>>::remove(estate_id, &who);
+				staked_balance
+			} else {
+				<EstateStake<T>>::insert(estate_id, &who, remaining);
+				less
+			};
+
+			let staking_info = Self::staking_info(&who);
+			Self::update_staking_info(&who, staking_info.saturating_sub(amount_to_unstake));
+
+			// ensure!(remaining >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
 
 			// Reserve balance
 			T::Currency::unreserve(&who, less);
 
-			<EstateStake<T>>::insert(estate_id, &who, remaining);
+			// <EstateStake<T>>::insert(estate_id, &who, remaining);
 
 			// Update TotalStake
 			let new_total_staked = <TotalStake<T>>::get().saturating_sub(less);
 			<TotalStake<T>>::put(new_total_staked);
 
-			Self::deposit_event(Event::EstateStakeDecreased(who, estate_id, less));
+			Self::deposit_event(Event::EstateStakeDecreased(who, estate_id, amount_to_unstake));
 
 			Ok(().into())
 		}
