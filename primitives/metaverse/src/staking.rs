@@ -1,6 +1,6 @@
 use crate::{AccountId, RoundIndex, RuntimeDebug, TypeInfo};
-use codec::{Decode, Encode};
-use sp_std::vec::Vec;
+use codec::{Decode, Encode, HasCompact};
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
 /// The current round index and transition information
@@ -24,6 +24,27 @@ pub struct StakeSnapshot<AccountId, Balance> {
 pub struct Bond<AccountId, Balance> {
 	pub staker: AccountId,
 	pub amount: Balance,
+}
+
+/// A record for total rewards and total amount staked for an era
+#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct StakingSnapshot<Balance> {
+	/// Total amount of rewards for a staking round
+	pub rewards: Balance,
+	/// Total staked amount for a staking round
+	pub staked: Balance,
+}
+
+/// Storing the reward detail of estate that store the list of stakers for each estate
+/// This will be used to reward estate owner and the stakers.
+#[derive(Clone, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+pub struct StakingPoints<AccountId: Ord, Balance: HasCompact> {
+	/// Total staked amount.
+	pub total: Balance,
+	/// The map of stakers and the amount they staked.
+	pub stakers: BTreeMap<AccountId, Balance>,
+	/// Accrued and claimed rewards on this estate for both estate owner and stakers
+	pub claimed_rewards: Balance,
 }
 
 impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> RoundInfo<B> {

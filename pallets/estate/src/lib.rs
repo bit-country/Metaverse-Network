@@ -34,7 +34,7 @@ use auction_manager::{Auction, CheckAuctionItemHandler};
 use bc_primitives::*;
 pub use pallet::*;
 use primitives::{
-	estate::Estate, EstateId, ItemId, MetaverseId, RoundIndex, UndeployedLandBlock, UndeployedLandBlockId,
+	estate::Estate, staking::*, EstateId, ItemId, MetaverseId, RoundIndex, UndeployedLandBlock, UndeployedLandBlockId,
 	UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
@@ -69,76 +69,6 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
 	pub struct Pallet<T>(PhantomData<T>);
-
-	type RoundIndex = u32;
-
-	#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
-	/// The current round index and transition information
-	pub struct RoundInfo<BlockNumber> {
-		/// Current round index
-		pub current: RoundIndex,
-		/// The first block of the current round
-		pub first: BlockNumber,
-		/// The length of the current round in number of blocks
-		pub length: u32,
-	}
-
-	#[derive(Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-	/// Snapshot of collator state at the start of the round for which they are selected
-	pub struct StakeSnapshot<AccountId, Balance> {
-		pub stakers: Vec<Bond<AccountId, Balance>>,
-		pub total_bond: Balance,
-	}
-
-	#[derive(Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-	pub struct Bond<AccountId, Balance> {
-		pub staker: AccountId,
-		pub amount: Balance,
-	}
-
-	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> RoundInfo<B> {
-		pub fn new(current: RoundIndex, first: B, length: u32) -> RoundInfo<B> {
-			RoundInfo { current, first, length }
-		}
-		/// Check if the round should be updated
-		pub fn should_update(&self, now: B) -> bool {
-			now - self.first >= self.length.into()
-		}
-		/// New round
-		pub fn update(&mut self, now: B) {
-			self.current += 1u32;
-			self.first = now;
-		}
-	}
-
-	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> Default
-		for RoundInfo<B>
-	{
-		fn default() -> RoundInfo<B> {
-			RoundInfo::new(1u32, 1u32.into(), 20u32)
-		}
-	}
-
-	/// Storing the reward detail of estate that store the list of stakers for each estate
-	/// This will be used to reward estate owner and the stakers.
-	#[derive(Clone, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
-	pub struct EstateStakingPoints<AccountId: Ord, Balance: HasCompact> {
-		/// Total staked amount.
-		total: Balance,
-		/// The map of stakers and the amount they staked.
-		stakers: BTreeMap<AccountId, Balance>,
-		/// Accrued and claimed rewards on this estate for both estate owner and stakers
-		claimed_rewards: Balance,
-	}
-
-	/// A record for total rewards and total amount staked for an era
-	#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-	pub struct StakingSnapshot<Balance> {
-		/// Total amount of rewards for a staking round
-		rewards: Balance,
-		/// Total staked amount for a staking round
-		staked: Balance,
-	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -272,7 +202,7 @@ pub mod pallet {
 		EstateId,
 		Twox64Concat,
 		RoundIndex,
-		EstateStakingPoints<T::AccountId, BalanceOf<T>>,
+		StakingPoints<T::AccountId, BalanceOf<T>>,
 	>;
 
 	/// Estate staking snapshot per staking round
@@ -982,7 +912,7 @@ pub mod pallet {
 			if !EstateRoundStake::<T>::contains_key(&estate_id, current_staking_round.current) {
 				let stakers: BTreeMap<T::AccountId, BalanceOf<T>> = BTreeMap::new();
 
-				let new_estate_stake_per_round: EstateStakingPoints<T::AccountId, BalanceOf<T>> = EstateStakingPoints {
+				let new_estate_stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> = StakingPoints {
 					total: 0u32.into(),
 					claimed_rewards: 0u32.into(),
 					stakers: stakers,
@@ -997,7 +927,7 @@ pub mod pallet {
 			}
 
 			// Get staking info of metaverse and current round
-			let mut estate_stake_per_round: EstateStakingPoints<T::AccountId, BalanceOf<T>> =
+			let mut estate_stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> =
 				Self::get_estate_stake_per_round(&estate_id, current_staking_round.current)
 					.ok_or(Error::<T>::EstateStakingInfoNotFound)?;
 
@@ -1026,12 +956,6 @@ pub mod pallet {
 
 			// Update staked information for contract in current round
 			EstateRoundStake::<T>::insert(estate_id.clone(), current_staking_round.current, estate_stake_per_round);
-
-			// // <EstateStake<T>>::insert(estate_id, &who, total);
-
-			// // Update TotalStake
-			// let new_total_staked = <TotalStake<T>>::get().saturating_add(more);
-			// <TotalStake<T>>::put(new_total_staked);
 
 			Self::deposit_event(Event::EstateStakeIncreased(who, estate_id, more));
 

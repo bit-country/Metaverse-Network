@@ -258,7 +258,7 @@ fn stake_should_work() {
 		assert_eq!(MetaverseModule::staking_info(ALICE), 100000);
 
 		let current_staking_round: RoundInfo<BlockNumber> = MetaverseModule::staking_round();
-		let mut metaverse_stake_per_round: MetaverseStakingPoints<AccountId, Balance> =
+		let mut metaverse_stake_per_round: StakingPoints<AccountId, Balance> =
 			MetaverseModule::get_metaverse_stake_per_round(METAVERSE_ID, current_staking_round.current).unwrap();
 
 		assert_eq!(
@@ -340,7 +340,7 @@ fn unstake_should_work() {
 		assert_eq!(MetaverseModule::staking_info(ALICE), 9900);
 
 		let current_staking_round: RoundInfo<BlockNumber> = MetaverseModule::staking_round();
-		let mut metaverse_stake_per_round: MetaverseStakingPoints<AccountId, Balance> =
+		let mut metaverse_stake_per_round: StakingPoints<AccountId, Balance> =
 			MetaverseModule::get_metaverse_stake_per_round(METAVERSE_ID, current_staking_round.current).unwrap();
 
 		assert_eq!(*(metaverse_stake_per_round.stakers.entry(ALICE).or_default()), 9900u64);

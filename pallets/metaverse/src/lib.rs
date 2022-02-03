@@ -36,7 +36,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use bc_primitives::*;
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
 pub use pallet::*;
-use primitives::{FungibleTokenId, MetaverseId, RoundIndex};
+use primitives::{staking::*, FungibleTokenId, MetaverseId, RoundIndex};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -50,28 +50,7 @@ mod tests;
 
 pub mod weights;
 
-/// A record for total rewards and total amount staked for an era
-#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct MetaverseStakingSnapshot<Balance> {
-	/// Total amount of rewards for a staking round
-	rewards: Balance,
-	/// Total staked amount for a staking round
-	staked: Balance,
-}
-
 const LOCK_STAKING: LockIdentifier = *b"stakelok";
-
-/// Storing the reward detail of metaverse that store the list of stakers for each metaverse
-/// This will be used to reward metaverse owner and the stakers.
-#[derive(Clone, PartialEq, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
-pub struct MetaverseStakingPoints<AccountId: Ord, Balance: HasCompact> {
-	/// Total staked amount.
-	total: Balance,
-	/// The map of stakers and the amount they staked.
-	stakers: BTreeMap<AccountId, Balance>,
-	/// Accrued and claimed rewards on this metaverse for both metaverse owner and stakers
-	claimed_rewards: Balance,
-}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -159,7 +138,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse_staking_snapshots)]
 	pub(crate) type MetaverseStakingSnapshots<T: Config> =
-		StorageMap<_, Blake2_128Concat, RoundIndex, MetaverseStakingSnapshot<BalanceOf<T>>>;
+		StorageMap<_, Blake2_128Concat, RoundIndex, StakingSnapshot<BalanceOf<T>>>;
 
 	/// Stores amount staked and stakers for individual metaverse per staking round
 	#[pallet::storage]
@@ -170,7 +149,7 @@ pub mod pallet {
 		MetaverseId,
 		Twox64Concat,
 		RoundIndex,
-		MetaverseStakingPoints<T::AccountId, BalanceOf<T>>,
+		StakingPoints<T::AccountId, BalanceOf<T>>,
 	>;
 
 	/// Keep track of staking info of individual staker
@@ -411,12 +390,11 @@ pub mod pallet {
 			if !MetaverseRoundStake::<T>::contains_key(&metaverse_id, current_staking_round.current) {
 				let stakers: BTreeMap<T::AccountId, BalanceOf<T>> = BTreeMap::new();
 
-				let new_metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
-					MetaverseStakingPoints {
-						total: 0u32.into(),
-						claimed_rewards: 0u32.into(),
-						stakers: stakers,
-					};
+				let new_metaverse_stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> = StakingPoints {
+					total: 0u32.into(),
+					claimed_rewards: 0u32.into(),
+					stakers: stakers,
+				};
 
 				// Update staked information for contract in current round
 				MetaverseRoundStake::<T>::insert(
@@ -427,7 +405,7 @@ pub mod pallet {
 			}
 
 			// Get staking info of metaverse and current round
-			let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
+			let mut metaverse_stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> =
 				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current)
 					.ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
 
@@ -493,7 +471,7 @@ pub mod pallet {
 			let current_staking_round: RoundInfo<T::BlockNumber> = Self::staking_round();
 
 			// Get staking info of metaverse and current round
-			let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
+			let mut metaverse_stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> =
 				Self::get_metaverse_stake_per_round(&metaverse_id, current_staking_round.current)
 					.ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
 
@@ -594,7 +572,7 @@ impl<T: Config> Pallet<T> {
 		total_reward: BalanceOf<T>,
 	) -> DispatchResultWithPostInfo {
 		// Get staking info of metaverse and current round
-		let mut metaverse_stake_per_round: MetaverseStakingPoints<T::AccountId, BalanceOf<T>> =
+		let mut metaverse_stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> =
 			Self::get_metaverse_stake_per_round(&metaverse_id, round)
 				.ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
 
@@ -608,7 +586,7 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::MetaverseHasNoStake
 		);
 
-		let metaverse_staking_snapshot_by_round: MetaverseStakingSnapshot<BalanceOf<T>> =
+		let metaverse_staking_snapshot_by_round: StakingSnapshot<BalanceOf<T>> =
 			Self::get_metaverse_staking_snapshots(round).ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
 
 		for (staker, staked_amount) in &metaverse_stake_per_round.stakers {
