@@ -131,6 +131,15 @@ pub mod pallet {
 		claimed_rewards: Balance,
 	}
 
+	/// A record for total rewards and total amount staked for an era
+	#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+	pub struct StakingSnapshot<Balance> {
+		/// Total amount of rewards for a staking round
+		rewards: Balance,
+		/// Total staked amount for a staking round
+		staked: Balance,
+	}
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
@@ -254,7 +263,7 @@ pub mod pallet {
 	#[pallet::getter(fn staking_info)]
 	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
-	/// Stores amount staked and stakers for individual metaverse per staking round
+	/// Stores amount staked and stakers for individual estate per staking round
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_stake_per_round)]
 	pub(crate) type EstateRoundStake<T: Config> = StorageDoubleMap<
@@ -265,6 +274,12 @@ pub mod pallet {
 		RoundIndex,
 		EstateStakingPoints<T::AccountId, BalanceOf<T>>,
 	>;
+
+	/// Estate staking snapshot per staking round
+	#[pallet::storage]
+	#[pallet::getter(fn get_estate_staking_snapshots)]
+	pub(crate) type EstateStakingSnapshots<T: Config> =
+		StorageMap<_, Blake2_128Concat, RoundIndex, StakingSnapshot<BalanceOf<T>>>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -389,6 +404,7 @@ pub mod pallet {
 		EstateStakeAlreadyLeft,
 		AccountHasNoStake,
 		InsufficientBalanceToUnstake,
+		EstateStakingInfoNotFound,
 	}
 
 	#[pallet::call]
@@ -960,19 +976,62 @@ pub mod pallet {
 			// Reserve balance
 			T::Currency::reserve(&who, more)?;
 
+			// Get the latest round staking point info or create it if metaverse hasn't been staked yet so far.
+			let current_staking_round: RoundInfo<T::BlockNumber> = Self::round();
+
+			if !EstateRoundStake::<T>::contains_key(&estate_id, current_staking_round.current) {
+				let stakers: BTreeMap<T::AccountId, BalanceOf<T>> = BTreeMap::new();
+
+				let new_estate_stake_per_round: EstateStakingPoints<T::AccountId, BalanceOf<T>> = EstateStakingPoints {
+					total: 0u32.into(),
+					claimed_rewards: 0u32.into(),
+					stakers: stakers,
+				};
+
+				// Update staked information for contract in current round
+				EstateRoundStake::<T>::insert(
+					estate_id.clone(),
+					current_staking_round.current,
+					new_estate_stake_per_round,
+				);
+			}
+
+			// Get staking info of metaverse and current round
+			let mut estate_stake_per_round: EstateStakingPoints<T::AccountId, BalanceOf<T>> =
+				Self::get_estate_stake_per_round(&estate_id, current_staking_round.current)
+					.ok_or(Error::<T>::EstateStakingInfoNotFound)?;
+
 			// Get the staking ledger or create an entry if it doesn't exist.
 			let mut staking_info = Self::staking_info(&who);
 			// Increment ledger and total staker value for a metaverse.
 			staking_info = staking_info.checked_add(&more).ok_or(ArithmeticError::Overflow)?;
 
+			let individual_staker = estate_stake_per_round.stakers.entry(who.clone()).or_default();
+			*individual_staker = individual_staker.checked_add(&more).ok_or(ArithmeticError::Overflow)?;
+
+			ensure!(
+				*individual_staker >= T::MinimumStake::get(),
+				Error::<T>::BelowMinimumStake,
+			);
+
+			// Update staking snapshot
+			EstateStakingSnapshots::<T>::mutate(current_staking_round.current, |may_be_staking_snapshot| {
+				if let Some(snapshot) = may_be_staking_snapshot {
+					snapshot.staked = snapshot.staked.saturating_add(more)
+				}
+			});
+
 			// Update staking info of origin
 			Self::update_staking_info(&who, staking_info);
 
-			<EstateStake<T>>::insert(estate_id, &who, total);
+			// Update staked information for contract in current round
+			EstateRoundStake::<T>::insert(estate_id.clone(), current_staking_round.current, estate_stake_per_round);
 
-			// Update TotalStake
-			let new_total_staked = <TotalStake<T>>::get().saturating_add(more);
-			<TotalStake<T>>::put(new_total_staked);
+			// // <EstateStake<T>>::insert(estate_id, &who, total);
+
+			// // Update TotalStake
+			// let new_total_staked = <TotalStake<T>>::get().saturating_add(more);
+			// <TotalStake<T>>::put(new_total_staked);
 
 			Self::deposit_event(Event::EstateStakeIncreased(who, estate_id, more));
 
