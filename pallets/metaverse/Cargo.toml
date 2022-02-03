@@ -39,6 +39,7 @@ bc-primitives = { path = "../../traits/bc-primitives", default-features = false 
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
+currencies = { package = "currencies", path = "../currencies", default-features = false }
 
 [dependencies.nft]
 default-features = false
@@ -54,18 +55,19 @@ runtime-benchmarks = [
 ]
 default = ['std']
 std = [
-    'serde',
-    'codec/std',
-    'sp-runtime/std',
-    'frame-support/std',
-    'frame-system/std',
-    'sp-io/std',
-    'sp-core/std',
+    "serde",
+    "codec/std",
+    "sp-runtime/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-io/std",
+    "sp-core/std",
     "sp-std/std",
     "orml-traits/std",
     "orml-tokens/std",
-    'nft/std',
-    'primitives/std',
-    'scale-info/std',
-    'frame-benchmarking/std'
+    "nft/std",
+    "primitives/std",
+    "scale-info/std",
+    "frame-benchmarking/std",
+    "currencies/std"
 ]

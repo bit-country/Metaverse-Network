@@ -995,6 +995,7 @@ parameter_types! {
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
 	pub MinContribution: Balance = 1 * DOLLARS;
+	pub MaxNumberOfStakersPerMetaverse: u32 = 512;
 }
 
 impl metaverse::Config for Runtime {
@@ -1005,6 +1006,10 @@ impl metaverse::Config for Runtime {
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureRootOrMetaverseTreasury;
 	type WeightInfo = weights::module_metaverse::WeightInfo<Runtime>;
+	type MetaverseRegistrationDeposit = MinContribution;
+	type MinStakingAmount = MinContribution;
+	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
+	type MultiCurrency = Currencies;
 }
 
 //parameter_types! {

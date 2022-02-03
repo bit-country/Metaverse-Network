@@ -33,6 +33,7 @@ use sp_runtime::{
 pub mod continuum;
 pub mod dex;
 pub mod estate;
+pub mod staking;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -97,6 +98,8 @@ pub type EstateId = u64;
 pub type TokenId = u64;
 /// Undeployed LandBlock Id type
 pub type UndeployedLandBlockId = u128;
+/// Staking Round index
+pub type RoundIndex = u32;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
