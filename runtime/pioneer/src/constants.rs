@@ -9,6 +9,7 @@ pub mod currency {
 	pub const MILLICENTS: Balance = CENTS / 1000;
 	/// 10_000_000_000_000
 	pub const MICROCENTS: Balance = MILLICENTS / 1000;
+
 	/// 10_000_000_000
 
 	pub const fn deposit(items: u32, bytes: u32) -> Balance {
@@ -23,7 +24,7 @@ pub mod time {
 
 	use primitives::{BlockNumber, Moment};
 
-	use crate::{Balance, Perbill};
+	use crate::{Balance, Perbill, CENTS};
 
 	/// This determines the average expected block time that we are targeting.
 	/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
@@ -42,13 +43,8 @@ pub mod time {
 	pub const HOURS: BlockNumber = MINUTES * 60;
 	pub const DAYS: BlockNumber = HOURS * 24;
 
-	// Unit = the base number of indivisible units for balances
-	pub const UNIT: Balance = 1_000_000_000_000;
-	pub const MILLIUNIT: Balance = 1_000_000_000;
-	pub const MICROUNIT: Balance = 1_000_000;
-
 	/// The existential deposit. Set to 1/10 of the Rococo Relay Chain.
-	pub const EXISTENTIAL_DEPOSIT: Balance = MILLIUNIT;
+	pub const EXISTENTIAL_DEPOSIT: Balance = 10 * CENTS;
 
 	// 1 in 4 blocks (on average, not counting collisions) will be primary babe blocks.
 	pub const PRIMARY_PROBABILITY: (u64, u64) = (1, 4);
