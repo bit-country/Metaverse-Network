@@ -46,7 +46,7 @@ use auction_manager::SwapManager;
 use bc_primitives::*;
 pub use pallet::*;
 use primitives::{
-	estate::Estate, Balance, CurrencyId, FungibleTokenId, IssuanceRoundIndex, MetaverseId, TokenId, VestingSchedule,
+	estate::Estate, Balance, CurrencyId, FungibleTokenId, MetaverseId, RoundIndex, TokenId, VestingSchedule,
 };
 
 #[cfg(test)]
@@ -92,7 +92,7 @@ pub mod pallet {
 	/// The current round index and transition information
 	pub struct IssuanceRoundInfo<BlockNumber> {
 		/// Current round index
-		pub current: IssuanceRoundIndex,
+		pub current: RoundIndex,
 		/// The first block of the current round
 		pub first: BlockNumber,
 		/// The length of the current round in number of blocks
@@ -102,7 +102,7 @@ pub mod pallet {
 	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd>
 		IssuanceRoundInfo<B>
 	{
-		pub fn new(current: IssuanceRoundIndex, first: B, length: u32) -> IssuanceRoundInfo<B> {
+		pub fn new(current: RoundIndex, first: B, length: u32) -> IssuanceRoundInfo<B> {
 			IssuanceRoundInfo { current, first, length }
 		}
 		/// Check if the round should be updated
@@ -170,7 +170,7 @@ pub mod pallet {
 		/// Remove mining origin [who]
 		RemoveMiningOrigin(T::AccountId),
 		/// New minting round [start, round]
-		NewMintingRound(T::BlockNumber, IssuanceRoundIndex),
+		NewMintingRound(T::BlockNumber, RoundIndex),
 	}
 
 	#[pallet::error]

@@ -34,7 +34,7 @@ use auction_manager::{Auction, CheckAuctionItemHandler};
 use bc_primitives::*;
 pub use pallet::*;
 use primitives::{
-	estate::Estate, EstateId, IssuanceRoundIndex, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
+	estate::Estate, EstateId, ItemId, MetaverseId, RoundIndex, UndeployedLandBlock, UndeployedLandBlockId,
 	UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
@@ -1594,7 +1594,7 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 impl<T: Config> LandStakingRewardTrait<BalanceOf<T>> for Pallet<T> {
 	/// Pay land staker handler that will reward BIT to stakers and only triggered by mining
 	/// controller
-	fn payout_land_staker(payout_round: IssuanceRoundIndex, total_reward: BalanceOf<T>) -> DispatchResult {
+	fn payout_land_staker(payout_round: RoundIndex, total_reward: BalanceOf<T>) -> DispatchResult {
 		// issue BIT for rewards distribution
 		let total_staked = <Staked<T>>::get(payout_round);
 		let mut left_issuance = total_reward;

@@ -947,13 +947,15 @@ parameter_types! {
 	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 }
 
-impl mining::Config for Runtime {
-	type Event = Event;
-	type MiningCurrency = Currencies;
-	type BitMiningTreasury = BitMiningTreasury;
-	type BitMiningResourceId = MiningResourceCurrencyId;
-	type AdminOrigin = EnsureRootOrMetaverseTreasury;
-}
+// impl mining::Config for Runtime {
+// 	type Event = Event;
+// 	type MiningCurrency = Currencies;
+// 	type BitMiningTreasury = BitMiningTreasury;
+// 	type BitMiningResourceId = MiningResourceCurrencyId;
+// 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
+// 	type EstateHandler = Estate;
+// 	type EstateStakingHandler = Estate;
+// }
 
 parameter_types! {
 	pub MetadataDepositPerByte: Balance = 1 * CENTS;
@@ -1155,7 +1157,7 @@ construct_runtime!(
 		SocialToken: tokenization:: {Pallet, Call ,Storage, Event<T>} = 51,
 		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
-		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
+		// Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
 
 //		OrmlNFT: orml_nft::{Pallet, Storage} = 41,
 //		Nft: nft::{Pallet, Storage, Event<T>} = 42,

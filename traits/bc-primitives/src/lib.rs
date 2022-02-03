@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::{DispatchError, DispatchResult, RuntimeDebug};
 use sp_std::vec::Vec;
 
-use primitives::{FungibleTokenId, IssuanceRoundIndex, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType};
+use primitives::{FungibleTokenId, MetaverseId, RoundIndex, UndeployedLandBlockId, UndeployedLandBlockType};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseAssetData {
@@ -147,5 +147,5 @@ impl MiningResourceRateInfo {
 
 pub trait LandStakingRewardTrait<Balance> {
 	/// Payout staker
-	fn payout_land_staker(payout_round: IssuanceRoundIndex, total_issuance: Balance) -> DispatchResult;
+	fn payout_land_staker(payout_round: RoundIndex, total_issuance: Balance) -> DispatchResult;
 }
