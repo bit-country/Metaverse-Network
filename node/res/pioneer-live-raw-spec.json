@@ -6,7 +6,7 @@
     "/ip4/65.108.71.225/tcp/39531/p2p/12D3KooWND1NpsiFJGL9FBuZQyQgwMXsCtXBbE6XVi4jFF7dDHM6"
   ],
   "telemetryEndpoints": null,
-  "protocolId": null,
+  "protocolId": "pioneer",
   "properties": {
     "ss58Format": 268,
     "tokenDecimals": 18,
