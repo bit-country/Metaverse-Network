@@ -3,7 +3,7 @@
   "id": "pioneer-live",
   "chainType": "Live",
   "bootNodes": [
-    "/ip4/13.237.164.216/tcp/40333/p2p/12D3KooWJeQZNYWKgyF94YUFbB5u5LBWf9PnwWmC2jSFSYcS5kq3"
+    "/ip4/65.108.71.225/tcp/39531/p2p/12D3KooWND1NpsiFJGL9FBuZQyQgwMXsCtXBbE6XVi4jFF7dDHM6"
   ],
   "telemetryEndpoints": null,
   "protocolId": null,
