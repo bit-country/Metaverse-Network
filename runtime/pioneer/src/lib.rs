@@ -1030,6 +1030,7 @@ impl metaverse::Config for Runtime {
 //    type AuctionHandler = Auction;
 //    type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
 //    type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
+// 	  type MultiCurrency = Currencies;
 //}
 //
 //parameter_types! {

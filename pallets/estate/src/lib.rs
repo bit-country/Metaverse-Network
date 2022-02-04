@@ -23,6 +23,7 @@ use frame_support::traits::{Currency, Imbalance, LockIdentifier, LockableCurrenc
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
+use orml_traits::MultiCurrency;
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating, Zero},
@@ -34,8 +35,8 @@ use auction_manager::{Auction, CheckAuctionItemHandler};
 use bc_primitives::*;
 pub use pallet::*;
 use primitives::{
-	estate::Estate, staking::*, EstateId, ItemId, MetaverseId, RoundIndex, UndeployedLandBlock, UndeployedLandBlockId,
-	UndeployedLandBlockType,
+	estate::Estate, staking::*, EstateId, FungibleTokenId, ItemId, MetaverseId, RoundIndex, UndeployedLandBlock,
+	UndeployedLandBlockId, UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -63,6 +64,7 @@ pub mod pallet {
 	use primitives::{Balance, UndeployedLandBlockId};
 
 	use crate::rate::{round_issuance_range, MintingRateInfo};
+	use orml_traits::MultiCurrencyExtended;
 
 	use super::*;
 
@@ -82,6 +84,12 @@ pub mod pallet {
 		/// The currency type
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
 			+ ReservableCurrency<Self::AccountId>;
+		/// The multicurrencies type
+		type MultiCurrency: MultiCurrencyExtended<
+			Self::AccountId,
+			CurrencyId = FungibleTokenId,
+			Balance = BalanceOf<Self>,
+		>;
 		/// Minimum Land Price
 		type MinimumLandPrice: Get<BalanceOf<Self>>;
 		/// Council origin which allows to update max bound
@@ -170,9 +178,9 @@ pub mod pallet {
 	pub(crate) type EstateRoundStake<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		EstateId,
-		Twox64Concat,
 		RoundIndex,
+		Twox64Concat,
+		EstateId,
 		StakingPoints<T::AccountId, BalanceOf<T>>,
 	>;
 
@@ -265,7 +273,7 @@ pub mod pallet {
 		/// Owner Account Id, Estate Id
 		EstateStakeLeft(T::AccountId, EstateId),
 		/// Account Id, Balance
-		LandStakingRewarded(T::AccountId, BalanceOf<T>),
+		LandStakingRewarded(T::AccountId, EstateId, RoundIndex, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -305,6 +313,7 @@ pub mod pallet {
 		EstateStakeAlreadyLeft,
 		AccountHasNoStake,
 		InsufficientBalanceToUnstake,
+		NotEnoughBalanceToStake,
 		StakingInfoNotFound,
 	}
 
@@ -857,7 +866,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::bond_more())]
-		pub fn stake(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
+		pub fn stake(origin: OriginFor<T>, estate_id: EstateId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
@@ -868,49 +877,51 @@ pub mod pallet {
 				Error::<T>::NoPermission
 			);
 
-			// Update EstateStake
-			// let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
-			let mut staked_balance = more;
-			// let mut staked_balance: Balance = 0u128.into();
-			let total = staked_balance.checked_add(&more).ok_or(Error::<T>::Overflow)?;
+			// Get the staking ledger or create an entry if it doesn't exist.
+			let mut staking_info = Self::staking_info(&who);
 
-			ensure!(total >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
+			// Ensure that staker has enough balance to stake.
+			let free_balance = T::Currency::free_balance(&who).saturating_sub(T::MinimumStake::get());
 
-			// Reserve balance
-			T::Currency::reserve(&who, more)?;
+			// Remove already locked funds from the free balance
+			let available_balance = free_balance.saturating_sub(staking_info);
+			let stake_amount = value.min(available_balance);
+			ensure!(stake_amount > Zero::zero(), Error::<T>::NotEnoughBalanceToStake);
 
 			// Get the latest round staking point info or create it if metaverse hasn't been staked yet so far.
 			let current_staking_round: RoundInfo<T::BlockNumber> = Self::round();
 
-			if !EstateRoundStake::<T>::contains_key(&estate_id, current_staking_round.current) {
+			if !EstateRoundStake::<T>::contains_key(current_staking_round.current, &estate_id) {
 				let stakers: BTreeMap<T::AccountId, BalanceOf<T>> = BTreeMap::new();
 
 				let new_estate_stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> = StakingPoints {
-					total: more,
+					total: stake_amount,
 					claimed_rewards: 0u32.into(),
 					stakers: stakers,
 				};
 
 				// Update staked information for contract in current round
 				EstateRoundStake::<T>::insert(
-					estate_id.clone(),
 					current_staking_round.current,
+					estate_id.clone(),
 					new_estate_stake_per_round,
 				);
 			}
 
 			// Get staking info of metaverse and current round
 			let mut stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> =
-				Self::get_estate_stake_per_round(&estate_id, current_staking_round.current)
+				Self::get_estate_stake_per_round(current_staking_round.current, &estate_id)
 					.ok_or(Error::<T>::StakingInfoNotFound)?;
 
-			// Get the staking ledger or create an entry if it doesn't exist.
-			let mut staking_info = Self::staking_info(&who);
 			// Increment ledger and total staker value for a metaverse.
-			staking_info = staking_info.checked_add(&more).ok_or(ArithmeticError::Overflow)?;
+			staking_info = staking_info
+				.checked_add(&stake_amount)
+				.ok_or(ArithmeticError::Overflow)?;
 
 			let individual_staker = stake_per_round.stakers.entry(who.clone()).or_default();
-			*individual_staker = individual_staker.checked_add(&more).ok_or(ArithmeticError::Overflow)?;
+			*individual_staker = individual_staker
+				.checked_add(&stake_amount)
+				.ok_or(ArithmeticError::Overflow)?;
 
 			ensure!(
 				*individual_staker >= T::MinimumStake::get(),
@@ -920,7 +931,7 @@ pub mod pallet {
 			// Update staking snapshot
 			EstateStakingSnapshots::<T>::mutate(current_staking_round.current, |may_be_staking_snapshot| {
 				if let Some(snapshot) = may_be_staking_snapshot {
-					snapshot.staked = snapshot.staked.saturating_add(more)
+					snapshot.staked = snapshot.staked.saturating_add(stake_amount)
 				}
 			});
 
@@ -928,10 +939,10 @@ pub mod pallet {
 			Self::update_staking_info(&who, staking_info);
 
 			// Update staked information for contract in current round
-			stake_per_round.total = stake_per_round.total.saturating_add(more);
-			EstateRoundStake::<T>::insert(estate_id.clone(), current_staking_round.current, stake_per_round);
+			stake_per_round.total = stake_per_round.total.saturating_add(stake_amount);
+			EstateRoundStake::<T>::insert(current_staking_round.current, estate_id.clone(), stake_per_round);
 
-			Self::deposit_event(Event::EstateStakeIncreased(who, estate_id, more));
+			Self::deposit_event(Event::EstateStakeIncreased(who, estate_id, stake_amount));
 
 			Ok(().into())
 		}
@@ -940,7 +951,7 @@ pub mod pallet {
 		pub fn unstake_and_withdraw(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
-			less: BalanceOf<T>,
+			value: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -957,34 +968,27 @@ pub mod pallet {
 
 			// Get staking info of estate and current round
 			let mut stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> =
-				Self::get_estate_stake_per_round(&estate_id, current_staking_round.current)
+				Self::get_estate_stake_per_round(current_staking_round.current, &estate_id)
 					.ok_or(Error::<T>::StakingInfoNotFound)?;
 
 			ensure!(stake_per_round.stakers.contains_key(&who), Error::<T>::NoPermission);
 
 			let staked_amount = stake_per_round.stakers[&who];
 
-			// Check stake balance
-			// let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
-			// ensure!(less <= staked_balance, Error::<T>::InsufficientBalanceToUnstake);
+			ensure!(value <= staked_amount, Error::<T>::InsufficientBalanceToUnstake);
 
-			let remaining = staked_amount.checked_sub(&less).ok_or(Error::<T>::Overflow)?;
+			let remaining = staked_amount.checked_sub(&value).ok_or(Error::<T>::Overflow)?;
 			let amount_to_unstake = if remaining < T::MinimumStake::get() {
 				// Remaining amount below minimum, remove all staked amount
 				stake_per_round.stakers.remove(&who);
 				staked_amount
 			} else {
 				stake_per_round.stakers.insert(who.clone(), remaining);
-				less
+				value
 			};
 
 			let staking_info = Self::staking_info(&who);
 			Self::update_staking_info(&who, staking_info.saturating_sub(amount_to_unstake));
-
-			// ensure!(remaining >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
-
-			// Reserve balance
-			T::Currency::unreserve(&who, less);
 
 			// Update total staked value in current round
 			EstateStakingSnapshots::<T>::mutate(current_staking_round.current, |may_be_staking_snapshot| {
@@ -995,7 +999,7 @@ pub mod pallet {
 
 			stake_per_round.total = stake_per_round.total.saturating_sub(amount_to_unstake);
 			// Update staked information for contract in current round
-			EstateRoundStake::<T>::insert(estate_id.clone(), current_staking_round.current, stake_per_round);
+			EstateRoundStake::<T>::insert(current_staking_round.current, estate_id.clone(), stake_per_round);
 
 			Self::deposit_event(Event::EstateStakeDecreased(who, estate_id, amount_to_unstake));
 
@@ -1048,10 +1052,6 @@ pub mod pallet {
 				let total = Self::update_stake_snapshot(round.current);
 
 				<Round<T>>::put(round);
-
-				// <Staked<T>>::insert(round.current, <TotalStake<T>>::get());
-
-				Self::deposit_event(Event::StakeSnapshotUpdated(round.current, total));
 
 				Self::do_issue_undeployed_land_blocks(
 					&land_register_treasury,
@@ -1510,27 +1510,30 @@ impl<T: Config> LandStakingRewardTrait<BalanceOf<T>> for Pallet<T> {
 	/// Pay land staker handler that will reward BIT to stakers and only triggered by mining
 	/// controller
 	fn payout_land_staker(payout_round: RoundIndex, total_reward: BalanceOf<T>) -> DispatchResult {
-		// issue BIT for rewards distribution
-		// let total_staked = <Staked<T>>::get(payout_round);
-		let mut left_issuance = total_reward;
+		// Check staking snapshot
+		Self::get_estate_staking_snapshots(payout_round).ok_or(Error::<T>::StakingInfoNotFound)?;
 
-		// a local fn to transfer rewards to the account specified
-		let mint = |amt: BalanceOf<T>, to: T::AccountId| {
-			if let Ok(imb) = T::Currency::deposit_into_existing(&to, amt) {
-				Self::deposit_event(Event::LandStakingRewarded(to.clone(), imb.peek()));
+		// Pay stakers based on EstateRoundStake
+		for (estate_id, mut stake_per_round) in <EstateRoundStake<T>>::drain_prefix(payout_round) {
+			if !stake_per_round.stakers.is_empty() && !stake_per_round.claimed_rewards.is_zero() {
+				for (staker, staked_amount) in &stake_per_round.stakers {
+					let ratio = Perbill::from_rational(*staked_amount, stake_per_round.total);
+					let staking_reward = ratio * total_reward;
+
+					Self::deposit_event(Event::<T>::LandStakingRewarded(
+						staker.clone(),
+						estate_id.clone(),
+						payout_round,
+						staking_reward,
+					));
+
+					T::MultiCurrency::deposit(FungibleTokenId::MiningResource(0), staker, staking_reward);
+				}
+
+				stake_per_round.claimed_rewards = total_reward;
+				<EstateRoundStake<T>>::insert(payout_round, &estate_id, stake_per_round);
 			}
-		};
-
-		// for (estate_id, _stake_snapshot) in <AtStake<T>>::drain_prefix(payout_round) {
-		// 	// Remove snapshot afterward
-		// 	let stake = <AtStake<T>>::take(payout_round, &estate_id);
-		// 	for Bond { staker: owner, amount } in stake.stakers {
-		// 		let amount_due = Perbill::from_rational(amount, total_staked);
-		// 		let amount_due_percent = amount_due / 100;
-		// 		let mut reward_due = amount_due_percent * left_issuance;
-		// 		mint(reward_due, owner);
-		// 	}
-		// }
+		}
 
 		Ok(())
 	}

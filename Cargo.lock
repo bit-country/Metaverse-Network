@@ -5172,6 +5172,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "orml-currencies",
+ "orml-traits",
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
