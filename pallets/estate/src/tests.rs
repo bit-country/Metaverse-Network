@@ -1966,11 +1966,30 @@ fn stake_should_work() {
 			))
 		);
 
-		assert_eq!(Balances::reserved_balance(BENEFICIARY_ID), BOND_AMOUNT_1);
+		assert_eq!(EstateModule::staking_info(BENEFICIARY_ID), BOND_AMOUNT_1);
 
-		// assert_eq!(EstateModule::estate_stake(estate_id, BENEFICIARY_ID), BOND_AMOUNT_1);
+		let current_staking_round: RoundInfo<BlockNumber> = EstateModule::round();
 
-		// assert_eq!(EstateModule::total_stake(), BOND_AMOUNT_1);
+		let mut stake_per_round: StakingPoints<AccountId, Balance> =
+			EstateModule::get_estate_stake_per_round(current_staking_round.current, estate_id).unwrap();
+		assert_eq!(
+			*(stake_per_round.stakers.entry(BENEFICIARY_ID).or_default()),
+			BOND_AMOUNT_1
+		);
+
+		let stake_snapshot = EstateModule::get_estate_staking_snapshots(current_staking_round.current);
+
+		// TODO: need to check balance/locked balance
+		// TODO: need to check value in snapshot
+		// match stake_snapshot {
+		// 	Some(a) => {
+		// 		assert_eq!(a.staked, BOND_AMOUNT_1);
+		// 	}
+		// 	_ => {
+		// 		// Should fail test
+		// 		assert_eq!(0, 1);
+		// 	}
+		// }
 	});
 }
 
@@ -2001,11 +2020,18 @@ fn stake_should_work_with_more_than_one_operation() {
 		));
 
 		let total_bond = BOND_AMOUNT_1 + BOND_AMOUNT_2;
-		assert_eq!(Balances::reserved_balance(BENEFICIARY_ID), total_bond);
 
-		// assert_eq!(EstateModule::estate_stake(estate_id, BENEFICIARY_ID), total_bond);
+		let current_staking_round: RoundInfo<BlockNumber> = EstateModule::round();
 
-		// assert_eq!(EstateModule::total_stake(), total_bond);
+		let mut stake_per_round: StakingPoints<AccountId, Balance> =
+			EstateModule::get_estate_stake_per_round(current_staking_round.current, estate_id).unwrap();
+		assert_eq!(
+			*(stake_per_round.stakers.entry(BENEFICIARY_ID).or_default()),
+			total_bond
+		);
+
+		// TODO: need to check balance/locked balance
+		// TODO: need to check value in snapshot
 	});
 }
 
@@ -2053,7 +2079,28 @@ fn unstake_should_reject_no_permission() {
 }
 
 #[test]
-fn unstake_should_reject_below_minimum() {
+fn unstake_should_reject_stake_info_not_found() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_err!(
+			EstateModule::unstake_and_withdraw(Origin::signed(BENEFICIARY_ID), estate_id, BOND_LESS_AMOUNT_1),
+			Error::<Runtime>::StakingInfoNotFound
+		);
+	});
+}
+
+#[test]
+fn unstake_should_reject_insufficient_balance() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
@@ -2072,10 +2119,58 @@ fn unstake_should_reject_below_minimum() {
 			BOND_AMOUNT_1
 		));
 
-		assert_err!(
-			EstateModule::unstake_and_withdraw(Origin::signed(BENEFICIARY_ID), estate_id, BOND_AMOUNT_1),
-			Error::<Runtime>::BelowMinimumStake
+		assert_noop!(
+			EstateModule::unstake_and_withdraw(Origin::signed(BENEFICIARY_ID), estate_id, BOND_AMOUNT_2),
+			Error::<Runtime>::InsufficientBalanceToUnstake
 		);
+	});
+}
+
+#[test]
+fn unstake_should_work_with_min_amount() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+
+		assert_ok!(EstateModule::stake(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			BOND_AMOUNT_1
+		));
+
+		let unstake_amount = BOND_AMOUNT_1 - BOND_AMOUNT_BELOW_MINIMUM - 10;
+
+		assert_ok!(EstateModule::unstake_and_withdraw(
+			Origin::signed(BENEFICIARY_ID),
+			estate_id,
+			unstake_amount
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateStakeDecreased(
+				BENEFICIARY_ID,
+				estate_id,
+				BOND_AMOUNT_1
+			))
+		);
+
+		let current_staking_round: RoundInfo<BlockNumber> = EstateModule::round();
+
+		let mut stake_per_round: StakingPoints<AccountId, Balance> =
+			EstateModule::get_estate_stake_per_round(current_staking_round.current, estate_id).unwrap();
+		assert_eq!(*(stake_per_round.stakers.entry(BENEFICIARY_ID).or_default()), 0);
+
+		// TODO: need to check balance/locked balance
+		// TODO: need to check value in snapshot
 	});
 }
 
@@ -2114,10 +2209,17 @@ fn unstake_should_work() {
 		);
 
 		let remaining_bond = BOND_AMOUNT_2 - BOND_AMOUNT_1;
-		assert_eq!(Balances::reserved_balance(BENEFICIARY_ID), remaining_bond);
 
-		// assert_eq!(EstateModule::estate_stake(estate_id, BENEFICIARY_ID), remaining_bond);
+		let current_staking_round: RoundInfo<BlockNumber> = EstateModule::round();
 
-		// assert_eq!(EstateModule::total_stake(), remaining_bond);
+		let mut stake_per_round: StakingPoints<AccountId, Balance> =
+			EstateModule::get_estate_stake_per_round(current_staking_round.current, estate_id).unwrap();
+		assert_eq!(
+			*(stake_per_round.stakers.entry(BENEFICIARY_ID).or_default()),
+			remaining_bond
+		);
+
+		// TODO: need to check balance/locked balance
+		// TODO: need to check value in snapshot
 	});
 }
