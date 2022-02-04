@@ -1,12 +1,13 @@
 #![cfg(test)]
 
+use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
+use orml_traits::parameter_type_with_key;
+use primitives::{Amount, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
-
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use primitives::FungibleTokenId;
 
 use crate as estate;
 
@@ -74,6 +75,43 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+}
+
+parameter_types! {
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
+}
+
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
+		Default::default()
+	};
+}
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = FungibleTokenId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = Nothing;
+}
+
+pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
+parameter_types! {
+	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+	// pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl currencies::Config for Runtime {
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 parameter_types! {
@@ -226,6 +264,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
+	type MultiCurrency = Currencies;
 }
 
 construct_runtime!(
@@ -236,7 +275,9 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Estate: estate:: {Pallet, Call, Storage, Event<T>}
+		Estate: estate:: {Pallet, Call, Storage, Event<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 	}
 );
 

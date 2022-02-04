@@ -32,6 +32,8 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch =
 # Orml packages
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
+currencies = { package = "currencies", path = "../currencies", default-features = false }
 
 [dependencies.auction-manager]
 default-features = false
@@ -61,4 +63,6 @@ std = [
     'auction-manager/std',
     'frame-benchmarking/std',
     "orml-traits/std",
+    "orml-tokens/std",
+    "currencies/std"
 ]
