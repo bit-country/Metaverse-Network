@@ -865,7 +865,7 @@ pub mod pallet {
 			})
 		}
 
-		#[pallet::weight(T::WeightInfo::bond_more())]
+		#[pallet::weight(T::WeightInfo::stake())]
 		pub fn stake(origin: OriginFor<T>, estate_id: EstateId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -947,7 +947,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::WeightInfo::bond_less())]
+		#[pallet::weight(T::WeightInfo::unstake_and_withdraw())]
 		pub fn unstake_and_withdraw(
 			origin: OriginFor<T>,
 			estate_id: EstateId,

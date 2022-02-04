@@ -415,39 +415,31 @@ benchmarks! {
 		EstateModule::<T>::on_initialize(6u32.into());
 	}
 
-	// bond_more
-	bond_more {
+	// stake
+	stake {
 		let caller = funded_account::<T>("caller", 10000);
+
+		let amount = <<T as Config>::MinimumStake as Get<BalanceOf<T>>>::get();
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-	}: _(RawOrigin::Signed(caller.clone()), 0, 100u32.into())
+	}: _(RawOrigin::Signed(caller.clone()), 0, (amount+1u32.into()).into())
 	verify {
-		assert_eq!(crate::Pallet::<T>::estate_stake(0, caller.clone()), 100u32.into())
+		assert_eq!(crate::Pallet::<T>::staking_info(caller.clone()), (amount+1u32.into()).into())
 	}
 
-	// bond_less
-	bond_less {
+	// unstake_and_withdraw {
+	unstake_and_withdraw {
 		let caller = funded_account::<T>("caller", 10000);
+
+		let amount = <<T as Config>::MinimumStake as Get<BalanceOf<T>>>::get();
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, 100u32.into());
-	}: _(RawOrigin::Signed(caller.clone()), 0, 10u32.into())
+		crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), 0, (amount+1u32.into()).into());
+	}: _(RawOrigin::Signed(caller.clone()), 0, 1u32.into())
 	verify {
-		assert_eq!(crate::Pallet::<T>::estate_stake(0, caller.clone()), 90u32.into())
-	}
-
-	// leave_staking
-	leave_staking {
-		let caller = funded_account::<T>("caller", 10000);
-
-		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
-		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, 100u32.into());
-	}: _(RawOrigin::Signed(caller.clone()), 0)
-	verify {
-		assert_eq!(crate::Pallet::<T>::exit_queue(caller.clone(), 0), Some(()))
+		assert_eq!(crate::Pallet::<T>::staking_info(caller.clone()), amount)
 	}
 }
 

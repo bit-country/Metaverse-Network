@@ -1979,18 +1979,17 @@ fn stake_should_work() {
 
 		// TODO: need to check balance/locked balance
 		// TODO: need to check value in snapshot
-		// let stake_snapshot =
-		// EstateModule::get_estate_staking_snapshots(current_staking_round.current);
-		//
-		// match stake_snapshot {
-		// 	Some(a) => {
-		// 		assert_eq!(a.staked, BOND_AMOUNT_1);
-		// 	}
-		// 	_ => {
-		// 		// Should fail test
-		// 		assert_eq!(0, 1);
-		// 	}
-		// }
+		let stake_snapshot = EstateModule::get_estate_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, BOND_AMOUNT_1);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	});
 }
 
