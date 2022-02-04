@@ -1977,10 +1977,11 @@ fn stake_should_work() {
 			BOND_AMOUNT_1
 		);
 
-		let stake_snapshot = EstateModule::get_estate_staking_snapshots(current_staking_round.current);
-
 		// TODO: need to check balance/locked balance
 		// TODO: need to check value in snapshot
+		// let stake_snapshot =
+		// EstateModule::get_estate_staking_snapshots(current_staking_round.current);
+		//
 		// match stake_snapshot {
 		// 	Some(a) => {
 		// 		assert_eq!(a.staked, BOND_AMOUNT_1);
@@ -2029,6 +2030,7 @@ fn stake_should_work_with_more_than_one_operation() {
 			*(stake_per_round.stakers.entry(BENEFICIARY_ID).or_default()),
 			total_bond
 		);
+		assert_eq!(stake_per_round.total, total_bond);
 
 		// TODO: need to check balance/locked balance
 		// TODO: need to check value in snapshot
@@ -2168,6 +2170,7 @@ fn unstake_should_work_with_min_amount() {
 		let mut stake_per_round: StakingPoints<AccountId, Balance> =
 			EstateModule::get_estate_stake_per_round(current_staking_round.current, estate_id).unwrap();
 		assert_eq!(*(stake_per_round.stakers.entry(BENEFICIARY_ID).or_default()), 0);
+		assert_eq!(stake_per_round.total, 0);
 
 		// TODO: need to check balance/locked balance
 		// TODO: need to check value in snapshot
@@ -2218,6 +2221,8 @@ fn unstake_should_work() {
 			*(stake_per_round.stakers.entry(BENEFICIARY_ID).or_default()),
 			remaining_bond
 		);
+
+		assert_eq!(stake_per_round.total, remaining_bond);
 
 		// TODO: need to check balance/locked balance
 		// TODO: need to check value in snapshot

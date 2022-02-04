@@ -895,7 +895,7 @@ pub mod pallet {
 				let stakers: BTreeMap<T::AccountId, BalanceOf<T>> = BTreeMap::new();
 
 				let new_estate_stake_per_round: StakingPoints<T::AccountId, BalanceOf<T>> = StakingPoints {
-					total: stake_amount,
+					total: 0u32.into(),
 					claimed_rewards: 0u32.into(),
 					stakers: stakers,
 				};
@@ -1007,32 +1007,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> Pallet<T> {
-		fn update_stake_snapshot(next: RoundIndex) -> BalanceOf<T> {
-			let mut total = BalanceOf::<T>::zero();
-
-			for estate_id in <Estates<T>>::iter_keys() {
-				let mut total_bond = BalanceOf::<T>::zero();
-				let mut stakers: Vec<Bond<T::AccountId, BalanceOf<T>>> = Vec::new();
-
-				// for (account_id, amount) in <EstateStake<T>>::iter_prefix(estate_id) {
-				// 	stakers.push(Bond {
-				// 		staker: account_id.clone(),
-				// 		amount,
-				// 	});
-				//
-				// 	total += amount;
-				// 	total_bond += amount;
-				// }
-				if stakers.len() > 0 {
-					// <AtStake<T>>::insert(next, estate_id, StakeSnapshot { stakers, total_bond });
-				}
-			}
-
-			// <TotalStake<T>>::put(total);
-			total
-		}
-	}
+	impl<T: Config> Pallet<T> {}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
@@ -1047,9 +1022,6 @@ pub mod pallet {
 
 				//TODO do actual minting new undeployed land block
 				let land_register_treasury = T::LandTreasury::get().into_account();
-
-				// Update stake snapshot
-				let total = Self::update_stake_snapshot(round.current);
 
 				<Round<T>>::put(round);
 
