@@ -1960,11 +1960,7 @@ fn stake_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateStakeIncreased(
-				BENEFICIARY_ID,
-				estate_id,
-				BOND_AMOUNT_1
-			))
+			Event::Estate(crate::Event::EstateStaked(BENEFICIARY_ID, estate_id, BOND_AMOUNT_1))
 		);
 
 		assert_eq!(EstateModule::staking_info(BENEFICIARY_ID), BOND_AMOUNT_1);
@@ -2178,11 +2174,7 @@ fn unstake_should_work_with_min_amount() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateStakeDecreased(
-				BENEFICIARY_ID,
-				estate_id,
-				BOND_AMOUNT_1
-			))
+			Event::Estate(crate::Event::EstateUnstaked(BENEFICIARY_ID, estate_id, BOND_AMOUNT_1))
 		);
 
 		let current_staking_round: RoundInfo<BlockNumber> = EstateModule::round();
@@ -2233,11 +2225,7 @@ fn unstake_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateStakeDecreased(
-				BENEFICIARY_ID,
-				estate_id,
-				BOND_AMOUNT_1
-			))
+			Event::Estate(crate::Event::EstateUnstaked(BENEFICIARY_ID, estate_id, BOND_AMOUNT_1))
 		);
 
 		let remaining_bond = BOND_AMOUNT_2 - BOND_AMOUNT_1;

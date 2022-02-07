@@ -267,11 +267,9 @@ pub mod pallet {
 		StakeSnapshotUpdated(RoundIndex, BalanceOf<T>),
 		StakersPaid(RoundIndex),
 		/// Owner Account Id, Estate Id, Balance
-		EstateStakeIncreased(T::AccountId, EstateId, BalanceOf<T>),
+		EstateStaked(T::AccountId, EstateId, BalanceOf<T>),
 		/// Owner Account Id, Estate Id, Balance
-		EstateStakeDecreased(T::AccountId, EstateId, BalanceOf<T>),
-		/// Owner Account Id, Estate Id
-		EstateStakeLeft(T::AccountId, EstateId),
+		EstateUnstaked(T::AccountId, EstateId, BalanceOf<T>),
 		/// Account Id, Balance
 		LandStakingRewarded(T::AccountId, EstateId, RoundIndex, BalanceOf<T>),
 	}
@@ -942,7 +940,7 @@ pub mod pallet {
 			stake_per_round.total = stake_per_round.total.saturating_add(stake_amount);
 			EstateRoundStake::<T>::insert(current_staking_round.current, estate_id.clone(), stake_per_round);
 
-			Self::deposit_event(Event::EstateStakeIncreased(who, estate_id, stake_amount));
+			Self::deposit_event(Event::EstateStaked(who, estate_id, stake_amount));
 
 			Ok(().into())
 		}
@@ -1001,7 +999,7 @@ pub mod pallet {
 			// Update staked information for contract in current round
 			EstateRoundStake::<T>::insert(current_staking_round.current, estate_id.clone(), stake_per_round);
 
-			Self::deposit_event(Event::EstateStakeDecreased(who, estate_id, amount_to_unstake));
+			Self::deposit_event(Event::EstateUnstaked(who, estate_id, amount_to_unstake));
 
 			Ok(().into())
 		}
