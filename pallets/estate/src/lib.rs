@@ -927,11 +927,18 @@ pub mod pallet {
 			);
 
 			// Update staking snapshot
-			EstateStakingSnapshots::<T>::mutate(current_staking_round.current, |may_be_staking_snapshot| {
-				if let Some(snapshot) = may_be_staking_snapshot {
-					snapshot.staked = snapshot.staked.saturating_add(stake_amount)
-				}
-			});
+			let mut snapshot: StakingSnapshot<BalanceOf<T>>;
+			if !EstateStakingSnapshots::<T>::contains_key(current_staking_round.current) {
+				snapshot = StakingSnapshot {
+					staked: stake_amount,
+					rewards: 0u32.into(),
+				};
+			} else {
+				snapshot = Self::get_estate_staking_snapshots(current_staking_round.current)
+					.ok_or(Error::<T>::StakingInfoNotFound)?;
+				snapshot.staked = snapshot.staked.saturating_add(stake_amount);
+			}
+			EstateStakingSnapshots::<T>::insert(current_staking_round.current, snapshot);
 
 			// Update staking info of origin
 			Self::update_staking_info(&who, staking_info);

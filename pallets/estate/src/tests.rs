@@ -1981,19 +1981,18 @@ fn stake_should_work() {
 			pallet_balances::Error::<Runtime>::LiquidityRestrictions
 		);
 
-		// TODO: need to check value in snapshot
-		// let stake_snapshot =
-		// EstateModule::get_estate_staking_snapshots(current_staking_round.current);
-		//
-		// match stake_snapshot {
-		// 	Some(a) => {
-		// 		assert_eq!(a.staked, BOND_AMOUNT_1);
-		// 	}
-		// 	_ => {
-		// 		// Should fail test
-		// 		assert_eq!(0, 1);
-		// 	}
-		// }
+		// Check value in snapshot
+		let stake_snapshot = EstateModule::get_estate_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, BOND_AMOUNT_1);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	});
 }
 
@@ -2042,7 +2041,18 @@ fn stake_should_work_with_more_than_one_operation() {
 			pallet_balances::Error::<Runtime>::LiquidityRestrictions
 		);
 
-		// TODO: need to check value in snapshot
+		// Check value in snapshot
+		let stake_snapshot = EstateModule::get_estate_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, total_bond);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	});
 }
 
@@ -2187,7 +2197,19 @@ fn unstake_should_work_with_min_amount() {
 		// Check free balance
 		// should work due to lock being removed
 		assert_ok!(Balances::transfer(Origin::signed(BENEFICIARY_ID), ALICE, 1000000));
-		// TODO: need to check value in snapshot
+
+		// Check value in snapshot
+		let stake_snapshot = EstateModule::get_estate_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, 0);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	});
 }
 
@@ -2249,6 +2271,17 @@ fn unstake_should_work() {
 			(1000000 - remaining_bond)
 		));
 
-		// TODO: need to check value in snapshot
+		// Check value in snapshot
+		let stake_snapshot = EstateModule::get_estate_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, remaining_bond);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	});
 }
