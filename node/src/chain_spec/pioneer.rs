@@ -117,6 +117,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 		Vec::new(),
 		None,
 		None,
+		None,
 		Some(pioneer_properties()),
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!

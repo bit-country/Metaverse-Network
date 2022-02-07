@@ -9,8 +9,8 @@ repository = "https://github.com/paritytech/frontier/"
 description = "SHA3 FIPS202 precompile for EVM pallet."
 
 [dependencies]
-sp-core = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
-sp-io = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13" }
+sp-core = {  default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+sp-io = {  default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 fp-evm = { version = "3.0.0-dev", default-features = false, path = "../../../../primitives/evm" }
 evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
 tiny-keccak = { version = "2.0", features = ["fips202"] }
