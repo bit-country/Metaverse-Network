@@ -53,7 +53,7 @@ mod tests;
 
 pub mod weights;
 
-const LOCK_STAKING: LockIdentifier = *b"stakelok";
+const LOCK_STAKING: LockIdentifier = *b"estakelk";
 
 #[frame_support::pallet]
 pub mod pallet {
