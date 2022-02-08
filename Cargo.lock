@@ -4222,7 +4222,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-node"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "bit-country-primitives",
  "cumulus-client-cli",
