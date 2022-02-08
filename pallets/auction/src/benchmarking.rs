@@ -22,14 +22,14 @@
 
 use super::*;
 use sp_std::prelude::*;
-use sp_std::vec;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
 
 #[allow(unused)]
 pub use crate::Pallet as AuctionModule;
 // use pallet_estate::Pallet as EstateModule;
 // use pallet_metaverse::Pallet as MetaverseModule;
 use pallet_nft::Pallet as NFTModule;
-use pallet_nft::{CollectionType, TokenType};
+use pallet_nft::{Attributes, CollectionType, TokenType};
 
 use crate::{Call, Config};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
@@ -80,6 +80,7 @@ fn mint_NFT<T: Config>(caller: T::AccountId) {
 	NFTModule::<T>::create_class(
 		RawOrigin::Signed(caller.clone()).into(),
 		vec![1],
+		test_attributes(1),
 		0u32.into(),
 		TokenType::Transferable,
 		CollectionType::Collectable,
@@ -88,10 +89,15 @@ fn mint_NFT<T: Config>(caller: T::AccountId) {
 		RawOrigin::Signed(caller.clone()).into(),
 		0u32.into(),
 		vec![1],
-		vec![2],
-		vec![1, 2, 3],
+		test_attributes(1),
 		3,
 	);
+}
+
+fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
 }
 
 pub struct MetaverseInfoSource {}

@@ -22,7 +22,7 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use constants::{currency::*, time::*};
 use frame_election_provider_support::onchain;
-use frame_support::traits::FindAuthor;
+use frame_support::traits::{EqualPrivilegeOnly, FindAuthor};
 use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{
@@ -246,6 +246,7 @@ impl pallet_utility::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
 	type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+	type PalletsOrigin = OriginCaller;
 }
 
 parameter_types! {
@@ -353,6 +354,7 @@ impl pallet_scheduler::Config for Runtime {
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 }
 
 parameter_types! {
@@ -1032,8 +1034,7 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub CreateClassDeposit: Balance = 500 * MILLICENTS;
-	pub CreateAssetDeposit: Balance = 100 * MILLICENTS;
+	pub MetadataDepositPerByte: Balance = 1 * CENTS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -1042,18 +1043,17 @@ parameter_types! {
 
 impl nft::Config for Runtime {
 	type Event = Event;
-	type CreateClassDeposit = CreateClassDeposit;
-	type CreateAssetDeposit = CreateAssetDeposit;
 	type Currency = Balances;
+	type MultiCurrency = Currencies;
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
 	type AuctionHandler = Auction;
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxNftMetadata;
-	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningResourceCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
+	type DataDepositPerByte = MetadataDepositPerByte;
 }
 
 parameter_types! {
@@ -1073,6 +1073,7 @@ impl orml_nft::Config for Runtime {
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
 	pub MinContribution: Balance = 1 * DOLLARS;
+	pub MaxNumberOfStakersPerMetaverse: u32 = 512;
 }
 
 impl metaverse::Config for Runtime {
@@ -1083,6 +1084,10 @@ impl metaverse::Config for Runtime {
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureRootOrHalfMetaverseCouncil;
 	type WeightInfo = weights::module_metaverse::WeightInfo<Runtime>;
+	type MetaverseRegistrationDeposit = MinContribution;
+	type MinStakingAmount = MinContribution;
+	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
+	type MultiCurrency = Currencies;
 }
 
 parameter_types! {
@@ -1217,6 +1222,7 @@ parameter_types! {
 	pub const DefaultEnactmentPeriod: u32 = 10;
 	pub const DefaultProposalLaunchPeriod: u32 = 15;
 	pub const DefaultMaxParametersPerProposal: u8 = 20;
+	pub const DefaultMaxProposalsPerMetaverse: u8 = 20;
 }
 
 parameter_types! {
@@ -1309,9 +1315,11 @@ impl governance::Config for Runtime {
 	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
 	type DefaultVotingPeriod = DefaultVotingPeriod;
 	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
+	type DefaultLocalVoteLockingPeriod = DefaultLocalVoteLockingPeriod;
 	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
+	type Slash = ();
 	type MetaverseInfo = Metaverse;
 	type PalletsOrigin = OriginCaller;
 	type Proposal = Call;
