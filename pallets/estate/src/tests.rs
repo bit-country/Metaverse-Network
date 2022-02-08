@@ -110,7 +110,7 @@ fn mint_land_should_work_have_correct_owner() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
-		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(0));
+		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), None);
 
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
