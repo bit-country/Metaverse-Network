@@ -158,7 +158,7 @@ impl Estate<u128> for EstateHandler {
 pub struct EstateStakingHandler;
 
 impl LandStakingRewardTrait<Balance> for EstateStakingHandler {
-	fn payout_land_staker(_payout_round: IssuanceRoundIndex, _total_issuance: Balance) -> sp_runtime::DispatchResult {
+	fn payout_land_staker(_payout_round: RoundIndex, _total_issuance: Balance) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
 }

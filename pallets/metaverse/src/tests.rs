@@ -266,6 +266,71 @@ fn stake_should_work() {
 			100000u64
 		);
 		assert_eq!(metaverse_stake_per_round.stakers.len(), 1);
+
+		// Check free balance
+		// should throw error if try to transfer initial balance due to lock being set
+		assert_noop!(
+			Balances::transfer(Origin::signed(ALICE), BOB, 100020),
+			pallet_balances::Error::<Runtime>::LiquidityRestrictions
+		);
+
+		// Check value in snapshot
+		let stake_snapshot = MetaverseModule::get_metaverse_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, 100000);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	})
+}
+
+#[test]
+fn stake_should_work_with_more_than_one_operation() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 100000));
+		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 50000));
+
+		let event = Event::Metaverse(crate::Event::MetaverseStaked(ALICE, METAVERSE_ID, 50000));
+		assert_eq!(last_event(), event);
+
+		assert_eq!(MetaverseModule::staking_info(ALICE), 150000);
+
+		let current_staking_round: RoundInfo<BlockNumber> = MetaverseModule::staking_round();
+		let mut metaverse_stake_per_round: StakingPoints<AccountId, Balance> =
+			MetaverseModule::get_metaverse_stake_per_round(METAVERSE_ID, current_staking_round.current).unwrap();
+
+		assert_eq!(
+			*(metaverse_stake_per_round.stakers.entry(ALICE).or_default()),
+			150000u64
+		);
+		assert_eq!(metaverse_stake_per_round.stakers.len(), 1);
+
+		// Check free balance
+		// should throw error if try to transfer initial balance due to lock being set
+		assert_noop!(
+			Balances::transfer(Origin::signed(ALICE), BOB, 100020),
+			pallet_balances::Error::<Runtime>::LiquidityRestrictions
+		);
+
+		// Check value in snapshot
+		let stake_snapshot = MetaverseModule::get_metaverse_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, 150000);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	})
 }
 
@@ -322,6 +387,49 @@ fn unstake_should_fail_no_permission() {
 }
 
 #[test]
+fn unstake_should_work_wiht_min_amount() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
+
+		assert_ok!(MetaverseModule::unstake_and_withdraw(
+			Origin::signed(ALICE),
+			METAVERSE_ID,
+			9990
+		));
+
+		let event = Event::Metaverse(crate::Event::MetaverseUnstaked(ALICE, METAVERSE_ID, 10000));
+		assert_eq!(last_event(), event);
+
+		assert_eq!(MetaverseModule::staking_info(ALICE), 0);
+
+		let current_staking_round: RoundInfo<BlockNumber> = MetaverseModule::staking_round();
+		let mut metaverse_stake_per_round: StakingPoints<AccountId, Balance> =
+			MetaverseModule::get_metaverse_stake_per_round(METAVERSE_ID, current_staking_round.current).unwrap();
+
+		assert_eq!(*(metaverse_stake_per_round.stakers.entry(ALICE).or_default()), 0u64);
+
+		// Check free balance
+		// should throw error if try to transfer initial balance due to lock being set
+		assert_ok!(Balances::transfer(Origin::signed(ALICE), BOB, 100020));
+
+		// Check value in snapshot
+		let stake_snapshot = MetaverseModule::get_metaverse_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, 0);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	})
+}
+
+#[test]
 fn unstake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
@@ -344,5 +452,22 @@ fn unstake_should_work() {
 			MetaverseModule::get_metaverse_stake_per_round(METAVERSE_ID, current_staking_round.current).unwrap();
 
 		assert_eq!(*(metaverse_stake_per_round.stakers.entry(ALICE).or_default()), 9900u64);
+
+		// Check free balance
+		// should throw error if try to transfer initial balance due to lock being set
+		assert_ok!(Balances::transfer(Origin::signed(ALICE), BOB, 100020));
+
+		// Check value in snapshot
+		let stake_snapshot = MetaverseModule::get_metaverse_staking_snapshots(current_staking_round.current);
+
+		match stake_snapshot {
+			Some(a) => {
+				assert_eq!(a.staked, 9900);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 	})
 }

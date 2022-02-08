@@ -411,7 +411,8 @@ pub mod pallet {
 
 			// Ensure that we can add additional staker for the metaverse.
 			ensure!(
-				metaverse_stake_per_round.stakers.len() < T::MaxNumberOfStakersPerMetaverse::get() as usize,
+				metaverse_stake_per_round.stakers.len() < T::MaxNumberOfStakersPerMetaverse::get() as usize
+					|| metaverse_stake_per_round.stakers.contains_key(&who),
 				Error::<T>::MaximumAmountOfStakersPerMetaverse
 			);
 			// Increment ledger and total staker value for a metaverse.
@@ -430,16 +431,31 @@ pub mod pallet {
 			);
 
 			// Update total staked value in current round
-			MetaverseStakingSnapshots::<T>::mutate(current_staking_round.current, |may_be_staking_snapshot| {
-				if let Some(snapshot) = may_be_staking_snapshot {
-					snapshot.staked = snapshot.staked.saturating_add(stake_amount)
-				}
-			});
+			// MetaverseStakingSnapshots::<T>::mutate(current_staking_round.current, |may_be_staking_snapshot| {
+			// 	if let Some(snapshot) = may_be_staking_snapshot {
+			// 		snapshot.staked = snapshot.staked.saturating_add(stake_amount)
+			// 	}
+			// });
+
+			// Update staking snapshot
+			let mut snapshot: StakingSnapshot<BalanceOf<T>>;
+			if !MetaverseStakingSnapshots::<T>::contains_key(current_staking_round.current) {
+				snapshot = StakingSnapshot {
+					staked: stake_amount,
+					rewards: 0u32.into(),
+				};
+			} else {
+				snapshot = Self::get_metaverse_staking_snapshots(current_staking_round.current)
+					.ok_or(Error::<T>::MetaverseStakingInfoNotFound)?;
+				snapshot.staked = snapshot.staked.saturating_add(stake_amount);
+			}
+			MetaverseStakingSnapshots::<T>::insert(current_staking_round.current, snapshot);
 
 			// Update staking info of origin
 			Self::update_staking_info(&who, staking_info);
 
 			// Update staked information for contract in current round
+			// TODO: update total in metaverse_stake_per_round? Write unit test to check
 			MetaverseRoundStake::<T>::insert(
 				metaverse_id.clone(),
 				current_staking_round.current,
