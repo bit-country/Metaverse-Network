@@ -12,15 +12,6 @@ pub struct Vote<AccountId> {
 	pub who: AccountId,
 }
 
-//impl<AccountId: From<u32> + Default> Default for Vote<AccountId> {
-//	fn default() -> Self {
-//		Vote {
-//			nay: false,
-//			who: Default::default(),
-//		}
-//	}
-//}
-
 /// Keep track of voting activities of an account
 #[derive(Encode, Decode, Clone, Eq, PartialEq, Default, RuntimeDebug, TypeInfo)]
 pub struct Voting<AccountId> {
@@ -33,12 +24,6 @@ pub enum AccountVote<AccountId> {
 	/// A standard continuum vote
 	Standard { vote: Vote<AccountId> },
 }
-
-// impl<AccountId: From<u32> + Default> Default for AccountVote<AccountId> {
-//     fn default() -> Self {
-//         AccountVote::Standard { vote: Default::default() }
-//     }
-// }
 
 impl<AccountId> AccountVote<AccountId> {
 	pub fn vote_who(self) -> Vote<AccountId> {

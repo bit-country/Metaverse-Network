@@ -73,6 +73,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 		vec![],
 		None,
 		None,
+		None,
 		Some(pioneer_properties()),
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
@@ -155,7 +156,7 @@ fn pioneer_genesis(
         balances: pioneer_runtime::BalancesConfig {
             balances: initial_allocation,
         },
-        sudo: pioneer_runtime::SudoConfig { key: root_key },
+        sudo: pioneer_runtime::SudoConfig { key: Some(root_key.clone()), },
         parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: pioneer_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -209,7 +210,7 @@ fn testnet_genesis(
                 .map(|k| (k, 250 * KILODOLLARS))
                 .collect(),
         },
-        sudo: pioneer_runtime::SudoConfig { key: root_key },
+        sudo: pioneer_runtime::SudoConfig { key: Some(root_key.clone()), },
         parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
         collator_selection: pioneer_runtime::CollatorSelectionConfig {
             invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),

@@ -602,15 +602,6 @@ impl<T: Config> Pallet<T> {
 			tallies: Default::default(),
 		};
 
-		//		for _i in 0..available_neighbors {
-		//			let initial_tally: ContinuumSpotTally<T::AccountId> = ContinuumSpotTally {
-		//				nays: One::one(),
-		//				who: T::ContinuumTreasury::get(),
-		//				turnout: available_neighbors,
-		//			};
-		//			status.tallies.push(initial_tally);
-		//		}
-
 		let item: ReferendumInfo<T::AccountId, T::BlockNumber> = ReferendumInfo::Ongoing(status);
 		ReferendumInfoOf::<T>::insert(spot_id, item);
 		Self::deposit_event(Event::NewContinuumReferendumStarted(end, spot_id));
@@ -672,27 +663,39 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(is_neighbour, Error::<T>::NoPermission);
 
-		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
-			let ref mut votes = voting.as_mut().ok_or(Error::<T>::FailedEOIToSlot)?.votes;
-			match votes.binary_search_by_key(&spot_id, |i| i.0) {
-				// Already voted
-				Ok(_i) => {}
-				Err(i) => {
-					// Haven't vote for this spot id
-					// Add votes under user
-					let new_vote: AccountVote<T::AccountId> = vote.clone();
-					let who = new_vote.vote_who();
-					votes.insert(i, (spot_id, vote.clone()));
+		VotingOf::<T>::try_mutate(who, |maybe_voting| -> DispatchResult {
+			match maybe_voting {
+				Some(voting) => {
+					let ref mut votes = voting.votes;
+					match votes.binary_search_by_key(&spot_id, |i| i.0) {
+						// Already voted
+						Ok(_i) => {}
+						Err(i) => {
+							// Haven't vote for this spot id
+							// Add votes under user
+							let new_vote: AccountVote<T::AccountId> = vote.clone();
+							let who = new_vote.vote_who();
+							votes.insert(i, (spot_id, vote.clone()));
 
-					// Find existing tally of bidder
-					for mut tally in status.tallies {
-						// Existing vote
-						if tally.who == who.who {
-							tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?
+							// Find existing tally of bidder
+							for mut tally in status.tallies {
+								// Existing vote
+								if tally.who == who.who {
+									tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?
+								}
+							}
 						}
 					}
 				}
+				None => {
+					// No voting exists
+					let mut new_vote: Vec<(SpotId, AccountVote<T::AccountId>)> = Vec::new();
+					new_vote.push((spot_id, vote.clone()));
+					let vote_o = Voting { votes: new_vote };
+					VotingOf::<T>::insert(who.clone(), vote_o);
+				}
 			}
+
 			Ok(())
 		})
 	}
