@@ -63,6 +63,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]
@@ -108,7 +109,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_land_units)]
 	pub type LandUnits<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), T::AccountId, ValueQuery>;
+		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), T::AccountId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_estate_id)]
@@ -177,7 +178,6 @@ pub mod pallet {
 		Twox64Concat,
 		EstateId,
 		StakeSnapshot<T::AccountId, BalanceOf<T>>,
-		ValueQuery,
 	>;
 
 	#[pallet::storage]
@@ -769,7 +769,7 @@ pub mod pallet {
 			// Check land unit ownership
 			for land_unit in land_units.clone() {
 				ensure!(
-					Self::get_land_units(metaverse_id, land_unit) == who,
+					Self::get_land_units(metaverse_id, land_unit) == Some(who.clone()),
 					Error::<T>::LandUnitDoesNotExist
 				);
 			}

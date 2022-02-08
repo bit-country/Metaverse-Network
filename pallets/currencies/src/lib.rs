@@ -38,7 +38,6 @@ use orml_traits::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::FungibleTokenId;
 use sp_runtime::{
 	traits::{CheckedSub, MaybeSerializeDeserialize, StaticLookup, Zero},
 	DispatchError, DispatchResult,
@@ -50,6 +49,7 @@ use sp_std::{
 };
 
 pub use pallet::*;
+use primitives::FungibleTokenId;
 
 type BalanceOf<T> =
 	<<T as Config>::MultiSocialCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -64,6 +64,7 @@ pub mod pallet {
 	use super::*;
 
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]
@@ -453,7 +454,8 @@ where
 		+ Copy
 		+ MaybeSerializeDeserialize
 		+ Debug
-		+ Default,
+		+ Default
+		+ codec::MaxEncodedLen,
 	Currency: PalletCurrency<AccountId>,
 	T: Config,
 {

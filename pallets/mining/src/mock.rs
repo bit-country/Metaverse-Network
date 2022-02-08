@@ -1,20 +1,23 @@
-use super::*;
-use crate as mining;
-use crate::{Config, Module};
 use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
 use frame_support::sp_runtime::traits::AtLeast32Bit;
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
-use primitives::FungibleTokenId::FungibleToken;
-use primitives::{Amount, CurrencyId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
 	traits::{AccountIdConversion, IdentityLookup},
 	Perbill,
 };
+
+use primitives::FungibleTokenId::FungibleToken;
+use primitives::{Amount, CurrencyId, FungibleTokenId};
+
+use crate as mining;
+use crate::{Config, Module};
+
+use super::*;
 
 pub type AccountId = u128;
 pub type AuctionId = u64;
@@ -65,6 +68,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {

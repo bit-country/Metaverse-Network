@@ -22,7 +22,6 @@
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode};
-
 use frame_support::{
 	dispatch::DispatchResult,
 	ensure,
@@ -33,14 +32,15 @@ use frame_support::{
 		WithdrawReasons,
 	},
 };
-use metaverse_primitive::MetaverseTrait;
-use primitives::{MetaverseId, ProposalId, ReferendumId};
 use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
 use sp_std::prelude::*;
 
-mod types;
-
+use metaverse_primitive::MetaverseTrait;
+pub use pallet::*;
+use primitives::{MetaverseId, ProposalId, ReferendumId};
 pub use types::*;
+
+mod types;
 
 #[cfg(test)]
 mod mock;
@@ -49,15 +49,15 @@ mod tests;
 
 const GOVERNANCE_ID: LockIdentifier = *b"bcgovern";
 
-pub use pallet::*;
-
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::EnsureOrigin, Parameter};
 	use frame_system::{ensure_root, ensure_signed, pallet_prelude::*};
-	use metaverse_primitive::MetaverseLandTrait;
 	use sp_runtime::DispatchResult;
+
+	use metaverse_primitive::MetaverseLandTrait;
+
+	use super::*;
 
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -116,6 +116,7 @@ pub mod pallet {
 	}
 
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::storage]

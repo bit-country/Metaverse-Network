@@ -17,10 +17,12 @@
 
 #![cfg(test)]
 
-use super::*;
 use frame_support::{assert_err, assert_noop, assert_ok};
-use mock::{Event, *};
 use sp_runtime::traits::BadOrigin;
+
+use mock::{Event, *};
+
+use super::*;
 
 #[test]
 fn set_max_bound_should_reject_non_root() {
@@ -108,7 +110,7 @@ fn mint_land_should_work_have_correct_owner() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
-		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), 0);
+		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), None);
 
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
@@ -130,7 +132,7 @@ fn mint_land_should_work_have_correct_owner() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 	});
 }
@@ -351,7 +353,7 @@ fn transfer_land_should_work() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 
 		assert_ok!(EstateModule::transfer_land(
@@ -387,7 +389,7 @@ fn transfer_land_should_reject_no_permission() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 
 		assert_noop!(
@@ -411,7 +413,7 @@ fn transfer_land_should_do_fail_for_same_account() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 
 		assert_noop!(
@@ -426,7 +428,7 @@ fn transfer_land_should_do_fail_for_same_account() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 	});
 }
