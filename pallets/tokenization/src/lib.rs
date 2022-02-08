@@ -18,8 +18,6 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::SwapManager;
-use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::traits::Get;
 use frame_support::PalletId;
@@ -32,8 +30,6 @@ use frame_support::{
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
 use orml_traits::{LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency};
-pub use pallet::*;
-use primitives::{Balance, FungibleTokenId, MetaverseId, VestingSchedule};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
@@ -42,6 +38,13 @@ use sp_runtime::{
 use sp_runtime::{FixedPointNumber, SaturatedConversion};
 use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
+
+use auction_manager::SwapManager;
+use bc_primitives::*;
+pub use pallet::*;
+pub use pallet::*;
+use primitives::dex::Price;
+use primitives::{Balance, FungibleTokenId, MetaverseId, VestingSchedule};
 
 #[cfg(test)]
 mod mock;
@@ -61,9 +64,6 @@ pub struct Token<Balance> {
 	pub total_supply: Balance,
 }
 
-pub use pallet::*;
-use primitives::dex::Price;
-
 /// The maximum number of vesting schedules an account can have.
 pub const MAX_VESTINGS: usize = 20;
 
@@ -71,10 +71,12 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
 	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
 
+	use super::*;
+
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
@@ -406,7 +408,7 @@ impl<T: Config> Pallet<T> {
 	pub fn get_metaverse_fund_id(metaverse_id: MetaverseId) -> T::AccountId {
 		match MetaverseTreasury::<T>::get(metaverse_id) {
 			Some(fund) => fund.vault,
-			_ => Default::default(),
+			_ => T::FungibleTokenTreasury::get().into_sub_account(metaverse_id),
 		}
 	}
 

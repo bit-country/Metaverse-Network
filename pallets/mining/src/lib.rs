@@ -18,8 +18,6 @@
 // Ensure we're `no_std` when compiling for Wasm.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::SwapManager;
-use bc_primitives::*;
 use codec::{Decode, Encode};
 use frame_support::traits::{Currency, Get, WithdrawReasons};
 use frame_support::PalletId;
@@ -37,13 +35,17 @@ use orml_traits::{
 	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
 	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
 };
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
 	DispatchError,
 };
 use sp_std::vec::Vec;
+
+use auction_manager::SwapManager;
+use bc_primitives::*;
+pub use pallet::*;
+use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 
 #[cfg(test)]
 mod mock;
@@ -63,8 +65,6 @@ pub struct Token<Balance> {
 	pub total_supply: Balance,
 }
 
-pub use pallet::*;
-
 /// The maximum number of vesting schedules an account can have.
 pub const MAX_VESTINGS: usize = 20;
 
@@ -72,16 +72,19 @@ pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
 	use frame_support::sp_runtime::traits::Saturating;
 	use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
 	use frame_support::traits::OnUnbalanced;
 	use pallet_balances::NegativeImbalance;
-	use primitives::dex::Price;
-	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
 	use sp_std::convert::TryInto;
 
+	use primitives::dex::Price;
+	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
+
+	use super::*;
+
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;

@@ -85,6 +85,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		None,
 		// Protocol ID
 		None,
+		None,
 		// Properties
 		Some(metaverse_properties()),
 		// Extensions
@@ -128,6 +129,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		// Telemetry
 		None,
 		// Protocol ID
+		None,
 		None,
 		// Properties
 		Some(metaverse_properties()),
@@ -185,6 +187,7 @@ pub fn metaverse_testnet_config() -> Result<ChainSpec, String> {
 		// Telemetry
 		None,
 		// Protocol ID
+		None,
 		None,
 		// Properties
 		Some(metaverse_properties()),
@@ -268,7 +271,7 @@ fn testnet_genesis(
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
-			key: root_key,
+			key: Some(root_key.clone()),
 		},
 		council: Default::default(),
 		democracy: DemocracyConfig::default(),
