@@ -41,12 +41,7 @@ orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-li
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
-
-[dependencies.nft]
-default-features = false
-package = 'pallet-nft'
-path = '../nft'
-version = '2.0.0-rc6'
+nft = { package = "pallet-nft", path = "../nft", default-features = false }
 
 [features]
 runtime-benchmarks = [

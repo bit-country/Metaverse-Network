@@ -51,6 +51,15 @@ mod tests;
 
 pub mod weights;
 
+/// A record for basic element info. i.e. price, compositions and rules
+#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct ElementInfo {
+	/// Power price for the element
+	power_price: u32,
+	/// The tuple of other element index -> required amount
+	compositions: Vec<(u32, u128)>,
+}
+
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
@@ -103,8 +112,20 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
-	#[pallet::getter(fn next_metaverse_id)]
-	pub type NextMetaverseId<T: Config> = StorageValue<_, MetaverseId, ValueQuery>;
+	#[pallet::getter(fn total_staked)]
+	pub type TotalStaked<T: Config> = StorageValue<_, u128, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_element_index)]
+	pub type ElementIndex<T: Config> = StorageMap<_, Twox64Concat, u32, ElementInfo>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_authorized_generator_collection)]
+	pub type AuthorizedGeneratorCollection<T: Config> = StorageMap<_, Twox64Concat, ClassIdOf<T>, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_authorized_distributor_collection)]
+	pub type AuthorizedDistributorCollection<T: Config> = StorageMap<_, Twox64Concat, ClassIdOf<T>, (), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse)]
@@ -144,58 +165,62 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		NewMetaverseCreated(MetaverseId, T::AccountId),
-		TransferredMetaverse(MetaverseId, T::AccountId, T::AccountId),
-		MetaverseFreezed(MetaverseId),
-		MetaverseDestroyed(MetaverseId),
-		MetaverseUnfreezed(MetaverseId),
-		MetaverseMintedNewCurrency(MetaverseId, FungibleTokenId),
-		NewMetaverseRegisteredForStaking(MetaverseId, T::AccountId),
-		MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
-		MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
-		MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>),
+		PowerGeneratorCollectionAuthorized(ClassIdOf<T>),
+		PowerDistributorCollectionAuthorized(ClassIdOf<T>),
+		/* TransferredMetaverse(MetaverseId, T::AccountId, T::AccountId),
+		 * MetaverseFreezed(MetaverseId),
+		 * MetaverseDestroyed(MetaverseId),
+		 * MetaverseUnfreezed(MetaverseId),
+		 * MetaverseMintedNewCurrency(MetaverseId, FungibleTokenId),
+		 * NewMetaverseRegisteredForStaking(MetaverseId, T::AccountId),
+		 * MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
+		 * MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
+		 * MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>), */
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		/// Metaverse info not found
-		MetaverseInfoNotFound,
-		/// Metaverse Id not found
-		MetaverseIdNotFound,
-		/// No permission
-		NoPermission,
-		/// No available Metaverse id
-		NoAvailableMetaverseId,
-		/// Fungible token already issued
-		FungibleTokenAlreadyIssued,
-		/// Max metadata exceed
-		MaxMetadataExceeded,
-		/// Contribution is insufficient
-		InsufficientContribution,
-		/// Only frozen metaverse can be destroy
-		OnlyFrozenMetaverseCanBeDestroyed,
-		/// Already registered for staking
-		AlreadyRegisteredForStaking,
-		/// Metaverse is not registered for staking
-		NotRegisteredForStaking,
-		/// Not enough balance to stake
-		NotEnoughBalanceToStake,
-		/// Maximum amount of allowed stakers per metaverse
-		MaximumAmountOfStakersPerMetaverse,
-		/// Minimum staking balance is not met
-		MinimumStakingAmountRequired,
-		/// Exceed staked amount
-		InsufficientBalanceToUnstake,
-		/// Metaverse Staking Info not found
-		MetaverseStakingInfoNotFound,
-		/// Reward has been paid
-		MetaverseStakingAlreadyPaid,
-		/// Metaverse has no stake
-		MetaverseHasNoStake,
+		/// Power generator collection already authorized
+		PowerGeneratorCollectionAlreadyAuthorized,
+		/// Power distributor collection already authorized
+		PowerDistributorCollectionAlreadyAuthorized,
+		/* /// Metaverse Id not found
+		 * MetaverseIdNotFound,
+		 * /// No permission
+		 * NoPermission,
+		 * /// No available Metaverse id
+		 * NoAvailableMetaverseId,
+		 * /// Fungible token already issued
+		 * FungibleTokenAlreadyIssued,
+		 * /// Max metadata exceed
+		 * MaxMetadataExceeded,
+		 * /// Contribution is insufficient
+		 * InsufficientContribution,
+		 * /// Only frozen metaverse can be destroy
+		 * OnlyFrozenMetaverseCanBeDestroyed,
+		 * /// Already registered for staking
+		 * AlreadyRegisteredForStaking,
+		 * /// Metaverse is not registered for staking
+		 * NotRegisteredForStaking,
+		 * /// Not enough balance to stake
+		 * NotEnoughBalanceToStake,
+		 * /// Maximum amount of allowed stakers per metaverse
+		 * MaximumAmountOfStakersPerMetaverse,
+		 * /// Minimum staking balance is not met
+		 * MinimumStakingAmountRequired,
+		 * /// Exceed staked amount
+		 * InsufficientBalanceToUnstake,
+		 * /// Metaverse Staking Info not found
+		 * MetaverseStakingInfoNotFound,
+		 * /// Reward has been paid
+		 * MetaverseStakingAlreadyPaid,
+		 * /// Metaverse has no stake
+		 * MetaverseHasNoStake, */
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Authorize a NFT collector for power generator
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn authorize_power_generator_collection(
 			origin: OriginFor<T>,
@@ -204,9 +229,20 @@ pub mod pallet {
 			// Only Council can create a metaverse
 			ensure_root(origin)?;
 
+			// Check that NFT collection is not authorized already
+			ensure!(
+				!AuthorizedGeneratorCollection::<T>::contains_key(&class_id),
+				Error::<T>::PowerGeneratorCollectionAlreadyAuthorized
+			);
+
+			AuthorizedGeneratorCollection::<T>::insert(&class_id, ());
+
+			Self::deposit_event(Event::<T>::PowerGeneratorCollectionAuthorized(class_id.clone()));
+
 			Ok(().into())
 		}
 
+		/// Authorize a NFT collector for power distributor
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn authorize_power_distributor_collection(
 			origin: OriginFor<T>,
@@ -214,7 +250,16 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			// Get owner of the metaverse
+			// Check that NFT collection is not authorized already
+			ensure!(
+				!AuthorizedDistributorCollection::<T>::contains_key(&class_id),
+				Error::<T>::PowerDistributorCollectionAlreadyAuthorized
+			);
+
+			AuthorizedDistributorCollection::<T>::insert(&class_id, ());
+
+			Self::deposit_event(Event::<T>::PowerDistributorCollectionAuthorized(class_id.clone()));
+
 			Ok(().into())
 		}
 

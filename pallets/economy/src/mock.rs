@@ -7,7 +7,6 @@ use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
-use primitives::staking::RoundInfo;
 use primitives::Amount;
 
 use crate as metaverse;
@@ -24,6 +23,9 @@ pub const BOB: AccountId = 2;
 pub const FREEDY: AccountId = 3;
 pub const METAVERSE_ID: MetaverseId = 0;
 pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
+
+pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
+pub const COLLECTION_ID: u64 = 0;
 
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 
@@ -142,7 +144,20 @@ impl currencies::Config for Runtime {
 	type GetNativeCurrencyId = NativeCurrencyId;
 }
 
-pub type MetaverseModule = Pallet<Runtime>;
+parameter_types! {
+	pub MaxClassMetadata: u32 = 1024;
+}
+
+impl orml_nft::Config for Runtime {
+	type ClassId = u32;
+	type TokenId = u64;
+	type ClassData = nft::NftClassData<Balance>;
+	type TokenData = nft::NftAssetData<Balance>;
+	type MaxClassMetadata = MaxClassMetadata;
+	type MaxTokenMetadata = MaxTokenMetadata;
+}
+
+pub type EconomyModule = Pallet<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -158,6 +173,7 @@ construct_runtime!(
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>},
+		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 	}
 );
 
