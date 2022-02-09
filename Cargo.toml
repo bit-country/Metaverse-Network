@@ -14,6 +14,7 @@ members = [
     'pallets/swap',
     'pallets/tokenization',
     'pallets/crowdloan',
+    'pallets/economy',
     'traits/*',
     'node',
     'runtime/pioneer',
