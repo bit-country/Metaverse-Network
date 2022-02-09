@@ -36,6 +36,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use bc_primitives::*;
 use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use nft::Pallet as NFTModule;
 pub use pallet::*;
 use primitives::{AssetId, FungibleTokenId, MetaverseId, RoundIndex};
 pub use weights::WeightInfo;
@@ -128,54 +129,24 @@ pub mod pallet {
 	pub type AuthorizedDistributorCollection<T: Config> = StorageMap<_, Twox64Concat, ClassIdOf<T>, (), OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_metaverse)]
-	pub type Metaverses<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, MetaverseInfo<T::AccountId>>;
+	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
+	pub type BuyPowerByUserRequestQueue<T: Config> = StorageMap<_, Twox64Concat, AssetId, Vec<(T::AccountId, u64)>>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_metaverse_owner)]
-	pub type MetaverseOwner<T: Config> = StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, MetaverseId, ()>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn all_metaverse_count)]
-	pub(super) type AllMetaversesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_freezing_metaverse)]
-	pub(super) type FreezedMetaverses<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, (), OptionQuery>;
-
-	/// Metaverse staking related storage
-
-	/// Staking round info
-	#[pallet::storage]
-	#[pallet::getter(fn staking_round)]
-	/// Current round index and next round scheduled transition
-	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
-
-	/// Registered metaverse for staking
-	#[pallet::storage]
-	#[pallet::getter(fn get_registered_metaverse)]
-	pub(crate) type RegisteredMetaverse<T: Config> =
-		StorageMap<_, Blake2_128Concat, MetaverseId, T::AccountId, OptionQuery>;
-
-	/// Keep track of staking info of individual staker
-	#[pallet::storage]
-	#[pallet::getter(fn staking_info)]
-	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+	#[pallet::getter(fn get_buy_power_by_distributor_request_queue)]
+	pub type BuyPowerByDistributorRequestQueue<T: Config> =
+		StorageMap<_, Twox64Concat, AssetId, Vec<(T::AccountId, u64)>>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		PowerGeneratorCollectionAuthorized(ClassIdOf<T>),
 		PowerDistributorCollectionAuthorized(ClassIdOf<T>),
-		/* TransferredMetaverse(MetaverseId, T::AccountId, T::AccountId),
-		 * MetaverseFreezed(MetaverseId),
-		 * MetaverseDestroyed(MetaverseId),
-		 * MetaverseUnfreezed(MetaverseId),
-		 * MetaverseMintedNewCurrency(MetaverseId, FungibleTokenId),
-		 * NewMetaverseRegisteredForStaking(MetaverseId, T::AccountId),
-		 * MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
-		 * MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
-		 * MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>), */
+		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, u64, AssetId),
+		BuyPowerOrderByUserExecuted(T::AccountId, u64, AssetId),
+		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, u64, AssetId),
+		BuyPowerOrderByDistributorExecuted(T::AccountId, u64, AssetId),
+		ElementMinted(T::AccountId, u32, u32),
 	}
 
 	#[pallet::error]
@@ -184,38 +155,8 @@ pub mod pallet {
 		PowerGeneratorCollectionAlreadyAuthorized,
 		/// Power distributor collection already authorized
 		PowerDistributorCollectionAlreadyAuthorized,
-		/* /// Metaverse Id not found
-		 * MetaverseIdNotFound,
-		 * /// No permission
-		 * NoPermission,
-		 * /// No available Metaverse id
-		 * NoAvailableMetaverseId,
-		 * /// Fungible token already issued
-		 * FungibleTokenAlreadyIssued,
-		 * /// Max metadata exceed
-		 * MaxMetadataExceeded,
-		 * /// Contribution is insufficient
-		 * InsufficientContribution,
-		 * /// Only frozen metaverse can be destroy
-		 * OnlyFrozenMetaverseCanBeDestroyed,
-		 * /// Already registered for staking
-		 * AlreadyRegisteredForStaking,
-		 * /// Metaverse is not registered for staking
-		 * NotRegisteredForStaking,
-		 * /// Not enough balance to stake
-		 * NotEnoughBalanceToStake,
-		 * /// Maximum amount of allowed stakers per metaverse
-		 * MaximumAmountOfStakersPerMetaverse,
-		 * /// Minimum staking balance is not met
-		 * MinimumStakingAmountRequired,
-		 * /// Exceed staked amount
-		 * InsufficientBalanceToUnstake,
-		 * /// Metaverse Staking Info not found
-		 * MetaverseStakingInfoNotFound,
-		 * /// Reward has been paid
-		 * MetaverseStakingAlreadyPaid,
-		 * /// Metaverse has no stake
-		 * MetaverseHasNoStake, */
+		NFTAssetDoesNotExist,
+		NoPermissionToBuyMiningPower,
 	}
 
 	#[pallet::call]
@@ -235,6 +176,7 @@ pub mod pallet {
 				Error::<T>::PowerGeneratorCollectionAlreadyAuthorized
 			);
 
+			// TODO: check if NFT collection exist
 			AuthorizedGeneratorCollection::<T>::insert(&class_id, ());
 
 			Self::deposit_event(Event::<T>::PowerGeneratorCollectionAuthorized(class_id.clone()));
@@ -256,6 +198,7 @@ pub mod pallet {
 				Error::<T>::PowerDistributorCollectionAlreadyAuthorized
 			);
 
+			// TODO: check if NFT collection exist
 			AuthorizedDistributorCollection::<T>::insert(&class_id, ());
 
 			Self::deposit_event(Event::<T>::PowerDistributorCollectionAuthorized(class_id.clone()));
@@ -266,11 +209,29 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn buy_power_by_user(
 			origin: OriginFor<T>,
-			power_amount: u32,
+			power_amount: u64,
 			distributor_nft_id: AssetId,
 		) -> DispatchResultWithPostInfo {
-			// Only Council can freeze a metaverse
-			T::MetaverseCouncil::ensure_origin(origin)?;
+			let who = ensure_signed(origin)?;
+
+			// // Check nft is part of distributor collection
+			// // Get asset detail
+			// let asset =
+			// NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?; // Check ownership
+			// let class_info =
+			// 	orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToBuyMiningPower)?;
+
+			// Get NFT attribute. Convert power amount to the correct bit amount
+
+			// Add to queue and reserve BIT
+			// Reserve balance
+			T::Currency::reserve(&who, 100u32.into())?;
+
+			Self::deposit_event(Event::<T>::BuyPowerOrderByUserHasAddedToQueue(
+				who.clone(),
+				power_amount,
+				distributor_nft_id,
+			));
 
 			Ok(().into())
 		}
@@ -281,8 +242,15 @@ pub mod pallet {
 			distributor_nft_id: AssetId,
 			beneficiary: T::AccountId,
 		) -> DispatchResultWithPostInfo {
-			// Only Council can freeze a metaverse
-			T::MetaverseCouncil::ensure_origin(origin)?;
+			let who = ensure_signed(origin)?;
+
+			let power_amount: u64 = 100;
+
+			Self::deposit_event(Event::<T>::BuyPowerOrderByUserExecuted(
+				beneficiary.clone(),
+				power_amount,
+				distributor_nft_id,
+			));
 
 			Ok(().into())
 		}
@@ -297,6 +265,15 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
+			T::Currency::reserve(&who, 100u32.into())?;
+
+			let power_amount: u64 = 100;
+			Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorHasAddedToQueue(
+				who.clone(),
+				power_amount,
+				generator_nft_id,
+			));
+
 			Ok(().into())
 		}
 
@@ -309,6 +286,13 @@ pub mod pallet {
 			beneficiary: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			let power_amount: u64 = 100;
+			Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorExecuted(
+				beneficiary.clone(),
+				power_amount,
+				generator_nft_id,
+			));
 
 			Ok(().into())
 		}
@@ -324,6 +308,8 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
+			Self::deposit_event(Event::<T>::ElementMinted(who.clone(), element_index, number_of_element));
+
 			Ok(().into())
 		}
 	}
@@ -331,22 +317,18 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
 	fn distribute_power_by_operator(
-		power_amount: u128,
+		power_amount: u64,
 		beneficiary: T::AccountId,
 		distributor_nft_id: AssetId,
 	) -> DispatchResultWithPostInfo {
-		// Get staking info of metaverse and current round
-
 		Ok(().into())
 	}
 
 	fn generate_power_by_operator(
-		power_amount: u128,
+		power_amount: u64,
 		generator_nft_id: AssetId,
 		distributor_nft_id: AssetId,
 	) -> DispatchResultWithPostInfo {
-		// Get staking info of metaverse and current round
-
 		Ok(().into())
 	}
 }
