@@ -5279,6 +5279,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-currencies",
+ "orml-nft",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
