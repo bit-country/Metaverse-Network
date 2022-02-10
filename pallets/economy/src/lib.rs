@@ -27,18 +27,17 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_nft::Pallet as NftModule;
-use orml_traits::MultiCurrency;
+use orml_traits::{MultiCurrency, MultiReservableCurrency};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	DispatchError, Perbill,
 };
-use sp_std::{collections::btree_map::BTreeMap, prelude::*};
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use bc_primitives::*;
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
 use nft::Pallet as NFTModule;
 pub use pallet::*;
-use primitives::{AssetId, FungibleTokenId, MetaverseId, RoundIndex};
+use primitives::{AssetId, Balance, FungibleTokenId, MetaverseId, RoundIndex};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -82,39 +81,37 @@ pub mod pallet {
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + orml_nft::Config {
+	pub trait Config: frame_system::Config
+	// + orml_nft::Config
+	+ nft::Config{
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The currency type
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
 			+ ReservableCurrency<Self::AccountId>;
-		/// The multicurrencies type
-		type MultiCurrency: MultiCurrencyExtended<
+		/// Multi-fungible token currency
+		type FungibleTokenCurrency: MultiReservableCurrency<
 			Self::AccountId,
 			CurrencyId = FungibleTokenId,
-			Balance = BalanceOf<Self>,
+			Balance = Balance,
 		>;
 		#[pallet::constant]
-		type MetaverseTreasury: Get<PalletId>;
-		#[pallet::constant]
-		type MaxMetaverseMetadata: Get<u32>;
+		type EconomyTreasury: Get<PalletId>;
+		// #[pallet::constant]
+		// type MaxMetaverseMetadata: Get<u32>;
 		/// Minimum contribution
 		#[pallet::constant]
 		type MinContribution: Get<BalanceOf<Self>>;
-		/// Origin to add new metaverse
-		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
-		/// Mininum deposit for registering a metaverse
-		type MetaverseRegistrationDeposit: Get<BalanceOf<Self>>;
+		// /// Origin to add new metaverse
+		// type MetaverseCouncil: EnsureOrigin<Self::Origin>;
+		// /// Mininum deposit for registering a metaverse
+		// type MetaverseRegistrationDeposit: Get<BalanceOf<Self>>;
 		/// Mininum staking amount
 		type MinStakingAmount: Get<BalanceOf<Self>>;
-		/// Maximum amount of stakers per metaverse
-		type MaxNumberOfStakersPerMetaverse: Get<u32>;
-		/// Weight implementation for estate extrinsics
-		type WeightInfo: WeightInfo;
+		// /// Maximum amount of stakers per metaverse
+		// type MaxNumberOfStakersPerMetaverse: Get<u32>;
+		#[pallet::constant]
+		type MiningCurrencyId: Get<FungibleTokenId>;
 	}
-
-	#[pallet::storage]
-	#[pallet::getter(fn total_staked)]
-	pub type TotalStaked<T: Config> = StorageValue<_, u128, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_element_index)]
@@ -156,7 +153,9 @@ pub mod pallet {
 		/// Power distributor collection already authorized
 		PowerDistributorCollectionAlreadyAuthorized,
 		NFTAssetDoesNotExist,
+		NFTClassDoesNotExist,
 		NoPermissionToBuyMiningPower,
+		DistributorNftDoesNotExist,
 	}
 
 	#[pallet::call]
@@ -167,7 +166,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
 		) -> DispatchResultWithPostInfo {
-			// Only Council can create a metaverse
+			// Only root can authorize
 			ensure_root(origin)?;
 
 			// Check that NFT collection is not authorized already
@@ -206,6 +205,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Enable user to buy mining power with specific distributor NFT
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn buy_power_by_user(
 			origin: OriginFor<T>,
@@ -214,28 +214,49 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			// // Check nft is part of distributor collection
-			// // Get asset detail
-			// let asset =
-			// NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?; // Check ownership
-			// let class_info =
-			// 	orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToBuyMiningPower)?;
+			// Check nft is part of distributor collection
+			// Get asset detail
+			let asset = NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
+			// Check ownership
+			let class_id = asset.0;
+			let class_info = orml_nft::Pallet::<T>::classes(class_id).ok_or(Error::<T>::NFTClassDoesNotExist)?;
 
-			// Get NFT attribute. Convert power amount to the correct bit amount
+			ensure!(
+				AuthorizedDistributorCollection::<T>::contains_key(class_id),
+				Error::<T>::NoPermissionToBuyMiningPower
+			);
 
-			// Add to queue and reserve BIT
-			// Reserve balance
-			T::Currency::reserve(&who, 100u32.into())?;
+			// TBD: Get NFT attribute. Convert power amount to the correct bit amount
+			let bit_amount: Balance = 100u32.into();
 
-			Self::deposit_event(Event::<T>::BuyPowerOrderByUserHasAddedToQueue(
-				who.clone(),
-				power_amount,
-				distributor_nft_id,
-			));
+			// Add key if does not exist
+			if !BuyPowerByUserRequestQueue::<T>::contains_key(distributor_nft_id) {
+				let user_amounts: Vec<(T::AccountId, u64)> = Vec::new();
+				BuyPowerByUserRequestQueue::<T>::insert(distributor_nft_id, user_amounts)
+			}
 
-			Ok(().into())
+			// Mutate BuyPowerByUserRequestQueue, add to queue
+			BuyPowerByUserRequestQueue::<T>::try_mutate_exists(distributor_nft_id, |maybe_user_power_amount| {
+				// Append account and power amount info to BuyPowerByUserRequestQueue
+				let mut user_power_amount_by_distributor_nft = maybe_user_power_amount
+					.as_mut()
+					.ok_or(Error::<T>::DistributorNftDoesNotExist)?;
+				user_power_amount_by_distributor_nft.push((who.clone(), power_amount));
+
+				// Reserve BIT
+				T::FungibleTokenCurrency::reserve(T::MiningCurrencyId::get(), &who, bit_amount);
+
+				Self::deposit_event(Event::<T>::BuyPowerOrderByUserHasAddedToQueue(
+					who.clone(),
+					power_amount,
+					distributor_nft_id,
+				));
+
+				Ok(().into())
+			})
 		}
 
+		/// Execute user's mining power buying order
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn execute_buy_power_order(
 			origin: OriginFor<T>,
@@ -255,30 +276,71 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Register metaverse for staking
-		/// only metaverse owner can register for staking
+		/// Enable distributor to buy mining power with specific generator NFT
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn buy_power_by_distributor(
 			origin: OriginFor<T>,
 			generator_nft_id: AssetId,
 			distributor_nft_id: AssetId,
+			power_amount: u64,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			T::Currency::reserve(&who, 100u32.into())?;
+			// Check nft is part of distributor collection
+			// Get asset detail
+			let asset = NFTModule::<T>::get_asset(generator_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
+			// Check ownership
+			let class_id = asset.0;
+			let class_info = orml_nft::Pallet::<T>::classes(class_id).ok_or(Error::<T>::NFTClassDoesNotExist)?;
 
-			let power_amount: u64 = 100;
-			Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorHasAddedToQueue(
-				who.clone(),
-				power_amount,
+			ensure!(
+				AuthorizedGeneratorCollection::<T>::contains_key(class_id),
+				Error::<T>::NoPermissionToBuyMiningPower
+			);
+
+			// TBD: Get NFT attribute of generator NFT. Convert power amount to the correct bit amount
+			let bit_amount: Balance = 100u32.into();
+
+			// Add key if does not exist
+			if !BuyPowerByDistributorRequestQueue::<T>::contains_key(generator_nft_id) {
+				let distributor_amounts: Vec<(T::AccountId, u64)> = Vec::new();
+				BuyPowerByDistributorRequestQueue::<T>::insert(generator_nft_id, distributor_amounts)
+			}
+
+			// Mutate BuyPowerByUserRequestQueue, add to queue
+			BuyPowerByDistributorRequestQueue::<T>::try_mutate_exists(
 				generator_nft_id,
-			));
+				|maybe_distributor_power_amount| {
+					// Append account and power amount info to BuyPowerByUserRequestQueue
+					let mut distributor_power_amount_by_generator_nft = maybe_distributor_power_amount
+						.as_mut()
+						.ok_or(Error::<T>::DistributorNftDoesNotExist)?;
+					distributor_power_amount_by_generator_nft.push((who.clone(), power_amount));
 
-			Ok(().into())
+					// Convert generator NFT to accountId
+					let distributor_nft_account_id: T::AccountId =
+						T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+
+					// Reserve BIT
+					T::FungibleTokenCurrency::reserve(
+						T::MiningCurrencyId::get(),
+						&distributor_nft_account_id,
+						bit_amount,
+					);
+
+					let power_amount: u64 = 100;
+					Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorHasAddedToQueue(
+						distributor_nft_account_id.clone(),
+						power_amount,
+						generator_nft_id,
+					));
+
+					Ok(().into())
+				},
+			)
 		}
 
-		/// Lock up and stake balance of the origin account.
-		/// New stake will be applied at the beginning of the next round.
+		/// Execute distributor's mining power buying order
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn execute_generate_power_order(
 			origin: OriginFor<T>,
