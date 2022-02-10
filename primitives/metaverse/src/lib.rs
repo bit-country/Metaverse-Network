@@ -101,6 +101,12 @@ pub type UndeployedLandBlockId = u128;
 /// Staking Round index
 pub type RoundIndex = u32;
 
+/// Domain Id
+pub type DomainId = u32;
+
+/// Mining Power Amount
+pub type PowerAmount = u64;
+
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

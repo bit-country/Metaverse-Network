@@ -37,7 +37,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use bc_primitives::*;
 use nft::Pallet as NFTModule;
 pub use pallet::*;
-use primitives::{AssetId, Balance, FungibleTokenId, MetaverseId, RoundIndex};
+use primitives::{AssetId, Balance, DomainId, FungibleTokenId, MetaverseId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -123,26 +123,31 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
-	pub type BuyPowerByUserRequestQueue<T: Config> = StorageMap<_, Twox64Concat, AssetId, Vec<(T::AccountId, u64)>>;
+	pub type BuyPowerByUserRequestQueue<T: Config> =
+		StorageMap<_, Twox64Concat, AssetId, Vec<(T::AccountId, PowerAmount)>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_distributor_request_queue)]
 	pub type BuyPowerByDistributorRequestQueue<T: Config> =
-		StorageMap<_, Twox64Concat, AssetId, Vec<(T::AccountId, u64)>>;
+		StorageMap<_, Twox64Concat, AssetId, Vec<(T::AccountId, PowerAmount)>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_power_balance)]
-	pub type PowerBalance<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, u64>;
+	pub type PowerBalance<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, PowerAmount>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_accepted_domain)]
+	pub type AcceptedDomain<T: Config> = StorageMap<_, Twox64Concat, DomainId, ()>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		PowerGeneratorCollectionAuthorized(ClassIdOf<T>),
 		PowerDistributorCollectionAuthorized(ClassIdOf<T>),
-		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, u64, AssetId),
-		BuyPowerOrderByUserExecuted(T::AccountId, u64, AssetId),
-		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, u64, AssetId),
-		BuyPowerOrderByDistributorExecuted(T::AccountId, u64, AssetId),
+		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
+		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, AssetId),
+		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
+		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, AssetId),
 		ElementMinted(T::AccountId, u32, u32),
 	}
 
@@ -212,7 +217,7 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn buy_power_by_user(
 			origin: OriginFor<T>,
-			power_amount: u64,
+			power_amount: PowerAmount,
 			distributor_nft_id: AssetId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -234,7 +239,7 @@ pub mod pallet {
 
 			// Add key if does not exist
 			if !BuyPowerByUserRequestQueue::<T>::contains_key(distributor_nft_id) {
-				let user_amounts: Vec<(T::AccountId, u64)> = Vec::new();
+				let user_amounts: Vec<(T::AccountId, PowerAmount)> = Vec::new();
 				BuyPowerByUserRequestQueue::<T>::insert(distributor_nft_id, user_amounts)
 			}
 
@@ -319,7 +324,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			generator_nft_id: AssetId,
 			distributor_nft_id: AssetId,
-			power_amount: u64,
+			power_amount: PowerAmount,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -340,7 +345,7 @@ pub mod pallet {
 
 			// Add key if does not exist
 			if !BuyPowerByDistributorRequestQueue::<T>::contains_key(generator_nft_id) {
-				let distributor_amounts: Vec<(T::AccountId, u64)> = Vec::new();
+				let distributor_amounts: Vec<(T::AccountId, PowerAmount)> = Vec::new();
 				BuyPowerByDistributorRequestQueue::<T>::insert(generator_nft_id, distributor_amounts)
 			}
 
@@ -365,7 +370,7 @@ pub mod pallet {
 						bit_amount,
 					);
 
-					let power_amount: u64 = 100;
+					let power_amount: PowerAmount = 100;
 					Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorHasAddedToQueue(
 						distributor_nft_account_id.clone(),
 						power_amount,
@@ -455,7 +460,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
 	fn distribute_power_by_operator(
-		power_amount: u64,
+		power_amount: PowerAmount,
 		beneficiary: T::AccountId,
 		distributor_nft_id: AssetId,
 	) -> DispatchResultWithPostInfo {
@@ -463,7 +468,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn generate_power_by_operator(
-		power_amount: u64,
+		power_amount: PowerAmount,
 		beneficiary: T::AccountId,
 		generator_nft_id: AssetId,
 	) -> DispatchResultWithPostInfo {
