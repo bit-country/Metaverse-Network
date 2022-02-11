@@ -30,7 +30,7 @@ use orml_nft::Pallet as NftModule;
 use orml_traits::{MultiCurrency, MultiReservableCurrency};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	DispatchError, Perbill,
+	ArithmeticError, DispatchError, Perbill,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
@@ -170,6 +170,8 @@ pub mod pallet {
 		InvalidNumberOfElements,
 		AccountHasNoPowerBalance,
 		InsufficientBalanceToMintElement,
+		InsufficientBalanceToDistributePower,
+		InsufficientBalanceToGeneratePower,
 	}
 
 	#[pallet::call]
@@ -312,13 +314,7 @@ pub mod pallet {
 				// Burn BIT
 
 				// Transfer power amount
-				Self::distribute_power_by_operator(power_amount, beneficiary.clone(), distributor_nft_id);
-
-				Self::deposit_event(Event::<T>::BuyPowerOrderByUserExecuted(
-					beneficiary.clone(),
-					power_amount,
-					distributor_nft_id,
-				));
+				Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id);
 
 				Ok(().into())
 			})
@@ -435,13 +431,7 @@ pub mod pallet {
 					// Burn BIT
 
 					// Transfer power amount
-					Self::generate_power_by_operator(power_amount, beneficiary.clone(), generator_nft_id);
-
-					Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorExecuted(
-						beneficiary.clone(),
-						power_amount,
-						generator_nft_id,
-					));
+					Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id);
 
 					Ok(().into())
 				},
@@ -491,17 +481,69 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	fn distribute_power_by_operator(
 		power_amount: PowerAmount,
-		beneficiary: T::AccountId,
+		beneficiary: &T::AccountId,
 		distributor_nft_id: AssetId,
-	) -> DispatchResultWithPostInfo {
-		Ok(().into())
+	) -> DispatchResult {
+		// Convert distributor NFT to accountId
+		let distributor_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+
+		let mut distributor_power_balance = PowerBalance::<T>::get(distributor_nft_account_id.clone());
+		ensure!(
+			distributor_power_balance > power_amount,
+			Error::<T>::InsufficientBalanceToDistributePower
+		);
+		distributor_power_balance = distributor_power_balance
+			.checked_sub(power_amount)
+			.ok_or(ArithmeticError::Underflow)?;
+
+		let mut user_power_balance = PowerBalance::<T>::get(beneficiary.clone());
+		user_power_balance = user_power_balance
+			.checked_add(power_amount)
+			.ok_or(ArithmeticError::Overflow)?;
+
+		PowerBalance::<T>::insert(distributor_nft_account_id.clone(), distributor_power_balance);
+		PowerBalance::<T>::insert(beneficiary.clone(), user_power_balance);
+
+		Self::deposit_event(Event::<T>::BuyPowerOrderByUserExecuted(
+			beneficiary.clone(),
+			power_amount,
+			distributor_nft_id,
+		));
+
+		Ok(())
 	}
 
 	fn generate_power_by_operator(
 		power_amount: PowerAmount,
-		beneficiary: T::AccountId,
+		beneficiary: &T::AccountId,
 		generator_nft_id: AssetId,
-	) -> DispatchResultWithPostInfo {
-		Ok(().into())
+	) -> DispatchResult {
+		// Convert distributor NFT to accountId
+		let generator_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);
+
+		let mut generator_power_balance = PowerBalance::<T>::get(generator_nft_account_id.clone());
+		ensure!(
+			generator_power_balance > power_amount,
+			Error::<T>::InsufficientBalanceToGeneratePower
+		);
+		generator_power_balance = generator_power_balance
+			.checked_sub(power_amount)
+			.ok_or(ArithmeticError::Underflow)?;
+
+		let mut distributor_power_balance = PowerBalance::<T>::get(beneficiary.clone());
+		distributor_power_balance = distributor_power_balance
+			.checked_add(power_amount)
+			.ok_or(ArithmeticError::Overflow)?;
+
+		PowerBalance::<T>::insert(generator_nft_account_id.clone(), generator_power_balance);
+		PowerBalance::<T>::insert(beneficiary.clone(), distributor_power_balance);
+
+		Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorExecuted(
+			beneficiary.clone(),
+			power_amount,
+			generator_nft_id,
+		));
+
+		Ok(())
 	}
 }
