@@ -104,6 +104,9 @@ pub type RoundIndex = u32;
 /// Domain Id
 pub type DomainId = u32;
 
+/// Element Id
+pub type ElementId = u32;
+
 /// Mining Power Amount
 pub type PowerAmount = u64;
 

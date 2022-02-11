@@ -37,7 +37,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use bc_primitives::*;
 use nft::Pallet as NFTModule;
 pub use pallet::*;
-use primitives::{AssetId, Balance, DomainId, FungibleTokenId, MetaverseId, PowerAmount, RoundIndex};
+use primitives::{AssetId, Balance, DomainId, ElementId, FungibleTokenId, MetaverseId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -55,9 +55,9 @@ pub mod weights;
 #[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct ElementInfo {
 	/// Power price for the element
-	power_price: u32,
+	power_price: PowerAmount,
 	/// The tuple of other element index -> required amount
-	compositions: Vec<(u32, u128)>,
+	compositions: Vec<(ElementId, u128)>,
 }
 
 #[frame_support::pallet]
@@ -65,9 +65,6 @@ pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, Saturating};
 	use sp_runtime::ArithmeticError;
-
-	use primitives::staking::RoundInfo;
-	use primitives::RoundIndex;
 
 	use super::*;
 
@@ -111,7 +108,12 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_element_index)]
-	pub type ElementIndex<T: Config> = StorageMap<_, Twox64Concat, u32, ElementInfo>;
+	pub type ElementIndex<T: Config> = StorageMap<_, Twox64Concat, ElementId, ElementInfo>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_elements_by_account)]
+	pub type ElementBalance<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, ElementId, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_authorized_generator_collection)]
@@ -133,7 +135,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_power_balance)]
-	pub type PowerBalance<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, PowerAmount>;
+	pub type PowerBalance<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, PowerAmount, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_accepted_domain)]
@@ -148,7 +150,7 @@ pub mod pallet {
 		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, AssetId),
 		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
 		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, AssetId),
-		ElementMinted(T::AccountId, u32, u32),
+		ElementMinted(T::AccountId, u32, u64),
 	}
 
 	#[pallet::error]
@@ -164,6 +166,10 @@ pub mod pallet {
 		GeneratorNftDoesNotExist,
 		AccountIdDoesNotExistInBuyOrderQueue,
 		DistributorAccountIdDoesNotExistInBuyOrderQueue,
+		ElementDoesNotExist,
+		InvalidNumberOfElements,
+		AccountHasNoPowerBalance,
+		InsufficientBalanceToMintElement,
 	}
 
 	#[pallet::call]
@@ -446,10 +452,34 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn mint_element(
 			origin: OriginFor<T>,
-			element_index: u32,
-			number_of_element: u32,
+			element_index: ElementId,
+			number_of_element: u64,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			ensure!(!number_of_element.is_zero(), Error::<T>::InvalidNumberOfElements);
+
+			let element_info = ElementIndex::<T>::get(element_index).ok_or(Error::<T>::ElementDoesNotExist)?;
+
+			let power_cost: PowerAmount = number_of_element
+				.checked_mul(element_info.power_price)
+				.ok_or(ArithmeticError::Overflow)?;
+
+			let mut power_balance = PowerBalance::<T>::get(&who);
+			ensure!(power_balance > power_cost, Error::<T>::InsufficientBalanceToMintElement);
+
+			// Update PowerBalance
+			power_balance = power_balance
+				.checked_sub(power_cost)
+				.ok_or(ArithmeticError::Underflow)?;
+			PowerBalance::<T>::insert(&who, power_balance);
+
+			// Update ElementBalance
+			let mut element_balance = ElementBalance::<T>::get(who.clone(), element_index);
+			element_balance = element_balance
+				.checked_add(number_of_element)
+				.ok_or(ArithmeticError::Overflow)?;
+			ElementBalance::<T>::insert(who.clone(), element_index, element_balance);
 
 			Self::deposit_event(Event::<T>::ElementMinted(who.clone(), element_index, number_of_element));
 
