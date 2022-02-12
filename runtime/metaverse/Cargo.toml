@@ -58,13 +58,11 @@ frame-benchmarking = { version = "4.0.0-dev", default-features = false, git = "h
 frame-system-benchmarking = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.13", optional = true }
 
 # EVM pallets
-#pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-#pallet-evm = { path = "../../pallets/evm", default-features = false }
-#pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-#pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
-#pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
-#pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
-#fp-rpc = { default-features = false, git = "https://github.com/bit-country/frontier", branch = "master" }
+pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.13", default-features = false }
+pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.13", default-features = false }
+pallet-base-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.13", default-features = false }
+fp-self-contained = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.13", default-features = false }
+fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.13", default-features = false }
 
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.13", default-features = false }
@@ -142,16 +140,16 @@ std = [
     "continuum/std",
     "currencies/std",
     "swap/std",
-    #    "chainbridge/std",
-    #    "modules-chainsafe/std",
     "mining/std",
     "parachain-staking/std",
-    #    "pallet-evm/std",
-    #    "fp-rpc/std",
-    #    "evm/std",
     "governance/std",
     "crowdloan/std",
-    "pallet-utility/std"
+    "pallet-utility/std",
+    "pallet-evm/std",
+    "pallet-base-fee/std",
+    "pallet-ethereum/std",
+    "fp-self-contained/std",
+    "fp-rpc/std",
 ]
 runtime-benchmarks = [
     "frame-benchmarking",

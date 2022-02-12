@@ -1,7 +1,7 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 #[cfg(feature = "with-metaverse-runtime")]
-pub use metaverse::{new_full, new_partial, ExecutorDispatch as Executor};
+pub use metaverse::{new_partial, start_node, ExecutorDispatch as Executor};
 #[cfg(feature = "with-pioneer-runtime")]
 pub use pioneer::{
 	// new_full as pioneer_full, new_light as pioneer_light,

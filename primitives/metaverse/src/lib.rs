@@ -97,6 +97,8 @@ pub type EstateId = u64;
 pub type TokenId = u64;
 /// Undeployed LandBlock Id type
 pub type UndeployedLandBlockId = u128;
+/// Nonce
+pub type Nonce = u32;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
