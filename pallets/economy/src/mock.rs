@@ -7,22 +7,20 @@ use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
-use primitives::Amount;
+use auction_manager::*;
+use primitives::{Amount, FungibleTokenId, ItemId};
 
-use crate as metaverse;
+use crate as economy;
 
 use super::*;
 
 pub type AccountId = u128;
-pub type Balance = u64;
-pub type MetaverseId = u64;
+pub type Balance = u128;
 pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const FREEDY: AccountId = 3;
-pub const METAVERSE_ID: MetaverseId = 0;
-pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
 
 pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
 pub const COLLECTION_ID: u64 = 0;
@@ -81,11 +79,10 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const EconomyPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
 	pub const MinContribution: Balance = 1;
 	pub const MinStakingAmount: Balance = 100;
-	pub const MaxNumberOfStakersPerMetaverse: u32 = 1;
 }
 
 ord_parameter_types! {
@@ -96,15 +93,11 @@ ord_parameter_types! {
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type MultiCurrency = Currencies;
-	type MetaverseTreasury = MetaverseFundPalletId;
-	type MaxMetaverseMetadata = MaxTokenMetadata;
+	type FungibleTokenCurrency = Tokens;
+	type EconomyTreasury = EconomyPalletId;
 	type MinContribution = MinContribution;
-	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
-	type MetaverseRegistrationDeposit = MinContribution;
 	type MinStakingAmount = MinStakingAmount;
-	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
-	type WeightInfo = ();
+	type MiningCurrencyId = MiningCurrencyId;
 }
 
 parameter_type_with_key! {
@@ -114,8 +107,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
+	pub TreasuryModuleAccount: AccountId = EconomyPalletId::get().into_account();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -144,6 +136,102 @@ impl currencies::Config for Runtime {
 	type GetNativeCurrencyId = NativeCurrencyId;
 }
 
+pub struct MockAuctionManager;
+
+impl Auction<AccountId, BlockNumber> for MockAuctionManager {
+	type Balance = Balance;
+
+	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+		None
+	}
+
+	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+		Ok(())
+	}
+
+	fn new_auction(
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_end: Option<u64>,
+	) -> Result<u64, DispatchError> {
+		Ok(1)
+	}
+
+	fn create_auction(
+		_auction_type: AuctionType,
+		_item_id: ItemId,
+		_end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_listing_level: ListingLevel<AccountId>,
+	) -> Result<u64, DispatchError> {
+		Ok(1)
+	}
+
+	fn remove_auction(_id: u64, _item_id: ItemId) {}
+
+	fn auction_bid_handler(
+		_now: u64,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn local_auction_bid_handler(
+		_now: u64,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
+		_social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn collect_royalty_fee(
+		_high_bid_price: &Self::Balance,
+		_high_bidder: &u128,
+		_asset_id: &u64,
+		_social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		Ok(())
+	}
+}
+
+impl CheckAuctionItemHandler for MockAuctionManager {
+	fn check_item_in_auction(_item_id: ItemId) -> bool {
+		return false;
+	}
+}
+
+parameter_types! {
+	pub CreateClassDeposit: Balance = 2;
+	pub CreateAssetDeposit: Balance = 1;
+	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
+	pub MaxBatchTransfer: u32 = 3;
+	pub MaxBatchMinting: u32 = 2000;
+	pub MaxMetadata: u32 = 10;
+	pub PromotionIncentive: Balance = 1;
+}
+
+impl pallet_nft::Config for Runtime {
+	type Event = Event;
+	type DataDepositPerByte = CreateAssetDeposit;
+	type Currency = Balances;
+	type PalletId = NftPalletId;
+	type WeightInfo = ();
+	type AuctionHandler = MockAuctionManager;
+	type MaxBatchTransfer = MaxBatchTransfer;
+	type MaxBatchMinting = MaxBatchMinting;
+	type MaxMetadata = MaxMetadata;
+	type MultiCurrency = Currencies;
+	type MiningResourceId = MiningCurrencyId;
+	type PromotionIncentive = PromotionIncentive;
+}
+
 parameter_types! {
 	pub MaxClassMetadata: u32 = 1024;
 }
@@ -151,8 +239,8 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
-	type ClassData = nft::NftClassData<Balance>;
-	type TokenData = nft::NftAssetData<Balance>;
+	type ClassData = pallet_nft::NftClassData<Balance>;
+	type TokenData = pallet_nft::NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
@@ -172,8 +260,9 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>},
+		Economy: economy::{Pallet, Call ,Storage, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
+		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
 	}
 );
 

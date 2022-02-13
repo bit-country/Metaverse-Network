@@ -42,6 +42,7 @@ orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-librar
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 pallet-nft = { package = "pallet-nft", path = "../nft", default-features = false }
+auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
 
 [features]
 runtime-benchmarks = [
@@ -65,5 +66,6 @@ std = [
     "primitives/std",
     "scale-info/std",
     "frame-benchmarking/std",
-    "currencies/std"
+    "currencies/std",
+    'auction-manager/std'
 ]

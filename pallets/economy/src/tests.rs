@@ -31,7 +31,7 @@ fn authorize_power_generator_collection_should_work() {
 			CLASS_ID
 		));
 
-		let event = Event::Metaverse(crate::Event::PowerGeneratorCollectionAuthorized(CLASS_ID));
+		let event = Event::Economy(crate::Event::PowerGeneratorCollectionAuthorized(CLASS_ID));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -54,7 +54,7 @@ fn authorize_power_distributor_collection_should_work() {
 			CLASS_ID
 		));
 
-		let event = Event::Metaverse(crate::Event::PowerDistributorCollectionAuthorized(CLASS_ID));
+		let event = Event::Economy(crate::Event::PowerDistributorCollectionAuthorized(CLASS_ID));
 		assert_eq!(last_event(), event);
 	});
 }
