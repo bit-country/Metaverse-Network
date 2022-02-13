@@ -35,8 +35,8 @@ use sp_runtime::{
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use bc_primitives::*;
-use nft::Pallet as NFTModule;
 pub use pallet::*;
+use pallet_nft::Pallet as NFTModule;
 use primitives::{AssetId, Balance, DomainId, ElementId, FungibleTokenId, MetaverseId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
@@ -78,33 +78,31 @@ pub mod pallet {
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config
-    // + orml_nft::Config
-    + nft::Config {
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        /// The currency type
-        type Currency: LockableCurrency<Self::AccountId, Moment=Self::BlockNumber>
-        + ReservableCurrency<Self::AccountId>;
-        /// Multi-fungible token currency
-        type FungibleTokenCurrency: MultiReservableCurrency<
-            Self::AccountId,
-            CurrencyId=FungibleTokenId,
-            Balance=Balance,
-        >;
-        #[pallet::constant]
-        type EconomyTreasury: Get<PalletId>;
-        // #[pallet::constant]
-        // type MaxMetaverseMetadata: Get<u32>;
-        /// Minimum contribution
-        #[pallet::constant]
-        type MinContribution: Get<BalanceOf<Self>>;
+	pub trait Config: frame_system::Config + pallet_nft::Config {
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		/// The currency type
+		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+			+ ReservableCurrency<Self::AccountId>;
+		/// Multi-fungible token currency
+		type FungibleTokenCurrency: MultiReservableCurrency<
+			Self::AccountId,
+			CurrencyId = FungibleTokenId,
+			Balance = Balance,
+		>;
+		#[pallet::constant]
+		type EconomyTreasury: Get<PalletId>;
+		// #[pallet::constant]
+		// type MaxMetaverseMetadata: Get<u32>;
+		/// Minimum contribution
+		#[pallet::constant]
+		type MinContribution: Get<BalanceOf<Self>>;
 
-        /// Mininum staking amount
-        type MinStakingAmount: Get<BalanceOf<Self>>;
+		/// Mininum staking amount
+		type MinStakingAmount: Get<BalanceOf<Self>>;
 
-        #[pallet::constant]
-        type MiningCurrencyId: Get<FungibleTokenId>;
-    }
+		#[pallet::constant]
+		type MiningCurrencyId: Get<FungibleTokenId>;
+	}
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_element_index)]
