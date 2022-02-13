@@ -151,6 +151,7 @@ pub mod pallet {
 		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
 		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, AssetId),
 		ElementMinted(T::AccountId, u32, u64),
+		MiningResourceBurned(Balance),
 	}
 
 	#[pallet::error]
@@ -172,6 +173,7 @@ pub mod pallet {
 		InsufficientBalanceToMintElement,
 		InsufficientBalanceToDistributePower,
 		InsufficientBalanceToGeneratePower,
+		BalanceZero,
 	}
 
 	#[pallet::call]
@@ -312,6 +314,7 @@ pub mod pallet {
 				T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
 				// Burn BIT
+				Self::do_burn(who, bit_amount)?;
 
 				// Transfer power amount
 				Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id);
@@ -429,6 +432,7 @@ pub mod pallet {
 					T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
 					// Burn BIT
+					Self::do_burn(who, bit_amount)?;
 
 					// Transfer power amount
 					Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id);
@@ -479,6 +483,29 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	pub fn economy_pallet_account_id() -> T::AccountId {
+		T::EconomyTreasury::get().into_account()
+	}
+
+	fn do_burn(who: T::AccountId, amount: Balance) -> DispatchResult {
+		if amount.is_zero() {
+			return Ok(());
+		}
+		// TODO: has permission to burn. who
+
+		let economy_treasury = Self::economy_pallet_account_id();
+		ensure!(
+			T::FungibleTokenCurrency::can_slash(T::MiningCurrencyId::get(), &economy_treasury, amount),
+			Error::<T>::BalanceZero
+		);
+		//Deposit Bit mining to mining treasury
+		T::FungibleTokenCurrency::slash(T::MiningCurrencyId::get(), &economy_treasury, amount);
+
+		Self::deposit_event(Event::<T>::MiningResourceBurned(amount));
+
+		Ok(())
+	}
+
 	fn distribute_power_by_operator(
 		power_amount: PowerAmount,
 		beneficiary: &T::AccountId,
@@ -513,12 +540,13 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	// TODO: merge to distribute?
 	fn generate_power_by_operator(
 		power_amount: PowerAmount,
 		beneficiary: &T::AccountId,
 		generator_nft_id: AssetId,
 	) -> DispatchResult {
-		// Convert distributor NFT to accountId
+		// Convert generator NFT to accountId
 		let generator_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);
 
 		let mut generator_power_balance = PowerBalance::<T>::get(generator_nft_account_id.clone());
