@@ -243,7 +243,11 @@ pub mod pallet {
 			);
 
 			// TBD: Get NFT attribute. Convert power amount to the correct bit amount
-			let bit_amount: Balance = 100u32.into();
+			let bit_amount: Balance = power_amount
+				.checked_add(100)
+				.ok_or(ArithmeticError::Overflow)
+				.unwrap()
+				.into();
 
 			// Add key if does not exist
 			if !BuyPowerByUserRequestQueue::<T>::contains_key(distributor_nft_id) {
@@ -258,6 +262,11 @@ pub mod pallet {
 					.as_mut()
 					.ok_or(Error::<T>::DistributorNftDoesNotExist)?;
 				user_power_amount_by_distributor_nft.push((who.clone(), power_amount));
+
+				ensure!(
+					T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
+					Error::<T>::BalanceZero
+				);
 
 				// Reserve BIT
 				T::FungibleTokenCurrency::reserve(T::MiningCurrencyId::get(), &who, bit_amount);
@@ -307,7 +316,7 @@ pub mod pallet {
 
 				// TODO: convert power_amount to bit_amount, or read from struct.
 				let bit_amount: Balance = power_amount
-					.checked_add(10)
+					.checked_add(100)
 					.ok_or(ArithmeticError::Overflow)
 					.unwrap()
 					.into();
@@ -348,7 +357,11 @@ pub mod pallet {
 			);
 
 			// TBD: Get NFT attribute of generator NFT. Convert power amount to the correct bit amount
-			let bit_amount: Balance = 100u32.into();
+			let bit_amount: Balance = power_amount
+				.checked_add(100)
+				.ok_or(ArithmeticError::Overflow)
+				.unwrap()
+				.into();
 
 			// Add key if does not exist
 			if !BuyPowerByDistributorRequestQueue::<T>::contains_key(generator_nft_id) {
@@ -369,6 +382,15 @@ pub mod pallet {
 						.as_mut()
 						.ok_or(Error::<T>::DistributorNftDoesNotExist)?;
 					distributor_power_amount_by_generator_nft.push((distributor_nft_account_id.clone(), power_amount));
+
+					ensure!(
+						T::FungibleTokenCurrency::can_reserve(
+							T::MiningCurrencyId::get(),
+							&distributor_nft_account_id,
+							bit_amount
+						),
+						Error::<T>::BalanceZero
+					);
 
 					// Reserve BIT
 					T::FungibleTokenCurrency::reserve(
@@ -428,7 +450,7 @@ pub mod pallet {
 
 					// TODO: convert power_amount to bit_amount, or read from struct.
 					let bit_amount: Balance = power_amount
-						.checked_add(10)
+						.checked_add(100)
 						.ok_or(ArithmeticError::Overflow)
 						.unwrap()
 						.into();

@@ -29,6 +29,7 @@ pub const DISTRIBUTOR_NFT_ASSET_ID: AssetId = 0;
 pub const NFT_ASSET_ID_NOT_EXIST: AssetId = 99;
 pub const USER_BUY_POWER_AMOUNT: PowerAmount = 100;
 pub const DISTRIBUTOR_POWER_BALANCE: PowerAmount = 100000;
+pub const DISTRIBUTOR_MINING_BALANCE: u64 = 10000;
 
 pub const GENERATOR_CLASS_ID: ClassId = 1;
 pub const GENERATOR_NFT_ASSET_ID: AssetId = 1;
@@ -36,6 +37,11 @@ pub const GENERATE_POWER_AMOUNT: PowerAmount = 200;
 pub const GENERATOR_POWER_BALANCE: PowerAmount = 200000;
 
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
+
+pub const ELEMENT_INDEX_ID: ElementId = 0;
+pub const ELEMENT_AMOUNT: u64 = 3;
+pub const ALICE_POWER_AMOUNT: PowerAmount = 20000;
+pub const ALICE_MINING_BALANCE: u64 = 10000;
 
 // Configure a mock runtime to test the pallet.
 
@@ -103,7 +109,7 @@ ord_parameter_types! {
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type FungibleTokenCurrency = Tokens;
+	type FungibleTokenCurrency = OrmlTokens;
 	type EconomyTreasury = EconomyPalletId;
 	type MinContribution = MinContribution;
 	type MinStakingAmount = MinStakingAmount;
@@ -141,7 +147,7 @@ parameter_types! {
 
 impl currencies::Config for Runtime {
 	type Event = Event;
-	type MultiSocialCurrency = Tokens;
+	type MultiSocialCurrency = OrmlTokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
 }
@@ -269,22 +275,29 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
-		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
+		OrmlTokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Economy: economy::{Pallet, Call ,Storage, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
 	}
 );
 
-pub struct ExtBuilder;
+pub struct ExtBuilder {
+	balances: Vec<(AccountId, FungibleTokenId, Balance)>,
+}
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
-		ExtBuilder
+		Self { balances: vec![] }
 	}
 }
 
 impl ExtBuilder {
+	pub fn balances(mut self, mut balances: Vec<(AccountId, FungibleTokenId, Balance)>) -> Self {
+		self.balances.append(&mut balances);
+		self
+	}
+
 	pub fn build(self) -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
@@ -298,6 +311,12 @@ impl ExtBuilder {
 
 		pallet_balances::GenesisConfig::<Runtime> {
 			balances: vec![(BOB, 20000)],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		orml_tokens::GenesisConfig::<Runtime> {
+			balances: self.balances, //vec![(ALICE, MiningCurrencyId, 1000000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
