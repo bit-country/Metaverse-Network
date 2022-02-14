@@ -105,7 +105,6 @@ fn authorize_power_distributor_collection_should_fail() {
 }
 
 #[test]
-// Creating auction should work
 fn buy_power_by_user_should_fail_nft_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
@@ -162,7 +161,6 @@ fn buy_power_by_user_should_work() {
 }
 
 #[test]
-// Creating auction should work
 fn buy_power_by_distributor_should_fail_nft_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
@@ -229,6 +227,286 @@ fn buy_power_by_distributor_should_work() {
 		assert_eq!(
 			EconomyModule::get_buy_power_by_distributor_request_queue(GENERATOR_NFT_ASSET_ID),
 			Some(vec![(distributor_account_id, GENERATE_POWER_AMOUNT)])
+		);
+	});
+}
+
+#[test]
+fn execute_buy_power_order_should_fail_nft_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_distributor_collection(
+			Origin::root(),
+			DISTRIBUTOR_CLASS_ID
+		));
+
+		assert_noop!(
+			EconomyModule::execute_buy_power_order(origin, NFT_ASSET_ID_NOT_EXIST, ALICE),
+			Error::<Runtime>::NFTAssetDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn execute_buy_power_order_should_fail_distributor_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_distributor_collection(
+			Origin::root(),
+			DISTRIBUTOR_CLASS_ID
+		));
+
+		assert_noop!(
+			EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, ALICE),
+			Error::<Runtime>::DistributorNftDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn execute_buy_power_order_should_fail_account_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_distributor_collection(
+			Origin::root(),
+			DISTRIBUTOR_CLASS_ID
+		));
+
+		assert_ok!(EconomyModule::buy_power_by_user(
+			origin.clone(),
+			USER_BUY_POWER_AMOUNT,
+			DISTRIBUTOR_NFT_ASSET_ID,
+		));
+
+		assert_noop!(
+			EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, BOB),
+			Error::<Runtime>::AccountIdDoesNotExistInBuyOrderQueue
+		);
+	});
+}
+
+#[test]
+fn execute_buy_power_order_should_fail_insufficient_balance() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_distributor_collection(
+			Origin::root(),
+			DISTRIBUTOR_CLASS_ID
+		));
+
+		assert_ok!(EconomyModule::buy_power_by_user(
+			origin.clone(),
+			USER_BUY_POWER_AMOUNT,
+			DISTRIBUTOR_NFT_ASSET_ID,
+		));
+
+		assert_err!(
+			EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, ALICE),
+			Error::<Runtime>::InsufficientBalanceToDistributePower
+		);
+	});
+}
+
+#[test]
+fn execute_buy_power_order_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_distributor_collection(
+			Origin::root(),
+			DISTRIBUTOR_CLASS_ID
+		));
+
+		assert_ok!(EconomyModule::buy_power_by_user(
+			origin.clone(),
+			USER_BUY_POWER_AMOUNT,
+			DISTRIBUTOR_NFT_ASSET_ID,
+		));
+
+		let distributor_account_id = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
+
+		//TODO: add fake data to PowerBalance. DISTRIBUTOR_POWER_BALANCE
+		// <mock::Runtime as Trait>::PowerBalance::insert(distributor_account_id,
+		// DISTRIBUTOR_POWER_BALANCE);
+
+		assert_ok!(EconomyModule::execute_buy_power_order(
+			origin,
+			DISTRIBUTOR_NFT_ASSET_ID,
+			ALICE
+		));
+
+		let event = Event::Economy(crate::Event::BuyPowerOrderByUserExecuted(
+			ALICE,
+			USER_BUY_POWER_AMOUNT,
+			DISTRIBUTOR_NFT_ASSET_ID,
+		));
+		assert_eq!(last_event(), event);
+
+		assert_eq!(
+			EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID),
+			Some(vec![])
+		);
+
+		let remaining_balance: PowerAmount = DISTRIBUTOR_POWER_BALANCE - USER_BUY_POWER_AMOUNT;
+		assert_eq!(
+			EconomyModule::get_power_balance(distributor_account_id),
+			remaining_balance
+		);
+
+		assert_eq!(EconomyModule::get_power_balance(ALICE), USER_BUY_POWER_AMOUNT);
+	});
+}
+
+#[test]
+fn execute_generate_power_order_should_fail_nft_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_generator_collection(
+			Origin::root(),
+			GENERATOR_CLASS_ID
+		));
+
+		assert_noop!(
+			EconomyModule::execute_generate_power_order(origin, NFT_ASSET_ID_NOT_EXIST, ALICE),
+			Error::<Runtime>::NFTAssetDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn execute_generate_power_order_should_fail_distributor_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_generator_collection(
+			Origin::root(),
+			GENERATOR_CLASS_ID
+		));
+
+		assert_noop!(
+			EconomyModule::execute_generate_power_order(origin, GENERATOR_NFT_ASSET_ID, ALICE),
+			Error::<Runtime>::GeneratorNftDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn execute_generate_power_order_should_fail_account_does_not_exist() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_generator_collection(
+			Origin::root(),
+			GENERATOR_CLASS_ID
+		));
+
+		assert_ok!(EconomyModule::buy_power_by_distributor(
+			origin.clone(),
+			GENERATOR_NFT_ASSET_ID,
+			DISTRIBUTOR_NFT_ASSET_ID,
+			GENERATE_POWER_AMOUNT,
+		));
+
+		assert_noop!(
+			EconomyModule::execute_generate_power_order(origin, GENERATOR_NFT_ASSET_ID, BOB),
+			Error::<Runtime>::DistributorAccountIdDoesNotExistInBuyOrderQueue
+		);
+	});
+}
+
+#[test]
+fn execute_generate_power_order_should_fail_insufficient_balance() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_generator_collection(
+			Origin::root(),
+			GENERATOR_CLASS_ID
+		));
+
+		assert_ok!(EconomyModule::buy_power_by_distributor(
+			origin.clone(),
+			GENERATOR_NFT_ASSET_ID,
+			DISTRIBUTOR_NFT_ASSET_ID,
+			GENERATE_POWER_AMOUNT,
+		));
+
+		let distributor_account_id = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
+
+		assert_err!(
+			EconomyModule::execute_generate_power_order(origin, GENERATOR_NFT_ASSET_ID, distributor_account_id),
+			Error::<Runtime>::InsufficientBalanceToGeneratePower
+		);
+	});
+}
+
+#[test]
+fn execute_generate_power_order_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+
+		assert_ok!(EconomyModule::authorize_power_generator_collection(
+			Origin::root(),
+			GENERATOR_CLASS_ID
+		));
+
+		assert_ok!(EconomyModule::buy_power_by_distributor(
+			origin.clone(),
+			GENERATOR_NFT_ASSET_ID,
+			DISTRIBUTOR_NFT_ASSET_ID,
+			GENERATE_POWER_AMOUNT,
+		));
+
+		let distributor_account_id = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
+		let generator_account_id = sub_account(GENERATOR_NFT_ASSET_ID);
+
+		assert_ok!(EconomyModule::execute_generate_power_order(
+			origin,
+			GENERATOR_NFT_ASSET_ID,
+			distributor_account_id
+		));
+
+		let event = Event::Economy(crate::Event::BuyPowerOrderByDistributorExecuted(
+			distributor_account_id,
+			GENERATE_POWER_AMOUNT,
+			GENERATOR_NFT_ASSET_ID,
+		));
+		assert_eq!(last_event(), event);
+
+		assert_eq!(
+			EconomyModule::get_buy_power_by_distributor_request_queue(GENERATOR_NFT_ASSET_ID),
+			Some(vec![])
+		);
+
+		let remaining_balance: PowerAmount = GENERATOR_POWER_BALANCE - GENERATE_POWER_AMOUNT;
+		assert_eq!(
+			EconomyModule::get_power_balance(generator_account_id),
+			remaining_balance
+		);
+
+		assert_eq!(
+			EconomyModule::get_power_balance(distributor_account_id),
+			GENERATE_POWER_AMOUNT
 		);
 	});
 }
