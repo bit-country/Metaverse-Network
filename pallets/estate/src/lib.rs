@@ -31,6 +31,7 @@ use sp_std::vec::Vec;
 use auction_manager::{Auction, CheckAuctionItemHandler};
 use bc_primitives::*;
 pub use pallet::*;
+use primitives::estate::EstateInfo;
 use primitives::{
 	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
 };
@@ -54,6 +55,7 @@ pub mod pallet {
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
 
+	use primitives::estate::EstateInfo;
 	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
 	use primitives::{RoundIndex, UndeployedLandBlockId};
 
@@ -121,7 +123,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estates)]
-	pub(super) type Estates<T: Config> = StorageMap<_, Twox64Concat, EstateId, Vec<(i32, i32)>, OptionQuery>;
+	pub(super) type Estates<T: Config> = StorageMap<_, Twox64Concat, EstateId, EstateInfo, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_owner)]
@@ -454,6 +456,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Transfer estate ownership
 		#[pallet::weight(T::WeightInfo::transfer_estate())]
 		pub fn transfer_estate(
 			origin: OriginFor<T>,
@@ -472,6 +475,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Deploy raw land block to metaverse and turn raw land block to land unit with given
+		/// coordinates
 		#[pallet::weight(T::WeightInfo::deploy_land_block())]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
@@ -535,6 +540,7 @@ pub mod pallet {
 			)
 		}
 
+		/// Sudo issues new raw land block
 		#[pallet::weight(T::WeightInfo::issue_undeployed_land_blocks())]
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
@@ -555,6 +561,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Sudo Freeze raw land block
 		#[pallet::weight(T::WeightInfo::freeze_undeployed_land_blocks())]
 		pub fn freeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -567,6 +574,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Sudo Unfreeze raw land block
 		#[pallet::weight(T::WeightInfo::unfreeze_undeployed_land_blocks())]
 		pub fn unfreeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -595,6 +603,7 @@ pub mod pallet {
 			)
 		}
 
+		/// Transfer raw land block
 		#[pallet::weight(T::WeightInfo::transfer_undeployed_land_blocks())]
 		pub fn transfer_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -608,6 +617,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Burn raw land block that will reduce total supply
 		#[pallet::weight(T::WeightInfo::burn_undeployed_land_blocks())]
 		pub fn burn_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -620,6 +630,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Burn raw land block that will reduce total supply
 		#[pallet::weight(T::WeightInfo::approve_undeployed_land_blocks())]
 		pub fn approve_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -658,6 +669,7 @@ pub mod pallet {
 			)
 		}
 
+		/// Unapprove external wallet to access raw land block.
 		#[pallet::weight(T::WeightInfo::unapprove_undeployed_land_blocks())]
 		pub fn unapprove_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -693,12 +705,9 @@ pub mod pallet {
 			)
 		}
 
+		/// Dissolve estate to land units
 		#[pallet::weight(T::WeightInfo::dissolve_estate())]
-		pub fn dissolve_estate(
-			origin: OriginFor<T>,
-			estate_id: EstateId,
-			metaverse_id: MetaverseId,
-		) -> DispatchResultWithPostInfo {
+		pub fn dissolve_estate(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			ensure!(
@@ -706,7 +715,7 @@ pub mod pallet {
 				Error::<T>::EstateAlreadyInAuction
 			);
 
-			let land_units = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| {
 				//ensure there is record of the estate owner with estate id and account id
@@ -726,9 +735,9 @@ pub mod pallet {
 				AllEstatesCount::<T>::put(new_total_estates_count);
 
 				// Update land units relationship
-				for land_unit in land_units.clone() {
+				for land_unit in estate_info.land_units.clone() {
 					LandUnits::<T>::try_mutate_exists(
-						&metaverse_id,
+						&estate_info.metaverse_id,
 						&land_unit,
 						|maybe_account| -> Result<(), DispatchError> {
 							*maybe_account = Some(who.clone());
@@ -744,11 +753,11 @@ pub mod pallet {
 			})
 		}
 
+		/// Add more land units to existing estate
 		#[pallet::weight(T::WeightInfo::add_land_unit_to_estate())]
 		pub fn add_land_unit_to_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
-			metaverse_id: MetaverseId,
 			land_units: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -758,7 +767,7 @@ pub mod pallet {
 				Error::<T>::EstateAlreadyInAuction
 			);
 
-			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			// Check estate ownership
 			ensure!(
@@ -769,16 +778,16 @@ pub mod pallet {
 			// Check land unit ownership
 			for land_unit in land_units.clone() {
 				ensure!(
-					Self::get_land_units(metaverse_id, land_unit) == Some(who.clone()),
+					Self::get_land_units(estate_info.metaverse_id, land_unit) == Some(who.clone()),
 					Error::<T>::LandUnitDoesNotExist
 				);
 			}
 
 			// Mutate estates
-			Estates::<T>::try_mutate_exists(&estate_id, |maybe_land_units| {
+			Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
 				// Append new coordinates to estate
-				let mut land_units_by_estate = maybe_land_units.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
-				land_units_by_estate.append(&mut land_units.clone());
+				let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+				mut_estate_info.land_units.append(&mut land_units.clone());
 
 				// Mutate land unit ownership
 				let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
@@ -786,7 +795,7 @@ pub mod pallet {
 				// Mutate land unit ownership
 				for land_unit in land_units.clone() {
 					LandUnits::<T>::try_mutate_exists(
-						&metaverse_id,
+						&mut_estate_info.metaverse_id,
 						&land_unit,
 						|maybe_account| -> Result<(), DispatchError> {
 							*maybe_account = Some(estate_account_id.clone());
@@ -806,11 +815,11 @@ pub mod pallet {
 			})
 		}
 
+		/// Remove land units from existing estate
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
 		pub fn remove_land_unit_from_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
-			metaverse_id: MetaverseId,
 			land_units: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -820,7 +829,7 @@ pub mod pallet {
 				Error::<T>::EstateAlreadyInAuction
 			);
 
-			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			// Check estate ownership
 			ensure!(
@@ -829,17 +838,17 @@ pub mod pallet {
 			);
 
 			// Mutate estates
-			Estates::<T>::try_mutate_exists(&estate_id, |maybe_land_units| {
-				let mut land_units_by_estate = maybe_land_units.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+			Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
+				let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
 
 				// Mutate land unit ownership
 				for land_unit in land_units.clone() {
 					// Remove coordinates from estate
-					let index = land_units_by_estate.iter().position(|x| *x == land_unit).unwrap();
-					land_units_by_estate.remove(index);
+					let index = mut_estate_info.land_units.iter().position(|x| *x == land_unit).unwrap();
+					mut_estate_info.land_units.remove(index);
 
 					LandUnits::<T>::try_mutate_exists(
-						&metaverse_id,
+						&mut_estate_info.metaverse_id,
 						&land_unit,
 						|maybe_account| -> Result<(), DispatchError> {
 							*maybe_account = Some(who.clone());
@@ -859,6 +868,7 @@ pub mod pallet {
 			})
 		}
 
+		/// Bond native token to the estate
 		#[pallet::weight(T::WeightInfo::bond_more())]
 		pub fn bond_more(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -897,6 +907,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Unbond native token from the estate
 		#[pallet::weight(T::WeightInfo::bond_less())]
 		pub fn bond_less(origin: OriginFor<T>, estate_id: EstateId, less: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -935,6 +946,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Leave staking
 		#[pallet::weight(T::WeightInfo::leave_staking())]
 		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -1143,7 +1155,12 @@ impl<T: Config> Pallet<T> {
 		AllEstatesCount::<T>::put(new_total_estates_count);
 
 		// Update estates
-		Estates::<T>::insert(new_estate_id, coordinates.clone());
+		let estate_info = EstateInfo {
+			metaverse_id,
+			land_units: coordinates.clone(),
+		};
+
+		Estates::<T>::insert(new_estate_id, estate_info);
 
 		EstateOwner::<T>::insert(beneficiary.clone(), new_estate_id, {});
 
@@ -1408,8 +1425,8 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 			EstateOwner::<T>::iter_prefix(who).map(|res| res.0).collect::<Vec<_>>();
 
 		for estate_id in estate_ids_by_owner {
-			let mut coordinates = Estates::<T>::get(&estate_id).unwrap();
-			total_land_units.append(&mut coordinates)
+			let mut estate_info = Estates::<T>::get(&estate_id).unwrap();
+			total_land_units.append(&mut estate_info.land_units)
 		}
 
 		total_land_units
