@@ -306,16 +306,20 @@ pub mod pallet {
 				let (account_id, power_amount) = power_amount_by_user.remove(index);
 
 				// TODO: convert power_amount to bit_amount, or read from struct.
-				let bit_amount: Balance = 10u32.into();
+				let bit_amount: Balance = power_amount
+					.checked_add(10)
+					.ok_or(ArithmeticError::Overflow)
+					.unwrap()
+					.into();
 
 				// Unreserve BIT
 				T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
 				// Burn BIT
-				Self::do_burn(who, bit_amount)?;
+				Self::do_burn(&who, &beneficiary, bit_amount)?;
 
 				// Transfer power amount
-				Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id);
+				Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id)?;
 
 				Ok(().into())
 			})
@@ -423,16 +427,20 @@ pub mod pallet {
 					let (account_id, power_amount) = user_power_amount_by_distributor_nft.remove(index);
 
 					// TODO: convert power_amount to bit_amount, or read from struct.
-					let bit_amount: Balance = 10u32.into();
+					let bit_amount: Balance = power_amount
+						.checked_add(10)
+						.ok_or(ArithmeticError::Overflow)
+						.unwrap()
+						.into();
 
 					// Unreserve BIT
 					T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
 					// Burn BIT
-					Self::do_burn(who, bit_amount)?;
+					Self::do_burn(&who, &beneficiary, bit_amount)?;
 
 					// Transfer power amount
-					Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id);
+					Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id)?;
 
 					Ok(().into())
 				},
@@ -484,19 +492,15 @@ impl<T: Config> Pallet<T> {
 		T::EconomyTreasury::get().into_account()
 	}
 
-	fn do_burn(who: T::AccountId, amount: Balance) -> DispatchResult {
+	fn do_burn(who: &T::AccountId, beneficiary: &T::AccountId, amount: Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}
-		// TODO: has permission to burn. who
 
-		let economy_treasury = Self::economy_pallet_account_id();
-		ensure!(
-			T::FungibleTokenCurrency::can_slash(T::MiningCurrencyId::get(), &economy_treasury, amount),
-			Error::<T>::BalanceZero
-		);
+		//TODO:: check burn permission on who
+
 		//Deposit Bit mining to mining treasury
-		T::FungibleTokenCurrency::slash(T::MiningCurrencyId::get(), &economy_treasury, amount);
+		T::FungibleTokenCurrency::withdraw(T::MiningCurrencyId::get(), beneficiary, amount);
 
 		Self::deposit_event(Event::<T>::MiningResourceBurned(amount));
 
