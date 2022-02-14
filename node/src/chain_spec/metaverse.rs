@@ -85,7 +85,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		// Telemetry
 		None,
 		// Protocol ID
-		None,
+		Some("pioneer-dev"),
 		// Properties
 		Some(metaverse_properties()),
 		// Extensions
@@ -295,7 +295,6 @@ fn testnet_genesis(
 		estate: EstateConfig {
 			minting_rate_config: metaverse_land_minting_config(),
 		},
-
 		evm: EVMConfig {
 			accounts: {
 				// Prefund the "ALICE" account
@@ -313,6 +312,16 @@ fn testnet_genesis(
 						balance: U256::from(1u64 << 61),
 						code: vec![],
 						storage: std::collections::BTreeMap::new(),
+					},
+				);
+				accounts.insert(
+					// H160 address of CI test runner account
+					H160::from_str("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b").expect("internal H160 is valid; qed"),
+					GenesisAccount {
+						balance: U256::from(1u64 << 61),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
 					},
 				);
 				accounts

@@ -874,7 +874,7 @@ impl pallet_base_fee::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ChainId: u64 = 2204;
+	pub const ChainId: u64 = 2042;
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
 }
 
@@ -894,7 +894,7 @@ impl pallet_evm::Config for Runtime {
 	type FeeCalculator = ();
 	type GasWeightMapping = ();
 	type OnChargeTransaction = ();
-	type FindAuthor = ();
+	type FindAuthor = FindAuthorTruncated<Aura>;
 	type PrecompilesType = ();
 	type PrecompilesValue = ();
 }
