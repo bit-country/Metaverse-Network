@@ -17,13 +17,21 @@ use super::*;
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
+pub type ClassId = u32;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const FREEDY: AccountId = 3;
 
-pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
+pub const DISTRIBUTOR_NFT_ASSET_ID: AssetId = 0;
+pub const DISTRIBUTOR_CLASS_ID: ClassId = 0;
 pub const COLLECTION_ID: u64 = 0;
+pub const USER_BUY_POWER_AMOUNT: PowerAmount = 100;
+
+pub const GENERATOR_CLASS_ID: ClassId = 1;
+pub const GENERATOR_NFT_ASSET_ID: AssetId = 1;
+
+pub const GENERATE_POWER_AMOUNT: PowerAmount = 200;
 
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 

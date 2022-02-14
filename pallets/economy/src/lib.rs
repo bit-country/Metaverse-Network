@@ -356,15 +356,15 @@ pub mod pallet {
 			BuyPowerByDistributorRequestQueue::<T>::try_mutate_exists(
 				generator_nft_id,
 				|maybe_distributor_power_amount| {
+					// Convert distributor NFT to accountId
+					let distributor_nft_account_id: T::AccountId =
+						T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+
 					// Append account and power amount info to BuyPowerByUserRequestQueue
 					let distributor_power_amount_by_generator_nft = maybe_distributor_power_amount
 						.as_mut()
 						.ok_or(Error::<T>::DistributorNftDoesNotExist)?;
-					distributor_power_amount_by_generator_nft.push((who.clone(), power_amount));
-
-					// Convert distributor NFT to accountId
-					let distributor_nft_account_id: T::AccountId =
-						T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+					distributor_power_amount_by_generator_nft.push((distributor_nft_account_id.clone(), power_amount));
 
 					// Reserve BIT
 					T::FungibleTokenCurrency::reserve(
@@ -373,7 +373,6 @@ pub mod pallet {
 						bit_amount,
 					);
 
-					let power_amount: PowerAmount = 100;
 					Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorHasAddedToQueue(
 						distributor_nft_account_id.clone(),
 						power_amount,
