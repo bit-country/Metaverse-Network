@@ -17,22 +17,25 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::{Auction, CheckAuctionItemHandler};
-use bc_primitives::*;
 use frame_support::pallet_prelude::*;
-use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
+use frame_support::{dispatch::DispatchResult, ensure, traits::Get, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{
-	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
-};
-pub use rate::{MintingRateInfo, Range};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating},
 	DispatchError,
 };
 use sp_std::vec::Vec;
+
+use auction_manager::{Auction, CheckAuctionItemHandler};
+use bc_primitives::*;
+pub use pallet::*;
+use primitives::{
+	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
+};
+pub use rate::{MintingRateInfo, Range};
+pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -46,17 +49,16 @@ mod tests;
 
 pub mod weights;
 
-pub use weights::WeightInfo;
-
-pub use pallet::*;
-
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
-	use crate::rate::{round_issuance_range, MintingRateInfo};
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
-	use primitives::UndeployedLandBlockId;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
+
+	use primitives::UndeployedLandBlockId;
+
+	use crate::rate::{round_issuance_range, MintingRateInfo};
+
+	use super::*;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -360,6 +362,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(T::WeightInfo::set_max_bounds())]
+		#[transactional]
 		pub fn set_max_bounds(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -375,6 +378,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::mint_land())]
+		#[transactional]
 		pub fn mint_land(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -402,6 +406,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::mint_lands())]
+		#[transactional]
 		pub fn mint_lands(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -428,6 +433,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::transfer_land())]
+		#[transactional]
 		pub fn transfer_land(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -447,6 +453,7 @@ pub mod pallet {
 
 		/// Mint new estate with no existing land unit
 		#[pallet::weight(T::WeightInfo::mint_estate())]
+		#[transactional]
 		pub fn mint_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -475,6 +482,7 @@ pub mod pallet {
 
 		/// Create new estate from existing land units
 		#[pallet::weight(T::WeightInfo::create_estate())]
+		#[transactional]
 		pub fn create_estate(
 			origin: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -501,6 +509,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::transfer_estate())]
+		#[transactional]
 		pub fn transfer_estate(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -519,6 +528,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::deploy_land_block())]
+		#[transactional]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -582,6 +592,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::issue_undeployed_land_blocks())]
+		#[transactional]
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -602,6 +613,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::freeze_undeployed_land_blocks())]
+		#[transactional]
 		pub fn freeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -614,6 +626,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::unfreeze_undeployed_land_blocks())]
+		#[transactional]
 		pub fn unfreeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -642,6 +655,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::transfer_undeployed_land_blocks())]
+		#[transactional]
 		pub fn transfer_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -655,6 +669,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::burn_undeployed_land_blocks())]
+		#[transactional]
 		pub fn burn_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -667,6 +682,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::approve_undeployed_land_blocks())]
+		#[transactional]
 		pub fn approve_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -705,6 +721,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::unapprove_undeployed_land_blocks())]
+		#[transactional]
 		pub fn unapprove_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -740,6 +757,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::dissolve_estate())]
+		#[transactional]
 		pub fn dissolve_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
@@ -791,6 +809,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::add_land_unit_to_estate())]
+		#[transactional]
 		pub fn add_land_unit_to_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
@@ -853,6 +872,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[transactional]
 		pub fn remove_land_unit_from_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
@@ -906,6 +926,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::bond_more())]
+		#[transactional]
 		pub fn bond_more(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -944,6 +965,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::bond_less())]
+		#[transactional]
 		pub fn bond_less(origin: OriginFor<T>, estate_id: EstateId, less: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -982,6 +1004,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::leave_staking())]
+		#[transactional]
 		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 

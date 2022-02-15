@@ -624,18 +624,6 @@ parameter_types! {
 	pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(17);
 }
 
-//impl pallet_session::Config for Runtime {
-//	type Event = Event;
-//	type ValidatorId = <Self as frame_system::Config>::AccountId;
-//	type ValidatorIdOf = parachain_staking::ValidatorOf<Self>;
-//	type ShouldEndSession = Staking;
-//	type NextSessionRotation = Staking;
-//	type SessionManager = Staking;
-//	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
-//	type Keys = SessionKeys;
-//	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
-//}
-
 parameter_types! {
 	/// Minimum round length is 2 minutes (10 * 12 second block times)
 	pub const MinBlocksPerRound: u32 = 10;
@@ -666,28 +654,6 @@ parameter_types! {
 	/// Minimum stake required to be reserved to be a nominator is 5
 	pub const MinNominatorStk: u128 = 5 * DOLLARS;
 }
-
-//impl parachain_staking::Config for Runtime {
-//	type Event = Event;
-//	type Currency = Balances;
-//	type MonetaryGovernanceOrigin = EnsureRoot<AccountId>;
-//	type MinBlocksPerRound = MinBlocksPerRound;
-//	type DefaultBlocksPerRound = DefaultBlocksPerRound;
-//	type LeaveCandidatesDelay = LeaveCandidatesDelay;
-//	type LeaveNominatorsDelay = LeaveNominatorsDelay;
-//	type RevokeNominationDelay = RevokeNominationDelay;
-//	type RewardPaymentDelay = RewardPaymentDelay;
-//	type MinSelectedCandidates = MinSelectedCandidates;
-//	type MaxNominatorsPerCollator = MaxNominatorsPerCollator;
-//	type MaxCollatorsPerNominator = MaxCollatorsPerNominator;
-//	type DefaultCollatorCommission = DefaultCollatorCommission;
-//	type DefaultParachainBondReservePercent = DefaultParachainBondReservePercent;
-//	type MinCollatorStk = MinCollatorStk;
-//	type MinCollatorCandidateStk = MinCollatorCandidateStk;
-//	type MinNomination = MinNominatorStk;
-//	type MinNominatorStk = MinNominatorStk;
-//	type WeightInfo = parachain_staking::weights::SubstrateWeight<Runtime>;
-//}
 
 pub struct FindAuthorTruncated<F>(PhantomData<F>);
 

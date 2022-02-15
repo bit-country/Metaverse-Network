@@ -99,6 +99,8 @@ pub type TokenId = u64;
 pub type UndeployedLandBlockId = u128;
 /// Nonce
 pub type Nonce = u32;
+/// Evm Address.
+pub type EvmAddress = sp_core::H160;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
