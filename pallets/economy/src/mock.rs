@@ -29,7 +29,7 @@ pub const DISTRIBUTOR_NFT_ASSET_ID: AssetId = 0;
 pub const NFT_ASSET_ID_NOT_EXIST: AssetId = 99;
 pub const USER_BUY_POWER_AMOUNT: PowerAmount = 100;
 pub const DISTRIBUTOR_POWER_BALANCE: PowerAmount = 100000;
-pub const DISTRIBUTOR_MINING_BALANCE: u64 = 10000;
+pub const DISTRIBUTOR_MINING_BALANCE: Balance = 10000;
 
 pub const GENERATOR_COLLECTION_ID: u64 = 1;
 pub const GENERATOR_CLASS_ID: ClassId = 1;
@@ -42,7 +42,7 @@ pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const ELEMENT_INDEX_ID: ElementId = 0;
 pub const ELEMENT_AMOUNT: u64 = 3;
 pub const ALICE_POWER_AMOUNT: PowerAmount = 20000;
-pub const ALICE_MINING_BALANCE: u64 = 10000;
+pub const ALICE_MINING_BALANCE: Balance = 10000;
 
 // Configure a mock runtime to test the pallet.
 
@@ -98,8 +98,6 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const EconomyPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
-	pub const MinContribution: Balance = 1;
-	pub const MinStakingAmount: Balance = 100;
 }
 
 ord_parameter_types! {
@@ -112,8 +110,6 @@ impl Config for Runtime {
 	type Currency = Balances;
 	type FungibleTokenCurrency = OrmlTokens;
 	type EconomyTreasury = EconomyPalletId;
-	type MinContribution = MinContribution;
-	type MinStakingAmount = MinStakingAmount;
 	type MiningCurrencyId = MiningCurrencyId;
 }
 

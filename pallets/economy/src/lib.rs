@@ -60,6 +60,15 @@ pub struct ElementInfo {
 	compositions: Vec<(ElementId, u128)>,
 }
 
+/// A record for basic element info. i.e. price, compositions and rules
+#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct OrderInfo {
+	/// Power price for the element
+	power_amount: PowerAmount,
+	/// The tuple of other element index -> required amount
+	bit_amount: Balance,
+}
+
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
@@ -92,14 +101,6 @@ pub mod pallet {
 		>;
 		#[pallet::constant]
 		type EconomyTreasury: Get<PalletId>;
-		// #[pallet::constant]
-		// type MaxMetaverseMetadata: Get<u32>;
-		/// Minimum contribution
-		#[pallet::constant]
-		type MinContribution: Get<BalanceOf<Self>>;
-
-		/// Mininum staking amount
-		type MinStakingAmount: Get<BalanceOf<Self>>;
 
 		#[pallet::constant]
 		type MiningCurrencyId: Get<FungibleTokenId>;
@@ -127,12 +128,12 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
 	pub type BuyPowerByUserRequestQueue<T: Config> =
-		StorageMap<_, Twox64Concat, AssetId, Vec<(T::AccountId, PowerAmount)>>;
+		StorageDoubleMap<_, Twox64Concat, AssetId, Twox64Concat, T::AccountId, OrderInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_distributor_request_queue)]
 	pub type BuyPowerByDistributorRequestQueue<T: Config> =
-		StorageMap<_, Twox64Concat, AssetId, Vec<(T::AccountId, PowerAmount)>>;
+		StorageDoubleMap<_, Twox64Concat, AssetId, Twox64Concat, T::AccountId, OrderInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_power_balance)]
@@ -165,9 +166,8 @@ pub mod pallet {
 		NFTClassDoesNotExist,
 		NFTCollectionDoesNotExist,
 		NoPermissionToBuyMiningPower,
-		DistributorNftDoesNotExist,
-		GeneratorNftDoesNotExist,
-		AccountIdDoesNotExistInBuyOrderQueue,
+		UserPowerOrderDoesNotExist,
+		DistributorPowerOrderDoesNotExist,
 		DistributorAccountIdDoesNotExistInBuyOrderQueue,
 		ElementDoesNotExist,
 		InvalidNumberOfElements,
@@ -265,36 +265,31 @@ pub mod pallet {
 				.unwrap()
 				.into();
 
+			ensure!(
+				T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
+				Error::<T>::BalanceZero
+			);
+
+			// Reserve BIT
+			T::FungibleTokenCurrency::reserve(T::MiningCurrencyId::get(), &who, bit_amount);
+
 			// Add key if does not exist
-			if !BuyPowerByUserRequestQueue::<T>::contains_key(distributor_nft_id) {
-				let user_amounts: Vec<(T::AccountId, PowerAmount)> = Vec::new();
-				BuyPowerByUserRequestQueue::<T>::insert(distributor_nft_id, user_amounts)
-			}
-
-			// Mutate BuyPowerByUserRequestQueue, add to queue
-			BuyPowerByUserRequestQueue::<T>::try_mutate_exists(distributor_nft_id, |maybe_user_power_amount| {
-				// Append account and power amount info to BuyPowerByUserRequestQueue
-				let user_power_amount_by_distributor_nft = maybe_user_power_amount
-					.as_mut()
-					.ok_or(Error::<T>::DistributorNftDoesNotExist)?;
-				user_power_amount_by_distributor_nft.push((who.clone(), power_amount));
-
-				ensure!(
-					T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
-					Error::<T>::BalanceZero
-				);
-
-				// Reserve BIT
-				T::FungibleTokenCurrency::reserve(T::MiningCurrencyId::get(), &who, bit_amount);
-
-				Self::deposit_event(Event::<T>::BuyPowerOrderByUserHasAddedToQueue(
-					who.clone(),
+			BuyPowerByUserRequestQueue::<T>::insert(
+				distributor_nft_id,
+				who.clone(),
+				OrderInfo {
 					power_amount,
-					distributor_nft_id,
-				));
+					bit_amount,
+				},
+			);
 
-				Ok(().into())
-			})
+			Self::deposit_event(Event::<T>::BuyPowerOrderByUserHasAddedToQueue(
+				who.clone(),
+				power_amount,
+				distributor_nft_id,
+			));
+
+			Ok(().into())
 		}
 
 		/// Execute user's mining power buying order
@@ -316,38 +311,32 @@ pub mod pallet {
 			ensure!(who == token_info.owner, Error::<T>::NoPermissionToBuyMiningPower);
 
 			// Mutate BuyPowerByUserRequestQueue, add to queue
-			BuyPowerByUserRequestQueue::<T>::try_mutate_exists(distributor_nft_id, |maybe_user_power_amount| {
-				// Remove account and power amount info to BuyPowerByUserRequestQueue
-				let power_amount_by_user = maybe_user_power_amount
-					.as_mut()
-					.ok_or(Error::<T>::DistributorNftDoesNotExist)?;
+			BuyPowerByUserRequestQueue::<T>::try_mutate_exists(
+				distributor_nft_id,
+				beneficiary.clone(),
+				|maybe_user_power_order_info| {
+					// Remove account and power amount info to BuyPowerByUserRequestQueue
+					let user_power_order_info = maybe_user_power_order_info
+						.as_mut()
+						.ok_or(Error::<T>::UserPowerOrderDoesNotExist)?;
 
-				// Remove from queue
-				let index = power_amount_by_user
-					.iter()
-					.position(|x| x.0.clone() == beneficiary.clone())
-					.ok_or(Error::<T>::AccountIdDoesNotExistInBuyOrderQueue)?;
+					let power_amount = user_power_order_info.power_amount;
+					let bit_amount = user_power_order_info.bit_amount;
 
-				let (account_id, power_amount) = power_amount_by_user.remove(index);
+					// Unreserve BIT
+					T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
-				// TODO: convert power_amount to bit_amount, or read from struct.
-				let bit_amount: Balance = power_amount
-					.checked_add(100)
-					.ok_or(ArithmeticError::Overflow)
-					.unwrap()
-					.into();
+					// Burn BIT
+					Self::do_burn(&who, &beneficiary, bit_amount)?;
 
-				// Unreserve BIT
-				T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
+					// Transfer power amount
+					Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id)?;
 
-				// Burn BIT
-				Self::do_burn(&who, &beneficiary, bit_amount)?;
+					*maybe_user_power_order_info = None;
 
-				// Transfer power amount
-				Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id)?;
-
-				Ok(().into())
-			})
+					Ok(().into())
+				},
+			)
 		}
 
 		/// Enable distributor to buy mining power with specific generator NFT
@@ -381,51 +370,38 @@ pub mod pallet {
 				.unwrap()
 				.into();
 
+			let distributor_nft_account_id: T::AccountId =
+				T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+
+			ensure!(
+				T::FungibleTokenCurrency::can_reserve(
+					T::MiningCurrencyId::get(),
+					&distributor_nft_account_id,
+					bit_amount
+				),
+				Error::<T>::BalanceZero
+			);
+
+			// Reserve BIT
+			T::FungibleTokenCurrency::reserve(T::MiningCurrencyId::get(), &distributor_nft_account_id, bit_amount);
+
 			// Add key if does not exist
-			if !BuyPowerByDistributorRequestQueue::<T>::contains_key(generator_nft_id) {
-				let distributor_amounts: Vec<(T::AccountId, PowerAmount)> = Vec::new();
-				BuyPowerByDistributorRequestQueue::<T>::insert(generator_nft_id, distributor_amounts)
-			}
-
-			// Mutate BuyPowerByUserRequestQueue, add to queue
-			BuyPowerByDistributorRequestQueue::<T>::try_mutate_exists(
+			BuyPowerByDistributorRequestQueue::<T>::insert(
 				generator_nft_id,
-				|maybe_distributor_power_amount| {
-					// Convert distributor NFT to accountId
-					let distributor_nft_account_id: T::AccountId =
-						T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
-
-					// Append account and power amount info to BuyPowerByUserRequestQueue
-					let distributor_power_amount_by_generator_nft = maybe_distributor_power_amount
-						.as_mut()
-						.ok_or(Error::<T>::DistributorNftDoesNotExist)?;
-					distributor_power_amount_by_generator_nft.push((distributor_nft_account_id.clone(), power_amount));
-
-					ensure!(
-						T::FungibleTokenCurrency::can_reserve(
-							T::MiningCurrencyId::get(),
-							&distributor_nft_account_id,
-							bit_amount
-						),
-						Error::<T>::BalanceZero
-					);
-
-					// Reserve BIT
-					T::FungibleTokenCurrency::reserve(
-						T::MiningCurrencyId::get(),
-						&distributor_nft_account_id,
-						bit_amount,
-					);
-
-					Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorHasAddedToQueue(
-						distributor_nft_account_id.clone(),
-						power_amount,
-						generator_nft_id,
-					));
-
-					Ok(().into())
+				distributor_nft_account_id.clone(),
+				OrderInfo {
+					power_amount,
+					bit_amount,
 				},
-			)
+			);
+
+			Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorHasAddedToQueue(
+				distributor_nft_account_id.clone(),
+				power_amount,
+				generator_nft_id,
+			));
+
+			Ok(().into())
 		}
 
 		/// Execute distributor's mining power buying order
@@ -452,26 +428,15 @@ pub mod pallet {
 			// Mutate BuyPowerByUserRequestQueue, add to queue
 			BuyPowerByDistributorRequestQueue::<T>::try_mutate_exists(
 				generator_nft_id,
-				|maybe_distributor_power_amount| {
+				beneficiary.clone(),
+				|maybe_distributor_order_info| {
 					// Remove account and power amount info to BuyPowerByDistributorRequestQueue
-					let user_power_amount_by_distributor_nft = maybe_distributor_power_amount
+					let distributor_order_info = maybe_distributor_order_info
 						.as_mut()
-						.ok_or(Error::<T>::GeneratorNftDoesNotExist)?;
+						.ok_or(Error::<T>::DistributorPowerOrderDoesNotExist)?;
 
-					// Remove from queue
-					let index = user_power_amount_by_distributor_nft
-						.iter()
-						.position(|x| x.0.clone() == beneficiary.clone())
-						.ok_or(Error::<T>::DistributorAccountIdDoesNotExistInBuyOrderQueue)?;
-
-					let (account_id, power_amount) = user_power_amount_by_distributor_nft.remove(index);
-
-					// TODO: convert power_amount to bit_amount, or read from struct.
-					let bit_amount: Balance = power_amount
-						.checked_add(100)
-						.ok_or(ArithmeticError::Overflow)
-						.unwrap()
-						.into();
+					let power_amount = distributor_order_info.power_amount;
+					let bit_amount = distributor_order_info.bit_amount;
 
 					// Unreserve BIT
 					T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
@@ -481,6 +446,8 @@ pub mod pallet {
 
 					// Transfer power amount
 					Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id)?;
+
+					*maybe_distributor_order_info = None;
 
 					Ok(().into())
 				},

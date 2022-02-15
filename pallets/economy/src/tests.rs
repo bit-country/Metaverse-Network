@@ -179,24 +179,24 @@ fn buy_power_by_user_should_work() {
 			));
 			assert_eq!(last_event(), event);
 
+			let bit_amount = USER_BUY_POWER_AMOUNT + 100;
 			assert_eq!(
-				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID),
-				Some(vec![(ALICE, USER_BUY_POWER_AMOUNT)])
+				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID, ALICE),
+				Some(OrderInfo {
+					power_amount: USER_BUY_POWER_AMOUNT,
+					bit_amount: bit_amount.into()
+				})
 			);
 
 			// Check reserved balance
 			let mining_currency_id = get_mining_currency();
-			let bit_amount = USER_BUY_POWER_AMOUNT + 100;
 			assert_eq!(
 				OrmlTokens::reserved_balance(mining_currency_id, &ALICE),
 				bit_amount.into()
 			);
 
-			let remaining_amount: u64 = ALICE_MINING_BALANCE - USER_BUY_POWER_AMOUNT;
-			assert_eq!(
-				OrmlTokens::free_balance(mining_currency_id, &ALICE),
-				(remaining_amount - 100).into()
-			);
+			let remaining_amount: u128 = ALICE_MINING_BALANCE - u128::try_from(bit_amount).unwrap();
+			assert_eq!(OrmlTokens::free_balance(mining_currency_id, &ALICE), remaining_amount);
 		});
 }
 
@@ -272,23 +272,29 @@ fn buy_power_by_distributor_should_work() {
 			));
 			assert_eq!(last_event(), event);
 
+			let bit_amount = GENERATE_POWER_AMOUNT + 100;
 			assert_eq!(
-				EconomyModule::get_buy_power_by_distributor_request_queue(GENERATOR_NFT_ASSET_ID),
-				Some(vec![(distributor_account_id, GENERATE_POWER_AMOUNT)])
+				EconomyModule::get_buy_power_by_distributor_request_queue(
+					GENERATOR_NFT_ASSET_ID,
+					distributor_account_id
+				),
+				Some(OrderInfo {
+					power_amount: GENERATE_POWER_AMOUNT,
+					bit_amount: bit_amount.into()
+				})
 			);
 
 			// Check reserved balance
 			let mining_currency_id = get_mining_currency();
-			let bit_amount = GENERATE_POWER_AMOUNT + 100;
 			assert_eq!(
 				OrmlTokens::reserved_balance(mining_currency_id, &distributor_account_id),
 				bit_amount.into()
 			);
 
-			let remaining_amount: u64 = DISTRIBUTOR_MINING_BALANCE - GENERATE_POWER_AMOUNT;
+			let remaining_amount: u128 = DISTRIBUTOR_MINING_BALANCE - u128::try_from(bit_amount).unwrap();
 			assert_eq!(
 				OrmlTokens::free_balance(mining_currency_id, &distributor_account_id),
-				(remaining_amount - 100).into()
+				remaining_amount
 			);
 		});
 }
@@ -326,7 +332,7 @@ fn execute_buy_power_order_should_fail_distributor_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, ALICE),
-			Error::<Runtime>::DistributorNftDoesNotExist
+			Error::<Runtime>::UserPowerOrderDoesNotExist
 		);
 	});
 }
@@ -354,7 +360,7 @@ fn execute_buy_power_order_should_fail_account_does_not_exist() {
 
 			assert_noop!(
 				EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, BOB),
-				Error::<Runtime>::AccountIdDoesNotExistInBuyOrderQueue
+				Error::<Runtime>::UserPowerOrderDoesNotExist
 			);
 		});
 }
@@ -410,11 +416,11 @@ fn execute_buy_power_order_should_work() {
 				DISTRIBUTOR_NFT_ASSET_ID,
 			));
 
-			let bit_amount = USER_BUY_POWER_AMOUNT + 100;
-			assert_eq!(
-				OrmlTokens::reserved_balance(mining_currency_id, &ALICE),
-				bit_amount.into()
-			);
+			let order_info =
+				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID, ALICE).unwrap();
+
+			let bit_amount = order_info.bit_amount;
+			assert_eq!(OrmlTokens::reserved_balance(mining_currency_id, &ALICE), bit_amount);
 
 			let distributor_account_id = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
 			PowerBalance::<Runtime>::insert(distributor_account_id, DISTRIBUTOR_POWER_BALANCE);
@@ -433,8 +439,8 @@ fn execute_buy_power_order_should_work() {
 			assert_eq!(last_event(), event);
 
 			assert_eq!(
-				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID),
-				Some(vec![])
+				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID, ALICE),
+				None
 			);
 
 			let remaining_balance: PowerAmount = DISTRIBUTOR_POWER_BALANCE - USER_BUY_POWER_AMOUNT;
@@ -448,11 +454,8 @@ fn execute_buy_power_order_should_work() {
 			// Check reserved balance
 			assert_eq!(OrmlTokens::reserved_balance(mining_currency_id, &ALICE), 0u8.into());
 
-			let remaining_amount: u64 = ALICE_MINING_BALANCE - USER_BUY_POWER_AMOUNT;
-			assert_eq!(
-				OrmlTokens::free_balance(mining_currency_id, &ALICE),
-				(remaining_amount - 100).into()
-			);
+			let remaining_amount: mock::Balance = (ALICE_MINING_BALANCE - bit_amount).into();
+			assert_eq!(OrmlTokens::free_balance(mining_currency_id, &ALICE), remaining_amount);
 		});
 }
 
@@ -491,7 +494,7 @@ fn execute_generate_power_order_should_fail_distributor_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::execute_generate_power_order(origin, GENERATOR_NFT_ASSET_ID, ALICE),
-			Error::<Runtime>::GeneratorNftDoesNotExist
+			Error::<Runtime>::DistributorPowerOrderDoesNotExist
 		);
 	});
 }
@@ -525,7 +528,7 @@ fn execute_generate_power_order_should_fail_account_does_not_exist() {
 
 			assert_noop!(
 				EconomyModule::execute_generate_power_order(origin, GENERATOR_NFT_ASSET_ID, BOB),
-				Error::<Runtime>::DistributorAccountIdDoesNotExistInBuyOrderQueue
+				Error::<Runtime>::DistributorPowerOrderDoesNotExist
 			);
 		});
 }
@@ -599,10 +602,16 @@ fn execute_generate_power_order_should_work() {
 				GENERATE_POWER_AMOUNT,
 			));
 
-			let bit_amount = GENERATE_POWER_AMOUNT + 100;
+			let order_info = EconomyModule::get_buy_power_by_distributor_request_queue(
+				GENERATOR_NFT_ASSET_ID,
+				distributor_account_id,
+			)
+			.unwrap();
+
+			let bit_amount = order_info.bit_amount;
 			assert_eq!(
 				OrmlTokens::reserved_balance(mining_currency_id, &distributor_account_id),
-				bit_amount.into()
+				bit_amount
 			);
 
 			PowerBalance::<Runtime>::insert(generator_account_id, GENERATOR_POWER_BALANCE);
@@ -621,8 +630,11 @@ fn execute_generate_power_order_should_work() {
 			assert_eq!(last_event(), event);
 
 			assert_eq!(
-				EconomyModule::get_buy_power_by_distributor_request_queue(GENERATOR_NFT_ASSET_ID),
-				Some(vec![])
+				EconomyModule::get_buy_power_by_distributor_request_queue(
+					GENERATOR_NFT_ASSET_ID,
+					distributor_account_id
+				),
+				None
 			);
 
 			let remaining_balance: PowerAmount = GENERATOR_POWER_BALANCE - GENERATE_POWER_AMOUNT;
@@ -639,10 +651,10 @@ fn execute_generate_power_order_should_work() {
 			// Check reserved balance
 			assert_eq!(OrmlTokens::reserved_balance(mining_currency_id, &ALICE), 0u8.into());
 
-			let remaining_amount: u64 = DISTRIBUTOR_MINING_BALANCE - GENERATE_POWER_AMOUNT;
+			let remaining_amount: mock::Balance = (DISTRIBUTOR_MINING_BALANCE - bit_amount).into();
 			assert_eq!(
 				OrmlTokens::free_balance(mining_currency_id, &distributor_account_id),
-				(remaining_amount - 100).into()
+				remaining_amount
 			);
 		});
 }
