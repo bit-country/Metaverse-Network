@@ -49,6 +49,7 @@ pallet-scheduler = { default-features = false, git = "https://github.com/parityt
 pallet-democracy = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 pallet-utility = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 pallet-preimage = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.16" }
 
 # Used for the node template"s RPCs
 frame-system-rpc-runtime-api = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
@@ -144,16 +145,12 @@ std = [
     "continuum/std",
     "currencies/std",
     "swap/std",
-    #    "chainbridge/std",
-    #    "modules-chainsafe/std",
     "mining/std",
     "parachain-staking/std",
-    #    "pallet-evm/std",
-    #    "fp-rpc/std",
-    #    "evm/std",
     "governance/std",
     "crowdloan/std",
-    "pallet-utility/std"
+    "pallet-utility/std",
+    "pallet-collator-selection/std"
 ]
 runtime-benchmarks = [
     "frame-benchmarking",
