@@ -63,6 +63,7 @@ pub struct ElementInfo {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
+	use primitives::GroupCollectionId;
 	use sp_runtime::traits::{CheckedAdd, Saturating};
 	use sp_runtime::ArithmeticError;
 
@@ -115,11 +116,13 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_authorized_generator_collection)]
-	pub type AuthorizedGeneratorCollection<T: Config> = StorageMap<_, Twox64Concat, ClassIdOf<T>, (), OptionQuery>;
+	pub type AuthorizedGeneratorCollection<T: Config> =
+		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassIdOf<T>), (), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_authorized_distributor_collection)]
-	pub type AuthorizedDistributorCollection<T: Config> = StorageMap<_, Twox64Concat, ClassIdOf<T>, (), OptionQuery>;
+	pub type AuthorizedDistributorCollection<T: Config> =
+		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassIdOf<T>), (), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
@@ -142,8 +145,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		PowerGeneratorCollectionAuthorized(ClassIdOf<T>),
-		PowerDistributorCollectionAuthorized(ClassIdOf<T>),
+		PowerGeneratorCollectionAuthorized(GroupCollectionId, ClassIdOf<T>),
+		PowerDistributorCollectionAuthorized(GroupCollectionId, ClassIdOf<T>),
 		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
 		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, AssetId),
 		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
@@ -160,6 +163,7 @@ pub mod pallet {
 		PowerDistributorCollectionAlreadyAuthorized,
 		NFTAssetDoesNotExist,
 		NFTClassDoesNotExist,
+		NFTCollectionDoesNotExist,
 		NoPermissionToBuyMiningPower,
 		DistributorNftDoesNotExist,
 		GeneratorNftDoesNotExist,
@@ -180,6 +184,7 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn authorize_power_generator_collection(
 			origin: OriginFor<T>,
+			collection_id: GroupCollectionId,
 			class_id: ClassIdOf<T>,
 		) -> DispatchResultWithPostInfo {
 			// Only root can authorize
@@ -187,14 +192,18 @@ pub mod pallet {
 
 			// Check that NFT collection is not authorized already
 			ensure!(
-				!AuthorizedGeneratorCollection::<T>::contains_key(&class_id),
+				!AuthorizedGeneratorCollection::<T>::contains_key((collection_id, &class_id)),
 				Error::<T>::PowerGeneratorCollectionAlreadyAuthorized
 			);
 
 			// TODO: check if NFT collection exist
-			AuthorizedGeneratorCollection::<T>::insert(&class_id, ());
 
-			Self::deposit_event(Event::<T>::PowerGeneratorCollectionAuthorized(class_id.clone()));
+			AuthorizedGeneratorCollection::<T>::insert((collection_id, &class_id), ());
+
+			Self::deposit_event(Event::<T>::PowerGeneratorCollectionAuthorized(
+				collection_id,
+				class_id.clone(),
+			));
 
 			Ok(().into())
 		}
@@ -203,20 +212,24 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn authorize_power_distributor_collection(
 			origin: OriginFor<T>,
+			collection_id: GroupCollectionId,
 			class_id: ClassIdOf<T>,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			// Check that NFT collection is not authorized already
 			ensure!(
-				!AuthorizedDistributorCollection::<T>::contains_key(&class_id),
+				!AuthorizedDistributorCollection::<T>::contains_key((collection_id, &class_id)),
 				Error::<T>::PowerDistributorCollectionAlreadyAuthorized
 			);
 
 			// TODO: check if NFT collection exist
-			AuthorizedDistributorCollection::<T>::insert(&class_id, ());
+			AuthorizedDistributorCollection::<T>::insert((collection_id, &class_id), ());
 
-			Self::deposit_event(Event::<T>::PowerDistributorCollectionAuthorized(class_id.clone()));
+			Self::deposit_event(Event::<T>::PowerDistributorCollectionAuthorized(
+				collection_id,
+				class_id.clone(),
+			));
 
 			Ok(().into())
 		}
@@ -236,9 +249,12 @@ pub mod pallet {
 			// Check ownership
 			let class_id = asset.0;
 			let class_info = orml_nft::Pallet::<T>::classes(class_id).ok_or(Error::<T>::NFTClassDoesNotExist)?;
+			// let token_info = orml_nft::Pallet::<T>::tokens(asset.0)
+
+			let group_collection_id: u64 = NFTModule::<T>::get_class_collection(class_id);
 
 			ensure!(
-				AuthorizedDistributorCollection::<T>::contains_key(class_id),
+				AuthorizedDistributorCollection::<T>::contains_key((group_collection_id, class_id)),
 				Error::<T>::NoPermissionToBuyMiningPower
 			);
 
@@ -351,8 +367,10 @@ pub mod pallet {
 			let class_id = asset.0;
 			let class_info = orml_nft::Pallet::<T>::classes(class_id).ok_or(Error::<T>::NFTClassDoesNotExist)?;
 
+			let group_collection_id: u64 = NFTModule::<T>::get_class_collection(class_id);
+
 			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key(class_id),
+				AuthorizedGeneratorCollection::<T>::contains_key((group_collection_id, class_id)),
 				Error::<T>::NoPermissionToBuyMiningPower
 			);
 

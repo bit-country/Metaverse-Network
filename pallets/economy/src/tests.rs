@@ -26,8 +26,9 @@ use mock::{Event, *};
 
 use auction_manager::ListingLevel;
 use pallet_nft::{Attributes, CollectionType, TokenType};
+use primitives::GroupCollectionId;
 
-fn init_test_nft(owner: Origin, classId: ClassId) {
+fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, classId: ClassId) {
 	//Create group collection before class
 	assert_ok!(NFTModule::<Runtime>::create_group(Origin::root(), vec![1], vec![1]));
 
@@ -35,7 +36,7 @@ fn init_test_nft(owner: Origin, classId: ClassId) {
 		owner.clone(),
 		vec![1],
 		test_attributes(1),
-		COLLECTION_ID,
+		collection_id,
 		TokenType::Transferable,
 		CollectionType::Collectable,
 	));
@@ -68,10 +69,14 @@ fn authorize_power_generator_collection_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::authorize_power_generator_collection(
 			Origin::root(),
-			DISTRIBUTOR_CLASS_ID
+			GENERATOR_COLLECTION_ID,
+			GENERATOR_CLASS_ID
 		));
 
-		let event = Event::Economy(crate::Event::PowerGeneratorCollectionAuthorized(DISTRIBUTOR_CLASS_ID));
+		let event = Event::Economy(crate::Event::PowerGeneratorCollectionAuthorized(
+			GENERATOR_COLLECTION_ID,
+			GENERATOR_CLASS_ID,
+		));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -80,7 +85,11 @@ fn authorize_power_generator_collection_should_work() {
 fn authorize_power_generator_collection_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::authorize_power_generator_collection(Origin::signed(BOB), DISTRIBUTOR_CLASS_ID),
+			EconomyModule::authorize_power_generator_collection(
+				Origin::signed(BOB),
+				GENERATOR_COLLECTION_ID,
+				GENERATOR_CLASS_ID
+			),
 			BadOrigin
 		);
 	});
@@ -91,10 +100,14 @@ fn authorize_power_distributor_collection_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::authorize_power_distributor_collection(
 			Origin::root(),
+			DISTRIBUTOR_COLLECTION_ID,
 			DISTRIBUTOR_CLASS_ID
 		));
 
-		let event = Event::Economy(crate::Event::PowerDistributorCollectionAuthorized(DISTRIBUTOR_CLASS_ID));
+		let event = Event::Economy(crate::Event::PowerDistributorCollectionAuthorized(
+			DISTRIBUTOR_COLLECTION_ID,
+			DISTRIBUTOR_CLASS_ID,
+		));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -103,7 +116,11 @@ fn authorize_power_distributor_collection_should_work() {
 fn authorize_power_distributor_collection_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::authorize_power_distributor_collection(Origin::signed(BOB), DISTRIBUTOR_CLASS_ID),
+			EconomyModule::authorize_power_distributor_collection(
+				Origin::signed(BOB),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID
+			),
 			BadOrigin
 		);
 	});
@@ -125,7 +142,7 @@ fn buy_power_by_user_should_fail_nft_does_not_exist() {
 fn buy_power_by_user_should_fail_NFT_not_authorized() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 
 		assert_noop!(
 			EconomyModule::buy_power_by_user(origin, 100u64.into(), DISTRIBUTOR_NFT_ASSET_ID,),
@@ -141,10 +158,11 @@ fn buy_power_by_user_should_work() {
 		.build()
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
-			init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID
 			));
 
@@ -203,8 +221,8 @@ fn buy_power_by_distributor_should_fail_nft_does_not_exist() {
 fn buy_power_by_distributor_should_fail_NFT_not_authorized() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
-		init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+		init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
 		assert_noop!(
 			EconomyModule::buy_power_by_distributor(
@@ -229,11 +247,12 @@ fn buy_power_by_distributor_should_work() {
 		.build()
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
-			init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
-			init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+			init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
 			assert_ok!(EconomyModule::authorize_power_generator_collection(
 				Origin::root(),
+				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID
 			));
 
@@ -278,10 +297,11 @@ fn buy_power_by_distributor_should_work() {
 fn execute_buy_power_order_should_fail_nft_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 
 		assert_ok!(EconomyModule::authorize_power_distributor_collection(
 			Origin::root(),
+			DISTRIBUTOR_COLLECTION_ID,
 			DISTRIBUTOR_CLASS_ID
 		));
 
@@ -296,10 +316,11 @@ fn execute_buy_power_order_should_fail_nft_does_not_exist() {
 fn execute_buy_power_order_should_fail_distributor_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 
 		assert_ok!(EconomyModule::authorize_power_distributor_collection(
 			Origin::root(),
+			DISTRIBUTOR_COLLECTION_ID,
 			DISTRIBUTOR_CLASS_ID
 		));
 
@@ -317,10 +338,11 @@ fn execute_buy_power_order_should_fail_account_does_not_exist() {
 		.build()
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
-			init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID
 			));
 
@@ -344,10 +366,11 @@ fn execute_buy_power_order_should_fail_insufficient_balance() {
 		.build()
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
-			init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID
 			));
 
@@ -373,10 +396,11 @@ fn execute_buy_power_order_should_work() {
 			let origin = Origin::signed(ALICE);
 			let mining_currency_id = get_mining_currency();
 
-			init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID
 			));
 
@@ -436,11 +460,12 @@ fn execute_buy_power_order_should_work() {
 fn execute_generate_power_order_should_fail_nft_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
-		init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+		init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
 		assert_ok!(EconomyModule::authorize_power_generator_collection(
 			Origin::root(),
+			GENERATOR_COLLECTION_ID,
 			GENERATOR_CLASS_ID
 		));
 
@@ -455,11 +480,12 @@ fn execute_generate_power_order_should_fail_nft_does_not_exist() {
 fn execute_generate_power_order_should_fail_distributor_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
-		init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
-		init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+		init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+		init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
 		assert_ok!(EconomyModule::authorize_power_generator_collection(
 			Origin::root(),
+			GENERATOR_COLLECTION_ID,
 			GENERATOR_CLASS_ID
 		));
 
@@ -481,11 +507,12 @@ fn execute_generate_power_order_should_fail_account_does_not_exist() {
 		.build()
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
-			init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
-			init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+			init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
 			assert_ok!(EconomyModule::authorize_power_generator_collection(
 				Origin::root(),
+				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID
 			));
 
@@ -514,11 +541,12 @@ fn execute_generate_power_order_should_fail_insufficient_balance() {
 		.build()
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
-			init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
-			init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+			init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
 			assert_ok!(EconomyModule::authorize_power_generator_collection(
 				Origin::root(),
+				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID
 			));
 
@@ -550,8 +578,8 @@ fn execute_generate_power_order_should_work() {
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
 
-			init_test_nft(origin.clone(), DISTRIBUTOR_CLASS_ID);
-			init_test_nft(origin.clone(), GENERATOR_CLASS_ID);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+			init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
 			let mining_currency_id = get_mining_currency();
 
@@ -560,6 +588,7 @@ fn execute_generate_power_order_should_work() {
 
 			assert_ok!(EconomyModule::authorize_power_generator_collection(
 				Origin::root(),
+				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID
 			));
 

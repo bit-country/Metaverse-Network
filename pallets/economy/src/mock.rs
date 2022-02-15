@@ -23,7 +23,7 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const FREEDY: AccountId = 3;
 
-pub const COLLECTION_ID: u64 = 0;
+pub const DISTRIBUTOR_COLLECTION_ID: u64 = 0;
 pub const DISTRIBUTOR_CLASS_ID: ClassId = 0;
 pub const DISTRIBUTOR_NFT_ASSET_ID: AssetId = 0;
 pub const NFT_ASSET_ID_NOT_EXIST: AssetId = 99;
@@ -31,6 +31,7 @@ pub const USER_BUY_POWER_AMOUNT: PowerAmount = 100;
 pub const DISTRIBUTOR_POWER_BALANCE: PowerAmount = 100000;
 pub const DISTRIBUTOR_MINING_BALANCE: u64 = 10000;
 
+pub const GENERATOR_COLLECTION_ID: u64 = 1;
 pub const GENERATOR_CLASS_ID: ClassId = 1;
 pub const GENERATOR_NFT_ASSET_ID: AssetId = 1;
 pub const GENERATE_POWER_AMOUNT: PowerAmount = 200;
