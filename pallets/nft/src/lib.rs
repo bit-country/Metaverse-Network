@@ -859,4 +859,18 @@ impl<T: Config> NFTTrait<T::AccountId> for Pallet<T> {
 
 		Ok((group_collection_id, asset.0, asset.1))
 	}
+
+	fn check_collection_and_class(
+		collection_id: GroupCollectionId,
+		class_id: Self::ClassId,
+	) -> Result<bool, DispatchError> {
+		ensure!(
+			ClassDataCollection::<T>::contains_key(class_id),
+			Error::<T>::ClassIdNotFound
+		);
+
+		let class_collection_id = ClassDataCollection::<T>::get(class_id);
+
+		Ok(class_collection_id == collection_id)
+	}
 }

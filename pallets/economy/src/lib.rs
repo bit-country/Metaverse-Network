@@ -194,6 +194,7 @@ pub mod pallet {
 		PowerDistributionQueueDoesNotExist,
 		PowerGenerationQueueDoesNotExist,
 		PowerGenerationIsNotAuthorized,
+		CollectionIdDoesNotMatchNFTCollectionId,
 	}
 
 	#[pallet::call]
@@ -227,7 +228,11 @@ pub mod pallet {
 				Error::<T>::PowerGeneratorCollectionAlreadyAuthorized
 			);
 
-			// TODO: check if NFT collection exist
+			// Check if NFT class exist and match the specified collection
+			ensure!(
+				T::NFTHandler::check_collection_and_class(collection_id, class_id)?,
+				Error::<T>::CollectionIdDoesNotMatchNFTCollectionId
+			);
 
 			AuthorizedGeneratorCollection::<T>::insert((collection_id, &class_id), ());
 
@@ -254,7 +259,12 @@ pub mod pallet {
 				Error::<T>::PowerDistributorCollectionAlreadyAuthorized
 			);
 
-			// TODO: check if NFT collection exist
+			// Check if NFT class exist and match the specified collection
+			ensure!(
+				T::NFTHandler::check_collection_and_class(collection_id, class_id)?,
+				Error::<T>::CollectionIdDoesNotMatchNFTCollectionId
+			);
+
 			AuthorizedDistributorCollection::<T>::insert((collection_id, &class_id), ());
 
 			Self::deposit_event(Event::<T>::PowerDistributorCollectionAuthorized(
@@ -277,15 +287,15 @@ pub mod pallet {
 
 			ensure!(power_amount > 0, Error::<T>::PowerAmountIsZero);
 
-			// Check nft is part of distributor collection
+			// Get NFT details
 			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
-			// Get asset detail
-			let class_id = distributor_nft_detail.1;
 
-			let group_collection_id: u64 = distributor_nft_detail.0;
 			// Ensure distributor NFT is authorized
 			ensure!(
-				AuthorizedDistributorCollection::<T>::contains_key((group_collection_id, class_id)),
+				AuthorizedDistributorCollection::<T>::contains_key((
+					distributor_nft_detail.0,
+					distributor_nft_detail.1
+				)),
 				Error::<T>::NoPermissionToBuyPower
 			);
 

@@ -59,8 +59,42 @@ fn get_mining_currency() -> FungibleTokenId {
 }
 
 #[test]
+fn authorize_power_generator_collection_should_fail_class_id_does_not_exists() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EconomyModule::authorize_power_generator_collection(
+				Origin::root(),
+				GENERATOR_COLLECTION_ID,
+				GENERATOR_CLASS_ID
+			),
+			pallet_nft::Error::<Runtime>::ClassIdNotFound
+		);
+	});
+}
+
+#[test]
+fn authorize_power_generator_collection_should_fail_collection_id_does_not_match() {
+	ExtBuilder::default().build().execute_with(|| {
+		init_test_nft(Origin::signed(ALICE), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+		init_test_nft(Origin::signed(ALICE), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
+
+		assert_noop!(
+			EconomyModule::authorize_power_generator_collection(
+				Origin::root(),
+				COLLECTION_ID_NOT_EXIST,
+				GENERATOR_CLASS_ID
+			),
+			Error::<Runtime>::CollectionIdDoesNotMatchNFTCollectionId
+		);
+	});
+}
+
+#[test]
 fn authorize_power_generator_collection_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		init_test_nft(Origin::signed(ALICE), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+		init_test_nft(Origin::signed(ALICE), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
+
 		assert_ok!(EconomyModule::authorize_power_generator_collection(
 			Origin::root(),
 			GENERATOR_COLLECTION_ID,
@@ -92,6 +126,8 @@ fn authorize_power_generator_collection_should_fail() {
 #[test]
 fn authorize_power_distributor_collection_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
+		init_test_nft(Origin::signed(ALICE), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+
 		assert_ok!(EconomyModule::authorize_power_distributor_collection(
 			Origin::root(),
 			DISTRIBUTOR_COLLECTION_ID,
@@ -103,6 +139,36 @@ fn authorize_power_distributor_collection_should_work() {
 			DISTRIBUTOR_CLASS_ID,
 		));
 		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+fn authorize_power_distributor_collection_should_fail_class_id_does_not_exists() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID
+			),
+			pallet_nft::Error::<Runtime>::ClassIdNotFound
+		);
+	});
+}
+
+#[test]
+fn authorize_power_distributor_collection_should_fail_collection_id_does_not_match() {
+	ExtBuilder::default().build().execute_with(|| {
+		init_test_nft(Origin::signed(ALICE), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+
+		assert_noop!(
+			EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				COLLECTION_ID_NOT_EXIST,
+				DISTRIBUTOR_CLASS_ID
+			),
+			Error::<Runtime>::CollectionIdDoesNotMatchNFTCollectionId
+		);
 	});
 }
 
