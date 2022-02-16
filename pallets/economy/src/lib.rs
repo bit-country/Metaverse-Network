@@ -185,7 +185,7 @@ pub mod pallet {
 		InsufficientBalanceToMintElement,
 		InsufficientBalanceToDistributePower,
 		InsufficientBalanceToGeneratePower,
-		BalanceZero,
+		InsufficientBalanceToBuyPower,
 		PowerAmountIsZero,
 		PowerDistributionQueueDoesNotExist,
 		PowerGenerationQueueDoesNotExist,
@@ -284,17 +284,12 @@ pub mod pallet {
 				Error::<T>::NoPermissionToBuyPower
 			);
 
-			// TBD: Get NFT attribute. Convert power amount to the correct bit amount
+			// Convert to bit by using global exchange rate
 			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
-			// let bit_amount: Balance = power_amount
-			// 	.checked_add(100)
-			// 	.ok_or(ArithmeticError::Overflow)
-			// 	.unwrap()
-			// 	.into();
 
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
-				Error::<T>::BalanceZero
+				Error::<T>::InsufficientBalanceToBuyPower
 			);
 
 			// Reserve BIT
@@ -400,12 +395,8 @@ pub mod pallet {
 				Error::<T>::NoPermissionToBuyPower
 			);
 
-			// TBD: Get NFT attribute of generator NFT. Convert power amount to the correct bit amount
-			let bit_amount: Balance = power_amount
-				.checked_add(100)
-				.ok_or(ArithmeticError::Overflow)
-				.unwrap()
-				.into();
+			// Convert to bit by using global exchange rate
+			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
 
 			// Get distributor NFT account id
 			let distributor_nft_account_id: T::AccountId =
@@ -417,7 +408,7 @@ pub mod pallet {
 					&distributor_nft_account_id,
 					bit_amount
 				),
-				Error::<T>::BalanceZero
+				Error::<T>::InsufficientBalanceToBuyPower
 			);
 
 			// Reserve BIT

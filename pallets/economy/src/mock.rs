@@ -29,7 +29,8 @@ pub const DISTRIBUTOR_NFT_ASSET_ID: AssetId = 0;
 pub const NFT_ASSET_ID_NOT_EXIST: AssetId = 99;
 pub const USER_BUY_POWER_AMOUNT: PowerAmount = 100;
 pub const DISTRIBUTOR_POWER_BALANCE: PowerAmount = 100000;
-pub const DISTRIBUTOR_MINING_BALANCE: Balance = 10000;
+pub const DISTRIBUTOR_MINING_BALANCE: Balance = 1000 * DOLLARS;
+pub const DISTRIBUTOR_MINING_LOW_BALANCE: Balance = 1000;
 
 pub const GENERATOR_COLLECTION_ID: u64 = 1;
 pub const GENERATOR_CLASS_ID: ClassId = 1;
@@ -43,7 +44,8 @@ pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const ELEMENT_INDEX_ID: ElementId = 0;
 pub const ELEMENT_AMOUNT: u64 = 3;
 pub const ALICE_POWER_AMOUNT: PowerAmount = 20000;
-pub const ALICE_MINING_BALANCE: Balance = 10000;
+pub const ALICE_MINING_BALANCE: Balance = 10 * DOLLARS;
+pub const ALICE_MINING_LOW_BALANCE: Balance = 1000;
 
 // Configure a mock runtime to test the pallet.
 
