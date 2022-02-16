@@ -71,7 +71,7 @@ pub struct OrderInfo {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
-	use sp_runtime::traits::{CheckedAdd, Saturating};
+	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
 	use primitives::GroupCollectionId;
