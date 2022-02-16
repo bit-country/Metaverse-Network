@@ -71,12 +71,10 @@ pub struct OrderInfo {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
+	use sp_runtime::traits::{CheckedAdd, Saturating};
 	use sp_runtime::ArithmeticError;
 
 	use primitives::GroupCollectionId;
-
-	use crate::Error::InsufficientBalanceForStaking;
 
 	use super::*;
 
@@ -112,6 +110,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
 	}
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_bit_power_exchange_rate)]
+	pub(super) type BitPowerExchangeRate<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_element_index)]
@@ -180,6 +182,7 @@ pub mod pallet {
 		MiningResourceBurned(Balance),
 		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
 		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>),
+		BitPowerExchangeRateUpdated(Balance),
 	}
 
 	#[pallet::error]
@@ -201,7 +204,8 @@ pub mod pallet {
 		InsufficientBalanceToMintElement,
 		InsufficientBalanceToDistributePower,
 		InsufficientBalanceToGeneratePower,
-		BalanceZero,
+		InsufficientBalanceToBuyPower,
+		PowerAmountIsZero,
 		PowerDistributionQueueDoesNotExist,
 		PowerGenerationQueueDoesNotExist,
 		PowerGenerationIsNotAuthorized,
@@ -213,10 +217,24 @@ pub mod pallet {
 		ExitQueueAlreadyScheduled,
 		// Stake amount below minimum staking required
 		StakeBelowMinimum,
+		CollectionIdDoesNotMatchNFTCollectionId,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Set bit power exchange rate
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn set_bit_power_exchange_rate(origin: OriginFor<T>, rate: Balance) -> DispatchResultWithPostInfo {
+			// Only root can authorize
+			ensure_root(origin)?;
+
+			BitPowerExchangeRate::<T>::set(rate);
+
+			Self::deposit_event(Event::<T>::BitPowerExchangeRateUpdated(rate));
+
+			Ok(().into())
+		}
+
 		/// Authorize a NFT collector for power generator
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn authorize_power_generator_collection(
@@ -233,7 +251,11 @@ pub mod pallet {
 				Error::<T>::PowerGeneratorCollectionAlreadyAuthorized
 			);
 
-			// TODO: check if NFT collection exist
+			// Check if NFT class exist and match the specified collection
+			ensure!(
+				T::NFTHandler::check_collection_and_class(collection_id, class_id)?,
+				Error::<T>::CollectionIdDoesNotMatchNFTCollectionId
+			);
 
 			AuthorizedGeneratorCollection::<T>::insert((collection_id, &class_id), ());
 
@@ -260,7 +282,12 @@ pub mod pallet {
 				Error::<T>::PowerDistributorCollectionAlreadyAuthorized
 			);
 
-			// TODO: check if NFT collection exist
+			// Check if NFT class exist and match the specified collection
+			ensure!(
+				T::NFTHandler::check_collection_and_class(collection_id, class_id)?,
+				Error::<T>::CollectionIdDoesNotMatchNFTCollectionId
+			);
+
 			AuthorizedDistributorCollection::<T>::insert((collection_id, &class_id), ());
 
 			Self::deposit_event(Event::<T>::PowerDistributorCollectionAuthorized(
@@ -281,28 +308,26 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			// Check nft is part of distributor collection
-			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
-			// Get asset detail
-			let class_id = distributor_nft_detail.1;
+			ensure!(power_amount > 0, Error::<T>::PowerAmountIsZero);
 
-			let group_collection_id: u64 = distributor_nft_detail.0;
+			// Get NFT details
+			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
+
 			// Ensure distributor NFT is authorized
 			ensure!(
-				AuthorizedDistributorCollection::<T>::contains_key((group_collection_id, class_id)),
+				AuthorizedDistributorCollection::<T>::contains_key((
+					distributor_nft_detail.0,
+					distributor_nft_detail.1
+				)),
 				Error::<T>::NoPermissionToBuyPower
 			);
 
-			// TBD: Get NFT attribute. Convert power amount to the correct bit amount
-			let bit_amount: Balance = power_amount
-				.checked_add(100)
-				.ok_or(ArithmeticError::Overflow)
-				.unwrap()
-				.into();
+			// Convert to bit by using global exchange rate
+			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
 
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
-				Error::<T>::BalanceZero
+				Error::<T>::InsufficientBalanceToBuyPower
 			);
 
 			// Reserve BIT
@@ -414,12 +439,8 @@ pub mod pallet {
 				Error::<T>::PowerGenerationIsNotAuthorized
 			);
 
-			// TBD: Get NFT attribute of generator NFT. Convert power amount to the correct bit amount
-			let bit_amount: Balance = power_amount
-				.checked_add(100)
-				.ok_or(ArithmeticError::Overflow)
-				.unwrap()
-				.into();
+			// Convert to bit by using global exchange rate
+			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
 
 			// Get distributor NFT account id
 			let distributor_nft_account_id: T::AccountId =
@@ -431,7 +452,7 @@ pub mod pallet {
 					&distributor_nft_account_id,
 					bit_amount
 				),
-				Error::<T>::BalanceZero
+				Error::<T>::InsufficientBalanceToBuyPower
 			);
 
 			// Reserve BIT
@@ -458,7 +479,6 @@ pub mod pallet {
 
 		/// Execute distributor's mining power buying order
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
 		pub fn execute_generate_power_order(
 			origin: OriginFor<T>,
 			generator_nft_id: AssetId,
@@ -504,7 +524,6 @@ pub mod pallet {
 
 		/// Mint Element
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
 		pub fn mint_element(
 			origin: OriginFor<T>,
 			element_index: ElementId,
@@ -620,6 +639,13 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	pub fn economy_pallet_account_id() -> T::AccountId {
 		T::EconomyTreasury::get().into_account()
+	}
+
+	fn convert_power_to_bit(amount: Balance) -> Balance {
+		let rate = Self::get_bit_power_exchange_rate();
+
+		let bit_required = amount.checked_mul(rate).ok_or(ArithmeticError::Overflow).unwrap();
+		bit_required
 	}
 
 	fn do_burn(who: &T::AccountId, beneficiary: &T::AccountId, amount: Balance) -> DispatchResult {

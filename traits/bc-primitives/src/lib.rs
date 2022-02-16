@@ -90,4 +90,9 @@ pub trait NFTTrait<AccountId> {
 	fn check_ownership(who: &AccountId, asset_id: &AssetId) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_detail(asset_id: AssetId) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError>;
+	/// Check if collection and class exist
+	fn check_collection_and_class(
+		collection_id: GroupCollectionId,
+		class_id: Self::ClassId,
+	) -> Result<bool, DispatchError>;
 }
