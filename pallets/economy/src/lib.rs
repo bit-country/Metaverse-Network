@@ -71,10 +71,12 @@ pub struct OrderInfo {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
-	use sp_runtime::traits::{CheckedAdd, Saturating};
+	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
 	use primitives::GroupCollectionId;
+
+	use crate::Error::InsufficientBalanceForStaking;
 
 	use super::*;
 
@@ -107,6 +109,8 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type MiningCurrencyId: Get<FungibleTokenId>;
+		#[pallet::constant]
+		type MinimumStake: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]
@@ -147,10 +151,21 @@ pub mod pallet {
 	#[pallet::getter(fn get_accepted_domain)]
 	pub type AcceptedDomain<T: Config> = StorageMap<_, Twox64Concat, DomainId, ()>;
 
-	//	/// Power conversion rate per mining currency
-	//	#[pallet::storage]
-	//	#[pallet::getter(fn get_power_conversion_rate)]
-	//	pub type PowerConversionRate<T: Config> = StorageValue<_, Twox64Concat, PowerAmount>;
+	/// Self-staking info
+	#[pallet::storage]
+	#[pallet::getter(fn get_staking_info)]
+	pub type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+	/// Self-staking exit queue info
+	/// This will keep track of stake exits queue, unstake only allows after 1 round
+	#[pallet::storage]
+	#[pallet::getter(fn staking_exit_queue)]
+	pub type ExitQueue<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn total_stake)]
+	/// Total native token locked in this pallet
+	type TotalStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -163,6 +178,8 @@ pub mod pallet {
 		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, AssetId),
 		ElementMinted(T::AccountId, u32, u64),
 		MiningResourceBurned(Balance),
+		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
+		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -188,6 +205,14 @@ pub mod pallet {
 		PowerDistributionQueueDoesNotExist,
 		PowerGenerationQueueDoesNotExist,
 		PowerGenerationIsNotAuthorized,
+		// Not enough free balance for staking
+		InsufficientBalanceForStaking,
+		// Unstake amount greater than staked amount
+		UnstakeAmountExceedStakedAmount,
+		// Has scheduled exit staking, only stake after queue exit
+		ExitQueueAlreadyScheduled,
+		// Stake amount below minimum staking required
+		StakeBelowMinimum,
 	}
 
 	#[pallet::call]
@@ -433,6 +458,7 @@ pub mod pallet {
 
 		/// Execute distributor's mining power buying order
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn execute_generate_power_order(
 			origin: OriginFor<T>,
 			generator_nft_id: AssetId,
@@ -478,6 +504,7 @@ pub mod pallet {
 
 		/// Mint Element
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn mint_element(
 			origin: OriginFor<T>,
 			element_index: ElementId,
@@ -510,6 +537,80 @@ pub mod pallet {
 			ElementBalance::<T>::insert(who.clone(), element_index, element_balance);
 
 			Self::deposit_event(Event::<T>::ElementMinted(who.clone(), element_index, number_of_element));
+
+			Ok(().into())
+		}
+
+		/// Stake native token to staking ledger for mining power calculation
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn stake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Check if user has enough balance for staking
+			ensure!(
+				T::Currency::free_balance(&who) >= amount,
+				Error::<T>::InsufficientBalanceForStaking
+			);
+
+			// Check if user already in exit queue
+			ensure!(
+				ExitQueue::<T>::contains_key(&who),
+				Error::<T>::ExitQueueAlreadyScheduled
+			);
+
+			// Update staking info
+			let mut staked_balance = StakingInfo::<T>::get(&who);
+			let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+
+			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+
+			T::Currency::reserve(&who, total)?;
+
+			StakingInfo::<T>::insert(&who, total);
+
+			let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
+			<TotalStake<T>>::put(new_total_staked);
+
+			Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
+
+			Ok(().into())
+		}
+
+		/// Stake native token to staking ledger for mining power calculation
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn unstake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Update staking info
+			let mut staked_balance = StakingInfo::<T>::get(&who);
+			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+
+			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+
+			let amount_to_unstake = if remaining < T::MinimumStake::get() {
+				// Remaining amount below minimum, remove all staked amount
+				staked_balance
+			} else {
+				amount
+			};
+
+			// This exit queue will be executed by exit_staking extrinsics to unreserved token
+			ExitQueue::<T>::insert(&who, amount_to_unstake);
+
+			// Update staking info of user immediately
+			// Remove staking info
+			if amount_to_unstake == staked_balance {
+				StakingInfo::<T>::remove(&who);
+			} else {
+				StakingInfo::<T>::insert(&who, remaining);
+			}
+
+			let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
+			<TotalStake<T>>::put(new_total_staked);
+
+			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
 
 			Ok(().into())
 		}

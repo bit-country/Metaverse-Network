@@ -98,13 +98,13 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const EconomyPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
+	pub const MinimumStake: Balance = 1;
 }
 
 ord_parameter_types! {
 	pub const One: AccountId = 1;
 	pub const Two: AccountId = 2;
 }
-
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -112,6 +112,7 @@ impl Config for Runtime {
 	type NFTHandler = NFTModule;
 	type EconomyTreasury = EconomyPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
+	type MinimumStake = MinimumStake;
 }
 
 parameter_type_with_key! {
