@@ -107,6 +107,10 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
+	#[pallet::getter(fn get_bit_power_exchange_rate)]
+	pub(super) type BitPowerExchangeRate<T: Config> = StorageValue<_, Balance, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn get_element_index)]
 	pub type ElementIndex<T: Config> = StorageMap<_, Twox64Concat, ElementId, ElementInfo>;
 
@@ -154,6 +158,7 @@ pub mod pallet {
 		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, AssetId),
 		ElementMinted(T::AccountId, u32, u64),
 		MiningResourceBurned(Balance),
+		BitPowerExchangeRateUpdated(Balance),
 	}
 
 	#[pallet::error]
@@ -176,10 +181,24 @@ pub mod pallet {
 		InsufficientBalanceToDistributePower,
 		InsufficientBalanceToGeneratePower,
 		BalanceZero,
+		PowerAmountIsZero,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Set bit power exchange rate
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn set_bit_power_exchange_rate(origin: OriginFor<T>, rate: Balance) -> DispatchResultWithPostInfo {
+			// Only root can authorize
+			ensure_root(origin)?;
+
+			BitPowerExchangeRate::<T>::set(rate);
+
+			Self::deposit_event(Event::<T>::BitPowerExchangeRateUpdated(rate));
+
+			Ok(().into())
+		}
+
 		/// Authorize a NFT collector for power generator
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn authorize_power_generator_collection(
@@ -243,6 +262,8 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
+			ensure!(power_amount > 0, Error::<T>::PowerAmountIsZero);
+
 			// Check nft is part of distributor collection
 			// Get asset detail
 			let asset = NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
@@ -259,11 +280,12 @@ pub mod pallet {
 			);
 
 			// TBD: Get NFT attribute. Convert power amount to the correct bit amount
-			let bit_amount: Balance = power_amount
-				.checked_add(100)
-				.ok_or(ArithmeticError::Overflow)
-				.unwrap()
-				.into();
+			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
+			// let bit_amount: Balance = power_amount
+			// 	.checked_add(100)
+			// 	.ok_or(ArithmeticError::Overflow)
+			// 	.unwrap()
+			// 	.into();
 
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
@@ -497,6 +519,13 @@ pub mod pallet {
 impl<T: Config> Pallet<T> {
 	pub fn economy_pallet_account_id() -> T::AccountId {
 		T::EconomyTreasury::get().into_account()
+	}
+
+	fn convert_power_to_bit(amount: Balance) -> Balance {
+		let rate = Self::get_bit_power_exchange_rate();
+
+		let bit_required = amount.checked_mul(rate).ok_or(ArithmeticError::Overflow).unwrap();
+		bit_required
 	}
 
 	fn do_burn(who: &T::AccountId, beneficiary: &T::AccountId, amount: Balance) -> DispatchResult {
