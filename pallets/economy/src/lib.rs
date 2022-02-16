@@ -26,7 +26,6 @@ use frame_support::{
 	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use orml_nft::Pallet as NftModule;
 use orml_traits::{MultiCurrency, MultiReservableCurrency};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
@@ -34,9 +33,9 @@ use sp_runtime::{
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
+use bc_primitives::NFTTrait;
 use bc_primitives::*;
 pub use pallet::*;
-use pallet_nft::Pallet as NFTModule;
 use primitives::{AssetId, Balance, DomainId, ElementId, FungibleTokenId, MetaverseId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
@@ -86,10 +85,11 @@ pub mod pallet {
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
+	type ClassId = u64;
+	type TokenId = u64;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_nft::Config {
+	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The currency type
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
@@ -100,6 +100,8 @@ pub mod pallet {
 			CurrencyId = FungibleTokenId,
 			Balance = Balance,
 		>;
+		/// NFT handler
+		type NFTHandler: NFTTrait<Self::AccountId, ClassId = ClassId, TokenId = TokenId>;
 		#[pallet::constant]
 		type EconomyTreasury: Get<PalletId>;
 
@@ -119,12 +121,12 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_authorized_generator_collection)]
 	pub type AuthorizedGeneratorCollection<T: Config> =
-		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassIdOf<T>), (), OptionQuery>;
+		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassId), (), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_authorized_distributor_collection)]
 	pub type AuthorizedDistributorCollection<T: Config> =
-		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassIdOf<T>), (), OptionQuery>;
+		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassId), (), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
@@ -153,8 +155,8 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		PowerGeneratorCollectionAuthorized(GroupCollectionId, ClassIdOf<T>),
-		PowerDistributorCollectionAuthorized(GroupCollectionId, ClassIdOf<T>),
+		PowerGeneratorCollectionAuthorized(GroupCollectionId, ClassId),
+		PowerDistributorCollectionAuthorized(GroupCollectionId, ClassId),
 		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
 		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, AssetId),
 		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
@@ -173,6 +175,8 @@ pub mod pallet {
 		NFTClassDoesNotExist,
 		NFTCollectionDoesNotExist,
 		NoPermissionToBuyPower,
+		NoPermissionToExecuteBuyPowerOrder,
+		NoPermissionToExecuteGeneratingPowerOrder,
 		DistributorAccountIdDoesNotExistInBuyOrderQueue,
 		ElementDoesNotExist,
 		InvalidNumberOfElements,
@@ -183,6 +187,7 @@ pub mod pallet {
 		BalanceZero,
 		PowerDistributionQueueDoesNotExist,
 		PowerGenerationQueueDoesNotExist,
+		PowerGenerationIsNotAuthorized,
 	}
 
 	#[pallet::call]
@@ -192,7 +197,7 @@ pub mod pallet {
 		pub fn authorize_power_generator_collection(
 			origin: OriginFor<T>,
 			collection_id: GroupCollectionId,
-			class_id: ClassIdOf<T>,
+			class_id: ClassId,
 		) -> DispatchResultWithPostInfo {
 			// Only root can authorize
 			ensure_root(origin)?;
@@ -220,7 +225,7 @@ pub mod pallet {
 		pub fn authorize_power_distributor_collection(
 			origin: OriginFor<T>,
 			collection_id: GroupCollectionId,
-			class_id: ClassIdOf<T>,
+			class_id: ClassId,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -252,12 +257,12 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Check nft is part of distributor collection
+			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
 			// Get asset detail
-			let asset = NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
-			// Check ownership
-			let class_id = asset.0;
+			let class_id = distributor_nft_detail.1;
 
-			let group_collection_id: u64 = NFTModule::<T>::get_class_collection(class_id);
+			let group_collection_id: u64 = distributor_nft_detail.0;
+			// Ensure distributor NFT is authorized
 			ensure!(
 				AuthorizedDistributorCollection::<T>::contains_key((group_collection_id, class_id)),
 				Error::<T>::NoPermissionToBuyPower
@@ -308,12 +313,22 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Get asset detail
-			let asset = NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
+			// Check nft is part of distributor collection
+			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
+			// Ensure distributor NFT is authorized
+			ensure!(
+				AuthorizedDistributorCollection::<T>::contains_key((
+					distributor_nft_detail.0,
+					distributor_nft_detail.1
+				)),
+				Error::<T>::NoPermissionToExecuteBuyPowerOrder
+			);
 
 			// Check if executor is the owner of the Distributor NFT
-			let token_info =
-				orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToBuyPower)?;
-			ensure!(who == token_info.owner, Error::<T>::NoPermissionToBuyPower);
+			ensure!(
+				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
+				Error::<T>::NoPermissionToBuyPower
+			);
 
 			// Process queue and delete if queue has been proceeded
 			let buy_power_by_user_request =
@@ -349,33 +364,29 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Ensure buy power by distributor only called by distributor nft owner
-			// Get asset detail
-			let distributor_asset =
-				NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
-			// Check ownership
-			let distributor_class_id = distributor_asset.0;
-			let distributor_class_info =
-				orml_nft::Pallet::<T>::classes(distributor_class_id).ok_or(Error::<T>::NFTClassDoesNotExist)?;
-
-			ensure!(who == distributor_class_info.owner, Error::<T>::NoPermissionToBuyPower);
-
-			let distributor_group_collection_id: u64 = NFTModule::<T>::get_class_collection(distributor_class_id);
+			// Check nft is part of distributor collection
+			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
+			// Ensure distributor NFT is authorized
 			ensure!(
 				AuthorizedDistributorCollection::<T>::contains_key((
-					distributor_group_collection_id,
-					distributor_class_id
+					distributor_nft_detail.0,
+					distributor_nft_detail.1
 				)),
 				Error::<T>::NoPermissionToBuyPower
 			);
 
-			let generator_asset =
-				NFTModule::<T>::get_asset(generator_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
-			// Check ownership
-			let generator_class_id = generator_asset.0;
-			let generator_group_collection_id: u64 = NFTModule::<T>::get_class_collection(generator_class_id);
+			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key((generator_group_collection_id, generator_class_id)),
+				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
 				Error::<T>::NoPermissionToBuyPower
+			);
+
+			// Check nft is part of generator collection
+			let generator_nft_detail = T::NFTHandler::get_nft_detail(generator_nft_id)?;
+			// Ensure generator NFT is authorized
+			ensure!(
+				AuthorizedGeneratorCollection::<T>::contains_key((generator_nft_detail.0, generator_nft_detail.1)),
+				Error::<T>::PowerGenerationIsNotAuthorized
 			);
 
 			// TBD: Get NFT attribute of generator NFT. Convert power amount to the correct bit amount
@@ -429,15 +440,20 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			// Convert generator NFT to accountId
-			let generator_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);
+			// Ensure executor is holding generator NFT
+			// Check nft is part of generator collection
+			let generator_nft_detail = T::NFTHandler::get_nft_detail(generator_nft_id)?;
+			// Ensure generator NFT is authorized
+			ensure!(
+				AuthorizedGeneratorCollection::<T>::contains_key((generator_nft_detail.0, generator_nft_detail.1)),
+				Error::<T>::PowerGenerationIsNotAuthorized
+			);
 
-			// Get asset detail
-			let asset = NFTModule::<T>::get_asset(generator_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
-			// Check ownership
-			let token_info =
-				orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToBuyPower)?;
-			ensure!(who == token_info.owner, Error::<T>::NoPermissionToBuyPower);
+			// Check if origin is the owner of the Distributor NFT
+			ensure!(
+				T::NFTHandler::check_ownership(&who, &generator_nft_id)?,
+				Error::<T>::NoPermissionToExecuteGeneratingPowerOrder
+			);
 
 			let buy_power_by_distributor_request =
 				Self::get_buy_power_by_distributor_request_queue(&generator_nft_id, &beneficiary)

@@ -54,6 +54,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
+use primitive_traits::NFTTrait;
 use primitives::{AssetId, BlockNumber, GroupCollectionId, Hash};
 pub use weights::WeightInfo;
 
@@ -836,5 +837,26 @@ impl<T: Config> Pallet<T> {
 		let deposit_required = T::DataDepositPerByte::get().saturating_mul(attributes_len.into());
 
 		Ok(deposit_required)
+	}
+}
+
+impl<T: Config> NFTTrait<T::AccountId> for Pallet<T> {
+	type TokenId = TokenIdOf<T>;
+	type ClassId = ClassIdOf<T>;
+
+	fn check_ownership(who: &T::AccountId, asset_id: &AssetId) -> Result<bool, DispatchError> {
+		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+		let asset_info = NftModule::<T>::tokens(asset.0, asset.1)
+			.ok_or(Error::<T>::AssetInfoNotFound)
+			.unwrap();
+
+		Ok(who == &asset_info.owner)
+	}
+
+	fn get_nft_detail(asset_id: AssetId) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
+		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+		let group_collection_id = ClassDataCollection::<T>::get(asset.0);
+
+		Ok((group_collection_id, asset.0, asset.1))
 	}
 }

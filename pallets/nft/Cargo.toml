@@ -32,6 +32,7 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
+primitive-traits = { package = "bc-primitives", path = "../../traits/bc-primitives", default-features = false }
 
 [features]
 runtime-benchmarks = [
@@ -58,7 +59,8 @@ std = [
     'auction-manager/std',
     'currencies/std',
     'scale-info/std',
-    'pallet-scheduler/std'
+    'pallet-scheduler/std',
+    'primitive-traits/std'
 ]
 
 
