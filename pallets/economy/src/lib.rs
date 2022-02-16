@@ -406,12 +406,8 @@ pub mod pallet {
 				Error::<T>::PowerGenerationIsNotAuthorized
 			);
 
-			// TBD: Get NFT attribute of generator NFT. Convert power amount to the correct bit amount
-			let bit_amount: Balance = power_amount
-				.checked_add(100)
-				.ok_or(ArithmeticError::Overflow)
-				.unwrap()
-				.into();
+			// Convert to bit by using global exchange rate
+			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
 
 			// Get distributor NFT account id
 			let distributor_nft_account_id: T::AccountId =
