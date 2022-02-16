@@ -37,6 +37,7 @@ pub const GENERATOR_NFT_ASSET_ID: AssetId = 1;
 pub const GENERATE_POWER_AMOUNT: PowerAmount = 200;
 pub const GENERATOR_POWER_BALANCE: PowerAmount = 200000;
 
+pub const EXCHANGE_RATE: Balance = 66_000_000_000_000_000;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 
 pub const ELEMENT_INDEX_ID: ElementId = 0;

@@ -753,3 +753,25 @@ fn mint_element_should_work_with_more_one_operation() {
 		);
 	});
 }
+
+#[test]
+fn set_bit_power_exchange_rate_should_fail_bad_origin() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EconomyModule::set_bit_power_exchange_rate(Origin::signed(BOB), EXCHANGE_RATE),
+			BadOrigin
+		);
+	});
+}
+
+#[test]
+fn set_bit_power_exchange_rate_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::set_bit_power_exchange_rate(
+			Origin::root(),
+			EXCHANGE_RATE
+		));
+
+		assert_eq!(EconomyModule::get_bit_power_exchange_rate(), EXCHANGE_RATE);
+	});
+}
