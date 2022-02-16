@@ -21,12 +21,12 @@ use frame_support::{assert_err, assert_noop, assert_ok};
 use orml_nft::Tokens;
 use sp_runtime::traits::BadOrigin;
 
-use super::*;
-use mock::{Event, *};
-
 use auction_manager::ListingLevel;
+use mock::{Event, *};
 use pallet_nft::{Attributes, CollectionType, TokenType};
 use primitives::GroupCollectionId;
+
+use super::*;
 
 fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, classId: ClassId) {
 	//Create group collection before class
@@ -146,7 +146,7 @@ fn buy_power_by_user_should_fail_NFT_not_authorized() {
 
 		assert_noop!(
 			EconomyModule::buy_power_by_user(origin, 100u64.into(), DISTRIBUTOR_NFT_ASSET_ID,),
-			Error::<Runtime>::NoPermissionToBuyMiningPower
+			Error::<Runtime>::NoPermissionToBuyPower
 		);
 	});
 }
@@ -231,7 +231,7 @@ fn buy_power_by_distributor_should_fail_NFT_not_authorized() {
 				DISTRIBUTOR_NFT_ASSET_ID,
 				GENERATE_POWER_AMOUNT,
 			),
-			Error::<Runtime>::NoPermissionToBuyMiningPower
+			Error::<Runtime>::NoPermissionToBuyPower
 		);
 	});
 }
@@ -254,6 +254,12 @@ fn buy_power_by_distributor_should_work() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID
+			));
+
+			assert_ok!(EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_distributor(
@@ -332,7 +338,7 @@ fn execute_buy_power_order_should_fail_distributor_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, ALICE),
-			Error::<Runtime>::UserPowerOrderDoesNotExist
+			Error::<Runtime>::PowerDistributionQueueDoesNotExist
 		);
 	});
 }
@@ -360,7 +366,7 @@ fn execute_buy_power_order_should_fail_account_does_not_exist() {
 
 			assert_noop!(
 				EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, BOB),
-				Error::<Runtime>::UserPowerOrderDoesNotExist
+				Error::<Runtime>::PowerDistributionQueueDoesNotExist
 			);
 		});
 }
@@ -494,7 +500,7 @@ fn execute_generate_power_order_should_fail_distributor_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::execute_generate_power_order(origin, GENERATOR_NFT_ASSET_ID, ALICE),
-			Error::<Runtime>::DistributorPowerOrderDoesNotExist
+			Error::<Runtime>::PowerGenerationQueueDoesNotExist
 		);
 	});
 }
@@ -519,6 +525,12 @@ fn execute_generate_power_order_should_fail_account_does_not_exist() {
 				GENERATOR_CLASS_ID
 			));
 
+			assert_ok!(EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID
+			));
+
 			assert_ok!(EconomyModule::buy_power_by_distributor(
 				origin.clone(),
 				GENERATOR_NFT_ASSET_ID,
@@ -528,7 +540,7 @@ fn execute_generate_power_order_should_fail_account_does_not_exist() {
 
 			assert_noop!(
 				EconomyModule::execute_generate_power_order(origin, GENERATOR_NFT_ASSET_ID, BOB),
-				Error::<Runtime>::DistributorPowerOrderDoesNotExist
+				Error::<Runtime>::PowerGenerationQueueDoesNotExist
 			);
 		});
 }
@@ -551,6 +563,12 @@ fn execute_generate_power_order_should_fail_insufficient_balance() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID
+			));
+
+			assert_ok!(EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_distributor(
@@ -593,6 +611,12 @@ fn execute_generate_power_order_should_work() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID
+			));
+
+			assert_ok!(EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_distributor(

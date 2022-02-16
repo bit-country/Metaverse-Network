@@ -492,6 +492,7 @@ parameter_types! {
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
 	pub const MinimumStake: Balance = 5 * DOLLARS;
+	pub const RewardPaymentDelay: u32 = 1;
 }
 
 impl estate::Config for Runtime {
@@ -621,107 +622,47 @@ impl mining::Config for Runtime {
 }
 
 parameter_types! {
-	pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(17);
+	pub const Period: u32 = DAYS;
+	pub const Offset: u32 = 0;
+	pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(33);
 }
 
 impl pallet_session::Config for Runtime {
 	type Event = Event;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
-	type ValidatorIdOf = parachain_staking::ValidatorOf<Self>;
-	type ShouldEndSession = Staking;
-	type NextSessionRotation = Staking;
-	type SessionManager = Staking;
-	type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+	// we don't have stash and controller, thus we don't need the convert as well.
+	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+	type SessionManager = CollatorSelection;
+	// Essentially just Aura, but lets be pedantic.
+	type SessionHandler = <SessionKeys as sp_runtime::traits::OpaqueKeys>::KeyTypeIdProviders;
 	type Keys = SessionKeys;
-	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+	type WeightInfo = ();
 }
 
 parameter_types! {
-	/// Minimum round length is 2 minutes (10 * 12 second block times)
-	pub const MinBlocksPerRound: u32 = 10;
-	/// Default BlocksPerRound is every hour (300 * 12 second block times)
-	pub const DefaultBlocksPerRound: u32 = 30;
-	/// Collator candidate exits are delayed by 2 hours (2 * 300 * block_time)
-	pub const LeaveCandidatesDelay: u32 = 2;
-	/// Nominator exits are delayed by 2 hours (2 * 300 * block_time)
-	pub const LeaveNominatorsDelay: u32 = 2;
-	/// Nomination revocations are delayed by 2 hours (2 * 300 * block_time)
-	pub const RevokeNominationDelay: u32 = 2;
-	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
-	pub const RewardPaymentDelay: u32 = 2;
-	/// Minimum 8 collators selected per round, default at genesis and minimum forever after
-	pub const MinSelectedCandidates: u32 = 8;
-	/// Maximum 100 nominators per collator
-	pub const MaxNominatorsPerCollator: u32 = 100;
-	/// Maximum 100 collators per nominator
-	pub const MaxCollatorsPerNominator: u32 = 100;
-	/// Default fixed percent a collator takes off the top of due rewards is 20%
-	pub const DefaultCollatorCommission: Perbill = Perbill::from_percent(20);
-	/// Default percent of inflation set aside for parachain bond every round
-	pub const DefaultParachainBondReservePercent: Percent = Percent::from_percent(30);
-	/// Minimum stake required to become a collator is 1_000
-	pub const MinCollatorStk: u128 = 1 * DOLLARS;
-	/// Minimum stake required to be reserved to be a candidate is 1_000
-	pub const MinCollatorCandidateStk: u128 = 1 * DOLLARS;
-	/// Minimum stake required to be reserved to be a nominator is 5
-	pub const MinNominatorStk: u128 = 5 * DOLLARS;
+	pub const PotId: PalletId = PalletId(*b"bcPotStk");
+	pub const MaxCandidates: u32 = 10;
+	pub const MinCandidates: u32 = 5;
+	pub const MaxInvulnerables: u32 = 100;
 }
 
-impl parachain_staking::Config for Runtime {
+impl pallet_collator_selection::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type MonetaryGovernanceOrigin = EnsureRoot<AccountId>;
-	type MinBlocksPerRound = MinBlocksPerRound;
-	type DefaultBlocksPerRound = DefaultBlocksPerRound;
-	type LeaveCandidatesDelay = LeaveCandidatesDelay;
-	type LeaveNominatorsDelay = LeaveNominatorsDelay;
-	type RevokeNominationDelay = RevokeNominationDelay;
-	type RewardPaymentDelay = RewardPaymentDelay;
-	type MinSelectedCandidates = MinSelectedCandidates;
-	type MaxNominatorsPerCollator = MaxNominatorsPerCollator;
-	type MaxCollatorsPerNominator = MaxCollatorsPerNominator;
-	type DefaultCollatorCommission = DefaultCollatorCommission;
-	type DefaultParachainBondReservePercent = DefaultParachainBondReservePercent;
-	type MinCollatorStk = MinCollatorStk;
-	type MinCollatorCandidateStk = MinCollatorCandidateStk;
-	type MinNomination = MinNominatorStk;
-	type MinNominatorStk = MinNominatorStk;
-	type WeightInfo = parachain_staking::weights::SubstrateWeight<Runtime>;
+	type UpdateOrigin = EnsureRoot<AccountId>;
+	type PotId = PotId;
+	type MaxCandidates = MaxCandidates;
+	type MinCandidates = MinCandidates;
+	type MaxInvulnerables = MaxInvulnerables;
+	// should be a multiple of session or things will get inconsistent
+	type KickThreshold = Period;
+	type ValidatorId = <Self as frame_system::Config>::AccountId;
+	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
+	type ValidatorRegistration = Session;
+	type WeightInfo = ();
 }
-
-//parameter_types! {
-//	pub const ChainId: u64 = 42;
-//	pub BlockGasLimit: U256 = U256::from(u32::max_value());
-//}
-
-//// EVM config
-//impl pallet_evm::Config for Runtime {
-//	//    type FeeCalculator = pallet_dynamic_fee::Module<Self>;
-//	type FeeCalculator = ();
-//	type GasWeightMapping = ();
-//	//	type BlockHashMapping = pallet_ethereum::EthereumBlockHashMapping<Self>;
-//	//    type BlockHashMapping = ();
-//	type CallOrigin = EnsureAddressTruncated;
-//	type WithdrawOrigin = EnsureAddressTruncated;
-//	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
-//	type Currency = Balances;
-//	type Event = Event;
-//	type Runner = pallet_evm::runner::stack::Runner<Self>;
-//	type Precompiles = (
-//		pallet_evm_precompile_simple::ECRecover,
-//		pallet_evm_precompile_simple::Sha256,
-//		pallet_evm_precompile_simple::Ripemd160,
-//		pallet_evm_precompile_simple::Identity,
-//		pallet_evm_precompile_modexp::Modexp,
-//		pallet_evm_precompile_simple::ECRecoverPublicKey,
-//		pallet_evm_precompile_sha3fips::Sha3FIPS256,
-//		pallet_evm_precompile_sha3fips::Sha3FIPS512,
-//	);
-//	type ChainId = ChainId;
-//	type BlockGasLimit = BlockGasLimit;
-//	type OnChargeTransaction = ();
-//	type FindAuthor = FindAuthorTruncated<Aura>;
-//}
 
 parameter_types! {
 	/// Max size 4MB allowed for a preimage.
@@ -950,9 +891,8 @@ construct_runtime!(
 		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
 
 		// External consensus support
-		Staking: parachain_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
+		CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>},
 

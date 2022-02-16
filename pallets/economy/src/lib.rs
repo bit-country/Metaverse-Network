@@ -23,7 +23,7 @@ use frame_support::{
 	ensure,
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
-	PalletId,
+	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_nft::Pallet as NftModule;
@@ -72,9 +72,10 @@ pub struct OrderInfo {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
-	use primitives::GroupCollectionId;
 	use sp_runtime::traits::{CheckedAdd, Saturating};
 	use sp_runtime::ArithmeticError;
+
+	use primitives::GroupCollectionId;
 
 	use super::*;
 
@@ -143,9 +144,15 @@ pub mod pallet {
 	#[pallet::getter(fn get_power_balance)]
 	pub type PowerBalance<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, PowerAmount, ValueQuery>;
 
+	/// TBD Accept domain
 	#[pallet::storage]
 	#[pallet::getter(fn get_accepted_domain)]
 	pub type AcceptedDomain<T: Config> = StorageMap<_, Twox64Concat, DomainId, ()>;
+
+	//	/// Power conversion rate per mining currency
+	//	#[pallet::storage]
+	//	#[pallet::getter(fn get_power_conversion_rate)]
+	//	pub type PowerConversionRate<T: Config> = StorageValue<_, Twox64Concat, PowerAmount>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -170,9 +177,7 @@ pub mod pallet {
 		NFTAssetDoesNotExist,
 		NFTClassDoesNotExist,
 		NFTCollectionDoesNotExist,
-		NoPermissionToBuyMiningPower,
-		UserPowerOrderDoesNotExist,
-		DistributorPowerOrderDoesNotExist,
+		NoPermissionToBuyPower,
 		DistributorAccountIdDoesNotExistInBuyOrderQueue,
 		ElementDoesNotExist,
 		InvalidNumberOfElements,
@@ -182,6 +187,8 @@ pub mod pallet {
 		InsufficientBalanceToGeneratePower,
 		BalanceZero,
 		PowerAmountIsZero,
+		PowerDistributionQueueDoesNotExist,
+		PowerGenerationQueueDoesNotExist,
 	}
 
 	#[pallet::call]
@@ -255,6 +262,7 @@ pub mod pallet {
 
 		/// Enable user to buy mining power with specific distributor NFT
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn buy_power_by_user(
 			origin: OriginFor<T>,
 			power_amount: PowerAmount,
@@ -269,14 +277,11 @@ pub mod pallet {
 			let asset = NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
 			// Check ownership
 			let class_id = asset.0;
-			let class_info = orml_nft::Pallet::<T>::classes(class_id).ok_or(Error::<T>::NFTClassDoesNotExist)?;
-			// let token_info = orml_nft::Pallet::<T>::tokens(asset.0)
 
 			let group_collection_id: u64 = NFTModule::<T>::get_class_collection(class_id);
-
 			ensure!(
 				AuthorizedDistributorCollection::<T>::contains_key((group_collection_id, class_id)),
-				Error::<T>::NoPermissionToBuyMiningPower
+				Error::<T>::NoPermissionToBuyPower
 			);
 
 			// TBD: Get NFT attribute. Convert power amount to the correct bit amount
@@ -316,6 +321,7 @@ pub mod pallet {
 
 		/// Execute user's mining power buying order
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn execute_buy_power_order(
 			origin: OriginFor<T>,
 			distributor_nft_id: AssetId,
@@ -325,44 +331,37 @@ pub mod pallet {
 
 			// Get asset detail
 			let asset = NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
-			// Check ownership
-			let class_info = orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NFTClassDoesNotExist)?;
-			let class_info_data = class_info.data;
+
+			// Check if executor is the owner of the Distributor NFT
 			let token_info =
-				orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToBuyMiningPower)?;
-			ensure!(who == token_info.owner, Error::<T>::NoPermissionToBuyMiningPower);
+				orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToBuyPower)?;
+			ensure!(who == token_info.owner, Error::<T>::NoPermissionToBuyPower);
 
-			// Mutate BuyPowerByUserRequestQueue, add to queue
-			BuyPowerByUserRequestQueue::<T>::try_mutate_exists(
-				distributor_nft_id,
-				beneficiary.clone(),
-				|maybe_user_power_order_info| {
-					// Remove account and power amount info to BuyPowerByUserRequestQueue
-					let user_power_order_info = maybe_user_power_order_info
-						.as_mut()
-						.ok_or(Error::<T>::UserPowerOrderDoesNotExist)?;
+			// Process queue and delete if queue has been proceeded
+			let buy_power_by_user_request =
+				Self::get_buy_power_by_user_request_queue(&distributor_nft_id, &beneficiary)
+					.ok_or(Error::<T>::PowerDistributionQueueDoesNotExist)?;
 
-					let power_amount = user_power_order_info.power_amount;
-					let bit_amount = user_power_order_info.bit_amount;
+			let power_amount = buy_power_by_user_request.power_amount;
+			let bit_amount = buy_power_by_user_request.bit_amount;
 
-					// Unreserve BIT
-					T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
+			// Unreserve BIT
+			T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
-					// Burn BIT
-					Self::do_burn(&who, &beneficiary, bit_amount)?;
+			// Burn BIT
+			Self::do_burn(&who, &beneficiary, bit_amount)?;
 
-					// Transfer power amount
-					Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id)?;
+			// Transfer power amount
+			Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id)?;
 
-					*maybe_user_power_order_info = None;
+			BuyPowerByUserRequestQueue::<T>::remove(distributor_nft_id, beneficiary);
 
-					Ok(().into())
-				},
-			)
+			Ok(().into())
 		}
 
 		/// Enable distributor to buy mining power with specific generator NFT
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn buy_power_by_distributor(
 			origin: OriginFor<T>,
 			generator_nft_id: AssetId,
@@ -371,18 +370,34 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			// Check nft is part of distributor collection
+			// Ensure buy power by distributor only called by distributor nft owner
 			// Get asset detail
-			let asset = NFTModule::<T>::get_asset(generator_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
+			let distributor_asset =
+				NFTModule::<T>::get_asset(distributor_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
 			// Check ownership
-			let class_id = asset.0;
-			let class_info = orml_nft::Pallet::<T>::classes(class_id).ok_or(Error::<T>::NFTClassDoesNotExist)?;
+			let distributor_class_id = distributor_asset.0;
+			let distributor_class_info =
+				orml_nft::Pallet::<T>::classes(distributor_class_id).ok_or(Error::<T>::NFTClassDoesNotExist)?;
 
-			let group_collection_id: u64 = NFTModule::<T>::get_class_collection(class_id);
+			ensure!(who == distributor_class_info.owner, Error::<T>::NoPermissionToBuyPower);
 
+			let distributor_group_collection_id: u64 = NFTModule::<T>::get_class_collection(distributor_class_id);
 			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key((group_collection_id, class_id)),
-				Error::<T>::NoPermissionToBuyMiningPower
+				AuthorizedDistributorCollection::<T>::contains_key((
+					distributor_group_collection_id,
+					distributor_class_id
+				)),
+				Error::<T>::NoPermissionToBuyPower
+			);
+
+			let generator_asset =
+				NFTModule::<T>::get_asset(generator_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
+			// Check ownership
+			let generator_class_id = generator_asset.0;
+			let generator_group_collection_id: u64 = NFTModule::<T>::get_class_collection(generator_class_id);
+			ensure!(
+				AuthorizedGeneratorCollection::<T>::contains_key((generator_group_collection_id, generator_class_id)),
+				Error::<T>::NoPermissionToBuyPower
 			);
 
 			// TBD: Get NFT attribute of generator NFT. Convert power amount to the correct bit amount
@@ -392,6 +407,7 @@ pub mod pallet {
 				.unwrap()
 				.into();
 
+			// Get distributor NFT account id
 			let distributor_nft_account_id: T::AccountId =
 				T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
 
@@ -441,39 +457,29 @@ pub mod pallet {
 			// Get asset detail
 			let asset = NFTModule::<T>::get_asset(generator_nft_id).ok_or(Error::<T>::NFTAssetDoesNotExist)?;
 			// Check ownership
-			let class_info = orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NFTClassDoesNotExist)?;
-			let class_info_data = class_info.data;
 			let token_info =
-				orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToBuyMiningPower)?;
-			ensure!(who == token_info.owner, Error::<T>::NoPermissionToBuyMiningPower);
+				orml_nft::Pallet::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::NoPermissionToBuyPower)?;
+			ensure!(who == token_info.owner, Error::<T>::NoPermissionToBuyPower);
 
-			// Mutate BuyPowerByUserRequestQueue, add to queue
-			BuyPowerByDistributorRequestQueue::<T>::try_mutate_exists(
-				generator_nft_id,
-				beneficiary.clone(),
-				|maybe_distributor_order_info| {
-					// Remove account and power amount info to BuyPowerByDistributorRequestQueue
-					let distributor_order_info = maybe_distributor_order_info
-						.as_mut()
-						.ok_or(Error::<T>::DistributorPowerOrderDoesNotExist)?;
+			let buy_power_by_distributor_request =
+				Self::get_buy_power_by_distributor_request_queue(&generator_nft_id, &beneficiary)
+					.ok_or(Error::<T>::PowerGenerationQueueDoesNotExist)?;
 
-					let power_amount = distributor_order_info.power_amount;
-					let bit_amount = distributor_order_info.bit_amount;
+			let power_amount = buy_power_by_distributor_request.power_amount;
+			let bit_amount = buy_power_by_distributor_request.bit_amount;
 
-					// Unreserve BIT
-					T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
+			// Unreserve BIT
+			T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
-					// Burn BIT
-					Self::do_burn(&who, &beneficiary, bit_amount)?;
+			// Burn BIT
+			Self::do_burn(&who, &beneficiary, bit_amount)?;
 
-					// Transfer power amount
-					Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id)?;
+			// Transfer power amount
+			Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id)?;
 
-					*maybe_distributor_order_info = None;
+			BuyPowerByDistributorRequestQueue::<T>::remove(&generator_nft_id, &beneficiary);
 
-					Ok(().into())
-				},
-			)
+			Ok(().into())
 		}
 
 		/// Mint Element

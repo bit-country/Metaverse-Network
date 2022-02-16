@@ -4326,6 +4326,7 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
+ "pallet-collator-selection",
  "pallet-collective",
  "pallet-continuum",
  "pallet-crowdloan",
