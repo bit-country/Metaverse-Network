@@ -218,6 +218,7 @@ pub mod pallet {
 		// Stake amount below minimum staking required
 		StakeBelowMinimum,
 		CollectionIdDoesNotMatchNFTCollectionId,
+		UnstakeAmountExceedStakedAmountZero,
 	}
 
 	#[pallet::call]
@@ -574,7 +575,7 @@ pub mod pallet {
 
 			// Check if user already in exit queue
 			ensure!(
-				ExitQueue::<T>::contains_key(&who),
+				!ExitQueue::<T>::contains_key(&who),
 				Error::<T>::ExitQueueAlreadyScheduled
 			);
 
@@ -584,7 +585,7 @@ pub mod pallet {
 
 			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
 
-			T::Currency::reserve(&who, total)?;
+			T::Currency::reserve(&who, amount)?;
 
 			StakingInfo::<T>::insert(&who, total);
 
@@ -602,11 +603,15 @@ pub mod pallet {
 		pub fn unstake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
+			// Ensure amount is greater than zero
+			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountExceedStakedAmountZero);
+
 			// Update staking info
 			let mut staked_balance = StakingInfo::<T>::get(&who);
-			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
 
 			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+
+			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
 
 			let amount_to_unstake = if remaining < T::MinimumStake::get() {
 				// Remaining amount below minimum, remove all staked amount
