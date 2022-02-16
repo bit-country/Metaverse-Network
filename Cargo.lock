@@ -5634,6 +5634,7 @@ name = "pallet-nft"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
+ "bc-primitives",
  "bit-country-primitives",
  "currencies",
  "frame-benchmarking",

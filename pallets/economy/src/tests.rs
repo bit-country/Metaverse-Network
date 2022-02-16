@@ -30,9 +30,9 @@ use super::*;
 
 fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, classId: ClassId) {
 	//Create group collection before class
-	assert_ok!(NFTModule::<Runtime>::create_group(Origin::root(), vec![1], vec![1]));
+	assert_ok!(NFTModule::create_group(Origin::root(), vec![1], vec![1]));
 
-	assert_ok!(NFTModule::<Runtime>::create_class(
+	assert_ok!(NFTModule::create_class(
 		owner.clone(),
 		vec![1],
 		test_attributes(1),
@@ -41,13 +41,7 @@ fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, classId: Class
 		CollectionType::Collectable,
 	));
 
-	assert_ok!(NFTModule::<Runtime>::mint(
-		owner.clone(),
-		classId,
-		vec![1],
-		test_attributes(1),
-		1
-	));
+	assert_ok!(NFTModule::mint(owner.clone(), classId, vec![1], test_attributes(1), 1));
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -133,7 +127,7 @@ fn buy_power_by_user_should_fail_nft_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::buy_power_by_user(Origin::signed(ALICE), 100u64.into(), 0,),
-			Error::<Runtime>::NFTAssetDoesNotExist
+			pallet_nft::Error::<Runtime>::AssetIdNotFound
 		);
 	});
 }
@@ -244,7 +238,7 @@ fn buy_power_by_distributor_should_fail_nft_does_not_exist() {
 				DISTRIBUTOR_NFT_ASSET_ID,
 				GENERATE_POWER_AMOUNT,
 			),
-			Error::<Runtime>::NFTAssetDoesNotExist
+			pallet_nft::Error::<Runtime>::AssetIdNotFound
 		);
 	});
 }
@@ -399,7 +393,7 @@ fn execute_buy_power_order_should_fail_nft_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::execute_buy_power_order(origin, NFT_ASSET_ID_NOT_EXIST, ALICE),
-			Error::<Runtime>::NFTAssetDoesNotExist
+			pallet_nft::Error::<Runtime>::AssetIdNotFound
 		);
 	});
 }
@@ -560,7 +554,7 @@ fn execute_generate_power_order_should_fail_nft_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::execute_generate_power_order(origin, NFT_ASSET_ID_NOT_EXIST, ALICE),
-			Error::<Runtime>::NFTAssetDoesNotExist
+			pallet_nft::Error::<Runtime>::AssetIdNotFound
 		);
 	});
 }

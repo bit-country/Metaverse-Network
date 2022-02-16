@@ -17,7 +17,7 @@ use super::*;
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
-pub type ClassId = u32;
+pub type ClassId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -112,6 +112,7 @@ impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type FungibleTokenCurrency = OrmlTokens;
+	type NFTHandler = NFTModule;
 	type EconomyTreasury = EconomyPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
 }
@@ -253,7 +254,7 @@ parameter_types! {
 }
 
 impl orml_nft::Config for Runtime {
-	type ClassId = u32;
+	type ClassId = u64;
 	type TokenId = u64;
 	type ClassData = pallet_nft::NftClassData<Balance>;
 	type TokenData = pallet_nft::NftAssetData<Balance>;

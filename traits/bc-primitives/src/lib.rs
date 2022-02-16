@@ -1,10 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use primitives::{FungibleTokenId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType};
 use scale_info::TypeInfo;
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec::Vec;
+
+use primitives::{
+	AssetId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType,
+};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseAssetData {
@@ -76,4 +79,15 @@ pub trait UndeployedLandBlocksTrait<AccountId> {
 	fn freeze_undeployed_land_block(
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError>;
+}
+
+pub trait NFTTrait<AccountId> {
+	/// Token identifier
+	type TokenId;
+	/// Token class identifier
+	type ClassId;
+	/// Check the ownership of this nft asset
+	fn check_ownership(who: &AccountId, asset_id: &AssetId) -> Result<bool, DispatchError>;
+	/// Get the detail of this nft
+	fn get_nft_detail(asset_id: AssetId) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError>;
 }
