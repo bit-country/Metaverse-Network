@@ -5,6 +5,7 @@ use scale_info::TypeInfo;
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec::Vec;
 
+use primitives::staking::RoundInfo;
 use primitives::{
 	AssetId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType,
 };
@@ -95,4 +96,8 @@ pub trait NFTTrait<AccountId> {
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
 	) -> Result<bool, DispatchError>;
+}
+
+pub trait RoundTrait<BlockNumber> {
+	fn get_current_round_info() -> RoundInfo<BlockNumber>;
 }

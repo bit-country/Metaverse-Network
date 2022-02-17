@@ -45,6 +45,7 @@ use sp_std::vec::Vec;
 use auction_manager::SwapManager;
 use bc_primitives::*;
 pub use pallet::*;
+use primitives::staking::RoundInfo;
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 
 #[cfg(test)]
@@ -79,7 +80,8 @@ pub mod pallet {
 	use sp_std::convert::TryInto;
 
 	use primitives::dex::Price;
-	use primitives::{FungibleTokenId, TokenId, VestingSchedule};
+	use primitives::staking::RoundInfo;
+	use primitives::{FungibleTokenId, RoundIndex, TokenId, VestingSchedule};
 
 	use super::*;
 
@@ -112,8 +114,13 @@ pub mod pallet {
 	#[pallet::getter(fn minting_origin)]
 	pub type MintingOrigins<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn round)]
+	/// Current round index and next round scheduled transition
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
+
 	#[pallet::event]
-	#[pallet::generate_deposit(pub(crate) fn deposit_event)]
+	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Mining resource minted [amount]
 		MiningResourceMinted(Balance),
@@ -128,6 +135,10 @@ pub mod pallet {
 		/// Remove mining origin [who]
 		/// Add new mining origins [who]
 		RemoveMiningOrigin(T::AccountId),
+		/// New round
+		NewMiningRound(RoundIndex),
+		/// Round length update
+		RoundLengthUpdated(T::BlockNumber),
 	}
 
 	#[pallet::error]
@@ -207,10 +218,38 @@ pub mod pallet {
 			Self::do_remove_minting_origin(who)?;
 			Ok(().into())
 		}
+
+		#[pallet::weight(100_000)]
+		pub fn update_round_length(origin: OriginFor<T>, length: T::BlockNumber) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			let mut current_round = Round::<T>::get();
+			ensure!(length >= Zero::zero(), Error::<T>::AmountZero);
+
+			current_round.length = length.saturated_into::<u32>();
+
+			Round::<T>::put(current_round);
+
+			Self::deposit_event(Event::<T>::RoundLengthUpdated(length));
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_initialize(n: T::BlockNumber) -> Weight {
+			let mut round = <Round<T>>::get();
+			if round.should_update(n) {
+				// mutate round
+				round.update(n);
+				Self::deposit_event(Event::NewMiningRound(round.current));
+				0
+			} else {
+				0
+			}
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -319,5 +358,11 @@ impl<T: Config> Pallet<T> {
 		MintingOrigins::<T>::remove(who.clone());
 		Self::deposit_event(Event::RemoveMiningOrigin(who));
 		Ok(())
+	}
+}
+
+impl<T: Config> RoundTrait<T::BlockNumber> for Pallet<T> {
+	fn get_current_round_info() -> RoundInfo<T::BlockNumber> {
+		Round::<T>::get()
 	}
 }
