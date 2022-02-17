@@ -5270,6 +5270,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-economy"
+version = "2.0.0-rc6"
+dependencies = [
+ "auction-manager",
+ "bc-primitives",
+ "bit-country-primitives",
+ "currencies",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-currencies",
+ "orml-nft",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-balances",
+ "pallet-mining",
+ "pallet-nft",
+ "pallet-randomness-collective-flip",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-api",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-version",
+]
+
+[[package]]
 name = "pallet-election-provider-multi-phase"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.16#4aeb95f7f38fcd519e2628f32f79044a8fef99d5"
@@ -5601,6 +5635,7 @@ name = "pallet-nft"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
+ "bc-primitives",
  "bit-country-primitives",
  "currencies",
  "frame-benchmarking",
