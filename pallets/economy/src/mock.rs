@@ -53,6 +53,8 @@ pub const STAKE_BALANCE: Balance = 1000;
 pub const STAKE_BELOW_MINIMUM_BALANCE: Balance = 1;
 pub const STAKE_EXCESS_BALANCE: Balance = 10 * DOLLARS;
 pub const UNSTAKE_AMOUNT: Balance = 10;
+pub const CURRENT_ROUND: RoundIndex = 1;
+pub const FREE_BALANCE: Balance = 9010;
 
 // Configure a mock runtime to test the pallet.
 
@@ -91,6 +93,10 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
+	pub const EconomyPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MiningTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MaxTokenMetadata: u32 = 1024;
+	pub const MinimumStake: Balance = 100;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -105,10 +111,12 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = ();
 }
 
-parameter_types! {
-	pub const EconomyPalletId: PalletId = PalletId(*b"bit/fund");
-	pub const MaxTokenMetadata: u32 = 1024;
-	pub const MinimumStake: Balance = 100;
+impl pallet_mining::Config for Runtime {
+	type Event = Event;
+	type MiningCurrency = Currencies;
+	type BitMiningTreasury = MiningTreasuryPalletId;
+	type BitMiningResourceId = MiningCurrencyId;
+	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 }
 
 ord_parameter_types! {
@@ -120,6 +128,7 @@ impl Config for Runtime {
 	type Currency = Balances;
 	type FungibleTokenCurrency = OrmlTokens;
 	type NFTHandler = NFTModule;
+	type RoundHandler = Mining;
 	type EconomyTreasury = EconomyPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumStake = MinimumStake;
@@ -285,6 +294,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		OrmlTokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Mining: pallet_mining::{Pallet, Call, Storage, Event<T>},
 		Economy: economy::{Pallet, Call ,Storage, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
@@ -333,6 +343,15 @@ impl ExtBuilder {
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));
 		ext
+	}
+}
+
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		System::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+		Mining::on_initialize(System::block_number());
 	}
 }
 

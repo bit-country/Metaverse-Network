@@ -954,7 +954,7 @@ fn stake_should_fail_insufficient_balance() {
 fn stake_should_fail_exit_queue_scheduled() {
 	ExtBuilder::default().build().execute_with(|| {
 		// Add account entry to ExitQueue
-		ExitQueue::<Runtime>::insert(ALICE, STAKE_BALANCE);
+		ExitQueue::<Runtime>::insert(ALICE, CURRENT_ROUND, STAKE_BALANCE);
 
 		assert_noop!(
 			EconomyModule::stake(Origin::signed(ALICE), STAKE_BELOW_MINIMUM_BALANCE),
@@ -1057,8 +1057,42 @@ fn unstake_should_work() {
 		let total_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
 
 		assert_eq!(EconomyModule::get_staking_info(ALICE), total_staked_balance);
-
 		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+		let next_round: RoundIndex = CURRENT_ROUND.saturating_add(1);
+		assert_eq!(
+			EconomyModule::staking_exit_queue(ALICE, next_round),
+			Some(UNSTAKE_AMOUNT)
+		);
+	});
+}
+
+#[test]
+fn withdraw_unstake_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE));
+
+		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT));
+
+		assert_eq!(
+			last_event(),
+			Event::Economy(crate::Event::SelfStakingRemovedFromEconomy101(ALICE, UNSTAKE_AMOUNT))
+		);
+
+		let total_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
+
+		assert_eq!(EconomyModule::get_staking_info(ALICE), total_staked_balance);
+		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+		let next_round: RoundIndex = CURRENT_ROUND.saturating_add(1);
+		assert_eq!(
+			EconomyModule::staking_exit_queue(ALICE, next_round),
+			Some(UNSTAKE_AMOUNT)
+		);
+
+		// Default round length is 20 blocks so moving 25 blocks will move to the next round
+		run_to_block(25);
+		assert_ok!(EconomyModule::withdraw_unreserved(Origin::signed(ALICE), next_round));
+		// ALICE balance free_balance was 9000 and added 9010 after withdraw unreserved
+		assert_eq!(Balances::free_balance(ALICE), FREE_BALANCE);
 	});
 }
 

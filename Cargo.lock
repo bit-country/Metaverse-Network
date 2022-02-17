@@ -5285,6 +5285,7 @@ dependencies = [
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
+ "pallet-mining",
  "pallet-nft",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
