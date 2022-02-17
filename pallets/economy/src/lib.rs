@@ -188,6 +188,7 @@ pub mod pallet {
 		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>),
 		BitPowerExchangeRateUpdated(Balance),
 		UnstakedAmountWithdrew(T::AccountId, BalanceOf<T>),
+		SetPowerBalance(T::AccountId, PowerAmount),
 	}
 
 	#[pallet::error]
@@ -233,7 +234,9 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Set bit power exchange rate
+		/// BIT price per Power, accept decimal
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn set_bit_power_exchange_rate(origin: OriginFor<T>, rate: Balance) -> DispatchResultWithPostInfo {
 			// Only root can authorize
 			ensure_root(origin)?;
@@ -245,8 +248,27 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Set power balance for NFTs
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn set_power_balance(
+			origin: OriginFor<T>,
+			beneficiary: AssetId,
+			amount: PowerAmount,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			let account_id = T::EconomyTreasury::get().into_sub_account(beneficiary);
+			PowerBalance::<T>::insert(&account_id, amount);
+
+			Self::deposit_event(Event::<T>::SetPowerBalance(account_id, amount));
+
+			Ok(().into())
+		}
+
 		/// Authorize a NFT collector for power generator
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn authorize_power_generator_collection(
 			origin: OriginFor<T>,
 			collection_id: GroupCollectionId,
@@ -279,6 +301,7 @@ pub mod pallet {
 
 		/// Authorize a NFT collector for power distributor
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn authorize_power_distributor_collection(
 			origin: OriginFor<T>,
 			collection_id: GroupCollectionId,
@@ -402,7 +425,7 @@ pub mod pallet {
 			T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
 			// Burn BIT
-			Self::do_burn(&who, &beneficiary, bit_amount)?;
+			Self::do_burn(&beneficiary, bit_amount)?;
 
 			// Transfer power amount
 			Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id)?;
@@ -523,7 +546,7 @@ pub mod pallet {
 			T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
 
 			// Burn BIT
-			Self::do_burn(&who, &beneficiary, bit_amount)?;
+			Self::do_burn(&beneficiary, bit_amount)?;
 
 			// Transfer power amount
 			Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id)?;
@@ -680,22 +703,19 @@ impl<T: Config> Pallet<T> {
 		T::EconomyTreasury::get().into_account()
 	}
 
-	fn convert_power_to_bit(amount: Balance) -> Balance {
+	fn convert_power_to_bit(power_amount: Balance) -> Balance {
 		let rate = Self::get_bit_power_exchange_rate();
 
-		let bit_required = amount.checked_mul(rate).ok_or(ArithmeticError::Overflow).unwrap();
+		let bit_required = power_amount.checked_mul(rate).ok_or(ArithmeticError::Overflow).unwrap();
 		bit_required
 	}
 
-	fn do_burn(who: &T::AccountId, beneficiary: &T::AccountId, amount: Balance) -> DispatchResult {
+	fn do_burn(who: &T::AccountId, amount: Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}
 
-		//TODO:: check burn permission on who
-
-		//Deposit Bit mining to mining treasury
-		T::FungibleTokenCurrency::withdraw(T::MiningCurrencyId::get(), beneficiary, amount);
+		T::FungibleTokenCurrency::withdraw(T::MiningCurrencyId::get(), who, amount);
 
 		Self::deposit_event(Event::<T>::MiningResourceBurned(amount));
 
