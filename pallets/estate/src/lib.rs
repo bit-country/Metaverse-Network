@@ -1044,56 +1044,6 @@ pub mod pallet {
 			staked.saturating_add(staked)
 		}
 	}
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_initialize(n: T::BlockNumber) -> Weight {
-			let minting_config = <MintingRateConfig<T>>::get();
-			let mut round = <Round<T>>::get();
-			if round.should_update(n) {
-				// mutate round
-				round.update(n);
-
-				let round_issuance_per_round = round_issuance_range::<T>(minting_config);
-
-				//TODO do actual minting new undeployed land block
-				let land_register_treasury = T::LandTreasury::get().into_account();
-
-				// Pay all stakers for T::RewardPaymentDelay rounds ago
-				Self::pay_stakers(round.current);
-				Self::deposit_event(Event::StakersPaid(round.current));
-
-				// Clear exit queue
-				Self::clear_exit_queue(round.current);
-				Self::deposit_event(Event::ExitQueueCleared(round.current));
-
-				// Update stake snapshot
-				let total = Self::update_stake_snapshot(round.current);
-
-				<Round<T>>::put(round);
-
-				<Staked<T>>::insert(round.current, <TotalStake<T>>::get());
-
-				Self::deposit_event(Event::StakeSnapshotUpdated(round.current, total));
-
-				Self::do_issue_undeployed_land_blocks(
-					&land_register_treasury,
-					round_issuance_per_round.ideal as u32,
-					100,
-					UndeployedLandBlockType::Transferable,
-				);
-
-				Self::deposit_event(Event::NewRound(
-					round.first,
-					round.current,
-					round_issuance_per_round.max,
-				));
-				<T as pallet::Config>::WeightInfo::active_issue_undeploy_land_block()
-			} else {
-				0
-			}
-		}
-	}
 }
 
 impl<T: Config> Pallet<T> {

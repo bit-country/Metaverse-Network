@@ -74,6 +74,7 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
+	use primitives::staking::RoundInfo;
 	use primitives::GroupCollectionId;
 
 	use super::*;
@@ -102,6 +103,8 @@ pub mod pallet {
 		>;
 		/// NFT handler
 		type NFTHandler: NFTTrait<Self::AccountId, ClassId = ClassId, TokenId = TokenId>;
+		/// Round handler
+		type RoundHandler: RoundTrait<Self::BlockNumber>;
 		#[pallet::constant]
 		type EconomyTreasury: Get<PalletId>;
 
@@ -162,7 +165,8 @@ pub mod pallet {
 	/// This will keep track of stake exits queue, unstake only allows after 1 round
 	#[pallet::storage]
 	#[pallet::getter(fn staking_exit_queue)]
-	pub type ExitQueue<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, OptionQuery>;
+	pub type ExitQueue<T: Config> =
+		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, RoundIndex, BalanceOf<T>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn total_stake)]
@@ -183,6 +187,7 @@ pub mod pallet {
 		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
 		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>),
 		BitPowerExchangeRateUpdated(Balance),
+		UnstakedAmountWithdrew(T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -218,6 +223,10 @@ pub mod pallet {
 		// Stake amount below minimum staking required
 		StakeBelowMinimum,
 		CollectionIdDoesNotMatchNFTCollectionId,
+		// Withdraw future round
+		WithdrawFutureRound,
+		// Exit queue does not exist
+		ExitQueueDoesNotExit,
 		UnstakeAmountExceedStakedAmountZero,
 	}
 
@@ -480,6 +489,7 @@ pub mod pallet {
 
 		/// Execute distributor's mining power buying order
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn execute_generate_power_order(
 			origin: OriginFor<T>,
 			generator_nft_id: AssetId,
@@ -525,6 +535,7 @@ pub mod pallet {
 
 		/// Mint Element
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn mint_element(
 			origin: OriginFor<T>,
 			element_index: ElementId,
@@ -573,9 +584,10 @@ pub mod pallet {
 				Error::<T>::InsufficientBalanceForStaking
 			);
 
+			let current_round = T::RoundHandler::get_current_round_info();
 			// Check if user already in exit queue
 			ensure!(
-				!ExitQueue::<T>::contains_key(&who),
+				!ExitQueue::<T>::contains_key(&who, current_round.current),
 				Error::<T>::ExitQueueAlreadyScheduled
 			);
 
@@ -599,7 +611,6 @@ pub mod pallet {
 
 		/// Stake native token to staking ledger for mining power calculation
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
 		pub fn unstake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -608,7 +619,6 @@ pub mod pallet {
 
 			// Update staking info
 			let mut staked_balance = StakingInfo::<T>::get(&who);
-
 			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
 			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
@@ -620,8 +630,13 @@ pub mod pallet {
 				amount
 			};
 
+			let current_round = T::RoundHandler::get_current_round_info();
 			// This exit queue will be executed by exit_staking extrinsics to unreserved token
-			ExitQueue::<T>::insert(&who, amount_to_unstake);
+			ExitQueue::<T>::insert(
+				&who,
+				current_round.current.saturating_add(One::one()),
+				amount_to_unstake,
+			);
 
 			// Update staking info of user immediately
 			// Remove staking info
@@ -635,6 +650,25 @@ pub mod pallet {
 			<TotalStake<T>>::put(new_total_staked);
 
 			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
+
+			Ok(().into())
+		}
+
+		/// Stake native token to staking ledger for mining power calculation
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn withdraw_unreserved(origin: OriginFor<T>, round_index: RoundIndex) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			let current_round = T::RoundHandler::get_current_round_info();
+
+			ensure!(round_index <= current_round.current, Error::<T>::WithdrawFutureRound);
+
+			// Get user exit queue
+			let exit_balance = ExitQueue::<T>::get(&who, round_index).ok_or(Error::<T>::ExitQueueDoesNotExit)?;
+
+			T::Currency::unreserve(&who, exit_balance);
+
+			Self::deposit_event(Event::<T>::UnstakedAmountWithdrew(who, exit_balance));
 
 			Ok(().into())
 		}
