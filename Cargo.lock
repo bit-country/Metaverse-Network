@@ -4331,6 +4331,7 @@ dependencies = [
  "pallet-continuum",
  "pallet-crowdloan",
  "pallet-democracy",
+ "pallet-economy",
  "pallet-estate",
  "pallet-governance",
  "pallet-grandpa",

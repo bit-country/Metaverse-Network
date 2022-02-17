@@ -287,7 +287,8 @@ parameter_types! {
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
-	pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
+	pub const BitMiningTreasury: PalletId = PalletId(*b"bit/ming");
+	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
 	pub const MaxAuthorities: u32 = 50;
 }
 
@@ -491,7 +492,7 @@ parameter_types! {
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
-	pub const MinimumStake: Balance = 5 * DOLLARS;
+	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 1;
 }
 
@@ -820,6 +821,20 @@ impl crowdloan::Config for Runtime {
 	type BlockNumberToBalance = ConvertInto;
 	type WeightInfo = ();
 }
+parameter_types! {
+	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl economy::Config for Runtime {
+	type Currency = Balances;
+	type EconomyTreasury = EconomyTreasury;
+	type Event = Event;
+	type FungibleTokenCurrency = Currencies;
+	type MinimumStake = MinimumStake;
+	type MiningCurrencyId = MiningCurrencyId;
+	type NFTHandler = Nft;
+	type RoundHandler = Mining;
+}
 
 //parameter_types! {
 //	pub const LocalChainId: chainbridge::ChainId = 1;
@@ -886,6 +901,8 @@ construct_runtime!(
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
+		Economy: economy::{Pallet, Call, Storage, Event<T>},
+
 		// Governance
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
 		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -903,24 +920,6 @@ construct_runtime!(
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
 	}
 );
-
-//pub struct TransactionConverter;
-//
-//impl fp_rpc::ConvertTransaction<UncheckedExtrinsic> for TransactionConverter {
-//    fn convert_transaction(&self, transaction: pallet_ethereum::Transaction) -> UncheckedExtrinsic
-// {        UncheckedExtrinsic::new_unsigned(pallet_ethereum::Call::<Runtime>::
-// transact(transaction).into())    }
-//}
-//
-//impl fp_rpc::ConvertTransaction<opaque::UncheckedExtrinsic> for TransactionConverter {
-//    fn convert_transaction(&self, transaction: pallet_ethereum::Transaction) ->
-// opaque::UncheckedExtrinsic {        let extrinsic =
-//
-// UncheckedExtrinsic::new_unsigned(pallet_ethereum::Call::<Runtime>::transact(transaction).into());
-//        let encoded = extrinsic.encode();
-//        opaque::UncheckedExtrinsic::decode(&mut &encoded[..]).expect("Encoded extrinsic is always
-// valid")    }
-//}
 
 // The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
