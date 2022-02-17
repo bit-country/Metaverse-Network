@@ -939,3 +939,145 @@ fn set_bit_power_exchange_rate_should_work() {
 		assert_eq!(EconomyModule::get_bit_power_exchange_rate(), EXCHANGE_RATE);
 	});
 }
+
+#[test]
+fn stake_should_fail_insufficient_balance() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EconomyModule::stake(Origin::signed(ALICE), STAKE_EXCESS_BALANCE),
+			Error::<Runtime>::InsufficientBalanceForStaking
+		);
+	});
+}
+
+#[test]
+fn stake_should_fail_exit_queue_scheduled() {
+	ExtBuilder::default().build().execute_with(|| {
+		// Add account entry to ExitQueue
+		ExitQueue::<Runtime>::insert(ALICE, STAKE_BALANCE);
+
+		assert_noop!(
+			EconomyModule::stake(Origin::signed(ALICE), STAKE_BELOW_MINIMUM_BALANCE),
+			Error::<Runtime>::ExitQueueAlreadyScheduled
+		);
+	});
+}
+
+#[test]
+fn stake_should_fail_below_minimum() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EconomyModule::stake(Origin::signed(ALICE), STAKE_BELOW_MINIMUM_BALANCE),
+			Error::<Runtime>::StakeBelowMinimum
+		);
+	});
+}
+
+#[test]
+fn stake_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE));
+
+		assert_eq!(
+			last_event(),
+			Event::Economy(crate::Event::SelfStakedToEconomy101(ALICE, STAKE_BALANCE))
+		);
+
+		assert_eq!(Balances::reserved_balance(ALICE), STAKE_BALANCE);
+
+		assert_eq!(EconomyModule::get_staking_info(ALICE), STAKE_BALANCE);
+
+		assert_eq!(EconomyModule::total_stake(), STAKE_BALANCE);
+	});
+}
+
+#[test]
+fn stake_should_work_with_more_operations() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE));
+
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), 100));
+
+		let total_staked_balance = STAKE_BALANCE + 100u128;
+
+		assert_eq!(Balances::reserved_balance(ALICE), total_staked_balance);
+
+		assert_eq!(EconomyModule::get_staking_info(ALICE), total_staked_balance);
+
+		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+	});
+}
+
+#[test]
+fn unstake_should_fail_exceeds_staked_amount() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT),
+			Error::<Runtime>::UnstakeAmountExceedStakedAmount
+		);
+	});
+}
+
+#[test]
+fn unstake_should_fail_unstake_zero() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE));
+
+		assert_noop!(
+			EconomyModule::unstake(Origin::signed(ALICE), 0u128),
+			Error::<Runtime>::UnstakeAmountExceedStakedAmountZero
+		);
+
+		// assert_eq!(
+		// 	last_event(),
+		// 	Event::Economy(crate::Event::SelfStakingRemovedFromEconomy101(
+		// 		ALICE,
+		// 		UNSTAKE_AMOUNT
+		// 	))
+		// );
+
+		// assert_eq!(EconomyModule::get_staking_info(ALICE), total_staked_balance);
+		//
+		// assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+	});
+}
+
+#[test]
+fn unstake_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE));
+
+		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT));
+
+		assert_eq!(
+			last_event(),
+			Event::Economy(crate::Event::SelfStakingRemovedFromEconomy101(ALICE, UNSTAKE_AMOUNT))
+		);
+
+		let total_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
+
+		assert_eq!(EconomyModule::get_staking_info(ALICE), total_staked_balance);
+
+		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+	});
+}
+
+#[test]
+fn unstake_should_work_with_more_operation() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE));
+
+		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT));
+
+		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT));
+
+		assert_ok!(EconomyModule::stake(Origin::signed(BOB), 200));
+
+		let alice_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT - UNSTAKE_AMOUNT;
+
+		assert_eq!(EconomyModule::get_staking_info(ALICE), alice_staked_balance);
+
+		let total_staked_balance = alice_staked_balance + 200;
+		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+	});
+}

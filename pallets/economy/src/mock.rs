@@ -49,6 +49,11 @@ pub const ALICE_POWER_AMOUNT: PowerAmount = 20000;
 pub const ALICE_MINING_BALANCE: Balance = 10 * DOLLARS;
 pub const ALICE_MINING_LOW_BALANCE: Balance = 1000;
 
+pub const STAKE_BALANCE: Balance = 1000;
+pub const STAKE_BELOW_MINIMUM_BALANCE: Balance = 1;
+pub const STAKE_EXCESS_BALANCE: Balance = 10 * DOLLARS;
+pub const UNSTAKE_AMOUNT: Balance = 10;
+
 // Configure a mock runtime to test the pallet.
 
 parameter_types! {
@@ -103,7 +108,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const EconomyPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
-	pub const MinimumStake: Balance = 1;
+	pub const MinimumStake: Balance = 100;
 }
 
 ord_parameter_types! {
@@ -308,7 +313,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 10 * DOLLARS)],
+			balances: vec![(ALICE, 10000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
