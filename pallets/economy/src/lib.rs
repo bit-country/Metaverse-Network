@@ -86,7 +86,7 @@ pub mod pallet {
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-	type ClassId = u64;
+	type ClassId = u32;
 	type TokenId = u64;
 
 	#[pallet::config]

@@ -17,7 +17,7 @@ use super::*;
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
-pub type ClassId = u64;
+pub type ClassId = u32;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -126,7 +126,7 @@ ord_parameter_types! {
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type FungibleTokenCurrency = OrmlTokens;
+	type FungibleTokenCurrency = Currencies;
 	type NFTHandler = NFTModule;
 	type RoundHandler = Mining;
 	type EconomyTreasury = EconomyPalletId;
