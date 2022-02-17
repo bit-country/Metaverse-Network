@@ -243,6 +243,9 @@ pub mod pallet {
 			if round.should_update(n) {
 				// mutate round
 				round.update(n);
+
+				Round::<T>::put(round);
+
 				Self::deposit_event(Event::NewMiningRound(round.current));
 				0
 			} else {
