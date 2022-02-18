@@ -188,10 +188,12 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			}
 		};
 	}
+
 	let grandpa_protocol_name = sc_finality_grandpa::protocol_standard_name(
 		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
 		&config.chain_spec,
 	);
+
 	config
 		.network
 		.extra_sets
@@ -209,7 +211,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		client: client.clone(),
 		transaction_pool: transaction_pool.clone(),
 		spawn_handle: task_manager.spawn_handle(),
-		import_queue: import_queue,
+		import_queue,
 		block_announce_validator_builder: None,
 		warp_sync: Some(warp_sync),
 	})?;
@@ -318,7 +320,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		keystore,
 		local_role: role,
 		telemetry: telemetry.as_ref().map(|x| x.handle()),
-		protocol_name: Default::default(),
+		protocol_name: grandpa_protocol_name,
 	};
 
 	if enable_grandpa {
