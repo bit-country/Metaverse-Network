@@ -363,6 +363,8 @@ fn transfer_land_should_work() {
 			COORDINATE_IN_1
 		));
 
+		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(ALICE));
+
 		assert_eq!(
 			last_event(),
 			Event::Estate(crate::Event::TransferredLandUnit(

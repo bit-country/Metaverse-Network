@@ -1305,8 +1305,7 @@ impl<T: Config> Pallet<T> {
 
 				ensure!(from != to, Error::<T>::AlreadyOwnTheLandUnit);
 
-				*land_unit_owner = None;
-				LandUnits::<T>::insert(metaverse_id.clone(), coordinate.clone(), to.clone());
+				*land_unit_owner = Some(to.clone());
 
 				// Update
 				Self::deposit_event(Event::<T>::TransferredLandUnit(
