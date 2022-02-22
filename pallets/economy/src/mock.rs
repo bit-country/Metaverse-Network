@@ -8,7 +8,8 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::*;
-use primitives::{Amount, FungibleTokenId, ItemId};
+use primitives::estate::Estate;
+use primitives::{Amount, EstateId, FungibleTokenId, ItemId};
 
 use crate as economy;
 
@@ -111,11 +112,44 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = ();
 }
 
+pub struct EstateHandler;
+
+impl Estate<u128> for EstateHandler {
+	fn transfer_estate(estate_id: EstateId, _from: &u128, _to: &u128) -> Result<EstateId, DispatchError> {
+		Ok(estate_id)
+	}
+
+	fn transfer_landunit(
+		coordinate: (i32, i32),
+		_from: &u128,
+		_to: &(u128, primitives::MetaverseId),
+	) -> Result<(i32, i32), DispatchError> {
+		Ok(coordinate)
+	}
+
+	fn check_estate(_estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn get_total_land_units() -> u64 {
+		10
+	}
+
+	fn get_total_undeploy_land_units() -> u64 {
+		10
+	}
+}
+
 impl pallet_mining::Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
 	type BitMiningTreasury = MiningTreasuryPalletId;
 	type BitMiningResourceId = MiningCurrencyId;
+	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 }
 

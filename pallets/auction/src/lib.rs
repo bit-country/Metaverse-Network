@@ -57,7 +57,7 @@ pub struct AuctionLogicHandler;
 pub mod pallet {
 	use super::*;
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-	use bc_primitives::MetaverseTrait;
+	use core_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;

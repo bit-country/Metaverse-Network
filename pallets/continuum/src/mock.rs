@@ -24,7 +24,7 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseTrait};
 use primitives::FungibleTokenId;
 
 use crate as continuum;

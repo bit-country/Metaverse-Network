@@ -60,7 +60,7 @@ use sp_std::vec;
 use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use bc_primitives::MetaverseTrait;
+use core_primitives::MetaverseTrait;
 pub use pallet::*;
 use primitives::{continuum::Continuum, ItemId, MetaverseId, SpotId};
 pub use types::*;

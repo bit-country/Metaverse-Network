@@ -33,7 +33,7 @@ sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkad
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 # local packages
-bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
 auction-manager = { path = "../../traits/auction-manager", default-features = false }
 
 # Orml packages

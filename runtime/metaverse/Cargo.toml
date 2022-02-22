@@ -93,7 +93,6 @@ economy = { package = "pallet-economy", path = "../../pallets/economy", version 
 #modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
 
 # ecosystem dependencies
-parachain-staking = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
 #chainbridge = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
 
 [build-dependencies]
@@ -147,7 +146,6 @@ std = [
     "currencies/std",
     "swap/std",
     "mining/std",
-    "parachain-staking/std",
     "governance/std",
     "crowdloan/std",
     "economy/std",

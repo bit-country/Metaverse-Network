@@ -423,20 +423,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
-name = "bc-primitives"
-version = "2.0.0-rc6"
-dependencies = [
- "bit-country-primitives",
- "frame-support",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "beef"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -985,6 +971,20 @@ name = "core-foundation-sys"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
+
+[[package]]
+name = "core-primitives"
+version = "2.0.0-rc6"
+dependencies = [
+ "bit-country-primitives",
+ "frame-support",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
 
 [[package]]
 name = "cpp_demangle"
@@ -1650,8 +1650,8 @@ dependencies = [
 name = "currencies"
 version = "2.0.0-rc6"
 dependencies = [
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "frame-support",
  "frame-system",
  "orml-traits",
@@ -4350,7 +4350,6 @@ dependencies = [
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "pallet-vesting",
- "parachain-staking",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -4911,8 +4910,8 @@ name = "pallet-auction"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "frame-benchmarking",
  "frame-executive",
@@ -5143,8 +5142,8 @@ name = "pallet-continuum"
 version = "0.0.1"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "frame-executive",
  "frame-support",
  "frame-system",
@@ -5236,8 +5235,8 @@ name = "pallet-crowdloan"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -5251,7 +5250,7 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-version",
- "substrate-fixed 0.5.8",
+ "substrate-fixed",
 ]
 
 [[package]]
@@ -5275,8 +5274,8 @@ name = "pallet-economy"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "frame-benchmarking",
  "frame-support",
@@ -5346,8 +5345,8 @@ name = "pallet-estate"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
@@ -5360,7 +5359,7 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "sp-version",
- "substrate-fixed 0.5.8",
+ "substrate-fixed",
 ]
 
 [[package]]
@@ -5382,8 +5381,8 @@ dependencies = [
 name = "pallet-governance"
 version = "2.0.0-rc6"
 dependencies = [
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "frame-executive",
  "frame-support",
@@ -5513,8 +5512,8 @@ dependencies = [
 name = "pallet-metaverse"
 version = "2.0.0-rc6"
 dependencies = [
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "frame-benchmarking",
  "frame-support",
@@ -5545,8 +5544,8 @@ name = "pallet-mining"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "frame-support",
  "frame-system",
@@ -5636,8 +5635,8 @@ name = "pallet-nft"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "frame-benchmarking",
  "frame-support",
@@ -5857,8 +5856,8 @@ name = "pallet-swap"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "frame-benchmarking",
  "frame-support",
@@ -5925,8 +5924,8 @@ name = "pallet-tokenization"
 version = "2.0.0-rc6"
 dependencies = [
  "auction-manager",
- "bc-primitives",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "frame-support",
  "frame-system",
@@ -6099,26 +6098,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
-]
-
-[[package]]
-name = "parachain-staking"
-version = "2.1.1"
-source = "git+https://github.com/justinphamnz/parachain-staking?branch=master#103b430d396aa68a339f630738b26825e114a622"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-session",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "substrate-fixed 0.5.7",
 ]
 
 [[package]]
@@ -6514,7 +6493,6 @@ dependencies = [
  "pallet-vesting",
  "pallet-xcm",
  "parachain-info",
- "parachain-staking",
  "parity-scale-codec",
  "polkadot-parachain",
  "polkadot-runtime-common",
@@ -10546,16 +10524,6 @@ dependencies = [
 
 [[package]]
 name = "substrate-fixed"
-version = "0.5.7"
-source = "git+https://github.com/justinphamnz/substrate-fixed#29983de6d0c651a1384637e70f65625adf17c73a"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
- "typenum 1.14.0",
-]
-
-[[package]]
-name = "substrate-fixed"
 version = "0.5.8"
 source = "git+https://github.com/encointer/substrate-fixed#5984ba9b9433d5007597c7f03f65ea5bf6d08601"
 dependencies = [
@@ -11165,11 +11133,6 @@ dependencies = [
  "rand 0.8.4",
  "static_assertions",
 ]
-
-[[package]]
-name = "typenum"
-version = "1.14.0"
-source = "git+https://github.com/encointer/typenum?rev=3389ca9fbb40832750b1e04bd88233c09943db3d#3389ca9fbb40832750b1e04bd88233c09943db3d"
 
 [[package]]
 name = "typenum"

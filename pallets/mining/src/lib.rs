@@ -43,7 +43,7 @@ use sp_runtime::{
 use sp_std::vec::Vec;
 
 use auction_manager::SwapManager;
-use bc_primitives::*;
+use core_primitives::*;
 pub use pallet::*;
 use primitives::staking::RoundInfo;
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
@@ -51,6 +51,7 @@ use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
 #[cfg(test)]
 mod mock;
 
+mod mining;
 #[cfg(test)]
 mod tests;
 
@@ -80,6 +81,7 @@ pub mod pallet {
 	use sp_std::convert::TryInto;
 
 	use primitives::dex::Price;
+	use primitives::estate::Estate;
 	use primitives::staking::RoundInfo;
 	use primitives::{FungibleTokenId, RoundIndex, TokenId, VestingSchedule};
 
@@ -106,6 +108,7 @@ pub mod pallet {
 		type BitMiningTreasury: Get<PalletId>;
 		type BitMiningResourceId: Get<FungibleTokenId>;
 		/// Origin used to administer the pallet
+		type EstateHandler: Estate<Self::AccountId>;
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 	}
 

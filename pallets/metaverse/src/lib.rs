@@ -33,8 +33,8 @@ use sp_runtime::{
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
-use bc_primitives::*;
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::*;
+use core_primitives::{MetaverseInfo, MetaverseTrait};
 pub use pallet::*;
 use primitives::{FungibleTokenId, MetaverseId, RoundIndex};
 pub use weights::WeightInfo;

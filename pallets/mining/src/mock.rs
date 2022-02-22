@@ -11,8 +11,9 @@ use sp_runtime::{
 	Perbill,
 };
 
+use primitives::estate::Estate;
 use primitives::FungibleTokenId::FungibleToken;
-use primitives::{Amount, CurrencyId, FungibleTokenId};
+use primitives::{Amount, CurrencyId, EstateId, FungibleTokenId};
 
 use crate as mining;
 use crate::{Config, Module};
@@ -128,11 +129,44 @@ parameter_types! {
 	pub const MinVestedTransfer: Balance = 100;
 }
 
+pub struct EstateHandler;
+
+impl Estate<u128> for EstateHandler {
+	fn transfer_estate(estate_id: EstateId, from: &u128, to: &u128) -> Result<EstateId, DispatchError> {
+		Ok(estate_id)
+	}
+
+	fn transfer_landunit(
+		coordinate: (i32, i32),
+		from: &u128,
+		to: &(u128, primitives::MetaverseId),
+	) -> Result<(i32, i32), DispatchError> {
+		Ok(coordinate)
+	}
+
+	fn check_estate(_estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn get_total_land_units() -> u64 {
+		10
+	}
+
+	fn get_total_undeploy_land_units() -> u64 {
+		10
+	}
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
 	type BitMiningTreasury = MiningTreasuryPalletId;
 	type BitMiningResourceId = MiningCurrencyId;
+	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 }
 

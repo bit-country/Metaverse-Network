@@ -33,7 +33,7 @@ primitives = { package = "bit-country-primitives", path = "../../primitives/meta
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false, optional = true }
 
 # local packages
-bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
 
 # Orml packages
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }

@@ -44,7 +44,7 @@ pallet-continuum = { default-features = false, package = 'pallet-continuum', pat
 pallet-estate = { default-features = false, package = 'pallet-estate', path = '../estate' }
 pallet-metaverse = { default-features = false, package = 'pallet-metaverse', path = '../metaverse' }
 auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
-bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false, optional = true }
 
@@ -72,7 +72,7 @@ std = [
     'pallet-nft/std',
     'pallet-continuum/std',
     'pallet-estate/std',
-    'bc-primitives/std',
+    'core-primitives/std',
     'frame-benchmarking/std',
     'pallet-scheduler/std',
 ]

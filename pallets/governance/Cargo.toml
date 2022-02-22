@@ -28,7 +28,7 @@ pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "p
 pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 # local packages
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
-metaverse-primitive = { package = "bc-primitives", path = "../../traits/bc-primitives", default-features = false }
+metaverse-primitive = { package = "core-primitives", path = "../../traits/core-primitives", default-features = false }
 pallet-metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
 
 # Orml packages

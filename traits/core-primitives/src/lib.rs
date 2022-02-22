@@ -2,7 +2,9 @@
 
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
-use sp_runtime::{DispatchError, RuntimeDebug};
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+use sp_runtime::{DispatchError, DispatchResult, RuntimeDebug};
 use sp_std::vec::Vec;
 
 use primitives::staking::RoundInfo;
@@ -100,4 +102,68 @@ pub trait NFTTrait<AccountId> {
 
 pub trait RoundTrait<BlockNumber> {
 	fn get_current_round_info() -> RoundInfo<BlockNumber>;
+}
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Eq, PartialEq, Clone, Copy, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+pub struct MiningRange<T> {
+	pub min: T,
+	pub ideal: T,
+	pub max: T,
+	pub staking_allocation: T,
+	pub mining_allocation: T,
+}
+
+impl<T: Ord> MiningRange<T> {
+	pub fn is_valid(&self) -> bool {
+		self.max >= self.ideal && self.ideal >= self.min
+	}
+}
+
+impl<T: Ord + Copy> From<T> for MiningRange<T> {
+	fn from(other: T) -> MiningRange<T> {
+		MiningRange {
+			min: other,
+			ideal: other,
+			max: other,
+			staking_allocation: other,
+			mining_allocation: other,
+		}
+	}
+}
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+pub struct MiningResourceRateInfo {
+	/// kBIT and Land unit ratio
+	pub ratio: u64,
+	/// land staking reward percentage (4 decimals)
+	pub staking_reward: u32,
+	/// metaverse staking reward percentage (4 decimals)
+	pub mining_reward: u32,
+}
+
+impl MiningResourceRateInfo {
+	pub fn new(ratio: u64, staking_reward: u32, mining_reward: u32) -> MiningResourceRateInfo {
+		MiningResourceRateInfo {
+			ratio,
+			staking_reward,
+			mining_reward,
+		}
+	}
+
+	/// kBIT and Land unit ratio
+	pub fn set_ratio(&mut self, ratio: u64) {
+		self.ratio = ratio;
+	}
+
+	/// Set staking reward
+	pub fn set_staking_reward(&mut self, staking_reward: u32) {
+		self.staking_reward = staking_reward;
+	}
+
+	/// Set mining reward
+	pub fn set_mining_reward(&mut self, mining_reward: u32) {
+		self.mining_reward = mining_reward;
+	}
 }

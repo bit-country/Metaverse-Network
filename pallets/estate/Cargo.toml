@@ -24,7 +24,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 substrate-fixed = { default-features = false, git = "https://github.com/encointer/substrate-fixed" }
 # local packages
-bc-primitives = { path = "../../traits/bc-primitives", default-features = false }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false, optional = true }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false, optional = true }
@@ -50,7 +50,7 @@ std = [
     'frame-system/std',
     'sp-runtime/std',
     'sp-core/std',
-    'bc-primitives/std',
+    'core-primitives/std',
     'primitives/std',
     'sp-io/std',
     'pallet-balances/std',

@@ -39,7 +39,7 @@ use primitives::Balance;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 // use orml_traits::BasicCurrencyExtended;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseTrait};
 use primitives::{FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
 
 pub type AccountId = u128;

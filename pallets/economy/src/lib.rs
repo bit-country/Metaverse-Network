@@ -33,8 +33,8 @@ use sp_runtime::{
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
-use bc_primitives::NFTTrait;
-use bc_primitives::*;
+use core_primitives::NFTTrait;
+use core_primitives::*;
 pub use pallet::*;
 use primitives::{AssetId, Balance, DomainId, ElementId, FungibleTokenId, MetaverseId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;

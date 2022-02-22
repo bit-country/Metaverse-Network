@@ -38,9 +38,6 @@ tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokeniza
 estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
 
-# ecosystem dependencies
-parachain-staking = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
-
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
 #pallet-evm = { path = "../../pallets/evm", default-features = false }
 #pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
@@ -187,10 +184,7 @@ std = [
     'mining/std',
     'tokenization/std',
     'estate/std',
-    'parachain-staking/std',
     'crowdloan/std',
     'pallet-collator-selection/std',
     "pallet-preimage/std"
-    #    'pallet-evm/std',
-    #    "evm/std"
 ]

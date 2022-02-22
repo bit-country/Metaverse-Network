@@ -40,7 +40,7 @@ use sp_std::convert::TryInto;
 use sp_std::vec::Vec;
 
 use auction_manager::SwapManager;
-use bc_primitives::*;
+use core_primitives::*;
 pub use pallet::*;
 pub use pallet::*;
 use primitives::dex::Price;

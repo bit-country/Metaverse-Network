@@ -9,7 +9,7 @@ use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseTrait};
 use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
 
 use crate as auction;

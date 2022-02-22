@@ -29,7 +29,6 @@ pub use pallet_balances::Call as BalancesCall;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use pallet_timestamp::Call as TimestampCall;
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
-pub use parachain_staking::{InflationInfo, Range};
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -619,6 +618,7 @@ impl mining::Config for Runtime {
 	type MiningCurrency = Currencies;
 	type BitMiningTreasury = BitMiningTreasury;
 	type BitMiningResourceId = MiningResourceCurrencyId;
+	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 }
 

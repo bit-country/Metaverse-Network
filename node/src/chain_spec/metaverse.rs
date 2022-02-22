@@ -16,7 +16,7 @@ use sp_runtime::{
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
 	CollatorSelectionConfig, ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig,
-	InflationInfo, MintingRange, MintingRateInfo, Range, SessionConfig, Signature, SudoConfig, SystemConfig,
+	MintingRange, MintingRateInfo, SessionConfig, Signature, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 
@@ -194,27 +194,6 @@ pub fn metaverse_testnet_config() -> Result<ChainSpec, String> {
 		// Extensions
 		None,
 	))
-}
-
-pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
-	InflationInfo {
-		expect: Range {
-			min: 100_000 * DOLLARS,
-			ideal: 200_000 * DOLLARS,
-			max: 500_000 * DOLLARS,
-		},
-		annual: Range {
-			min: Perbill::from_percent(4),
-			ideal: Perbill::from_percent(5),
-			max: Perbill::from_percent(5),
-		},
-		// 8766 rounds (hours) in a year
-		round: Range {
-			min: Perbill::from_parts(Perbill::from_percent(4).deconstruct() / 8766),
-			ideal: Perbill::from_parts(Perbill::from_percent(5).deconstruct() / 8766),
-			max: Perbill::from_parts(Perbill::from_percent(5).deconstruct() / 8766),
-		},
-	}
 }
 
 pub fn metaverse_land_minting_config() -> MintingRateInfo {
