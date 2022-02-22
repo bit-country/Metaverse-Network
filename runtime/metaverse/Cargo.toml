@@ -73,6 +73,7 @@ orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-li
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
+orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
@@ -137,6 +138,7 @@ std = [
     "orml-currencies/std",
     "orml-tokens/std",
     "orml-nft/std",
+    "orml-oracle/std",
     "primitives/std",
     "metaverse/std",
     "auction/std",
