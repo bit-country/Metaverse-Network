@@ -49,7 +49,9 @@ pallet-scheduler = { default-features = false, git = "https://github.com/parityt
 pallet-democracy = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 pallet-utility = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 pallet-preimage = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+pallet-membership = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.16" }
+
 
 # Used for the node template"s RPCs
 frame-system-rpc-runtime-api = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
@@ -58,15 +60,6 @@ pallet-transaction-payment-rpc-runtime-api = { default-features = false, git = "
 # Used for runtime benchmarking
 frame-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", optional = true }
 frame-system-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", optional = true }
-
-# EVM pallets
-#pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-#pallet-evm = { path = "../../pallets/evm", default-features = false }
-#pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-#pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
-#pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
-#pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
-#fp-rpc = { default-features = false, git = "https://github.com/bit-country/frontier", branch = "master" }
 
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
@@ -123,6 +116,7 @@ std = [
     "pallet-scheduler/std",
     "pallet-democracy/std",
     "pallet-preimage/std",
+    "pallet-membership/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",
