@@ -26,7 +26,7 @@ use frame_support::{
 	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use orml_traits::{MultiCurrency, MultiReservableCurrency};
+use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	ArithmeticError, DispatchError, Perbill,
@@ -70,6 +70,7 @@ pub struct OrderInfo {
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_benchmarking::to_origin;
 	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
@@ -107,7 +108,6 @@ pub mod pallet {
 		type RoundHandler: RoundTrait<Self::BlockNumber>;
 		#[pallet::constant]
 		type EconomyTreasury: Get<PalletId>;
-
 		#[pallet::constant]
 		type MiningCurrencyId: Get<FungibleTokenId>;
 		#[pallet::constant]

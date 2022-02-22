@@ -6,7 +6,6 @@ use codec::{Decode, Encode, MaxEncodedLen};
 // use metaverse::weights::WeightInfo;
 #[cfg(feature = "runtime-benchmarks")]
 use frame_benchmarking::frame_support::pallet_prelude::Get;
-use frame_support::ConsensusEngineId;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
@@ -16,6 +15,7 @@ pub use frame_support::{
 	},
 	PalletId, RuntimeDebug, StorageValue,
 };
+use frame_support::{BoundedVec, ConsensusEngineId};
 // A few exports that help ease life for downstream crates.
 use frame_support::traits::{
 	Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
@@ -63,7 +63,7 @@ use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use estate::weights::WeightInfo;
-use primitives::{Amount, Balance, BlockNumber, FungibleTokenId};
+use primitives::{Amount, Balance, BlockNumber, FungibleTokenId, RoundIndex};
 
 // primitives imports
 use crate::opaque::SessionKeys;
@@ -841,6 +841,42 @@ impl emergency::Config for Runtime {
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
 }
 
+parameter_types! {
+	pub const MinimumCount: u32 = 5;
+	pub const ExpiresIn: Moment = 1000 * 60 * 60; // 1 hours
+	pub RootOperatorAccountId: AccountId = AccountId::from([0xffu8; 32]);
+	pub const MaxHasDispatchedSize: u32 = 20;
+	pub const OracleMaxMembers: u32 = 50;
+}
+
+pub type OracleMembershipInstance = pallet_membership::Instance1;
+impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
+	type Event = Event;
+	type AddOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type RemoveOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type SwapOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type ResetOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type PrimeOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type MembershipInitialized = ();
+	type MembershipChanged = RewardOracle;
+	type MaxMembers = OracleMaxMembers;
+	type WeightInfo = ();
+}
+
+type MiningRewardDataProvider = orml_oracle::Instance1;
+impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
+	type Event = Event;
+	type OnNewData = ();
+	type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, MiningRewardDataProvider>;
+	type Time = Timestamp;
+	type OracleKey = RoundIndex;
+	type OracleValue = BoundedVec<u8, MaxMetaverseMetadata>;
+	type RootOperatorAccountId = RootOperatorAccountId;
+	type Members = OracleMembershipInstance;
+	type MaxHasDispatchedSize = MaxHasDispatchedSize;
+	type WeightInfo = ();
+}
+
 //parameter_types! {
 //	pub const LocalChainId: chainbridge::ChainId = 1;
 //	pub const ProposalLifetime: BlockNumber = 5 * MINUTES;
@@ -908,6 +944,8 @@ construct_runtime!(
 		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
 		Economy: economy::{Pallet, Call, Storage, Event<T>},
 		Emergency: emergency::{Pallet, Call, Storage, Event<T>},
+		RewardOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
+		OracleMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Governance
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
