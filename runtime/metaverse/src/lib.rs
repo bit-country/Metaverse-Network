@@ -63,7 +63,7 @@ use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use estate::weights::WeightInfo;
-use primitives::{Amount, Balance, BlockNumber, FungibleTokenId, RoundIndex};
+use primitives::{Amount, Balance, BlockNumber, FungibleTokenId, Moment, RoundIndex};
 
 // primitives imports
 use crate::opaque::SessionKeys;
@@ -329,7 +329,7 @@ parameter_types! {
 
 impl pallet_timestamp::Config for Runtime {
 	/// A timestamp: milliseconds since the unix epoch.
-	type Moment = u64;
+	type Moment = Moment;
 	type OnTimestampSet = Aura;
 	type MinimumPeriod = MinimumPeriod;
 	type WeightInfo = ();
@@ -843,7 +843,7 @@ impl emergency::Config for Runtime {
 
 parameter_types! {
 	pub const MinimumCount: u32 = 5;
-	pub const ExpiresIn: Moment = 1000 * 60 * 60; // 1 hours
+	pub const ExpiresIn: Moment = 1000 * 60 * 60 * 24; // 24 hours
 	pub RootOperatorAccountId: AccountId = AccountId::from([0xffu8; 32]);
 	pub const MaxHasDispatchedSize: u32 = 20;
 	pub const OracleMaxMembers: u32 = 50;
@@ -872,7 +872,7 @@ impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
 	type OracleKey = RoundIndex;
 	type OracleValue = BoundedVec<u8, MaxMetaverseMetadata>;
 	type RootOperatorAccountId = RootOperatorAccountId;
-	type Members = OracleMembershipInstance;
+	type Members = OracleMembership;
 	type MaxHasDispatchedSize = MaxHasDispatchedSize;
 	type WeightInfo = ();
 }
@@ -945,7 +945,7 @@ construct_runtime!(
 		Economy: economy::{Pallet, Call, Storage, Event<T>},
 		Emergency: emergency::{Pallet, Call, Storage, Event<T>},
 		RewardOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},
-		OracleMembership: pallet_membership::<Instance5>::{Pallet, Call, Storage, Event<T>, Config<T>},
+		OracleMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>},
 
 		// Governance
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},

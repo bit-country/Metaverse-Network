@@ -70,7 +70,6 @@ pub struct OrderInfo {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_benchmarking::to_origin;
 	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
