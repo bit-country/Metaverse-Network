@@ -1,13 +1,15 @@
-// Unit testing for metaverse currency, metaverse treasury
-#[cfg(test)]
-use super::*;
 use frame_support::{assert_noop, assert_ok};
-use mock::{Event, *};
-use primitives::Balance;
 use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
 use sp_runtime::AccountId32;
 use sp_std::vec::Vec;
+
+use mock::{Event, *};
+use primitives::Balance;
+
+// Unit testing for metaverse currency, metaverse treasury
+#[cfg(test)]
+use super::*;
 
 fn get_mining_balance() -> Balance {
 	Currencies::total_issuance(MiningCurrencyId::get())
@@ -153,6 +155,29 @@ fn deposit_mining_resource_should_work() {
 		assert_eq!(get_mining_balance_of(&treasury_id), 800);
 
 		let event = mock::Event::MiningModule(crate::Event::DepositMiningResource(BOB, 100));
+
+		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+fn update_mining_config_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		setup_minting_resource();
+		let origin = Origin::signed(ALICE);
+		let mining_config = MiningResourceRateInfo {
+			ratio: 10,
+			staking_reward: 3000,
+			mining_reward: 7000,
+		};
+		assert_ok!(MiningModule::update_mining_issuance_config(
+			origin,
+			mining_config.clone()
+		));
+
+		assert_eq!(MiningModule::mining_ratio_config(), mining_config.clone());
+
+		let event = mock::Event::MiningModule(crate::Event::MiningConfigUpdated(1, mining_config));
 
 		assert_eq!(last_event(), event);
 	});

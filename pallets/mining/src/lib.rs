@@ -122,6 +122,11 @@ pub mod pallet {
 	/// Current round index and next round scheduled transition
 	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn mining_ratio_config)]
+	/// Mining resource issuance ratio config
+	pub type MiningConfig<T: Config> = StorageValue<_, MiningResourceRateInfo, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -142,6 +147,8 @@ pub mod pallet {
 		NewMiningRound(RoundIndex),
 		/// Round length update
 		RoundLengthUpdated(T::BlockNumber),
+		/// New mining config update
+		MiningConfigUpdated(T::BlockNumber, MiningResourceRateInfo),
 	}
 
 	#[pallet::error]
@@ -162,6 +169,8 @@ pub mod pallet {
 		OriginsAlreadyExist,
 		/// Origin is not exist
 		OriginsIsNotExist,
+		/// Round update is on progress
+		RoundUpdateIsOnProgress,
 	}
 
 	#[pallet::call]
@@ -234,6 +243,23 @@ pub mod pallet {
 			Round::<T>::put(current_round);
 
 			Self::deposit_event(Event::<T>::RoundLengthUpdated(length));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(100_000)]
+		pub fn update_mining_issuance_config(
+			origin: OriginFor<T>,
+			config: MiningResourceRateInfo,
+		) -> DispatchResultWithPostInfo {
+			T::AdminOrigin::ensure_origin(origin)?;
+			let round = <Round<T>>::get();
+			let current_block = <system::Pallet<T>>::block_number();
+			ensure!(!round.should_update(current_block), Error::<T>::RoundUpdateIsOnProgress);
+
+			MiningConfig::<T>::put(config.clone());
+
+			Self::deposit_event(Event::<T>::MiningConfigUpdated(current_block, config));
 
 			Ok(().into())
 		}
