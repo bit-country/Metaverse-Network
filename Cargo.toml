@@ -3,18 +3,7 @@ panic = 'unwind'
 
 [workspace]
 members = [
-    'pallets/auction',
-    'pallets/continuum',
-    'pallets/currencies',
-    'pallets/estate',
-    'pallets/governance',
-    'pallets/metaverse',
-    'pallets/mining',
-    'pallets/nft',
-    'pallets/swap',
-    'pallets/tokenization',
-    'pallets/crowdloan',
-    'pallets/economy',
+    'pallets/*',
     'traits/*',
     'node',
     'runtime/pioneer',

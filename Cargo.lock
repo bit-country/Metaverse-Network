@@ -4332,6 +4332,7 @@ dependencies = [
  "pallet-crowdloan",
  "pallet-democracy",
  "pallet-economy",
+ "pallet-emergency",
  "pallet-estate",
  "pallet-governance",
  "pallet-grandpa",
@@ -5336,6 +5337,22 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-npos-elections",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-emergency"
+version = "2.0.0-rc6"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "smallvec",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]

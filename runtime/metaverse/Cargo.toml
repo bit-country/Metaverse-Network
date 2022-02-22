@@ -89,7 +89,7 @@ mining = { package = "pallet-mining", path = "../../pallets/mining", version = "
 governance = { package = "pallet-governance", path = "../../pallets/governance", version = "2.0.0-rc6", default-features = false }
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
 economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
-
+emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 #modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
 
 # ecosystem dependencies
@@ -149,6 +149,7 @@ std = [
     "governance/std",
     "crowdloan/std",
     "economy/std",
+    "emergency/std",
     "pallet-utility/std",
     "pallet-collator-selection/std",
 ]

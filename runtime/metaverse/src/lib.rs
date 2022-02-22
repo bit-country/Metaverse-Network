@@ -836,6 +836,11 @@ impl economy::Config for Runtime {
 	type RoundHandler = Mining;
 }
 
+impl emergency::Config for Runtime {
+	type Event = Event;
+	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+}
+
 //parameter_types! {
 //	pub const LocalChainId: chainbridge::ChainId = 1;
 //	pub const ProposalLifetime: BlockNumber = 5 * MINUTES;
@@ -902,6 +907,7 @@ construct_runtime!(
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
 		Economy: economy::{Pallet, Call, Storage, Event<T>},
+		Emergency: emergency::{Pallet, Call, Storage, Event<T>},
 
 		// Governance
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
