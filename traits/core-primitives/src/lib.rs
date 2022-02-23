@@ -91,8 +91,12 @@ pub trait NFTTrait<AccountId> {
 	type ClassId;
 	/// Check the ownership of this nft asset
 	fn check_ownership(who: &AccountId, asset_id: &AssetId) -> Result<bool, DispatchError>;
+	/// Check the ownership of this nft tuple
+	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_detail(asset_id: AssetId) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError>;
+	/// Get the detail of this nft
+	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
 	/// Check if collection and class exist
 	fn check_collection_and_class(
 		collection_id: GroupCollectionId,

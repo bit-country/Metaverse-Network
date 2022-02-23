@@ -86,8 +86,8 @@ pub mod pallet {
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-	type ClassId = u32;
-	type TokenId = u64;
+	pub type ClassId = u32;
+	pub type TokenId = u64;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -139,12 +139,12 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
 	pub type BuyPowerByUserRequestQueue<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, AssetId, Twox64Concat, T::AccountId, OrderInfo>;
+		StorageDoubleMap<_, Twox64Concat, (ClassId, TokenId), Twox64Concat, T::AccountId, OrderInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_distributor_request_queue)]
 	pub type BuyPowerByDistributorRequestQueue<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, AssetId, Twox64Concat, T::AccountId, OrderInfo>;
+		StorageDoubleMap<_, Twox64Concat, (ClassId, TokenId), Twox64Concat, T::AccountId, OrderInfo>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_power_balance)]
@@ -177,10 +177,10 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		PowerGeneratorCollectionAuthorized(GroupCollectionId, ClassId),
 		PowerDistributorCollectionAuthorized(GroupCollectionId, ClassId),
-		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
-		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, AssetId),
-		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, AssetId),
-		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, AssetId),
+		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
 		ElementMinted(T::AccountId, u32, u64),
 		MiningResourceBurned(Balance),
 		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
@@ -252,7 +252,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn set_power_balance(
 			origin: OriginFor<T>,
-			beneficiary: AssetId,
+			beneficiary: (ClassId, TokenId),
 			amount: PowerAmount,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
@@ -336,21 +336,18 @@ pub mod pallet {
 		pub fn buy_power_by_user(
 			origin: OriginFor<T>,
 			power_amount: PowerAmount,
-			distributor_nft_id: AssetId,
+			distributor_nft_id: (ClassId, TokenId),
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			ensure!(power_amount > 0, Error::<T>::PowerAmountIsZero);
 
 			// Get NFT details
-			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
+			let group_distributor_nft = T::NFTHandler::get_nft_group_collection(&distributor_nft_id.0)?;
 
 			// Ensure distributor NFT is authorized
 			ensure!(
-				AuthorizedDistributorCollection::<T>::contains_key((
-					distributor_nft_detail.0,
-					distributor_nft_detail.1
-				)),
+				AuthorizedDistributorCollection::<T>::contains_key((group_distributor_nft, distributor_nft_id.0)),
 				Error::<T>::NoPermissionToBuyPower
 			);
 
@@ -389,26 +386,26 @@ pub mod pallet {
 		#[transactional]
 		pub fn execute_buy_power_order(
 			origin: OriginFor<T>,
-			distributor_nft_id: AssetId,
+			distributor_nft_id: (ClassId, TokenId),
 			beneficiary: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			// Get asset detail
 			// Check nft is part of distributor collection
-			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
+			let group_distributor_nft_detail = T::NFTHandler::get_nft_group_collection(&distributor_nft_id.0)?;
 			// Ensure distributor NFT is authorized
 			ensure!(
 				AuthorizedDistributorCollection::<T>::contains_key((
-					distributor_nft_detail.0,
-					distributor_nft_detail.1
+					group_distributor_nft_detail,
+					distributor_nft_id.0
 				)),
 				Error::<T>::NoPermissionToExecuteBuyPowerOrder
 			);
 
 			// Check if executor is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
+				T::NFTHandler::check_nft_ownership(&who, &distributor_nft_id)?,
 				Error::<T>::NoPermissionToBuyPower
 			);
 
@@ -439,35 +436,35 @@ pub mod pallet {
 		#[transactional]
 		pub fn buy_power_by_distributor(
 			origin: OriginFor<T>,
-			generator_nft_id: AssetId,
-			distributor_nft_id: AssetId,
+			generator_nft_id: (ClassId, TokenId),
+			distributor_nft_id: (ClassId, TokenId),
 			power_amount: PowerAmount,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			// Ensure buy power by distributor only called by distributor nft owner
 			// Check nft is part of distributor collection
-			let distributor_nft_detail = T::NFTHandler::get_nft_detail(distributor_nft_id)?;
+			let group_distributor_nft_detail = T::NFTHandler::get_nft_group_collection(&distributor_nft_id.0)?;
 			// Ensure distributor NFT is authorized
 			ensure!(
 				AuthorizedDistributorCollection::<T>::contains_key((
-					distributor_nft_detail.0,
-					distributor_nft_detail.1
+					group_distributor_nft_detail,
+					distributor_nft_id.0
 				)),
 				Error::<T>::NoPermissionToBuyPower
 			);
 
 			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
+				T::NFTHandler::check_nft_ownership(&who, &distributor_nft_id)?,
 				Error::<T>::NoPermissionToBuyPower
 			);
 
 			// Check nft is part of generator collection
-			let generator_nft_detail = T::NFTHandler::get_nft_detail(generator_nft_id)?;
+			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&generator_nft_id.0)?;
 			// Ensure generator NFT is authorized
 			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key((generator_nft_detail.0, generator_nft_detail.1)),
+				AuthorizedGeneratorCollection::<T>::contains_key((group_generator_nft_detail, generator_nft_id.0)),
 				Error::<T>::PowerGenerationIsNotAuthorized
 			);
 
@@ -514,23 +511,23 @@ pub mod pallet {
 		#[transactional]
 		pub fn execute_generate_power_order(
 			origin: OriginFor<T>,
-			generator_nft_id: AssetId,
+			generator_nft_id: (ClassId, TokenId),
 			beneficiary: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			// Ensure executor is holding generator NFT
 			// Check nft is part of generator collection
-			let generator_nft_detail = T::NFTHandler::get_nft_detail(generator_nft_id)?;
+			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&generator_nft_id.0)?;
 			// Ensure generator NFT is authorized
 			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key((generator_nft_detail.0, generator_nft_detail.1)),
+				AuthorizedGeneratorCollection::<T>::contains_key((group_generator_nft_detail, generator_nft_id.0)),
 				Error::<T>::PowerGenerationIsNotAuthorized
 			);
 
 			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_ownership(&who, &generator_nft_id)?,
+				T::NFTHandler::check_nft_ownership(&who, &generator_nft_id)?,
 				Error::<T>::NoPermissionToExecuteGeneratingPowerOrder
 			);
 
@@ -724,7 +721,7 @@ impl<T: Config> Pallet<T> {
 	fn distribute_power_by_operator(
 		power_amount: PowerAmount,
 		beneficiary: &T::AccountId,
-		distributor_nft_id: AssetId,
+		distributor_nft_id: (ClassId, TokenId),
 	) -> DispatchResult {
 		// Convert distributor NFT to accountId
 		let distributor_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
@@ -759,7 +756,7 @@ impl<T: Config> Pallet<T> {
 	fn generate_power_by_operator(
 		power_amount: PowerAmount,
 		beneficiary: &T::AccountId,
-		generator_nft_id: AssetId,
+		generator_nft_id: (ClassId, TokenId),
 	) -> DispatchResult {
 		// Convert generator NFT to accountId
 		let generator_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);

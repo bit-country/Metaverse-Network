@@ -50,7 +50,7 @@ fn test_attributes(x: u8) -> Attributes {
 	attr
 }
 
-fn sub_account(nft_id: AssetId) -> AccountId {
+fn sub_account(nft_id: (ClassId, TokenId)) -> AccountId {
 	<Runtime as Config>::EconomyTreasury::get().into_sub_account(nft_id)
 }
 
@@ -189,11 +189,9 @@ fn authorize_power_distributor_collection_should_fail() {
 #[test]
 fn buy_power_by_user_should_fail_nft_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-
 		assert_noop!(
-			EconomyModule::buy_power_by_user(Origin::signed(ALICE), 100u64.into(), 0,),
-			pallet_nft::Error::<Runtime>::AssetIdNotFound
+			EconomyModule::buy_power_by_user(Origin::signed(ALICE), 100u64.into(), (0, 0)),
+			Error::<Runtime>::NoPermissionToBuyPower
 		);
 	});
 }
@@ -295,8 +293,6 @@ fn buy_power_by_user_should_work() {
 #[test]
 fn buy_power_by_distributor_should_fail_nft_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-
 		assert_noop!(
 			EconomyModule::buy_power_by_distributor(
 				Origin::signed(ALICE),
@@ -304,7 +300,7 @@ fn buy_power_by_distributor_should_fail_nft_does_not_exist() {
 				DISTRIBUTOR_NFT_ASSET_ID,
 				GENERATE_POWER_AMOUNT,
 			),
-			pallet_nft::Error::<Runtime>::AssetIdNotFound
+			Error::<Runtime>::NoPermissionToBuyPower
 		);
 	});
 }
@@ -459,7 +455,7 @@ fn execute_buy_power_order_should_fail_nft_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::execute_buy_power_order(origin, NFT_ASSET_ID_NOT_EXIST, ALICE),
-			pallet_nft::Error::<Runtime>::AssetIdNotFound
+			pallet_nft::Error::<Runtime>::AssetInfoNotFound
 		);
 	});
 }
@@ -620,7 +616,7 @@ fn execute_generate_power_order_should_fail_nft_does_not_exist() {
 
 		assert_noop!(
 			EconomyModule::execute_generate_power_order(origin, NFT_ASSET_ID_NOT_EXIST, ALICE),
-			pallet_nft::Error::<Runtime>::AssetIdNotFound
+			Error::<Runtime>::PowerGenerationIsNotAuthorized
 		);
 	});
 }

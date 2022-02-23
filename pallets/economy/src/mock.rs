@@ -18,7 +18,6 @@ use super::*;
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
-pub type ClassId = u32;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -26,8 +25,8 @@ pub const FREEDY: AccountId = 3;
 
 pub const DISTRIBUTOR_COLLECTION_ID: u64 = 0;
 pub const DISTRIBUTOR_CLASS_ID: ClassId = 0;
-pub const DISTRIBUTOR_NFT_ASSET_ID: AssetId = 0;
-pub const NFT_ASSET_ID_NOT_EXIST: AssetId = 99;
+pub const DISTRIBUTOR_NFT_ASSET_ID: (ClassId, TokenId) = (0, 0);
+pub const NFT_ASSET_ID_NOT_EXIST: (ClassId, TokenId) = (0, 99);
 pub const USER_BUY_POWER_AMOUNT: PowerAmount = 100;
 pub const DISTRIBUTOR_POWER_BALANCE: PowerAmount = 100000;
 pub const DISTRIBUTOR_MINING_BALANCE: Balance = 1000 * DOLLARS;
@@ -35,7 +34,7 @@ pub const DISTRIBUTOR_MINING_LOW_BALANCE: Balance = 1000;
 
 pub const GENERATOR_COLLECTION_ID: u64 = 1;
 pub const GENERATOR_CLASS_ID: ClassId = 1;
-pub const GENERATOR_NFT_ASSET_ID: AssetId = 1;
+pub const GENERATOR_NFT_ASSET_ID: (ClassId, TokenId) = (1, 0);
 pub const GENERATE_POWER_AMOUNT: PowerAmount = 200;
 pub const GENERATOR_POWER_BALANCE: PowerAmount = 200000;
 

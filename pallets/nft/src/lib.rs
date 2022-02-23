@@ -846,9 +846,13 @@ impl<T: Config> NFTTrait<T::AccountId> for Pallet<T> {
 
 	fn check_ownership(who: &T::AccountId, asset_id: &AssetId) -> Result<bool, DispatchError> {
 		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
-		let asset_info = NftModule::<T>::tokens(asset.0, asset.1)
-			.ok_or(Error::<T>::AssetInfoNotFound)
-			.unwrap();
+		let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+		Ok(who == &asset_info.owner)
+	}
+
+	fn check_nft_ownership(who: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		let asset_info = NftModule::<T>::tokens(nft.0, nft.1).ok_or(Error::<T>::AssetInfoNotFound)?;
 
 		Ok(who == &asset_info.owner)
 	}
@@ -858,6 +862,11 @@ impl<T: Config> NFTTrait<T::AccountId> for Pallet<T> {
 		let group_collection_id = ClassDataCollection::<T>::get(asset.0);
 
 		Ok((group_collection_id, asset.0, asset.1))
+	}
+
+	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
+		let group_collection_id = ClassDataCollection::<T>::get(nft_collection);
+		Ok(group_collection_id)
 	}
 
 	fn check_collection_and_class(
