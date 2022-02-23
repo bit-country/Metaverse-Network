@@ -23,7 +23,7 @@ use sp_runtime::traits::Zero;
 use sp_runtime::{Perbill, RuntimeDebug};
 
 use core_primitives::{MiningRange, MiningResourceRateInfo};
-use primitives::estate::Estate;
+use primitives::{estate::Estate, Balance};
 
 // Helper methods to compute the issuance rate for undeployed land.
 use crate::pallet::{Config, Pallet};
@@ -38,12 +38,16 @@ fn rounds_per_year<T: Config>() -> u32 {
 }
 
 /// Compute round issuance range from round inflation range and current total issuance
-pub fn round_issuance_range<T: Config>(config: MiningResourceRateInfo) -> MiningRange<u64> {
+pub fn round_issuance_range<T: Config>(config: MiningResourceRateInfo) -> MiningRange<Balance> {
 	// Get total round per year
 	// Initial minting ratio per land unit
 	let minting_ratio = config.ratio;
 	// Get total deployed land unit circulating
-	let total_land_unit_circulating = T::EstateHandler::get_total_land_units();
+	let total_land_unit_circulating = if T::EstateHandler::get_total_land_units() == 0u64 {
+		114690u64
+	} else {
+		T::EstateHandler::get_total_land_units()
+	};
 
 	let issuance_per_round = total_land_unit_circulating
 		.checked_mul(minting_ratio)
@@ -63,11 +67,11 @@ pub fn round_issuance_range<T: Config>(config: MiningResourceRateInfo) -> Mining
 
 	// Return range - could implement more cases in the future.
 	MiningRange {
-		min: issuance_per_round,
-		ideal: issuance_per_round,
-		max: issuance_per_round,
-		staking_allocation,
-		mining_allocation,
+		min: issuance_per_round.into(),
+		ideal: issuance_per_round.into(),
+		max: issuance_per_round.into(),
+		staking_allocation: staking_allocation.into(),
+		mining_allocation: mining_allocation.into(),
 	}
 }
 

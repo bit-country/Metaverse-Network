@@ -85,6 +85,8 @@ pub mod pallet {
 	use primitives::staking::RoundInfo;
 	use primitives::{FungibleTokenId, RoundIndex, TokenId, VestingSchedule};
 
+	use crate::mining::round_issuance_range;
+
 	use super::*;
 
 	#[pallet::pallet]
@@ -126,6 +128,11 @@ pub mod pallet {
 	#[pallet::getter(fn mining_ratio_config)]
 	/// Mining resource issuance ratio config
 	pub type MiningConfig<T: Config> = StorageValue<_, MiningResourceRateInfo, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn current_mining_resource_allocation)]
+	/// Mining resource issuance ratio config
+	pub type CurrentMiningResourceAllocation<T: Config> = StorageValue<_, MiningRange<Balance>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -273,8 +280,9 @@ pub mod pallet {
 				// mutate round
 				round.update(n);
 
+				let allocation_range = round_issuance_range::<T>(<MiningConfig<T>>::get());
 				Round::<T>::put(round);
-
+				CurrentMiningResourceAllocation::<T>::put(allocation_range);
 				Self::deposit_event(Event::NewMiningRound(round.current));
 				0
 			} else {
