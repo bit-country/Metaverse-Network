@@ -228,6 +228,7 @@ pub mod pallet {
 		// Exit queue does not exist
 		ExitQueueDoesNotExit,
 		UnstakeAmountExceedStakedAmountZero,
+		RequestAlreadyExist,
 	}
 
 	#[pallet::call]
@@ -342,6 +343,11 @@ pub mod pallet {
 
 			ensure!(power_amount > 0, Error::<T>::PowerAmountIsZero);
 
+			ensure!(
+				!BuyPowerByUserRequestQueue::<T>::contains_key(&distributor_nft_id, &who),
+				Error::<T>::RequestAlreadyExist
+			);
+
 			// Get NFT details
 			let group_distributor_nft = T::NFTHandler::get_nft_group_collection(&distributor_nft_id.0)?;
 
@@ -442,6 +448,15 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
+			// Get distributor NFT account id
+			let distributor_nft_account_id: T::AccountId =
+				T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+
+			ensure!(
+				!BuyPowerByDistributorRequestQueue::<T>::contains_key(&generator_nft_id, &distributor_nft_account_id),
+				Error::<T>::RequestAlreadyExist
+			);
+
 			// Ensure buy power by distributor only called by distributor nft owner
 			// Check nft is part of distributor collection
 			let group_distributor_nft_detail = T::NFTHandler::get_nft_group_collection(&distributor_nft_id.0)?;
@@ -470,10 +485,6 @@ pub mod pallet {
 
 			// Convert to bit by using global exchange rate
 			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
-
-			// Get distributor NFT account id
-			let distributor_nft_account_id: T::AccountId =
-				T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
 
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(
@@ -685,6 +696,7 @@ pub mod pallet {
 			// Get user exit queue
 			let exit_balance = ExitQueue::<T>::get(&who, round_index).ok_or(Error::<T>::ExitQueueDoesNotExit)?;
 
+			ExitQueue::<T>::remove(&who, round_index);
 			T::Currency::unreserve(&who, exit_balance);
 
 			Self::deposit_event(Event::<T>::UnstakedAmountWithdrew(who, exit_balance));

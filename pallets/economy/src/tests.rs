@@ -335,6 +335,9 @@ fn buy_power_by_distributor_should_fail_insufficient_balance() {
 		.build()
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
+
+			let sub_account = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
+
 			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 			init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
