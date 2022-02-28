@@ -33,11 +33,11 @@ fn mint_mining_resource_should_work() {
 		let origin = Origin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
 
-		assert_ok!(MiningModule::mint(origin, 1000));
+		assert_ok!(MiningModule::mint(origin, BOB, 1000));
 
 		assert_eq!(get_mining_balance(), 1000);
 
-		let event = mock::Event::MiningModule(crate::Event::MiningResourceMinted(1000));
+		let event = mock::Event::MiningModule(crate::Event::MiningResourceMintedTo(BOB, 1000));
 
 		assert_eq!(last_event(), event);
 	});
@@ -51,17 +51,17 @@ fn burn_mining_resource_should_work() {
 		let origin = Origin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
 
-		assert_ok!(MiningModule::mint(origin.clone(), 1000));
+		assert_ok!(MiningModule::mint(origin.clone(), BOB, 1000));
 
 		assert_eq!(get_mining_balance(), 1000);
 
-		let event = mock::Event::MiningModule(crate::Event::MiningResourceMinted(1000));
+		let event = mock::Event::MiningModule(crate::Event::MiningResourceMintedTo(BOB, 1000));
 
-		assert_ok!(MiningModule::burn(origin, 300));
+		assert_ok!(MiningModule::burn(origin, BOB, 300));
 		assert_eq!(get_mining_balance(), 700);
 		assert_eq!(
 			last_event(),
-			mock::Event::MiningModule(crate::Event::MiningResourceBurned(300))
+			mock::Event::MiningModule(crate::Event::MiningResourceBurnFrom(BOB, 300))
 		);
 	});
 }
@@ -73,15 +73,18 @@ fn withdraw_mining_resource_should_work() {
 
 		let origin = Origin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
-
-		assert_ok!(MiningModule::mint(origin.clone(), 1000));
-
+		let treasury_id = MiningModule::bit_mining_resource_account_id();
+		assert_ok!(MiningModule::mint(origin.clone(), treasury_id, 1000));
+		assert_eq!(
+			last_event(),
+			mock::Event::MiningModule(crate::Event::MiningResourceMintedTo(treasury_id, 1000))
+		);
 		assert_eq!(get_mining_balance(), 1000);
-		assert_eq!(get_mining_balance_of(&BOB), 0);
-		assert_ok!(MiningModule::withdraw(origin, BOB, 300));
-		assert_eq!(get_mining_balance_of(&BOB), 300);
+		assert_eq!(get_mining_balance_of(&DAVE), 0);
+		assert_ok!(MiningModule::withdraw(origin, DAVE, 300));
+		assert_eq!(get_mining_balance_of(&DAVE), 300);
 
-		let event = mock::Event::MiningModule(crate::Event::WithdrawMiningResource(BOB, 300));
+		let event = mock::Event::MiningModule(crate::Event::WithdrawMiningResource(DAVE, 300));
 
 		assert_eq!(last_event(), event);
 	});
@@ -91,7 +94,7 @@ fn withdraw_mining_resource_should_work() {
 fn mint_mining_resource_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			MiningModule::mint(Origin::signed(ALICE), 1000),
+			MiningModule::mint(Origin::signed(ALICE), BOB, 1000),
 			crate::Error::<Runtime>::NoPermission
 		);
 	})
@@ -101,7 +104,7 @@ fn mint_mining_resource_should_fail() {
 fn burn_mining_resource_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			MiningModule::burn(Origin::signed(ALICE), 1000),
+			MiningModule::burn(Origin::signed(ALICE), BOB, 1000),
 			crate::Error::<Runtime>::NoPermission
 		);
 	})
@@ -134,11 +137,11 @@ fn deposit_mining_resource_should_work() {
 
 		let origin = Origin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
-
-		assert_ok!(MiningModule::mint(origin.clone(), 1000));
+		let treasury_id = MiningModule::bit_mining_resource_account_id();
+		assert_ok!(MiningModule::mint(origin.clone(), treasury_id, 1000));
 
 		assert_eq!(get_mining_balance(), 1000);
-		let treasury_id = MiningModule::bit_mining_resource_account_id();
+
 		//Transfer to BOB 300
 		assert_ok!(Currencies::transfer(
 			Origin::signed(treasury_id),

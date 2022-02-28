@@ -28,6 +28,7 @@ pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
+pub const DAVE: AccountId = 7;
 pub const METAVERSE_ID: MetaverseId = 1;
 pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
 pub const NUUM: CurrencyId = 0;

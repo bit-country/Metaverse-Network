@@ -151,11 +151,15 @@ pub mod pallet {
 		/// Add new mining origins [who]
 		RemoveMiningOrigin(T::AccountId),
 		/// New round
-		NewMiningRound(RoundIndex),
+		NewMiningRound(RoundIndex, MiningRange<Balance>),
 		/// Round length update
 		RoundLengthUpdated(T::BlockNumber),
 		/// New mining config update
 		MiningConfigUpdated(T::BlockNumber, MiningResourceRateInfo),
+		/// Minting new Mining resource to [who] [amount]
+		MiningResourceMintedTo(T::AccountId, Balance),
+		/// Burn new Mining resource of [who] [amount]
+		MiningResourceBurnFrom(T::AccountId, Balance),
 	}
 
 	#[pallet::error]
@@ -186,10 +190,10 @@ pub mod pallet {
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
 		#[pallet::weight(10_000)]
-		pub fn mint(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
+		pub fn mint(origin: OriginFor<T>, who: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
 
-			Self::do_mint(who, amount)?;
+			Self::do_mint(from, who, amount)?;
 
 			Ok(().into())
 		}
@@ -198,10 +202,10 @@ pub mod pallet {
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
 		#[pallet::weight(10_000)]
-		pub fn burn(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
+		pub fn burn(origin: OriginFor<T>, who: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
 
-			Self::do_burn(who, amount)?;
+			Self::do_burn(from, who, amount)?;
 
 			Ok(().into())
 		}
@@ -283,7 +287,7 @@ pub mod pallet {
 				let allocation_range = round_issuance_range::<T>(<MiningConfig<T>>::get());
 				Round::<T>::put(round);
 				CurrentMiningResourceAllocation::<T>::put(allocation_range);
-				Self::deposit_event(Event::NewMiningRound(round.current));
+				Self::deposit_event(Event::NewMiningRound(round.current, allocation_range));
 				0
 			} else {
 				0
@@ -311,7 +315,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn do_mint(who: T::AccountId, amount: Balance) -> DispatchResult {
+	fn do_mint(who: T::AccountId, to: T::AccountId, amount: Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}
@@ -320,14 +324,14 @@ impl<T: Config> Pallet<T> {
 
 		let mining_treasury = Self::bit_mining_resource_account_id();
 		//Deposit Bit mining to mining treasury
-		T::MiningCurrency::deposit(Self::bit_mining_resource_currency_id(), &mining_treasury, amount)?;
+		T::MiningCurrency::deposit(Self::bit_mining_resource_currency_id(), &to, amount)?;
 
-		Self::deposit_event(Event::<T>::MiningResourceMinted(amount));
+		Self::deposit_event(Event::<T>::MiningResourceMintedTo(to, amount));
 
 		Ok(())
 	}
 
-	fn do_burn(who: T::AccountId, amount: Balance) -> DispatchResult {
+	fn do_burn(who: T::AccountId, from: T::AccountId, amount: Balance) -> DispatchResult {
 		if amount.is_zero() {
 			return Ok(());
 		}
@@ -335,13 +339,13 @@ impl<T: Config> Pallet<T> {
 
 		let mining_treasury = Self::bit_mining_resource_account_id();
 		ensure!(
-			T::MiningCurrency::can_slash(Self::bit_mining_resource_currency_id(), &mining_treasury, amount),
+			T::MiningCurrency::can_slash(Self::bit_mining_resource_currency_id(), &from, amount),
 			Error::<T>::BalanceZero
 		);
 		//Deposit Bit mining to mining treasury
-		T::MiningCurrency::slash(Self::bit_mining_resource_currency_id(), &mining_treasury, amount);
+		T::MiningCurrency::slash(Self::bit_mining_resource_currency_id(), &from, amount);
 
-		Self::deposit_event(Event::<T>::MiningResourceBurned(amount));
+		Self::deposit_event(Event::<T>::MiningResourceBurnFrom(from, amount));
 
 		Ok(())
 	}

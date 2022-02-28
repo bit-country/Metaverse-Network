@@ -183,8 +183,8 @@ pub mod pallet {
 		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
 		ElementMinted(T::AccountId, u32, u64),
 		MiningResourceBurned(Balance),
-		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
-		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>),
+		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>, RoundIndex),
+		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>, RoundIndex),
 		BitPowerExchangeRateUpdated(Balance),
 		UnstakedAmountWithdrew(T::AccountId, BalanceOf<T>),
 		SetPowerBalance(T::AccountId, PowerAmount),
@@ -634,7 +634,9 @@ pub mod pallet {
 			let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
 			<TotalStake<T>>::put(new_total_staked);
 
-			Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
+			let current_round = T::RoundHandler::get_current_round_info();
+
+			Self::deposit_event(Event::SelfStakedToEconomy101(who, amount, current_round.current));
 
 			Ok(().into())
 		}
@@ -661,12 +663,10 @@ pub mod pallet {
 			};
 
 			let current_round = T::RoundHandler::get_current_round_info();
+			let next_round = current_round.current.saturating_add(One::one());
+
 			// This exit queue will be executed by exit_staking extrinsics to unreserved token
-			ExitQueue::<T>::insert(
-				&who,
-				current_round.current.saturating_add(One::one()),
-				amount_to_unstake,
-			);
+			ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
 
 			// Update staking info of user immediately
 			// Remove staking info
@@ -679,7 +679,7 @@ pub mod pallet {
 			let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
 			<TotalStake<T>>::put(new_total_staked);
 
-			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
+			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount, next_round));
 
 			Ok(().into())
 		}
