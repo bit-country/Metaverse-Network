@@ -187,6 +187,7 @@ parameter_types! {
 	pub const MinimumAuctionDuration: u64 = 10;
 	// Test 1% loyalty fee
 	pub const RoyaltyFee: u16 = 100;
+	pub const MaxFinality: u32 = 100;
 }
 
 pub struct MetaverseInfoSource {}
@@ -224,6 +225,7 @@ impl Config for Runtime {
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
 	type RoyaltyFee = RoyaltyFee;
+	type MaxFinality = MaxFinality;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;

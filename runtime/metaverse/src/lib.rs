@@ -141,7 +141,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 10,
+	spec_version: 11,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -515,6 +515,7 @@ parameter_types! {
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
 	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
+	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
 }
 
 impl auction::Config for Runtime {
@@ -528,6 +529,7 @@ impl auction::Config for Runtime {
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = Estate;
 	type RoyaltyFee = RoyaltyFee;
+	type MaxFinality = MaxFinality;
 }
 
 impl continuum::Config for Runtime {
@@ -850,6 +852,7 @@ parameter_types! {
 }
 
 pub type OracleMembershipInstance = pallet_membership::Instance1;
+
 impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
 	type Event = Event;
 	type AddOrigin = EnsureRootOrHalfMetaverseCouncil;
@@ -864,6 +867,7 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
 }
 
 type MiningRewardDataProvider = orml_oracle::Instance1;
+
 impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
 	type Event = Event;
 	type OnNewData = ();

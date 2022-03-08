@@ -1067,6 +1067,7 @@ parameter_types! {
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
 	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
+	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
 }
 
 impl auction::Config for Runtime {
@@ -1080,6 +1081,7 @@ impl auction::Config for Runtime {
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = Estate;
 	type RoyaltyFee = RoyaltyFee;
+	type MaxFinality = MaxFinality;
 }
 
 impl continuum::Config for Runtime {

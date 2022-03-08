@@ -25,19 +25,21 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::upper_case_acronyms)]
 
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
 use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 use frame_support::{ensure, pallet_prelude::*, transactional};
 use frame_system::{self as system, ensure_signed};
-pub use pallet::*;
-use pallet_nft::Pallet as NFTModule;
-use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
 use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
 	traits::{CheckedDiv, One, Saturating, Zero},
 	DispatchError, DispatchResult,
 };
+
+use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
+pub use pallet::*;
+use pallet_nft::Pallet as NFTModule;
+use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
+pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -49,20 +51,20 @@ mod tests;
 
 pub mod weights;
 
-pub use weights::WeightInfo;
-
 pub struct AuctionLogicHandler;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
-	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-	use core_primitives::MetaverseTrait;
 	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+
+	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
+	use core_primitives::MetaverseTrait;
 	use primitives::{AssetId, Balance, FungibleTokenId, MetaverseId};
+
+	use super::*;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub (super) trait Store)]
@@ -98,6 +100,8 @@ pub mod pallet {
 		/// Loyalty fee in percentage applied NFT promotion
 		#[pallet::constant]
 		type RoyaltyFee: Get<u16>;
+		#[pallet::constant]
+		type MaxFinality: Get<u32>;
 	}
 
 	#[pallet::storage]
@@ -181,7 +185,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// User can bid on global listing
+		/// User can bid on listing
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn bid(origin: OriginFor<T>, id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
@@ -194,10 +198,6 @@ pub mod pallet {
 				Error::<T>::InvalidAuctionType
 			);
 			ensure!(auction_item.recipient != from, Error::<T>::SelfBidNotAccepted);
-			ensure!(
-				auction_item.listing_level == ListingLevel::Global,
-				Error::<T>::WrongListingLevel
-			);
 
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
@@ -237,75 +237,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Bidding on local marketplace listing
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn bid_local(
-			origin: OriginFor<T>,
-			id: AuctionId,
-			bc_id: MetaverseId,
-			value: BalanceOf<T>,
-		) -> DispatchResultWithPostInfo {
-			let from = ensure_signed(origin)?;
-
-			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
-				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
-			ensure!(
-				auction_item.auction_type == AuctionType::Auction,
-				Error::<T>::InvalidAuctionType
-			);
-			ensure!(auction_item.recipient != from, Error::<T>::SelfBidNotAccepted);
-			ensure!(
-				auction_item.listing_level == ListingLevel::Local(bc_id),
-				Error::<T>::WrongListingLevel
-			);
-
-			let social_currency_id = auction_item.currency_id;
-
-			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
-				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
-
-				let block_number = <system::Pallet<T>>::block_number();
-
-				// make sure auction is started
-				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
-
-				let auction_end: Option<T::BlockNumber> = auction.end;
-
-				ensure!(block_number < auction_end.unwrap(), Error::<T>::AuctionIsExpired);
-
-				if let Some(ref current_bid) = auction.bid {
-					ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
-				} else {
-					ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
-				}
-				let bid_result = T::Handler::on_new_bid(block_number, id, (from.clone(), value), auction.bid.clone());
-
-				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
-
-				ensure!(
-					T::FungibleTokenCurrency::free_balance(social_currency_id, &from)
-						>= TryInto::<Balance>::try_into(value).unwrap_or_default(),
-					Error::<T>::InsufficientFreeBalance
-				);
-
-				Self::local_auction_bid_handler(
-					block_number,
-					id,
-					(from.clone(), value),
-					auction.bid.clone(),
-					social_currency_id,
-				)?;
-
-				auction.bid = Some((from.clone(), value));
-				Self::deposit_event(Event::Bid(id, from, value));
-
-				Ok(())
-			})?;
-
-			Ok(().into())
-		}
-
+		/// User can buy now on listing
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
@@ -408,112 +340,6 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn buy_now_local(
-			origin: OriginFor<T>,
-			auction_id: AuctionId,
-			bc_id: MetaverseId,
-			value: BalanceOf<T>,
-		) -> DispatchResultWithPostInfo {
-			let from = ensure_signed(origin)?;
-
-			let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
-			let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
-			ensure!(
-				auction_item.auction_type == AuctionType::BuyNow,
-				Error::<T>::InvalidAuctionType
-			);
-			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
-			ensure!(
-				auction_item.listing_level == ListingLevel::Local(bc_id),
-				Error::<T>::WrongListingLevel
-			);
-
-			let block_number = <system::Pallet<T>>::block_number();
-			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
-			if !(auction.end.is_none()) {
-				let auction_end: T::BlockNumber = auction.end.unwrap();
-				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
-			}
-
-			let social_currency_id = auction_item.currency_id;
-
-			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
-			ensure!(
-				T::FungibleTokenCurrency::free_balance(social_currency_id, &from)
-					>= TryInto::<Balance>::try_into(value).unwrap_or_default(),
-				Error::<T>::InsufficientFunds
-			);
-
-			Self::remove_auction(auction_id.clone(), auction_item.item_id);
-			// Transfer balance from buy it now user to asset owner
-
-			let social_currency_transfer = T::FungibleTokenCurrency::transfer(
-				social_currency_id,
-				&from,
-				&auction_item.recipient,
-				value.saturated_into(),
-			);
-			match social_currency_transfer {
-				Err(_e) => {}
-				Ok(_v) => {
-					// Transfer asset from asset owner to buy it now user
-					<ItemsInAuction<T>>::remove(auction_item.item_id);
-					match auction_item.item_id {
-						ItemId::NFT(asset_id) => {
-							Self::collect_royalty_fee(&value, &auction_item.recipient, &asset_id, social_currency_id);
-
-							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
-							match asset_transfer {
-								Err(_) => (),
-								Ok(_) => {
-									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
-								}
-							}
-						}
-						ItemId::Spot(spot_id, metaverse_id) => {
-							let continuum_spot = T::ContinuumHandler::transfer_spot(
-								spot_id,
-								&auction_item.recipient,
-								&(from.clone(), metaverse_id),
-							);
-							match continuum_spot {
-								Err(_) => (),
-								Ok(_) => {
-									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
-								}
-							}
-						}
-						ItemId::Estate(estate_id) => {
-							let estate =
-								T::EstateHandler::transfer_estate(estate_id, &auction_item.recipient, &from.clone());
-							match estate {
-								Err(_) => (),
-								Ok(_) => {
-									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
-								}
-							}
-						}
-						ItemId::LandUnit(coordinate, metaverse_id) => {
-							let land_unit = T::EstateHandler::transfer_landunit(
-								coordinate,
-								&auction_item.recipient,
-								&(from.clone(), metaverse_id),
-							);
-							match land_unit {
-								Err(_) => (),
-								Ok(_) => {
-									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
-								}
-							}
-						}
-						_ => {} // Future implementation for Spot, Metaverse
-					}
-				}
-			}
-			Ok(().into())
-		}
-
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn create_new_auction(
 			origin: OriginFor<T>,
 			item_id: ItemId,
@@ -527,6 +353,16 @@ pub mod pallet {
 				matches!(item_id, ItemId::NFT(_)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
+
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					ensure!(
+						T::MetaverseInfoSource::check_ownership(&from, &metaverse_id),
+						Error::<T>::NoPermissionToCreateAuction
+					);
+				}
+				_ => {}
+			}
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
@@ -572,6 +408,16 @@ pub mod pallet {
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					ensure!(
+						T::MetaverseInfoSource::check_ownership(&from, &metaverse_id),
+						Error::<T>::NoPermissionToCreateAuction
+					);
+				}
+				_ => {}
+			}
+
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
@@ -605,221 +451,123 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_finalize(now: T::BlockNumber) {
+			let max_finality = T::MaxFinality::get();
+			let mut proceeded_item: u32 = 0;
 			for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
+				if proceeded_item == max_finality {
+					break;
+				};
 				if let Some(auction) = <Auctions<T>>::get(&auction_id) {
 					if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id) {
+						proceeded_item.checked_add(One::one()).ok_or("Overflow");
 						Self::remove_auction(auction_id.clone(), auction_item.item_id);
 						// Transfer balance from high bidder to asset owner
 						if let Some(current_bid) = auction.bid {
 							let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
-							// Handle global listing
-							if auction_item.listing_level == ListingLevel::Global {
-								<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+							// Handle listing
+							<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
 
-								// Handle balance transfer
-								let currency_transfer = <T as Config>::Currency::transfer(
-									&high_bidder,
-									&auction_item.recipient,
-									high_bid_price,
-									ExistenceRequirement::KeepAlive,
-								);
+							// Handle balance transfer
+							let currency_transfer = <T as Config>::Currency::transfer(
+								&high_bidder,
+								&auction_item.recipient,
+								high_bid_price,
+								ExistenceRequirement::KeepAlive,
+							);
 
-								match currency_transfer {
-									Err(_e) => continue,
-									Ok(_v) => {
-										// Transfer asset from asset owner to high bidder
-										// Check asset type and handle internal logic
+							match currency_transfer {
+								Err(_e) => continue,
+								Ok(_v) => {
+									// Transfer asset from asset owner to high bidder
+									// Check asset type and handle internal logic
 
-										match auction_item.item_id {
-											ItemId::NFT(asset_id) => {
-												Self::collect_royalty_fee(
-													&high_bid_price,
-													&auction_item.recipient,
-													&asset_id,
-													FungibleTokenId::NativeToken(0),
-												);
+									match auction_item.item_id {
+										ItemId::NFT(asset_id) => {
+											Self::collect_royalty_fee(
+												&high_bid_price,
+												&auction_item.recipient,
+												&asset_id,
+												FungibleTokenId::NativeToken(0),
+											);
 
-												let asset_transfer = NFTModule::<T>::do_transfer(
-													&auction_item.recipient,
-													&high_bidder,
-													asset_id,
-												);
+											let asset_transfer = NFTModule::<T>::do_transfer(
+												&auction_item.recipient,
+												&high_bidder,
+												asset_id,
+											);
 
-												match asset_transfer {
-													Err(_) => continue,
-													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(
-															auction_id,
-															high_bidder,
-															high_bid_price,
-														));
-													}
+											match asset_transfer {
+												Err(_) => continue,
+												Ok(_) => {
+													Self::deposit_event(Event::AuctionFinalized(
+														auction_id,
+														high_bidder,
+														high_bid_price,
+													));
 												}
 											}
-											ItemId::Spot(spot_id, metaverse_id) => {
-												let continuum_spot = T::ContinuumHandler::transfer_spot(
-													spot_id,
-													&auction_item.recipient,
-													&(high_bidder.clone(), metaverse_id),
-												);
-												match continuum_spot {
-													Err(_) => continue,
-													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(
-															auction_id,
-															high_bidder,
-															high_bid_price,
-														));
-													}
-												}
-											}
-											ItemId::Estate(estate_id) => {
-												let estate = T::EstateHandler::transfer_estate(
-													estate_id,
-													&auction_item.recipient,
-													&high_bidder.clone(),
-												);
-												match estate {
-													Err(_) => (),
-													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(
-															auction_id,
-															high_bidder,
-															high_bid_price,
-														));
-													}
-												}
-											}
-											ItemId::LandUnit(coordinate, metaverse_id) => {
-												let land_unit = T::EstateHandler::transfer_landunit(
-													coordinate,
-													&auction_item.recipient,
-													&(high_bidder.clone(), metaverse_id),
-												);
-												match land_unit {
-													Err(_) => (),
-													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(
-															auction_id,
-															high_bidder,
-															high_bid_price,
-														));
-													}
-												}
-											}
-											_ => {} // Future implementation for Spot, Metaverse
 										}
-										<ItemsInAuction<T>>::remove(auction_item.item_id);
-									}
-								}
-							} else {
-								// Handle local bit country social token transfer
-								let social_currency_id = auction_item.currency_id.clone();
-								T::FungibleTokenCurrency::unreserve(
-									social_currency_id,
-									&high_bidder,
-									high_bid_price.saturated_into(),
-								);
-								let social_currency_transfer = T::FungibleTokenCurrency::transfer(
-									social_currency_id,
-									&high_bidder,
-									&auction_item.recipient,
-									high_bid_price.saturated_into(),
-								);
-								match social_currency_transfer {
-									Err(_e) => continue,
-									Ok(_v) => {
-										// Transfer asset from asset owner to high bidder
-										// Check asset type and handle internal logic
-
-										match auction_item.item_id {
-											ItemId::NFT(asset_id) => {
-												Self::collect_royalty_fee(
-													&high_bid_price,
-													&auction_item.recipient,
-													&asset_id,
-													social_currency_id,
-												);
-
-												let asset_transfer = NFTModule::<T>::do_transfer(
-													&auction_item.recipient,
-													&high_bidder,
-													asset_id,
-												);
-
-												match asset_transfer {
-													Err(_) => continue,
-													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(
-															auction_id,
-															high_bidder,
-															high_bid_price,
-														));
-													}
+										ItemId::Spot(spot_id, metaverse_id) => {
+											let continuum_spot = T::ContinuumHandler::transfer_spot(
+												spot_id,
+												&auction_item.recipient,
+												&(high_bidder.clone(), metaverse_id),
+											);
+											match continuum_spot {
+												Err(_) => continue,
+												Ok(_) => {
+													Self::deposit_event(Event::AuctionFinalized(
+														auction_id,
+														high_bidder,
+														high_bid_price,
+													));
 												}
 											}
-											ItemId::Spot(spot_id, metaverse_id) => {
-												let continuum_spot = T::ContinuumHandler::transfer_spot(
-													spot_id,
-													&auction_item.recipient,
-													&(high_bidder.clone(), metaverse_id),
-												);
-												match continuum_spot {
-													Err(_) => continue,
-													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(
-															auction_id,
-															high_bidder,
-															high_bid_price,
-														));
-													}
-												}
-											}
-											ItemId::Estate(estate_id) => {
-												let estate = T::EstateHandler::transfer_estate(
-													estate_id,
-													&auction_item.recipient,
-													&high_bidder.clone(),
-												);
-												match estate {
-													Err(_) => (),
-													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(
-															auction_id,
-															high_bidder,
-															high_bid_price,
-														));
-													}
-												}
-											}
-											ItemId::LandUnit(coordinate, metaverse_id) => {
-												let land_unit = T::EstateHandler::transfer_landunit(
-													coordinate,
-													&auction_item.recipient,
-													&(high_bidder.clone(), metaverse_id),
-												);
-												match land_unit {
-													Err(_) => (),
-													Ok(_) => {
-														Self::deposit_event(Event::AuctionFinalized(
-															auction_id,
-															high_bidder,
-															high_bid_price,
-														));
-													}
-												}
-											}
-											_ => {} // Future implementation for Spot, Metaverse
 										}
-										<ItemsInAuction<T>>::remove(auction_item.item_id);
+										ItemId::Estate(estate_id) => {
+											let estate = T::EstateHandler::transfer_estate(
+												estate_id,
+												&auction_item.recipient,
+												&high_bidder.clone(),
+											);
+											match estate {
+												Err(_) => (),
+												Ok(_) => {
+													Self::deposit_event(Event::AuctionFinalized(
+														auction_id,
+														high_bidder,
+														high_bid_price,
+													));
+												}
+											}
+										}
+										ItemId::LandUnit(coordinate, metaverse_id) => {
+											let land_unit = T::EstateHandler::transfer_landunit(
+												coordinate,
+												&auction_item.recipient,
+												&(high_bidder.clone(), metaverse_id),
+											);
+											match land_unit {
+												Err(_) => (),
+												Ok(_) => {
+													Self::deposit_event(Event::AuctionFinalized(
+														auction_id,
+														high_bidder,
+														high_bid_price,
+													));
+												}
+											}
+										}
+										_ => {} // Future implementation for Spot, Metaverse
 									}
+									<ItemsInAuction<T>>::remove(auction_item.item_id);
 								}
 							}
 						} else {
 							Self::deposit_event(Event::AuctionFinalizedNoBid(auction_id));
 						}
 					}
-				}
+				};
 			}
 		}
 	}
@@ -905,10 +653,6 @@ pub mod pallet {
 					}
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
-					if let ListingLevel::Local(bc_id) = listing_level {
-						currency_id = T::MetaverseInfoSource::get_metaverse_token(bc_id)
-							.ok_or(Error::<T>::FungibleTokenCurrencyNotFound)?;
-					}
 
 					let new_auction_item = AuctionItem {
 						item_id,

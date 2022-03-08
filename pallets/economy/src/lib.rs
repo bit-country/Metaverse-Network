@@ -183,8 +183,8 @@ pub mod pallet {
 		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
 		ElementMinted(T::AccountId, u32, u64),
 		MiningResourceBurned(Balance),
-		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>, RoundIndex),
-		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>, RoundIndex),
+		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
+		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>),
 		BitPowerExchangeRateUpdated(Balance),
 		UnstakedAmountWithdrew(T::AccountId, BalanceOf<T>),
 		SetPowerBalance(T::AccountId, PowerAmount),
@@ -636,7 +636,7 @@ pub mod pallet {
 
 			let current_round = T::RoundHandler::get_current_round_info();
 
-			Self::deposit_event(Event::SelfStakedToEconomy101(who, amount, current_round.current));
+			Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
 
 			Ok(().into())
 		}
@@ -679,7 +679,7 @@ pub mod pallet {
 			let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
 			<TotalStake<T>>::put(new_total_staked);
 
-			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount, next_round));
+			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
 
 			Ok(().into())
 		}
