@@ -90,7 +90,7 @@ pub use estate::{MintingRateInfo, Range as MintingRange};
 #[cfg(feature = "runtime-benchmarks")]
 use frame_benchmarking::frame_support::pallet_prelude::Get;
 pub use primitives::{AccountId, Signature};
-use primitives::{AccountIndex, Amount, Balance, BlockNumber, FungibleTokenId, Hash, Index, Moment};
+use primitives::{AccountIndex, Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Hash, Index, Moment, NftId};
 
 pub struct Author;
 
@@ -1062,8 +1062,8 @@ parameter_types! {
 }
 
 impl orml_nft::Config for Runtime {
-	type ClassId = u32;
-	type TokenId = u64;
+	type ClassId = ClassId;
+	type TokenId = NftId;
 	type ClassData = nft::NftClassData<Balance>;
 	type TokenData = nft::NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
@@ -1429,8 +1429,9 @@ pub type Executive =
 
 /// MMR helper types.
 mod mmr {
-	use super::Runtime;
 	pub use pallet_mmr::primitives::*;
+
+	use super::Runtime;
 
 	pub type Leaf = <<Runtime as pallet_mmr::Config>::LeafData as LeafDataProvider>::LeafData;
 	pub type Hash = <Runtime as pallet_mmr::Config>::Hash;
@@ -1770,8 +1771,9 @@ impl_runtime_apis! {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
 	use frame_system::offchain::CreateSignedTransaction;
+
+	use super::*;
 
 	#[test]
 	fn validate_transaction_submitter_bounds() {

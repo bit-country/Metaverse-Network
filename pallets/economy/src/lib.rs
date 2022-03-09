@@ -36,7 +36,9 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{AssetId, Balance, DomainId, ElementId, FungibleTokenId, MetaverseId, PowerAmount, RoundIndex};
+use primitives::{
+	AssetId, Balance, ClassId, DomainId, ElementId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex,
+};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -75,7 +77,7 @@ pub mod pallet {
 	use sp_runtime::ArithmeticError;
 
 	use primitives::staking::RoundInfo;
-	use primitives::GroupCollectionId;
+	use primitives::{ClassId, GroupCollectionId, NftId};
 
 	use super::*;
 
@@ -86,8 +88,7 @@ pub mod pallet {
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-	pub type ClassId = u32;
-	pub type TokenId = u64;
+	pub type TokenId = NftId;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {

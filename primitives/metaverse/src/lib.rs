@@ -82,6 +82,10 @@ pub type CurrencyId = u32;
 pub type GroupCollectionId = u64;
 /// AssetId for all NFT and FT
 pub type AssetId = u64;
+/// Collection Id of NFT
+pub type ClassId = u32;
+/// Nft Id of NFT
+pub type NftId = u64;
 /// AuctionId
 pub type AuctionId = u64;
 /// SpotId

@@ -62,7 +62,7 @@ pub mod pallet {
 
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use core_primitives::MetaverseTrait;
-	use primitives::{AssetId, Balance, FungibleTokenId, MetaverseId};
+	use primitives::{AssetId, Balance, ClassId, FungibleTokenId, MetaverseId};
 
 	use super::*;
 
@@ -132,6 +132,12 @@ pub mod pallet {
 	pub(super) type AuctionEndTime<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn authorised_collection_local)]
+	/// Local marketplace collection authorisation
+	pub(super) type MetaverseAuthorizedCollection<T: Config> =
+		StorageMap<_, Twox64Concat, (MetaverseId, ClassId), (), OptionQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -148,6 +154,8 @@ pub mod pallet {
 		AuctionFinalized(AuctionId, T::AccountId, BalanceOf<T>),
 		BuyNowFinalised(AuctionId, T::AccountId, BalanceOf<T>),
 		AuctionFinalizedNoBid(AuctionId),
+		CollectionAuthorizedInMetaverse(ClassId, MetaverseId),
+		CollectionAuthorizationRemoveInMetaverse(ClassId, MetaverseId),
 	}
 
 	/// Errors inform users that something went wrong.
@@ -181,6 +189,12 @@ pub mod pallet {
 		Overflow,
 		EstateDoesNotExist,
 		LandUnitDoesNotExist,
+		/// User has no permission to authorise collection
+		NoPermissionToAuthoriseCollection,
+		/// Collection has already authorised
+		CollectionAlreadyAuthorised,
+		/// Collection is not authorised
+		CollectionIsNotAuthorised,
 	}
 
 	#[pallet::call]
@@ -373,7 +387,7 @@ pub mod pallet {
 				Error::<T>::AuctionEndIsLessThanMinimumDuration
 			);
 
-			let auction_id = Self::create_auction(
+			Self::create_auction(
 				AuctionType::Auction,
 				item_id,
 				Some(end_time),
@@ -417,7 +431,7 @@ pub mod pallet {
 				Error::<T>::AuctionEndIsLessThanMinimumDuration
 			);
 
-			let auction_id = Self::create_auction(
+			Self::create_auction(
 				AuctionType::BuyNow,
 				item_id,
 				Some(end_time),
@@ -427,6 +441,55 @@ pub mod pallet {
 				listing_level.clone(),
 			)?;
 
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn authorise_metaverse_collection(
+			origin: OriginFor<T>,
+			class_id: ClassId,
+			metaverse_id: MetaverseId,
+		) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
+			ensure!(
+				T::MetaverseInfoSource::check_ownership(&from, &metaverse_id),
+				Error::<T>::NoPermissionToAuthoriseCollection
+			);
+
+			ensure!(
+				!MetaverseAuthorizedCollection::<T>::contains_key((metaverse_id, class_id)),
+				Error::<T>::CollectionAlreadyAuthorised
+			);
+
+			MetaverseAuthorizedCollection::<T>::insert((metaverse_id.clone(), class_id.clone()), ());
+
+			Self::deposit_event(Event::<T>::CollectionAuthorizedInMetaverse(class_id, metaverse_id));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn remove_authorise_metaverse_collection(
+			origin: OriginFor<T>,
+			class_id: ClassId,
+			metaverse_id: MetaverseId,
+		) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
+			ensure!(
+				T::MetaverseInfoSource::check_ownership(&from, &metaverse_id),
+				Error::<T>::NoPermissionToAuthoriseCollection
+			);
+
+			ensure!(
+				MetaverseAuthorizedCollection::<T>::contains_key((metaverse_id, class_id)),
+				Error::<T>::CollectionIsNotAuthorised
+			);
+
+			MetaverseAuthorizedCollection::<T>::remove((metaverse_id.clone(), class_id.clone()));
+			Self::deposit_event(Event::<T>::CollectionAuthorizationRemoveInMetaverse(
+				class_id,
+				metaverse_id,
+			));
 			Ok(().into())
 		}
 	}
@@ -627,6 +690,20 @@ pub mod pallet {
 						class_info_data.token_type.is_transferable(),
 						Error::<T>::NoPermissionToCreateAuction
 					);
+
+					// Ensure NFT authorised to sell
+					match listing_level {
+						ListingLevel::Local(metaverse_id) => {
+							let class_id: ClassId = TryInto::<ClassId>::try_into(asset.0).unwrap_or_default();
+
+							ensure!(
+								MetaverseAuthorizedCollection::<T>::contains_key((metaverse_id, class_id))
+									|| T::MetaverseInfoSource::check_ownership(&recipient, &metaverse_id),
+								Error::<T>::NoPermissionToCreateAuction
+							);
+						}
+						_ => {}
+					}
 
 					let start_time = <system::Pallet<T>>::block_number();
 

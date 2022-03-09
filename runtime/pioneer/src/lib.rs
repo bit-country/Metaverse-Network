@@ -53,7 +53,7 @@ pub use constants::{currency::*, time::*};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
-use primitives::{Amount, FungibleTokenId};
+use primitives::{Amount, ClassId, FungibleTokenId, NftId};
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -1011,8 +1011,8 @@ parameter_types! {
 }
 
 impl orml_nft::Config for Runtime {
-	type ClassId = u32;
-	type TokenId = u64;
+	type ClassId = ClassId;
+	type TokenId = NftId;
 	type ClassData = nft::NftClassData<Balance>;
 	type TokenData = nft::NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
