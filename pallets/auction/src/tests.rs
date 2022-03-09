@@ -6,6 +6,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use auction_manager::ListingLevel;
 use mock::{Event, *};
 use pallet_nft::{Attributes, CollectionType, TokenType};
+use primitives::ItemId::NFT;
 
 use super::*;
 
@@ -774,5 +775,39 @@ fn on_finalize_should_work() {
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
 		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+// List item on local marketplace should work if metaverse owner
+fn list_item_on_auction_local_marketplace_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		assert_ok!(AuctionModule::create_new_auction(
+			origin,
+			ItemId::NFT(0),
+			100,
+			102,
+			ListingLevel::Local(ALICE_METAVERSE_ID),
+		));
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), Some(true))
+	});
+}
+
+#[test]
+// List item on local marketplace should work if metaverse owner
+fn list_item_on_buy_now_local_marketplace_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		assert_ok!(AuctionModule::create_new_auction(
+			origin,
+			ItemId::NFT(0),
+			100,
+			102,
+			ListingLevel::Local(ALICE_METAVERSE_ID),
+		));
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), Some(true))
 	});
 }

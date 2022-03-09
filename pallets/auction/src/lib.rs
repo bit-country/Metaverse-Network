@@ -382,15 +382,6 @@ pub mod pallet {
 				start_time,
 				listing_level.clone(),
 			)?;
-			Self::deposit_event(Event::NewAuctionItem(
-				auction_id,
-				from,
-				listing_level.clone(),
-				value,
-				value,
-				end_time,
-			));
-
 			Ok(().into())
 		}
 
@@ -435,14 +426,6 @@ pub mod pallet {
 				start_time,
 				listing_level.clone(),
 			)?;
-			Self::deposit_event(Event::NewAuctionItem(
-				auction_id,
-				from,
-				listing_level.clone(),
-				value,
-				value,
-				end_time,
-			));
 
 			Ok(().into())
 		}
