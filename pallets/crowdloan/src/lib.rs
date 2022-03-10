@@ -32,7 +32,7 @@ use sp_runtime::{
 use sp_std::{convert::TryInto, vec::Vec};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
-use bc_primitives::*;
+use core_primitives::*;
 pub use pallet::*;
 use primitives::{
 	estate::Estate, Balance, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
@@ -63,6 +63,7 @@ pub mod pallet {
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]

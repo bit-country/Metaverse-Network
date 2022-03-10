@@ -17,16 +17,19 @@
 
 #![cfg(test)]
 
-use super::*;
-use crate as continuum;
-use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
 use frame_support::pallet_prelude::{GenesisBuild, Hooks};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
-use primitives::FungibleTokenId;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
+
+use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
+use core_primitives::{MetaverseInfo, MetaverseTrait};
+use primitives::FungibleTokenId;
+
+use crate as continuum;
+
+use super::*;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -76,6 +79,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {

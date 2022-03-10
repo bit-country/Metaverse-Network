@@ -17,22 +17,26 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::{Auction, CheckAuctionItemHandler};
-use bc_primitives::*;
 use frame_support::pallet_prelude::*;
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{
-	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
-};
-pub use rate::{MintingRateInfo, Range};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating},
 	DispatchError,
 };
 use sp_std::vec::Vec;
+
+use auction_manager::{Auction, CheckAuctionItemHandler};
+use core_primitives::*;
+pub use pallet::*;
+use primitives::estate::EstateInfo;
+use primitives::{
+	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
+};
+pub use rate::{MintingRateInfo, Range};
+pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -46,70 +50,23 @@ mod tests;
 
 pub mod weights;
 
-pub use weights::WeightInfo;
-
-pub use pallet::*;
-
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
-	use crate::rate::{round_issuance_range, MintingRateInfo};
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
-	use primitives::UndeployedLandBlockId;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
+
+	use primitives::estate::EstateInfo;
+	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
+	use primitives::{RoundIndex, UndeployedLandBlockId};
+
+	use crate::rate::{round_issuance_range, MintingRateInfo};
+
+	use super::*;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
-
-	type RoundIndex = u32;
-
-	#[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
-	/// The current round index and transition information
-	pub struct RoundInfo<BlockNumber> {
-		/// Current round index
-		pub current: RoundIndex,
-		/// The first block of the current round
-		pub first: BlockNumber,
-		/// The length of the current round in number of blocks
-		pub length: u32,
-	}
-
-	#[derive(Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-	/// Snapshot of collator state at the start of the round for which they are selected
-	pub struct StakeSnapshot<AccountId, Balance> {
-		pub stakers: Vec<Bond<AccountId, Balance>>,
-		pub total_bond: Balance,
-	}
-
-	#[derive(Default, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-	pub struct Bond<AccountId, Balance> {
-		pub staker: AccountId,
-		pub amount: Balance,
-	}
-
-	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> RoundInfo<B> {
-		pub fn new(current: RoundIndex, first: B, length: u32) -> RoundInfo<B> {
-			RoundInfo { current, first, length }
-		}
-		/// Check if the round should be updated
-		pub fn should_update(&self, now: B) -> bool {
-			now - self.first >= self.length.into()
-		}
-		/// New round
-		pub fn update(&mut self, now: B) {
-			self.current += 1u32;
-			self.first = now;
-		}
-	}
-
-	impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + From<u32> + PartialOrd> Default
-		for RoundInfo<B>
-	{
-		fn default() -> RoundInfo<B> {
-			RoundInfo::new(1u32, 1u32.into(), 20u32)
-		}
-	}
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -154,7 +111,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_land_units)]
 	pub type LandUnits<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), T::AccountId, ValueQuery>;
+		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), T::AccountId>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_estate_id)]
@@ -166,7 +123,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estates)]
-	pub(super) type Estates<T: Config> = StorageMap<_, Twox64Concat, EstateId, Vec<(i32, i32)>, OptionQuery>;
+	pub(super) type Estates<T: Config> = StorageMap<_, Twox64Concat, EstateId, EstateInfo, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_owner)]
@@ -223,7 +180,6 @@ pub mod pallet {
 		Twox64Concat,
 		EstateId,
 		StakeSnapshot<T::AccountId, BalanceOf<T>>,
-		ValueQuery,
 	>;
 
 	#[pallet::storage]
@@ -500,6 +456,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Transfer estate ownership
 		#[pallet::weight(T::WeightInfo::transfer_estate())]
 		pub fn transfer_estate(
 			origin: OriginFor<T>,
@@ -518,6 +475,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Deploy raw land block to metaverse and turn raw land block to land unit with given
+		/// coordinates
 		#[pallet::weight(T::WeightInfo::deploy_land_block())]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
@@ -581,6 +540,7 @@ pub mod pallet {
 			)
 		}
 
+		/// Sudo issues new raw land block
 		#[pallet::weight(T::WeightInfo::issue_undeployed_land_blocks())]
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
@@ -601,6 +561,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Sudo Freeze raw land block
 		#[pallet::weight(T::WeightInfo::freeze_undeployed_land_blocks())]
 		pub fn freeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -613,6 +574,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Sudo Unfreeze raw land block
 		#[pallet::weight(T::WeightInfo::unfreeze_undeployed_land_blocks())]
 		pub fn unfreeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -641,6 +603,7 @@ pub mod pallet {
 			)
 		}
 
+		/// Transfer raw land block
 		#[pallet::weight(T::WeightInfo::transfer_undeployed_land_blocks())]
 		pub fn transfer_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -654,6 +617,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Burn raw land block that will reduce total supply
 		#[pallet::weight(T::WeightInfo::burn_undeployed_land_blocks())]
 		pub fn burn_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -666,6 +630,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Burn raw land block that will reduce total supply
 		#[pallet::weight(T::WeightInfo::approve_undeployed_land_blocks())]
 		pub fn approve_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -704,6 +669,7 @@ pub mod pallet {
 			)
 		}
 
+		/// Unapprove external wallet to access raw land block.
 		#[pallet::weight(T::WeightInfo::unapprove_undeployed_land_blocks())]
 		pub fn unapprove_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -739,12 +705,9 @@ pub mod pallet {
 			)
 		}
 
+		/// Dissolve estate to land units
 		#[pallet::weight(T::WeightInfo::dissolve_estate())]
-		pub fn dissolve_estate(
-			origin: OriginFor<T>,
-			estate_id: EstateId,
-			metaverse_id: MetaverseId,
-		) -> DispatchResultWithPostInfo {
+		pub fn dissolve_estate(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			ensure!(
@@ -752,7 +715,7 @@ pub mod pallet {
 				Error::<T>::EstateAlreadyInAuction
 			);
 
-			let land_units = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| {
 				//ensure there is record of the estate owner with estate id and account id
@@ -772,9 +735,9 @@ pub mod pallet {
 				AllEstatesCount::<T>::put(new_total_estates_count);
 
 				// Update land units relationship
-				for land_unit in land_units.clone() {
+				for land_unit in estate_info.land_units.clone() {
 					LandUnits::<T>::try_mutate_exists(
-						&metaverse_id,
+						&estate_info.metaverse_id,
 						&land_unit,
 						|maybe_account| -> Result<(), DispatchError> {
 							*maybe_account = Some(who.clone());
@@ -790,11 +753,11 @@ pub mod pallet {
 			})
 		}
 
+		/// Add more land units to existing estate
 		#[pallet::weight(T::WeightInfo::add_land_unit_to_estate())]
 		pub fn add_land_unit_to_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
-			metaverse_id: MetaverseId,
 			land_units: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -804,7 +767,7 @@ pub mod pallet {
 				Error::<T>::EstateAlreadyInAuction
 			);
 
-			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			// Check estate ownership
 			ensure!(
@@ -815,16 +778,16 @@ pub mod pallet {
 			// Check land unit ownership
 			for land_unit in land_units.clone() {
 				ensure!(
-					Self::get_land_units(metaverse_id, land_unit) == who,
+					Self::get_land_units(estate_info.metaverse_id, land_unit) == Some(who.clone()),
 					Error::<T>::LandUnitDoesNotExist
 				);
 			}
 
 			// Mutate estates
-			Estates::<T>::try_mutate_exists(&estate_id, |maybe_land_units| {
+			Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
 				// Append new coordinates to estate
-				let mut land_units_by_estate = maybe_land_units.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
-				land_units_by_estate.append(&mut land_units.clone());
+				let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+				mut_estate_info.land_units.append(&mut land_units.clone());
 
 				// Mutate land unit ownership
 				let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
@@ -832,7 +795,7 @@ pub mod pallet {
 				// Mutate land unit ownership
 				for land_unit in land_units.clone() {
 					LandUnits::<T>::try_mutate_exists(
-						&metaverse_id,
+						&mut_estate_info.metaverse_id,
 						&land_unit,
 						|maybe_account| -> Result<(), DispatchError> {
 							*maybe_account = Some(estate_account_id.clone());
@@ -852,11 +815,11 @@ pub mod pallet {
 			})
 		}
 
+		/// Remove land units from existing estate
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
 		pub fn remove_land_unit_from_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
-			metaverse_id: MetaverseId,
 			land_units: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -866,7 +829,7 @@ pub mod pallet {
 				Error::<T>::EstateAlreadyInAuction
 			);
 
-			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			// Check estate ownership
 			ensure!(
@@ -875,17 +838,17 @@ pub mod pallet {
 			);
 
 			// Mutate estates
-			Estates::<T>::try_mutate_exists(&estate_id, |maybe_land_units| {
-				let mut land_units_by_estate = maybe_land_units.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+			Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
+				let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
 
 				// Mutate land unit ownership
 				for land_unit in land_units.clone() {
 					// Remove coordinates from estate
-					let index = land_units_by_estate.iter().position(|x| *x == land_unit).unwrap();
-					land_units_by_estate.remove(index);
+					let index = mut_estate_info.land_units.iter().position(|x| *x == land_unit).unwrap();
+					mut_estate_info.land_units.remove(index);
 
 					LandUnits::<T>::try_mutate_exists(
-						&metaverse_id,
+						&mut_estate_info.metaverse_id,
 						&land_unit,
 						|maybe_account| -> Result<(), DispatchError> {
 							*maybe_account = Some(who.clone());
@@ -905,6 +868,7 @@ pub mod pallet {
 			})
 		}
 
+		/// Bond native token to the estate
 		#[pallet::weight(T::WeightInfo::bond_more())]
 		pub fn bond_more(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -943,6 +907,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Unbond native token from the estate
 		#[pallet::weight(T::WeightInfo::bond_less())]
 		pub fn bond_less(origin: OriginFor<T>, estate_id: EstateId, less: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -981,6 +946,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Leave staking
 		#[pallet::weight(T::WeightInfo::leave_staking())]
 		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -1019,16 +985,6 @@ pub mod pallet {
 			let total_issuance = Self::compute_issuance(total_staked);
 
 			let mut left_issuance = total_issuance;
-
-			// reserve portion of issuance for parachain bond account
-			// TODO: TBD on percentage and account config
-			// let bond_config = <ParachainBondInfo<T>>::get();
-			// let parachain_bond_reserve = bond_config.percent * total_issuance;
-			// if let Ok(imb) = T::Currency::deposit_into_existing(&bond_config.account, parachain_bond_reserve)
-			// { 	// update round issuance iff transfer succeeds
-			// 	left_issuance -= imb.peek();
-			// 	Self::deposit_event(Event::ReservedForParachainBond(bond_config.account, imb.peek()));
-			// }
 
 			// a local fn to transfer rewards to the account specified
 			let mint = |amt: BalanceOf<T>, to: T::AccountId| {
@@ -1086,56 +1042,6 @@ pub mod pallet {
 		fn compute_issuance(staked: BalanceOf<T>) -> BalanceOf<T> {
 			//TODO: need to decide on how much BIT need to be issued per session
 			staked.saturating_add(staked)
-		}
-	}
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_initialize(n: T::BlockNumber) -> Weight {
-			let minting_config = <MintingRateConfig<T>>::get();
-			let mut round = <Round<T>>::get();
-			if round.should_update(n) {
-				// mutate round
-				round.update(n);
-
-				let round_issuance_per_round = round_issuance_range::<T>(minting_config);
-
-				//TODO do actual minting new undeployed land block
-				let land_register_treasury = T::LandTreasury::get().into_account();
-
-				// Pay all stakers for T::RewardPaymentDelay rounds ago
-				Self::pay_stakers(round.current);
-				Self::deposit_event(Event::StakersPaid(round.current));
-
-				// Clear exit queue
-				Self::clear_exit_queue(round.current);
-				Self::deposit_event(Event::ExitQueueCleared(round.current));
-
-				// Update stake snapshot
-				let total = Self::update_stake_snapshot(round.current);
-
-				<Round<T>>::put(round);
-
-				<Staked<T>>::insert(round.current, <TotalStake<T>>::get());
-
-				Self::deposit_event(Event::StakeSnapshotUpdated(round.current, total));
-
-				Self::do_issue_undeployed_land_blocks(
-					&land_register_treasury,
-					round_issuance_per_round.ideal as u32,
-					100,
-					UndeployedLandBlockType::Transferable,
-				);
-
-				Self::deposit_event(Event::NewRound(
-					round.first,
-					round.current,
-					round_issuance_per_round.max,
-				));
-				<T as pallet::Config>::WeightInfo::active_issue_undeploy_land_block()
-			} else {
-				0
-			}
 		}
 	}
 }
@@ -1199,7 +1105,12 @@ impl<T: Config> Pallet<T> {
 		AllEstatesCount::<T>::put(new_total_estates_count);
 
 		// Update estates
-		Estates::<T>::insert(new_estate_id, coordinates.clone());
+		let estate_info = EstateInfo {
+			metaverse_id,
+			land_units: coordinates.clone(),
+		};
+
+		Estates::<T>::insert(new_estate_id, estate_info);
 
 		EstateOwner::<T>::insert(beneficiary.clone(), new_estate_id, {});
 
@@ -1394,8 +1305,7 @@ impl<T: Config> Pallet<T> {
 
 				ensure!(from != to, Error::<T>::AlreadyOwnTheLandUnit);
 
-				*land_unit_owner = None;
-				LandUnits::<T>::insert(metaverse_id.clone(), coordinate.clone(), to.clone());
+				*land_unit_owner = Some(to.clone());
 
 				// Update
 				Self::deposit_event(Event::<T>::TransferredLandUnit(
@@ -1464,8 +1374,8 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 			EstateOwner::<T>::iter_prefix(who).map(|res| res.0).collect::<Vec<_>>();
 
 		for estate_id in estate_ids_by_owner {
-			let mut coordinates = Estates::<T>::get(&estate_id).unwrap();
-			total_land_units.append(&mut coordinates)
+			let mut estate_info = Estates::<T>::get(&estate_id).unwrap();
+			total_land_units.append(&mut estate_info.land_units)
 		}
 
 		total_land_units

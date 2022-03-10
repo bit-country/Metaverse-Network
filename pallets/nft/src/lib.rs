@@ -27,6 +27,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
+use frame_support::traits::Len;
 use frame_support::{
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
@@ -42,15 +43,18 @@ use orml_nft::Pallet as NftModule;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+use sp_runtime::traits::Saturating;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	traits::{AccountIdConversion, Dispatchable, One},
 	DispatchError,
 };
 use sp_std::vec::Vec;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
+use primitive_traits::NFTTrait;
 use primitives::{AssetId, BlockNumber, GroupCollectionId, Hash};
 pub use weights::WeightInfo;
 
@@ -61,13 +65,10 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-// pub mod default_weight;
-//
-// pub use default_weight::WeightInfo;
-
 pub mod weights;
 
 pub type NftMetadata = Vec<u8>;
+pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
 
 const TIMECAPSULE_ID: LockIdentifier = *b"bctimeca";
 
@@ -83,8 +84,7 @@ pub struct NftGroupCollectionData {
 pub struct NftClassData<Balance> {
 	// Minimum balance to create a collection of Asset
 	pub deposit: Balance,
-	// Metadata from ipfs
-	pub metadata: NftMetadata,
+	pub attributes: Attributes,
 	pub token_type: TokenType,
 	pub collection_type: CollectionType,
 	pub total_supply: u64,
@@ -96,12 +96,10 @@ pub struct NftClassData<Balance> {
 pub struct NftAssetData<Balance> {
 	// Deposit balance to create each token
 	pub deposit: Balance,
-	pub name: NftMetadata,
-	pub description: NftMetadata,
-	pub properties: NftMetadata,
+	pub attributes: Attributes,
 }
 
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenType {
 	Transferable,
@@ -170,6 +168,7 @@ pub mod pallet {
 	use super::*;
 
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]
@@ -178,12 +177,9 @@ pub mod pallet {
 		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
 	{
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		/// The minimum balance to create class
+		/// The data deposit per byte to calculate fee
 		#[pallet::constant]
-		type CreateClassDeposit: Get<BalanceOf<Self>>;
-		/// The minimum balance to create token
-		#[pallet::constant]
-		type CreateAssetDeposit: Get<BalanceOf<Self>>;
+		type DataDepositPerByte: Get<BalanceOf<Self>>;
 		/// Currency type for reserve/unreserve balance
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		//NFT Module Id
@@ -213,11 +209,6 @@ pub mod pallet {
 		type MiningResourceId: Get<FungibleTokenId>;
 		/// Incentive for promotion
 		type PromotionIncentive: Get<BalanceOf<Self>>;
-		//        type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
-		//        type TimeCapsuleDispatch: Parameter + Dispatchable<Origin=Self::Origin> +
-		// From<Call<Self>>;        /// The Scheduler that executes on chain logic
-		//        type TimeCapsuleScheduler: ScheduleNamed<Self::BlockNumber, Self::TimeCapsuleDispatch,
-		// Self::PalletsOrigin>;
 	}
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -413,6 +404,7 @@ pub mod pallet {
 		pub fn create_class(
 			origin: OriginFor<T>,
 			metadata: NftMetadata,
+			attributes: Attributes,
 			collection_id: GroupCollectionId,
 			token_type: TokenType,
 			collection_type: CollectionType,
@@ -422,7 +414,6 @@ pub mod pallet {
 				metadata.len() as u32 <= T::MaxMetadata::get(),
 				Error::<T>::ExceedMaximumMetadataLength
 			);
-
 			let next_class_id = NftModule::<T>::next_class_id();
 			ensure!(
 				GroupCollections::<T>::contains_key(collection_id),
@@ -433,7 +424,7 @@ pub mod pallet {
 			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(next_class_id);
 
 			// Secure deposit of token class owner
-			let class_deposit = T::CreateClassDeposit::get();
+			let class_deposit = Self::calculate_fee_deposit(&attributes)?;
 			// Transfer fund to pot
 			<T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
 			// Reserve pot fund
@@ -443,7 +434,7 @@ pub mod pallet {
 				deposit: class_deposit,
 				token_type,
 				collection_type,
-				metadata: metadata.clone(),
+				attributes: attributes,
 				total_supply: Default::default(),
 				initial_supply: Default::default(),
 			};
@@ -460,9 +451,8 @@ pub mod pallet {
 		pub fn mint(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
-			name: NftMetadata,
-			description: NftMetadata,
 			metadata: NftMetadata,
+			attributes: Attributes,
 			quantity: u32,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
@@ -474,26 +464,22 @@ pub mod pallet {
 				Error::<T>::ExceedMaximumBatchMinting
 			);
 			ensure!(
-				name.len() as u32 <= T::MaxMetadata::get()
-					&& description.len() as u32 <= T::MaxMetadata::get()
-					&& metadata.len() as u32 <= T::MaxMetadata::get(),
+				metadata.len() as u32 <= T::MaxMetadata::get(),
 				Error::<T>::ExceedMaximumMetadataLength
 			);
 
 			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
 			ensure!(sender == class_info.owner, Error::<T>::NoPermission);
-			let deposit = T::CreateAssetDeposit::get();
+			let token_deposit = Self::calculate_fee_deposit(&attributes)?;
 			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
-			let total_deposit = deposit * Into::<BalanceOf<T>>::into(quantity);
+			let deposit = token_deposit.saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 
-			<T as Config>::Currency::transfer(&sender, &class_fund, total_deposit, ExistenceRequirement::KeepAlive)?;
-			<T as Config>::Currency::reserve(&class_fund, total_deposit)?;
+			<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+			<T as Config>::Currency::reserve(&class_fund, deposit)?;
 
 			let new_nft_data = NftAssetData {
 				deposit,
-				name,
-				description,
-				properties: metadata.clone(),
+				attributes: attributes,
 			};
 
 			let mut new_asset_ids: Vec<AssetId> = Vec::new();
@@ -834,5 +820,66 @@ impl<T: Config> Pallet<T> {
 
 		NftModule::<T>::transfer(&sender, &to, asset.clone())?;
 		Ok(asset.1)
+	}
+
+	/// Calculate deposit fee
+	fn calculate_fee_deposit(attributes: &Attributes) -> Result<BalanceOf<T>, DispatchError> {
+		// Accumulate lens of attributes length
+		let attributes_len = attributes.iter().fold(0, |accumulate, (k, v)| {
+			accumulate.saturating_add(v.len().saturating_add(k.len()) as u32)
+		});
+
+		ensure!(
+			attributes_len <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
+
+		let deposit_required = T::DataDepositPerByte::get().saturating_mul(attributes_len.into());
+
+		Ok(deposit_required)
+	}
+}
+
+impl<T: Config> NFTTrait<T::AccountId> for Pallet<T> {
+	type TokenId = TokenIdOf<T>;
+	type ClassId = ClassIdOf<T>;
+
+	fn check_ownership(who: &T::AccountId, asset_id: &AssetId) -> Result<bool, DispatchError> {
+		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+		let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+		Ok(who == &asset_info.owner)
+	}
+
+	fn check_nft_ownership(who: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		let asset_info = NftModule::<T>::tokens(nft.0, nft.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+		Ok(who == &asset_info.owner)
+	}
+
+	fn get_nft_detail(asset_id: AssetId) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
+		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
+		let group_collection_id = ClassDataCollection::<T>::get(asset.0);
+
+		Ok((group_collection_id, asset.0, asset.1))
+	}
+
+	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
+		let group_collection_id = ClassDataCollection::<T>::get(nft_collection);
+		Ok(group_collection_id)
+	}
+
+	fn check_collection_and_class(
+		collection_id: GroupCollectionId,
+		class_id: Self::ClassId,
+	) -> Result<bool, DispatchError> {
+		ensure!(
+			ClassDataCollection::<T>::contains_key(class_id),
+			Error::<T>::ClassIdNotFound
+		);
+
+		let class_collection_id = ClassDataCollection::<T>::get(class_id);
+
+		Ok(class_collection_id == collection_id)
 	}
 }

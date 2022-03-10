@@ -26,6 +26,7 @@ fn get_metaverse_fund_balance() -> Balance {
 fn mint_social_token_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::root();
+
 		assert_eq!(get_metaverse_fund_balance(), 0);
 
 		assert_ok!(TokenizationModule::mint_token(

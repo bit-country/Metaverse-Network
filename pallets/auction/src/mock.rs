@@ -1,18 +1,20 @@
 #![cfg(test)]
 
-use super::*;
-use crate as auction;
+use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
+use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
-use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
-use frame_support::traits::Nothing;
-use frame_system::EnsureRoot;
+use core_primitives::{MetaverseInfo, MetaverseTrait};
+use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
+
+use crate as auction;
+
+use super::*;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -61,6 +63,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -184,6 +187,7 @@ parameter_types! {
 	pub const MinimumAuctionDuration: u64 = 10;
 	// Test 1% loyalty fee
 	pub const RoyaltyFee: u16 = 100;
+	pub const MaxFinality: u32 = 100;
 }
 
 pub struct MetaverseInfoSource {}
@@ -221,6 +225,7 @@ impl Config for Runtime {
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
 	type RoyaltyFee = RoyaltyFee;
+	type MaxFinality = MaxFinality;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -247,8 +252,11 @@ impl pallet_scheduler::Config for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
+	type PreimageProvider = ();
+	type NoPreimagePostponement = ();
 }
 
 parameter_types! {
@@ -263,8 +271,7 @@ parameter_types! {
 
 impl pallet_nft::Config for Runtime {
 	type Event = Event;
-	type CreateClassDeposit = CreateClassDeposit;
-	type CreateAssetDeposit = CreateAssetDeposit;
+	type DataDepositPerByte = CreateAssetDeposit;
 	type Currency = Balances;
 	type PalletId = NftPalletId;
 	type WeightInfo = ();
@@ -275,9 +282,6 @@ impl pallet_nft::Config for Runtime {
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
-	//	type PalletsOrigin = OriginCaller;
-	//	type TimeCapsuleDispatch = Call;
-	//	type TimeCapsuleScheduler = Scheduler;
 }
 
 parameter_types! {

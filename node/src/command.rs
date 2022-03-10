@@ -15,17 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{
-	chain_spec,
-	cli::{Cli, RelayChainCli, Subcommand},
-	service,
-};
+use std::{io::Write, net::SocketAddr};
 
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
 use log::info;
-use metaverse_runtime::Block;
 use sc_cli::{
 	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result, Role,
 	RuntimeVersion, SharedParams, SubstrateCli,
@@ -34,7 +29,14 @@ use sc_service::config::{BasePath, PrometheusConfig};
 use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
-use std::{io::Write, net::SocketAddr};
+
+use metaverse_runtime::Block;
+
+use crate::{
+	chain_spec,
+	cli::{Cli, RelayChainCli, Subcommand},
+	service,
+};
 
 fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 	Ok(match id {
@@ -262,11 +264,12 @@ pub fn run() -> sc_cli::Result<()> {
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
-
-			let block: Block = generate_genesis_block(&load_spec(
+			let spec = load_spec(
 				&params.chain.clone().unwrap_or("pioneer".into()),
 				params.parachain_id.unwrap_or(2096).into(),
-			)?)?;
+			)?;
+			let state_version = Cli::native_runtime_version(&spec).state_version();
+			let block: Block = generate_genesis_block(&spec, state_version)?;
 			let raw_header = block.header().encode();
 			let output_buf = if params.raw {
 				raw_header
@@ -336,12 +339,14 @@ pub fn run() -> sc_cli::Result<()> {
 							.chain(cli.relaychain_args.iter()),
 					);
 
-					let id = ParaId::from(cli.run.parachain_id.or(para_id).unwrap_or(2096));
+					let id = ParaId::from(para_id.unwrap_or(2096));
 
 					let parachain_account =
 						AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
 
-					let block: Block = generate_genesis_block(&config.chain_spec).map_err(|e| format!("{:?}", e))?;
+					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
+					let block: Block =
+						generate_genesis_block(&config.chain_spec, state_version).map_err(|e| format!("{:?}", e))?;
 					let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
 					let tokio_handle = config.tokio_handle.clone();
@@ -369,7 +374,7 @@ pub fn run() -> sc_cli::Result<()> {
 			info!("Chain spec: {}", chain_spec.id());
 			runner.run_node_until_exit(|config| async move {
 				match config.role {
-					Role::Light => service::new_light(config),
+					Role::Light => service::new_full(config),
 					_ => service::new_full(config),
 				}
 				.map_err(sc_cli::Error::Service)
@@ -432,11 +437,24 @@ impl CliConfiguration<Self> for RelayChainCli {
 		self.base.base.rpc_ws(default_listen_port)
 	}
 
-	fn prometheus_config(&self, default_listen_port: u16) -> Result<Option<PrometheusConfig>> {
-		self.base.base.prometheus_config(default_listen_port)
+	fn prometheus_config(
+		&self,
+		default_listen_port: u16,
+		chain_spec: &Box<dyn ChainSpec>,
+	) -> Result<Option<PrometheusConfig>> {
+		self.base.base.prometheus_config(default_listen_port, chain_spec)
 	}
 
-	fn init<C: SubstrateCli>(&self) -> Result<()> {
+	fn init<F>(
+		&self,
+		_support_url: &String,
+		_impl_version: &String,
+		_logger_hook: F,
+		_config: &sc_service::Configuration,
+	) -> Result<()>
+	where
+		F: FnOnce(&mut sc_cli::LoggerBuilder, &sc_service::Configuration),
+	{
 		unreachable!("PolkadotCli is never initialized; qed");
 	}
 

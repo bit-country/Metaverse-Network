@@ -18,17 +18,26 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use auction_manager::SwapManager;
 use codec::{Decode, Encode};
 use frame_support::dispatch::DispatchResult;
 use frame_support::pallet_prelude::*;
+use frame_support::sp_runtime::traits::{UniqueSaturatedInto, Zero};
+use frame_support::sp_runtime::FixedPointNumber;
+use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{ensure, transactional, PalletId};
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use primitives::{Balance, FungibleTokenId, MetaverseId};
+use orml_traits::MultiCurrency;
 use scale_info::TypeInfo;
+use sp_core::sp_std::convert::TryInto;
+use sp_core::U256;
 use sp_runtime::{traits::AccountIdConversion, DispatchError, RuntimeDebug};
 use sp_std::vec;
+
+use auction_manager::SwapManager;
+pub use pallet::*;
+use primitives::dex::{Price, Ratio, TradingPair};
+use primitives::{Balance, FungibleTokenId, MetaverseId};
 
 #[cfg(test)]
 mod mock;
@@ -53,29 +62,23 @@ impl Default for TradingPairStatus {
 	}
 }
 
-use frame_support::sp_runtime::traits::{UniqueSaturatedInto, Zero};
-use frame_support::sp_runtime::FixedPointNumber;
-use frame_support::traits::{Currency, ExistenceRequirement};
-use orml_traits::MultiCurrency;
-pub use pallet::*;
-use primitives::dex::{Price, Ratio, TradingPair};
-use sp_core::sp_std::convert::TryInto;
-use sp_core::U256;
-
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
 	use frame_support::traits::Currency;
 	use orml_traits::MultiCurrencyExtended;
+	use sp_std::vec::Vec;
+
 	use primitives::dex::TradingPair;
 	use primitives::FungibleTokenId;
-	use sp_std::vec::Vec;
+
+	use super::*;
 
 	pub(super) type BalanceOf<T> =
 		<<T as Config>::NativeCurrency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]

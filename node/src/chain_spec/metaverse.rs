@@ -1,11 +1,8 @@
+use std::collections::BTreeMap;
+use std::str::FromStr;
+
 use hex_literal::hex;
 use log::info;
-use metaverse_runtime::{
-	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig, InflationInfo, MintingRange,
-	MintingRateInfo, Range, SessionConfig, Signature, StakingConfig, SudoConfig, SystemConfig,
-};
-use primitives::Balance;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
@@ -15,8 +12,13 @@ use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,
 };
-use std::collections::BTreeMap;
-use std::str::FromStr;
+
+use metaverse_runtime::{
+	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
+	CollatorSelectionConfig, ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig,
+	MintingRange, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig, SystemConfig,
+};
+use primitives::Balance;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -83,6 +85,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 		None,
 		// Protocol ID
 		None,
+		None,
 		// Properties
 		Some(metaverse_properties()),
 		// Extensions
@@ -126,6 +129,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 		// Telemetry
 		None,
 		// Protocol ID
+		None,
 		None,
 		// Properties
 		Some(metaverse_properties()),
@@ -184,32 +188,12 @@ pub fn metaverse_testnet_config() -> Result<ChainSpec, String> {
 		None,
 		// Protocol ID
 		None,
+		None,
 		// Properties
 		Some(metaverse_properties()),
 		// Extensions
 		None,
 	))
-}
-
-pub fn metaverse_network_inflation_config() -> InflationInfo<Balance> {
-	InflationInfo {
-		expect: Range {
-			min: 100_000 * DOLLARS,
-			ideal: 200_000 * DOLLARS,
-			max: 500_000 * DOLLARS,
-		},
-		annual: Range {
-			min: Perbill::from_percent(4),
-			ideal: Perbill::from_percent(5),
-			max: Perbill::from_percent(5),
-		},
-		// 8766 rounds (hours) in a year
-		round: Range {
-			min: Perbill::from_parts(Perbill::from_percent(4).deconstruct() / 8766),
-			ideal: Perbill::from_parts(Perbill::from_percent(5).deconstruct() / 8766),
-			max: Perbill::from_parts(Perbill::from_percent(5).deconstruct() / 8766),
-		},
-	}
 }
 
 pub fn metaverse_land_minting_config() -> MintingRateInfo {
@@ -247,7 +231,6 @@ fn testnet_genesis(
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
 			code: wasm_binary_unwrap().to_vec(),
-			changes_trie_config: Default::default(),
 		},
 		balances: BalancesConfig {
 			// Configure endowed accounts with initial balance of 1 << 60.
@@ -267,7 +250,12 @@ fn testnet_genesis(
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
-			key: root_key,
+			key: Some(root_key.clone()),
+		},
+		collator_selection: CollatorSelectionConfig {
+			invulnerables: initial_authorities.iter().cloned().map(|(acc, _, _)| acc).collect(),
+			candidacy_bond: 16 * CENTS,
+			..Default::default()
 		},
 		council: Default::default(),
 		democracy: DemocracyConfig::default(),
@@ -279,11 +267,6 @@ fn testnet_genesis(
 			initial_max_bound: (-100, 100),
 			spot_price: 5 * DOLLARS,
 		},
-		staking: StakingConfig {
-			candidates: staking_candidate,
-			nominations: vec![],
-			inflation_config: metaverse_network_inflation_config(),
-		},
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
@@ -293,38 +276,10 @@ fn testnet_genesis(
 		estate: EstateConfig {
 			minting_rate_config: metaverse_land_minting_config(),
 		},
-		/*		evm: EVMConfig {
-		 *			accounts: {
-		 *				let mut map = BTreeMap::new();
-		 *				map.insert(
-		 *					// H160 address of Alice dev account
-		 *					// Derived from SS58 (42 prefix) address
-		 *					// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-		 *					// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
-		 *					// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
-		 *					H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558").expect("internal H160 is valid; qed"),
-		 *					pallet_evm::GenesisAccount {
-		 *						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-		 *							.expect("internal U256 is valid; qed"),
-		 *						code: Default::default(),
-		 *						nonce: Default::default(),
-		 *						storage: Default::default(),
-		 *					},
-		 *				);
-		 *				map.insert(
-		 *					// H160 address of CI test runner account
-		 *					H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b").expect("internal H160 is valid; qed"),
-		 *					pallet_evm::GenesisAccount {
-		 *						balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
-		 *							.expect("internal U256 is valid; qed"),
-		 *						code: Default::default(),
-		 *						nonce: Default::default(),
-		 *						storage: Default::default(),
-		 *					},
-		 *				);
-		 *				map
-		 *			},
-		 *		}, */
+		oracle_membership: OracleMembershipConfig {
+			members: vec![],
+			phantom: Default::default(),
+		},
 	}
 }
 

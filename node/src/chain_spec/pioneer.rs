@@ -16,8 +16,8 @@ use sp_runtime::{
 
 use metaverse_runtime::MintingRateInfo;
 use pioneer_runtime::{
-	constants::currency::*, AccountId, AuraConfig, BalancesConfig, GenesisConfig, SessionKeys, Signature, SudoConfig,
-	SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
+	constants::currency::*, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, EstateConfig, GenesisConfig,
+	SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
 use primitives::Balance;
 
@@ -73,6 +73,7 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 		vec![],
 		None,
 		None,
+		None,
 		Some(pioneer_properties()),
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
@@ -117,6 +118,7 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 		Vec::new(),
 		None,
 		None,
+		None,
 		Some(pioneer_properties()),
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
@@ -150,12 +152,13 @@ fn pioneer_genesis(
 			code: pioneer_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
-			changes_trie_config: Default::default(),
 		},
 		balances: pioneer_runtime::BalancesConfig {
 			balances: initial_allocation,
 		},
-		sudo: pioneer_runtime::SudoConfig { key: root_key },
+		sudo: pioneer_runtime::SudoConfig {
+			key: Some(root_key.clone()),
+		},
 		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -178,15 +181,15 @@ fn pioneer_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-		//		continuum: ContinuumConfig {
-		//			initial_active_session: Default::default(),
-		//			initial_auction_rate: 5,
-		//			initial_max_bound: (-100, 100),
-		//			spot_price: 5 * DOLLARS,
-		//		},
-		//		estate: EstateConfig {
-		//			minting_rate_config: metaverse_land_minting_config(),
-		//		},
+		continuum: ContinuumConfig {
+			initial_active_session: Default::default(),
+			initial_auction_rate: 5,
+			initial_max_bound: (-100, 100),
+			spot_price: 5 * DOLLARS,
+		},
+		estate: EstateConfig {
+			minting_rate_config: metaverse_land_minting_config(),
+		},
 	}
 }
 
@@ -201,7 +204,6 @@ fn testnet_genesis(
 			code: pioneer_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
-			changes_trie_config: Default::default(),
 		},
 		balances: pioneer_runtime::BalancesConfig {
 			balances: endowed_accounts
@@ -210,7 +212,9 @@ fn testnet_genesis(
 				.map(|k| (k, 250 * KILODOLLARS))
 				.collect(),
 		},
-		sudo: pioneer_runtime::SudoConfig { key: root_key },
+		sudo: pioneer_runtime::SudoConfig {
+			key: Some(root_key.clone()),
+		},
 		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -233,15 +237,15 @@ fn testnet_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-		//		continuum: ContinuumConfig {
-		//			initial_active_session: Default::default(),
-		//			initial_auction_rate: 5,
-		//			initial_max_bound: (-100, 100),
-		//			spot_price: 5 * DOLLARS,
-		//		},
-		//		estate: EstateConfig {
-		//			minting_rate_config: metaverse_land_minting_config(),
-		//		},
+		continuum: ContinuumConfig {
+			initial_active_session: Default::default(),
+			initial_auction_rate: 5,
+			initial_max_bound: (-100, 100),
+			spot_price: 5 * DOLLARS,
+		},
+		estate: EstateConfig {
+			minting_rate_config: metaverse_land_minting_config(),
+		},
 	}
 }
 
@@ -260,13 +264,7 @@ pub fn pioneer_properties() -> Properties {
 	let mut token_decimals: Vec<u32> = vec![];
 
 	token_symbol.push("NEER".into());
-	token_symbol.push("KSM".into());
-	token_symbol.push("KAR".into());
-	token_symbol.push("KUSD".into());
 	token_decimals.push(18 as u32);
-	token_decimals.push(12 as u32);
-	token_decimals.push(12 as u32);
-	token_decimals.push(12 as u32);
 
 	properties.insert("tokenSymbol".into(), token_symbol.into());
 	properties.insert("tokenDecimals".into(), token_decimals.into());

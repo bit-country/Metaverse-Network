@@ -1,21 +1,25 @@
 #![cfg(test)]
 
-use super::*;
-use crate as governance;
 use codec::Encode;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
-use scale_info::TypeInfo;
-
 use frame_support::dispatch::DispatchError;
+use frame_support::traits::{EqualPrivilegeOnly, Nothing};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use metaverse_primitive::{MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseTrait};
-use primitives::FungibleTokenId;
+use orml_traits::parameter_type_with_key;
+use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, Hash, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
 };
+
+use metaverse_primitive::{MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseTrait};
+use primitives::{Amount, FungibleTokenId};
+
+use crate as governance;
+
+use super::*;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -32,15 +36,27 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const ALICE_COUNTRY_ID: CountryId = 1;
 pub const BOB_COUNTRY_ID: CountryId = 2;
+pub const PROPOSAL_BLOCK: BlockNumber = 12;
 pub const PROPOSAL_DESCRIPTION: [u8; 2] = [1, 2];
-//pub const PROPOSAL_PARAMETER: MetaverseParameter =
-// MetaverseParameter::MaxParametersPerProposal(2);
 pub const REFERENDUM_PARAMETERS: ReferendumParameters<BlockNumber> = ReferendumParameters {
 	voting_threshold: Some(VoteThreshold::RelativeMajority),
 	min_proposal_launch_period: 12,
 	voting_period: 5,
 	enactment_period: 10,
-	max_proposals_per_metaverse: 1,
+	local_vote_locking_period: 30,
+	max_proposals_per_metaverse: 10,
+};
+
+pub const VOTE_FOR: Vote<Balance> = Vote {
+	aye: true,
+	balance: 10,
+	conviction: Conviction::None,
+};
+
+pub const VOTE_AGAINST: Vote<Balance> = Vote {
+	aye: false,
+	balance: 10,
+	conviction: Conviction::None,
 };
 
 impl frame_system::Config for Runtime {
@@ -67,6 +83,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
@@ -94,8 +111,11 @@ impl pallet_scheduler::Config for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
+	type PreimageProvider = ();
+	type NoPreimagePostponement = ();
 }
 
 pub struct MetaverseInfo {}
@@ -139,11 +159,12 @@ impl MetaverseLandTrait<AccountId> for MetaverseLandInfo {
 }
 
 parameter_types! {
-	pub const DefaultVotingPeriod: BlockNumber = 10;
-	pub const DefaultEnactmentPeriod: BlockNumber = 2;
-	pub const DefaultProposalLaunchPeriod: BlockNumber = 15;
+	pub const DefaultVotingPeriod: u32 = 10;
+	pub const DefaultEnactmentPeriod: u32 = 2;
+	pub const DefaultProposalLaunchPeriod: u32 = 15;
 	pub const DefaultMaxParametersPerProposal: u8 = 3;
-	pub const DefaultMaxProposalsPerMetaverse: u8 = 2;
+	pub const DefaultLocalVoteLockingPeriod: u32 = 10;
+	pub const DefaultMaxProposalsPerMetaverse: u8 = 20;
 	pub const OneBlock: BlockNumber = 1;
 	pub const MinimumProposalDeposit: Balance = 50;
 	pub const DefaultPreimageByteDeposit: Balance = 1;
@@ -158,15 +179,20 @@ parameter_types! {
 	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
 	pub const MinContribution: Balance = 1;
+	pub const MaxNumberOfStakersPerMetaverse: u32 = 512;
 }
 
 impl pallet_metaverse::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type MultiCurrency = Currencies;
 	type MetaverseTreasury = MetaverseFundPalletId;
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+	type MetaverseRegistrationDeposit = MinContribution;
+	type MinStakingAmount = MinContribution;
+	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type WeightInfo = ();
 }
 
@@ -195,16 +221,17 @@ impl InstanceFilter<Call> for ProposalType {
 }
 
 impl Config for Runtime {
-	type Event = Event;
 	type DefaultVotingPeriod = DefaultVotingPeriod;
 	type DefaultEnactmentPeriod = DefaultEnactmentPeriod;
 	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
-	type DefaultMaxParametersPerProposal = DefaultMaxParametersPerProposal;
 	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
+	type DefaultLocalVoteLockingPeriod = DefaultLocalVoteLockingPeriod;
+	type Event = Event;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
 	type Currency = Balances;
+	type Slash = ();
 	type MetaverseInfo = MetaverseInfo;
 	type PalletsOrigin = OriginCaller;
 	type Proposal = Call;
@@ -212,6 +239,43 @@ impl Config for Runtime {
 	type MetaverseLandInfo = MetaverseLandInfo;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 	type ProposalType = ProposalType;
+}
+
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
+		Default::default()
+	};
+}
+
+parameter_types! {
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
+}
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = FungibleTokenId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = Nothing;
+}
+
+pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
+parameter_types! {
+	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl currencies::Config for Runtime {
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 pub type GovernanceModule = Pallet<Runtime>;
@@ -229,6 +293,8 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Metaverse: pallet_metaverse::{Pallet, Call ,Storage, Event<T>}
 	}
 );
@@ -312,7 +378,7 @@ pub fn add_preimage(hash: H256) {
 		/// None if it's not imminent.
 		expiry: Some(150),
 	};
-	Preimages::<Runtime>::insert(hash, preimage_status);
+	Preimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
 }
 
 pub fn add_freeze_metaverse_preimage(hash: H256) {
@@ -324,7 +390,19 @@ pub fn add_freeze_metaverse_preimage(hash: H256) {
 		/// None if it's not imminent.
 		expiry: Some(150),
 	};
-	Preimages::<Runtime>::insert(hash, preimage_status);
+	Preimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
+}
+
+pub fn add_freeze_metaverse_preimage_alice(hash: H256) {
+	let preimage_status = PreimageStatus::Available {
+		data: set_freeze_metaverse_proposal(1),
+		provider: ALICE,
+		deposit: 200,
+		since: 1,
+		/// None if it's not imminent.
+		expiry: Some(150),
+	};
+	Preimages::<Runtime>::insert(ALICE_COUNTRY_ID, hash, preimage_status);
 }
 
 pub fn add_metaverse_preimage(hash: H256) {
@@ -336,5 +414,15 @@ pub fn add_metaverse_preimage(hash: H256) {
 		/// None if it's not imminent.
 		expiry: Some(150),
 	};
-	Preimages::<Runtime>::insert(hash, preimage_status);
+	Preimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
+}
+
+pub fn add_out_of_scope_proposal(preimage_hash: H256) {
+	let proposal_info = ProposalInfo {
+		proposed_by: ALICE,
+		hash: preimage_hash,
+		title: PROPOSAL_DESCRIPTION.to_vec(),
+		referendum_launch_block: PROPOSAL_BLOCK,
+	};
+	Proposals::<Runtime>::insert(BOB_COUNTRY_ID, 0, proposal_info);
 }
