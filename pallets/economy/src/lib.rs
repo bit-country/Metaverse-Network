@@ -17,6 +17,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use std::ops::Mul;
+
 use codec::{Decode, Encode, HasCompact};
 use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
@@ -27,6 +29,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
+use sp_runtime::traits::{CheckedAdd, CheckedMul, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	ArithmeticError, DispatchError, Perbill,
@@ -127,15 +130,17 @@ pub mod pallet {
 	pub type ElementBalance<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, ElementId, u64, ValueQuery>;
 
+	/// Authorize power generator collection with associated commission
 	#[pallet::storage]
 	#[pallet::getter(fn get_authorized_generator_collection)]
 	pub type AuthorizedGeneratorCollection<T: Config> =
-		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassId), (), OptionQuery>;
+		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassId), Perbill, OptionQuery>;
 
+	/// Authorize power generator collection with associated commission
 	#[pallet::storage]
 	#[pallet::getter(fn get_authorized_distributor_collection)]
 	pub type AuthorizedDistributorCollection<T: Config> =
-		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassId), (), OptionQuery>;
+		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassId), Perbill, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
@@ -182,6 +187,7 @@ pub mod pallet {
 		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
 		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, (ClassId, TokenId)),
 		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		BuyPowerOrderByGeneratorToNetworkExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
 		ElementMinted(T::AccountId, u32, u64),
 		MiningResourceBurned(Balance),
 		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
@@ -215,6 +221,7 @@ pub mod pallet {
 		PowerDistributionQueueDoesNotExist,
 		PowerGenerationQueueDoesNotExist,
 		PowerGenerationIsNotAuthorized,
+		PowerDistributorIsNotAuthorized,
 		// Not enough free balance for staking
 		InsufficientBalanceForStaking,
 		// Unstake amount greater than staked amount
@@ -274,6 +281,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: GroupCollectionId,
 			class_id: ClassId,
+			commission: Perbill,
 		) -> DispatchResultWithPostInfo {
 			// Only root can authorize
 			ensure_root(origin)?;
@@ -290,7 +298,7 @@ pub mod pallet {
 				Error::<T>::CollectionIdDoesNotMatchNFTCollectionId
 			);
 
-			AuthorizedGeneratorCollection::<T>::insert((collection_id, &class_id), ());
+			AuthorizedGeneratorCollection::<T>::insert((collection_id, &class_id), commission);
 
 			Self::deposit_event(Event::<T>::PowerGeneratorCollectionAuthorized(
 				collection_id,
@@ -307,6 +315,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			collection_id: GroupCollectionId,
 			class_id: ClassId,
+			commission: Perbill,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -322,7 +331,7 @@ pub mod pallet {
 				Error::<T>::CollectionIdDoesNotMatchNFTCollectionId
 			);
 
-			AuthorizedDistributorCollection::<T>::insert((collection_id, &class_id), ());
+			AuthorizedDistributorCollection::<T>::insert((collection_id, &class_id), commission);
 
 			Self::deposit_event(Event::<T>::PowerDistributorCollectionAuthorized(
 				collection_id,
@@ -358,8 +367,11 @@ pub mod pallet {
 				Error::<T>::NoPermissionToBuyPower
 			);
 
+			let commission = Self::get_authorized_distributor_collection((group_distributor_nft, distributor_nft_id.0))
+				.ok_or(Error::<T>::PowerDistributorIsNotAuthorized)?;
+
 			// Convert to bit by using global exchange rate
-			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
+			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into(), commission);
 
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
@@ -484,8 +496,12 @@ pub mod pallet {
 				Error::<T>::PowerGenerationIsNotAuthorized
 			);
 
+			let commission =
+				Self::get_authorized_generator_collection((group_generator_nft_detail, generator_nft_id.0))
+					.ok_or(Error::<T>::PowerGenerationIsNotAuthorized)?;
+
 			// Convert to bit by using global exchange rate
-			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into());
+			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into(), commission);
 
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(
@@ -704,6 +720,61 @@ pub mod pallet {
 
 			Ok(().into())
 		}
+
+		/// Get more power from the network from specific generator NFT
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn get_more_power_by_generator(
+			origin: OriginFor<T>,
+			generator_nft_id: (ClassId, TokenId),
+			power_amount: PowerAmount,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Get distributor NFT account id
+			let generator_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);
+
+			// Ensure get power by generator only called by generator nft owner
+			// Check nft is part of generator collection
+			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&generator_nft_id.0)?;
+			// Ensure generator NFT is authorized
+			ensure!(
+				AuthorizedGeneratorCollection::<T>::contains_key((group_generator_nft_detail, generator_nft_id.0)),
+				Error::<T>::PowerGenerationIsNotAuthorized
+			);
+
+			// Check if origin is the owner of the Distributor NFT
+			ensure!(
+				T::NFTHandler::check_nft_ownership(&who, &generator_nft_id)?,
+				Error::<T>::NoPermissionToBuyPower
+			);
+
+			// Convert to bit by using global exchange rate
+			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into(), Perbill::zero());
+
+			ensure!(
+				T::FungibleTokenCurrency::can_reserve(
+					T::MiningCurrencyId::get(),
+					&generator_nft_account_id,
+					bit_amount
+				),
+				Error::<T>::InsufficientBalanceToBuyPower
+			);
+
+			// Burn BIT
+			T::FungibleTokenCurrency::withdraw(T::MiningCurrencyId::get(), &generator_nft_account_id, bit_amount);
+
+			// Update Power Balance
+			Self::distribute_power_by_network(power_amount.into(), &generator_nft_account_id);
+
+			Self::deposit_event(Event::<T>::BuyPowerOrderByGeneratorToNetworkExecuted(
+				generator_nft_account_id.clone(),
+				power_amount,
+				generator_nft_id,
+			));
+
+			Ok(().into())
+		}
 	}
 }
 
@@ -712,11 +783,15 @@ impl<T: Config> Pallet<T> {
 		T::EconomyTreasury::get().into_account()
 	}
 
-	fn convert_power_to_bit(power_amount: Balance) -> Balance {
+	pub fn convert_power_to_bit(power_amount: Balance, commission: Perbill) -> Balance {
 		let rate = Self::get_bit_power_exchange_rate();
 
-		let bit_required = power_amount.checked_mul(rate).ok_or(ArithmeticError::Overflow).unwrap();
-		bit_required
+		let mut bit_required = power_amount
+			.checked_mul(rate)
+			.ok_or(ArithmeticError::Overflow)
+			.unwrap_or(Zero::zero());
+		let commission_fee = commission * bit_required;
+		bit_required + commission_fee
 	}
 
 	fn do_burn(who: &T::AccountId, amount: Balance) -> DispatchResult {
@@ -765,7 +840,6 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	// TODO: merge to distribute?
 	fn generate_power_by_operator(
 		power_amount: PowerAmount,
 		beneficiary: &T::AccountId,
@@ -796,6 +870,17 @@ impl<T: Config> Pallet<T> {
 			power_amount,
 			generator_nft_id,
 		));
+
+		Ok(())
+	}
+
+	fn distribute_power_by_network(power_amount: PowerAmount, beneficiary: &T::AccountId) -> DispatchResult {
+		let mut distributor_power_balance = PowerBalance::<T>::get(beneficiary);
+		distributor_power_balance = distributor_power_balance
+			.checked_add(power_amount)
+			.ok_or(ArithmeticError::Overflow)?;
+
+		PowerBalance::<T>::insert(beneficiary.clone(), power_amount);
 
 		Ok(())
 	}

@@ -20,27 +20,28 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use super::*;
-use sp_std::prelude::*;
-use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
-
-#[allow(unused)]
-pub use crate::Pallet as AuctionModule;
-// use pallet_estate::Pallet as EstateModule;
-// use pallet_metaverse::Pallet as MetaverseModule;
-use pallet_nft::Pallet as NFTModule;
-use pallet_nft::{Attributes, CollectionType, TokenType};
-
-use crate::{Call, Config};
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
-use primitives::Balance;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_std::prelude::*;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
+
 // use orml_traits::BasicCurrencyExtended;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseTrait};
+use pallet_nft::{Attributes, CollectionType, TokenType};
+// use pallet_estate::Pallet as EstateModule;
+// use pallet_metaverse::Pallet as MetaverseModule;
+use pallet_nft::Pallet as NFTModule;
+use primitives::Balance;
 use primitives::{FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
+
+#[allow(unused)]
+pub use crate::Pallet as AuctionModule;
+use crate::{Call, Config};
+
+use super::*;
 
 pub type AccountId = u128;
 pub type LandId = u64;
@@ -162,49 +163,6 @@ benchmarks! {
 
 		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
-
-	// create_new_auction at local metaverse level
-	// create_new_auction{
-	// 	frame_system::Pallet::<T>::set_block_number(1u32.into());
-	// 	// <T as pallet::Config>::MetaverseInfoSource = MetaverseInfoSource;
-	// 	// <T as pallet::Config>::MetaverseInfoSource::update_metaverse_token(METAVERSE_ID, FungibleTokenId::NativeToken(0u32.into()));
-	//
-	// 	let caller = funded_account::<T>("caller", 0);
-	//
-	//	// TODO: need to set local currency
-	//	// MetaverseModule::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
-	// 	// T::MetaverseInfoSource::update_metaverse_token(METAVERSE_ID, 0u32.into());
-	//
-	// 	mint_NFT::<T>(caller.clone());
-	// }: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID))
-
-	// bid_local
-	// bid_local{
-	// 	frame_system::Pallet::<T>::set_block_number(1u32.into());
-	//
-	// 	let caller = funded_account::<T>("caller", 0);
-	// 	let bidder = funded_account::<T>("bidder", 0);
-	// 	mint_NFT::<T>(caller.clone());
-	//
-	// 	// TODO: need to set local currency and FungibleTokenCurrency balance
-	// 	// 	<T as pallet::Config>::FungibleTokenCurrency::reserve( FungibleTokenId::FungibleToken(0u32.into()), &caller, initial_balance.unique_saturated_into());
-	//
-	// 	crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID));
-	// }: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), METAVERSE_ID, 10u32.into())
-	//
-	// // buy_now_local
-	// buy_now_local{
-	// 	frame_system::Pallet::<T>::set_block_number(1u32.into());
-	//
-	// 	let caller = funded_account::<T>("caller", 0);
-	// 	let bidder = funded_account::<T>("bidder", 0);
-	// 	mint_NFT::<T>(caller.clone());
-	//
-	// // TODO: need to set local currency and FungibleTokenCurrency balance
-	// // 	<T as pallet::Config>::FungibleTokenCurrency::reserve( FungibleTokenId::FungibleToken(0u32.into()), &caller, initial_balance.unique_saturated_into());
-	//
-	// 	crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 1u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID));
-	// }: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), METAVERSE_ID, 100u32.into())
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);
