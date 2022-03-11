@@ -183,10 +183,8 @@
   },
   "VoteThreshold": {
     "_enum": [
-      "StandardQualifiedMajority",
-      "TwoThirdsSupermajority",
-      "ThreeFifthsSupermajority",
-      "ReinforcedQualifiedMajority",
+      "SuperMajorityApprove",
+      "SuperMajorityAgainst",
       "RelativeMajority"
     ]
   },
@@ -203,18 +201,38 @@
     "min_proposal_launch_period": "BlockNumber",
     "voting_period": "BlockNumber",
     "enactment_period": "BlockNumber",
-    "max_proposals_per_country": "u8"
+    "local_vote_locking_period": "BlockNumber",
+    "max_proposals_per_metaverse": "u8"
+  },
+  "Delegations": {
+    "votes": "Balance",
+    "capital": "Balance"
+  },
+  "Conviction": {
+    "_enum": [
+      "None",
+      "Locked1x",
+      "Locked2x",
+      "Locked3x",
+      "Locked4x",
+      "Locked5x",
+      "Locked6x"
+    ]
   },
   "Vote": {
-    "aye": "bool"
+    "aye": "bool",
+    "balance": "Balance",
+    "conviction": "Conviction"
   },
   "Tally": {
-    "ayes": "u32",
-    "nays": "u32",
-    "turnout": "u32"
+    "ayes": "Balance",
+    "nays": "Balance",
+    "turnout": "Balance"
   },
+  "PriorLock": "(BlockNumber, Balance)",
   "VotingRecord": {
-    "votes": "Vec<(ReferendumId,Vote)>"
+    "votes": "Vec<(ReferendumId,Vote<Balance>)>",
+    "prior": "PriorLock<BlockNumber, Balance>"
   },
   "ProposalInfo": {
     "proposed_by": "AccountId",
@@ -225,13 +243,13 @@
   "ReferendumStatus": {
     "end": "BlockNumber",
     "metaverse": "MetaverseId",
-    "proposal": "ProposalId",
-    "tally": "Tally",
+    "proposal_hash": "Hash",
+    "tally": "Tally<Balance>",
     "threshold": "Option<VoteThreshold>"
   },
   "ReferendumInfo": {
     "_enum": {
-      "Ongoing": "ReferendumStatus",
+      "Ongoing": "ReferendumStatus<BlockNumber,Balance, Hash>",
       "Finished": {
         "passed": "bool",
         "end": "BlockNumber"

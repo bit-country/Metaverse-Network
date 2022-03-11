@@ -19,6 +19,9 @@
 
 use codec::{Decode, Encode, HasCompact, MaxEncodedLen};
 use scale_info::TypeInfo;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
+use sp_runtime::traits::AtLeast32Bit;
 use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
@@ -27,13 +30,10 @@ use sp_runtime::{
 	MultiSignature,
 };
 
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-use sp_runtime::traits::AtLeast32Bit;
-
 pub mod continuum;
 pub mod dex;
 pub mod estate;
+pub mod staking;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -65,7 +65,7 @@ pub type Hash = sp_core::H256;
 /// time scale is milliseconds.
 pub type Timestamp = u64;
 /// Digest item type.
-pub type DigestItem = generic::DigestItem<Hash>;
+pub type DigestItem = generic::DigestItem;
 /// Header type.
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 /// Block type.
@@ -82,6 +82,10 @@ pub type CurrencyId = u32;
 pub type GroupCollectionId = u64;
 /// AssetId for all NFT and FT
 pub type AssetId = u64;
+/// Collection Id of NFT
+pub type ClassId = u32;
+/// Nft Id of NFT
+pub type NftId = u64;
 /// AuctionId
 pub type AuctionId = u64;
 /// SpotId
@@ -98,6 +102,17 @@ pub type EstateId = u64;
 pub type TokenId = u64;
 /// Undeployed LandBlock Id type
 pub type UndeployedLandBlockId = u128;
+/// Staking Round index
+pub type RoundIndex = u32;
+
+/// Domain Id
+pub type DomainId = u32;
+
+/// Element Id
+pub type ElementId = u32;
+
+/// Mining Power Amount
+pub type PowerAmount = u64;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -165,33 +180,35 @@ impl FungibleTokenId {
 /// App-specific crypto used for reporting equivocation/misbehavior in BABE and
 /// GRANDPA. Any rewards for misbehavior reporting will be paid out to this
 /// account.
-pub mod report {
-	use super::{Signature, Verify};
-	use frame_system::offchain::AppCrypto;
-	use sp_core::crypto::{key_types, KeyTypeId};
-
-	/// Key type for the reporting module. Used for reporting BABE and GRANDPA
-	/// equivocations.
-	pub const KEY_TYPE: KeyTypeId = key_types::REPORTING;
-
-	mod app {
-		use sp_application_crypto::{app_crypto, sr25519};
-		app_crypto!(sr25519, super::KEY_TYPE);
-	}
-
-	/// Identity of the equivocation/misbehavior reporter.
-	pub type ReporterId = app::Public;
-
-	/// An `AppCrypto` type to allow submitting signed transactions using the reporting
-	/// application key as signer.
-	pub struct ReporterAppCrypto;
-
-	impl AppCrypto<<Signature as Verify>::Signer, Signature> for ReporterAppCrypto {
-		type RuntimeAppPublic = ReporterId;
-		type GenericSignature = sp_core::sr25519::Signature;
-		type GenericPublic = sp_core::sr25519::Public;
-	}
-}
+//pub mod report {
+//	use frame_system::offchain::AppCrypto;
+//	use sp_core::crypto::{key_types, KeyTypeId};
+//
+//	use super::{Signature, Verify};
+//
+//	/// Key type for the reporting module. Used for reporting BABE and GRANDPA
+//	/// equivocations.
+//	pub const KEY_TYPE: KeyTypeId = key_types::REPORTING;
+//
+//	mod app {
+//		use sp_application_crypto::{app_crypto, sr25519};
+//
+//		app_crypto!(sr25519, super::KEY_TYPE);
+//	}
+//
+//	/// Identity of the equivocation/misbehavior reporter.
+//	pub type ReporterId = app::Public;
+//
+//	/// An `AppCrypto` type to allow submitting signed transactions using the reporting
+//	/// application key as signer.
+//	pub struct ReporterAppCrypto;
+//
+//	impl AppCrypto<<Signature as Verify>::Signer, Signature> for ReporterAppCrypto {
+//		type RuntimeAppPublic = ReporterId;
+//		type GenericSignature = sp_core::sr25519::Signature;
+//		type GenericPublic = sp_core::sr25519::Public;
+//	}
+//}
 
 /// The vesting schedule.
 ///

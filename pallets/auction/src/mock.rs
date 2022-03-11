@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use frame_support::traits::Nothing;
+use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
@@ -9,7 +9,7 @@ use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use bc_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseTrait};
 use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
 
 use crate as auction;
@@ -63,6 +63,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -186,6 +187,7 @@ parameter_types! {
 	pub const MinimumAuctionDuration: u64 = 10;
 	// Test 1% loyalty fee
 	pub const RoyaltyFee: u16 = 100;
+	pub const MaxFinality: u32 = 100;
 }
 
 pub struct MetaverseInfoSource {}
@@ -223,6 +225,7 @@ impl Config for Runtime {
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
 	type RoyaltyFee = RoyaltyFee;
+	type MaxFinality = MaxFinality;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -249,8 +252,11 @@ impl pallet_scheduler::Config for Runtime {
 	type Call = Call;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
+	type PreimageProvider = ();
+	type NoPreimagePostponement = ();
 }
 
 parameter_types! {

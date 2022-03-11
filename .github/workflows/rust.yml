@@ -34,6 +34,8 @@ jobs:
 
       - name: Check Rust version
         run: rustup show
+      - name: Check Format
+        run: cargo fmt --all -- --check
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release

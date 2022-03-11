@@ -17,10 +17,12 @@
 
 #![cfg(test)]
 
-use super::*;
 use frame_support::{assert_err, assert_noop, assert_ok};
-use mock::{Event, *};
 use sp_runtime::traits::BadOrigin;
+
+use mock::{Event, *};
+
+use super::*;
 
 #[test]
 fn set_max_bound_should_reject_non_root() {
@@ -108,7 +110,7 @@ fn mint_land_should_work_have_correct_owner() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 
-		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), 0);
+		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), None);
 
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
@@ -130,7 +132,7 @@ fn mint_land_should_work_have_correct_owner() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 	});
 }
@@ -351,7 +353,7 @@ fn transfer_land_should_work() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 
 		assert_ok!(EstateModule::transfer_land(
@@ -360,6 +362,8 @@ fn transfer_land_should_work() {
 			METAVERSE_ID,
 			COORDINATE_IN_1
 		));
+
+		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(ALICE));
 
 		assert_eq!(
 			last_event(),
@@ -387,7 +391,7 @@ fn transfer_land_should_reject_no_permission() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 
 		assert_noop!(
@@ -411,7 +415,7 @@ fn transfer_land_should_do_fail_for_same_account() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 
 		assert_noop!(
@@ -426,7 +430,7 @@ fn transfer_land_should_do_fail_for_same_account() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			BENEFICIARY_ID
+			Some(BENEFICIARY_ID)
 		);
 	});
 }
@@ -496,9 +500,13 @@ fn dissolve_estate_should_work() {
 		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
+
 		assert_eq!(
 			EstateModule::get_estates(estate_id),
-			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 		assert_eq!(
@@ -507,11 +515,7 @@ fn dissolve_estate_should_work() {
 		);
 
 		// Destroy estate
-		assert_ok!(EstateModule::dissolve_estate(
-			Origin::signed(BENEFICIARY_ID),
-			estate_id,
-			METAVERSE_ID,
-		));
+		assert_ok!(EstateModule::dissolve_estate(Origin::signed(BENEFICIARY_ID), estate_id,));
 
 		assert_eq!(EstateModule::all_estates_count(), 0);
 		assert_eq!(EstateModule::get_estates(estate_id), None);
@@ -537,7 +541,7 @@ fn dissolve_estate_should_reject_non_owner() {
 		));
 
 		assert_err!(
-			EstateModule::dissolve_estate(Origin::signed(ALICE), 0, METAVERSE_ID),
+			EstateModule::dissolve_estate(Origin::signed(ALICE), 0),
 			Error::<Runtime>::NoPermission
 		);
 	});
@@ -557,7 +561,7 @@ fn add_land_unit_to_estate_should_reject_non_owner() {
 		));
 
 		assert_err!(
-			EstateModule::add_land_unit_to_estate(Origin::signed(ALICE), 0, METAVERSE_ID, vec![COORDINATE_IN_2]),
+			EstateModule::add_land_unit_to_estate(Origin::signed(ALICE), 0, vec![COORDINATE_IN_2]),
 			Error::<Runtime>::NoPermission
 		);
 	});
@@ -579,7 +583,13 @@ fn add_land_unit_to_estate_should_work() {
 		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
 		assert_eq!(EstateModule::next_estate_id(), 1);
-		assert_eq!(EstateModule::get_estates(estate_id), Some(vec![COORDINATE_IN_1])); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		assert_eq!(
+			EstateModule::get_estates(estate_id),
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1]
+			})
+		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
@@ -597,13 +607,15 @@ fn add_land_unit_to_estate_should_work() {
 		assert_ok!(EstateModule::add_land_unit_to_estate(
 			Origin::signed(BENEFICIARY_ID),
 			estate_id,
-			METAVERSE_ID,
 			vec![COORDINATE_IN_2]
 		));
 
 		assert_eq!(
 			EstateModule::get_estates(estate_id),
-			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
 		);
 
 		assert_eq!(
@@ -628,7 +640,7 @@ fn remove_land_unit_from_estate_should_reject_non_owner() {
 		));
 
 		assert_err!(
-			EstateModule::remove_land_unit_from_estate(Origin::signed(ALICE), 0, METAVERSE_ID, vec![COORDINATE_IN_2]),
+			EstateModule::remove_land_unit_from_estate(Origin::signed(ALICE), 0, vec![COORDINATE_IN_2]),
 			Error::<Runtime>::NoPermission
 		);
 	});
@@ -652,7 +664,10 @@ fn remove_land_unit_from_estate_should_work() {
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
 			EstateModule::get_estates(estate_id),
-			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 		assert_eq!(
@@ -665,12 +680,16 @@ fn remove_land_unit_from_estate_should_work() {
 		assert_ok!(EstateModule::remove_land_unit_from_estate(
 			Origin::signed(BENEFICIARY_ID),
 			estate_id,
-			METAVERSE_ID,
 			vec![COORDINATE_IN_2]
 		));
 
-		assert_eq!(EstateModule::get_estates(estate_id), Some(vec![COORDINATE_IN_1]));
-
+		assert_eq!(
+			EstateModule::get_estates(estate_id),
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1]
+			})
+		);
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
@@ -695,8 +714,11 @@ fn mint_estate_and_land_should_return_correct_total_land_unit() {
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
 			EstateModule::get_estates(estate_id),
-			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
-		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
+		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
@@ -732,7 +754,10 @@ fn mint_estate_should_return_none_for_non_exist_estate() {
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
 			EstateModule::get_estates(estate_id),
-			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 
@@ -885,8 +910,11 @@ fn create_estate_should_work() {
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
 			EstateModule::get_estates(estate_id),
-			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
-		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
+		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 	});
 }
@@ -915,7 +943,10 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 		assert_eq!(EstateModule::next_estate_id(), 1);
 		assert_eq!(
 			EstateModule::get_estates(estate_id),
-			Some(vec![COORDINATE_IN_1, COORDINATE_IN_2])
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
 

@@ -1,15 +1,18 @@
 #![cfg(test)]
 
-use super::*;
-use crate as swap;
-use currencies::BasicCurrencyAdapter;
 use frame_support::pallet_prelude::GenesisBuild;
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, parameter_types, PalletId};
 use orml_traits::parameter_type_with_key;
-use primitives::Amount;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
+
+use currencies::BasicCurrencyAdapter;
+use primitives::Amount;
+
+use crate as swap;
+
+use super::*;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
@@ -60,6 +63,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {

@@ -20,14 +20,11 @@
 
 //! Service implementation. Specialized wrapper over substrate service.
 
-#[cfg(feature = "with-tewai-runtime")]
-use crate::rpc::rpc_tewai::*;
-use futures::prelude::*;
+use std::sync::Arc;
 
-use primitives::Block;
+use futures::prelude::*;
 use sc_client_api::{ExecutorProvider, RemoteBackend};
 use sc_consensus_babe::{self, SlotProportion};
-use tewai_runtime::RuntimeApi;
 //use sc_executor::native_executor_instance;
 use sc_executor::NativeElseWasmExecutor;
 use sc_finality_grandpa as grandpa;
@@ -35,7 +32,12 @@ use sc_network::{Event, NetworkService};
 use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_runtime::traits::Block as BlockT;
-use std::sync::Arc;
+use tewai_runtime::RuntimeApi;
+
+use primitives::Block;
+
+#[cfg(feature = "with-tewai-runtime")]
+use crate::rpc::rpc_tewai::*;
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -582,8 +584,6 @@ pub fn new_light_base(
 	let rpc_extensions = create_light(light_deps);
 
 	let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		on_demand: Some(on_demand),
-		remote_blockchain: Some(backend.remote_blockchain()),
 		rpc_extensions_builder: Box::new(sc_service::NoopRpcExtensionBuilder(rpc_extensions)),
 		client: client.clone(),
 		transaction_pool: transaction_pool.clone(),
@@ -607,7 +607,8 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 #[cfg(test)]
 mod tests {
-	use crate::service::{new_full_base, new_light_base, NewFullBase};
+	use std::{borrow::Cow, convert::TryInto, sync::Arc};
+
 	use codec::Encode;
 	use node_primitives::{Block, DigestItem, Signature};
 	use sc_client_api::BlockBackend;
@@ -615,12 +616,10 @@ mod tests {
 	use sc_consensus_babe::{BabeIntermediate, CompatibleDigestItem, INTERMEDIATE_KEY};
 	use sc_consensus_epochs::descendent_query;
 	use sc_keystore::LocalKeystore;
-	use sc_service_test::TestNetNode;
 	use sc_transaction_pool_api::{ChainEvent, MaintainedTransactionPool};
 	use sp_consensus::{BlockOrigin, Environment, Proposer};
 	use sp_core::{crypto::Pair as CryptoPair, Public, H256};
 	use sp_inherents::InherentDataProvider;
-	use sp_keyring::AccountKeyring;
 	use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 	use sp_runtime::{
 		generic::{BlockId, Digest, Era, SignedPayload},
@@ -629,11 +628,15 @@ mod tests {
 		RuntimeAppPublic,
 	};
 	use sp_timestamp;
-	use std::{borrow::Cow, convert::TryInto, sync::Arc};
 	use tewai_runtime::{
 		constants::{currency::CENTS, time::SLOT_DURATION},
 		Address, BalancesCall, Call, UncheckedExtrinsic,
 	};
+
+	use sc_service_test::TestNetNode;
+	use sp_keyring::AccountKeyring;
+
+	use crate::service::{new_full_base, new_light_base, NewFullBase};
 
 	type AccountPublic = <Signature as Verify>::Signer;
 

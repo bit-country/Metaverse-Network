@@ -1,11 +1,18 @@
 #![cfg(test)]
 
-use super::*;
-use crate as metaverse;
+use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
+use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+
+use primitives::staking::RoundInfo;
+use primitives::Amount;
+
+use crate as metaverse;
+
+use super::*;
 
 pub type AccountId = u128;
 pub type Balance = u64;
@@ -14,8 +21,11 @@ pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const FREEDY: AccountId = 3;
 pub const METAVERSE_ID: MetaverseId = 0;
 pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
+
+pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 
 // Configure a mock runtime to test the pallet.
 
@@ -49,6 +59,7 @@ impl frame_system::Config for Runtime {
 	type SystemWeightInfo = ();
 	type SS58Prefix = ();
 	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -71,6 +82,8 @@ parameter_types! {
 	pub const MetaverseFundPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
 	pub const MinContribution: Balance = 1;
+	pub const MinStakingAmount: Balance = 100;
+	pub const MaxNumberOfStakersPerMetaverse: u32 = 1;
 }
 
 ord_parameter_types! {
@@ -81,11 +94,52 @@ ord_parameter_types! {
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type MultiCurrency = Currencies;
 	type MetaverseTreasury = MetaverseFundPalletId;
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
+	type MetaverseRegistrationDeposit = MinContribution;
+	type MinStakingAmount = MinStakingAmount;
+	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type WeightInfo = ();
+}
+
+parameter_type_with_key! {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
+		Default::default()
+	};
+}
+
+parameter_types! {
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
+}
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = FungibleTokenId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = Nothing;
+}
+
+pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
+parameter_types! {
+	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl currencies::Config for Runtime {
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = NativeCurrencyId;
 }
 
 pub type MetaverseModule = Pallet<Runtime>;
@@ -101,6 +155,8 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>},
 	}
 );
@@ -120,7 +176,13 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000)],
+			balances: vec![(ALICE, 10 * DOLLARS)],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		pallet_balances::GenesisConfig::<Runtime> {
+			balances: vec![(BOB, 20000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

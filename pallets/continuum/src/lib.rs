@@ -45,10 +45,13 @@
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode};
+#[cfg(feature = "std")]
+use frame_support::traits::GenesisBuild;
+use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::{ensure_root, ensure_signed};
-use primitives::{continuum::Continuum, ItemId, MetaverseId, SpotId};
 use scale_info::TypeInfo;
+use sp_runtime::traits::CheckedAdd;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	DispatchError, RuntimeDebug,
@@ -57,25 +60,19 @@ use sp_std::vec;
 use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use bc_primitives::MetaverseTrait;
-use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
-
-#[cfg(feature = "std")]
-use frame_support::traits::GenesisBuild;
+use core_primitives::MetaverseTrait;
+pub use pallet::*;
+use primitives::{continuum::Continuum, ItemId, MetaverseId, SpotId};
+pub use types::*;
+pub use vote::*;
 
 mod types;
 mod vote;
-
-pub use types::*;
-pub use vote::*;
 
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
 mod tests;
-
-pub use pallet::*;
-use sp_runtime::traits::CheckedAdd;
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum ContinuumAuctionSlotStatus {
@@ -107,10 +104,11 @@ pub struct AuctionSlot<BlockNumber, AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
 	use frame_support::traits::ExistenceRequirement;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::OriginFor;
+
+	use super::*;
 
 	pub(crate) type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -183,6 +181,7 @@ pub mod pallet {
 	}
 
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::hooks]
@@ -240,7 +239,7 @@ pub mod pallet {
 	/// All votes of a particular voter
 	#[pallet::storage]
 	#[pallet::getter(fn get_voting_info)]
-	pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Voting<T::AccountId>, ValueQuery>;
+	pub type VotingOf<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, Voting<T::AccountId>>;
 
 	/// Get max bound
 	#[pallet::storage]
@@ -603,15 +602,6 @@ impl<T: Config> Pallet<T> {
 			tallies: Default::default(),
 		};
 
-		for _i in 0..available_neighbors {
-			let initial_tally: ContinuumSpotTally<T::AccountId> = ContinuumSpotTally {
-				nays: One::one(),
-				who: Default::default(),
-				turnout: available_neighbors,
-			};
-			status.tallies.push(initial_tally);
-		}
-
 		let item: ReferendumInfo<T::AccountId, T::BlockNumber> = ReferendumInfo::Ongoing(status);
 		ReferendumInfoOf::<T>::insert(spot_id, item);
 		Self::deposit_event(Event::NewContinuumReferendumStarted(end, spot_id));
@@ -673,27 +663,39 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(is_neighbour, Error::<T>::NoPermission);
 
-		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
-			let votes = &mut voting.votes;
-			match votes.binary_search_by_key(&spot_id, |i| i.0) {
-				// Already voted
-				Ok(_i) => {}
-				Err(i) => {
-					// Haven't vote for this spot id
-					// Add votes under user
-					let new_vote: AccountVote<T::AccountId> = vote.clone();
-					let who = new_vote.vote_who();
-					votes.insert(i, (spot_id, vote.clone()));
+		VotingOf::<T>::try_mutate(who, |maybe_voting| -> DispatchResult {
+			match maybe_voting {
+				Some(voting) => {
+					let ref mut votes = voting.votes;
+					match votes.binary_search_by_key(&spot_id, |i| i.0) {
+						// Already voted
+						Ok(_i) => {}
+						Err(i) => {
+							// Haven't vote for this spot id
+							// Add votes under user
+							let new_vote: AccountVote<T::AccountId> = vote.clone();
+							let who = new_vote.vote_who();
+							votes.insert(i, (spot_id, vote.clone()));
 
-					// Find existing tally of bidder
-					for mut tally in status.tallies {
-						// Existing vote
-						if tally.who == who.who {
-							tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?
+							// Find existing tally of bidder
+							for mut tally in status.tallies {
+								// Existing vote
+								if tally.who == who.who {
+									tally.add(vote.clone()).ok_or(Error::<T>::TallyOverflow)?
+								}
+							}
 						}
 					}
 				}
+				None => {
+					// No voting exists
+					let mut new_vote: Vec<(SpotId, AccountVote<T::AccountId>)> = Vec::new();
+					new_vote.push((spot_id, vote.clone()));
+					let vote_o = Voting { votes: new_vote };
+					VotingOf::<T>::insert(who.clone(), vote_o);
+				}
 			}
+
 			Ok(())
 		})
 	}
