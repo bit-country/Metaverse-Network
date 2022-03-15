@@ -29,6 +29,7 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature,
 };
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 pub mod continuum;
 pub mod dex;
@@ -104,15 +105,16 @@ pub type TokenId = u64;
 pub type UndeployedLandBlockId = u128;
 /// Staking Round index
 pub type RoundIndex = u32;
-
 /// Domain Id
 pub type DomainId = u32;
-
 /// Element Id
 pub type ElementId = u32;
-
 /// Mining Power Amount
 pub type PowerAmount = u64;
+/// NFT Metadata
+pub type NftMetadata = Vec<u8>;
+/// NFT Attributes
+pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]

@@ -17,8 +17,6 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use std::ops::Mul;
-
 use codec::{Decode, Encode, HasCompact};
 use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
@@ -34,7 +32,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	ArithmeticError, DispatchError, Perbill,
 };
-use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
+use sp_std::{collections::btree_map::BTreeMap, ops::Mul, prelude::*, vec::Vec};
 
 use core_primitives::NFTTrait;
 use core_primitives::*;

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::DispatchError;
 use sp_runtime::{Perbill, RuntimeDebug};
 
-use crate::{EstateId, MetaverseId};
+use crate::{AssetId, EstateId, MetaverseId};
 
 pub trait Estate<AccountId> {
 	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId) -> Result<EstateId, DispatchError>;

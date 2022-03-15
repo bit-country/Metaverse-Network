@@ -9,7 +9,8 @@ use sp_std::vec::Vec;
 
 use primitives::staking::RoundInfo;
 use primitives::{
-	AssetId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType,
+	AssetId, Attributes, FungibleTokenId, GroupCollectionId, MetaverseId, NftMetadata, UndeployedLandBlockId,
+	UndeployedLandBlockType,
 };
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -102,6 +103,22 @@ pub trait NFTTrait<AccountId> {
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
 	) -> Result<bool, DispatchError>;
+	/// Mint land as NFT
+	fn mint_land_nft(
+		account: AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<AssetId, DispatchError>;
+	/// Mint estate as NFT
+	fn mint_estate_nft(
+		account: AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<AssetId, DispatchError>;
+	/// Transfer NFT
+	fn transfer_nft(from: &AccountId, to: &AccountId, asset_id: AssetId) -> Result<(), DispatchError>;
+	/// Burn NFT
+	fn burn_nft(account: AccountId, asset_id: AssetId) -> Result<(), DispatchError>;
 }
 
 pub trait RoundTrait<BlockNumber> {
