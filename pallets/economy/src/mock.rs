@@ -157,6 +157,7 @@ impl pallet_mining::Config for Runtime {
 ord_parameter_types! {
 	pub const One: AccountId = 1;
 	pub const Two: AccountId = 2;
+	pub const PowerAmountPerBlock: u32 = 1;
 }
 impl Config for Runtime {
 	type Event = Event;
@@ -167,6 +168,7 @@ impl Config for Runtime {
 	type EconomyTreasury = EconomyPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumStake = MinimumStake;
+	type PowerAmountPerBlock = PowerAmountPerBlock;
 }
 
 parameter_type_with_key! {
