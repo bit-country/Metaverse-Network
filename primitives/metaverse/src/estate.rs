@@ -28,8 +28,15 @@ pub trait Estate<AccountId> {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct EstateInfo {
-	/// Metaverse Id
+	/// Metaverse Ids
 	pub metaverse_id: MetaverseId,
 	/// Land Units
 	pub land_units: Vec<(i32, i32)>,
+}
+
+
+#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum OwnerId<AccountId, AssetId> {
+    Account(AccountId),
+    Token(AssetId),
 }

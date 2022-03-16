@@ -34,6 +34,7 @@ pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
+	NftMetadata, Attributes, AssetId, estate::OwnerId
 };
 pub use rate::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -91,6 +92,8 @@ pub mod pallet {
 		type MinimumStake: Get<BalanceOf<Self>>;
 		#[pallet::constant]
 		type RewardPaymentDelay: Get<u32>;
+		/// NFT Trait required for land and estate tokenization
+		type NFTTokenizationSource: NFTTrait<Self::AccountId>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -1354,6 +1357,60 @@ impl<T: Config> Pallet<T> {
 		}
 		Ok(())
 	}
+
+	fn get_land_token_properties(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> (NftMetadata,Attributes) {
+		let mut land_coordinate_attribute= Vec::<u8>::new();
+		land_coordinate_attribute.append(&mut coordinate.0.to_be_bytes().to_vec());
+		land_coordinate_attribute.append(&mut coordinate.1.to_be_bytes().to_vec());
+
+		let mut nft_metadata: NftMetadata = NftMetadata::new();
+		nft_metadata.append(&mut land_coordinate_attribute.clone());
+
+		let mut nft_attributes: Attributes = Attributes::new();
+		nft_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
+		nft_attributes.insert("Coordinate:".as_bytes().to_vec(), land_coordinate_attribute);
+
+        return (nft_metadata, nft_attributes)
+	}
+
+	fn get_estate_token_properties(metaverse_id: MetaverseId, coordinates: Vec<(i32, i32)>) -> (NftMetadata,Attributes) {
+		let mut nft_metadata: NftMetadata = NftMetadata::new();
+		let mut nft_attributes: Attributes = Attributes::new();
+
+		nft_metadata.append(&mut metaverse_id.to_be_bytes().to_vec());
+		nft_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
+
+		for coordinate in coordinates {
+			let mut land_coordinate_attribute= Vec::<u8>::new();
+		    land_coordinate_attribute.append(&mut coordinate.0.to_be_bytes().to_vec());
+		    land_coordinate_attribute.append(&mut coordinate.1.to_be_bytes().to_vec());
+
+			nft_metadata.append(&mut land_coordinate_attribute.clone());
+			nft_attributes.insert("Land Coordinate:".as_bytes().to_vec(), land_coordinate_attribute);
+		}
+
+        return (nft_metadata, nft_attributes)
+	}
+
+	fn update_land_on_estate_change(who: &T::AccountId, owner_value: Option<OwnerId<T::AccountId,AssetId>> ) -> OwnerId<T::AccountId,AssetId> {
+		match owner_value {
+			Some(owner)  => {
+				match owner {
+					OwnerId::Account(a) => return OwnerId::Account(who.clone()),
+					OwnerId::Token(t) => return OwnerId::Token(t),
+				}
+			},
+			None => return OwnerId::Account(who.clone()),
+		}
+	}
+
+	fn check_if_land_or_estate_owner(who: &T::AccountId, owner_id: OwnerId<T::AccountId,AssetId>) -> Result<bool,DispatchError> {
+		match owner_id {
+			OwnerId::Account(a) => return Ok(&a == who),
+			OwnerId::Token(asset_id) => return T::NFTTokenizationSource::check_ownership(who, &asset_id),		
+		}
+	}
+
 }
 
 impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {

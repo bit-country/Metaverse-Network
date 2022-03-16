@@ -858,10 +858,7 @@ impl<T: Config> NFTTrait<T::AccountId> for Pallet<T> {
 	type ClassId = ClassIdOf<T>;
 
 	fn check_ownership(who: &T::AccountId, asset_id: &AssetId) -> Result<bool, DispatchError> {
-		let asset = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetIdNotFound)?;
-		let asset_info = NftModule::<T>::tokens(asset.0, asset.1).ok_or(Error::<T>::AssetInfoNotFound)?;
-
-		Ok(who == &asset_info.owner)
+		return Self::check_nft_ownership(who, asset_id);
 	}
 
 	fn check_nft_ownership(who: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {

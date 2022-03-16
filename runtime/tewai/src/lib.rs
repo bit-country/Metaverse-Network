@@ -1111,6 +1111,7 @@ impl estate::Config for Runtime {
 	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
+	type NFTTokenizationSource = Nft;
 }
 
 parameter_types! {
