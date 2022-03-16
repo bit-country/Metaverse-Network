@@ -71,6 +71,8 @@ pub struct OrderInfo<BlockNumber> {
 	bit_amount: Balance,
 	/// Target block number that order can be fullfilled
 	target: BlockNumber,
+	/// Commission amount
+	commission_fee: Balance,
 }
 
 #[frame_support::pallet]
@@ -403,8 +405,7 @@ pub mod pallet {
 			};
 
 			// Convert to bit by using global exchange rate
-			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into(), commission);
-
+			let (bit_amount, commission_fee) = Self::convert_power_to_bit(power_amount.into(), commission);
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
 				Error::<T>::InsufficientBalanceToBuyPower
@@ -423,6 +424,7 @@ pub mod pallet {
 					power_amount,
 					bit_amount,
 					target: target_block,
+					commission_fee,
 				},
 			);
 
@@ -481,6 +483,15 @@ pub mod pallet {
 
 			// Burn BIT
 			Self::do_burn(&beneficiary, bit_amount)?;
+
+			// Get distributor NFT account id
+			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+			// Deposit commission to NFT operator
+			T::FungibleTokenCurrency::deposit(
+				T::MiningCurrencyId::get(),
+				&nft_account_id,
+				buy_power_by_user_request.commission_fee,
+			);
 
 			// Transfer power amount
 			Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id)?;
@@ -542,7 +553,7 @@ pub mod pallet {
 			};
 
 			// Convert to bit by using global exchange rate
-			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into(), commission);
+			let (bit_amount, commission_fee) = Self::convert_power_to_bit(power_amount.into(), commission);
 
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(
@@ -566,6 +577,7 @@ pub mod pallet {
 					power_amount,
 					bit_amount,
 					target: target_block,
+					commission_fee,
 				},
 			);
 
@@ -615,6 +627,15 @@ pub mod pallet {
 
 			// Burn BIT
 			Self::do_burn(&beneficiary, bit_amount)?;
+
+			// Get distributor NFT account id
+			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);
+			// Deposit commission to NFT operator
+			T::FungibleTokenCurrency::deposit(
+				T::MiningCurrencyId::get(),
+				&nft_account_id,
+				buy_power_by_distributor_request.commission_fee,
+			);
 
 			// Transfer power amount
 			Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id)?;
@@ -794,7 +815,8 @@ pub mod pallet {
 			);
 
 			// Convert to bit by using global exchange rate - no commission applied
-			let bit_amount: Balance = Self::convert_power_to_bit(power_amount.into(), Perbill::zero());
+			let (bit_amount, _commission_fee) =
+				Self::convert_power_to_bit(power_amount.into(), Perbill::from_percent(0));
 
 			ensure!(
 				T::FungibleTokenCurrency::can_reserve(
@@ -851,6 +873,29 @@ pub mod pallet {
 
 			Ok(().into())
 		}
+
+		/// update commission of power distributor / generator
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn withdraw_mining_resource(
+			origin: OriginFor<T>,
+			nft_id: (ClassId, TokenId),
+			amount: Balance,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Check if origin is the owner of the NFT
+			ensure!(
+				T::NFTHandler::check_nft_ownership(&who, &nft_id)?,
+				Error::<T>::NoPermission
+			);
+
+			// Get NFT account id
+			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(nft_id);
+
+			T::FungibleTokenCurrency::transfer(T::MiningCurrencyId::get(), &nft_account_id, &who, amount);
+			Ok(().into())
+		}
 	}
 }
 
@@ -859,7 +904,7 @@ impl<T: Config> Pallet<T> {
 		T::EconomyTreasury::get().into_account()
 	}
 
-	pub fn convert_power_to_bit(power_amount: Balance, commission: Perbill) -> Balance {
+	pub fn convert_power_to_bit(power_amount: Balance, commission: Perbill) -> (Balance, Balance) {
 		let rate = Self::get_bit_power_exchange_rate();
 
 		let mut bit_required = power_amount
@@ -867,7 +912,10 @@ impl<T: Config> Pallet<T> {
 			.ok_or(ArithmeticError::Overflow)
 			.unwrap_or(Zero::zero());
 		let commission_fee = commission * bit_required;
-		bit_required + commission_fee
+		(
+			bit_required + commission_fee,
+			TryInto::<Balance>::try_into(commission_fee).unwrap_or_default(),
+		)
 	}
 
 	fn do_burn(who: &T::AccountId, amount: Balance) -> DispatchResult {

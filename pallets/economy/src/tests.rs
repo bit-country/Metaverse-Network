@@ -276,7 +276,8 @@ fn buy_power_by_user_should_work() {
 				Some(OrderInfo {
 					power_amount: USER_BUY_POWER_AMOUNT,
 					bit_amount: bit_amount.into(),
-					target: 101
+					target: 101,
+					commission_fee: 0
 				})
 			);
 
@@ -427,7 +428,8 @@ fn buy_power_by_distributor_should_work() {
 				Some(OrderInfo {
 					power_amount: GENERATE_POWER_AMOUNT,
 					bit_amount: bit_amount.into(),
-					target: 201
+					target: 201,
+					commission_fee: 0
 				})
 			);
 
