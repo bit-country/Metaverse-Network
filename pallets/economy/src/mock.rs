@@ -157,7 +157,7 @@ impl pallet_mining::Config for Runtime {
 ord_parameter_types! {
 	pub const One: AccountId = 1;
 	pub const Two: AccountId = 2;
-	pub const PowerAmountPerBlock: u32 = 1;
+	pub const PowerAmountPerBlock: u32 = 10;
 }
 impl Config for Runtime {
 	type Event = Event;

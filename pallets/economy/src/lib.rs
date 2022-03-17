@@ -1011,12 +1011,21 @@ impl<T: Config> Pallet<T> {
 
 	fn get_target_execution_order(power_amount: PowerAmount) -> Result<T::BlockNumber, DispatchError> {
 		let current_block_number = <frame_system::Pallet<T>>::current_block_number();
-		let block_required = T::PowerAmountPerBlock::get()
-			.checked_mul(power_amount)
-			.ok_or(ArithmeticError::Overflow)?;
-		let target_block = current_block_number
-			.checked_add(&TryInto::<T::BlockNumber>::try_into(block_required).unwrap_or_default())
-			.ok_or(ArithmeticError::Overflow)?;
+		let target_block = if power_amount <= T::PowerAmountPerBlock::get() {
+			let target_b = current_block_number
+				.checked_add(&One::one())
+				.ok_or(ArithmeticError::Overflow)?;
+			target_b
+		} else {
+			let block_required = power_amount
+				.checked_div(T::PowerAmountPerBlock::get())
+				.ok_or(ArithmeticError::Overflow)?;
+
+			let target_b = current_block_number
+				.checked_add(&TryInto::<T::BlockNumber>::try_into(block_required).unwrap_or_default())
+				.ok_or(ArithmeticError::Overflow)?;
+			target_b
+		};
 
 		Ok(target_block)
 	}

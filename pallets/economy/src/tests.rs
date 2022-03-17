@@ -294,6 +294,63 @@ fn buy_power_by_user_should_work() {
 }
 
 #[test]
+fn buy_power_by_user_with_block_target_should_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, get_mining_currency(), ALICE_MINING_BALANCE.into())])
+		.build()
+		.execute_with(|| {
+			const ODD_POWER_AMOUNT: PowerAmount = 124;
+			let origin = Origin::signed(ALICE);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+
+			assert_ok!(EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID,
+			));
+
+			assert_ok!(EconomyModule::set_bit_power_exchange_rate(
+				Origin::root(),
+				EXCHANGE_RATE
+			));
+
+			assert_ok!(EconomyModule::buy_power_by_user(
+				origin,
+				ODD_POWER_AMOUNT,
+				DISTRIBUTOR_NFT_ASSET_ID,
+			));
+
+			let event = Event::Economy(crate::Event::BuyPowerOrderByUserHasAddedToQueue(
+				ALICE,
+				ODD_POWER_AMOUNT,
+				DISTRIBUTOR_NFT_ASSET_ID,
+			));
+			assert_eq!(last_event(), event);
+
+			let bit_amount: mock::Balance = EXCHANGE_RATE * u128::try_from(ODD_POWER_AMOUNT).unwrap();
+			assert_eq!(
+				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID, ALICE),
+				Some(OrderInfo {
+					power_amount: ODD_POWER_AMOUNT,
+					bit_amount: bit_amount.into(),
+					target: 13,
+					commission_fee: 0
+				})
+			);
+
+			// Check reserved balance
+			let mining_currency_id = get_mining_currency();
+			assert_eq!(
+				OrmlTokens::reserved_balance(mining_currency_id, &ALICE),
+				bit_amount.into()
+			);
+
+			let remaining_amount: u128 = ALICE_MINING_BALANCE - u128::try_from(bit_amount).unwrap();
+			assert_eq!(OrmlTokens::free_balance(mining_currency_id, &ALICE), remaining_amount);
+		});
+}
+
+#[test]
 fn buy_power_by_distributor_should_fail_nft_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
@@ -910,8 +967,8 @@ fn execute_generate_order_with_commission_should_work() {
 			let base_bit_required = EconomyModule::convert_power_to_bit(200u128, Perbill::from_percent(0));
 			let bit_with_commission_required = EconomyModule::convert_power_to_bit(200u128, Perbill::from_percent(10));
 
-			assert_eq!(base_bit_required, BIT_REQUIRED);
-			assert_eq!(bit_with_commission_required, BIT_REQUIRED_WITH_10_PERCENT_COMMISSION);
+			assert_eq!(base_bit_required.0, BIT_REQUIRED);
+			assert_eq!(bit_with_commission_required.0, BIT_REQUIRED_WITH_10_PERCENT_COMMISSION);
 
 			let order_info = EconomyModule::get_buy_power_by_distributor_request_queue(
 				GENERATOR_NFT_ASSET_ID,
@@ -1010,7 +1067,7 @@ fn execute_buy_power_order_with_commission_should_work() {
 
 			let bit_amount = order_info.bit_amount;
 			assert_eq!(OrmlTokens::reserved_balance(mining_currency_id, &ALICE), bit_amount);
-			assert_eq!(bit_amount, bit_with_commission_required);
+			assert_eq!(bit_amount, bit_with_commission_required.0);
 
 			let distributor_account_id = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
 			PowerBalance::<Runtime>::insert(distributor_account_id, DISTRIBUTOR_POWER_BALANCE);
