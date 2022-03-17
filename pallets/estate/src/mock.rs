@@ -6,7 +6,7 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use primitives::FungibleTokenId;
+use primitives::{FungibleTokenId, NftMetadata, Attributes, ClassId, GroupCollectionId, TokenId, estate::Estate};
 
 use crate as estate;
 
@@ -36,6 +36,13 @@ pub const BOND_AMOUNT_1: Balance = 1000;
 pub const BOND_AMOUNT_2: Balance = 2000;
 pub const BOND_AMOUNT_BELOW_MINIMUM: Balance = 100;
 pub const BOND_LESS_AMOUNT_1: Balance = 100;
+
+pub const ESTATE_ID: EstateId = 0;
+pub const ASSET_CLASS_ID: ClassId = 5;
+pub const ASSET_TOKEN_ID: TokenId = 6;
+pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
+
+
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -207,6 +214,80 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 		}
 	}
 }
+pub struct MockNFTTokenizationHandler;
+
+impl NFTTrait<AccountId> for MockNFTTokenizationHandler {
+	
+	fn check_ownership(who: &AccountId, asset_id: &AssetId) 
+		-> Result<bool, DispatchError> {
+		if (who == ALICE && (asset_id == 1 || asset_id == 3)) ||  (who == BOB && (asset_id == 2 || asset_id == 4) ) {
+			Ok(true)
+		}
+		Ok(false)
+	}
+	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) 
+		-> Result<bool, DispatchError> {
+			if who == ALICE && *nft.0 == ASSET_CLASS_ID && *nft.1 == ASSET_TOKEN_ID {
+				Ok(true)
+			}
+			Ok(false)
+	}
+	fn check_collection_and_class(
+		collection_id: GroupCollectionId,
+		class_id: Self::ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == ASSET_CLASS_ID && collection_id == ASSET_COLLECTION_ID {
+			Ok(true)
+		}
+		Ok(false)
+	}
+
+	fn get_nft_detail(asset_id: AssetId) 
+		-> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
+		if asset_id == 1 || asset_id == 2 {
+			Ok((ASSET_CLASS_ID,ASSET_COLLECTION_ID,ASSET_TOKEN_ID))
+		}
+	}
+	
+	fn get_nft_group_collection(nft_collection: &Self::ClassId) 
+		-> Result<GroupCollectionId, DispatchError> {
+			if class_id == ASSET_CLASS_ID {
+				Ok(ASSET_COLLECTION_ID)
+			}
+	}
+	
+	fn mint_land_nft(
+		account: AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<AssetId, DispatchError>{
+		match account {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+		}
+	}
+
+	fn mint_estate_nft(
+		account: AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<AssetId, DispatchError> {
+		match account {
+			ALICE => Ok(3),
+			BOB => Ok(4),
+		}
+	}
+
+	fn transfer_nft(from: &AccountId, to: &AccountId, asset_id: AssetId) 
+		-> Result<(), DispatchError> {
+			Ok(())
+	}
+
+	fn burn_nft(account: AccountId, asset_id: AssetId) 
+		-> Result<(), DispatchError> {
+			Ok(())
+	}
+}
 
 parameter_types! {
 	pub const MinBlocksPerRound: u32 = 10;
@@ -227,6 +308,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
+	type NFTTokenizationSource = MockNFTTokenizationHandler;
 }
 
 construct_runtime!(
