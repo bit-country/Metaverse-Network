@@ -976,7 +976,7 @@ pub mod pallet {
 		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			
 			let who = ensure_signed(origin)?;
-			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
 				Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 				Error::<T>::NoPermission
@@ -1340,7 +1340,7 @@ impl<T: Config> Pallet<T> {
 					OwnerId::Token(t) => {
 						T::NFTTokenizationSource::transfer_nft(from,to, t);
 					},
-					OwnerId::Account(a) => *estate_owner = Some(OwnerId::Account(a)),
+					OwnerId::Account(a) => *estate_owner = Some(OwnerId::Account(to.clone())),
 				}
 				
 				Self::deposit_event(Event::<T>::TransferredEstate(
