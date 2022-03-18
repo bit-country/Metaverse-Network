@@ -9,7 +9,8 @@ use sp_std::vec::Vec;
 
 use primitives::staking::RoundInfo;
 use primitives::{
-	AssetId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType,
+	AssetId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, MetaverseId, TokenId, UndeployedLandBlockId,
+	UndeployedLandBlockType,
 };
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -90,11 +91,13 @@ pub trait NFTTrait<AccountId> {
 	/// Token class identifier
 	type ClassId;
 	/// Check the ownership of this nft asset
-	fn check_ownership(who: &AccountId, asset_id: &AssetId) -> Result<bool, DispatchError>;
+	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Check the ownership of this nft tuple
 	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
-	fn get_nft_detail(asset_id: AssetId) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError>;
+	fn get_nft_detail(
+		asset_id: (Self::ClassId, Self::TokenId),
+	) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
 	/// Check if collection and class exist
@@ -102,6 +105,14 @@ pub trait NFTTrait<AccountId> {
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
 	) -> Result<bool, DispatchError>;
+	/// Check if item is on listing
+	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError>;
+	/// transfer nft
+	fn transfer_nft(sender: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
+	/// Is Nft transferable
+	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
+	/// Get collection account fund
+	fn get_class_fund(class_id: &Self::ClassId) -> AccountId;
 }
 
 pub trait RoundTrait<BlockNumber> {

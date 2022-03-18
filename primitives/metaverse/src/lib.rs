@@ -118,7 +118,7 @@ pub type PowerAmount = u64;
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
-	NFT(AssetId),
+	NFT(ClassId, TokenId),
 	Spot(u64, MetaverseId),
 	Country(MetaverseId),
 	Block(u64),

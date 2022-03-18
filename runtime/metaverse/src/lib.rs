@@ -530,6 +530,7 @@ impl auction::Config for Runtime {
 	type EstateHandler = Estate;
 	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
+	type NFTHandler = Nft;
 }
 
 impl continuum::Config for Runtime {
