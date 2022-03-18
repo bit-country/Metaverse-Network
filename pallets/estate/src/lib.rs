@@ -131,7 +131,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_owner)]
 	pub type EstateOwner<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
+		StorageMap<_, Twox64Concat, EstateId, OwnerId<T::AccountId,AssetId>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_undeployed_land_block_id)]
@@ -236,7 +236,7 @@ pub mod pallet {
 		/// Owner Id, Metaverse Id, Coordinates
 		NewLandUnitMinted(OwnerId<T::AccountId,AssetId> , MetaverseId, (i32, i32)),
 		/// Estate Id, OwnerId, Metaverse Id, Coordinates
-		NewEstateMinted(EstateId, T::AccountId , MetaverseId, Vec<(i32, i32)>),
+		NewEstateMinted(EstateId, OwnerId<T::AccountId,AssetId> , MetaverseId, Vec<(i32, i32)>),
 		/// Metaverse Id, Min and Max Coordinate
 		MaxBoundSet(MetaverseId, (i32, i32)),
 		/// From Account Id, Metaverse Id, Undeployed Land Block Id, Coordinates
@@ -248,13 +248,13 @@ pub mod pallet {
 		/// Owner Account Id, Approved Account Id, Undeployed Land Block Id
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
 		/// Owner Id, Estate Id
-		EstateDestroyed(EstateId, T::AccountId),
+		EstateDestroyed(EstateId, OwnerId<T::AccountId,AssetId>),
 		/// Estate Id, Owner Id, Coordinates
-		EstateUpdated(EstateId, T::AccountId, Vec<(i32, i32)>),
+		EstateUpdated(EstateId, OwnerId<T::AccountId,AssetId>, Vec<(i32, i32)>),
 		/// Estate Id, Owner Id, Coordinates
-		LandUnitAdded(EstateId, T::AccountId,  Vec<(i32, i32)>),
+		LandUnitAdded(EstateId, OwnerId<T::AccountId,AssetId>,  Vec<(i32, i32)>),
 		/// Estate Id, Owner Id, Coordinates
-		LandUnitsRemoved(EstateId, T::AccountId , Vec<(i32, i32)>),
+		LandUnitsRemoved(EstateId, OwnerId<T::AccountId,AssetId> , Vec<(i32, i32)>),
 		/// Undeployed Land Block Id
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
 		/// Undeployed Land Block Id
@@ -268,12 +268,12 @@ pub mod pallet {
 		StakeSnapshotUpdated(RoundIndex, BalanceOf<T>),
 		StakersPaid(RoundIndex),
 		ExitQueueCleared(RoundIndex),
-		/// Owner Account Id, Estate Id, Balance
-		EstateStakeIncreased(T::AccountId, EstateId, BalanceOf<T>),
-		/// Owner Account Id, Estate Id, Balance
-		EstateStakeDecreased(T::AccountId, EstateId, BalanceOf<T>),
-		/// Owner Account Id, Estate Id
-		EstateStakeLeft(T::AccountId, EstateId),
+		/// OwnerId, Estate Id, Balance
+		EstateStakeIncreased(OwnerId<T::AccountId,AssetId>, EstateId, BalanceOf<T>),
+		/// OwnerId, Estate Id, Balance
+		EstateStakeDecreased(OwnerId<T::AccountId,AssetId>, EstateId, BalanceOf<T>),
+		/// OwnerId, Estate Id
+		EstateStakeLeft(OwnerId<T::AccountId,AssetId>, EstateId),
 		/// Account Id, Balance
 		StakingRewarded(T::AccountId, BalanceOf<T>),
 	}
@@ -420,6 +420,7 @@ pub mod pallet {
 			// Generate sub account from estate
 			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
 
+			
 			// Mint land units
 			for coordinate in coordinates.clone() {
 				Self::mint_land_unit(metaverse_id, estate_account_id.clone(), coordinate, false, is_tokenized)?;
@@ -428,7 +429,7 @@ pub mod pallet {
 			Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates)?;
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates, is_tokenized)?;
 			Ok(().into())
 		}
 
@@ -455,7 +456,7 @@ pub mod pallet {
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone())?;
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone(), is_tokenized)?;
 
 			Ok(().into())
 		}
@@ -722,12 +723,26 @@ pub mod pallet {
 
 			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
-			EstateOwner::<T>::try_mutate_exists(&who, &estate_id, |estate_by_owner| {
+			EstateOwner::<T>::try_mutate_exists(&estate_id, |estate_owner| {
 				//ensure there is record of the estate owner with estate id and account id
-				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
-
+				
+				let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+				ensure!(
+					Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
+					Error::<T>::NoPermission
+				);
 				// Reset estate ownership
-				*estate_by_owner = None;
+				match estate_owner_value {
+					OwnerId::Token(t) => {
+						T::NFTTokenizationSource::burn_nft(who.clone(),t);
+						*estate_owner = None;
+					},
+					OwnerId::Account(ref a) => {
+						*estate_owner = None;
+					},
+				}
+				
+				
 
 				// Remove estate
 				Estates::<T>::remove(&estate_id);
@@ -752,7 +767,7 @@ pub mod pallet {
 					);
 				}
 
-				Self::deposit_event(Event::<T>::EstateDestroyed(estate_id.clone(), who.clone()));
+				Self::deposit_event(Event::<T>::EstateDestroyed(estate_id.clone(), estate_owner_value.clone()));
 
 				Ok(().into())
 			})
@@ -775,8 +790,9 @@ pub mod pallet {
 			let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			// Check estate ownership
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			ensure!(
-				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 				Error::<T>::NoPermission
 			);
 
@@ -813,7 +829,7 @@ pub mod pallet {
 
 				Self::deposit_event(Event::<T>::LandUnitAdded(
 					estate_id.clone(),
-					who.clone(),
+					estate_owner_value.clone(),
 					land_units.clone(),
 				));
 
@@ -838,8 +854,9 @@ pub mod pallet {
 			let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			// Check estate ownership
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			ensure!(
-				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 				Error::<T>::NoPermission
 			);
 
@@ -866,7 +883,7 @@ pub mod pallet {
 
 				Self::deposit_event(Event::<T>::LandUnitsRemoved(
 					estate_id.clone(),
-					who.clone(),
+					estate_owner_value.clone(),
 					land_units.clone(),
 				));
 
@@ -882,8 +899,9 @@ pub mod pallet {
 			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			// Check estate ownership
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			ensure!(
-				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 				Error::<T>::NoPermission
 			);
 
@@ -908,7 +926,7 @@ pub mod pallet {
 			let new_total_staked = <TotalStake<T>>::get().saturating_add(more);
 			<TotalStake<T>>::put(new_total_staked);
 
-			Self::deposit_event(Event::EstateStakeIncreased(who, estate_id, more));
+			Self::deposit_event(Event::EstateStakeIncreased(estate_owner_value, estate_id, more));
 
 			Ok(().into())
 		}
@@ -921,8 +939,9 @@ pub mod pallet {
 			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
 			// Check estate ownership
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			ensure!(
-				Self::get_estate_owner(&who, &estate_id) == Some(()),
+				Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 				Error::<T>::NoPermission
 			);
 
@@ -947,7 +966,7 @@ pub mod pallet {
 			let new_total_staked = <TotalStake<T>>::get().saturating_sub(less);
 			<TotalStake<T>>::put(new_total_staked);
 
-			Self::deposit_event(Event::EstateStakeDecreased(who, estate_id, less));
+			Self::deposit_event(Event::EstateStakeDecreased(estate_owner_value, estate_id, less));
 
 			Ok(().into())
 		}
@@ -955,7 +974,13 @@ pub mod pallet {
 		/// Leave staking
 		#[pallet::weight(T::WeightInfo::leave_staking())]
 		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
+			
 			let who = ensure_signed(origin)?;
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+			ensure!(
+				Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
+				Error::<T>::NoPermission
+			);
 
 			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 
@@ -971,7 +996,7 @@ pub mod pallet {
 
 			<ExitQueue<T>>::insert(&who, estate_id, ());
 
-			Self::deposit_event(Event::EstateStakeLeft(who, estate_id));
+			Self::deposit_event(Event::EstateStakeLeft(estate_owner_value, estate_id));
 
 			Ok(().into())
 		}
@@ -1074,31 +1099,35 @@ impl<T: Config> Pallet<T> {
 
 		let max_bound = MaxBounds::<T>::get(metaverse_id);
 
-		if existing_land_units {
-			// Check whether the coordinate exists
-			ensure!(
-				LandUnits::<T>::contains_key(metaverse_id, coordinate),
-				Error::<T>::LandUnitIsNotAvailable
-			);
-		} else {
-			ensure!(
-				!LandUnits::<T>::contains_key(metaverse_id, coordinate),
-				Error::<T>::LandUnitIsNotAvailable
-			);
-		}
-
 		// Check whether the coordinate is within the bound
 		ensure!(
 			(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
 				&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
 			Error::<T>::LandUnitIsOutOfBound
 		);
-
 		let mut owner = OwnerId::Account(beneficiary.clone());
-		if is_tokenized {
-			let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
-			let asset_id = T::NFTTokenizationSource::mint_land_nft(beneficiary.clone(),token_properties.0,token_properties.1)?;
-			owner = OwnerId::Token(asset_id);
+
+		if existing_land_units {
+			// Check whether the coordinate exists
+			ensure!(
+				LandUnits::<T>::contains_key(metaverse_id, coordinate),
+				Error::<T>::LandUnitIsNotAvailable
+			);
+			let existing_owner = Self::get_land_units(metaverse_id,coordinate).ok_or(Error::<T>::NoPermission)?;
+            if is_tokenized {
+				return Ok(existing_owner);
+			}
+		} else {
+			ensure!(
+				!LandUnits::<T>::contains_key(metaverse_id, coordinate),
+				Error::<T>::LandUnitIsNotAvailable
+			);
+
+			if is_tokenized  {
+				let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
+				let asset_id = T::NFTTokenizationSource::mint_land_nft(beneficiary.clone(),token_properties.0,token_properties.1)?;
+				owner = OwnerId::Token(asset_id);
+			}
 		}
 
 		LandUnits::<T>::insert(metaverse_id, coordinate, owner.clone());
@@ -1110,6 +1139,7 @@ impl<T: Config> Pallet<T> {
 		metaverse_id: MetaverseId,
 		beneficiary: &T::AccountId,
 		coordinates: Vec<(i32, i32)>,
+		is_tokenized: bool,
 	) -> DispatchResult {
 		// Update total estates
 		let total_estates_count = Self::all_estates_count();
@@ -1124,13 +1154,20 @@ impl<T: Config> Pallet<T> {
 			land_units: coordinates.clone(),
 		};
 
+		let mut owner = OwnerId::Account(beneficiary.clone());
+		if is_tokenized {
+			let token_properties = Self::get_estate_token_properties(metaverse_id, new_estate_id);
+			let asset_id: AssetId = T::NFTTokenizationSource::mint_estate_nft(beneficiary.clone(),token_properties.0,token_properties.1)?;
+			owner = OwnerId::Token(asset_id);
+		}
+
 		Estates::<T>::insert(new_estate_id, estate_info);
 
-		EstateOwner::<T>::insert(beneficiary.clone(), new_estate_id, {});
+		EstateOwner::<T>::insert(new_estate_id, owner.clone());
 
 		Self::deposit_event(Event::<T>::NewEstateMinted(
 			new_estate_id.clone(),
-			beneficiary.clone(),
+			owner.clone(),
 			metaverse_id,
 			coordinates.clone(),
 		));
@@ -1278,17 +1315,23 @@ impl<T: Config> Pallet<T> {
 		to: &T::AccountId,
 	) -> Result<EstateId, DispatchError> {
 		EstateOwner::<T>::try_mutate_exists(
-			&from,
 			&estate_id,
-			|estate_by_owner| -> Result<EstateId, DispatchError> {
+			|estate_owner| -> Result<EstateId, DispatchError> {
 				//ensure there is record of the estate owner with estate id and account id
-				ensure!(estate_by_owner.is_some(), Error::<T>::NoPermission);
-
 				ensure!(from != to, Error::<T>::AlreadyOwnTheEstate);
+				let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+				ensure!(
+					Self::check_if_land_or_estate_owner(from, &estate_owner_value),
+					Error::<T>::NoPermission
+				);
 
-				*estate_by_owner = None;
-				EstateOwner::<T>::insert(to.clone(), estate_id.clone(), ());
-
+				match estate_owner_value {
+					OwnerId::Token(t) => {
+						T::NFTTokenizationSource::transfer_nft(from,to, t);
+					},
+					OwnerId::Account(a) => *estate_owner = Some(OwnerId::Account(a)),
+				}
+				
 				Self::deposit_event(Event::<T>::TransferredEstate(
 					estate_id.clone(),
 					from.clone(),
@@ -1387,28 +1430,22 @@ impl<T: Config> Pallet<T> {
         return (nft_metadata, nft_attributes)
 	}
 
-	fn get_estate_token_properties(metaverse_id: MetaverseId, coordinates: Vec<(i32, i32)>) -> (NftMetadata,Attributes) {
+	fn get_estate_token_properties(metaverse_id: MetaverseId, estate_id: EstateId) -> (NftMetadata,Attributes) {
 		let mut nft_metadata: NftMetadata = NftMetadata::new();
-		let mut nft_attributes: Attributes = Attributes::new();
-
 		nft_metadata.append(&mut metaverse_id.to_be_bytes().to_vec());
+		nft_metadata.append(&mut estate_id.to_be_bytes().to_vec());
+
+
+		let mut nft_attributes: Attributes = Attributes::new();
 		nft_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
-
-		for coordinate in coordinates {
-			let mut land_coordinate_attribute= Vec::<u8>::new();
-		    land_coordinate_attribute.append(&mut coordinate.0.to_be_bytes().to_vec());
-		    land_coordinate_attribute.append(&mut coordinate.1.to_be_bytes().to_vec());
-
-			nft_metadata.append(&mut land_coordinate_attribute.clone());
-			nft_attributes.insert("Land Coordinate:".as_bytes().to_vec(), land_coordinate_attribute);
-		}
+		nft_attributes.insert("Estate Id:".as_bytes().to_vec(), estate_id.to_be_bytes().to_vec());
 
         return (nft_metadata, nft_attributes)
 	}
 
 	fn update_land_on_estate_change(who: &T::AccountId, owner_value: &Option<OwnerId<T::AccountId,AssetId>> ) -> OwnerId<T::AccountId,AssetId> {
 		match owner_value {
-			Some(owner)  => {
+			Some(owner) => {
 				match owner {
 					OwnerId::Account(a) => return OwnerId::Account(who.clone()),
 					OwnerId::Token(t) => return OwnerId::Token(*t),
@@ -1442,7 +1479,7 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 		}
 
 
-		
+		/* 
 		let estate_ids_by_owner: Vec<EstateId> =
 			EstateOwner::<T>::iter_prefix(who).map(|res| res.0).collect::<Vec<_>>();
 
@@ -1450,7 +1487,7 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 			let mut estate_info = Estates::<T>::get(&estate_id).unwrap();
 			total_land_units.append(&mut estate_info.land_units)
 		}
-
+		*/
 		total_land_units
 	}
 

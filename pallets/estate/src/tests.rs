@@ -597,7 +597,7 @@ fn dissolve_estate_should_work() {
 				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			})
 		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
@@ -608,7 +608,7 @@ fn dissolve_estate_should_work() {
 
 		assert_eq!(EstateModule::all_estates_count(), 0);
 		assert_eq!(EstateModule::get_estates(estate_id), None);
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), None);
+		assert_eq!(EstateModule::get_estate_owner(estate_id), None);
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
@@ -682,7 +682,7 @@ fn add_land_unit_to_estate_should_work() {
 				land_units: vec![COORDINATE_IN_1]
 			})
 		);
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			1
@@ -764,7 +764,7 @@ fn remove_land_unit_from_estate_should_work() {
 				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			})
 		);
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
@@ -815,7 +815,7 @@ fn mint_estate_and_land_should_return_correct_total_land_unit() {
 				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			})
 		);
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
@@ -857,12 +857,12 @@ fn mint_estate_should_return_none_for_non_exist_estate() {
 				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			})
 		);
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		let estate_id_non_exists: u64 = 999;
 		assert_eq!(EstateModule::get_estates(estate_id_non_exists), None);
 		assert_eq!(
-			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
+			EstateModule::get_estate_owner(estate_id_non_exists),
 			None
 		);
 	});
@@ -881,16 +881,15 @@ fn transfer_estate_should_work() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_ok!(EstateModule::transfer_estate(
 			Origin::signed(BENEFICIARY_ID),
 			ALICE,
 			estate_id
 		));
-
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), None);
-		assert_eq!(EstateModule::get_estate_owner(ALICE, estate_id), Some(()));
+	
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ID_ALICE));
 
 		assert_eq!(
 			last_event(),
@@ -912,7 +911,7 @@ fn transfer_estate_should_reject_no_permission() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_noop!(
 			EstateModule::transfer_estate(Origin::signed(BOB), ALICE, estate_id),
@@ -944,14 +943,14 @@ fn transfer_estate_should_fail_with_same_account() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_noop!(
 			EstateModule::transfer_estate(Origin::signed(BENEFICIARY_ID), BENEFICIARY_ID, estate_id),
 			Error::<Runtime>::AlreadyOwnTheEstate
 		);
 
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 	});
 }
 
@@ -1020,7 +1019,7 @@ fn create_estate_should_work() {
 				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			})
 		);
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 	});
 }
 
@@ -1055,12 +1054,12 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			})
 		);
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		let estate_id_non_exists: u64 = 999;
 		assert_eq!(EstateModule::get_estates(estate_id_non_exists), None);
 		assert_eq!(
-			EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id_non_exists),
+			EstateModule::get_estate_owner(estate_id_non_exists),
 			None
 		);
 	});
@@ -2028,7 +2027,7 @@ fn bond_more_should_reject_estate_does_not_exist() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		let estate_id_does_not_exist: u64 = 1;
 		assert_noop!(
@@ -2051,7 +2050,7 @@ fn bond_more_should_reject_no_permission() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_noop!(
 			EstateModule::bond_more(Origin::signed(BOB), estate_id, BOND_AMOUNT_1),
@@ -2073,7 +2072,7 @@ fn bond_more_should_reject_below_minimum() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_err!(
 			EstateModule::bond_more(Origin::signed(BENEFICIARY_ID), estate_id, BOND_AMOUNT_BELOW_MINIMUM),
@@ -2095,7 +2094,7 @@ fn bond_more_should_work() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_ok!(EstateModule::bond_more(
 			Origin::signed(BENEFICIARY_ID),
@@ -2106,7 +2105,7 @@ fn bond_more_should_work() {
 		assert_eq!(
 			last_event(),
 			Event::Estate(crate::Event::EstateStakeIncreased(
-				BENEFICIARY_ID,
+				OWNER_ACCOUNT_ID,
 				estate_id,
 				BOND_AMOUNT_1
 			))
@@ -2133,7 +2132,7 @@ fn bond_more_should_work_with_more_than_one_operation() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_ok!(EstateModule::bond_more(
 			Origin::signed(BENEFICIARY_ID),
@@ -2169,7 +2168,7 @@ fn bond_less_should_reject_estate_does_not_exist() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		let estate_id_does_not_exist: u64 = 1;
 		assert_noop!(
@@ -2192,7 +2191,7 @@ fn bond_less_should_reject_no_permission() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_noop!(
 			EstateModule::bond_less(Origin::signed(BOB), estate_id, BOND_AMOUNT_1),
@@ -2214,7 +2213,7 @@ fn bond_less_should_reject_below_minimum() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_ok!(EstateModule::bond_more(
 			Origin::signed(BENEFICIARY_ID),
@@ -2258,7 +2257,7 @@ fn bond_less_should_work() {
 		assert_eq!(
 			last_event(),
 			Event::Estate(crate::Event::EstateStakeDecreased(
-				BENEFICIARY_ID,
+				OWNER_ACCOUNT_ID,
 				estate_id,
 				BOND_AMOUNT_1
 			))
@@ -2286,7 +2285,7 @@ fn leave_staking_should_reject_estate_does_not_exist() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		let estate_id_does_not_exist: u64 = 1;
 		assert_noop!(
@@ -2309,7 +2308,7 @@ fn leave_staking_should_reject_no_staking() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_noop!(
 			EstateModule::leave_staking(Origin::signed(BENEFICIARY_ID), estate_id),
@@ -2331,7 +2330,7 @@ fn leave_staking_should_work() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_ok!(EstateModule::bond_more(
 			Origin::signed(BENEFICIARY_ID),
@@ -2343,7 +2342,7 @@ fn leave_staking_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateStakeLeft(BENEFICIARY_ID, estate_id))
+			Event::Estate(crate::Event::EstateStakeLeft(OWNER_ACCOUNT_ID, estate_id))
 		);
 
 		assert_eq!(EstateModule::exit_queue(BENEFICIARY_ID, estate_id), Some(()));
@@ -2363,7 +2362,7 @@ fn leave_staking_should_reject_has_already_left() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_ok!(EstateModule::bond_more(
 			Origin::signed(BENEFICIARY_ID),
@@ -2424,7 +2423,7 @@ fn bond_more_should_reject_stake_has_already_left() {
 		));
 
 		let estate_id: u64 = 0;
-		assert_eq!(EstateModule::get_estate_owner(BENEFICIARY_ID, estate_id), Some(()));
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
 
 		assert_ok!(EstateModule::bond_more(
 			Origin::signed(BENEFICIARY_ID),
