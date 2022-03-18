@@ -1113,21 +1113,32 @@ impl<T: Config> Pallet<T> {
 				LandUnits::<T>::contains_key(metaverse_id, coordinate),
 				Error::<T>::LandUnitIsNotAvailable
 			);
-			let existing_owner = Self::get_land_units(metaverse_id,coordinate).ok_or(Error::<T>::NoPermission)?;
-            if is_tokenized {
-				return Ok(existing_owner);
+			/* 
+			let existing_owner_value = Self::get_land_units(metaverse_id,coordinate);
+			match existing_owner_value {
+				Some(owner_value) => {
+					match owner_value {
+						OwnerId::Token(t) => {
+							//TO DO: Burn old nft
+							//T::NFTTokenizationSource::burn_nft(,t);
+						},
+						OwnerId::Account(a) => {},
+					}
+				},
+				None => {},
 			}
+			*/
 		} else {
 			ensure!(
 				!LandUnits::<T>::contains_key(metaverse_id, coordinate),
 				Error::<T>::LandUnitIsNotAvailable
 			);
+		}
 
-			if is_tokenized  {
-				let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
-				let asset_id = T::NFTTokenizationSource::mint_land_nft(beneficiary.clone(),token_properties.0,token_properties.1)?;
-				owner = OwnerId::Token(asset_id);
-			}
+		if is_tokenized  {
+			let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
+			let asset_id = T::NFTTokenizationSource::mint_land_nft(beneficiary.clone(),token_properties.0,token_properties.1)?;
+			owner = OwnerId::Token(asset_id);
 		}
 
 		LandUnits::<T>::insert(metaverse_id, coordinate, owner.clone());
@@ -1478,16 +1489,13 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 			total_land_units.push(land);
 		}
 
-
-		/* 
-		let estate_ids_by_owner: Vec<EstateId> =
-			EstateOwner::<T>::iter_prefix(who).map(|res| res.0).collect::<Vec<_>>();
-
-		for estate_id in estate_ids_by_owner {
-			let mut estate_info = Estates::<T>::get(&estate_id).unwrap();
-			total_land_units.append(&mut estate_info.land_units)
+		for estate_owner_info in EstateOwner::<T>::iter() {
+			if Self::check_if_land_or_estate_owner(who, &estate_owner_info.1) {
+				let mut estate_info = Estates::<T>::get(&estate_owner_info.0).unwrap();
+				total_land_units.append(&mut estate_info.land_units)
+			}
 		}
-		*/
+			
 		total_land_units
 	}
 

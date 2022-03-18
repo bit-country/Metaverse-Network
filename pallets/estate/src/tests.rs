@@ -899,6 +899,36 @@ fn transfer_estate_should_work() {
 }
 
 #[test]
+fn transfer_estate_token_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2],
+			true
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
+		assert_ok!(EstateModule::transfer_estate(
+			Origin::signed(BENEFICIARY_ID),
+			ALICE,
+			estate_id
+		));
+	
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::TransferredEstate(estate_id, BENEFICIARY_ID, ALICE))
+		);
+	});
+}
+
+#[test]
 fn transfer_estate_should_reject_no_permission() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
@@ -1020,6 +1050,41 @@ fn create_estate_should_work() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
+	});
+}
+
+#[test]
+fn create_estate_token_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+
+		assert_ok!(EstateModule::mint_lands(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2],
+			false
+		));
+
+		assert_ok!(EstateModule::create_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			,false
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::all_estates_count(), 1);
+		assert_eq!(EstateModule::next_estate_id(), 1);
+		assert_eq!(
+			EstateModule::get_estates(estate_id),
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
+		);
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
 	});
 }
 
