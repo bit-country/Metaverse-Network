@@ -1071,7 +1071,7 @@ fn create_estate_token_should_work() {
 			BENEFICIARY_ID,
 			METAVERSE_ID,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
-			,false
+			,true
 		));
 
 		let estate_id: u64 = 0;
