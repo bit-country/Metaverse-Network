@@ -34,7 +34,7 @@ pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::Estate, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
-	NftMetadata, Attributes, AssetId, estate::OwnerId
+	NftMetadata, Attributes, AssetId, estate::OwnerId, ClassId, TokenId,
 };
 pub use rate::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -114,7 +114,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_land_units)]
 	pub type LandUnits<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), OwnerId<T::AccountId,AssetId>, OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, (i32, i32), OwnerId<T::AccountId,AssetId>,OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_estate_id)]
@@ -1317,10 +1317,7 @@ impl<T: Config> Pallet<T> {
 					Some(owner) => {
 						ensure!(Self::check_if_land_or_estate_owner(from, owner), Error::<T>::NoPermission);	
 						match owner {
-							OwnerId::Account(a) => {			
-								*land_unit_owner = None;
-								LandUnits::<T>::insert(metaverse_id.clone(), coordinate.clone(), OwnerId::Account(to.clone()));
-							},
+							OwnerId::Account(a) => *land_unit_owner = Some(OwnerId::Account(to.clone())),
 							OwnerId::Token(t) => {
 								T::NFTTokenizationSource::transfer_nft(from, to, *t);
 							},

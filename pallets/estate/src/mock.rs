@@ -6,7 +6,7 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use primitives::{FungibleTokenId, NftMetadata, Attributes, ClassId, GroupCollectionId, TokenId, estate::Estate};
+use primitives::{FungibleTokenId, NftMetadata, Attributes, ClassId, GroupCollectionId, TokenId };
 
 use crate as estate;
 
@@ -17,6 +17,7 @@ pub type Balance = u128;
 pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 pub type EstateId = u64;
+
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
@@ -38,9 +39,17 @@ pub const BOND_AMOUNT_BELOW_MINIMUM: Balance = 100;
 pub const BOND_LESS_AMOUNT_1: Balance = 100;
 
 pub const ESTATE_ID: EstateId = 0;
+
+pub const ASSET_ID_1: AssetId = 101;
+pub const ASSET_ID_2: AssetId = 100;
 pub const ASSET_CLASS_ID: ClassId = 5;
 pub const ASSET_TOKEN_ID: TokenId = 6;
 pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
+
+pub const OWNER_ACCOUNT_ID: OwnerId<AccountId, AssetId> = OwnerId::Account(BENEFICIARY_ID);
+pub const OWNER_ID_ALICE: OwnerId<AccountId, AssetId> = OwnerId::Account(ALICE);
+pub const OWNER_LAND_ASSET_ID: OwnerId<AccountId, AssetId> = OwnerId::Token(ASSET_ID_1);
+pub const OWNER_ESTATE_ASSET_ID: OwnerId<AccountId, AssetId> = OwnerId::Token(ASSET_ID_2);
 
 
 
@@ -214,21 +223,27 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 		}
 	}
 }
-pub struct MockNFTTokenizationHandler;
 
-impl NFTTrait<AccountId> for MockNFTTokenizationHandler {
-	
+pub struct MockNFTHandler;
+
+impl NFTTrait<AccountId> for MockNFTHandler {
+	type TokenId = TokenId;
+	type ClassId = ClassId;
+
 	fn check_ownership(who: &AccountId, asset_id: &AssetId) 
 		-> Result<bool, DispatchError> {
-		if (who == ALICE && (asset_id == 1 || asset_id == 3)) ||  (who == BOB && (asset_id == 2 || asset_id == 4) ) {
-			Ok(true)
+		if (*who == ALICE && (*asset_id == 1 || *asset_id == 3)) 
+			||  (*who == BOB && (*asset_id == 2 || *asset_id == 4))
+				||  (*who == BENEFICIARY_ID && (*asset_id == 100 || *asset_id == 101)){
+			return Ok(true);
 		}
 		Ok(false)
 	}
 	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) 
 		-> Result<bool, DispatchError> {
-			if who == ALICE && *nft.0 == ASSET_CLASS_ID && *nft.1 == ASSET_TOKEN_ID {
-				Ok(true)
+			let nft_value = *nft;
+			if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
+				return Ok(true);
 			}
 			Ok(false)
 	}
@@ -237,23 +252,19 @@ impl NFTTrait<AccountId> for MockNFTTokenizationHandler {
 		class_id: Self::ClassId,
 	) -> Result<bool, DispatchError> {
 		if class_id == ASSET_CLASS_ID && collection_id == ASSET_COLLECTION_ID {
-			Ok(true)
+			return Ok(true);
 		}
 		Ok(false)
 	}
 
 	fn get_nft_detail(asset_id: AssetId) 
 		-> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
-		if asset_id == 1 || asset_id == 2 {
-			Ok((ASSET_CLASS_ID,ASSET_COLLECTION_ID,ASSET_TOKEN_ID))
-		}
+		Ok((ASSET_COLLECTION_ID,ASSET_CLASS_ID,ASSET_TOKEN_ID))
 	}
 	
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) 
 		-> Result<GroupCollectionId, DispatchError> {
-			if class_id == ASSET_CLASS_ID {
-				Ok(ASSET_COLLECTION_ID)
-			}
+			Ok(ASSET_COLLECTION_ID)
 	}
 	
 	fn mint_land_nft(
@@ -264,6 +275,8 @@ impl NFTTrait<AccountId> for MockNFTTokenizationHandler {
 		match account {
 			ALICE => Ok(1),
 			BOB => Ok(2),
+			BENEFICIARY_ID => Ok(ASSET_ID_1),
+			_ => Ok(1000),
 		}
 	}
 
@@ -275,6 +288,8 @@ impl NFTTrait<AccountId> for MockNFTTokenizationHandler {
 		match account {
 			ALICE => Ok(3),
 			BOB => Ok(4),
+			BENEFICIARY_ID => Ok(ASSET_ID_2),
+			_ => Ok(1001),
 		}
 	}
 
@@ -308,7 +323,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
-	type NFTTokenizationSource = MockNFTTokenizationHandler;
+	type NFTTokenizationSource = MockNFTHandler;
 }
 
 construct_runtime!(
@@ -319,7 +334,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Estate: estate:: {Pallet, Call, Storage, Event<T>}
+		Estate: estate:: {Pallet, Call, Storage, Event<T>},
 	}
 );
 
