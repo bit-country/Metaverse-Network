@@ -39,7 +39,7 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::pallet_prelude::*;
-use orml_nft::Pallet as NftModule;
+use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -155,6 +155,62 @@ impl Default for CollectionType {
 	fn default() -> Self {
 		CollectionType::Collectable
 	}
+}
+
+#[derive(codec::Encode, codec::Decode, Clone, frame_support::RuntimeDebug, PartialEq)]
+pub enum StorageVersion {
+	V0,
+	V1,
+}
+
+pub mod migrations {
+	use frame_support::pallet_prelude::*;
+	use orml_nft::{ClassInfo, ClassInfoOf, Classes};
+
+	use super::{BalanceOf, Config, NftClassData, NftMetadata, NftModule, TokenIdOf};
+
+	//	pub fn upgrade_class_data_v2<T: Config>() -> Weight {
+	//		log::info!("Start upgrading nft class data v2");
+	//		let mut num_nft_classes = 0;
+	//
+	//		Classes::<T>::translate(|_k, class_info: Option<ClassInfoOf<T>>| {
+	//			num_nft_classes += 1;
+	//
+	//			match class_info {
+	//				Some(info) => {
+	//					let class_data = NftClassData {
+	//						deposit: info.data.deposit,
+	//						token_type: info.data.token_type,
+	//						collection_type: info.data.collection_type,
+	//						attributes: info.data.attributes,
+	//					};
+	//
+	//					class_data.try_into().ok()
+	//				}
+	//				_ => None,
+	//			}
+	//		});
+	//
+	//		//		Classes::<T>::translate::<ClassInfoOf<>>(
+	//		//			|_k, class_info: ClassInfo<TokenIdOf<T>, T::AccountId, NftClassData<BalanceOf<T>>,
+	// NftMetadata>| 		// { 				num_nft_classes += 1;
+	//		//
+	//		//				let v: Option<ClassInfo<TokenIdOf<T>, T::AccountId, NftClassData<BalanceOf<T>>,
+	// NftMetadata>> = 		//					class_info.try_into().ok();
+	//		//
+	//		//				if v.is_none() {
+	//		//					log::warn!(
+	//		//						target: "runtime::nft",
+	//		//						"migration: Failed to upgrade nft class data v1 to v2"
+	//		//					);
+	//		//				}
+	//		//
+	//		//				v
+	//		//			},
+	//		//		);
+	//
+	//		0
+	//	}
 }
 
 #[frame_support::pallet]
@@ -688,7 +744,13 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_class_data_v2();
+
+			0
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -821,6 +883,50 @@ impl<T: Config> Pallet<T> {
 		let deposit_required = T::DataDepositPerByte::get().saturating_mul(attributes_len.into());
 
 		Ok(deposit_required)
+	}
+
+	pub fn upgrade_class_data_v2() -> Weight {
+		log::info!("Start upgrading nft class data v2");
+		let mut num_nft_classes = 0;
+
+		orml_nft::Classes::<T>::translate(|_k, class_info: ClassInfoOf<T>| {
+			num_nft_classes += 1;
+			log::info!("Upgrading class data");
+			let new_data = NftClassData {
+				deposit: class_info.data.deposit,
+				attributes: class_info.data.attributes,
+				token_type: class_info.data.token_type,
+				collection_type: class_info.data.collection_type,
+			};
+
+			let v: ClassInfoOf<T> = ClassInfo {
+				metadata: class_info.metadata,
+				total_issuance: class_info.total_issuance,
+				owner: class_info.owner,
+				data: new_data,
+			};
+			Some(v)
+		});
+		log::info!("Classes upgraded: {}", num_nft_classes);
+		//		Classes::<T>::translate::<ClassInfoOf<>>(
+		//			|_k, class_info: ClassInfo<TokenIdOf<T>, T::AccountId, NftClassData<BalanceOf<T>>, NftMetadata>|
+		// { 				num_nft_classes += 1;
+		//
+		//				let v: Option<ClassInfo<TokenIdOf<T>, T::AccountId, NftClassData<BalanceOf<T>>, NftMetadata>> =
+		//					class_info.try_into().ok();
+		//
+		//				if v.is_none() {
+		//					log::warn!(
+		//						target: "runtime::nft",
+		//						"migration: Failed to upgrade nft class data v1 to v2"
+		//					);
+		//				}
+		//
+		//				v
+		//			},
+		//		);
+
+		0
 	}
 }
 
