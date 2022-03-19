@@ -1050,6 +1050,7 @@ fn create_estate_should_work() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
+		
 	});
 }
 
@@ -1087,6 +1088,52 @@ fn create_estate_token_should_work() {
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
 	});
 }
+
+#[test]
+fn create_estate_token_after_minting_account_and_token_based_lands_should_give_correct_total_user_land_units() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
+
+		assert_ok!(EstateModule::mint_land(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			COORDINATE_IN_1,
+			false
+		));
+
+		assert_ok!(EstateModule::mint_land(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			COORDINATE_IN_2,
+			true
+		));
+
+		assert_ok!(EstateModule::create_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			,true
+		));
+
+		let estate_id: u64 = 0;
+		assert_eq!(EstateModule::all_estates_count(), 1);
+		assert_eq!(EstateModule::next_estate_id(), 1);
+		assert_eq!(
+			EstateModule::get_estates(estate_id),
+			Some(EstateInfo {
+				metaverse_id: METAVERSE_ID,
+				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			})
+		);
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+		assert_eq!(EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(), 2);
+		assert_eq!(EstateModule::all_land_units_count(), 2);
+	});
+}
+
 
 #[test]
 fn create_estate_should_return_none_for_non_exist_estate() {
