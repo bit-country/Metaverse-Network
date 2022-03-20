@@ -26,6 +26,7 @@ orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library",
 orml-unknown-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
+orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 
 # Metaverse Dependencies
 primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
@@ -173,7 +174,6 @@ std = [
     "xcm-executor/std",
     "pallet-aura/std",
     "sp-consensus-aura/std",
-#    'orml-currencies/std',
     'orml-tokens/std',
     'orml-nft/std',
     'primitives/std',
