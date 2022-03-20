@@ -133,6 +133,8 @@ pub enum FungibleTokenId {
 	FungibleToken(TokenId),
 	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
+
+	Stable(TokenId), // kUSD
 }
 
 impl FungibleTokenId {
@@ -299,4 +301,33 @@ pub struct UndeployedLandBlock<AccountId> {
 	pub approved: Option<AccountId>,
 	/// Whether the asset can be transferred or not.
 	pub is_frozen: bool,
+}
+
+// create_currency_id! {
+// Represent a Token symbol with 8 bit
+// Bit 8 : 0 for Pokladot Ecosystem, 1 for Kusama Ecosystem
+// Bit 7 : Reserved
+// Bit 6 - 1 : The token ID
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[repr(u8)]
+pub enum TokenSymbol {
+	// 0 => NEER
+	// 1 => KSM
+	// 2 => KAR
+	// 3 => KUSD
+	NEER = 0,
+	// NEER("NEER Token", 18) = 10,
+	KSM = 1,
+	// KSM("Kusama", 12) = 4,
+	KAR = 2,
+	// KAR("Karura", 12) = 6,
+	KUSD = 3, // KUSD("Karura Dollar", 12) = 2,
+}
+// }
+
+impl Default for TokenSymbol {
+	fn default() -> Self {
+		Self::NEER
+	}
 }
