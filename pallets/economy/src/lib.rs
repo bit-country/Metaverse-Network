@@ -205,6 +205,7 @@ pub mod pallet {
 		UnstakedAmountWithdrew(T::AccountId, BalanceOf<T>),
 		SetPowerBalance(T::AccountId, PowerAmount),
 		CommissionUpdated((ClassId, TokenId), Perbill),
+		CancelPowerConversionRequest((ClassId, TokenId), T::AccountId),
 	}
 
 	#[pallet::error]
@@ -271,6 +272,8 @@ pub mod pallet {
 		RequestAlreadyExist,
 		// Order has not reach target
 		NotReadyToExecute,
+		// Order needs to reach target before cancelling
+		OrderIsNotReadyForCancel,
 	}
 
 	#[pallet::call]
@@ -894,6 +897,84 @@ pub mod pallet {
 			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(nft_id);
 
 			T::FungibleTokenCurrency::transfer(T::MiningCurrencyId::get(), &nft_account_id, &who, amount);
+			Ok(().into())
+		}
+
+		/// Cancel queue order of power distributor
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn cancel_user_queue_order(origin: OriginFor<T>, nft_id: (ClassId, TokenId)) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			ensure!(
+				BuyPowerByUserRequestQueue::<T>::contains_key(nft_id, &who),
+				Error::<T>::PowerGenerationQueueDoesNotExist
+			);
+
+			let order_info = BuyPowerByUserRequestQueue::<T>::get(nft_id, &who)
+				.ok_or(Error::<T>::PowerDistributionQueueDoesNotExist)?;
+
+			let current_block_number = <frame_system::Pallet<T>>::current_block_number();
+
+			ensure!(
+				order_info.target < current_block_number,
+				Error::<T>::OrderIsNotReadyForCancel
+			);
+
+			T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &who, order_info.bit_amount);
+
+			BuyPowerByUserRequestQueue::<T>::remove(nft_id, &who);
+
+			Self::deposit_event(Event::CancelPowerConversionRequest(nft_id, who));
+
+			Ok(().into())
+		}
+
+		/// Cancel queue order of user
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn cancel_distributor_queue_order(
+			origin: OriginFor<T>,
+			nft_id: (ClassId, TokenId),
+			receiver_nft_id: (ClassId, TokenId),
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Check if origin is the owner of the NFT
+			ensure!(
+				T::NFTHandler::check_nft_ownership(&who, &receiver_nft_id)?,
+				Error::<T>::NoPermission
+			);
+
+			// Nft account id
+			// Get receiver NFT account id
+			let receiver_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(receiver_nft_id);
+
+			// Check if queue exists
+			ensure!(
+				BuyPowerByDistributorRequestQueue::<T>::contains_key(nft_id, &receiver_nft_account_id),
+				Error::<T>::PowerGenerationQueueDoesNotExist
+			);
+
+			let current_block_number = <frame_system::Pallet<T>>::current_block_number();
+
+			let order_info = BuyPowerByDistributorRequestQueue::<T>::get(nft_id, &receiver_nft_account_id)
+				.ok_or(Error::<T>::PowerGenerationQueueDoesNotExist)?;
+
+			ensure!(
+				order_info.target < current_block_number,
+				Error::<T>::OrderIsNotReadyForCancel
+			);
+
+			T::FungibleTokenCurrency::unreserve(
+				T::MiningCurrencyId::get(),
+				&receiver_nft_account_id,
+				order_info.bit_amount,
+			);
+
+			BuyPowerByDistributorRequestQueue::<T>::remove(nft_id, &receiver_nft_account_id);
+
+			Self::deposit_event(Event::CancelPowerConversionRequest(nft_id, receiver_nft_account_id));
+
 			Ok(().into())
 		}
 	}
