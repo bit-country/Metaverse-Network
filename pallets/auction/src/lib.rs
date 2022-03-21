@@ -53,9 +53,54 @@ pub mod weights;
 
 pub struct AuctionLogicHandler;
 
+pub mod migration_v2 {
+	use codec::FullCodec;
+	use codec::{Decode, Encode};
+	use scale_info::TypeInfo;
+	#[cfg(feature = "std")]
+	use serde::{Deserialize, Serialize};
+	use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, RuntimeDebug};
+	use sp_std::{
+		cmp::{Eq, PartialEq},
+		fmt::Debug,
+		vec::Vec,
+	};
+
+	use auction_manager::{AuctionType, ListingLevel};
+	use primitives::{AssetId, EstateId, FungibleTokenId, MetaverseId};
+
+	#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+	pub enum V1ItemId {
+		NFT(AssetId),
+		Spot(u64, MetaverseId),
+		Country(MetaverseId),
+		Block(u64),
+		Estate(EstateId),
+		LandUnit((i32, i32), MetaverseId),
+	}
+
+	#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
+	#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
+	pub struct AuctionItem<AccountId, BlockNumber, Balance> {
+		pub item_id: V1ItemId,
+		pub recipient: AccountId,
+		pub initial_amount: Balance,
+		/// Current amount for sale
+		pub amount: Balance,
+		/// Auction start time
+		pub start_time: BlockNumber,
+		pub end_time: BlockNumber,
+		pub auction_type: AuctionType,
+		pub listing_level: ListingLevel<AccountId>,
+		pub currency_id: FungibleTokenId,
+	}
+}
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::dispatch::DispatchResultWithPostInfo;
+	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
@@ -63,6 +108,8 @@ pub mod pallet {
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use core_primitives::{MetaverseTrait, NFTTrait};
 	use primitives::{AssetId, Balance, ClassId, FungibleTokenId, MetaverseId, TokenId};
+
+	use crate::migration_v2::V1ItemId;
 
 	use super::*;
 
@@ -618,6 +665,11 @@ pub mod pallet {
 				};
 			}
 		}
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_asset_auction_data_v2();
+
+			0
+		}
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
@@ -975,7 +1027,6 @@ pub mod pallet {
 			Self::items_in_auction(item_id) == Some(true)
 		}
 	}
-
 	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Pallet<T> {
 		fn on_new_bid(
 			_now: T::BlockNumber,
@@ -990,5 +1041,47 @@ pub mod pallet {
 		}
 
 		fn on_auction_ended(_id: AuctionId, _winner: Option<(T::AccountId, BalanceOf<T>)>) {}
+	}
+
+	impl<T: Config> Pallet<T> {
+		pub fn upgrade_asset_auction_data_v2() -> Weight {
+			log::info!("Start upgrading nft class data v2");
+			let mut num_auction_item = 0;
+
+			AuctionItems::<T>::translate(
+				|_k, auction_v1: migration_v2::AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+					num_auction_item += 1;
+
+					log::info!("Upgrading auction items data");
+
+					let asset_id = auction_v1.item_id;
+
+					match asset_id {
+						V1ItemId::NFT(asset_id) => {
+							num_auction_item += 1;
+							let token = T::NFTHandler::get_asset_id(asset_id).unwrap();
+							let v2_item_id = ItemId::NFT(token.0, token.1);
+
+							let v: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
+								item_id: v2_item_id,
+								recipient: auction_v1.recipient,
+								initial_amount: auction_v1.initial_amount,
+								amount: auction_v1.amount,
+								start_time: auction_v1.start_time,
+								end_time: auction_v1.end_time,
+								auction_type: auction_v1.auction_type,
+								listing_level: auction_v1.listing_level,
+								currency_id: auction_v1.currency_id,
+							};
+							Some(v)
+						}
+						_ => None,
+					}
+				},
+			);
+
+			log::info!("Asset Item in Auction upgraded: {}", num_auction_item);
+			0
+		}
 	}
 }
