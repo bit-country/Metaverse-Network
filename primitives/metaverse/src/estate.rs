@@ -40,3 +40,9 @@ pub enum OwnerId<AccountId, AssetId> {
     Account(AccountId),
     Token(AssetId),
 }
+
+#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum LandUnitStatus<AccountId> {
+    NonExisting,
+	Existing(AccountId),
+}
