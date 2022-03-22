@@ -157,6 +157,7 @@ impl pallet_mining::Config for Runtime {
 ord_parameter_types! {
 	pub const One: AccountId = 1;
 	pub const Two: AccountId = 2;
+	pub const PowerAmountPerBlock: u32 = 10;
 }
 impl Config for Runtime {
 	type Event = Event;
@@ -167,6 +168,7 @@ impl Config for Runtime {
 	type EconomyTreasury = EconomyPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumStake = MinimumStake;
+	type PowerAmountPerBlock = PowerAmountPerBlock;
 }
 
 parameter_type_with_key! {
@@ -263,7 +265,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
 		_high_bidder: &u128,
-		_asset_id: &u64,
+		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())

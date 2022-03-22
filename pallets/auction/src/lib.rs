@@ -53,16 +53,63 @@ pub mod weights;
 
 pub struct AuctionLogicHandler;
 
+pub mod migration_v2 {
+	use codec::FullCodec;
+	use codec::{Decode, Encode};
+	use scale_info::TypeInfo;
+	#[cfg(feature = "std")]
+	use serde::{Deserialize, Serialize};
+	use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, RuntimeDebug};
+	use sp_std::{
+		cmp::{Eq, PartialEq},
+		fmt::Debug,
+		vec::Vec,
+	};
+
+	use auction_manager::{AuctionType, ListingLevel};
+	use primitives::{AssetId, EstateId, FungibleTokenId, MetaverseId};
+
+	#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+	#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+	pub enum V1ItemId {
+		NFT(AssetId),
+		Spot(u64, MetaverseId),
+		Country(MetaverseId),
+		Block(u64),
+		Estate(EstateId),
+		LandUnit((i32, i32), MetaverseId),
+	}
+
+	#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
+	#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
+	pub struct AuctionItem<AccountId, BlockNumber, Balance> {
+		pub item_id: V1ItemId,
+		pub recipient: AccountId,
+		pub initial_amount: Balance,
+		/// Current amount for sale
+		pub amount: Balance,
+		/// Auction start time
+		pub start_time: BlockNumber,
+		pub end_time: BlockNumber,
+		pub auction_type: AuctionType,
+		pub listing_level: ListingLevel<AccountId>,
+		pub currency_id: FungibleTokenId,
+	}
+}
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::dispatch::DispatchResultWithPostInfo;
+	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-	use core_primitives::MetaverseTrait;
-	use primitives::{AssetId, Balance, ClassId, FungibleTokenId, MetaverseId};
+	use core_primitives::{MetaverseTrait, NFTTrait};
+	use primitives::{AssetId, Balance, ClassId, FungibleTokenId, MetaverseId, TokenId};
+
+	use crate::migration_v2::V1ItemId;
 
 	use super::*;
 
@@ -75,7 +122,7 @@ pub mod pallet {
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config + pallet_nft::Config {
+	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		#[pallet::constant]
 		type AuctionTimeToClose: Get<Self::BlockNumber>;
@@ -102,6 +149,8 @@ pub mod pallet {
 		type RoyaltyFee: Get<u16>;
 		#[pallet::constant]
 		type MaxFinality: Get<u32>;
+		/// NFT Handler
+		type NFTHandler: NFTTrait<Self::AccountId, ClassId = ClassId, TokenId = TokenId>;
 	}
 
 	#[pallet::storage]
@@ -294,15 +343,16 @@ pub mod pallet {
 					// Transfer asset from asset owner to buy it now user
 					<ItemsInAuction<T>>::remove(auction_item.item_id);
 					match auction_item.item_id {
-						ItemId::NFT(asset_id) => {
+						ItemId::NFT(class_id, token_id) => {
 							Self::collect_royalty_fee(
 								&value,
 								&auction_item.recipient,
-								&asset_id,
+								&(class_id, token_id),
 								FungibleTokenId::NativeToken(0),
 							);
 
-							let asset_transfer = NFTModule::<T>::do_transfer(&auction_item.recipient, &from, asset_id);
+							let asset_transfer =
+								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(class_id, token_id));
 							match asset_transfer {
 								Err(_) => (),
 								Ok(_) => {
@@ -364,7 +414,7 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 
 			ensure!(
-				matches!(item_id, ItemId::NFT(_)),
+				matches!(item_id, ItemId::NFT(_, _)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -409,7 +459,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
-				matches!(item_id, ItemId::NFT(_)),
+				matches!(item_id, ItemId::NFT(_, _)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -528,18 +578,17 @@ pub mod pallet {
 									// Check asset type and handle internal logic
 
 									match auction_item.item_id {
-										ItemId::NFT(asset_id) => {
+										ItemId::NFT(class_id, token_id) => {
 											Self::collect_royalty_fee(
 												&high_bid_price,
 												&auction_item.recipient,
-												&asset_id,
+												&(class_id, token_id),
 												FungibleTokenId::NativeToken(0),
 											);
-
-											let asset_transfer = NFTModule::<T>::do_transfer(
+											let asset_transfer = T::NFTHandler::transfer_nft(
 												&auction_item.recipient,
 												&high_bidder,
-												asset_id,
+												&(class_id, token_id),
 											);
 
 											match asset_transfer {
@@ -616,6 +665,11 @@ pub mod pallet {
 				};
 			}
 		}
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_asset_auction_data_v2();
+
+			0
+		}
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
@@ -676,26 +730,19 @@ pub mod pallet {
 			);
 
 			match item_id {
-				ItemId::NFT(asset_id) => {
-					// Get asset detail
-					let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
+				ItemId::NFT(class_id, token_id) => {
 					// Check ownership
-					let class_info =
-						orml_nft::Pallet::<T>::classes(asset.0).ok_or(Error::<T>::NoPermissionToCreateAuction)?;
-					let class_info_data = class_info.data;
-					let token_info = orml_nft::Pallet::<T>::tokens(asset.0, asset.1)
-						.ok_or(Error::<T>::NoPermissionToCreateAuction)?;
-					ensure!(recipient == token_info.owner, Error::<T>::NoPermissionToCreateAuction);
-					ensure!(
-						class_info_data.token_type.is_transferable(),
-						Error::<T>::NoPermissionToCreateAuction
-					);
+					let is_owner = T::NFTHandler::check_ownership(&recipient, &(class_id, token_id))?;
+
+					ensure!(is_owner == true, Error::<T>::NoPermissionToCreateAuction);
+
+					let is_transferable = T::NFTHandler::is_transferable(&(class_id, token_id))?;
+
+					ensure!(is_transferable == true, Error::<T>::NoPermissionToCreateAuction);
 
 					// Ensure NFT authorised to sell
 					match listing_level {
 						ListingLevel::Local(metaverse_id) => {
-							let class_id: ClassId = TryInto::<ClassId>::try_into(asset.0).unwrap_or_default();
-
 							ensure!(
 								MetaverseAuthorizedCollection::<T>::contains_key((metaverse_id, class_id))
 									|| T::MetaverseInfoSource::check_ownership(&recipient, &metaverse_id),
@@ -938,7 +985,7 @@ pub mod pallet {
 		fn collect_royalty_fee(
 			high_bid_price: &Self::Balance,
 			high_bidder: &T::AccountId,
-			asset_id: &AssetId,
+			asset_id: &(ClassId, TokenId),
 			social_currency_id: FungibleTokenId,
 		) -> DispatchResult {
 			let fee_scale = T::RoyaltyFee::get();
@@ -950,9 +997,7 @@ pub mod pallet {
 
 			// Collect loyalty fee
 			// and deposit to class fund
-			// Get asset detail from id
-			let asset = NFTModule::<T>::get_asset(asset_id).ok_or(Error::<T>::AssetIsNotExist)?;
-			let class_fund = NFTModule::<T>::get_class_fund(&asset.0);
+			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
 			// Transfer loyalty fee from winner to class fund pot
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
 				<T as Config>::Currency::transfer(
@@ -982,7 +1027,6 @@ pub mod pallet {
 			Self::items_in_auction(item_id) == Some(true)
 		}
 	}
-
 	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Pallet<T> {
 		fn on_new_bid(
 			_now: T::BlockNumber,
@@ -997,5 +1041,47 @@ pub mod pallet {
 		}
 
 		fn on_auction_ended(_id: AuctionId, _winner: Option<(T::AccountId, BalanceOf<T>)>) {}
+	}
+
+	impl<T: Config> Pallet<T> {
+		pub fn upgrade_asset_auction_data_v2() -> Weight {
+			log::info!("Start upgrading nft class data v2");
+			let mut num_auction_item = 0;
+
+			AuctionItems::<T>::translate(
+				|_k, auction_v1: migration_v2::AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+					num_auction_item += 1;
+
+					log::info!("Upgrading auction items data");
+
+					let asset_id = auction_v1.item_id;
+
+					match asset_id {
+						V1ItemId::NFT(asset_id) => {
+							num_auction_item += 1;
+							let token = T::NFTHandler::get_asset_id(asset_id).unwrap();
+							let v2_item_id = ItemId::NFT(token.0, token.1);
+
+							let v: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
+								item_id: v2_item_id,
+								recipient: auction_v1.recipient,
+								initial_amount: auction_v1.initial_amount,
+								amount: auction_v1.amount,
+								start_time: auction_v1.start_time,
+								end_time: auction_v1.end_time,
+								auction_type: auction_v1.auction_type,
+								listing_level: auction_v1.listing_level,
+								currency_id: auction_v1.currency_id,
+							};
+							Some(v)
+						}
+						_ => None,
+					}
+				},
+			);
+
+			log::info!("Asset Item in Auction upgraded: {}", num_auction_item);
+			0
+		}
 	}
 }
