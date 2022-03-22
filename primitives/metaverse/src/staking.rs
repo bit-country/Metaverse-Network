@@ -1,7 +1,8 @@
 use codec::{Decode, Encode};
+use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
 
-use crate::{AccountId, RoundIndex, RuntimeDebug, TypeInfo};
+use crate::{AccountId, MetaverseId, RoundIndex, RuntimeDebug, TypeInfo};
 
 #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
 /// The current round index and transition information
@@ -48,4 +49,8 @@ impl<B: Copy + sp_std::ops::Add<Output = B> + sp_std::ops::Sub<Output = B> + Fro
 	fn default() -> RoundInfo<B> {
 		RoundInfo::new(1u32, 1u32.into(), 20u32)
 	}
+}
+
+pub trait MetaverseStakingTrait<Balance> {
+	fn update_staking_reward(round: RoundIndex, total_reward: Balance) -> DispatchResult;
 }
