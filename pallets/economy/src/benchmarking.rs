@@ -117,27 +117,19 @@ benchmarks! {
 		assert_eq!(new_balance, 123);
 	}
 
-	// mint_element
-	mint_element{
-		let caller = funded_account::<T>("caller", 0);
-
-		// ElementIndex::<Runtime>::insert(
-		// 	ELEMENT_INDEX_ID,
-		// 	ElementInfo {
-		// 		power_price: 10,
-		// 		compositions: vec![],
-		// 	},
-		// );
-
-		// 	crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
-	}: _(RawOrigin::Signed(caller.clone()), 1, 2)
-	verify {
-		// let account_id = crate::Pallet::<T>::EconomyTreasury::get().into_sub_account(BENEFICIARY_NFT);
-		// let account_id: T::AccountId = <<T as Config>::EconomyTreasury as Get<PalletId>>::get().into_sub_account(BENEFICIARY_NFT);
-		//
-		// let new_balance = crate::Pallet::<T>::get_power_balance(account_id);
-		// assert_eq!(new_balance, 123);
-	}
+	// // mint_element
+	// mint_element{
+	// 	let caller = funded_account::<T>("caller", 0);
+	//
+	// 	// 	crate::Pallet::<T>::create_metaverse(RawOrigin::Root.into(), caller.clone(), vec![1]);
+	// }: _(RawOrigin::Signed(caller.clone()), 1, 2)
+	// verify {
+	// 	// let account_id = crate::Pallet::<T>::EconomyTreasury::get().into_sub_account(BENEFICIARY_NFT);
+	// 	// let account_id: T::AccountId = <<T as Config>::EconomyTreasury as Get<PalletId>>::get().into_sub_account(BENEFICIARY_NFT);
+	// 	//
+	// 	// let new_balance = crate::Pallet::<T>::get_power_balance(account_id);
+	// 	// assert_eq!(new_balance, 123);
+	// }
 
 	// stake
 	stake{
@@ -159,6 +151,30 @@ benchmarks! {
 		let staking_balance = crate::Pallet::<T>::get_staking_info(caller.clone());
 		assert_eq!(staking_balance, 900u32.into());
 	}
+
+	// withdraw_unreserved
+	withdraw_unreserved{
+		let caller = funded_account::<T>("caller", 0);
+
+		crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), 1000u32.into());
+		crate::Pallet::<T>::unstake(RawOrigin::Signed(caller.clone()).into(), 100u32.into());
+
+	}: _(RawOrigin::Signed(caller.clone()), 0)
+	verify {
+		assert_eq!(T::Currency::reserved_balance(&caller), 900u32.into());
+	}
+
+	// // cancel_user_queue_order
+	// cancel_user_queue_order{
+	// 	let caller = funded_account::<T>("caller", 0);
+	//
+	// 	crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), 1000u32.into());
+	// 	crate::Pallet::<T>::unstake(RawOrigin::Signed(caller.clone()).into(), 100u32.into());
+	//
+	// }: _(RawOrigin::Signed(caller.clone()), 0)
+	// verify {
+	// 	assert_eq!(T::Currency::reserved_balance(&caller), 900u32.into());
+	// }
 
 
 
