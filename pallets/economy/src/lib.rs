@@ -20,7 +20,7 @@
 use codec::{Decode, Encode, HasCompact};
 use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
-	ensure,
+	ensure, log,
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
@@ -32,7 +32,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	ArithmeticError, DispatchError, Perbill,
 };
-use sp_std::{collections::btree_map::BTreeMap, ops::Mul, prelude::*, vec::Vec};
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use core_primitives::NFTTrait;
 use core_primitives::*;
@@ -978,6 +978,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_order_info_data_v2();
+			0
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -1115,5 +1123,25 @@ impl<T: Config> Pallet<T> {
 		let current_block_number = <frame_system::Pallet<T>>::current_block_number();
 
 		current_block_number >= target
+	}
+
+	fn upgrade_order_info_data_v2() -> Weight {
+		log::info!("Start upgrading order info data v2");
+		let mut num_order_queue_classes = 0;
+
+		BuyPowerByUserRequestQueue::<T>::translate(|_k, _k2, order_info: OrderInfo<T::BlockNumber>| {
+			num_order_queue_classes += 1;
+
+			Some(OrderInfo {
+				power_amount: order_info.power_amount,
+				bit_amount: order_info.bit_amount,
+				target: T::BlockNumber::zero(),
+				commission_fee: 0,
+			})
+		});
+
+		log::info!("Classes upgraded: {}", num_order_queue_classes);
+
+		0
 	}
 }
