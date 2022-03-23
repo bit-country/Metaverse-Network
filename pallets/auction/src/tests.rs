@@ -5,8 +5,8 @@ use sp_std::collections::btree_map::BTreeMap;
 
 use auction_manager::ListingLevel;
 use mock::{Event, *};
-use pallet_nft::{Attributes, CollectionType, TokenType};
-use primitives::ItemId::NFT;
+use pallet_nft::{CollectionType, TokenType};
+use primitives::{Attributes, ItemId::NFT};
 
 use super::*;
 

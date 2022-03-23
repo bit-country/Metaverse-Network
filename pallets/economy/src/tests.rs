@@ -24,8 +24,8 @@ use sp_std::default::Default;
 
 use auction_manager::ListingLevel;
 use mock::{Event, *};
-use pallet_nft::{Attributes, CollectionType, TokenType};
-use primitives::GroupCollectionId;
+use pallet_nft::{CollectionType, TokenType};
+use primitives::{Attributes, GroupCollectionId};
 
 use super::*;
 
