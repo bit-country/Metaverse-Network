@@ -22,6 +22,7 @@ pub type EstateId = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
 pub const BENEFICIARY_ID: AccountId = 99;
+pub const CLASS_FUND_ID: AccountId = 123;
 pub const METAVERSE_ID: MetaverseId = 0;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
@@ -40,16 +41,16 @@ pub const BOND_LESS_AMOUNT_1: Balance = 100;
 
 pub const ESTATE_ID: EstateId = 0;
 
-pub const ASSET_ID_1: AssetId = 101;
-pub const ASSET_ID_2: AssetId = 100;
+pub const ASSET_ID_1: TokenId = 101;
+pub const ASSET_ID_2: TokenId = 100;
 pub const ASSET_CLASS_ID: ClassId = 5;
 pub const ASSET_TOKEN_ID: TokenId = 6;
 pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
 
-pub const OWNER_ACCOUNT_ID: OwnerId<AccountId, AssetId> = OwnerId::Account(BENEFICIARY_ID);
-pub const OWNER_ID_ALICE: OwnerId<AccountId, AssetId> = OwnerId::Account(ALICE);
-pub const OWNER_LAND_ASSET_ID: OwnerId<AccountId, AssetId> = OwnerId::Token(ASSET_ID_1);
-pub const OWNER_ESTATE_ASSET_ID: OwnerId<AccountId, AssetId> = OwnerId::Token(ASSET_ID_2);
+pub const OWNER_ACCOUNT_ID: OwnerId<AccountId, TokenId> = OwnerId::Account(BENEFICIARY_ID);
+pub const OWNER_ID_ALICE: OwnerId<AccountId, TokenId> = OwnerId::Account(ALICE);
+pub const OWNER_LAND_ASSET_ID: OwnerId<AccountId, TokenId> = OwnerId::Token(ASSET_ID_1);
+pub const OWNER_ESTATE_ASSET_ID: OwnerId<AccountId, TokenId> = OwnerId::Token(ASSET_ID_2);
 
 
 
@@ -201,7 +202,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
 		_high_bidder: &u128,
-		_asset_id: &u64,
+		_asset_id: &(ClassId, TokenId),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
@@ -230,11 +231,12 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 	type TokenId = TokenId;
 	type ClassId = ClassId;
 
-	fn check_ownership(who: &AccountId, asset_id: &AssetId) 
+	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) 
 		-> Result<bool, DispatchError> {
-		if (*who == ALICE && (*asset_id == 1 || *asset_id == 3)) 
-			||  (*who == BOB && (*asset_id == 2 || *asset_id == 4))
-				||  (*who == BENEFICIARY_ID && (*asset_id == 100 || *asset_id == 101)){
+		let nft_value = *asset_id;	
+		if (*who == ALICE && (nft_value.1 == 1 || nft_value.1 == 3)) 
+			||  (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
+				||  (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101)){
 			return Ok(true);
 		}
 		Ok(false)
@@ -257,7 +259,7 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 		Ok(false)
 	}
 
-	fn get_nft_detail(asset_id: AssetId) 
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId),) 
 		-> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
 		Ok((ASSET_COLLECTION_ID,ASSET_CLASS_ID,ASSET_TOKEN_ID))
 	}
@@ -271,7 +273,7 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 		account: AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<AssetId, DispatchError>{
+	) -> Result<TokenId, DispatchError>{
 		match account {
 			ALICE => Ok(1),
 			BOB => Ok(2),
@@ -284,7 +286,7 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 		account: AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<AssetId, DispatchError> {
+	) -> Result<TokenId, DispatchError> {
 		match account {
 			ALICE => Ok(3),
 			BOB => Ok(4),
@@ -293,15 +295,27 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 		}
 	}
 
-	fn transfer_nft(from: &AccountId, to: &AccountId, asset_id: AssetId) 
-		-> Result<(), DispatchError> {
+	fn transfer_nft(from: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) 
+		-> DispatchResult {
 			Ok(())
 	}
 
-	fn burn_nft(account: AccountId, asset_id: AssetId) 
-		-> Result<(), DispatchError> {
+	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) 
+		-> DispatchResult {
 			Ok(())
 	}
+	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn get_class_fund(class_id: &Self::ClassId) -> AccountId {
+		CLASS_FUND_ID
+	}
+	
 }
 
 parameter_types! {

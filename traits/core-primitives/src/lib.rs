@@ -10,7 +10,7 @@ use sp_std::vec::Vec;
 use primitives::staking::RoundInfo;
 use primitives::{
 	AssetId, Attributes, FungibleTokenId, GroupCollectionId, MetaverseId, NftMetadata, UndeployedLandBlockId,
-	UndeployedLandBlockType,
+	UndeployedLandBlockType, TokenId, ItemId, ClassId
 };
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -91,11 +91,13 @@ pub trait NFTTrait<AccountId> {
 	/// Token class identifier
 	type ClassId;
 	/// Check the ownership of this nft asset
-	fn check_ownership(who: &AccountId, asset_id: &AssetId) -> Result<bool, DispatchError>;
+	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Check the ownership of this nft tuple
 	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
-	fn get_nft_detail(asset_id: AssetId) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError>;
+	fn get_nft_detail(
+		asset_id: (Self::ClassId, Self::TokenId),
+	) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
 	/// Check if collection and class exist
@@ -108,19 +110,24 @@ pub trait NFTTrait<AccountId> {
 		account: AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<AssetId, DispatchError>;
+	) -> Result<TokenId, DispatchError>;
 	/// Mint estate as NFT
 	fn mint_estate_nft(
 		account: AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<AssetId, DispatchError>;
-	/// Transfer NFT
-	fn transfer_nft(from: &AccountId, to: &AccountId, asset_id: AssetId) -> Result<(), DispatchError>;
-	/// Burn NFT
-	fn burn_nft(account: AccountId, asset_id: AssetId) -> Result<(), DispatchError>;
+	) -> Result<TokenId, DispatchError>;
+    /// Burn nft
+	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
+	/// Check if item is on listing
+	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError>;
+	/// tTransfer nft
+	fn transfer_nft(sender: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
+	/// Is Nft transferable
+	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
+	/// Get collection account fund
+	fn get_class_fund(class_id: &Self::ClassId) -> AccountId;
 }
-
 pub trait RoundTrait<BlockNumber> {
 	fn get_current_round_info() -> RoundInfo<BlockNumber>;
 }

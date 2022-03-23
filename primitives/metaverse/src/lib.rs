@@ -115,12 +115,16 @@ pub type PowerAmount = u64;
 pub type NftMetadata = Vec<u8>;
 /// NFT Attributes
 pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
+/// Land Token Class Id
+pub const LAND_CLASS_ID: ClassId = 15;
+/// Estate Token Class Id
+pub const ESTATE_CLASS_ID: ClassId = 16;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
-	NFT(AssetId),
+	NFT(ClassId, TokenId),
 	Spot(u64, MetaverseId),
 	Country(MetaverseId),
 	Block(u64),

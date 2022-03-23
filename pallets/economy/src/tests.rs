@@ -29,7 +29,7 @@ use primitives::GroupCollectionId;
 
 use super::*;
 
-fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, classId: ClassId) {
+fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, class_id: ClassId) {
 	//Create group collection before class
 	assert_ok!(NFTModule::create_group(Origin::root(), vec![1], vec![1]));
 
@@ -42,7 +42,7 @@ fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, classId: Class
 		CollectionType::Collectable,
 	));
 
-	assert_ok!(NFTModule::mint(owner.clone(), classId, vec![1], test_attributes(1), 1));
+	assert_ok!(NFTModule::mint(owner.clone(), class_id, vec![1], test_attributes(1), 1));
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -67,7 +67,6 @@ fn authorize_power_generator_collection_should_fail_class_id_does_not_exists() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Default::default()
 			),
 			pallet_nft::Error::<Runtime>::ClassIdNotFound
 		);
@@ -85,9 +84,8 @@ fn authorize_power_generator_collection_should_fail_collection_id_does_not_match
 				Origin::root(),
 				COLLECTION_ID_NOT_EXIST,
 				GENERATOR_CLASS_ID,
-				Default::default()
 			),
-			Error::<Runtime>::CollectionIdDoesNotMatchNFTCollectionId
+			Error::<Runtime>::NFTCollectionDoesNotExist
 		);
 	});
 }
@@ -102,7 +100,6 @@ fn authorize_power_generator_collection_should_work() {
 			Origin::root(),
 			GENERATOR_COLLECTION_ID,
 			GENERATOR_CLASS_ID,
-			Default::default()
 		));
 
 		let event = Event::Economy(crate::Event::PowerGeneratorCollectionAuthorized(
@@ -121,7 +118,6 @@ fn authorize_power_generator_collection_should_fail() {
 				Origin::signed(BOB),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Default::default()
 			),
 			BadOrigin
 		);
@@ -137,7 +133,6 @@ fn authorize_power_distributor_collection_should_work() {
 			Origin::root(),
 			DISTRIBUTOR_COLLECTION_ID,
 			DISTRIBUTOR_CLASS_ID,
-			Default::default()
 		));
 
 		let event = Event::Economy(crate::Event::PowerDistributorCollectionAuthorized(
@@ -156,7 +151,6 @@ fn authorize_power_distributor_collection_should_fail_class_id_does_not_exists()
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			),
 			pallet_nft::Error::<Runtime>::ClassIdNotFound
 		);
@@ -173,9 +167,8 @@ fn authorize_power_distributor_collection_should_fail_collection_id_does_not_mat
 				Origin::root(),
 				COLLECTION_ID_NOT_EXIST,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			),
-			Error::<Runtime>::CollectionIdDoesNotMatchNFTCollectionId
+			Error::<Runtime>::NFTCollectionDoesNotExist
 		);
 	});
 }
@@ -188,7 +181,6 @@ fn authorize_power_distributor_collection_should_fail() {
 				Origin::signed(BOB),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			),
 			BadOrigin
 		);
@@ -206,7 +198,7 @@ fn buy_power_by_user_should_fail_nft_does_not_exist() {
 }
 
 #[test]
-fn buy_power_by_user_should_fail_NFT_not_authorized() {
+fn buy_power_by_user_should_fail_nft_not_authorized() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
@@ -231,7 +223,6 @@ fn buy_power_by_user_should_fail_insufficient_balance() {
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::set_bit_power_exchange_rate(
@@ -259,7 +250,6 @@ fn buy_power_by_user_should_work() {
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::set_bit_power_exchange_rate(
@@ -285,7 +275,66 @@ fn buy_power_by_user_should_work() {
 				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID, ALICE),
 				Some(OrderInfo {
 					power_amount: USER_BUY_POWER_AMOUNT,
-					bit_amount: bit_amount.into()
+					bit_amount: bit_amount.into(),
+					target: 11,
+					commission_fee: 0
+				})
+			);
+
+			// Check reserved balance
+			let mining_currency_id = get_mining_currency();
+			assert_eq!(
+				OrmlTokens::reserved_balance(mining_currency_id, &ALICE),
+				bit_amount.into()
+			);
+
+			let remaining_amount: u128 = ALICE_MINING_BALANCE - u128::try_from(bit_amount).unwrap();
+			assert_eq!(OrmlTokens::free_balance(mining_currency_id, &ALICE), remaining_amount);
+		});
+}
+
+#[test]
+fn buy_power_by_user_with_block_target_should_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, get_mining_currency(), ALICE_MINING_BALANCE.into())])
+		.build()
+		.execute_with(|| {
+			const ODD_POWER_AMOUNT: PowerAmount = 124;
+			let origin = Origin::signed(ALICE);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+
+			assert_ok!(EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID,
+			));
+
+			assert_ok!(EconomyModule::set_bit_power_exchange_rate(
+				Origin::root(),
+				EXCHANGE_RATE
+			));
+
+			assert_ok!(EconomyModule::buy_power_by_user(
+				origin,
+				ODD_POWER_AMOUNT,
+				DISTRIBUTOR_NFT_ASSET_ID,
+			));
+
+			let event = Event::Economy(crate::Event::BuyPowerOrderByUserHasAddedToQueue(
+				ALICE,
+				ODD_POWER_AMOUNT,
+				DISTRIBUTOR_NFT_ASSET_ID,
+			));
+			assert_eq!(last_event(), event);
+
+			let bit_amount: mock::Balance = EXCHANGE_RATE * u128::try_from(ODD_POWER_AMOUNT).unwrap();
+			assert_eq!(
+				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID, ALICE),
+				Some(OrderInfo {
+					power_amount: ODD_POWER_AMOUNT,
+					bit_amount: bit_amount.into(),
+					target: 13,
+					commission_fee: 0
 				})
 			);
 
@@ -347,8 +396,6 @@ fn buy_power_by_distributor_should_fail_insufficient_balance() {
 		.execute_with(|| {
 			let origin = Origin::signed(ALICE);
 
-			let sub_account = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
-
 			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
 			init_test_nft(origin.clone(), GENERATOR_COLLECTION_ID, GENERATOR_CLASS_ID);
 
@@ -356,14 +403,12 @@ fn buy_power_by_distributor_should_fail_insufficient_balance() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::set_bit_power_exchange_rate(
@@ -401,14 +446,12 @@ fn buy_power_by_distributor_should_work() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::set_bit_power_exchange_rate(
@@ -441,7 +484,9 @@ fn buy_power_by_distributor_should_work() {
 				),
 				Some(OrderInfo {
 					power_amount: GENERATE_POWER_AMOUNT,
-					bit_amount: bit_amount.into()
+					bit_amount: bit_amount.into(),
+					target: 21,
+					commission_fee: 0
 				})
 			);
 
@@ -469,7 +514,6 @@ fn execute_buy_power_order_should_fail_nft_does_not_exist() {
 			Origin::root(),
 			DISTRIBUTOR_COLLECTION_ID,
 			DISTRIBUTOR_CLASS_ID,
-			Default::default()
 		));
 
 		assert_noop!(
@@ -489,7 +533,6 @@ fn execute_buy_power_order_should_fail_distributor_does_not_exist() {
 			Origin::root(),
 			DISTRIBUTOR_COLLECTION_ID,
 			DISTRIBUTOR_CLASS_ID,
-			Default::default()
 		));
 
 		assert_noop!(
@@ -512,7 +555,6 @@ fn execute_buy_power_order_should_fail_account_does_not_exist() {
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_user(
@@ -541,7 +583,36 @@ fn execute_buy_power_order_should_fail_insufficient_balance() {
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
+			));
+
+			assert_ok!(EconomyModule::buy_power_by_user(
+				origin.clone(),
+				USER_BUY_POWER_AMOUNT,
+				DISTRIBUTOR_NFT_ASSET_ID,
+			));
+
+			run_to_block(101);
+
+			assert_err!(
+				EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, ALICE),
+				Error::<Runtime>::InsufficientBalanceToDistributePower
+			);
+		});
+}
+
+#[test]
+fn execute_buy_power_order_should_fail_when_execute_early() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, get_mining_currency(), ALICE_MINING_BALANCE.into())])
+		.build()
+		.execute_with(|| {
+			let origin = Origin::signed(ALICE);
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+
+			assert_ok!(EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID,
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_user(
@@ -552,7 +623,7 @@ fn execute_buy_power_order_should_fail_insufficient_balance() {
 
 			assert_err!(
 				EconomyModule::execute_buy_power_order(origin, DISTRIBUTOR_NFT_ASSET_ID, ALICE),
-				Error::<Runtime>::InsufficientBalanceToDistributePower
+				Error::<Runtime>::NotReadyToExecute
 			);
 		});
 }
@@ -572,7 +643,6 @@ fn execute_buy_power_order_should_work() {
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_user(
@@ -589,6 +659,8 @@ fn execute_buy_power_order_should_work() {
 
 			let distributor_account_id = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
 			PowerBalance::<Runtime>::insert(distributor_account_id, DISTRIBUTOR_POWER_BALANCE);
+
+			run_to_block(101);
 
 			assert_ok!(EconomyModule::execute_buy_power_order(
 				origin,
@@ -635,7 +707,6 @@ fn execute_generate_power_order_should_fail_nft_does_not_exist() {
 			Origin::root(),
 			GENERATOR_COLLECTION_ID,
 			GENERATOR_CLASS_ID,
-			Default::default()
 		));
 
 		assert_noop!(
@@ -656,7 +727,6 @@ fn execute_generate_power_order_should_fail_distributor_does_not_exist() {
 			Origin::root(),
 			GENERATOR_COLLECTION_ID,
 			GENERATOR_CLASS_ID,
-			Default::default()
 		));
 
 		assert_noop!(
@@ -684,14 +754,12 @@ fn execute_generate_power_order_should_fail_account_does_not_exist() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_distributor(
@@ -726,14 +794,12 @@ fn execute_generate_power_order_should_fail_insufficient_balance() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_distributor(
@@ -776,14 +842,12 @@ fn execute_generate_power_order_should_work() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
-				Default::default()
 			));
 
 			assert_ok!(EconomyModule::buy_power_by_distributor(
@@ -879,13 +943,17 @@ fn execute_generate_order_with_commission_should_work() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Perbill::from_percent(10)
 			));
 
 			assert_ok!(EconomyModule::authorize_power_distributor_collection(
 				Origin::root(),
 				DISTRIBUTOR_COLLECTION_ID,
 				DISTRIBUTOR_CLASS_ID,
+			));
+
+			assert_ok!(EconomyModule::update_commission(
+				origin.clone(),
+				GENERATOR_NFT_ASSET_ID,
 				Perbill::from_percent(10)
 			));
 
@@ -896,12 +964,11 @@ fn execute_generate_order_with_commission_should_work() {
 				GENERATE_POWER_AMOUNT,
 			));
 
-			let rate = EconomyModule::get_bit_power_exchange_rate();
 			let base_bit_required = EconomyModule::convert_power_to_bit(200u128, Perbill::from_percent(0));
 			let bit_with_commission_required = EconomyModule::convert_power_to_bit(200u128, Perbill::from_percent(10));
 
-			assert_eq!(base_bit_required, BIT_REQUIRED);
-			assert_eq!(bit_with_commission_required, BIT_REQUIRED_WITH_10_PERCENT_COMMISSION);
+			assert_eq!(base_bit_required.0, BIT_REQUIRED);
+			assert_eq!(bit_with_commission_required.0, BIT_REQUIRED_WITH_10_PERCENT_COMMISSION);
 
 			let order_info = EconomyModule::get_buy_power_by_distributor_request_queue(
 				GENERATOR_NFT_ASSET_ID,
@@ -958,6 +1025,86 @@ fn execute_generate_order_with_commission_should_work() {
 				OrmlTokens::free_balance(mining_currency_id, &distributor_account_id),
 				remaining_amount
 			);
+		});
+}
+
+#[test]
+fn execute_buy_power_order_with_commission_should_work() {
+	ExtBuilder::default()
+		.balances(vec![(ALICE, get_mining_currency(), ALICE_MINING_BALANCE.into())])
+		.build()
+		.execute_with(|| {
+			let origin = Origin::signed(ALICE);
+			let mining_currency_id = get_mining_currency();
+			assert_ok!(EconomyModule::set_bit_power_exchange_rate(
+				Origin::root(),
+				EXCHANGE_RATE
+			));
+			init_test_nft(origin.clone(), DISTRIBUTOR_COLLECTION_ID, DISTRIBUTOR_CLASS_ID);
+
+			assert_ok!(EconomyModule::authorize_power_distributor_collection(
+				Origin::root(),
+				DISTRIBUTOR_COLLECTION_ID,
+				DISTRIBUTOR_CLASS_ID,
+			));
+
+			assert_ok!(EconomyModule::update_commission(
+				origin.clone(),
+				DISTRIBUTOR_NFT_ASSET_ID,
+				Perbill::from_percent(10)
+			));
+
+			assert_ok!(EconomyModule::buy_power_by_user(
+				origin.clone(),
+				USER_BUY_POWER_AMOUNT,
+				DISTRIBUTOR_NFT_ASSET_ID,
+			));
+
+			let order_info =
+				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID, ALICE).unwrap();
+
+			let bit_with_commission_required = EconomyModule::convert_power_to_bit(100u128, Perbill::from_percent(10));
+
+			let bit_amount = order_info.bit_amount;
+			assert_eq!(OrmlTokens::reserved_balance(mining_currency_id, &ALICE), bit_amount);
+			assert_eq!(bit_amount, bit_with_commission_required.0);
+
+			let distributor_account_id = sub_account(DISTRIBUTOR_NFT_ASSET_ID);
+			PowerBalance::<Runtime>::insert(distributor_account_id, DISTRIBUTOR_POWER_BALANCE);
+
+			run_to_block(101);
+
+			assert_ok!(EconomyModule::execute_buy_power_order(
+				origin,
+				DISTRIBUTOR_NFT_ASSET_ID,
+				ALICE
+			));
+
+			let event = Event::Economy(crate::Event::BuyPowerOrderByUserExecuted(
+				ALICE,
+				USER_BUY_POWER_AMOUNT,
+				DISTRIBUTOR_NFT_ASSET_ID,
+			));
+			assert_eq!(last_event(), event);
+
+			assert_eq!(
+				EconomyModule::get_buy_power_by_user_request_queue(DISTRIBUTOR_NFT_ASSET_ID, ALICE),
+				None
+			);
+
+			let remaining_balance: PowerAmount = DISTRIBUTOR_POWER_BALANCE - USER_BUY_POWER_AMOUNT;
+			assert_eq!(
+				EconomyModule::get_power_balance(distributor_account_id),
+				remaining_balance
+			);
+
+			assert_eq!(EconomyModule::get_power_balance(ALICE), USER_BUY_POWER_AMOUNT);
+
+			// Check reserved balance
+			assert_eq!(OrmlTokens::reserved_balance(mining_currency_id, &ALICE), 0u8.into());
+
+			let remaining_amount: mock::Balance = (ALICE_MINING_BALANCE - bit_amount).into();
+			assert_eq!(OrmlTokens::free_balance(mining_currency_id, &ALICE), remaining_amount);
 		});
 }
 
@@ -1163,7 +1310,7 @@ fn unstake_should_fail_unstake_zero() {
 
 		assert_noop!(
 			EconomyModule::unstake(Origin::signed(ALICE), 0u128),
-			Error::<Runtime>::UnstakeAmountExceedStakedAmountZero
+			Error::<Runtime>::UnstakeAmountIsZero
 		);
 	});
 }
@@ -1268,7 +1415,6 @@ fn generate_power_from_generator_should_work() {
 				Origin::root(),
 				GENERATOR_COLLECTION_ID,
 				GENERATOR_CLASS_ID,
-				Perbill::from_percent(5)
 			));
 
 			assert_ok!(EconomyModule::get_more_power_by_generator(

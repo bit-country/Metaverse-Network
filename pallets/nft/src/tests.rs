@@ -139,8 +139,6 @@ fn create_class_should_work() {
 				deposit: class_deposit,
 				token_type: TokenType::Transferable,
 				collection_type: CollectionType::Collectable,
-				total_supply: Default::default(),
-				initial_supply: Default::default(),
 				attributes: test_attributes(1)
 			}
 		);
@@ -161,11 +159,9 @@ fn mint_asset_should_work() {
 
 		// deposit 8 as 4 bytes for class deposit and 4 bytes for nft deposit
 		assert_eq!(reserved_balance(&class_id_account()), 8);
-		assert_eq!(Nft::next_asset_id(), 1);
-		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![0]);
-		assert_eq!(Nft::get_asset(0), Some((CLASS_ID, TOKEN_ID)));
+		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![(0, 0)]);
 
-		let event = mock::Event::Nft(crate::Event::NewNftMinted(0, 0, ALICE, CLASS_ID, 1, 0));
+		let event = mock::Event::Nft(crate::Event::NewNftMinted((0, 0), (0, 0), ALICE, CLASS_ID, 1, 0));
 		assert_eq!(last_event(), event);
 
 		// mint two assets
@@ -174,10 +170,7 @@ fn mint_asset_should_work() {
 		// bit balance should be 2 (minted 2 NFT)
 		assert_eq!(free_bit_balance(&ALICE), 2);
 
-		assert_eq!(Nft::next_asset_id(), 3);
-		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![0, 1, 2]);
-		assert_eq!(Nft::get_asset(1), Some((CLASS_ID, 1)));
-		assert_eq!(Nft::get_asset(2), Some((CLASS_ID, 2)));
+		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![(0, 0), (0, 1), (0, 2)]);
 	})
 }
 
@@ -259,8 +252,8 @@ fn transfer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		init_test_nft(origin.clone());
-		assert_ok!(Nft::transfer(origin, BOB, 0));
-		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0, 0));
+		assert_ok!(Nft::transfer(origin, BOB, (0, 0)));
+		let event = mock::Event::Nft(crate::Event::TransferedNft(ALICE, BOB, 0, (0, 0)));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -270,8 +263,8 @@ fn burn_nft_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		init_test_nft(origin.clone());
-		assert_ok!(Nft::burn(origin, 0));
-		let event = mock::Event::Nft(crate::Event::BurnedNft(0));
+		assert_ok!(Nft::burn(origin, (0, 0)));
+		let event = mock::Event::Nft(crate::Event::BurnedNft((0, 0)));
 		assert_eq!(Nft::get_asset(0), None);
 		assert_eq!(last_event(), event);
 	})
@@ -291,8 +284,8 @@ fn transfer_batch_should_work() {
 			CollectionType::Collectable,
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
-		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, 0), (BOB, 1)]));
-		let event = mock::Event::Nft(crate::Event::TransferedNft(1, 2, 0, 1));
+		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, (1, 0)), (BOB, (1, 1))]));
+		let event = mock::Event::Nft(crate::Event::TransferedNft(ALICE, BOB, 1, (1, 1)));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -312,7 +305,7 @@ fn transfer_batch_exceed_length_should_fail() {
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
 		assert_noop!(
-			Nft::transfer_batch(origin, vec![(BOB, 0), (BOB, 1), (BOB, 2), (BOB, 3)]),
+			Nft::transfer_batch(origin, vec![(BOB, (0, 0)), (BOB, (0, 1)), (BOB, (0, 2)), (BOB, (0, 3))]),
 			Error::<Runtime>::ExceedMaximumBatchTransfer
 		);
 	})
@@ -333,8 +326,8 @@ fn transfer_batch_should_fail() {
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 		assert_noop!(
-			Nft::transfer_batch(origin.clone(), vec![(BOB, 3), (BOB, 4)]),
-			Error::<Runtime>::AssetIdNotFound
+			Nft::transfer_batch(origin.clone(), vec![(BOB, (0, 3)), (BOB, (0, 4))]),
+			Error::<Runtime>::AssetInfoNotFound
 		);
 	})
 }
@@ -356,8 +349,8 @@ fn do_handle_asset_ownership_transfer_should_work() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(origin.clone());
-		assert_ok!(Nft::handle_asset_ownership_transfer(&ALICE, &BOB, 0));
-		assert_eq!(Nft::get_assets_by_owner(BOB), vec![0]);
+		assert_ok!(Nft::handle_asset_ownership_transfer(&ALICE, &BOB, (0, 0)));
+		assert_eq!(Nft::get_assets_by_owner(BOB), vec![(0, 0)]);
 	})
 }
 
@@ -366,8 +359,8 @@ fn do_transfer_should_work() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(origin.clone());
-		assert_ok!(Nft::do_transfer(&ALICE, &BOB, 0));
-		assert_eq!(Nft::get_assets_by_owner(BOB), vec![0]);
+		assert_ok!(Nft::do_transfer(&ALICE, &BOB, (0, 0)));
+		assert_eq!(Nft::get_assets_by_owner(BOB), vec![(0, 0)]);
 	})
 }
 
@@ -375,11 +368,14 @@ fn do_transfer_should_work() {
 fn do_transfer_should_fail() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(Nft::do_transfer(&ALICE, &BOB, 0), Error::<Runtime>::AssetIdNotFound);
+		assert_noop!(
+			Nft::do_transfer(&ALICE, &BOB, (0, 0)),
+			Error::<Runtime>::ClassIdNotFound
+		);
 
 		init_test_nft(origin.clone());
 
-		assert_noop!(Nft::do_transfer(&BOB, &ALICE, 0), Error::<Runtime>::NoPermission);
+		assert_noop!(Nft::do_transfer(&BOB, &ALICE, (0, 0)), Error::<Runtime>::NoPermission);
 
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -391,7 +387,10 @@ fn do_transfer_should_fail() {
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 
-		assert_noop!(Nft::do_transfer(&ALICE, &BOB, 1), Error::<Runtime>::NonTransferable);
+		assert_noop!(
+			Nft::do_transfer(&ALICE, &BOB, (0, 1)),
+			Error::<Runtime>::AssetInfoNotFound
+		);
 	})
 }
 
@@ -400,8 +399,8 @@ fn do_check_nft_ownership_should_work() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(origin.clone());
-		assert_ok!(Nft::check_nft_ownership(&ALICE, &TOKEN_ID), true);
-		assert_ok!(Nft::check_nft_ownership(&BOB, &TOKEN_ID), false);
+		assert_ok!(Nft::check_nft_ownership(&ALICE, &(CLASS_ID, TOKEN_ID)), true);
+		assert_ok!(Nft::check_nft_ownership(&BOB, &(CLASS_ID, TOKEN_ID)), false);
 	})
 }
 
@@ -409,8 +408,8 @@ fn do_check_nft_ownership_should_work() {
 fn do_check_nft_ownership_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			Nft::check_nft_ownership(&ALICE, &TOKEN_ID),
-			Error::<Runtime>::AssetIdNotFound
+			Nft::check_nft_ownership(&ALICE, &(CLASS_ID, TOKEN_ID)),
+			Error::<Runtime>::AssetInfoNotFound
 		);
 	})
 }

@@ -16,7 +16,7 @@ use sp_std::{
 	vec::Vec,
 };
 
-use primitives::{AssetId, AuctionId, FungibleTokenId, ItemId, MetaverseId};
+use primitives::{AssetId, AuctionId, ClassId, FungibleTokenId, ItemId, MetaverseId, TokenId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum Change<Value> {
@@ -119,7 +119,7 @@ pub trait Auction<AccountId, BlockNumber> {
 	fn collect_royalty_fee(
 		high_bid_price: &Self::Balance,
 		high_bidder: &AccountId,
-		asset_id: &AssetId,
+		asset_id: &(ClassId, TokenId),
 		social_currency_id: FungibleTokenId,
 	) -> DispatchResult;
 }

@@ -47,7 +47,7 @@ fn create_new_auction_work() {
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			ALICE,
 			100,
@@ -63,7 +63,7 @@ fn create_new_auction_work() {
 				end: Some(101),
 			})
 		);
-		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), Some(true));
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 	});
 }
 
@@ -171,7 +171,7 @@ fn create_auction_fail() {
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::Auction,
-				ItemId::NFT(0),
+				ItemId::NFT(0, 0),
 				None,
 				BOB,
 				100,
@@ -202,7 +202,7 @@ fn create_auction_fail() {
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::Auction,
-				ItemId::NFT(1),
+				ItemId::NFT(1, 0),
 				None,
 				ALICE,
 				100,
@@ -215,7 +215,7 @@ fn create_auction_fail() {
 		//Asset is already in an auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			ALICE,
 			100,
@@ -225,7 +225,7 @@ fn create_auction_fail() {
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::Auction,
-				ItemId::NFT(0),
+				ItemId::NFT(0, 0),
 				None,
 				ALICE,
 				100,
@@ -245,16 +245,16 @@ fn remove_auction_work() {
 		init_test_nft(origin.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			ALICE,
 			100,
 			0,
 			ListingLevel::Global
 		));
-		AuctionModule::remove_auction(0, ItemId::NFT(0));
+		AuctionModule::remove_auction(0, ItemId::NFT(0, 0));
 		assert_eq!(AuctionModule::auctions(0), None);
-		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), None);
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 	});
 }
 
@@ -268,7 +268,7 @@ fn bid_works() {
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			100,
@@ -349,7 +349,7 @@ fn cannot_bid_with_insufficient_funds() {
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			600,
@@ -374,7 +374,7 @@ fn cannot_bid_on_own_auction() {
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			ALICE,
 			100,
@@ -398,11 +398,11 @@ fn asset_transfers_after_auction() {
 
 		// Setup NFT and verify that BOB has ownership
 		init_test_nft(owner.clone());
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), [0]);
+		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), [(0, 0)]);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			100,
@@ -426,8 +426,8 @@ fn asset_transfers_after_auction() {
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 
 		// Verify Alice has the NFT and Bob doesn't
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), Vec::<u64>::new());
+		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [(0, 0)]);
+		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), Vec::<(u32, u64)>::new());
 	});
 }
 
@@ -440,7 +440,7 @@ fn cannot_bid_on_ended_auction() {
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			150,
@@ -468,7 +468,7 @@ fn buy_now_work() {
 		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			200,
@@ -489,7 +489,7 @@ fn buy_now_work() {
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
-			ItemId::NFT(1),
+			ItemId::NFT(0, 1),
 			None,
 			BOB,
 			200,
@@ -501,7 +501,7 @@ fn buy_now_work() {
 
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0, 1]);
+		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [(0, 0), (0, 1)]);
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99600);
 		// initial balance is 500 - sold 2 x 200 = 900
@@ -644,7 +644,7 @@ fn buy_now_should_fail() {
 		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			150,
@@ -695,7 +695,7 @@ fn buy_now_should_fail() {
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::BuyNow,
-				ItemId::NFT(0),
+				ItemId::NFT(0, 0),
 				None,
 				BOB,
 				150,
@@ -716,7 +716,7 @@ fn invalid_auction_type() {
 		let participant = Origin::signed(ALICE);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			150,
@@ -727,10 +727,10 @@ fn invalid_auction_type() {
 			AuctionModule::bid(participant.clone(), 0, 200),
 			Error::<Runtime>::InvalidAuctionType
 		);
-		AuctionModule::remove_auction(0, ItemId::NFT(0));
+		AuctionModule::remove_auction(0, ItemId::NFT(0, 0));
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			150,
@@ -753,25 +753,25 @@ fn on_finalize_should_work() {
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			100,
 			0,
 			ListingLevel::Global
 		));
-		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), Some(true));
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [0]);
+		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [(0, 0)]);
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99900);
 		// BOB only receive 596 - 1 (1% of 100 as loyalty fee) + 4 minting fee = 591
 		assert_eq!(Balances::free_balance(BOB), 591);
 		// asset is not longer in auction
-		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), None);
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
 		assert_eq!(last_event(), event);
@@ -786,12 +786,12 @@ fn list_item_on_auction_local_marketplace_should_work() {
 		init_test_nft(origin.clone());
 		assert_ok!(AuctionModule::create_new_auction(
 			origin,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			100,
 			102,
 			ListingLevel::Local(ALICE_METAVERSE_ID),
 		));
-		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), Some(true))
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true))
 	});
 }
 
@@ -803,11 +803,11 @@ fn list_item_on_buy_now_local_marketplace_should_work() {
 		init_test_nft(origin.clone());
 		assert_ok!(AuctionModule::create_new_auction(
 			origin,
-			ItemId::NFT(0),
+			ItemId::NFT(0, 0),
 			100,
 			102,
 			ListingLevel::Local(ALICE_METAVERSE_ID),
 		));
-		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0)), Some(true))
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true))
 	});
 }

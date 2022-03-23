@@ -226,6 +226,7 @@ impl Config for Runtime {
 	type EstateHandler = EstateHandler;
 	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
+	type NFTHandler = NFTModule;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -422,7 +423,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
 		_high_bidder: &u128,
-		_asset_id: &u64,
+		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
