@@ -313,7 +313,7 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 	}
 
 	fn get_asset_id(aset_id: AssetId) -> Result<(Self::ClassId, Self::TokenId), DispatchError> {
-		Ok((ASSET_CLASS_ID, sASSET_TOKEN_ID))
+		Ok((ASSET_CLASS_ID, ASSET_TOKEN_ID))
 	}
 }
 
