@@ -9,8 +9,8 @@ use sp_std::vec::Vec;
 
 use primitives::staking::RoundInfo;
 use primitives::{
-	AssetId, Attributes, FungibleTokenId, GroupCollectionId, MetaverseId, NftMetadata, UndeployedLandBlockId,
-	UndeployedLandBlockType, TokenId, ItemId, ClassId
+	AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, ItemId, MetaverseId, NftMetadata, TokenId,
+	UndeployedLandBlockId, UndeployedLandBlockType,
 };
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -117,7 +117,7 @@ pub trait NFTTrait<AccountId> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<TokenId, DispatchError>;
-    /// Burn nft
+	/// Burn nft
 	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
 	/// Check if item is on listing
 	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError>;

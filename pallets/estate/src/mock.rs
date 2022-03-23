@@ -6,7 +6,7 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use primitives::{FungibleTokenId, NftMetadata, Attributes, ClassId, GroupCollectionId, TokenId };
+use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
 
 use crate as estate;
 
@@ -17,7 +17,6 @@ pub type Balance = u128;
 pub type MetaverseId = u64;
 pub type BlockNumber = u64;
 pub type EstateId = u64;
-
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
@@ -51,8 +50,6 @@ pub const OWNER_ACCOUNT_ID: OwnerId<AccountId, TokenId> = OwnerId::Account(BENEF
 pub const OWNER_ID_ALICE: OwnerId<AccountId, TokenId> = OwnerId::Account(ALICE);
 pub const OWNER_LAND_ASSET_ID: OwnerId<AccountId, TokenId> = OwnerId::Token(ASSET_ID_1);
 pub const OWNER_ESTATE_ASSET_ID: OwnerId<AccountId, TokenId> = OwnerId::Token(ASSET_ID_2);
-
-
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -231,24 +228,25 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 	type TokenId = TokenId;
 	type ClassId = ClassId;
 
-	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) 
-		-> Result<bool, DispatchError> {
-		let nft_value = *asset_id;	
-		if (*who == ALICE && (nft_value.1 == 1 || nft_value.1 == 3)) 
-			||  (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
-				||  (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101)){
+	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		let nft_value = *asset_id;
+		if (*who == ALICE && (nft_value.1 == 1 || nft_value.1 == 3))
+			|| (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
+			|| (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101))
+		{
 			return Ok(true);
 		}
 		Ok(false)
 	}
-	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) 
-		-> Result<bool, DispatchError> {
-			let nft_value = *nft;
-			if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
-				return Ok(true);
-			}
-			Ok(false)
+
+	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		let nft_value = *nft;
+		if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
+			return Ok(true);
+		}
+		Ok(false)
 	}
+
 	fn check_collection_and_class(
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
@@ -259,21 +257,21 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 		Ok(false)
 	}
 
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId),) 
-		-> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
-		Ok((ASSET_COLLECTION_ID,ASSET_CLASS_ID,ASSET_TOKEN_ID))
+	fn get_nft_detail(
+		asset_id: (Self::ClassId, Self::TokenId),
+	) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
+		Ok((ASSET_COLLECTION_ID, ASSET_CLASS_ID, ASSET_TOKEN_ID))
 	}
-	
-	fn get_nft_group_collection(nft_collection: &Self::ClassId) 
-		-> Result<GroupCollectionId, DispatchError> {
-			Ok(ASSET_COLLECTION_ID)
+
+	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
+		Ok(ASSET_COLLECTION_ID)
 	}
-	
+
 	fn mint_land_nft(
 		account: AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<TokenId, DispatchError>{
+	) -> Result<TokenId, DispatchError> {
 		match account {
 			ALICE => Ok(1),
 			BOB => Ok(2),
@@ -295,18 +293,16 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 		}
 	}
 
-	fn transfer_nft(from: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) 
-		-> DispatchResult {
-			Ok(())
+	fn transfer_nft(from: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+		Ok(())
 	}
 
 	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
-	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) 
-		-> DispatchResult {
-			Ok(())
+	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+		Ok(())
 	}
 	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		Ok(true)
@@ -315,7 +311,10 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 	fn get_class_fund(class_id: &Self::ClassId) -> AccountId {
 		CLASS_FUND_ID
 	}
-	
+
+	fn get_asset_id(aset_id: AssetId) -> Result<(Self::ClassId, Self::TokenId), DispatchError> {
+		Ok((ASSET_CLASS_ID, sASSET_TOKEN_ID))
+	}
 }
 
 parameter_types! {

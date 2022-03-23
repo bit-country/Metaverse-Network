@@ -52,7 +52,13 @@ fn set_max_bound_should_work() {
 fn mint_land_should_reject_non_root() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EstateModule::mint_land(Origin::signed(ALICE), BENEFICIARY_ID, METAVERSE_ID, COORDINATE_IN_1, false),
+			EstateModule::mint_land(
+				Origin::signed(ALICE),
+				BENEFICIARY_ID,
+				METAVERSE_ID,
+				COORDINATE_IN_1,
+				false
+			),
 			BadOrigin
 		);
 	});
@@ -226,7 +232,13 @@ fn mint_lands_should_reject_with_duplicate_coordinates() {
 
 		assert_eq!(EstateModule::all_land_units_count(), 2);
 		assert_noop!(
-			EstateModule::mint_lands(Origin::root(), BENEFICIARY_ID, METAVERSE_ID, vec![COORDINATE_IN_1], false),
+			EstateModule::mint_lands(
+				Origin::root(),
+				BENEFICIARY_ID,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1],
+				false
+			),
 			Error::<Runtime>::LandUnitIsNotAvailable
 		);
 	});
@@ -408,7 +420,10 @@ fn transfer_land_should_work() {
 			COORDINATE_IN_1
 		));
 
-		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OWNER_ID_ALICE));
+		assert_eq!(
+			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
+			Some(OWNER_ID_ALICE)
+		);
 
 		assert_eq!(
 			last_event(),
@@ -447,7 +462,10 @@ fn transfer_land_token_should_work() {
 			COORDINATE_IN_1
 		));
 
-		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OWNER_LAND_ASSET_ID));
+		assert_eq!(
+			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
+			Some(OWNER_LAND_ASSET_ID)
+		);
 
 		assert_eq!(
 			last_event(),
@@ -566,7 +584,13 @@ fn mint_estate_should_fail_for_minted_land() {
 		));
 
 		assert_err!(
-			EstateModule::mint_estate(Origin::root(), BENEFICIARY_ID, METAVERSE_ID, vec![COORDINATE_IN_1], false),
+			EstateModule::mint_estate(
+				Origin::root(),
+				BENEFICIARY_ID,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1],
+				false
+			),
 			Error::<Runtime>::LandUnitIsNotAvailable
 		);
 	});
@@ -861,10 +885,7 @@ fn mint_estate_should_return_none_for_non_exist_estate() {
 
 		let estate_id_non_exists: u64 = 999;
 		assert_eq!(EstateModule::get_estates(estate_id_non_exists), None);
-		assert_eq!(
-			EstateModule::get_estate_owner(estate_id_non_exists),
-			None
-		);
+		assert_eq!(EstateModule::get_estate_owner(estate_id_non_exists), None);
 	});
 }
 
@@ -888,7 +909,6 @@ fn transfer_estate_should_work() {
 			ALICE,
 			estate_id
 		));
-	
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ID_ALICE));
 
 		assert_eq!(
@@ -918,7 +938,6 @@ fn transfer_estate_token_should_work() {
 			ALICE,
 			estate_id
 		));
-	
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
 
 		assert_eq!(
@@ -1035,8 +1054,8 @@ fn create_estate_should_work() {
 			Origin::root(),
 			BENEFICIARY_ID,
 			METAVERSE_ID,
-			vec![COORDINATE_IN_1, COORDINATE_IN_2]
-			,false
+			vec![COORDINATE_IN_1, COORDINATE_IN_2],
+			false
 		));
 
 		let estate_id: u64 = 0;
@@ -1050,7 +1069,6 @@ fn create_estate_should_work() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ACCOUNT_ID));
-		
 	});
 }
 
@@ -1071,8 +1089,8 @@ fn create_estate_token_should_work() {
 			Origin::root(),
 			BENEFICIARY_ID,
 			METAVERSE_ID,
-			vec![COORDINATE_IN_1, COORDINATE_IN_2]
-			,true
+			vec![COORDINATE_IN_1, COORDINATE_IN_2],
+			true
 		));
 
 		let estate_id: u64 = 0;
@@ -1114,8 +1132,8 @@ fn create_estate_token_after_minting_account_and_token_based_lands_should_give_c
 			Origin::root(),
 			BENEFICIARY_ID,
 			METAVERSE_ID,
-			vec![COORDINATE_IN_1, COORDINATE_IN_2]
-			,true
+			vec![COORDINATE_IN_1, COORDINATE_IN_2],
+			true
 		));
 
 		let estate_id: u64 = 0;
@@ -1129,11 +1147,13 @@ fn create_estate_token_after_minting_account_and_token_based_lands_should_give_c
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
-		assert_eq!(EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(), 2);
+		assert_eq!(
+			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
+			2
+		);
 		assert_eq!(EstateModule::all_land_units_count(), 2);
 	});
 }
-
 
 #[test]
 fn create_estate_should_return_none_for_non_exist_estate() {
@@ -1170,10 +1190,7 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 
 		let estate_id_non_exists: u64 = 999;
 		assert_eq!(EstateModule::get_estates(estate_id_non_exists), None);
-		assert_eq!(
-			EstateModule::get_estate_owner(estate_id_non_exists),
-			None
-		);
+		assert_eq!(EstateModule::get_estate_owner(estate_id_non_exists), None);
 	});
 }
 
