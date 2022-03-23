@@ -96,7 +96,7 @@ benchmarks! {
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, COORDINATE_IN_1)
 	verify {
-		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), caller.clone())
+		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(caller.clone()))
 	}
 
 	// mint_lands
@@ -107,8 +107,8 @@ benchmarks! {
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
 	verify {
-		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), caller.clone());
-		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_2), caller.clone())
+		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(caller.clone()));
+		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_2), Some(caller.clone()))
 	}
 
 	// transfer_land
@@ -139,7 +139,10 @@ benchmarks! {
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 	}: _(RawOrigin::Root, caller, METAVERSE_ID, vec![COORDINATE_IN_1])
 	verify {
-		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(vec![COORDINATE_IN_1]))
+		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(EstateInfo {
+			metaverse_id: METAVERSE_ID,
+			land_units: vec![COORDINATE_IN_1]
+		} ))
 	}
 
 	// dissolve_estate
@@ -149,7 +152,7 @@ benchmarks! {
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-	}: _(RawOrigin::Signed(caller.clone()), 0, METAVERSE_ID)
+	}: _(RawOrigin::Signed(caller.clone()), 0)
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_estates(0), None)
 	}
@@ -162,9 +165,12 @@ benchmarks! {
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		crate::Pallet::<T>::mint_land(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, COORDINATE_IN_2);
-	}: _(RawOrigin::Signed(caller.clone()), 0, METAVERSE_ID, vec![COORDINATE_IN_2])
+	}: _(RawOrigin::Signed(caller.clone()), 0, vec![COORDINATE_IN_2])
 	verify {
-		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(vec![COORDINATE_IN_1, COORDINATE_IN_2]))
+		assert_eq!(crate::Pallet::<T>::get_estates(0), Some( EstateInfo {
+			metaverse_id: METAVERSE_ID,
+			land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		} ))
 	}
 
 	// remove_land_unit_from_estate
@@ -174,9 +180,12 @@ benchmarks! {
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2]);
-	}: _(RawOrigin::Signed(caller.clone()), 0, METAVERSE_ID, vec![COORDINATE_IN_2])
+	}: _(RawOrigin::Signed(caller.clone()), 0, vec![COORDINATE_IN_2])
 	verify {
-		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(vec![COORDINATE_IN_1]))
+		assert_eq!(crate::Pallet::<T>::get_estates(0), Some( EstateInfo {
+			metaverse_id: METAVERSE_ID,
+			land_units: vec![COORDINATE_IN_1]
+		} ))
 	}
 
 	// create_estate
@@ -189,7 +198,10 @@ benchmarks! {
 
 	}: _(RawOrigin::Root, caller, METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
 	verify {
-		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(vec![COORDINATE_IN_1, COORDINATE_IN_2]))
+		assert_eq!(crate::Pallet::<T>::get_estates(0), Some( EstateInfo {
+			metaverse_id: METAVERSE_ID,
+			land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		} ))
 	}
 
 	// transfer_estate
