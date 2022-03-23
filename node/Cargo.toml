@@ -129,4 +129,5 @@ with-pioneer-runtime = [
 
 runtime-benchmarks = [
     "metaverse-runtime/runtime-benchmarks",
+    "polkadot-cli/runtime-benchmarks"
 ]
