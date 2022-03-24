@@ -1137,6 +1137,7 @@ impl_runtime_apis! {
 			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
+			use economy::benchmarking::EconomyModule as EconomyBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1148,6 +1149,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
 			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
+			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
@@ -1168,6 +1170,7 @@ impl_runtime_apis! {
 			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
+			use economy::benchmarking::EconomyModule as EconomyBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1193,8 +1196,8 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, auction, AuctionBench::<Runtime>);
 			add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
+			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
-
 
 			Ok(batches)
 		}
