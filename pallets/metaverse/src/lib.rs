@@ -237,13 +237,8 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(T::WeightInfo::create_metaverse())]
-		pub fn create_metaverse(
-			origin: OriginFor<T>,
-			owner: T::AccountId,
-			metadata: MetaverseMetadata,
-		) -> DispatchResultWithPostInfo {
-			// Only Council can create a metaverse
-			T::MetaverseCouncil::ensure_origin(origin)?;
+		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
 
 			ensure!(
 				metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
@@ -251,27 +246,27 @@ pub mod pallet {
 			);
 
 			ensure!(
-				T::Currency::free_balance(&owner) >= T::MinContribution::get(),
+				T::Currency::free_balance(&who) >= T::MinContribution::get(),
 				Error::<T>::InsufficientContribution
 			);
 
 			T::Currency::transfer(
-				&owner,
+				&who,
 				&Self::account_id(),
 				T::MinContribution::get(),
 				ExistenceRequirement::KeepAlive,
 			)?;
 
-			let metaverse_id = Self::new_metaverse(&owner, metadata)?;
+			let metaverse_id = Self::new_metaverse(&who, metadata)?;
 
-			MetaverseOwner::<T>::insert(owner.clone(), metaverse_id, ());
+			MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
 
 			let total_metaverse_count = Self::all_metaverse_count();
 			let new_total_metaverse_count = total_metaverse_count
 				.checked_add(One::one())
 				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 			AllMetaversesCount::<T>::put(new_total_metaverse_count);
-			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), owner));
+			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), who));
 
 			Ok(().into())
 		}
