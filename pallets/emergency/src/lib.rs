@@ -121,9 +121,9 @@ pub mod module {
 	}
 }
 
-pub struct PausedTransactionFilter<T>(sp_std::marker::PhantomData<T>);
+pub struct EmergencyStoppedFilter<T>(sp_std::marker::PhantomData<T>);
 
-impl<T: Config> Contains<T::Call> for PausedTransactionFilter<T>
+impl<T: Config> Contains<T::Call> for EmergencyStoppedFilter<T>
 where
 	<T as frame_system::Config>::Call: GetCallMetadata,
 {

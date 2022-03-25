@@ -217,7 +217,7 @@ pub struct BaseFilter;
 
 impl Contains<Call> for BaseFilter {
 	fn contains(c: &Call) -> bool {
-		matches!(
+		let is_parachain_call = matches!(
 			c,
 			// Calls from Sudo
 			Call::Sudo(..)
@@ -232,7 +232,21 @@ impl Contains<Call> for BaseFilter {
 			| Call::Utility{..}
 			// Enable crowdloan
 			| Call::Crowdloan{..}
-		)
+		);
+
+		if is_parachain_call {
+			// Allow parachain system call
+			return true;
+		}
+
+		let is_emergency_stopped = emergency::EmergencyStoppedFilter::<Runtime>::contains(c);
+
+		if is_emergency_stopped {
+			// Not allow stopped tx
+			return false;
+		}
+
+		true
 	}
 }
 
@@ -240,7 +254,7 @@ impl Contains<Call> for BaseFilter {
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = BaseFilter;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
