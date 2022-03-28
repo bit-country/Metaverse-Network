@@ -1027,6 +1027,7 @@ pub mod pallet {
 			Self::items_in_auction(item_id) == Some(true)
 		}
 	}
+
 	impl<T: Config> AuctionHandler<T::AccountId, BalanceOf<T>, T::BlockNumber, AuctionId> for Pallet<T> {
 		fn on_new_bid(
 			_now: T::BlockNumber,

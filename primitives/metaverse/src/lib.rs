@@ -29,7 +29,8 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature,
 };
-use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use sp_std::collections::btree_map::BTreeMap;
+use sp_std::vec::Vec;
 
 pub mod continuum;
 pub mod dex;
@@ -111,6 +112,10 @@ pub type DomainId = u32;
 pub type ElementId = u32;
 /// Mining Power Amount
 pub type PowerAmount = u64;
+/// Nonce
+pub type Nonce = u32;
+/// Evm Address.
+pub type EvmAddress = sp_core::H160;
 /// NFT Metadata
 pub type NftMetadata = Vec<u8>;
 /// NFT Attributes

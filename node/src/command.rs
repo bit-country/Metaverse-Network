@@ -374,7 +374,6 @@ pub fn run() -> sc_cli::Result<()> {
 			info!("Chain spec: {}", chain_spec.id());
 			runner.run_node_until_exit(|config| async move {
 				match config.role {
-					Role::Light => service::new_full(config),
 					_ => service::new_full(config),
 				}
 				.map_err(sc_cli::Error::Service)

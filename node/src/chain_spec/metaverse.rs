@@ -15,8 +15,9 @@ use sp_runtime::{
 
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	CollatorSelectionConfig, ContinuumConfig, DemocracyConfig, EstateConfig, GenesisConfig, GrandpaConfig,
-	MintingRange, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig, SystemConfig,
+	BaseFeeConfig, CollatorSelectionConfig, ContinuumConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig,
+	GenesisAccount, GenesisConfig, GrandpaConfig, MintingRange, MintingRateInfo, OracleMembershipConfig, SessionConfig,
+	Signature, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 
@@ -280,6 +281,44 @@ fn testnet_genesis(
 			members: vec![],
 			phantom: Default::default(),
 		},
+		evm: EVMConfig {
+			accounts: {
+				// Prefund the "ALICE" account
+				let mut accounts = std::collections::BTreeMap::new();
+				accounts.insert(
+					/*SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+					 * hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
+					 * Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
+					 *H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558").expect("internal H160 is valid;
+					 * qed"), */
+					H160::from_slice(&hex_literal::hex!("d43593c715fdd31c61141abd04a99fd6822c8558")),
+					GenesisAccount {
+						nonce: U256::zero(),
+						// Using a larger number, so I can tell the accounts apart by balance.
+						balance: U256::from(1u64 << 61),
+						code: vec![],
+						storage: std::collections::BTreeMap::new(),
+					},
+				);
+				accounts.insert(
+					// H160 address of CI test runner account
+					H160::from_str("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b").expect("internal H160 is valid; qed"),
+					GenesisAccount {
+						balance: U256::from(1u64 << 61),
+						code: Default::default(),
+						nonce: Default::default(),
+						storage: Default::default(),
+					},
+				);
+				accounts
+			},
+		},
+		ethereum: EthereumConfig {},
+		base_fee: BaseFeeConfig::new(
+			sp_core::U256::from(1_000_000_000u64),
+			false,
+			sp_runtime::Permill::from_parts(125_000),
+		),
 	}
 }
 

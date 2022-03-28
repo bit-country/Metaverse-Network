@@ -12,8 +12,9 @@ use sp_runtime::{
 };
 
 use primitives::estate::Estate;
+use primitives::staking::MetaverseStakingTrait;
 use primitives::FungibleTokenId::FungibleToken;
-use primitives::{Amount, CurrencyId, EstateId, FungibleTokenId};
+use primitives::{Amount, CurrencyId, EstateId, FungibleTokenId, RoundIndex};
 
 use crate as mining;
 use crate::{Config, Module};
@@ -162,6 +163,14 @@ impl Estate<u128> for EstateHandler {
 	}
 }
 
+pub struct MetaverseStakingHandler;
+
+impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
+	fn update_staking_reward(round: RoundIndex, total_reward: u128) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
@@ -169,6 +178,7 @@ impl Config for Runtime {
 	type BitMiningResourceId = MiningCurrencyId;
 	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
+	type MetaverseStakingHandler = MetaverseStakingHandler;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

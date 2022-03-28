@@ -82,7 +82,7 @@ pub mod pallet {
 
 	use primitives::dex::Price;
 	use primitives::estate::Estate;
-	use primitives::staking::RoundInfo;
+	use primitives::staking::{MetaverseStakingTrait, RoundInfo};
 	use primitives::{FungibleTokenId, RoundIndex, TokenId, VestingSchedule};
 
 	use crate::mining::round_issuance_range;
@@ -112,6 +112,7 @@ pub mod pallet {
 		/// Origin used to administer the pallet
 		type EstateHandler: Estate<Self::AccountId>;
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
 	}
 
 	/// Minting origins
@@ -282,9 +283,10 @@ pub mod pallet {
 			let mut round = <Round<T>>::get();
 			if round.should_update(n) {
 				// mutate round
-				round.update(n);
-
 				let allocation_range = round_issuance_range::<T>(<MiningConfig<T>>::get());
+				T::MetaverseStakingHandler::update_staking_reward(round.current, allocation_range.staking_allocation);
+
+				round.update(n);
 				Round::<T>::put(round);
 				CurrentMiningResourceAllocation::<T>::put(allocation_range);
 				Self::deposit_event(Event::NewMiningRound(round.current, allocation_range));

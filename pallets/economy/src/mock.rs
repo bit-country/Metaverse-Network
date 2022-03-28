@@ -9,6 +9,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::*;
 use primitives::estate::Estate;
+use primitives::staking::MetaverseStakingTrait;
 use primitives::{Amount, EstateId, FungibleTokenId, ItemId};
 
 use crate as economy;
@@ -145,6 +146,14 @@ impl Estate<u128> for EstateHandler {
 	}
 }
 
+pub struct MetaverseStakingHandler;
+
+impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
+	fn update_staking_reward(round: RoundIndex, total_reward: u128) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+}
+
 impl pallet_mining::Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
@@ -152,6 +161,7 @@ impl pallet_mining::Config for Runtime {
 	type BitMiningResourceId = MiningCurrencyId;
 	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
+	type MetaverseStakingHandler = MetaverseStakingHandler;
 }
 
 ord_parameter_types! {
