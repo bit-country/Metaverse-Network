@@ -84,6 +84,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 
 mod weights;
 
+mod benchmarking;
 /// Constant values used within the runtime.
 pub mod constants;
 
@@ -992,6 +993,18 @@ pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signatu
 pub type Executive =
 	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPalletsWithSystem>;
 
+// #[cfg(feature = "runtime-benchmarks")]
+// #[macro_use]
+// extern crate orml_benchmarking;
+//
+// #[cfg(feature = "runtime-benchmarks")]
+// mod benches {
+// 	define_benchmarks!(
+// 		[economy, benchmarking::economy]
+// 	);
+// }
+
+// #[cfg(not(feature = "disable-runtime-api"))]
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
 		fn version() -> RuntimeVersion {

@@ -61,12 +61,15 @@ pallet-transaction-payment-rpc-runtime-api = { default-features = false, git = "
 frame-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", optional = true }
 frame-system-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", optional = true }
 
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
+orml-benchmarking = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false, optional = true }
 
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
@@ -91,6 +94,11 @@ emergency = { package = "pallet-emergency", path = "../../pallets/emergency", ve
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+
+[dev-dependencies]
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+#sp-trie = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
+
 
 [features]
 default = ["std"]
@@ -148,8 +156,11 @@ std = [
     "emergency/std",
     "pallet-utility/std",
     "pallet-collator-selection/std",
+    "orml-benchmarking/std",
+    "sp-io/std",
 ]
 runtime-benchmarks = [
+    "orml-benchmarking",
     "frame-benchmarking",
     "frame-support/runtime-benchmarks",
     "frame-system-benchmarking",
