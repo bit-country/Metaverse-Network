@@ -132,6 +132,7 @@ where
 			function_name,
 			pallet_name,
 		} = call.get_call_metadata();
+
 		EmergencyStoppedPallets::<T>::contains_key((pallet_name.as_bytes(), function_name.as_bytes()))
 	}
 }

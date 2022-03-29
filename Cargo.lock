@@ -4695,7 +4695,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-runtime"
-version = "2.0.0-rc6"
+version = "0.0.24"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
