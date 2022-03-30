@@ -119,6 +119,8 @@ pub mod pallet {
 		type MinimumStake: Get<BalanceOf<Self>>;
 		#[pallet::constant]
 		type PowerAmountPerBlock: Get<PowerAmount>;
+		/// Weight info
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::storage]
@@ -280,7 +282,7 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/// Set bit power exchange rate
 		/// BIT price per Power, accept decimal
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::set_bit_power_exchange_rate())]
 		#[transactional]
 		pub fn set_bit_power_exchange_rate(origin: OriginFor<T>, rate: Balance) -> DispatchResultWithPostInfo {
 			// Only root can authorize
@@ -294,7 +296,7 @@ pub mod pallet {
 		}
 
 		/// Set power balance for NFTs
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::set_power_balance())]
 		#[transactional]
 		pub fn set_power_balance(
 			origin: OriginFor<T>,
@@ -688,7 +690,7 @@ pub mod pallet {
 		}
 
 		/// Stake native token to staking ledger for mining power calculation
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::stake())]
 		#[transactional]
 		pub fn stake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -727,7 +729,7 @@ pub mod pallet {
 		}
 
 		/// Stake native token to staking ledger for mining power calculation
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::unstake())]
 		pub fn unstake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 

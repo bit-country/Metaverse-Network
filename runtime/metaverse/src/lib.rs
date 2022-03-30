@@ -4,8 +4,8 @@
 
 use codec::{Decode, Encode, MaxEncodedLen};
 // use metaverse::weights::WeightInfo;
-#[cfg(feature = "runtime-benchmarks")]
-use frame_benchmarking::frame_support::pallet_prelude::Get;
+// #[cfg(feature = "runtime-benchmarks")]
+// use frame_benchmarking::frame_support::pallet_prelude::Get;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
@@ -84,8 +84,8 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 
 mod weights;
 
-mod benchmarking;
-/// Constant values used within the runtime.
+// mod benchmarking;
+/// Constant values cargo build --release --features runtime-benchmarks used within the runtime.
 pub mod constants;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
@@ -840,6 +840,7 @@ impl economy::Config for Runtime {
 	type NFTHandler = Nft;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
+	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
 }
 
 impl emergency::Config for Runtime {
@@ -992,17 +993,6 @@ pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signatu
 /// Executive: handles dispatch to the various modules.
 pub type Executive =
 	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPalletsWithSystem>;
-
-// #[cfg(feature = "runtime-benchmarks")]
-// #[macro_use]
-// extern crate orml_benchmarking;
-//
-// #[cfg(feature = "runtime-benchmarks")]
-// mod benches {
-// 	define_benchmarks!(
-// 		[economy, benchmarking::economy]
-// 	);
-// }
 
 // #[cfg(not(feature = "disable-runtime-api"))]
 impl_runtime_apis! {
