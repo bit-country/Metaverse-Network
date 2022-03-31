@@ -121,9 +121,9 @@ pub mod module {
 	}
 }
 
-pub struct PausedTransactionFilter<T>(sp_std::marker::PhantomData<T>);
+pub struct EmergencyStoppedFilter<T>(sp_std::marker::PhantomData<T>);
 
-impl<T: Config> Contains<T::Call> for PausedTransactionFilter<T>
+impl<T: Config> Contains<T::Call> for EmergencyStoppedFilter<T>
 where
 	<T as frame_system::Config>::Call: GetCallMetadata,
 {
@@ -132,6 +132,7 @@ where
 			function_name,
 			pallet_name,
 		} = call.get_call_metadata();
+
 		EmergencyStoppedPallets::<T>::contains_key((pallet_name.as_bytes(), function_name.as_bytes()))
 	}
 }
