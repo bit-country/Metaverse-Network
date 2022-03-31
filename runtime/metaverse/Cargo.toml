@@ -7,7 +7,7 @@ license = "Unlicense"
 name = "metaverse-runtime"
 description = "Metaverse Runtime"
 repository = "https://github.com/bit-country/Bit-Country-Blockchain"
-version = "2.0.0-rc6"
+version = "0.0.24"
 publish = false
 
 [package.metadata.docs.rs]
@@ -62,6 +62,12 @@ frame-benchmarking = { default-features = false, git = "https://github.com/parit
 frame-system-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", optional = true }
 
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
+# EVM pallets
+pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", default-features = false }
+pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", default-features = false }
+pallet-base-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", default-features = false }
+fp-self-contained = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", default-features = false }
+fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", default-features = false }
 
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
@@ -158,6 +164,11 @@ std = [
     "pallet-collator-selection/std",
     "orml-benchmarking/std",
     "sp-io/std",
+    "pallet-evm/std",
+    "pallet-base-fee/std",
+    "pallet-ethereum/std",
+    "fp-self-contained/std",
+    "fp-rpc/std",
 ]
 runtime-benchmarks = [
     "orml-benchmarking",
