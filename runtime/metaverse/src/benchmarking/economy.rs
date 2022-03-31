@@ -20,20 +20,17 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use super::*;
-use sp_std::prelude::*;
-use sp_std::vec;
+// use super::*;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
 
 #[allow(unused)]
-// pub use crate::Pallet as EconomyModule;
-use crate::{Runtime, System};
-// use crate::{Call, Config};
-// use crate::Nft as NFTModule;
+use crate::{Balances, Call, Currencies, Economy, Event, Nft, Runtime, System};
+use economy::Config;
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
-use frame_system::{Pallet as System, RawOrigin};
+use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
-use primitives::{Balance, GroupCollectionId};
+use primitives::{Attributes, Balance, ClassId, CollectionType, FungibleTokenId, GroupCollectionId, TokenType};
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 
 pub type AccountId = u128;
@@ -58,119 +55,81 @@ const STAKING_AMOUNT: Balance = 1000;
 const UNSTAKING_AMOUNT: Balance = 100;
 
 const COLLECTION_ID: GroupCollectionId = 0;
-// const CLASS_ID: ClassId = 0;
+const CLASS_ID: ClassId = 0;
+
+const NATIVE: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
 fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
 
-// fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
-//     let caller: T::AccountId = account(name, index, SEED);
-//     T::Currency::make_free_balance_be(&caller, dollar(10000).unique_saturated_into());
+// fn funded_account(name: &'static str, index: u32) -> AccountId {
+//     let caller: AccountId = account(name, index, SEED);
+// 	Currencies::make_free_balance_be(&caller, dollar(10000).unique_saturated_into());
 //     caller
 // }
 
-// fn run_to_block(n: u64) {
-// 	while System::<T>::block_number() < n {
-// 		System::<T>::on_finalize(System::<T>::block_number());
-// 		System::<T>::set_block_number(System::<T>::block_number() + 1);
-// 		System::<T>::on_initialize(System::<T>::block_number());
-// 		// Mining::on_initialize(System::block_number());
-// 	}
-// }
-
-runtime_benchmarks! {
-	{Runtime, economy}
-
-	// set_bit_power_exchange_rate
-	set_bit_power_exchange_rate{
-		let caller = account("funder", 0, SEED);
-	}: set_bit_power_exchange_rate(RawOrigin::Root, EXCHANGE_RATE)
-	// verify {
-	// 	let new_rate = crate::Pallet::<T>::get_bit_power_exchange_rate();
-	// 	assert_eq!(new_rate, EXCHANGE_RATE);
-	// }
-
-	// // // set_bit_power_exchange_rate
-	// authorize_power_generator_collection{
-	// 	let caller = funded_account::<T>("caller", 0);
-	// }: _(RawOrigin::Root, COLLECTION_ID, CLASS_ID)
-	// verify {
-	// 	// let new_rate = crate::Pallet::<T>::get_bit_power_exchange_rate();
-	// 	assert_eq!(crate::Pallet::<T>::get_authorized_generator_collection((COLLECTION_ID, CLASS_ID)), Some(()))
-	// }
-
-	// // set_power_balance
-	// set_power_balance{
-	// 	let caller = funded_account::<T>("caller", 0);
-	// }: _(RawOrigin::Root, BENEFICIARY_NFT, 123)
-	// verify {
-	// 	// let account_id = crate::Pallet::<T>::EconomyTreasury::get().into_sub_account(BENEFICIARY_NFT);
-	// 	let account_id: T::AccountId = <<T as Config>::EconomyTreasury as Get<PalletId>>::get().into_sub_account(BENEFICIARY_NFT);
-	//
-	// 	let new_balance = crate::Pallet::<T>::get_power_balance(account_id);
-	// 	assert_eq!(new_balance, 123);
-	// }
-	//
-	// // stake
-	// stake{
-	// 	let caller = funded_account::<T>("caller", 0);
-	//
-	//     let min_stake = <<T as Config>::MinimumStake as Get<BalanceOf<T>>>::get();
-	// 	let stake_amount = min_stake + 1u32.into();
-	//
-	// }: _(RawOrigin::Signed(caller.clone()), stake_amount)
-	// verify {
-	// 	let staking_balance = crate::Pallet::<T>::get_staking_info(caller.clone());
-	// 	assert_eq!(staking_balance, stake_amount);
-	// }
-	//
-	// // unstake
-	// unstake{
-	// 	let caller = funded_account::<T>("caller", 0);
-	//
-	// 	let min_stake = <<T as Config>::MinimumStake as Get<BalanceOf<T>>>::get();
-	// 	let stake_amount = min_stake + 100u32.into();
-	//
-	// 	crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount);
-	//
-	// 	let current_round = T::RoundHandler::get_current_round_info();
-	// 	let next_round = current_round.current.saturating_add(One::one());
-	// }: _(RawOrigin::Signed(caller.clone()), 10u32.into())
-	// verify {
-	// 	let staking_balance = crate::Pallet::<T>::get_staking_info(caller.clone());
-	// 	assert_eq!(staking_balance, min_stake + 90u32.into());
-	//
-	// 	assert_eq!(
-	// 		crate::Pallet::<T>::staking_exit_queue(caller.clone(), next_round),
-	// 		Some(10u32.into())
-	// 	);
-	// }
-
-	// // withdraw_unreserved
-	// withdraw_unreserved{
-	// 	let caller = funded_account::<T>("caller", 0);
-	//
-	// 	let min_stake = <<T as Config>::MinimumStake as Get<BalanceOf<T>>>::get();
-	// 	let stake_amount = min_stake + 100u32.into();
-	//
-	// 	let current_round = T::RoundHandler::get_current_round_info();
-	// 	let next_round = current_round.current.saturating_add(One::one());
-	//
-	// 	crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount);
-	// 	crate::Pallet::<T>::unstake(RawOrigin::Signed(caller.clone()).into(), 10u32.into());
-	//
-	// 	// run_to_block(25);
-	//
-	// }: _(RawOrigin::Signed(caller.clone()), next_round)
-	// verify {
-	// 	assert_eq!(T::Currency::reserved_balance(&caller), 90u32.into());
-	// }
+fn assert_last_event(generic_event: Event) {
+	System::assert_last_event(generic_event.into());
 }
 
-// impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(),
-// crate::mock::Test);
+fn mint_NFT() {
+	//caller: T::AccountId) {
+	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+	Nft::create_class(
+		// RawOrigin::Signed(caller.clone()).into(),
+		RawOrigin::Root.into(),
+		vec![1],
+		test_attributes(1),
+		0u32.into(),
+		TokenType::Transferable,
+		CollectionType::Collectable,
+	);
+	Nft::mint(
+		// RawOrigin::Signed(caller.clone()).into(),
+		RawOrigin::Root.into(),
+		0u32.into(),
+		vec![1],
+		test_attributes(1),
+		3,
+	);
+}
+
+fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
+}
+
+runtime_benchmarks! {
+	{ Runtime, economy }
+
+	// // set_bit_power_exchange_rate
+	// set_bit_power_exchange_rate{
+	// 	let from: AccountId = whitelisted_caller();
+	//
+	// }: set_bit_power_exchange_rate(RawOrigin::Root, EXCHANGE_RATE)
+	// verify {
+	// 	assert_eq!(1, 1);
+	// }
+
+	// // set_bit_power_exchange_rate
+	authorize_power_generator_collection{
+		let funder: AccountId = account("funder", 0, SEED);
+
+		mint_NFT();
+
+	}: _(RawOrigin::Root, COLLECTION_ID, CLASS_ID)
+	verify {
+		// let new_rate = crate::Pallet::<T>::get_bit_power_exchange_rate();
+		// assert_eq!(crate::Pallet::<T>::get_authorized_generator_collection((COLLECTION_ID, CLASS_ID)), Some(()))
+
+		// assert_last_event(module_dex::Event::EnableTradingPair{trading_pair: trading_pair}.into());
+
+		assert_eq!(1, 1);
+	}
+}
 
 #[cfg(test)]
 mod tests {

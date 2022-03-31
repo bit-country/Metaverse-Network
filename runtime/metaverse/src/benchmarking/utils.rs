@@ -16,13 +16,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::Runtime;
+use crate::{Currencies, Runtime};
 
 use frame_benchmarking::account;
 use frame_support::traits::tokens::fungibles;
 use frame_support::{assert_ok, traits::Contains};
 use frame_system::RawOrigin;
 use orml_traits::MultiCurrencyExtended;
+use primitives::{AccountId, Balance, FungibleTokenId};
 use sp_runtime::{
 	traits::{SaturatedConversion, StaticLookup},
 	DispatchResult,
@@ -32,15 +33,15 @@ use sp_std::prelude::*;
 // pub fn lookup_of_account(who: AccountId) -> <<Runtime as frame_system::Config>::Lookup as
 // StaticLookup>::Source { 	<Runtime as frame_system::Config>::Lookup::unlookup(who)
 // }
-//
-// pub fn set_balance(currency_id: CurrencyId, who: &AccountId, balance: Balance) {
-// 	assert_ok!(<Currencies as MultiCurrencyExtended<_>>::update_balance(
-// 		currency_id,
-// 		who,
-// 		balance.saturated_into()
-// 	));
-// }
-//
+
+pub fn set_balance(currency_id: FungibleTokenId, who: &AccountId, balance: Balance) {
+	assert_ok!(<Currencies as MultiCurrencyExtended<_>>::update_balance(
+		currency_id,
+		who,
+		balance.saturated_into()
+	));
+}
+
 // pub fn feed_price(prices: Vec<(CurrencyId, Price)>) -> DispatchResult {
 // 	for i in 0..MinimumCount::get() {
 // 		let oracle: AccountId = account("oracle", 0, i);
