@@ -30,7 +30,7 @@ use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
-use primitives::{Attributes, Balance, ClassId, CollectionType, FungibleTokenId, GroupCollectionId, TokenType};
+use primitives::{Balance, ClassId, FungibleTokenId, GroupCollectionId}; //Attributes, TokenType, CollectionType,
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 
 pub type AccountId = u128;
@@ -74,33 +74,33 @@ fn assert_last_event(generic_event: Event) {
 	System::assert_last_event(generic_event.into());
 }
 
-fn mint_NFT() {
-	//caller: T::AccountId) {
-	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-	Nft::create_class(
-		// RawOrigin::Signed(caller.clone()).into(),
-		RawOrigin::Root.into(),
-		vec![1],
-		test_attributes(1),
-		0u32.into(),
-		TokenType::Transferable,
-		CollectionType::Collectable,
-	);
-	Nft::mint(
-		// RawOrigin::Signed(caller.clone()).into(),
-		RawOrigin::Root.into(),
-		0u32.into(),
-		vec![1],
-		test_attributes(1),
-		3,
-	);
-}
-
-fn test_attributes(x: u8) -> Attributes {
-	let mut attr: Attributes = BTreeMap::new();
-	attr.insert(vec![x, x + 5], vec![x, x + 10]);
-	attr
-}
+// fn mint_NFT() {
+// 	//caller: T::AccountId) {
+// 	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+// 	Nft::create_class(
+// 		// RawOrigin::Signed(caller.clone()).into(),
+// 		RawOrigin::Root.into(),
+// 		vec![1],
+// 		test_attributes(1),
+// 		0u32.into(),
+// 		TokenType::Transferable,
+// 		CollectionType::Collectable,
+// 	);
+// 	Nft::mint(
+// 		// RawOrigin::Signed(caller.clone()).into(),
+// 		RawOrigin::Root.into(),
+// 		0u32.into(),
+// 		vec![1],
+// 		test_attributes(1),
+// 		3,
+// 	);
+// }
+//
+// fn test_attributes(x: u8) -> Attributes {
+// 	let mut attr: Attributes = BTreeMap::new();
+// 	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+// 	attr
+// }
 
 runtime_benchmarks! {
 	{ Runtime, economy }
@@ -118,7 +118,7 @@ runtime_benchmarks! {
 	authorize_power_generator_collection{
 		let funder: AccountId = account("funder", 0, SEED);
 
-		mint_NFT();
+		// mint_NFT();
 
 	}: _(RawOrigin::Root, COLLECTION_ID, CLASS_ID)
 	verify {

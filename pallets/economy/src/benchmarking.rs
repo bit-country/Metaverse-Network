@@ -31,7 +31,7 @@ use crate::{Call, Config};
 // use crate::Nft as NFTModule;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
-use frame_system::{Pallet as System, RawOrigin};
+use frame_system::RawOrigin;
 use primitives::{Balance, GroupCollectionId};
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 
