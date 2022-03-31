@@ -23,6 +23,7 @@ use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Backend as BlockchainBackend, Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_runtime::traits::BlakeTwo256;
 use substrate_frame_rpc_system::{FullSystem, SystemApi};
+use pallet_contracts_rpc::{Contracts, ContractsApi};
 
 use primitives::*;
 
@@ -115,6 +116,7 @@ where
 		+ fp_rpc::ConvertTransactionRuntimeApi<Block>
 		+ fp_rpc::EthereumRuntimeRPCApi<Block>
 		+ BlockBuilder<Block>,
+	C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
 	P: TransactionPool<Block = Block> + Sync + Send + 'static,
 	BE: Backend<Block> + 'static,
 	BE::State: StateBackend<BlakeTwo256>,
@@ -193,6 +195,11 @@ where
 		),
 		overrides,
 	)));
+
+	// Contracts RPC API extension
+	io.extend_with(
+		ContractsApi::to_delegate(Contracts::new(client.clone()))
+	);
 
 	io
 }
