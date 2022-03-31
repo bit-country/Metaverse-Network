@@ -43,19 +43,50 @@ use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for economy.
-pub trait WeightInfo {	fn set_bit_power_exchange_rate() -> Weight;	fn set_power_balance() -> Weight;	fn stake() -> Weight;	fn unstake() -> Weight;}
+pub trait WeightInfo {
+    fn set_bit_power_exchange_rate() -> Weight;
+    fn set_power_balance() -> Weight;
+    fn stake() -> Weight;
+    fn unstake() -> Weight;
+    fn withdraw_unreserved() -> Weight;
+}
 
 /// Weights for economy using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
-impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn set_bit_power_exchange_rate() -> Weight {
-		(9_000_000 as Weight)			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn set_power_balance() -> Weight {
-		(10_000_000 as Weight)			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn stake() -> Weight {
-		(28_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(5 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn unstake() -> Weight {
-		(17_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}}
+
+impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
+    fn set_bit_power_exchange_rate() -> Weight {
+        (8_000_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn set_power_balance() -> Weight {
+        (9_000_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
+    }
+    fn stake() -> Weight {
+        (26_000_000 as Weight).saturating_add(T::DbWeight::get().reads(5 as Weight)).saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn unstake() -> Weight {
+        (16_000_000 as Weight).saturating_add(T::DbWeight::get().reads(3 as Weight)).saturating_add(T::DbWeight::get().writes(3 as Weight))
+    }
+    fn withdraw_unreserved() -> Weight {
+        (21_000_000 as Weight).saturating_add(T::DbWeight::get().reads(3 as Weight)).saturating_add(T::DbWeight::get().writes(2 as Weight))
+    }
+}
 
 // For backwards compatibility and tests
-impl WeightInfo for () {	fn set_bit_power_exchange_rate() -> Weight {
-		(9_000_000 as Weight)			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn set_power_balance() -> Weight {
-		(10_000_000 as Weight)			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn stake() -> Weight {
-		(28_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(5 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn unstake() -> Weight {
-		(17_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}}
+impl WeightInfo for () {
+    fn set_bit_power_exchange_rate() -> Weight {
+        (8_000_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn set_power_balance() -> Weight {
+        (9_000_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
+    }
+    fn stake() -> Weight {
+        (26_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(5 as Weight)).saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn unstake() -> Weight {
+        (16_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(3 as Weight)).saturating_add(RocksDbWeight::get().writes(3 as Weight))
+    }
+    fn withdraw_unreserved() -> Weight {
+        (21_000_000 as Weight).saturating_add(RocksDbWeight::get().reads(3 as Weight)).saturating_add(RocksDbWeight::get().writes(2 as Weight))
+    }
+}

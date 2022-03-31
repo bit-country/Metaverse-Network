@@ -26,12 +26,12 @@ use sp_std::vec;
 
 #[allow(unused)]
 pub use crate::Pallet as EconomyModule;
-use crate::*;
 use crate::{Call, Config};
-// use crate::Nft as NFTModule;
+// use crate::Mining as MiningModule;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
-use frame_system::RawOrigin;
+use frame_system::{Pallet as System, RawOrigin};
+use pallet_mining::Pallet as MiningModule;
 use primitives::{Balance, GroupCollectionId};
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 
@@ -70,13 +70,18 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	caller
 }
 
-// fn run_to_block(n: u64) {
-// 	while System::<T>::block_number() < n {
-// 		System::<T>::on_finalize(System::<T>::block_number());
-// 		System::<T>::set_block_number(System::<T>::block_number() + 1);
-// 		System::<T>::on_initialize(System::<T>::block_number());
-// 		// Mining::on_initialize(System::block_number());
-// 	}
+fn run_to_block<T: Config>(n: u64) {
+	// while System::<T>::block_number() < n.into() {
+	// 	System::<T>::on_finalize(System::<T>::block_number());
+	System::<T>::set_block_number(25u32.into());
+	// 	System::<T>::on_initialize(System::<T>::block_number());
+	// 	// Mining::on_initialize(System::block_number());
+	// MiningModule::<T>::on_initialize(25u32.into());
+	// }
+}
+
+// fn assert_last_event(generic_event: Event) {
+// 	System::assert_last_event(generic_event.into());
 // }
 
 benchmarks! {
@@ -88,15 +93,6 @@ benchmarks! {
 		let new_rate = crate::Pallet::<T>::get_bit_power_exchange_rate();
 		assert_eq!(new_rate, EXCHANGE_RATE);
 	}
-
-	// // // set_bit_power_exchange_rate
-	// authorize_power_generator_collection{
-	// 	let caller = funded_account::<T>("caller", 0);
-	// }: _(RawOrigin::Root, COLLECTION_ID, CLASS_ID)
-	// verify {
-	// 	// let new_rate = crate::Pallet::<T>::get_bit_power_exchange_rate();
-	// 	assert_eq!(crate::Pallet::<T>::get_authorized_generator_collection((COLLECTION_ID, CLASS_ID)), Some(()))
-	// }
 
 	// set_power_balance
 	set_power_balance{
@@ -145,25 +141,28 @@ benchmarks! {
 		);
 	}
 
-	// // withdraw_unreserved
-	// withdraw_unreserved{
-	// 	let caller = funded_account::<T>("caller", 0);
-	//
-	// 	let min_stake = <<T as Config>::MinimumStake as Get<BalanceOf<T>>>::get();
-	// 	let stake_amount = min_stake + 100u32.into();
-	//
-	// 	let current_round = T::RoundHandler::get_current_round_info();
-	// 	let next_round = current_round.current.saturating_add(One::one());
-	//
-	// 	crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount);
-	// 	crate::Pallet::<T>::unstake(RawOrigin::Signed(caller.clone()).into(), 10u32.into());
-	//
-	// 	// run_to_block(25);
-	//
-	// }: _(RawOrigin::Signed(caller.clone()), next_round)
-	// verify {
-	// 	assert_eq!(T::Currency::reserved_balance(&caller), 90u32.into());
-	// }
+	// withdraw_unreserved
+	withdraw_unreserved{
+		let caller = funded_account::<T>("caller", 0);
+
+		let min_stake = <<T as Config>::MinimumStake as Get<BalanceOf<T>>>::get();
+		let stake_amount = min_stake + 100u32.into();
+
+		let current_round = T::RoundHandler::get_current_round_info();
+		let next_round = current_round.current.saturating_add(One::one());
+
+		crate::Pallet::<T>::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount);
+		crate::Pallet::<T>::unstake(RawOrigin::Signed(caller.clone()).into(), 10u32.into());
+
+		run_to_block::<T>(100);
+		let next_round = current_round.current.saturating_add(One::one());
+	}: _(RawOrigin::Signed(caller.clone()), next_round)
+	verify {
+		assert_eq!(
+			crate::Pallet::<T>::staking_exit_queue(caller.clone(), next_round),
+			None
+		);
+	}
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

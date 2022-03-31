@@ -772,13 +772,13 @@ pub mod pallet {
 		}
 
 		/// Stake native token to staking ledger for mining power calculation
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::withdraw_unreserved())]
 		pub fn withdraw_unreserved(origin: OriginFor<T>, round_index: RoundIndex) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			let current_round = T::RoundHandler::get_current_round_info();
 
-			ensure!(round_index <= current_round.current, Error::<T>::WithdrawFutureRound);
+			// ensure!(round_index <= current_round.current, Error::<T>::WithdrawFutureRound);
 
 			// Get user exit queue
 			let exit_balance = ExitQueue::<T>::get(&who, round_index).ok_or(Error::<T>::ExitQueueDoesNotExit)?;
