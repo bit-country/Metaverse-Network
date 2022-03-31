@@ -27,7 +27,7 @@ use primitives::staking::RoundInfo;
 #[test]
 fn create_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_eq!(
 			MetaverseModule::get_metaverse(&METAVERSE_ID),
 			Some(MetaverseInfo {
@@ -43,19 +43,9 @@ fn create_metaverse_should_work() {
 }
 
 #[test]
-fn create_metaverse_should_fail() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			MetaverseModule::create_metaverse(Origin::signed(BOB), ALICE, vec![1]),
-			BadOrigin
-		);
-	});
-}
-
-#[test]
 fn transfer_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::transfer_metaverse(
 			Origin::signed(ALICE),
 			BOB,
@@ -77,7 +67,7 @@ fn transfer_metaverse_should_work() {
 #[test]
 fn transfer_metaverse_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_noop!(
 			MetaverseModule::transfer_metaverse(Origin::signed(BOB), ALICE, METAVERSE_ID),
 			Error::<Runtime>::NoPermission
@@ -88,7 +78,7 @@ fn transfer_metaverse_should_fail() {
 #[test]
 fn freeze_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::freeze_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		let event = Event::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
@@ -98,7 +88,7 @@ fn freeze_metaverse_should_work() {
 #[test]
 fn freeze_metaverse_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		//Country owner tries to freeze their own metaverse
 		assert_noop!(
 			MetaverseModule::freeze_metaverse(Origin::signed(BOB), METAVERSE_ID),
@@ -110,7 +100,7 @@ fn freeze_metaverse_should_fail() {
 #[test]
 fn unfreeze_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::freeze_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		let event = Event::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
@@ -123,7 +113,7 @@ fn unfreeze_metaverse_should_work() {
 #[test]
 fn destroy_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::freeze_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		assert_ok!(MetaverseModule::destroy_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		let event = Event::Metaverse(crate::Event::MetaverseDestroyed(METAVERSE_ID));
@@ -135,7 +125,7 @@ fn destroy_metaverse_should_work() {
 #[test]
 fn destroy_metaverse_without_root_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_noop!(
 			MetaverseModule::destroy_metaverse(Origin::signed(2), METAVERSE_ID),
 			BadOrigin
@@ -146,7 +136,7 @@ fn destroy_metaverse_without_root_should_fail() {
 #[test]
 fn destroy_metaverse_with_no_id_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_noop!(
 			MetaverseModule::destroy_metaverse(Origin::signed(ALICE), COUNTRY_ID_NOT_EXIST),
 			Error::<Runtime>::MetaverseInfoNotFound
@@ -157,7 +147,7 @@ fn destroy_metaverse_with_no_id_should_fail() {
 #[test]
 fn register_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		let event = Event::Metaverse(crate::Event::NewMetaverseRegisteredForStaking(METAVERSE_ID, ALICE));
 		assert_eq!(last_event(), event);
@@ -169,7 +159,7 @@ fn register_metaverse_should_work() {
 #[test]
 fn register_metaverse_should_fail_no_permission() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 
 		assert_noop!(
 			MetaverseModule::register_metaverse(Origin::signed(BOB), METAVERSE_ID),
@@ -181,7 +171,7 @@ fn register_metaverse_should_fail_no_permission() {
 #[test]
 fn register_metaverse_should_fail_already_registered() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 
@@ -198,7 +188,7 @@ fn register_metaverse_should_fail_already_registered() {
 #[test]
 fn stake_should_fail_not_registered() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_noop!(
 			MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 100),
 			Error::<Runtime>::NotRegisteredForStaking
@@ -209,7 +199,7 @@ fn stake_should_fail_not_registered() {
 #[test]
 fn stake_should_fail_not_enough_balance() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		assert_noop!(
 			MetaverseModule::stake(Origin::signed(FREEDY), METAVERSE_ID, 10000),
@@ -221,7 +211,7 @@ fn stake_should_fail_not_enough_balance() {
 #[test]
 fn stake_should_fail_min_staking_required() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 
 		assert_err!(
@@ -234,7 +224,7 @@ fn stake_should_fail_min_staking_required() {
 #[test]
 fn stake_should_fail_max_stakers() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
 
@@ -248,7 +238,7 @@ fn stake_should_fail_max_stakers() {
 #[test]
 fn stake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 100000));
 
@@ -272,7 +262,7 @@ fn stake_should_work() {
 #[test]
 fn stake_should_work_with_min_value() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		assert_ok!(MetaverseModule::stake(Origin::signed(BOB), METAVERSE_ID, 50000));
 
@@ -286,7 +276,7 @@ fn stake_should_work_with_min_value() {
 #[test]
 fn unstake_should_fail_not_registered() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_noop!(
 			MetaverseModule::unstake_and_withdraw(Origin::signed(ALICE), METAVERSE_ID, 100),
 			Error::<Runtime>::NotRegisteredForStaking
@@ -297,7 +287,7 @@ fn unstake_should_fail_not_registered() {
 #[test]
 fn unstake_should_fail_no_staking_info() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 
 		assert_noop!(
@@ -310,7 +300,7 @@ fn unstake_should_fail_no_staking_info() {
 #[test]
 fn unstake_should_fail_no_permission() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
 
@@ -324,7 +314,7 @@ fn unstake_should_fail_no_permission() {
 #[test]
 fn unstake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), ALICE, vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
 		assert_ok!(MetaverseModule::stake(Origin::signed(ALICE), METAVERSE_ID, 10000));
 
