@@ -22,7 +22,6 @@ use codec::{Decode, Encode};
 use frame_support::traits::{Currency, Get, WithdrawReasons};
 use frame_support::PalletId;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
@@ -47,6 +46,10 @@ use core_primitives::*;
 pub use pallet::*;
 use primitives::staking::RoundInfo;
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+///pub use weights::WeightInfo;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -54,6 +57,8 @@ mod mock;
 mod mining;
 #[cfg(test)]
 mod tests;
+
+//pub mod weights;
 
 /// A wrapper for a token name.
 pub type TokenName = Vec<u8>;
@@ -113,6 +118,8 @@ pub mod pallet {
 		type EstateHandler: Estate<Self::AccountId>;
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
+		// Weight implementation for mining extrinsics
+		//type WeightInfo: WeightInfo;
 	}
 
 	/// Minting origins

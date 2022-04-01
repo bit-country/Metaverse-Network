@@ -172,6 +172,7 @@ runtime-benchmarks = [
     "nft/runtime-benchmarks",
     "estate/runtime-benchmarks",
     "auction/runtime-benchmarks",
+    "mining/runtime-benchmarks",
     "metaverse/runtime-benchmarks",
     "crowdloan/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks"
