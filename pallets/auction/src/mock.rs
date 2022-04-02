@@ -9,7 +9,7 @@ use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseTrait, NftAssetData, NftClassData};
 use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
 
 use crate as auction;
@@ -185,7 +185,7 @@ parameter_types! {
 	pub const AuctionTimeToClose: u64 = 100;
 	// Test auction end within 100 blocks
 	pub const MinimumAuctionDuration: u64 = 10;
-	// Test 1% loyalty fee
+	// Test 1% royalty fee
 	pub const RoyaltyFee: u16 = 100;
 	pub const MaxFinality: u32 = 100;
 }
@@ -267,7 +267,6 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
-	pub PromotionIncentive: Balance = 1;
 }
 
 impl pallet_nft::Config for Runtime {
@@ -282,7 +281,6 @@ impl pallet_nft::Config for Runtime {
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
-	type PromotionIncentive = PromotionIncentive;
 }
 
 parameter_types! {
@@ -293,8 +291,8 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
-	type ClassData = pallet_nft::NftClassData<Balance>;
-	type TokenData = pallet_nft::NftAssetData<Balance>;
+	type ClassData = NftClassData<Balance>;
+	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
