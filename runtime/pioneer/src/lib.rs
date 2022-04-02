@@ -38,8 +38,7 @@ use sp_runtime::{
 pub use sp_runtime::{MultiAddress, Perbill, Percent, Permill};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
-use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
+use sp_version::{NativeVersion, RuntimeVersion};
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
@@ -50,6 +49,7 @@ use xcm_builder::{
 use xcm_executor::{Config, XcmExecutor};
 
 pub use constants::{currency::*, time::*};
+use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
@@ -134,14 +134,6 @@ impl frame_support::traits::OnRuntimeUpgrade for OnRuntimeUpgrade {
 		)
 	}
 }
-
-//pub struct PalletMigrationUpgrade;
-//
-//impl frame_support::traits::OnRuntimeUpgrade for PalletMigrationUpgrade {
-//    fn on_runtime_upgrade() -> frame_support::weights::Weight {
-//        <pallet_vesting::Pallet<Runtime> as pallet_vesting::Store>::
-//    }
-//}
 
 /// Handles converting a weight scalar to a fee value, based on the scale and granularity of the
 /// node's balance type.
@@ -988,7 +980,6 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
-	pub PromotionIncentive: Balance = 1 * DOLLARS;
 }
 
 impl nft::Config for Runtime {
@@ -1002,7 +993,6 @@ impl nft::Config for Runtime {
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxNftMetadata;
 	type MiningResourceId = MiningResourceCurrencyId;
-	type PromotionIncentive = PromotionIncentive;
 	type DataDepositPerByte = MetadataDepositPerByte;
 }
 
@@ -1014,8 +1004,8 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = ClassId;
 	type TokenId = NftId;
-	type ClassData = nft::NftClassData<Balance>;
-	type TokenData = nft::NftAssetData<Balance>;
+	type ClassData = NftClassData<Balance>;
+	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
 }

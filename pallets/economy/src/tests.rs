@@ -23,8 +23,8 @@ use sp_runtime::traits::BadOrigin;
 use sp_std::default::Default;
 
 use auction_manager::ListingLevel;
+use core_primitives::{Attributes, CollectionType, TokenType};
 use mock::{Event, *};
-use pallet_nft::{Attributes, CollectionType, TokenType};
 use primitives::GroupCollectionId;
 
 use super::*;
@@ -40,6 +40,7 @@ fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, class_id: Clas
 		collection_id,
 		TokenType::Transferable,
 		CollectionType::Collectable,
+		Perbill::from_percent(0u32)
 	));
 
 	assert_ok!(NFTModule::mint(owner.clone(), class_id, vec![1], test_attributes(1), 1));

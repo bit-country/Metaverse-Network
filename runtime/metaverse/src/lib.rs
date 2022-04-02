@@ -42,10 +42,9 @@ pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdj
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::crypto::Public;
-use sp_core::sp_std::marker::PhantomData;
 use sp_core::{
-	crypto::KeyTypeId,
+	crypto::{KeyTypeId, Public},
+	sp_std::marker::PhantomData,
 	u32_trait::{_1, _2, _3, _4},
 	OpaqueMetadata, H160, H256, U256,
 };
@@ -66,6 +65,7 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 pub use constants::{currency::*, time::*};
+use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
@@ -450,7 +450,6 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
-	pub PromotionIncentive: Balance = 1 * DOLLARS;
 }
 
 impl nft::Config for Runtime {
@@ -464,7 +463,6 @@ impl nft::Config for Runtime {
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxNftMetadata;
 	type MiningResourceId = MiningResourceCurrencyId;
-	type PromotionIncentive = PromotionIncentive;
 	type DataDepositPerByte = MetadataDepositPerByte;
 }
 
@@ -476,8 +474,8 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = ClassId;
 	type TokenId = NftId;
-	type ClassData = nft::NftClassData<Balance>;
-	type TokenData = nft::NftAssetData<Balance>;
+	type ClassData = NftClassData<Balance>;
+	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
@@ -857,7 +855,7 @@ impl crowdloan::Config for Runtime {
 }
 parameter_types! {
 	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
-	pub const PowerAmountPerBlock: u32 = 10;
+	pub const PowerAmountPerBlock: u32 = 100;
 }
 
 impl economy::Config for Runtime {
