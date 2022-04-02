@@ -182,12 +182,6 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn authorised_collection_local)]
-	/// Local marketplace collection authorisation
-	pub(super) type MetaverseAuthorizedCollection<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, ClassId, (), OptionQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn authorised_metaverse_collection)]
 	/// Local marketplace collection authorisation
 	pub(super) type MetaverseCollection<T: Config> =

@@ -38,7 +38,8 @@ use sp_runtime::{
 pub use sp_runtime::{MultiAddress, Perbill, Percent, Permill};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
-use sp_version::{NativeVersion, RuntimeVersion};
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
