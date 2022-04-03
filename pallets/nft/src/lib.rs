@@ -242,8 +242,8 @@ pub mod pallet {
 		NoPermission,
 		/// No available collection id
 		NoAvailableCollectionId,
-		/// Collection id is not exist
-		CollectionIsNotExist,
+		/// Collection id does not exist
+		CollectionDoesNotExist,
 		/// Class Id not found
 		ClassIdNotFound,
 		/// Non Transferable
@@ -336,7 +336,7 @@ pub mod pallet {
 			let next_class_id = NftModule::<T>::next_class_id();
 			ensure!(
 				GroupCollections::<T>::contains_key(collection_id),
-				Error::<T>::CollectionIsNotExist
+				Error::<T>::CollectionDoesNotExist
 			);
 
 			ensure!(
@@ -359,7 +359,6 @@ pub mod pallet {
 				token_type,
 				collection_type,
 				attributes: attributes,
-				royalty_fee,
 			};
 
 			NftModule::<T>::create_class(&sender, metadata, class_data)?;
@@ -609,13 +608,7 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_class_data_v2();
-
-			0
-		}
-	}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {
@@ -773,7 +766,6 @@ impl<T: Config> Pallet<T> {
 				attributes: class_info.data.attributes,
 				token_type: class_info.data.token_type,
 				collection_type: class_info.data.collection_type,
-				royalty_fee: Perbill::from_percent(0),
 			};
 
 			let v: ClassInfoOf<T> = ClassInfo {
@@ -785,20 +777,7 @@ impl<T: Config> Pallet<T> {
 			Some(v)
 		});
 
-		AssetsByOwner::<T>::translate(|_k, o: Vec<AssetId>| {
-			asset_by_owner_updates += 1;
-			log::info!("Upgrading asset by owner data");
-			let mut new_vec: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Default::default();
-
-			for a in o {
-				let token = Assets::<T>::get(a)?;
-				new_vec.push(token);
-			}
-			Some(new_vec)
-		});
-
 		log::info!("Classes upgraded: {}", num_nft_classes);
-		log::info!("Asset by owner upgraded: {}", asset_by_owner_updates);
 		0
 	}
 }
