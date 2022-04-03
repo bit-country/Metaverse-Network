@@ -418,16 +418,6 @@ pub mod pallet {
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					ensure!(
-						T::MetaverseInfoSource::check_ownership(&from, &metaverse_id),
-						Error::<T>::NoPermissionToCreateAuction
-					);
-				}
-				_ => {}
-			}
-
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
@@ -462,16 +452,6 @@ pub mod pallet {
 				matches!(item_id, ItemId::NFT(_, _)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
-
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					ensure!(
-						T::MetaverseInfoSource::check_ownership(&from, &metaverse_id),
-						Error::<T>::NoPermissionToCreateAuction
-					);
-				}
-				_ => {}
-			}
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
