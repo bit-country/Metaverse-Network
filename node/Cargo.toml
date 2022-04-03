@@ -149,4 +149,7 @@ with-pioneer-runtime = [
 
 runtime-benchmarks = [
     "metaverse-runtime/runtime-benchmarks",
+    "polkadot-cli/runtime-benchmarks",
+    "polkadot-service/runtime-benchmarks",
+    "pallet-ethereum/runtime-benchmarks",
 ]

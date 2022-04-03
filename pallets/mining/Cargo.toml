@@ -45,11 +45,6 @@ path = '../metaverse'
 version = '2.0.0-rc6'
 
 [features]
-runtime-benchmarks = [
-    "frame-benchmarking",
-    "frame-support/runtime-benchmarks",
-    "frame-system/runtime-benchmarks",
-]
 default = ['std']
 std = [
     'serde',
@@ -69,4 +64,9 @@ std = [
     'currencies/std',
     'scale-info/std',
     'frame-benchmarking/std'
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
 ]
