@@ -1,17 +1,105 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::{DispatchError, DispatchResult, RuntimeDebug};
-use sp_std::vec::Vec;
+use sp_runtime::{DispatchError, DispatchResult, Perbill, RuntimeDebug};
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use primitives::staking::RoundInfo;
 use primitives::{
 	AssetId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, MetaverseId, TokenId, UndeployedLandBlockId,
 	UndeployedLandBlockType,
 };
+
+#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum TokenType {
+	Transferable,
+	BoundToAddress,
+}
+
+impl TokenType {
+	pub fn is_transferable(&self) -> bool {
+		match *self {
+			TokenType::Transferable => true,
+			_ => false,
+		}
+	}
+}
+
+impl Default for TokenType {
+	fn default() -> Self {
+		TokenType::Transferable
+	}
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum CollectionType {
+	Collectable,
+	Wearable,
+	Executable(Vec<u8>),
+}
+
+// Collection extension for fast retrieval
+impl CollectionType {
+	pub fn is_collectable(&self) -> bool {
+		match *self {
+			CollectionType::Collectable => true,
+			_ => false,
+		}
+	}
+
+	pub fn is_executable(&self) -> bool {
+		match *self {
+			CollectionType::Executable(_) => true,
+			_ => false,
+		}
+	}
+
+	pub fn is_wearable(&self) -> bool {
+		match *self {
+			CollectionType::Wearable => true,
+			_ => false,
+		}
+	}
+}
+
+impl Default for CollectionType {
+	fn default() -> Self {
+		CollectionType::Collectable
+	}
+}
+
+pub type NftMetadata = Vec<u8>;
+pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+pub struct NftGroupCollectionData {
+	pub name: NftMetadata,
+	// Metadata from ipfs
+	pub properties: NftMetadata,
+}
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftClassData<Balance> {
+	// Minimum balance to create a collection of Asset
+	pub deposit: Balance,
+	pub attributes: Attributes,
+	pub token_type: TokenType,
+	pub collection_type: CollectionType,
+}
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftAssetData<Balance> {
+	// Deposit balance to create each token
+	pub deposit: Balance,
+	pub attributes: Attributes,
+}
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseAssetData {
@@ -85,7 +173,7 @@ pub trait UndeployedLandBlocksTrait<AccountId> {
 	) -> Result<UndeployedLandBlockId, DispatchError>;
 }
 
-pub trait NFTTrait<AccountId> {
+pub trait NFTTrait<AccountId, Balance> {
 	/// Token identifier
 	type TokenId;
 	/// Token class identifier
@@ -95,9 +183,7 @@ pub trait NFTTrait<AccountId> {
 	/// Check the ownership of this nft tuple
 	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
-	fn get_nft_detail(
-		asset_id: (Self::ClassId, Self::TokenId),
-	) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError>;
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<(NftClassData<Balance>), DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
 	/// Check if collection and class exist

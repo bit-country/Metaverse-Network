@@ -32,7 +32,7 @@ use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
 	traits::{CheckedDiv, One, Saturating, Zero},
-	DispatchError, DispatchResult,
+	DispatchError, DispatchResult, Perbill,
 };
 
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
@@ -150,7 +150,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxFinality: Get<u32>;
 		/// NFT Handler
-		type NFTHandler: NFTTrait<Self::AccountId, ClassId = ClassId, TokenId = TokenId>;
+		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 	}
 
 	#[pallet::storage]
@@ -182,10 +182,10 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::BlockNumber, Twox64Concat, AuctionId, (), OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn authorised_collection_local)]
+	#[pallet::getter(fn authorised_metaverse_collection)]
 	/// Local marketplace collection authorisation
-	pub(super) type MetaverseAuthorizedCollection<T: Config> =
-		StorageMap<_, Twox64Concat, (MetaverseId, ClassId), (), OptionQuery>;
+	pub(super) type MetaverseCollection<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, ClassId, (), OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -418,16 +418,6 @@ pub mod pallet {
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					ensure!(
-						T::MetaverseInfoSource::check_ownership(&from, &metaverse_id),
-						Error::<T>::NoPermissionToCreateAuction
-					);
-				}
-				_ => {}
-			}
-
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
@@ -463,16 +453,6 @@ pub mod pallet {
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					ensure!(
-						T::MetaverseInfoSource::check_ownership(&from, &metaverse_id),
-						Error::<T>::NoPermissionToCreateAuction
-					);
-				}
-				_ => {}
-			}
-
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
 
@@ -507,11 +487,11 @@ pub mod pallet {
 			);
 
 			ensure!(
-				!MetaverseAuthorizedCollection::<T>::contains_key((metaverse_id, class_id)),
+				!MetaverseCollection::<T>::contains_key(metaverse_id, class_id),
 				Error::<T>::CollectionAlreadyAuthorised
 			);
 
-			MetaverseAuthorizedCollection::<T>::insert((metaverse_id.clone(), class_id.clone()), ());
+			MetaverseCollection::<T>::insert(metaverse_id.clone(), class_id.clone(), ());
 
 			Self::deposit_event(Event::<T>::CollectionAuthorizedInMetaverse(class_id, metaverse_id));
 
@@ -531,11 +511,11 @@ pub mod pallet {
 			);
 
 			ensure!(
-				MetaverseAuthorizedCollection::<T>::contains_key((metaverse_id, class_id)),
+				MetaverseCollection::<T>::contains_key(metaverse_id, class_id),
 				Error::<T>::CollectionIsNotAuthorised
 			);
 
-			MetaverseAuthorizedCollection::<T>::remove((metaverse_id.clone(), class_id.clone()));
+			MetaverseCollection::<T>::remove(metaverse_id.clone(), class_id.clone());
 			Self::deposit_event(Event::<T>::CollectionAuthorizationRemoveInMetaverse(
 				class_id,
 				metaverse_id,
@@ -665,11 +645,6 @@ pub mod pallet {
 				};
 			}
 		}
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_asset_auction_data_v2();
-
-			0
-		}
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
@@ -744,7 +719,7 @@ pub mod pallet {
 					match listing_level {
 						ListingLevel::Local(metaverse_id) => {
 							ensure!(
-								MetaverseAuthorizedCollection::<T>::contains_key((metaverse_id, class_id))
+								MetaverseCollection::<T>::contains_key(metaverse_id, class_id)
 									|| T::MetaverseInfoSource::check_ownership(&recipient, &metaverse_id),
 								Error::<T>::NoPermissionToCreateAuction
 							);
@@ -997,6 +972,11 @@ pub mod pallet {
 
 			// Collect loyalty fee
 			// and deposit to class fund
+
+			// Get royalty fee
+			//			let fee = T::NFTHandler::get_nft_detail((asset_id.0,
+			// asset_id.1)).ok_or(Error::<T>::AssetIsNotExist)?;
+
 			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
 			// Transfer loyalty fee from winner to class fund pot
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
@@ -1006,8 +986,6 @@ pub mod pallet {
 					royalty_fee,
 					ExistenceRequirement::KeepAlive,
 				)?;
-				// Reserve class fund pot
-				<T as Config>::Currency::reserve(&class_fund, royalty_fee)?;
 			} else {
 				T::FungibleTokenCurrency::transfer(
 					social_currency_id.clone(),
@@ -1015,8 +993,6 @@ pub mod pallet {
 					&class_fund,
 					royalty_fee.saturated_into(),
 				)?;
-				// Reserve class fund pot
-				T::FungibleTokenCurrency::reserve(social_currency_id, &class_fund, royalty_fee.saturated_into())?;
 			}
 			Ok(())
 		}
