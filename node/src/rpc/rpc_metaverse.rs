@@ -10,8 +10,10 @@ use fc_rpc::{
 };
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use jsonrpc_pubsub::manager::SubscriptionManager;
+use pallet_contracts_rpc::{Contracts, ContractsApi};
 use pallet_ethereum::EthereumStorageSchema;
 use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+use primitives::*;
 use sc_cli::SubstrateCli;
 use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
 use sc_network::NetworkService;
@@ -23,9 +25,6 @@ use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Backend as BlockchainBackend, Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_runtime::traits::BlakeTwo256;
 use substrate_frame_rpc_system::{FullSystem, SystemApi};
-use pallet_contracts_rpc::{Contracts, ContractsApi};
-
-use primitives::*;
 
 pub fn open_frontier_backend(config: &sc_service::Configuration) -> Result<Arc<fc_db::Backend<Block>>, String> {
 	let config_dir = config
@@ -197,9 +196,7 @@ where
 	)));
 
 	// Contracts RPC API extension
-	io.extend_with(
-		ContractsApi::to_delegate(Contracts::new(client.clone()))
-	);
+	io.extend_with(ContractsApi::to_delegate(Contracts::new(client.clone())));
 
 	io
 }

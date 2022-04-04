@@ -71,8 +71,8 @@ use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 //use estate::weights::WeightInfo as EstateWeightInfo;
-use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 use pallet_contracts::weights::WeightInfo;
+use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 // primitives imports
 use crate::opaque::SessionKeys;
@@ -1486,7 +1486,6 @@ impl_runtime_apis! {
 			Contracts::get_storage(address, key)
 		}
 	}
-	
 
 	#[cfg(feature = "runtime-benchmarks")]
 	impl frame_benchmarking::Benchmark<Block> for Runtime {
