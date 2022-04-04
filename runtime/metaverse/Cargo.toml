@@ -176,3 +176,5 @@ runtime-benchmarks = [
     "crowdloan/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks"
 ]
+
+disable-runtime-api=[]
