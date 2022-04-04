@@ -40,10 +40,10 @@ pub use pallet::*;
 use primitives::{
 	AssetId, Balance, ClassId, DomainId, ElementId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex,
 };
-pub use weights::WeightInfo;
+//pub use weights::WeightInfo;
 
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmarking;
+//#[cfg(feature = "runtime-benchmarks")]
+//pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -51,7 +51,7 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-pub mod weights;
+//pub mod weights;
 
 /// A record for basic element info. i.e. price, compositions and rules
 #[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]

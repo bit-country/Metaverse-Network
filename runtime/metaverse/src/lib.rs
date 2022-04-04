@@ -1413,6 +1413,7 @@ impl_runtime_apis! {
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
+			use orml_benchmarking::list_benchmark as orml_list_benchmark;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1421,7 +1422,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_timestamp, Timestamp);
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
 			list_benchmark!(list, extra, estate, EstateBench::<Runtime>);
-			list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
+	    	list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
 			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
@@ -1439,6 +1440,7 @@ impl_runtime_apis! {
 
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {}
+			use orml_benchmarking::{add_benchmark as orml_add_benchmark};
 
 			use nft::benchmarking::Pallet as NftBench;
 			use estate::benchmarking::EstateModule as EstateBench;
@@ -1446,6 +1448,7 @@ impl_runtime_apis! {
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
+			
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number

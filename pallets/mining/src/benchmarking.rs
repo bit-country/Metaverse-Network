@@ -45,12 +45,20 @@ const MINING_RESOURCE_RATE_INFO: MiningResourceRateInfo = MiningResourceRateInfo
 	staking_reward: 3000,
 	mining_reward: 7000
 };
-
+/*
 fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
 
+fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
+	let caller: T::AccountId = account(name, index, SEED);
+	let initial_balance = dollar(1000);
+
+	T::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+	caller
+}
+*/
 
 benchmarks! {
 	// mint 

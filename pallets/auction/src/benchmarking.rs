@@ -77,6 +77,7 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 }
 
 fn mint_NFT<T: Config>(caller: T::AccountId) {
+	/* 
 	NFTModule::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 	NFTModule::<T>::create_class(
 		RawOrigin::Signed(caller.clone()).into(),
@@ -93,6 +94,7 @@ fn mint_NFT<T: Config>(caller: T::AccountId) {
 		test_attributes(1),
 		3,
 	);
+	*/
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -132,7 +134,7 @@ benchmarks! {
 
 		let caller = funded_account::<T>("caller", 0);
 		mint_NFT::<T>(caller.clone());
-	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
 
 	// create_new_buy_now
 	create_new_buy_now{
@@ -140,7 +142,7 @@ benchmarks! {
 
 		let caller = funded_account::<T>("caller", 0);
 		mint_NFT::<T>(caller.clone());
-	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
 
 	// bid
 	bid{
@@ -150,7 +152,7 @@ benchmarks! {
 		let bidder = funded_account::<T>("bidder", 0);
 		mint_NFT::<T>(caller.clone());
 
-		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
 	// buy_now
@@ -161,7 +163,7 @@ benchmarks! {
 		let bidder = funded_account::<T>("bidder", 0);
 		mint_NFT::<T>(caller.clone());
 
-		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 }
 
