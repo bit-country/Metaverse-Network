@@ -16,14 +16,16 @@
 // limitations under the License.
 
 use codec::{Decode, Encode};
+use orml_traits::arithmetic::{CheckedDiv, CheckedMul};
+use orml_traits::MultiCurrency;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::traits::Zero;
-use sp_runtime::{Perbill, RuntimeDebug};
+use sp_runtime::traits::{Saturating, Zero};
+use sp_runtime::{ArithmeticError, Perbill, RuntimeDebug};
 
 use core_primitives::{MiningRange, MiningResourceRateInfo};
-use primitives::{estate::Estate, Balance};
+use primitives::{estate::Estate, Balance, FungibleTokenId};
 
 // Helper methods to compute the issuance rate for undeployed land.
 use crate::pallet::{Config, Pallet};
@@ -37,33 +39,28 @@ fn rounds_per_year<T: Config>() -> u32 {
 	BLOCKS_PER_YEAR / blocks_per_round
 }
 
+pub fn convert_annual_to_round<T: Config>(annual: Perbill) -> Perbill {
+	let rounds = rounds_per_year::<T>();
+	annual / rounds
+}
+
 /// Compute round issuance range from round inflation range and current total issuance
 pub fn round_issuance_range<T: Config>(config: MiningResourceRateInfo) -> MiningRange<Balance> {
 	// Get total round per year
-	// Initial minting ratio per land unit
-	let minting_ratio = config.ratio;
+	// Annual inflation rate
+	let annual_rate = config.rate;
 	// Get total deployed land unit circulating
-	let total_land_unit_circulating = if T::EstateHandler::get_total_land_units() == 0u64 {
-		114690u64
-	} else {
-		T::EstateHandler::get_total_land_units()
-	};
 
-	let issuance_per_round = total_land_unit_circulating
-		.checked_mul(minting_ratio)
-		.unwrap_or(Zero::zero());
+	// Get total token supply
+	let total_circulation_supply = T::MiningCurrency::total_issuance(FungibleTokenId::MiningResource(0));
 
-	let staking_allocation = issuance_per_round
-		.checked_mul(config.staking_reward.into())
-		.unwrap_or(issuance_per_round)
-		.checked_div(10000u64)
-		.unwrap();
+	let rate_per_round = convert_annual_to_round::<T>(annual_rate);
 
-	let mining_allocation = issuance_per_round
-		.checked_mul(config.mining_reward.into())
-		.unwrap_or(issuance_per_round)
-		.checked_div(10000u64)
-		.unwrap();
+	let issuance_per_round = rate_per_round * total_circulation_supply;
+
+	let staking_allocation = config.staking_reward * issuance_per_round;
+
+	let mining_allocation = config.mining_reward * issuance_per_round;
 
 	// Return range - could implement more cases in the future.
 	MiningRange {
@@ -82,9 +79,12 @@ mod tests {
 	/// Compute round issuance range from round inflation range and current total issuance
 	pub fn mock_round_issuance_per_year(
 		config: MiningResourceRateInfo,
-		land_unit_circulation: u64,
-	) -> MiningRange<u64> {
-		let issuance_per_round = land_unit_circulation.checked_mul(config.ratio).unwrap_or(Zero::zero());
+		mock_total_mining_resource_circulation: Balance,
+	) -> MiningRange<Balance> {
+		let issuance_per_round = mock_total_mining_resource_circulation
+			.checked_mul(config.rate)
+			.unwrap_or(Zero::zero());
+		let rate_per_round = convert_annual_to_round::<T>(config.rate);
 
 		let staking_allocation = issuance_per_round
 			.checked_mul(config.staking_reward.into())
@@ -115,7 +115,7 @@ mod tests {
 		// => mint 2_000_000 over 10 periods => 20_000 minted per period
 
 		let mock_config: MiningResourceRateInfo = MiningResourceRateInfo {
-			ratio: 10,
+			rate: Perbill::from_percent(10),
 			staking_reward: 2000,
 			mining_reward: 8000,
 		};
