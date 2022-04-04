@@ -22,9 +22,10 @@ pub struct Cli {
 	pub relaychain_args: Vec<String>,
 }
 
-#[derive(Debug, Parser)]
+#[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
 	/// Key management cli utilities
+	#[clap(subcommand)]
 	Key(sc_cli::KeySubcommand),
 	/// Build a chain specification.
 	BuildSpec(sc_cli::BuildSpecCmd),
