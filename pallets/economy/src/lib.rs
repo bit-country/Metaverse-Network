@@ -42,8 +42,8 @@ use primitives::{
 };
 //pub use weights::WeightInfo;
 
-//#[cfg(feature = "runtime-benchmarks")]
-//pub mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -108,7 +108,7 @@ pub mod pallet {
 			Balance = Balance,
 		>;
 		/// NFT handler
-		type NFTHandler: NFTTrait<Self::AccountId, ClassId = ClassId, TokenId = TokenId>;
+		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 		/// Round handler
 		type RoundHandler: RoundTrait<Self::BlockNumber>;
 		#[pallet::constant]

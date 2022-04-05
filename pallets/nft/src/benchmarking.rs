@@ -20,8 +20,15 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_support::traits::Get;
+use frame_system::RawOrigin;
+use orml_traits::BasicCurrencyExtended;
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 use sp_std::prelude::*;
 use sp_std::vec;
+
+use primitives::Balance;
 
 use crate::Call;
 #[allow(unused)]
@@ -80,7 +87,7 @@ benchmarks! {
 
 		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
 	}: _(RawOrigin::Signed(caller), 0u32.into(), vec![1], test_attributes(1), 3 )
 
 	transfer{
@@ -90,7 +97,7 @@ benchmarks! {
 
 		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
 	}: _(RawOrigin::Signed(caller), target.clone(), (0u32.into(), 0u32.into()))
 
@@ -102,7 +109,7 @@ benchmarks! {
 
 		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
 	}: _(RawOrigin::Signed(caller), vec![(target1.clone(), (0u32.into(), 0u32.into())), (target2.clone(), (0u32.into(), 1u32.into()))] )
@@ -114,7 +121,7 @@ benchmarks! {
 
 		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
 	}: _(RawOrigin::Signed(signer), (0u32.into(), 0u32.into()), 100u32.into() )
 

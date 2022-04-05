@@ -268,7 +268,6 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(< T as pallet::Config >::WeightInfo::update_mining_issuance_config())]
-		//#[pallet::weight(100_000)]
 		pub fn update_mining_issuance_config(
 			origin: OriginFor<T>,
 			config: MiningResourceRateInfo,

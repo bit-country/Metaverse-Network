@@ -37,6 +37,7 @@ mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '
 tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', default-features = false }
 estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
 
 #pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
 #pallet-evm = { path = "../../pallets/evm", default-features = false }

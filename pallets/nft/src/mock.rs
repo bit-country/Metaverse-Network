@@ -10,6 +10,7 @@ use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
 
 use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
+pub use primitive_traits::{CollectionType, NftAssetData, NftClassData};
 use primitives::{Amount, CurrencyId, FungibleTokenId, ItemId};
 
 use crate as nft;
@@ -166,7 +167,6 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 10;
 	pub MaxMetadata: u32 = 10;
-	pub PromotionIncentive: Balance = 1;
 	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
 }
@@ -225,7 +225,6 @@ impl Config for Runtime {
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
-	type PromotionIncentive = PromotionIncentive;
 	type DataDepositPerByte = MetadataDataDepositPerByte;
 }
 
@@ -237,8 +236,8 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
-	type ClassData = nft::NftClassData<Balance>;
-	type TokenData = nft::NftAssetData<Balance>;
+	type ClassData = NftClassData<Balance>;
+	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
