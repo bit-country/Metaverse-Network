@@ -981,6 +981,7 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
+	type WeightInfo = ();
 }
 
 parameter_types! {

@@ -58,8 +58,6 @@ mod mining;
 #[cfg(test)]
 mod tests;
 
-//pub mod weights;
-
 /// A wrapper for a token name.
 pub type TokenName = Vec<u8>;
 
@@ -76,6 +74,8 @@ pub struct Token<Balance> {
 pub const MAX_VESTINGS: usize = 20;
 
 pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
+
+pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -95,6 +95,7 @@ pub mod pallet {
 	use super::*;
 
 	#[pallet::pallet]
+	#[pallet::generate_store(trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
@@ -119,7 +120,7 @@ pub mod pallet {
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
 		// Weight implementation for mining extrinsics
-		//type WeightInfo: WeightInfo;
+		type WeightInfo: WeightInfo;
 	}
 
 	/// Minting origins
@@ -197,7 +198,7 @@ pub mod pallet {
 		/// Issue mining resource on metaverse. There are, and will only ever be, `total`
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
-		#[pallet::weight(10_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::mint())]
 		pub fn mint(origin: OriginFor<T>, who: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
@@ -209,7 +210,7 @@ pub mod pallet {
 		/// Burn mining resource on metaverse. There are, and will only ever be, `total`
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
-		#[pallet::weight(10_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::burn())]
 		pub fn burn(origin: OriginFor<T>, who: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
@@ -235,7 +236,7 @@ pub mod pallet {
 		}
 
 		/// Add new Minting Origin to Mining Resource
-		#[pallet::weight(T::WeightInfo::add_minting_origin())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::add_minting_origin())]
 		pub fn add_minting_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
 			T::AdminOrigin::ensure_origin(origin)?;
 			Self::do_add_minting_origin(who)?;
@@ -243,14 +244,15 @@ pub mod pallet {
 		}
 
 		/// Remove Minting Origin to Mining Resource
-		#[pallet::weight(T::WeightInfo::remove_minting_origin())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::remove_minting_origin())]
 		pub fn remove_minting_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
 			T::AdminOrigin::ensure_origin(origin)?;
 			Self::do_remove_minting_origin(who)?;
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::WeightInfo::update_round_length())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::update_round_length())]
+		//#[pallet::weight(100_000)]
 		pub fn update_round_length(origin: OriginFor<T>, length: T::BlockNumber) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -266,7 +268,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::WeightInfo::update_mining_issuance_config())]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::update_mining_issuance_config())]
+		//#[pallet::weight(100_000)]
 		pub fn update_mining_issuance_config(
 			origin: OriginFor<T>,
 			config: MiningResourceRateInfo,

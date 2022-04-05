@@ -105,7 +105,7 @@ benchmarks! {
 		let origin: T::AccountId = whitelisted_caller();
 		let who: T::AccountId = account("target", 0, SEED);
 
-		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), who.clone());
+		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
 	}: _(RawOrigin::Signed(origin.clone()), who.clone(), BALANCE) 
 	//verify {
 		// TODO: verify correct behavior
@@ -117,17 +117,18 @@ benchmarks! {
 		let origin: T::AccountId = whitelisted_caller();
 		let who: T::AccountId = account("target", 0, SEED);
 
+		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
 		crate::Pallet::<T>::mint(RawOrigin::Signed(origin.clone()).into(), who.clone(), BALANCE); 
 	}: _(RawOrigin::Signed(origin.clone()), who.clone(), BALANCE) 
 	//verify {
 		// TODO: verify correct behavior
 	//}
 
-	// deposit 
+	/*// deposit 
 	deposit {
 		let origin: T::AccountId = whitelisted_caller();
 
-		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), who.clone());
+		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
 	}: _(RawOrigin::Signed(origin.clone()), BALANCE) 
 	//verify {
 		// TODO: verify correct behavior
@@ -135,16 +136,16 @@ benchmarks! {
 
 	// withdraw
 	withdraw {
-		let origin: T::AccountId = whitelisted_caller();
-		let dest: T::AccountId = account("target", 0, SEED);
+		let origin: T::AccountId = account("origin", 0, SEED);
+		let dest: T::AccountId = account("dest", 1, SEED);
 
-		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), who.clone());
+		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
 		crate::Pallet::<T>::deposit(RawOrigin::Signed(origin.clone()).into(), BALANCE);
 	}: _(RawOrigin::Signed(origin.clone()), dest.clone(), BALANCE) 
 	//verify {
 		// TODO: verify correct behavior
 		// assert_eq!(crate::Pallet::<T>::is_mining_origin(origin.clone()), true);
 	//}
-
+		*/
 }
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);
