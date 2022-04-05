@@ -43,6 +43,7 @@ fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_servic
 		"dev" => Box::new(chain_spec::metaverse::development_config()?),
 		"" | "local" => Box::new(chain_spec::metaverse::local_testnet_config()?),
 		"metaverse" => Box::new(chain_spec::metaverse::development_config()?),
+		"metaverse-testnet" => Box::new(chain_spec::metaverse::metaverse_testnet_config()?),
 		#[cfg(feature = "with-tewai-runtime")]
 		"tewai" => Box::new(chain_spec::tewai::tewai_testnet_config()?),
 		#[cfg(feature = "with-tewai-runtime")]
