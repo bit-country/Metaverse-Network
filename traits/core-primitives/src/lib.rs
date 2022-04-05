@@ -191,6 +191,20 @@ pub trait NFTTrait<AccountId, Balance> {
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
 	) -> Result<bool, DispatchError>;
+	/// Mint land as NFT
+	fn mint_land_nft(
+		account: AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<TokenId, DispatchError>;
+	/// Mint estate as NFT
+	fn mint_estate_nft(
+		account: AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<TokenId, DispatchError>;
+	/// Burn nft
+	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
 	/// Check if item is on listing
 	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError>;
 	/// transfer nft
@@ -238,35 +252,35 @@ impl<T: Ord + Copy> From<T> for MiningRange<T> {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct MiningResourceRateInfo {
-	/// kBIT and Land unit ratio
-	pub ratio: u64,
+	/// annual inflation rate
+	pub rate: Perbill,
 	/// land staking reward percentage (4 decimals)
-	pub staking_reward: u32,
+	pub staking_reward: Perbill,
 	/// metaverse staking reward percentage (4 decimals)
-	pub mining_reward: u32,
+	pub mining_reward: Perbill,
 }
 
 impl MiningResourceRateInfo {
-	pub fn new(ratio: u64, staking_reward: u32, mining_reward: u32) -> MiningResourceRateInfo {
+	pub fn new(rate: Perbill, staking_reward: Perbill, mining_reward: Perbill) -> MiningResourceRateInfo {
 		MiningResourceRateInfo {
-			ratio,
+			rate,
 			staking_reward,
 			mining_reward,
 		}
 	}
 
 	/// kBIT and Land unit ratio
-	pub fn set_ratio(&mut self, ratio: u64) {
-		self.ratio = ratio;
+	pub fn set_rate(&mut self, rate: Perbill) {
+		self.rate = rate;
 	}
 
 	/// Set staking reward
-	pub fn set_staking_reward(&mut self, staking_reward: u32) {
+	pub fn set_staking_reward(&mut self, staking_reward: Perbill) {
 		self.staking_reward = staking_reward;
 	}
 
 	/// Set mining reward
-	pub fn set_mining_reward(&mut self, mining_reward: u32) {
+	pub fn set_mining_reward(&mut self, mining_reward: Perbill) {
 		self.mining_reward = mining_reward;
 	}
 }
