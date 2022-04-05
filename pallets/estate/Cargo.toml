@@ -56,4 +56,5 @@ std = [
     'pallet-balances/std',
     'auction-manager/std',
     'frame-benchmarking/std'
+
 ]

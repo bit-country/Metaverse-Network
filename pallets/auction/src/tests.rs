@@ -424,8 +424,8 @@ fn asset_transfers_after_auction() {
 		);
 
 		// Verify transfer of fund (minus gas)
-		// BOB only receive 200 - 2 (1% of 200 as loyalty fee) - 6 minting fee =
-		assert_eq!(Balances::free_balance(BOB), 688);
+		// BOB only receive 200 - 2 (1% of 200 as loyalty fee) - 4 minting fee =
+		assert_eq!(Balances::free_balance(BOB), 690);
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 
 		// Verify Alice has the NFT and Bob doesn't
