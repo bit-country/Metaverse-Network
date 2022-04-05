@@ -450,7 +450,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(< T as Config >::WeightInfo::mint(* quantity))]
+		#[pallet::weight(< T as Config >::WeightInfo::mint( *quantity ))]
 		pub fn mint(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -542,7 +542,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::WeightInfo::transfer_batch(tos.len() as u32))]
+		#[pallet::weight(T::WeightInfo::transfer_batch( tos.len() as u32) )]
 		pub fn transfer_batch(
 			origin: OriginFor<T>,
 			tos: Vec<(T::AccountId, (ClassIdOf<T>, TokenIdOf<T>))>,

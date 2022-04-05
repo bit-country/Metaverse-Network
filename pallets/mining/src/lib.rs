@@ -46,7 +46,7 @@ use core_primitives::*;
 pub use pallet::*;
 use primitives::staking::RoundInfo;
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
-///pub use weights::WeightInfo;
+pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
@@ -235,7 +235,7 @@ pub mod pallet {
 		}
 
 		/// Add new Minting Origin to Mining Resource
-		#[pallet::weight(100_000)]
+		#[pallet::weight(T::WeightInfo::add_minting_origin())]
 		pub fn add_minting_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
 			T::AdminOrigin::ensure_origin(origin)?;
 			Self::do_add_minting_origin(who)?;
@@ -243,14 +243,14 @@ pub mod pallet {
 		}
 
 		/// Remove Minting Origin to Mining Resource
-		#[pallet::weight(100_000)]
+		#[pallet::weight(T::WeightInfo::remove_minting_origin())]
 		pub fn remove_minting_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
 			T::AdminOrigin::ensure_origin(origin)?;
 			Self::do_remove_minting_origin(who)?;
 			Ok(().into())
 		}
 
-		#[pallet::weight(100_000)]
+		#[pallet::weight(T::WeightInfo::update_round_length())]
 		pub fn update_round_length(origin: OriginFor<T>, length: T::BlockNumber) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -266,7 +266,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(100_000)]
+		#[pallet::weight(T::WeightInfo::update_mining_issuance_config())]
 		pub fn update_mining_issuance_config(
 			origin: OriginFor<T>,
 			config: MiningResourceRateInfo,
