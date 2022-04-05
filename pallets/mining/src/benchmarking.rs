@@ -24,14 +24,14 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use orml_traits::BasicCurrencyExtended;
-use primitives::{Balance, BlockNumber, staking::RoundInfo};
+use primitives::{Balance, BlockNumber, FungibleTokenId, staking::RoundInfo};
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
 
 #[allow(unused)]
 pub use crate::Pallet as MiningModule;
-use crate::*;
+pub use crate::*;
 use super::*;
 
 
@@ -50,15 +50,15 @@ fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
-/* 
+
 fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
 	let initial_balance = dollar(1000);
 
-	T::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+	T::MiningCurrency::update_balance(FungibleTokenId::MiningResource(0),&caller, initial_balance.unique_saturated_into());
 	caller
 }
-*/
+
 
 benchmarks! {
     // add minting origin
@@ -124,9 +124,9 @@ benchmarks! {
 		// TODO: verify correct behavior
 	//}
 
-	/*// deposit 
+	// deposit
 	deposit {
-		let origin: T::AccountId = whitelisted_caller();
+		let origin: T::AccountId = funded_account::<T>("origin", 0);
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
 	}: _(RawOrigin::Signed(origin.clone()), BALANCE) 
@@ -136,8 +136,8 @@ benchmarks! {
 
 	// withdraw
 	withdraw {
-		let origin: T::AccountId = account("origin", 0, SEED);
-		let dest: T::AccountId = account("dest", 1, SEED);
+		let origin: T::AccountId = funded_account::<T>("origin", 0);
+		let dest: T::AccountId = funded_account::<T>("dest", 1);
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
 		crate::Pallet::<T>::deposit(RawOrigin::Signed(origin.clone()).into(), BALANCE);
@@ -146,6 +146,6 @@ benchmarks! {
 		// TODO: verify correct behavior
 		// assert_eq!(crate::Pallet::<T>::is_mining_origin(origin.clone()), true);
 	//}
-		*/
+		
 }
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

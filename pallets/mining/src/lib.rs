@@ -220,7 +220,7 @@ pub mod pallet {
 		}
 
 		/// Deposit Mining Resource from address to mining treasury
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::deposit())]
 		pub fn deposit(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			Self::do_deposit(who, amount)?;
@@ -228,7 +228,7 @@ pub mod pallet {
 		}
 
 		/// Withdraw Mining Resource from mining engine to destination wallet
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::withdraw())]
 		pub fn withdraw(origin: OriginFor<T>, dest: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			Self::do_withdraw(who, dest, amount)?;
@@ -252,7 +252,6 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(< T as pallet::Config >::WeightInfo::update_round_length())]
-		//#[pallet::weight(100_000)]
 		pub fn update_round_length(origin: OriginFor<T>, length: T::BlockNumber) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
