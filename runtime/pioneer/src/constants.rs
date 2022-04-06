@@ -64,3 +64,12 @@ pub mod time {
 	/// We allow for 0.5 of a second of compute with a 12 second average block time.
 	pub const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
 }
+
+#[allow(non_snake_case)]
+pub mod parachains {
+	pub mod karura {
+		pub const ID: u32 = 2000;
+		pub const KAR_KEY: &[u8] = &[0, 128];
+		pub const KUSD_KEY: &[u8] = &[0, 129];
+	}
+}
