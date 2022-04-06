@@ -24,6 +24,7 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
 use sp_std::prelude::*;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
 
@@ -85,6 +86,7 @@ fn mint_NFT<T: Config>(caller: T::AccountId) {
 		0u32.into(),
 		TokenType::Transferable,
 		CollectionType::Collectable,
+		Perbill::from_percent(0u32),
 	);
 	NFTModule::<T>::mint(
 		RawOrigin::Signed(caller.clone()).into(),

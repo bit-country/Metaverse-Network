@@ -1,7 +1,7 @@
 use frame_support::{assert_noop, assert_ok};
 use sp_core::blake2_256;
 use sp_runtime::traits::BadOrigin;
-use sp_runtime::AccountId32;
+use sp_runtime::{AccountId32, Perbill};
 use sp_std::vec::Vec;
 
 use mock::{Event, *};
@@ -169,9 +169,9 @@ fn update_mining_config_should_work() {
 		setup_minting_resource();
 		let origin = Origin::signed(ALICE);
 		let mining_config = MiningResourceRateInfo {
-			ratio: 10,
-			staking_reward: 3000,
-			mining_reward: 7000,
+			rate: Perbill::from_percent(10),
+			staking_reward: Perbill::from_percent(30),
+			mining_reward: Perbill::from_percent(70),
 		};
 		assert_ok!(MiningModule::update_mining_issuance_config(
 			origin,
