@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use fc_rpc::{
-	EthApi, EthApiServer, EthBlockDataCache, EthFilterApi, EthFilterApiServer, EthPubSubApi, EthPubSubApiServer,
+	EthApi, EthApiServer, EthBlockDataCacheTask, EthFilterApi, EthFilterApiServer, EthPubSubApi, EthPubSubApiServer,
 	HexEncodedIdProvider, NetApi, NetApiServer, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
 	SchemaV2Override, SchemaV3Override, StorageOverride, Web3Api, Web3ApiServer,
 };
@@ -147,7 +147,7 @@ where
 
 	let max_past_logs: u32 = 10_000;
 	let max_stored_filters: usize = 500;
-	let block_data_cache = Arc::new(EthBlockDataCache::new(50, 50));
+	let block_data_cache = Arc::new(EthBlockDataCacheTask::new(50, 50));
 
 	io.extend_with(EthApiServer::to_delegate(EthApi::new(
 		client.clone(),
