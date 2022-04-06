@@ -1013,7 +1013,6 @@ dependencies = [
  "parity-scale-codec 2.3.1",
  "scale-info 1.0.0",
  "serde",
- "sp-io 5.0.0",
  "sp-runtime 5.0.0",
  "sp-std 4.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
 ]
@@ -4895,6 +4894,7 @@ version = "0.0.24"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
+ "core-primitives",
  "currencies",
  "fp-rpc",
  "fp-self-contained",
@@ -7948,6 +7948,7 @@ name = "pioneer-runtime"
 version = "2.0.0-rc6"
 dependencies = [
  "bit-country-primitives",
+ "core-primitives",
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-dmp-queue",
  "cumulus-pallet-parachain-system",
