@@ -2148,7 +2148,7 @@ dependencies = [
 [[package]]
 name = "fc-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "async-trait",
  "fc-db",
@@ -2167,10 +2167,11 @@ dependencies = [
 [[package]]
 name = "fc-db"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "fp-storage",
  "kvdb-rocksdb",
+ "pallet-ethereum",
  "parity-scale-codec 2.3.1",
  "parking_lot 0.11.2",
  "sp-core 5.0.0",
@@ -2181,7 +2182,7 @@ dependencies = [
 [[package]]
 name = "fc-mapping-sync"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "fc-db",
  "fp-consensus",
@@ -2198,7 +2199,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2216,7 +2217,9 @@ dependencies = [
  "log",
  "lru 0.6.6",
  "pallet-ethereum",
+ "pallet-evm",
  "parity-scale-codec 2.3.1",
+ "parking_lot 0.11.2",
  "prometheus",
  "rand 0.8.5",
  "rlp",
@@ -2240,7 +2243,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc-core"
 version = "1.1.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2347,7 +2350,7 @@ dependencies = [
 [[package]]
 name = "fp-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "ethereum",
  "parity-scale-codec 2.3.1",
@@ -2359,7 +2362,7 @@ dependencies = [
 [[package]]
 name = "fp-evm"
 version = "3.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "evm",
  "parity-scale-codec 2.3.1",
@@ -2371,7 +2374,7 @@ dependencies = [
 [[package]]
 name = "fp-rpc"
 version = "3.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2388,7 +2391,7 @@ dependencies = [
 [[package]]
 name = "fp-self-contained"
 version = "1.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "ethereum",
  "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
@@ -2404,7 +2407,7 @@ dependencies = [
 [[package]]
 name = "fp-storage"
 version = "2.0.0"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "parity-scale-codec 2.3.1",
 ]
@@ -4343,7 +4346,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-swarm",
  "log",
- "lru 0.7.4",
+ "lru 0.7.5",
  "rand 0.7.3",
  "smallvec",
  "unsigned-varint 0.7.1",
@@ -4640,9 +4643,9 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.7.4"
+version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22e8810f0ab5b02d4fc737c818258c8560a3216b7ebd5fd756cb437e23157fc6"
+checksum = "32613e41de4c47ab04970c348ca7ae7382cf116625755af070b008a15516a889"
 dependencies = [
  "hashbrown 0.11.2",
 ]
@@ -5869,7 +5872,7 @@ dependencies = [
 [[package]]
 name = "pallet-base-fee"
 version = "1.0.0"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "frame-system 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
@@ -6161,7 +6164,7 @@ dependencies = [
 [[package]]
 name = "pallet-dynamic-fee"
 version = "4.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "async-trait",
  "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
@@ -6328,7 +6331,7 @@ dependencies = [
 [[package]]
 name = "pallet-ethereum"
 version = "4.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -6357,7 +6360,7 @@ dependencies = [
 [[package]]
 name = "pallet-evm"
 version = "6.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#98b77f47fbbc5ac77ae128bb1a416b47298d122a"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.17#80018a54918f296c378e5e42c94cbb9fbd305955"
 dependencies = [
  "evm",
  "fp-evm",
@@ -7560,9 +7563,9 @@ dependencies = [
 
 [[package]]
 name = "parity-db"
-version = "0.3.9"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d121a9af17a43efd0a38c6afa508b927ba07785bd4709efb2ac03bf77efef8d"
+checksum = "b3e7f385d61562f5834282b90aa50b41f38a35cf64d5209b8b05487b50553dbe"
 dependencies = [
  "blake2-rfc",
  "crc32fast",
@@ -8068,7 +8071,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.17#de0e
 dependencies = [
  "derive_more",
  "futures 0.3.21",
- "lru 0.7.4",
+ "lru 0.7.5",
  "parity-scale-codec 2.3.1",
  "polkadot-erasure-coding",
  "polkadot-node-network-protocol",
@@ -8089,7 +8092,7 @@ version = "0.9.17"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.17#de0ecd4760b146ecf33f5e867d707d789e21e060"
 dependencies = [
  "futures 0.3.21",
- "lru 0.7.4",
+ "lru 0.7.5",
  "parity-scale-codec 2.3.1",
  "polkadot-erasure-coding",
  "polkadot-node-network-protocol",
@@ -8197,7 +8200,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.17#de0e
 dependencies = [
  "derive_more",
  "futures 0.3.21",
- "lru 0.7.4",
+ "lru 0.7.5",
  "parity-scale-codec 2.3.1",
  "polkadot-erasure-coding",
  "polkadot-node-network-protocol",
@@ -8293,7 +8296,7 @@ dependencies = [
  "futures 0.3.21",
  "futures-timer",
  "kvdb",
- "lru 0.7.4",
+ "lru 0.7.5",
  "merlin",
  "parity-scale-codec 2.3.1",
  "polkadot-node-jaeger",
@@ -8421,7 +8424,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.17#de0e
 dependencies = [
  "futures 0.3.21",
  "kvdb",
- "lru 0.7.4",
+ "lru 0.7.5",
  "parity-scale-codec 2.3.1",
  "polkadot-node-primitives",
  "polkadot-node-subsystem",
@@ -8645,7 +8648,7 @@ dependencies = [
  "derive_more",
  "futures 0.3.21",
  "itertools",
- "lru 0.7.4",
+ "lru 0.7.5",
  "metered-channel",
  "parity-scale-codec 2.3.1",
  "pin-project 1.0.10",
@@ -8671,7 +8674,7 @@ source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.17#de0e
 dependencies = [
  "futures 0.3.21",
  "futures-timer",
- "lru 0.7.4",
+ "lru 0.7.5",
  "parity-util-mem",
  "parking_lot 0.11.2",
  "polkadot-node-metrics",
@@ -9007,7 +9010,7 @@ dependencies = [
  "hex-literal",
  "kvdb",
  "kvdb-rocksdb",
- "lru 0.7.4",
+ "lru 0.7.5",
  "pallet-babe 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "pallet-im-online 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "pallet-mmr-primitives 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
@@ -9223,9 +9226,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.36"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7342d5883fbccae1cc37a2353b09c87c9b0f3afd73f5fb9bba687a1f733b029"
+checksum = "ec757218438d5fda206afc041538b2f6d889286160d649a86a24d37e1235afd1"
 dependencies = [
  "unicode-xid",
 ]
@@ -10399,7 +10402,7 @@ dependencies = [
  "linked-hash-map",
  "linked_hash_set",
  "log",
- "lru 0.7.4",
+ "lru 0.7.5",
  "parity-scale-codec 2.3.1",
  "parking_lot 0.11.2",
  "pin-project 1.0.10",
@@ -10436,7 +10439,7 @@ dependencies = [
  "futures-timer",
  "libp2p",
  "log",
- "lru 0.7.4",
+ "lru 0.7.5",
  "sc-network",
  "sp-runtime 5.0.0",
  "substrate-prometheus-endpoint",
@@ -11439,7 +11442,7 @@ source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17#22
 dependencies = [
  "futures 0.3.21",
  "log",
- "lru 0.7.4",
+ "lru 0.7.5",
  "parity-scale-codec 2.3.1",
  "parking_lot 0.11.2",
  "sp-api 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
@@ -12800,9 +12803,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.90"
+version = "1.0.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "704df27628939572cd88d33f171cd6f896f4eaca85252c6e0a72d8d8287ee86f"
+checksum = "b683b2b825c8eef438b77c36a06dc262294da3d5a5813fac20da149241dcd44d"
 dependencies = [
  "proc-macro2",
  "quote",
