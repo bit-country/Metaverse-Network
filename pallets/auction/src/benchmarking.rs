@@ -30,13 +30,13 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
 
 // use orml_traits::BasicCurrencyExtended;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{MetaverseInfo, MetaverseTrait};
-use pallet_nft::{Attributes, CollectionType, TokenType};
+use core_primitives::{Attributes, NftMetadata,MetaverseInfo, MetaverseTrait};
+use pallet_nft::TokenType;
 // use pallet_estate::Pallet as EstateModule;
 // use pallet_metaverse::Pallet as MetaverseModule;
 use pallet_nft::Pallet as NFTModule;
-use primitives::Balance;
-use primitives::{FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
+use pallet_nft::NFTTrait;
+use primitives::{Balance, FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
 
 #[allow(unused)]
 pub use crate::Pallet as AuctionModule;
@@ -78,6 +78,7 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 }
 
 fn mint_NFT<T: Config>(caller: T::AccountId) {
+	T::NFTHandler::mint_land_nft(caller.clone().into(), vec![1],  test_attributes(1));
 	/* 
 	NFTModule::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 	NFTModule::<T>::create_class(
