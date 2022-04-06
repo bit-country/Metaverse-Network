@@ -148,49 +148,15 @@ fn pioneer_genesis(
 	id: ParaId,
 ) -> pioneer_runtime::GenesisConfig {
 	pioneer_runtime::GenesisConfig {
-        system: pioneer_runtime::SystemConfig {
-            code: pioneer_runtime::WASM_BINARY
-                .expect("WASM binary was not build, please build it!")
-                .to_vec(),
-        },
-        balances: pioneer_runtime::BalancesConfig {
-            balances: initial_allocation,
-        },
-        sudo: pioneer_runtime::SudoConfig { key: Some(root_key.clone()), },
-        parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
-        collator_selection: pioneer_runtime::CollatorSelectionConfig {
-            invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
-            candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
-            ..Default::default()
-        },
-        session: pioneer_runtime::SessionConfig {
-            keys: initial_authorities
-                .iter()
-                .cloned()
-                .map(|(acc, aura)| {
-                    (
-                        acc.clone(),                  // account id
-                        acc,                          // validator id
-                        parachain_session_keys(aura), // session keys
-                    )
-                })
-                .collect(),
-        },
-        aura: Default::default(),
-        aura_ext: Default::default(),
-        parachain_system: Default::default(),
-		continuum: ContinuumConfig {
-			initial_active_session: Default::default(),
-			initial_auction_rate: 5,
-			initial_max_bound: (-100, 100),
-			spot_price: 5 * DOLLARS,
+		system: pioneer_runtime::SystemConfig {
+			code: pioneer_runtime::WASM_BINARY
+				.expect("WASM binary was not build, please build it!")
+				.to_vec(),
 		},
-		estate: EstateConfig {
-			minting_rate_config: metaverse_land_minting_config(),
+		balances: pioneer_runtime::BalancesConfig {
+			balances: initial_allocation,
 		},
-		sudo: pioneer_runtime::SudoConfig {
-			key: Some(root_key.clone()),
-		},
+		sudo: pioneer_runtime::SudoConfig { key: Some(root_key.clone()), },
 		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -213,15 +179,15 @@ fn pioneer_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-		//		continuum: ContinuumConfig {
-		//			initial_active_session: Default::default(),
-		//			initial_auction_rate: 5,
-		//			initial_max_bound: (-100, 100),
-		//			spot_price: 5 * DOLLARS,
-		//		},
-		//		estate: EstateConfig {
-		//			minting_rate_config: metaverse_land_minting_config(),
-		//		},
+		continuum: ContinuumConfig {
+			initial_active_session: Default::default(),
+			initial_auction_rate: 5,
+			initial_max_bound: (-100, 100),
+			spot_price: 5 * DOLLARS,
+		},
+		estate: EstateConfig {
+			minting_rate_config: metaverse_land_minting_config(),
+		},
 	}
 }
 
@@ -232,53 +198,19 @@ fn testnet_genesis(
 	id: ParaId,
 ) -> pioneer_runtime::GenesisConfig {
 	pioneer_runtime::GenesisConfig {
-        system: pioneer_runtime::SystemConfig {
-            code: pioneer_runtime::WASM_BINARY
-                .expect("WASM binary was not build, please build it!")
-                .to_vec(),
-        },
-        balances: pioneer_runtime::BalancesConfig {
-            balances: endowed_accounts
-                .iter()
-                .cloned()
-                .map(|k| (k, 250 * KILODOLLARS))
-                .collect(),
-        },
-        sudo: pioneer_runtime::SudoConfig { key: Some(root_key.clone()), },
-        parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
-        collator_selection: pioneer_runtime::CollatorSelectionConfig {
-            invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
-            candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
-            ..Default::default()
-        },
-        session: pioneer_runtime::SessionConfig {
-            keys: initial_authorities
-                .iter()
-                .cloned()
-                .map(|(acc, aura)| {
-                    (
-                        acc.clone(),                  // account id
-                        acc,                          // validator id
-                        parachain_session_keys(aura), // session keys
-                    )
-                })
-                .collect(),
-        },
-        aura: Default::default(),
-        aura_ext: Default::default(),
-        parachain_system: Default::default(),
-		continuum: ContinuumConfig {
-			initial_active_session: Default::default(),
-			initial_auction_rate: 5,
-			initial_max_bound: (-100, 100),
-			spot_price: 5 * DOLLARS,
+		system: pioneer_runtime::SystemConfig {
+			code: pioneer_runtime::WASM_BINARY
+				.expect("WASM binary was not build, please build it!")
+				.to_vec(),
 		},
-		estate: EstateConfig {
-			minting_rate_config: metaverse_land_minting_config(),
+		balances: pioneer_runtime::BalancesConfig {
+			balances: endowed_accounts
+				.iter()
+				.cloned()
+				.map(|k| (k, 250 * KILODOLLARS))
+				.collect(),
 		},
-		sudo: pioneer_runtime::SudoConfig {
-			key: Some(root_key.clone()),
-		},
+		sudo: pioneer_runtime::SudoConfig { key: Some(root_key.clone()), },
 		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -301,15 +233,15 @@ fn testnet_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-		//		continuum: ContinuumConfig {
-		//			initial_active_session: Default::default(),
-		//			initial_auction_rate: 5,
-		//			initial_max_bound: (-100, 100),
-		//			spot_price: 5 * DOLLARS,
-		//		},
-		//		estate: EstateConfig {
-		//			minting_rate_config: metaverse_land_minting_config(),
-		//		},
+		continuum: ContinuumConfig {
+			initial_active_session: Default::default(),
+			initial_auction_rate: 5,
+			initial_max_bound: (-100, 100),
+			spot_price: 5 * DOLLARS,
+		},
+		estate: EstateConfig {
+			minting_rate_config: metaverse_land_minting_config(),
+		},
 	}
 }
 
