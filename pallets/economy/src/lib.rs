@@ -42,8 +42,8 @@ use primitives::{
 };
 //pub use weights::WeightInfo;
 
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmarking;
+//#[cfg(feature = "runtime-benchmarks")]
+//pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;

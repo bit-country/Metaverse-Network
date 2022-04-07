@@ -34,8 +34,8 @@ use crate::{
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
-use primitives::Balance;
 use primitives::estate::{EstateInfo, OwnerId};
+use primitives::Balance;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 // use orml_traits::BasicCurrencyExtended;
 use primitives::{UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
@@ -56,8 +56,7 @@ const COORDINATE_IN_2: (i32, i32) = (-5, 5);
 const COORDINATE_OUT: (i32, i32) = (0, 101);
 const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 const ESTATE_IN_AUCTION: EstateId = 99;
-const ESTATE_ID: EstateId = 0; 
-
+const ESTATE_ID: EstateId = 0;
 
 fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
@@ -86,8 +85,8 @@ fn issue_new_undeployed_land_block<T: Config>(n: u32) -> Result<bool, &'static s
 fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
 	return EstateInfo {
 		metaverse_id: METAVERSE_ID,
-		land_units: lands, 
-	}
+		land_units: lands,
+	};
 }
 
 benchmarks! {

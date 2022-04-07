@@ -40,12 +40,12 @@ use frame_system::RawOrigin;
 use orml_traits::BasicCurrencyExtended;
 use primitives::{AssetId, Balance};
 //use core_primitives::NFTTrait;
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 use scale_info::Type;
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 
 pub struct Pallet<T: Config>(crate::Pallet<T>);
 
-const SEED: u32 = 0; 
+const SEED: u32 = 0;
 const ASSET_0: AssetId = 0;
 const ASSET_1: AssetId = 1;
 

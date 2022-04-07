@@ -27,7 +27,7 @@ use sp_runtime::traits::{AccountIdConversion, Perbill, StaticLookup, UniqueSatur
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
 // use orml_traits::BasicCurrencyExtended;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{Attributes, NftMetadata, MetaverseInfo, MetaverseTrait};
+use core_primitives::{Attributes, MetaverseInfo, MetaverseTrait, NftMetadata};
 use pallet_nft::{NFTTrait, TokenType};
 // use pallet_estate::Pallet as EstateModule;
 // use pallet_metaverse::Pallet as MetaverseModule;
@@ -74,8 +74,8 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 }
 
 fn mint_NFT<T: Config>(caller: T::AccountId) {
-	T::NFTHandler::mint_land_nft(caller.clone().into(), vec![1],  test_attributes(1));
-	/* 
+	T::NFTHandler::mint_land_nft(caller.clone().into(), vec![1], test_attributes(1));
+	/*
 	NFTModule::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 	NFTModule::<T>::create_class(
 		RawOrigin::Signed(caller.clone()).into(),

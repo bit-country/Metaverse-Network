@@ -24,16 +24,15 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use orml_traits::BasicCurrencyExtended;
-use primitives::{Balance, BlockNumber, FungibleTokenId, staking::RoundInfo};
+use primitives::{staking::RoundInfo, Balance, BlockNumber, FungibleTokenId};
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
 
+use super::*;
 #[allow(unused)]
 pub use crate::Pallet as MiningModule;
 pub use crate::*;
-use super::*;
-
 
 pub type AccountId = u128;
 
@@ -43,7 +42,7 @@ const BLOCK_LENGTH: BlockNumber = 100;
 const MINING_RESOURCE_RATE_INFO: MiningResourceRateInfo = MiningResourceRateInfo {
 	ratio: 10,
 	staking_reward: 3000,
-	mining_reward: 7000
+	mining_reward: 7000,
 };
 
 fn dollar(d: u32) -> Balance {
@@ -55,23 +54,26 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
 	let initial_balance = dollar(100);
 
-	T::MiningCurrency::update_balance(FungibleTokenId::MiningResource(0),&caller, initial_balance.unique_saturated_into());
+	T::MiningCurrency::update_balance(
+		FungibleTokenId::MiningResource(0),
+		&caller,
+		initial_balance.unique_saturated_into(),
+	);
 	caller
 }
 
-
 benchmarks! {
-    // add minting origin
-    add_minting_origin {
+	// add minting origin
+	add_minting_origin {
 		let who: T::AccountId = account("target", 0, SEED);
-	}: _(RawOrigin::Root, who.clone()) 
+	}: _(RawOrigin::Root, who.clone())
 	verify {
 		assert_eq!(crate::Pallet::<T>::ensure_admin(RawOrigin::Root.into()), Ok(()));
 		assert_eq!(crate::Pallet::<T>::is_mining_origin(&who.clone()), true);
 	}
 
 	// remove minting origin
-    remove_minting_origin {
+	remove_minting_origin {
 		let who: T::AccountId = account("target", 0, SEED);
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), who.clone());
@@ -82,13 +84,13 @@ benchmarks! {
 	}
 
 	// update round length
-    update_round_length {
+	update_round_length {
 	}: _(RawOrigin::Root, BLOCK_LENGTH.into())
 	verify {
 		let current_round = crate::Pallet::<T>::round();
 		assert_eq!(current_round.length, BLOCK_LENGTH);
 	}
-	
+
 	// update minting issuance config
 	update_mining_issuance_config {
 	}: _(RawOrigin::Root, MINING_RESOURCE_RATE_INFO)
@@ -99,14 +101,14 @@ benchmarks! {
 		assert_eq!(mining_resource_rate_info.staking_reward, MINING_RESOURCE_RATE_INFO.staking_reward);
 		assert_eq!(mining_resource_rate_info.mining_reward, MINING_RESOURCE_RATE_INFO.mining_reward);
 	}
-	
-	// mint 
+
+	// mint
 	mint {
 		let origin: T::AccountId = funded_account::<T>("origin", 0);
 		let who: T::AccountId = funded_account::<T>("origin", 1);
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
-	}: _(RawOrigin::Signed(origin.clone()), who.clone(), BALANCE) 
+	}: _(RawOrigin::Signed(origin.clone()), who.clone(), BALANCE)
 	verify {
 		assert_eq!(crate::Pallet::<T>::is_mining_origin(&origin.clone()), true);
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &who.clone()), 1100);
@@ -118,8 +120,8 @@ benchmarks! {
 		let who: T::AccountId = funded_account::<T>("who", 1);
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
-		crate::Pallet::<T>::mint(RawOrigin::Signed(origin.clone()).into(), who.clone(), BALANCE); 
-	}: _(RawOrigin::Signed(origin.clone()), who.clone(), BALANCE) 
+		crate::Pallet::<T>::mint(RawOrigin::Signed(origin.clone()).into(), who.clone(), BALANCE);
+	}: _(RawOrigin::Signed(origin.clone()), who.clone(), BALANCE)
 	verify {
 		assert_eq!(crate::Pallet::<T>::is_mining_origin(&origin.clone()), true);
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &who.clone()), 1000);
@@ -130,7 +132,7 @@ benchmarks! {
 		let origin: T::AccountId = funded_account::<T>("origin", 0);
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
-	}: _(RawOrigin::Signed(origin.clone()), BALANCE) 
+	}: _(RawOrigin::Signed(origin.clone()), BALANCE)
 	verify {
 		assert_eq!(crate::Pallet::<T>::is_mining_origin(&origin.clone()), true);
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &origin.clone()), 900);
@@ -143,12 +145,11 @@ benchmarks! {
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), origin.clone());
 		crate::Pallet::<T>::deposit(RawOrigin::Signed(origin.clone()).into(), BALANCE);
-	}: _(RawOrigin::Signed(origin.clone()), dest.clone(), BALANCE) 
+	}: _(RawOrigin::Signed(origin.clone()), dest.clone(), BALANCE)
 	verify {
 		assert_eq!(crate::Pallet::<T>::is_mining_origin(&origin.clone()), true);
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &origin.clone()), 900);
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &dest.clone()), 1100);
 	}
-		
 }
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

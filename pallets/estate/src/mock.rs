@@ -8,8 +8,8 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
 use sp_std::collections::btree_map::BTreeMap;
 
-use crate as estate;
 use super::*;
+use crate as estate;
 
 pub type AccountId = u128;
 pub type Balance = u128;
@@ -256,14 +256,11 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(false)
 	}
 
-	fn get_nft_detail(
-		asset_id: (Self::ClassId, Self::TokenId),
-	) -> Result<NftClassData<u128>, DispatchError> {
-		
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<u128>, DispatchError> {
 		let mut attr: Attributes = BTreeMap::new();
 		attr.insert(vec![1, 6], vec![1, 11]);
 
-		let result = NftClassData{
+		let result = NftClassData {
 			deposit: 100u128,
 			attributes: attr,
 			token_type: TokenType::Transferable,
