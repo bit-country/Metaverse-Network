@@ -1,15 +1,14 @@
 #![cfg(test)]
-
+use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use core_primitives::{CollectionType, NftClassData, TokenType};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
+use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
-
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
+use sp_std::collections::btree_map::BTreeMap;
 
 use crate as estate;
-
 use super::*;
 
 pub type AccountId = u128;
@@ -224,7 +223,7 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 
 pub struct MockNFTHandler;
 
-impl NFTTrait<AccountId> for MockNFTHandler {
+impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	type TokenId = TokenId;
 	type ClassId = ClassId;
 
@@ -259,8 +258,19 @@ impl NFTTrait<AccountId> for MockNFTHandler {
 
 	fn get_nft_detail(
 		asset_id: (Self::ClassId, Self::TokenId),
-	) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
-		Ok((ASSET_COLLECTION_ID, ASSET_CLASS_ID, ASSET_TOKEN_ID))
+	) -> Result<NftClassData<u128>, DispatchError> {
+		
+		let mut attr: Attributes = BTreeMap::new();
+		attr.insert(vec![1, 6], vec![1, 11]);
+
+		let result = NftClassData{
+			deposit: 100u128,
+			attributes: attr,
+			token_type: TokenType::Transferable,
+			collection_type: CollectionType::Collectable,
+		};
+
+		Ok(result)
 	}
 
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {

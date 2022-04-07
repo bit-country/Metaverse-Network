@@ -23,19 +23,15 @@
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
-use sp_runtime::Perbill;
-use sp_std::prelude::*;
+use sp_runtime::traits::{AccountIdConversion, Perbill, StaticLookup, UniqueSaturatedInto};
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
-
 // use orml_traits::BasicCurrencyExtended;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{Attributes, NftMetadata,MetaverseInfo, MetaverseTrait};
-use pallet_nft::TokenType;
+use core_primitives::{Attributes, NftMetadata, MetaverseInfo, MetaverseTrait};
+use pallet_nft::{NFTTrait, TokenType};
 // use pallet_estate::Pallet as EstateModule;
 // use pallet_metaverse::Pallet as MetaverseModule;
-use pallet_nft::Pallet as NFTModule;
-use pallet_nft::NFTTrait;
+// use pallet_nft::Pallet as NFTModule;
 use primitives::{Balance, FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
 
 #[allow(unused)]
