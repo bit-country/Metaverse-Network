@@ -3,7 +3,10 @@
 #![recursion_limit = "256"]
 
 use codec::{Decode, Encode};
-use frame_support::traits::{Contains, Currency, EnsureOneOf, EnsureOrigin, EqualPrivilegeOnly, Nothing, OnUnbalanced};
+use cumulus_primitives_core::ParaId;
+use frame_support::traits::{
+	Contains, Currency, EnsureOneOf, EnsureOrigin, EqualPrivilegeOnly, Get, Nothing, OnUnbalanced,
+};
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
 	traits::{Everything, Imbalance},
@@ -46,10 +49,11 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
-	AccountId32Aliases, AllowTopLevelPaidExecutionFrom, AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin,
-	FixedWeightBounds, IsConcrete, LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsPreset,
-	RelayChainAsNative, SiblingParachainAsNative, SiblingParachainConvertsVia, SignedAccountId32AsNative,
-	SovereignSignedViaLocation, TakeWeightCredit, UsingComponents,
+	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
+	AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter,
+	NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation,
+	TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -199,7 +203,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 7,
+	spec_version: 8,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -652,7 +656,7 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 			network: NetworkId::Any,
 			id: account.into(),
 		})
-			.into()
+		.into()
 	}
 }
 
@@ -666,7 +670,7 @@ impl orml_xtokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type CurrencyId = FungibleTokenId;
-	type CurrencyIdConvert = FungibleTokenIdConvert;
+	type CurrencyIdConvert = FungibleTokenIdConvert<ParachainInfo>;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -724,6 +728,7 @@ parameter_types! {
 	pub const RelayNetwork: NetworkId = NetworkId::Any;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
+	pub SelfParaChainId: cumulus_primitives_core::ParaId = ParachainInfo::parachain_id();
 }
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -745,14 +750,14 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 	// Tokens,
 	UnknownTokens,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	IsNativeConcrete<FungibleTokenId, FungibleTokenIdConvert>,
+	IsNativeConcrete<FungibleTokenId, FungibleTokenIdConvert<SelfParaChainId>>,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
 	// Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
 	LocationToAccountId,
 	// We don't track any teleports.
 	FungibleTokenId,
-	FungibleTokenIdConvert,
+	FungibleTokenIdConvert<SelfParaChainId>,
 	DepositToAlternative<TreasuryModuleAccount, Currencies, FungibleTokenId, AccountId, Balance>,
 >;
 
@@ -793,11 +798,8 @@ match_type! {
 	};
 }
 
-fn native_currency_location(id: FungibleTokenId) -> MultiLocation {
-	MultiLocation::new(
-		1,
-		X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(id.encode())),
-	)
+fn native_currency_location(id: FungibleTokenId, para_id: ParaId) -> MultiLocation {
+	MultiLocation::new(1, X2(Parachain(para_id.into()), GeneralKey(id.encode())))
 }
 
 pub const PARA_ID: u32 = 2096u32;
@@ -805,14 +807,14 @@ pub const PARA_ID: u32 = 2096u32;
 /// **************************************
 // Below is for the network of Kusama.
 /// **************************************
-pub struct FungibleTokenIdConvert;
+pub struct FungibleTokenIdConvert<T>(sp_std::marker::PhantomData<T>);
 
-impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert {
+impl<T: Get<ParaId>> Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert<T> {
 	fn convert(id: FungibleTokenId) -> Option<MultiLocation> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 		match id {
 			// NEER
-			NativeToken(0) => Some(native_currency_location(id)),
+			NativeToken(0) => Some(native_currency_location(id, T::get())),
 			// KSM
 			NativeToken(1) => Some(MultiLocation::parent()),
 			// Karura currencyId types
@@ -835,7 +837,7 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 	}
 }
 
-impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert {
+impl<T: Get<ParaId>> Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert<T> {
 	fn convert(location: MultiLocation) -> Option<FungibleTokenId> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 
@@ -854,7 +856,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 		}
 		match location {
 			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(id), GeneralKey(key)) if id == para_id => {
+				X2(Parachain(id), GeneralKey(key)) if ParaId::from(id) == T::get() => {
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
 						match currency_id {
@@ -876,32 +878,19 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 				}
 				_ => None,
 			},
-			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey(key)) => {
-					// decode the general key
-					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
-						match currency_id {
-							NativeToken(0) | NativeToken(1) => Some(currency_id),
-							_ => None,
-						}
-					} else {
-						None
-					}
-				}
-				_ => None,
-			},
 			_ => None,
 		}
 	}
 }
 
-impl Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert {
+impl<T: Get<ParaId>> Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert<T> {
 	fn convert(asset: MultiAsset) -> Option<FungibleTokenId> {
 		if let MultiAsset {
-			id: Concrete(location), ..
+			id: Concrete(id),
+			fun: Fungible(_),
 		} = asset
 		{
-			Self::convert(location)
+			Self::convert(id)
 		} else {
 			None
 		}
@@ -911,8 +900,10 @@ impl Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 pub type Barrier = (
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
-	AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
-	// ^^^ Parent and its exec plurality get free execution
+	// Expected responses are OK.
+	AllowKnownQueryResponses<PolkadotXcm>,
+	// Subscriptions for version tracking are OK.
+	AllowSubscriptionsFrom<Everything>,
 );
 
 pub struct XcmConfig;
@@ -924,7 +915,7 @@ impl xcm_executor::Config for XcmConfig {
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = NativeAsset;
-	type IsTeleporter = NativeAsset;
+	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
@@ -938,10 +929,11 @@ impl xcm_executor::Config for XcmConfig {
 
 parameter_types! {
 	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
+	pub const AnyNetwork: NetworkId = NetworkId::Any;
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
-pub type LocalOriginToLocation = ();
+pub type LocalOriginToLocation = SignedToAccountId32<Origin, AccountId, AnyNetwork>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
@@ -957,9 +949,9 @@ impl pallet_xcm::Config for Runtime {
 	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type XcmRouter = XcmRouter;
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
-	type XcmExecuteFilter = Everything;
+	type XcmExecuteFilter = Nothing;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type XcmTeleportFilter = Everything;
+	type XcmTeleportFilter = Nothing;
 	type XcmReserveTransferFilter = Everything;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
