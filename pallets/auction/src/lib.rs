@@ -527,15 +527,9 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_finalize(now: T::BlockNumber) {
-			let max_finality = T::MaxFinality::get();
-			let mut proceeded_item: u32 = 0;
 			for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
-				if proceeded_item == max_finality {
-					break;
-				};
 				if let Some(auction) = <Auctions<T>>::get(&auction_id) {
 					if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id) {
-						proceeded_item.checked_add(One::one()).ok_or("Overflow");
 						Self::remove_auction(auction_id.clone(), auction_item.item_id);
 						// Transfer balance from high bidder to asset owner
 						if let Some(current_bid) = auction.bid {
