@@ -670,7 +670,7 @@ impl orml_xtokens::Config for Runtime {
 	type Event = Event;
 	type Balance = Balance;
 	type CurrencyId = FungibleTokenId;
-	type CurrencyIdConvert = FungibleTokenIdConvert<ParachainInfo>;
+	type CurrencyIdConvert = FungibleTokenIdConvert;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -750,14 +750,14 @@ pub type LocalAssetTransactor = MultiCurrencyAdapter<
 	// Tokens,
 	UnknownTokens,
 	// Use this currency when it is a fungible asset matching the given location or name:
-	IsNativeConcrete<FungibleTokenId, FungibleTokenIdConvert<SelfParaChainId>>,
+	IsNativeConcrete<FungibleTokenId, FungibleTokenIdConvert>,
 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
 	AccountId,
 	// Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
 	LocationToAccountId,
 	// We don't track any teleports.
 	FungibleTokenId,
-	FungibleTokenIdConvert<SelfParaChainId>,
+	FungibleTokenIdConvert,
 	DepositToAlternative<TreasuryModuleAccount, Currencies, FungibleTokenId, AccountId, Balance>,
 >;
 
@@ -798,8 +798,11 @@ match_type! {
 	};
 }
 
-fn native_currency_location(id: FungibleTokenId, para_id: ParaId) -> MultiLocation {
-	MultiLocation::new(1, X2(Parachain(para_id.into()), GeneralKey(id.encode())))
+fn native_currency_location(id: FungibleTokenId) -> MultiLocation {
+	MultiLocation::new(
+		1,
+		X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(id.encode())),
+	)
 }
 
 pub const PARA_ID: u32 = 2096u32;
@@ -807,14 +810,16 @@ pub const PARA_ID: u32 = 2096u32;
 /// **************************************
 // Below is for the network of Kusama.
 /// **************************************
-pub struct FungibleTokenIdConvert<T>(sp_std::marker::PhantomData<T>);
+pub struct FungibleTokenIdConvert;
 
-impl<T: Get<ParaId>> Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert<T> {
+impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert {
 	fn convert(id: FungibleTokenId) -> Option<MultiLocation> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 		match id {
 			// NEER
-			NativeToken(0) => Some(native_currency_location(id, T::get())),
+			NativeToken(0) => Some(native_currency_location(id)),
+			// Mining resource BIT
+			MiningResource(0) => Some(native_currency_location(id)),
 			// KSM
 			NativeToken(1) => Some(MultiLocation::parent()),
 			// Karura currencyId types
@@ -837,7 +842,7 @@ impl<T: Get<ParaId>> Convert<FungibleTokenId, Option<MultiLocation>> for Fungibl
 	}
 }
 
-impl<T: Get<ParaId>> Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert<T> {
+impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 	fn convert(location: MultiLocation) -> Option<FungibleTokenId> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 
@@ -851,16 +856,21 @@ impl<T: Get<ParaId>> Convert<MultiLocation, Option<FungibleTokenId>> for Fungibl
 		// Stable
 		// 0 => KUSD
 
+		// Build mining material
+		// Mining resource
+		// 0 => BIT
+
 		if location == MultiLocation::parent() {
 			return Some(NativeToken(1));
 		}
 		match location {
 			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(id), GeneralKey(key)) if ParaId::from(id) == T::get() => {
+				X2(Parachain(id), GeneralKey(key)) if id == para_id => {
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
 						match currency_id {
 							NativeToken(0) => Some(currency_id),
+							MiningResource(0) => Some(currency_id),
 							_ => None,
 						}
 					} else {
@@ -878,19 +888,32 @@ impl<T: Get<ParaId>> Convert<MultiLocation, Option<FungibleTokenId>> for Fungibl
 				}
 				_ => None,
 			},
+			MultiLocation { parents, interior } if parents == 0 => match interior {
+				X1(GeneralKey(key)) => {
+					// decode the general key
+					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
+						match currency_id {
+							NativeToken(0) | NativeToken(1) => Some(currency_id),
+							_ => None,
+						}
+					} else {
+						None
+					}
+				}
+				_ => None,
+			},
 			_ => None,
 		}
 	}
 }
 
-impl<T: Get<ParaId>> Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert<T> {
+impl Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 	fn convert(asset: MultiAsset) -> Option<FungibleTokenId> {
 		if let MultiAsset {
-			id: Concrete(id),
-			fun: Fungible(_),
+			id: Concrete(location), ..
 		} = asset
 		{
-			Self::convert(id)
+			Self::convert(location)
 		} else {
 			None
 		}
@@ -900,10 +923,8 @@ impl<T: Get<ParaId>> Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTo
 pub type Barrier = (
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
-	// Expected responses are OK.
-	AllowKnownQueryResponses<PolkadotXcm>,
-	// Subscriptions for version tracking are OK.
-	AllowSubscriptionsFrom<Everything>,
+	AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
+	// ^^^ Parent and its exec plurality get free execution
 );
 
 pub struct XcmConfig;

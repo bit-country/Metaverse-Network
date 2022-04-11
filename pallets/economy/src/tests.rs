@@ -71,6 +71,9 @@ fn authorize_power_generator_collection_should_fail_class_id_does_not_exists() {
 			),
 			pallet_nft::Error::<Runtime>::ClassIdNotFound
 		);
+
+		let key: Vec<u8> = FungibleTokenId::NativeToken(0).encode();
+		let bit_currency: Vec<u8> = FungibleTokenId::MiningResource(0).encode();
 	});
 }
 
