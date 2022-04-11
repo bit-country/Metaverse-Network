@@ -135,6 +135,11 @@ pub mod pallet {
 	/// Mining resource issuance ratio config
 	pub type CurrentMiningResourceAllocation<T: Config> = StorageValue<_, MiningRange<Balance>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn mining_paused)]
+	/// Mining resource issuance ratio config
+	pub type MiningPaused<T: Config> = StorageValue<_, bool, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -161,6 +166,10 @@ pub mod pallet {
 		MiningResourceMintedTo(T::AccountId, Balance),
 		/// Burn new Mining resource of [who] [amount]
 		MiningResourceBurnFrom(T::AccountId, Balance),
+		/// Temporary pause mining round rotation
+		MiningRoundPaused(T::BlockNumber, RoundIndex),
+		/// Mining round rotation is unpaused
+		MiningRoundUnPaused(T::BlockNumber, RoundIndex),
 	}
 
 	#[pallet::error]
@@ -272,6 +281,22 @@ pub mod pallet {
 			MiningConfig::<T>::put(config.clone());
 
 			Self::deposit_event(Event::<T>::MiningConfigUpdated(current_block, config));
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(100_000)]
+		pub fn pause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			let mut current_round = Round::<T>::get();
+			ensure!(length >= Zero::zero(), Error::<T>::AmountZero);
+
+			current_round.length = length.saturated_into::<u32>();
+
+			Round::<T>::put(current_round);
+
+			Self::deposit_event(Event::<T>::RoundLengthUpdated(length));
 
 			Ok(().into())
 		}
