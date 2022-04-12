@@ -25,6 +25,7 @@ use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use orml_traits::BasicCurrencyExtended;
 use primitives::{staking::RoundInfo, Balance, BlockNumber, FungibleTokenId};
+use sp_runtime::Perbill;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
@@ -40,9 +41,9 @@ const SEED: u32 = 0;
 const BALANCE: u128 = 100;
 const BLOCK_LENGTH: BlockNumber = 100;
 const MINING_RESOURCE_RATE_INFO: MiningResourceRateInfo = MiningResourceRateInfo {
-	ratio: 10,
-	staking_reward: 3000,
-	mining_reward: 7000,
+	rate: Perbill::from_percent(1u32),
+	staking_reward: Perbill::from_percent(30u32),
+	mining_reward: Perbill::from_percent(70u32),
 };
 
 fn dollar(d: u32) -> Balance {
@@ -97,7 +98,7 @@ benchmarks! {
 	verify {
 		assert_eq!(crate::Pallet::<T>::ensure_admin(RawOrigin::Root.into()), Ok(()));
 		let mining_resource_rate_info = crate::Pallet::<T>::mining_ratio_config();
-		assert_eq!(mining_resource_rate_info.ratio, MINING_RESOURCE_RATE_INFO.ratio);
+		assert_eq!(mining_resource_rate_info.rate, MINING_RESOURCE_RATE_INFO.rate);
 		assert_eq!(mining_resource_rate_info.staking_reward, MINING_RESOURCE_RATE_INFO.staking_reward);
 		assert_eq!(mining_resource_rate_info.mining_reward, MINING_RESOURCE_RATE_INFO.mining_reward);
 	}
