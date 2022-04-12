@@ -51,6 +51,7 @@ use sp_runtime::{
 use sp_runtime::{Perbill, RuntimeDebug};
 use sp_std::vec::Vec;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
+use frame_system::RawOrigin;
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
@@ -178,6 +179,82 @@ pub mod pallet {
 	#[pallet::getter(fn get_locked_collection)]
 	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
 
+	
+	
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			GenesisConfig {}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			// Pre-mint group collection for lands
+		    let land_collection_data = NftGroupCollectionData {
+                name: "Metaverse Lands".as_bytes().to_vec(),
+				properties: "MetaverseId;Coordinates".as_bytes().to_vec(),
+			};
+			let land_collection_id = <Pallet<T>>::next_group_collection_id();
+			<GroupCollections<T>>::insert(land_collection_id, land_collection_data);
+			<NextGroupCollectionId<T>>::set(land_collection_id + 1);
+			<AllNftGroupCollection<T>>::set(land_collection_id + 1);
+			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(land_collection_id));
+
+		/*	// Pre-mint class for lands 
+			let mut land_class_attributes = Attributes::new();
+			land_class_attributes.insert("Property 1:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
+			land_class_attributes.insert("Property 2:".as_bytes().to_vec(), "Coordinates:".as_bytes().to_vec());
+			let land_class_metadata: NftMetadata = "Metaverse Network Land Class Metadata".as_bytes().to_vec();
+			let land_class_deposit = <Pallet<T>>::calculate_fee_deposit(&land_class_attributes, &land_class_metadata);
+			let land_class_data = NftClassData {
+				deposit: land_class_deposit,
+				token_type: TokenType::Transferable,
+				collection_type: CollectionType::Collectable,
+				attributes: land_class_attributes,
+			};
+ 		
+			//let land_class_id: <T as orml_nft::Config>::ClassId = TryInto::<<T as orml_nft::Config>::ClassId>::try_into(LAND_CLASS_ID).unwrap_or_default();
+			let land_class_id = <NftModule<T>>::next_class_id();
+			<<NftModule<T>>::Classes<T>>::insert(land_class_id, land_class_data);
+			<ClassDataCollection<T>>::insert(land_class_id, land_collection_id);
+			//<Pallet<T>>::deposit_event(Event::NewNftClassCreated(RawOrigin::Root.into(), land_class_id));
+		*/
+			// Pre-mint group collection for estates
+			let estate_collection_data = NftGroupCollectionData {
+                name: "Metaverse Esates".as_bytes().to_vec(),
+				properties: "MetaverseId;EstateId".as_bytes().to_vec(),
+			};
+			let estate_collection_id = <Pallet<T>>::next_group_collection_id();
+			<GroupCollections<T>>::insert(estate_collection_id, estate_collection_data);
+			<NextGroupCollectionId<T>>::set(estate_collection_id + 1);
+			<AllNftGroupCollection<T>>::set(estate_collection_id+ 1);
+			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(estate_collection_id));
+		/* 
+			// Pre-mint class for estates
+			let mut estate_class_attributes = Attributes::new();
+			estate_class_attributes.insert("Property 1:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
+			estate_class_attributes.insert("Property 2:".as_bytes().to_vec(), "EstateId:".as_bytes().to_vec());
+			let estate_class_metadata: NftMetadata = "Metaverse Network Estate Class Metadata".as_bytes().to_vec();
+			let estate_class_deposit = <Pallet<T>>::calculate_fee_deposit(&estate_class_attributes, &estate_class_metadata);
+			let estate_class_data = NftClassData {
+				deposit: estate_class_deposit,
+				token_type: TokenType::Transferable,
+				collection_type: CollectionType::Collectable,
+				attributes: estate_class_attributes,
+			};
+
+			let estate_class_id: <T as orml_nft::Config>::ClassId = TryInto::<<T as orml_nft::Config>::ClassId>::try_into(ESTATE_CLASS_ID).unwrap_or_default();
+			<ClassDataCollection<T>>::insert(estate_class_id, estate_collection_id);
+		*/
+		}
+	}
+	
+	
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {

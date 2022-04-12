@@ -504,7 +504,7 @@ parameter_types! {
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
-	pub const MinimumStake: Balance = 100 * DOLLARS;
+	pub const MinimumStake: Balance = 80 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 1;
 }
 

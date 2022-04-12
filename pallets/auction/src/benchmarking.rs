@@ -33,7 +33,7 @@ use pallet_nft::{NFTTrait, TokenType};
 // use pallet_estate::Pallet as EstateModule;
 // use pallet_metaverse::Pallet as MetaverseModule;
 
-use primitives::{Balance, FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
+use primitives::{Balance, FungibleTokenId, LAND_CLASS_ID, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
 
 #[allow(unused)]
 pub use crate::Pallet as AuctionModule;
@@ -139,7 +139,7 @@ benchmarks! {
 
 		let caller = funded_account::<T>("caller", 0);
 		mint_NFT::<T>(caller.clone());
-	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(15,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(LAND_CLASS_ID,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
 
 	// create_new_buy_now
 	create_new_buy_now{
@@ -147,7 +147,7 @@ benchmarks! {
 
 		let caller = funded_account::<T>("caller", 0);
 		mint_NFT::<T>(caller.clone());
-	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(15,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(LAND_CLASS_ID,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
 
 	// bid
 	bid{
@@ -157,7 +157,7 @@ benchmarks! {
 		let bidder = funded_account::<T>("bidder", 0);
 		mint_NFT::<T>(caller.clone());
 
-		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(15,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(LAND_CLASS_ID,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
 	// buy_now
@@ -168,7 +168,7 @@ benchmarks! {
 		let bidder = funded_account::<T>("bidder", 0);
 		mint_NFT::<T>(caller.clone());
 
-		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(15,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(LAND_CLASS_ID,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 	
 	authorise_metaverse_collection {
