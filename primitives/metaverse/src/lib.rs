@@ -29,6 +29,8 @@ use sp_runtime::{
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature,
 };
+use sp_std::collections::btree_map::BTreeMap;
+use sp_std::vec::Vec;
 
 pub mod continuum;
 pub mod dex;
@@ -114,6 +116,14 @@ pub type PowerAmount = u64;
 pub type Nonce = u32;
 /// Evm Address.
 pub type EvmAddress = sp_core::H160;
+/// NFT Metadata
+pub type NftMetadata = Vec<u8>;
+/// NFT Attributes
+pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
+/// Land Token Class Id
+pub const LAND_CLASS_ID: ClassId = 15;
+/// Estate Token Class Id
+pub const ESTATE_CLASS_ID: ClassId = 16;
 
 /// Public item id for auction
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]

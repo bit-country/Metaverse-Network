@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::DispatchError;
 use sp_runtime::{Perbill, RuntimeDebug};
 
-use crate::{EstateId, MetaverseId};
+use crate::{EstateId, MetaverseId, TokenId};
 
 pub trait Estate<AccountId> {
 	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId) -> Result<EstateId, DispatchError>;
@@ -28,8 +28,20 @@ pub trait Estate<AccountId> {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct EstateInfo {
-	/// Metaverse Id
+	/// Metaverse Ids
 	pub metaverse_id: MetaverseId,
 	/// Land Units
 	pub land_units: Vec<(i32, i32)>,
+}
+
+#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum OwnerId<AccountId, TokenId> {
+	Account(AccountId),
+	Token(TokenId),
+}
+
+#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum LandUnitStatus<AccountId> {
+	NonExisting,
+	Existing(AccountId),
 }

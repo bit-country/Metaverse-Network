@@ -162,7 +162,7 @@ fn mint_asset_should_work() {
 
 		// deposit 8 as 4 bytes for class deposit and 6 bytes for nft deposit
 		assert_eq!(reserved_balance(&class_id_account()), 10);
-		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![(0, 0)]);
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
 
 		let event = mock::Event::Nft(crate::Event::NewNftMinted((0, 0), (0, 0), ALICE, CLASS_ID, 1, 0));
 		assert_eq!(last_event(), event);
@@ -173,7 +173,9 @@ fn mint_asset_should_work() {
 		// bit balance should be 0 (minted 2 NFT)
 		assert_eq!(free_bit_balance(&ALICE), 0);
 
-		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![(0, 0), (0, 1), (0, 2)]);
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 1)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 2)), ());
 	})
 }
 
@@ -353,22 +355,12 @@ fn do_create_group_collection_should_work() {
 }
 
 #[test]
-fn do_handle_asset_ownership_transfer_should_work() {
-	let origin = Origin::signed(ALICE);
-	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(origin.clone());
-		assert_ok!(Nft::handle_asset_ownership_transfer(&ALICE, &BOB, (0, 0)));
-		assert_eq!(Nft::get_assets_by_owner(BOB), vec![(0, 0)]);
-	})
-}
-
-#[test]
 fn do_transfer_should_work() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::do_transfer(&ALICE, &BOB, (0, 0)));
-		assert_eq!(Nft::get_assets_by_owner(BOB), vec![(0, 0)]);
+		assert_eq!(OrmlNft::tokens_by_owner((BOB, 0, 0)), ());
 	})
 }
 

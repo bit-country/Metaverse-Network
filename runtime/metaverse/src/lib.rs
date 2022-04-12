@@ -70,7 +70,7 @@ use core_primitives::{NftAssetData, NftClassData};
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
-//use estate::weights::WeightInfo as EstateWeightInfo;
+use estate::weights::WeightInfo as EstateWeightInfo;
 use pallet_contracts::weights::WeightInfo;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
@@ -150,7 +150,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 26,
+	spec_version: 27,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -525,6 +525,7 @@ impl estate::Config for Runtime {
 	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
+	type NFTTokenizationSource = Nft;
 }
 
 parameter_types! {
@@ -979,7 +980,7 @@ impl pallet_ethereum::Config for Runtime {
 pub struct RPCCallFilter;
 
 impl Contains<Call> for RPCCallFilter {
-	fn contains (c: &Call) -> bool {
+	fn contains(c: &Call) -> bool {
 		matches!(c, Call::Currencies(..))
 	}
 }
@@ -1082,11 +1083,10 @@ construct_runtime!(
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
 
 		// ink! Smart Contracts.
-		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
-
-	 // Bridge
-	 // ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
-	 // BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
+		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>}
+		// Bridge
+//		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
+//		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
 	}
 );
 

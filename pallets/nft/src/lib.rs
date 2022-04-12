@@ -54,8 +54,11 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
+use primitive_traits::NftAssetData;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitives::{AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId};
+use primitives::{
+	AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
+};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -134,11 +137,6 @@ pub mod pallet {
 	#[pallet::getter(fn get_asset)]
 	pub(super) type Assets<T: Config> =
 		StorageMap<_, Blake2_128Concat, AssetId, (ClassIdOf<T>, TokenIdOf<T>), OptionQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_assets_by_owner)]
-	pub(super) type AssetsByOwner<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<(ClassIdOf<T>, TokenIdOf<T>)>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
@@ -411,16 +409,6 @@ pub mod pallet {
 				let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
 				new_asset_ids.push((class_id, token_id));
 
-				if AssetsByOwner::<T>::contains_key(&sender) {
-					AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
-						asset_ids.push((class_id, token_id));
-						Ok(())
-					})?;
-				} else {
-					let mut assets = Vec::<(ClassIdOf<T>, TokenIdOf<T>)>::new();
-					assets.push((class_id, token_id));
-					AssetsByOwner::<T>::insert(&sender, assets)
-				}
 				last_token_id = token_id;
 			}
 
@@ -480,7 +468,7 @@ pub mod pallet {
 						let asset_info =
 							NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
 						ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
-						Self::handle_asset_ownership_transfer(&owner, &item.0, item.1)?;
+
 						NftModule::<T>::transfer(&owner, &item.0, item.1)?;
 						Self::deposit_event(Event::<T>::TransferedNft(
 							owner.clone(),
@@ -504,8 +492,9 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			let asset_by_owner: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Self::get_assets_by_owner(&sender);
-			ensure!(!asset_by_owner.contains(&asset_id), Error::<T>::SignOwnAsset);
+			let token_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+			ensure!(token_info.owner != sender, Error::<T>::SignOwnAsset);
 
 			// Add contribution into class fund
 			let class_fund = Self::get_class_fund(&asset_id.0);
@@ -546,9 +535,6 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn burn(origin: OriginFor<T>, asset_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let asset_by_owner: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Self::get_assets_by_owner(&sender);
-
-			ensure!(asset_by_owner.contains(&asset_id), Error::<T>::NoPermission);
 
 			NftModule::<T>::burn(&sender, asset_id)?;
 			Self::deposit_event(Event::<T>::BurnedNft(asset_id));
@@ -639,37 +625,6 @@ impl<T: Config> Pallet<T> {
 		Ok(next_group_collection_id)
 	}
 
-	fn handle_asset_ownership_transfer(
-		sender: &T::AccountId,
-		to: &T::AccountId,
-		asset_id: (ClassIdOf<T>, TokenIdOf<T>),
-	) -> DispatchResult {
-		// Remove asset from sender
-		AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
-			// Check if the asset_id already in the owner
-			let asset_index = asset_ids.iter().position(|x| *x == asset_id).unwrap();
-			asset_ids.remove(asset_index);
-
-			Ok(())
-		})?;
-
-		// Insert asset to recipient
-
-		if AssetsByOwner::<T>::contains_key(to) {
-			AssetsByOwner::<T>::try_mutate(&to, |asset_ids| -> DispatchResult {
-				// Check if the asset_id already in the owner
-				asset_ids.push(asset_id);
-				Ok(())
-			})?;
-		} else {
-			let mut asset_ids = Vec::<(ClassIdOf<T>, TokenIdOf<T>)>::new();
-			asset_ids.push(asset_id);
-			AssetsByOwner::<T>::insert(&to, asset_ids);
-		}
-
-		Ok(())
-	}
-
 	pub fn do_transfer(
 		sender: &T::AccountId,
 		to: &T::AccountId,
@@ -684,8 +639,6 @@ impl<T: Config> Pallet<T> {
 			TokenType::Transferable => {
 				let check_ownership = Self::check_nft_ownership(&sender, &asset_id)?;
 				ensure!(check_ownership, Error::<T>::NoPermission);
-
-				Self::handle_asset_ownership_transfer(&sender, &to, asset_id)?;
 
 				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
 				Ok(asset_id.1)
@@ -720,10 +673,52 @@ impl<T: Config> Pallet<T> {
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		ensure!(!Self::is_collection_locked(&asset_id.0), Error::<T>::CollectionIsLocked);
 
-		Self::handle_asset_ownership_transfer(&sender, &to, asset_id)?;
-
 		NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
 		Ok(asset_id.1)
+	}
+
+	fn do_mint_nfts(
+		sender: &T::AccountId,
+		class_id: ClassIdOf<T>,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		quantity: u32,
+	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
+		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
+		ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
+		ensure!(
+			quantity <= T::MaxBatchMinting::get(),
+			Error::<T>::ExceedMaximumBatchMinting
+		);
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
+
+		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+		ensure!(sender.clone() == class_info.owner, Error::<T>::NoPermission);
+		let token_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
+		let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
+		let deposit = token_deposit.saturating_mul(Into::<BalanceOf<T>>::into(quantity));
+
+		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+		<T as Config>::Currency::reserve(&class_fund, deposit)?;
+
+		let new_nft_data = NftAssetData {
+			deposit,
+			attributes: attributes,
+		};
+
+		let mut new_asset_ids: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Vec::new();
+		let mut last_token_id: TokenIdOf<T> = Default::default();
+
+		for _ in 0..quantity {
+			let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
+			new_asset_ids.push((class_id, token_id));
+
+			last_token_id = token_id;
+		}
+		Ok((new_asset_ids, last_token_id))
 	}
 
 	/// Calculate deposit fee
@@ -780,6 +775,11 @@ impl<T: Config> Pallet<T> {
 		log::info!("Classes upgraded: {}", num_nft_classes);
 		0
 	}
+
+	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
+		NftModule::<T>::burn(&sender, *asset_id)?;
+		Ok(())
+	}
 }
 
 impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
@@ -804,14 +804,6 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		Ok(asset_info.data)
 	}
 
-	//	fn get_nft_detail(
-	//		asset_id: (Self::ClassId, Self::TokenId),
-	//	) -> Result<(GroupCollectionId, Self::ClassId, Self::TokenId), DispatchError> {
-	//		let group_collection_id = ClassDataCollection::<T>::get(asset_id.0);
-	//
-	//		Ok((group_collection_id, asset_id.0, asset_id.1))
-	//	}
-
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
 		let group_collection_id = ClassDataCollection::<T>::get(nft_collection);
 		Ok(group_collection_id)
@@ -829,6 +821,36 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		let class_collection_id = ClassDataCollection::<T>::get(class_id);
 
 		Ok(class_collection_id == collection_id)
+	}
+
+	fn mint_land_nft(
+		account: T::AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<TokenId, DispatchError> {
+		let class_id: Self::ClassId = TryInto::<Self::ClassId>::try_into(LAND_CLASS_ID).unwrap_or_default(); //TO DO: Pre-mint land class or update the class id with more relevant value
+		let result: (Vec<(Self::ClassId, Self::TokenId)>, Self::TokenId) =
+			Self::do_mint_nfts(&account, class_id, metadata, attributes, 1)?;
+		let nft_value = *result.0.first().unwrap();
+		return Ok(TryInto::<TokenId>::try_into(nft_value.1).unwrap_or_default());
+	}
+
+	fn mint_estate_nft(
+		account: T::AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<TokenId, DispatchError> {
+		let class_id: Self::ClassId = TryInto::<Self::ClassId>::try_into(ESTATE_CLASS_ID).unwrap_or_default(); //TO DO: Pre-mint estate class or update the class id with more relevant value
+		let result: (Vec<(Self::ClassId, Self::TokenId)>, Self::TokenId) =
+			Self::do_mint_nfts(&account, class_id, metadata, attributes, 1)?;
+		let nft_value = *result.0.first().unwrap();
+		return Ok(TryInto::<TokenId>::try_into(nft_value.1).unwrap_or_default());
+	}
+
+	fn burn_nft(account: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+		Self::do_burn(account, nft)?;
+
+		Ok(())
 	}
 
 	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError> {
@@ -855,11 +877,5 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 
 	fn get_class_fund(class_id: &Self::ClassId) -> T::AccountId {
 		T::PalletId::get().into_sub_account(class_id)
-	}
-
-	fn get_asset_id(asset_id: AssetId) -> Result<(Self::ClassId, Self::TokenId), DispatchError> {
-		let token = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetInfoNotFound)?;
-
-		Ok(token)
 	}
 }

@@ -1021,44 +1021,44 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		pub fn upgrade_asset_auction_data_v2() -> Weight {
-			log::info!("Start upgrading nft class data v2");
-			let mut num_auction_item = 0;
-
-			AuctionItems::<T>::translate(
-				|_k, auction_v1: migration_v2::AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
-					num_auction_item += 1;
-
-					log::info!("Upgrading auction items data");
-
-					let asset_id = auction_v1.item_id;
-
-					match asset_id {
-						V1ItemId::NFT(asset_id) => {
-							num_auction_item += 1;
-							let token = T::NFTHandler::get_asset_id(asset_id).unwrap();
-							let v2_item_id = ItemId::NFT(token.0, token.1);
-
-							let v: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
-								item_id: v2_item_id,
-								recipient: auction_v1.recipient,
-								initial_amount: auction_v1.initial_amount,
-								amount: auction_v1.amount,
-								start_time: auction_v1.start_time,
-								end_time: auction_v1.end_time,
-								auction_type: auction_v1.auction_type,
-								listing_level: auction_v1.listing_level,
-								currency_id: auction_v1.currency_id,
-							};
-							Some(v)
-						}
-						_ => None,
-					}
-				},
-			);
-
-			log::info!("Asset Item in Auction upgraded: {}", num_auction_item);
-			0
-		}
+		//		pub fn upgrade_asset_auction_data_v2() -> Weight {
+		//			log::info!("Start upgrading nft class data v2");
+		//			let mut num_auction_item = 0;
+		//
+		//			AuctionItems::<T>::translate(
+		//				|_k, auction_v1: migration_v2::AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+		//					num_auction_item += 1;
+		//
+		//					log::info!("Upgrading auction items data");
+		//
+		//					let asset_id = auction_v1.item_id;
+		//
+		//					match asset_id {
+		//						V1ItemId::NFT(asset_id) => {
+		//							num_auction_item += 1;
+		//							let token = T::NFTHandler::get_asset_id(asset_id).unwrap();
+		//							let v2_item_id = ItemId::NFT(token.0, token.1);
+		//
+		//							let v: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
+		//								item_id: v2_item_id,
+		//								recipient: auction_v1.recipient,
+		//								initial_amount: auction_v1.initial_amount,
+		//								amount: auction_v1.amount,
+		//								start_time: auction_v1.start_time,
+		//								end_time: auction_v1.end_time,
+		//								auction_type: auction_v1.auction_type,
+		//								listing_level: auction_v1.listing_level,
+		//								currency_id: auction_v1.currency_id,
+		//							};
+		//							Some(v)
+		//						}
+		//						_ => None,
+		//					}
+		//				},
+		//			);
+		//
+		//			log::info!("Asset Item in Auction upgraded: {}", num_auction_item);
+		//			0
+		//		}
 	}
 }

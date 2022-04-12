@@ -4,7 +4,7 @@ use frame_support::{assert_noop, assert_ok};
 use sp_std::collections::btree_map::BTreeMap;
 
 use auction_manager::ListingLevel;
-use core_primitives::{Attributes, CollectionType, TokenType};
+use core_primitives::{Attributes, CollectionType, NFTTrait, TokenType};
 use mock::{Event, *};
 use primitives::ItemId::NFT;
 
@@ -401,7 +401,7 @@ fn asset_transfers_after_auction() {
 
 		// Setup NFT and verify that BOB has ownership
 		init_test_nft(owner.clone());
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), [(0, 0)]);
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -424,13 +424,13 @@ fn asset_transfers_after_auction() {
 		);
 
 		// Verify transfer of fund (minus gas)
-		// BOB only receive 200 - 2 (1% of 200 as loyalty fee) - 6 minting fee =
+		// BOB only receive 200 - 2 (1% of 200 as loyalty fee) - 4 minting fee =
 		assert_eq!(Balances::free_balance(BOB), 688);
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 
 		// Verify Alice has the NFT and Bob doesn't
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [(0, 0)]);
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(BOB), Vec::<(u32, u64)>::new());
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(false));
 	});
 }
 
@@ -504,7 +504,9 @@ fn buy_now_work() {
 
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [(0, 0), (0, 1)]);
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 1)), Ok(true));
+
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99600);
 		// initial balance is 500 - sold 2 x 200 = 900
@@ -768,7 +770,7 @@ fn on_finalize_should_work() {
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::get_assets_by_owner(ALICE), [(0, 0)]);
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99900);
 		// BOB only receive 596 - 1 (1% of 100 as loyalty fee) + 6 minting fee = 589
