@@ -355,15 +355,6 @@ fn do_create_group_collection_should_work() {
 }
 
 #[test]
-fn do_handle_asset_ownership_transfer_should_work() {
-	let origin = Origin::signed(ALICE);
-	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(Nft::do_transfer(&ALICE, &BOB, (0, 0)));
-		assert_eq!(OrmlNft::tokens_by_owner((BOB, 0, 0)), ());
-	})
-}
-
-#[test]
 fn do_transfer_should_fail() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
