@@ -191,6 +191,23 @@ pub trait NFTTrait<AccountId, Balance> {
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
 	) -> Result<bool, DispatchError>;
+	/// Create NFT token class
+	fn create_token_class(
+		sender: &AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+	) -> Result<ClassId, DispatchError>;
+	/// Mint NFT token
+	fn mint_token (
+		sender: &AccountId,
+		class_id: ClassId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<TokenId, DispatchError>;
 	/// Mint land as NFT
 	fn mint_land_nft(
 		account: AccountId,
