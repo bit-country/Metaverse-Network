@@ -267,7 +267,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	}
 
 	fn create_token_class(
-		sender: &T::AccountId,
+		sender: &AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
 		collection_id: GroupCollectionId,
@@ -278,13 +278,13 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		match *sender {
 			ALICE => Ok(1),
 			BOB => Ok(2),
-			BENEFICIARY_ID => Ok(CLASS_FUND_ID),
+			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
 			_ => Ok(100),
 		}
 	}
 
 	fn mint_token(
-		sender: &T::AccountId,
+		sender: &AccountId,
 		class_id: ClassId,
 		metadata: NftMetadata,
 		attributes: Attributes,

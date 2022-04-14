@@ -179,6 +179,7 @@ impl Config for Runtime {
 	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type MetaverseStakingHandler = MetaverseStakingHandler;
+	type WeightInfo = ();
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;

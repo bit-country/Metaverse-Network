@@ -160,6 +160,7 @@ impl pallet_mining::Config for Runtime {
 	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type MetaverseStakingHandler = MetaverseStakingHandler;
+	type WeightInfo = ();
 }
 
 ord_parameter_types! {
