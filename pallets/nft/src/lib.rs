@@ -1052,9 +1052,4 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	fn get_class_fund(class_id: &Self::ClassId) -> T::AccountId {
 		T::PalletId::get().into_sub_account(class_id)
 	}
-
-	fn get_asset_id(asset_id: AssetId) -> Result<(Self::ClassId, Self::TokenId), DispatchError> {
-		let token = Assets::<T>::get(asset_id).ok_or(Error::<T>::AssetInfoNotFound)?;
-		Ok(token)
-	}
 }

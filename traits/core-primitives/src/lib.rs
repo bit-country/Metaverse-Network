@@ -230,8 +230,6 @@ pub trait NFTTrait<AccountId, Balance> {
 	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get collection account fund
 	fn get_class_fund(class_id: &Self::ClassId) -> AccountId;
-	/// Migration - deprecated on production
-	fn get_asset_id(asset_id: AssetId) -> Result<(Self::ClassId, Self::TokenId), DispatchError>;
 }
 
 pub trait RoundTrait<BlockNumber> {

@@ -7,6 +7,7 @@ use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionI
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
 use sp_std::collections::btree_map::BTreeMap;
+use sp_std::default::Default;
 
 use super::*;
 use crate as estate;
@@ -221,6 +222,12 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 	}
 }
 
+fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
+}
+
 pub struct MockNFTHandler;
 
 impl NFTTrait<AccountId, Balance> for MockNFTHandler {
@@ -255,23 +262,39 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 		Ok(false)
 	}
-
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<u128>, DispatchError> {
-		let mut attr: Attributes = BTreeMap::new();
-		attr.insert(vec![1, 6], vec![1, 11]);
-
-		let result = NftClassData {
-			deposit: 100u128,
-			attributes: attr,
-			token_type: TokenType::Transferable,
-			collection_type: CollectionType::Collectable,
-		};
-
-		Ok(result)
-	}
-
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
 		Ok(ASSET_COLLECTION_ID)
+	}
+
+	fn create_token_class(
+		sender: &T::AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+	) -> Result<ClassId, DispatchError> {
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => Ok(CLASS_FUND_ID),
+			_ => Ok(100),
+		}
+	}
+
+	fn mint_token(
+		sender: &T::AccountId,
+		class_id: ClassId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<TokenId, DispatchError> {
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => Ok(ASSET_ID_1),
+			_ => Ok(1000),
+		}
 	}
 
 	fn mint_land_nft(
@@ -319,8 +342,14 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		CLASS_FUND_ID
 	}
 
-	fn get_asset_id(aset_id: AssetId) -> Result<(Self::ClassId, Self::TokenId), DispatchError> {
-		Ok((ASSET_CLASS_ID, ASSET_TOKEN_ID))
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<(NftClassData<Balance>), DispatchError> {
+		let new_data = NftClassData {
+			deposit: 0,
+			attributes: test_attributes(1),
+			token_type: TokenType::Transferable,
+			collection_type: CollectionType::Collectable,
+		};
+		Ok(new_data)
 	}
 }
 

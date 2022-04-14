@@ -4784,6 +4784,7 @@ dependencies = [
  "log",
  "metaverse-runtime",
  "node-primitives",
+ "pallet-contracts-rpc",
  "pallet-dynamic-fee",
  "pallet-ethereum",
  "pallet-im-online",
@@ -4849,7 +4850,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-runtime"
-version = "0.0.24"
+version = "0.0.27"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
@@ -4878,6 +4879,9 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-continuum",
+ "pallet-contracts",
+ "pallet-contracts-primitives",
+ "pallet-contracts-rpc-runtime-api",
  "pallet-crowdloan",
  "pallet-democracy",
  "pallet-economy",
@@ -5909,6 +5913,25 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "pallet-contracts-rpc"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.16#19162e43be45817b44c7d48e50d03f074f60fbf4"
+dependencies = [
+ "jsonrpc-core",
+ "jsonrpc-core-client",
+ "jsonrpc-derive",
+ "pallet-contracts-primitives",
+ "pallet-contracts-rpc-runtime-api",
+ "parity-scale-codec",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-core",
+ "sp-rpc",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -12016,7 +12039,7 @@ dependencies = [
  "chrono",
  "lazy_static",
  "matchers",
- "parking_lot 0.10.2",
+ "parking_lot 0.11.2",
  "regex",
  "serde",
  "serde_json",

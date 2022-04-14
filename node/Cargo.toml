@@ -87,7 +87,7 @@ node-primitives = { git = "https://github.com/paritytech/substrate", branch = "p
 
 # Metaverse related dependencies
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
-metaverse-runtime = { version = "0.0.24", path = "../runtime/metaverse", optional = true }
+metaverse-runtime = { version = "0.0.27", path = "../runtime/metaverse", optional = true }
 tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
 pioneer-runtime = { version = "2.0.0-rc6", path = "../runtime/pioneer", optional = true }
 #pallet-evm = { path = "../pallets/evm" }
@@ -119,6 +119,9 @@ fc-db = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v
 pallet-dynamic-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", optional = true }
 pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", optional = true }
 
+# ink! Contracts specific packages
+pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", optional = true  }
+
 [build-dependencies]
 substrate-build-script-utils = { version = '3.0.0', git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 
@@ -134,7 +137,8 @@ with-metaverse-runtime = [
     "pallet-dynamic-fee",
     "fc-rpc-core",
     "fc-consensus",
-    "pallet-ethereum"
+    "pallet-ethereum",
+    "pallet-contracts-rpc",
 ]
 
 with-tewai-runtime = [
