@@ -54,8 +54,8 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
-use primitive_traits::{CollectionType, NftAssetData};
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
+use primitive_traits::{CollectionType, NftAssetData};
 use primitives::{
 	AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
 };
@@ -178,8 +178,6 @@ pub mod pallet {
 	#[pallet::getter(fn get_locked_collection)]
 	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
 
-	
-	
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {}
 
@@ -194,8 +192,8 @@ pub mod pallet {
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {
 			// Pre-mint group collection for lands
-		    let land_collection_data = NftGroupCollectionData {
-                name: "Metaverse Lands".as_bytes().to_vec(),
+			let land_collection_data = NftGroupCollectionData {
+				name: "Metaverse Lands".as_bytes().to_vec(),
 				properties: "MetaverseId;Coordinates".as_bytes().to_vec(),
 			};
 			let land_collection_id = <Pallet<T>>::next_group_collection_id();
@@ -203,29 +201,29 @@ pub mod pallet {
 			<NextGroupCollectionId<T>>::set(land_collection_id + 1);
 			<AllNftGroupCollection<T>>::set(land_collection_id + 1);
 			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(land_collection_id));
-/* 
-		// Pre-mint class for lands 
-			let mut land_class_attributes = Attributes::new();
-			land_class_attributes.insert("Property 1:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
-			land_class_attributes.insert("Property 2:".as_bytes().to_vec(), "Coordinates:".as_bytes().to_vec());
-			let land_class_metadata: NftMetadata = "Metaverse Network Land Class Metadata".as_bytes().to_vec();
-			let land_class_deposit = <Pallet<T>>::calculate_fee_deposit(&land_class_attributes, &land_class_metadata);
-			let land_class_data = NftClassData {
-				deposit: land_class_deposit,
-				token_type: TokenType::Transferable,
-				collection_type: CollectionType::Collectable,
-				attributes: land_class_attributes,
-			};
- 		
-			//let land_class_id: <T as orml_nft::Config>::ClassId = TryInto::<<T as orml_nft::Config>::ClassId>::try_into(LAND_CLASS_ID).unwrap_or_default();
-			let land_class_id = <NftModule<T>>::next_class_id();
-			<orml_nft::Classes<T>>::insert(land_class_id, land_class_data);
-			<ClassDataCollection<T>>::insert(land_class_id, land_collection_id);
-			//<Pallet<T>>::deposit_event(Event::NewNftClassCreated(RawOrigin::Root.into(), land_class_id));
-*/		
+			/*
+				// Pre-mint class for lands
+				let mut land_class_attributes = Attributes::new();
+				land_class_attributes.insert("Property 1:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
+				land_class_attributes.insert("Property 2:".as_bytes().to_vec(), "Coordinates:".as_bytes().to_vec());
+				let land_class_metadata: NftMetadata = "Metaverse Network Land Class Metadata".as_bytes().to_vec();
+				let land_class_deposit = <Pallet<T>>::calculate_fee_deposit(&land_class_attributes, &land_class_metadata);
+				let land_class_data = NftClassData {
+					deposit: land_class_deposit,
+					token_type: TokenType::Transferable,
+					collection_type: CollectionType::Collectable,
+					attributes: land_class_attributes,
+				};
+
+				//let land_class_id: <T as orml_nft::Config>::ClassId = TryInto::<<T as orml_nft::Config>::ClassId>::try_into(LAND_CLASS_ID).unwrap_or_default();
+				let land_class_id = <NftModule<T>>::next_class_id();
+				<orml_nft::Classes<T>>::insert(land_class_id, land_class_data);
+				<ClassDataCollection<T>>::insert(land_class_id, land_collection_id);
+				//<Pallet<T>>::deposit_event(Event::NewNftClassCreated(RawOrigin::Root.into(), land_class_id));
+			*/
 			// Pre-mint group collection for estates
 			let estate_collection_data = NftGroupCollectionData {
-                name: "Metaverse Esates".as_bytes().to_vec(),
+				name: "Metaverse Esates".as_bytes().to_vec(),
 				properties: "MetaverseId;EstateId".as_bytes().to_vec(),
 			};
 			let estate_collection_id = <Pallet<T>>::next_group_collection_id();
@@ -233,27 +231,26 @@ pub mod pallet {
 			<NextGroupCollectionId<T>>::set(estate_collection_id + 1);
 			<AllNftGroupCollection<T>>::set(estate_collection_id + 1);
 			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(estate_collection_id));
-		/* 
-			// Pre-mint class for estates
-			let mut estate_class_attributes = Attributes::new();
-			estate_class_attributes.insert("Property 1:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
-			estate_class_attributes.insert("Property 2:".as_bytes().to_vec(), "EstateId:".as_bytes().to_vec());
-			let estate_class_metadata: NftMetadata = "Metaverse Network Estate Class Metadata".as_bytes().to_vec();
-			let estate_class_deposit = <Pallet<T>>::calculate_fee_deposit(&estate_class_attributes, &estate_class_metadata);
-			let estate_class_data = NftClassData {
-				deposit: estate_class_deposit,
-				token_type: TokenType::Transferable,
-				collection_type: CollectionType::Collectable,
-				attributes: estate_class_attributes,
-			};
+			/*
+				// Pre-mint class for estates
+				let mut estate_class_attributes = Attributes::new();
+				estate_class_attributes.insert("Property 1:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
+				estate_class_attributes.insert("Property 2:".as_bytes().to_vec(), "EstateId:".as_bytes().to_vec());
+				let estate_class_metadata: NftMetadata = "Metaverse Network Estate Class Metadata".as_bytes().to_vec();
+				let estate_class_deposit = <Pallet<T>>::calculate_fee_deposit(&estate_class_attributes, &estate_class_metadata);
+				let estate_class_data = NftClassData {
+					deposit: estate_class_deposit,
+					token_type: TokenType::Transferable,
+					collection_type: CollectionType::Collectable,
+					attributes: estate_class_attributes,
+				};
 
-			let estate_class_id: <T as orml_nft::Config>::ClassId = TryInto::<<T as orml_nft::Config>::ClassId>::try_into(ESTATE_CLASS_ID).unwrap_or_default();
-			<ClassDataCollection<T>>::insert(estate_class_id, estate_collection_id);
-		*/
+				let estate_class_id: <T as orml_nft::Config>::ClassId = TryInto::<<T as orml_nft::Config>::ClassId>::try_into(ESTATE_CLASS_ID).unwrap_or_default();
+				<ClassDataCollection<T>>::insert(estate_class_id, estate_collection_id);
+			*/
 		}
 	}
-	
-	
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -856,8 +853,8 @@ impl<T: Config> Pallet<T> {
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
 		ClassDataCollection::<T>::insert(next_class_id, collection_id);
 		Ok(next_class_id)
-    }
-	
+	}
+
 	/// Calculate deposit fee
 	fn calculate_fee_deposit(attributes: &Attributes, metadata: &NftMetadata) -> Result<BalanceOf<T>, DispatchError> {
 		// Accumulate lens of attributes length
@@ -980,18 +977,18 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			collection_id,
 			token_type,
 			collection_type,
-			royalty_fee
+			royalty_fee,
 		)?;
 		Ok(TryInto::<ClassId>::try_into(class_id).unwrap_or_default())
 	}
 
-	fn mint_token (
+	fn mint_token(
 		sender: &T::AccountId,
 		class_id: ClassId,
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<TokenId, DispatchError> {
-		let class: Self::ClassId = TryInto::<Self::ClassId>::try_into(class_id).unwrap_or_default(); 
+		let class: Self::ClassId = TryInto::<Self::ClassId>::try_into(class_id).unwrap_or_default();
 		let outcome = Self::do_mint_nfts(sender, class, metadata, attributes, 1)?;
 		let nft_token = *outcome.0.first().unwrap();
 		Ok(TryInto::<TokenId>::try_into(nft_token.1).unwrap_or_default())

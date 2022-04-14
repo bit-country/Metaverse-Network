@@ -202,7 +202,7 @@ pub trait NFTTrait<AccountId, Balance> {
 		royalty_fee: Perbill,
 	) -> Result<ClassId, DispatchError>;
 	/// Mint NFT token
-	fn mint_token (
+	fn mint_token(
 		sender: &AccountId,
 		class_id: ClassId,
 		metadata: NftMetadata,

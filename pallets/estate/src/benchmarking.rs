@@ -154,7 +154,6 @@ benchmarks! {
 		//assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Account(caller)))
 		//assert_eq!(crate::Pallet::<T>::get_estate_owner(0), Some(OwnerId::Token(1)));
 		//assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(1)));
-		
 	}
 
 	// dissolve_estate

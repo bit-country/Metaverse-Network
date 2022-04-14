@@ -25,8 +25,8 @@ use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use orml_traits::BasicCurrencyExtended;
 use primitives::{staking::RoundInfo, Balance, BlockNumber, FungibleTokenId};
-use sp_runtime::Perbill;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
 

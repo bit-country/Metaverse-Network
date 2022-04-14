@@ -31,8 +31,8 @@ use primitive_traits::CollectionType;
 use primitives::{AssetId, Balance};
 //use core_primitives::NFTTrait;
 use scale_info::Type;
-use sp_runtime::Perbill;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
 use sp_std::prelude::*;
 use sp_std::vec;
 

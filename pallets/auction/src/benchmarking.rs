@@ -23,8 +23,8 @@
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
-use sp_runtime::Perbill;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
 // use orml_traits::BasicCurrencyExtended;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
@@ -33,7 +33,9 @@ use pallet_nft::{NFTTrait, TokenType};
 // use pallet_estate::Pallet as EstateModule;
 use pallet_metaverse::Pallet as MetaverseModule;
 
-use primitives::{Balance, FungibleTokenId, LAND_CLASS_ID, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
+use primitives::{
+	Balance, FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType, LAND_CLASS_ID,
+};
 
 #[allow(unused)]
 pub use crate::Pallet as AuctionModule;
@@ -92,35 +94,29 @@ fn mint_NFT<T: Config>(caller: T::AccountId) {
 		Perbill::from_percent(0u32),
 	);
 
-	T::NFTHandler::mint_token(
-		&caller.clone(),
-		0u32.into(),
-		vec![1],
-		test_attributes(1),
-	);
-
-/*
-	pallet_nft::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-	pallet_nft::Pallet::<T>::create_class(
-		RawOrigin::Signed(caller.clone()).into(),
-		vec![1],
-		test_attributes(1),
-		0u32.into(),
-		TokenType::Transferable,
-		CollectionType::Collectable,
-		Perbill::from_percent(0u32),
-	);
-	pallet_nft::Pallet::<T>::mint(
-		RawOrigin::Signed(caller.clone()).into(),
-		0u32.into(),
-		vec![1],
-		test_attributes(1),
-		3,
-	);
-*/
+	T::NFTHandler::mint_token(&caller.clone(), 0u32.into(), vec![1], test_attributes(1));
+	/*
+		pallet_nft::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		pallet_nft::Pallet::<T>::create_class(
+			RawOrigin::Signed(caller.clone()).into(),
+			vec![1],
+			test_attributes(1),
+			0u32.into(),
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(0u32),
+		);
+		pallet_nft::Pallet::<T>::mint(
+			RawOrigin::Signed(caller.clone()).into(),
+			0u32.into(),
+			vec![1],
+			test_attributes(1),
+			3,
+		);
+	*/
 }
 
-fn create_metaverse_for_account<T: Config>(caller: T::AccountId)  {
+fn create_metaverse_for_account<T: Config>(caller: T::AccountId) {
 	//pallet_metaverse::Pallet::<T>::create_metaverse(
 	//	RawOrigin::Signed(caller.clone()).into(),
 	//	vec![1u8],
@@ -165,8 +161,8 @@ benchmarks! {
 
 		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
- 	
-	authorise_metaverse_collection {
+
+	authorise_metaverse_collection{
 		let alice = funded_account::<T>("alice", 0);
 		create_metaverse_for_account::<T>(alice.clone());
 	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
