@@ -509,7 +509,7 @@ parameter_types! {
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
-	pub const MinimumStake: Balance = 80 * DOLLARS;
+	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 1;
 }
 
@@ -875,6 +875,7 @@ impl economy::Config for Runtime {
 	type NFTHandler = Nft;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
+	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
 }
 
 impl emergency::Config for Runtime {
@@ -1511,6 +1512,7 @@ impl_runtime_apis! {
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
+			use economy::benchmarking::EconomyModule as EconomyBench;
 			use orml_benchmarking::list_benchmark as orml_list_benchmark;
 
 			let mut list = Vec::<BenchmarkList>::new();
@@ -1525,6 +1527,8 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
+			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
+			// orml_list_benchmark!(list, extra, economy, benchmarking::economy);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1545,6 +1549,7 @@ impl_runtime_apis! {
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
+			use economy::benchmarking::EconomyModule as EconomyBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1572,6 +1577,8 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
+			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
+			// orml_add_benchmark!(params, batches, economy, benchmarking::economy);
 			Ok(batches)
 		}
 	}

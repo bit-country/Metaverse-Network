@@ -51,7 +51,6 @@ pallet-utility = { default-features = false, git = "https://github.com/paritytec
 pallet-preimage = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 pallet-membership = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
 pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.16" }
-orml-benchmarking = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false, optional = true }
 
 # Used for the node template"s RPCs
 frame-system-rpc-runtime-api = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16" }
@@ -68,13 +67,13 @@ pallet-base-fee = { git = "https://github.com/justinphamnz/frontier", branch = "
 fp-self-contained = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", default-features = false }
 fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.16", default-features = false }
 
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.16", default-features = false }
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
 orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false }
+orml-benchmarking = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.16", default-features = false, optional = true }
 
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
@@ -139,6 +138,7 @@ std = [
     "sp-block-builder/std",
     "sp-consensus-aura/std",
     "sp-core/std",
+    "sp-io/std",
     "sp-inherents/std",
     "sp-offchain/std",
     "sp-runtime/std",
@@ -147,6 +147,7 @@ std = [
     "sp-transaction-pool/std",
     "sp-version/std",
     "auction-manager/std",
+    "orml-benchmarking/std",
     "orml-currencies/std",
     "orml-tokens/std",
     "orml-nft/std",
@@ -171,8 +172,6 @@ std = [
     "pallet-ethereum/std",
     "fp-self-contained/std",
     "fp-rpc/std",
-    "orml-benchmarking/std",
-    "sp-io/std",
 	"pallet-contracts/std",
     "pallet-contracts-primitives/std",
 	"pallet-contracts-rpc-runtime-api/std",
@@ -193,5 +192,6 @@ runtime-benchmarks = [
     "metaverse/runtime-benchmarks",
     "crowdloan/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
-    "pallet-ethereum/runtime-benchmarks"
+    "pallet-ethereum/runtime-benchmarks",
+    "economy/runtime-benchmarks"
 ]

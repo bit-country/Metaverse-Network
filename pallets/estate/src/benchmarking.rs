@@ -27,10 +27,12 @@ use sp_std::vec;
 
 #[allow(unused)]
 pub use crate::Pallet as EstateModule;
-use crate::{
-	pallet::{MintingRateConfig, Round},
-	Call, Config, MintingRateInfo, Range,
-};
+// use crate::{
+// 	pallet::{MintingRateConfig, Round},
+// 	Call, Config, MintingRateInfo, Range,
+// };
+
+use crate::*;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
@@ -38,7 +40,7 @@ use primitives::estate::{EstateInfo, OwnerId};
 use primitives::Balance;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 // use orml_traits::BasicCurrencyExtended;
-use primitives::{UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
+use primitives::UndeployedLandBlockType;
 
 pub type AccountId = u128;
 pub type LandId = u64;
@@ -65,7 +67,7 @@ fn dollar(d: u32) -> Balance {
 
 fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
-	T::Currency::make_free_balance_be(&caller, dollar(100).unique_saturated_into());
+	T::Currency::make_free_balance_be(&caller, dollar(1000000).unique_saturated_into());
 	caller
 }
 
@@ -433,11 +435,13 @@ benchmarks! {
 
 	// bond_more
 	bond_more {
+		let min_stake = T::MinimumStake::get();
+
 		let caller = funded_account::<T>("caller", 10000);
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1], false);
-	}: _(RawOrigin::Signed(caller.clone()), 0, T::MinimumStake::get())
+}: _(RawOrigin::Signed(caller.clone()), 0, T::MinimumStake::get())
 	verify {
 		assert_eq!(crate::Pallet::<T>::estate_stake(0, caller.clone()), T::MinimumStake::get())
 	}
@@ -446,10 +450,13 @@ benchmarks! {
 	bond_less {
 		let caller = funded_account::<T>("caller", 10000);
 
+		let min_stake = T::MinimumStake::get();
+		let bond_amount = min_stake + 1u32.into();
+
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1], false);
-		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, T::MinimumStake::get() + 10u32.into());
-	}: _(RawOrigin::Signed(caller.clone()), 0, 10u32.into())
+		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, bond_amount);
+	}: _(RawOrigin::Signed(caller.clone()), 0, 1u32.into())
 	verify {
 		assert_eq!(crate::Pallet::<T>::estate_stake(0, caller.clone()),  T::MinimumStake::get())
 	}
@@ -458,9 +465,12 @@ benchmarks! {
 	leave_staking {
 		let caller = funded_account::<T>("caller", 10000);
 
+		let min_stake = T::MinimumStake::get();
+		let bond_amount = min_stake + 1u32.into();
+
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1], false);
-		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, T::MinimumStake::get());
+		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, bond_amount);
 	}: _(RawOrigin::Signed(caller.clone()), 0)
 	verify {
 		assert_eq!(crate::Pallet::<T>::exit_queue(caller.clone(), 0), Some(()))
