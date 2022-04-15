@@ -8,10 +8,10 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::*;
+use core_primitives::NftAssetData;
 use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
 use primitives::{Amount, EstateId, FungibleTokenId, ItemId};
-use core_primitives::NftAssetData;
 
 use crate as economy;
 
