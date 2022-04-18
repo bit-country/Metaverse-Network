@@ -1,0 +1,149 @@
+#![cfg(feature = "runtime-benchmarks")]
+
+use frame_benchmarking::{account, benchmarks, whitelisted_caller};
+use frame_support::traits::{Currency, Get};
+use frame_system::RawOrigin;
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
+use orml_benchmarking::runtime_benchmarks;
+use auction_manager::{CheckAuctionItemHandler, ListingLevel};
+use core_primitives::{Attributes, CollectionType, MetaverseInfo, MetaverseTrait, NftMetadata};
+use pallet_nft::{NFTTrait, TokenType};
+use pallet_nft::Pallet as NftModule;
+use pallet_metaverse::Pallet as MetaverseModule;
+use primitives::{
+	Balance, FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType, LAND_CLASS_ID,
+};
+
+#[allow(unused)]
+pub use auction::Pallet as AuctionModule;
+use auction::{Call, Config};
+
+pub type AccountId = u128;
+pub type LandId = u64;
+pub type EstateId = u64;
+pub type MetaverseId = u64;
+
+const SEED: u32 = 0;
+
+const METAVERSE_ID: u64 = 0;
+const ALICE: AccountId = 1;
+const BENEFICIARY_ID: AccountId = 99;
+pub const ALICE_METAVERSE_ID: MetaverseId = 1;
+pub const DEMO_METAVERSE_ID: MetaverseId = 3;
+
+const MAX_BOUND: (i32, i32) = (-100, 100);
+const COORDINATE_IN_1: (i32, i32) = (-10, 10);
+const COORDINATE_IN_2: (i32, i32) = (-5, 5);
+const COORDINATE_OUT: (i32, i32) = (0, 101);
+const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
+const ESTATE_IN_AUCTION: EstateId = 99;
+
+fn dollar(d: u32) -> Balance {
+	let d: Balance = d.into();
+	d.saturating_mul(1_000_000_000_000_000_000)
+}
+
+fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
+	let caller: T::AccountId = account(name, index, SEED);
+	let initial_balance = dollar(1000);
+
+	<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+	caller
+}
+
+fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
+}
+
+fn mint_NFT<T: Config>(caller: T::AccountId) {
+		//pallet_nft::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		pallet_nft::Pallet::<T>::create_class(
+			RawOrigin::Signed(caller.clone()).into(),
+			vec![1],
+			test_attributes(1),
+			0u32.into(),
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(0u32),
+		);
+		pallet_nft::Pallet::<T>::mint(
+			RawOrigin::Signed(caller.clone()).into(),
+			0u32.into(),
+			vec![1],
+			test_attributes(1),
+			3,
+		);
+	
+}
+
+fn create_metaverse_for_account<T: Config>(caller: T::AccountId) {
+	pallet_metaverse::Pallet::<T>::create_metaverse(
+		RawOrigin::Signed(caller.clone()).into(),
+		vec![1u8],
+	);
+}
+
+runtime_benchmarks! {
+	{ Runtime, auction }
+    // create_new_auction at global level
+	create_new_auction{
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		mint_NFT::<T>(caller.clone());
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+
+	// create_new_buy_now
+	create_new_buy_now{
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		mint_NFT::<T>(caller.clone());
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+
+	// bid
+	bid{
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		let bidder = funded_account::<T>("bidder", 0);
+		mint_NFT::<T>(caller.clone());
+
+		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
+
+	// buy_now
+	buy_now{
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		let bidder = funded_account::<T>("bidder", 0);
+		mint_NFT::<T>(caller.clone());
+
+		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
+
+	authorise_metaverse_collection{
+		let alice = funded_account::<T>("alice", 0);
+		create_metaverse_for_account::<T>(alice.clone());
+	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
+
+	remove_authorise_metaverse_collection {
+		let alice = funded_account::<T>("alice", 0);
+		create_metaverse_for_account::<T>(alice.clone());
+		crate::Pallet::<T>::authorise_metaverse_collection(RawOrigin::Signed(alice.clone()).into(), 0u32.into(), METAVERSE_ID);
+	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::benchmarking::utils::tests::new_test_ext;
+	use orml_benchmarking::impl_benchmark_test_suite;
+
+	impl_benchmark_test_suite!(new_test_ext(),);
+}
