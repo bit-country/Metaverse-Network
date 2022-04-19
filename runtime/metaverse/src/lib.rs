@@ -5,8 +5,8 @@
 use codec::{Decode, Encode, MaxEncodedLen};
 use fp_rpc::TransactionStatus;
 // use metaverse::weights::WeightInfo;
-#[cfg(feature = "runtime-benchmarks")]
-use frame_benchmarking::frame_support::pallet_prelude::Get;
+// #[cfg(feature = "runtime-benchmarks")]
+// use frame_benchmarking::frame_support::pallet_prelude::Get;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
@@ -91,6 +91,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 	)
 }
 
+mod benchmarking;
 mod weights;
 
 /// Constant values used within the runtime.
@@ -874,6 +875,7 @@ impl economy::Config for Runtime {
 	type NFTHandler = Nft;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
+	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
 }
 
 impl emergency::Config for Runtime {
@@ -1509,7 +1511,9 @@ impl_runtime_apis! {
 			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
+			use economy::benchmarking::EconomyModule as EconomyBench;
 
+			use orml_benchmarking::list_benchmark as orml_list_benchmark;
 			let mut list = Vec::<BenchmarkList>::new();
 
 			list_benchmark!(list, extra, frame_system, SystemBench::<Runtime>);
@@ -1522,6 +1526,9 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 
+			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
+			// orml_list_benchmark!(list, extra, economy, benchmarking::economy);
+
 			let storage_info = AllPalletsWithSystem::storage_info();
 
 			return (list, storage_info)
@@ -1533,6 +1540,8 @@ impl_runtime_apis! {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 
 			use frame_system_benchmarking::Pallet as SystemBench;
+			use orml_benchmarking::{add_benchmark as orml_add_benchmark};
+
 			impl frame_system_benchmarking::Config for Runtime {}
 
 			use nft::benchmarking::Pallet as NftBench;
@@ -1540,6 +1549,7 @@ impl_runtime_apis! {
 			use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
+			use economy::benchmarking::EconomyModule as EconomyBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1567,6 +1577,8 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 
+			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
+			// orml_add_benchmark!(params, batches, economy, benchmarking::economy);
 
 			Ok(batches)
 		}
