@@ -45,6 +45,7 @@ fn init_test_nft(owner: Origin) {
 		COLLECTION_ID,
 		TokenType::Transferable,
 		CollectionType::Collectable,
+		Perbill::from_percent(0u32)
 	));
 	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
@@ -58,6 +59,7 @@ fn init_bound_to_address_nft(owner: Origin) {
 		COLLECTION_ID,
 		TokenType::Transferable,
 		CollectionType::Collectable,
+		Perbill::from_percent(0u32)
 	));
 	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
@@ -129,8 +131,9 @@ fn create_class_should_work() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
+			Perbill::from_percent(0u32)
 		));
-		let class_deposit = <Runtime as Config>::DataDepositPerByte::get() * 4; // Test 4 bytes
+		let class_deposit = <Runtime as Config>::DataDepositPerByte::get() * 5; // Test 5 bytes
 		assert_eq!(Nft::get_class_collection(0), 0);
 		assert_eq!(Nft::all_nft_collection_count(), 1);
 		assert_eq!(
@@ -139,7 +142,7 @@ fn create_class_should_work() {
 				deposit: class_deposit,
 				token_type: TokenType::Transferable,
 				collection_type: CollectionType::Collectable,
-				attributes: test_attributes(1)
+				attributes: test_attributes(1),
 			}
 		);
 
@@ -157,9 +160,9 @@ fn mint_asset_should_work() {
 		assert_ok!(Nft::enable_promotion(Origin::root(), true));
 		init_test_nft(origin.clone());
 
-		// deposit 8 as 4 bytes for class deposit and 4 bytes for nft deposit
-		assert_eq!(reserved_balance(&class_id_account()), 8);
-		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![(0, 0)]);
+		// deposit 8 as 4 bytes for class deposit and 6 bytes for nft deposit
+		assert_eq!(reserved_balance(&class_id_account()), 10);
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
 
 		let event = mock::Event::Nft(crate::Event::NewNftMinted((0, 0), (0, 0), ALICE, CLASS_ID, 1, 0));
 		assert_eq!(last_event(), event);
@@ -167,10 +170,12 @@ fn mint_asset_should_work() {
 		// mint two assets
 		assert_ok!(Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 2));
 
-		// bit balance should be 2 (minted 2 NFT)
-		assert_eq!(free_bit_balance(&ALICE), 2);
+		// bit balance should be 0 (minted 2 NFT)
+		assert_eq!(free_bit_balance(&ALICE), 0);
 
-		assert_eq!(Nft::get_assets_by_owner(ALICE), vec![(0, 0), (0, 1), (0, 2)]);
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 1)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 2)), ());
 	})
 }
 
@@ -181,8 +186,8 @@ fn mint_asset_with_promotion_enabled_should_work() {
 		assert_ok!(Nft::enable_promotion(Origin::root(), true));
 		init_test_nft(origin.clone());
 
-		// bit balance should be 1 (minted 1 NFT)
-		assert_eq!(free_bit_balance(&ALICE), 1);
+		// bit balance should be 0 (minted 1 NFT)
+		assert_eq!(free_bit_balance(&ALICE), 0);
 	})
 }
 
@@ -211,6 +216,7 @@ fn mint_asset_should_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
+			Perbill::from_percent(0u32)
 		));
 		assert_noop!(
 			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 0),
@@ -239,6 +245,7 @@ fn mint_exceed_max_batch_should_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
+			Perbill::from_percent(0u32)
 		));
 		assert_noop!(
 			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 20),
@@ -282,6 +289,7 @@ fn transfer_batch_should_work() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
+			Perbill::from_percent(0u32)
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
 		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, (1, 0)), (BOB, (1, 1))]));
@@ -302,6 +310,7 @@ fn transfer_batch_exceed_length_should_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
+			Perbill::from_percent(0u32)
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
 		assert_noop!(
@@ -323,6 +332,7 @@ fn transfer_batch_should_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
+			Perbill::from_percent(0u32)
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 		assert_noop!(
@@ -345,22 +355,12 @@ fn do_create_group_collection_should_work() {
 }
 
 #[test]
-fn do_handle_asset_ownership_transfer_should_work() {
-	let origin = Origin::signed(ALICE);
-	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(origin.clone());
-		assert_ok!(Nft::handle_asset_ownership_transfer(&ALICE, &BOB, (0, 0)));
-		assert_eq!(Nft::get_assets_by_owner(BOB), vec![(0, 0)]);
-	})
-}
-
-#[test]
 fn do_transfer_should_work() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::do_transfer(&ALICE, &BOB, (0, 0)));
-		assert_eq!(Nft::get_assets_by_owner(BOB), vec![(0, 0)]);
+		assert_eq!(OrmlNft::tokens_by_owner((BOB, 0, 0)), ());
 	})
 }
 
@@ -384,6 +384,7 @@ fn do_transfer_should_fail() {
 			COLLECTION_ID,
 			TokenType::BoundToAddress,
 			CollectionType::Collectable,
+			Perbill::from_percent(0u32)
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 

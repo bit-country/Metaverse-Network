@@ -20,9 +20,10 @@
 use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
 
-use super::*;
 use mock::{Event, *};
 use primitives::staking::RoundInfo;
+
+use super::*;
 
 #[test]
 fn create_metaverse_should_work() {

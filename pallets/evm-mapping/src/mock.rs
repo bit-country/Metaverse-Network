@@ -21,7 +21,7 @@
 
 use codec::Encode;
 use frame_support::dispatch::DispatchError;
-use frame_support::traits::{EqualPrivilegeOnly, Everything, Nothing};
+use frame_support::traits::{ConstU32, EqualPrivilegeOnly, Everything, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -46,6 +46,7 @@ mod pallet_evm_mapping {
 
 pub type AccountId = AccountId32;
 pub type BlockNumber = u64;
+
 pub const ALICE: AccountId = AccountId32::new([0u8; 32]);
 pub const BOB: AccountId = AccountId32::new([1u8; 32]);
 
@@ -159,12 +160,14 @@ pub mod secp_utils {
 	pub fn public(secret: &libsecp256k1::SecretKey) -> libsecp256k1::PublicKey {
 		libsecp256k1::PublicKey::from_secret_key(secret)
 	}
+
 	pub fn eth(secret: &libsecp256k1::SecretKey) -> EvmAddress {
 		let mut res = EvmAddress::default();
 		res.0
 			.copy_from_slice(&keccak_256(&public(secret).serialize()[1..65])[12..]);
 		res
 	}
+
 	pub fn sig<T: Config>(secret: &libsecp256k1::SecretKey, what: &[u8], extra: &[u8]) -> EcdsaSignature {
 		let msg = keccak_256(&<super::Pallet<T>>::ethereum_signable_message(
 			&to_ascii_hex(what)[..],

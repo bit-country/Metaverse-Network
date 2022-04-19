@@ -8,9 +8,7 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::*;
-use primitives::estate::Estate;
-use primitives::staking::MetaverseStakingTrait;
-use primitives::{Amount, EstateId, FungibleTokenId, ItemId};
+use primitives::{estate::Estate, staking::MetaverseStakingTrait, Amount, EstateId, FungibleTokenId, ItemId};
 
 use crate as economy;
 
@@ -296,7 +294,6 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
-	pub PromotionIncentive: Balance = 1;
 }
 
 impl pallet_nft::Config for Runtime {
@@ -311,7 +308,6 @@ impl pallet_nft::Config for Runtime {
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
-	type PromotionIncentive = PromotionIncentive;
 }
 
 parameter_types! {
@@ -321,8 +317,8 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
-	type ClassData = pallet_nft::NftClassData<Balance>;
-	type TokenData = pallet_nft::NftAssetData<Balance>;
+	type ClassData = NftClassData<Balance>;
+	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
