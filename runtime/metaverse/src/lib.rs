@@ -93,7 +93,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 }
 
 mod weights;
-
+mod benchmarking;
 /// Constant values used within the runtime.
 pub mod constants;
 
@@ -1535,14 +1535,14 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_timestamp, Timestamp);
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
 			list_benchmark!(list, extra, estate, EstateBench::<Runtime>);
-			list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
+			//list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
 			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
 			//orml_list_benchmark!(list, extra, economy, benchmarking::economy);
-			//orml_list_benchmark!(list, extra, auction, benchmarking::auction);
+			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
 			let storage_info = AllPalletsWithSystem::storage_info();
 
 			return (list, storage_info)
@@ -1587,7 +1587,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
 			add_benchmark!(params, batches, nft, NftBench::<Runtime>);
 			add_benchmark!(params, batches, estate, EstateBench::<Runtime>);
-			add_benchmark!(params, batches, auction, AuctionBench::<Runtime>);
+			//add_benchmark!(params, batches, auction, AuctionBench::<Runtime>);
 			add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
