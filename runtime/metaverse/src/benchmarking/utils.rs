@@ -16,7 +16,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{Balance, Currencies, Metaverse, Nft, Runtime};
+use crate::{Balances, Currencies, Metaverse, Nft, Runtime};
+use core_primitives::{Attributes, CollectionType, TokenType};
 use frame_benchmarking::account;
 use frame_support::traits::tokens::fungibles;
 use frame_support::{assert_ok, traits::Contains};
@@ -27,9 +28,11 @@ use sp_runtime::{
 	traits::{SaturatedConversion, StaticLookup},
 	DispatchResult,
 };
+use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
+use sp_runtime::Perbill;
 
-fn dollar(d: u32) -> Balance {
+pub fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
@@ -46,10 +49,10 @@ pub fn set_balance(currency_id: FungibleTokenId, who: &AccountId, balance: Balan
 }
 
 
-fn mint_NFT(caller: &AccountId) {
+pub fn mint_NFT(caller: &AccountId) {
 	//Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 	Nft::create_class(
-		RawOrigin::Signed(caller).into(),
+		RawOrigin::Signed(caller.clone()).into(),
 		vec![1],
 		test_attributes(1),
 		0u32.into(),
@@ -58,7 +61,7 @@ fn mint_NFT(caller: &AccountId) {
 		Perbill::from_percent(0u32),
 	);
 	Nft::mint(
-		RawOrigin::Signed(caller).into(),
+		RawOrigin::Signed(caller.clone()).into(),
 		0u32.into(),
 		vec![1],
 		test_attributes(1),
@@ -66,9 +69,9 @@ fn mint_NFT(caller: &AccountId) {
 	);
 }
 
-fn create_metaverse_for_account(caller: &AccountId) {
+pub fn create_metaverse_for_account(caller: &AccountId) {
 	Metaverse::create_metaverse(
-		RawOrigin::Signed(caller).into(),
+		RawOrigin::Signed(caller.clone()).into(),
 		vec![1u8],
 	);
 }

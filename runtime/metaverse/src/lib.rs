@@ -1521,7 +1521,7 @@ impl_runtime_apis! {
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use nft::benchmarking::Pallet as NftBench;
 			use estate::benchmarking::EstateModule as EstateBench;
-			use auction::benchmarking::AuctionModule as AuctionBench;
+			//use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
@@ -1558,7 +1558,7 @@ impl_runtime_apis! {
 
 			use nft::benchmarking::Pallet as NftBench;
 			use estate::benchmarking::EstateModule as EstateBench;
-			use auction::benchmarking::AuctionModule as AuctionBench;
+			//use auction::benchmarking::AuctionModule as AuctionBench;
 			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;

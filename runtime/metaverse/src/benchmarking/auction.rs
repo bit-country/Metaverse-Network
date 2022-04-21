@@ -1,9 +1,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 use crate::{Auction, Balances, Call, Currencies, Event, Metaverse, Nft, Runtime, System};
 use super::utils::{create_metaverse_for_account, dollar, set_balance, mint_NFT};
-
 use auction::Config;
-use auction::Pallet;
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
@@ -14,7 +12,7 @@ use orml_benchmarking::runtime_benchmarks;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{Attributes, CollectionType, MetaverseInfo, MetaverseTrait, NftMetadata, TokenType};
 use primitives::{
-	AccountId, Balance, FungibleTokenId, ItemId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType, LAND_CLASS_ID,
+	AccountId, FungibleTokenId, ItemId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType, LAND_CLASS_ID,
 };
 
 //pub type AccountId = u128;
@@ -34,13 +32,13 @@ const COORDINATE_IN_2: (i32, i32) = (-5, 5);
 const COORDINATE_OUT: (i32, i32) = (0, 101);
 const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 const ESTATE_IN_AUCTION: EstateId = 99;
-const CURRENCY_ID: FungibleTokenId = 0;
+const CURRENCY_ID: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
 runtime_benchmarks! {
 	{ Runtime, auction }
     // create_new_auction at global level
 	create_new_auction{
-		frame_system::Pallet::set_block_number(1u32.into());
+		System::set_block_number(1u32.into());
 
 		let caller: AccountId = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(10));
@@ -49,16 +47,16 @@ runtime_benchmarks! {
 
 	// create_new_buy_now
 	create_new_buy_now{
-		frame_system::Pallet::set_block_number(1u32.into());
+		System::set_block_number(1u32.into());
 
 		let caller: AccountId = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(10));
-		mint_NFT(caller.clone());
+		mint_NFT(&caller);
 	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
 
 	// bid
 	bid{
-		frame_system::Pallet::set_block_number(1u32.into());
+		System::set_block_number(1u32.into());
 
 		let caller: AccountId = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(10));
@@ -66,12 +64,12 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &bidder, dollar(20));
 		mint_NFT(&caller);
 
-		auction::Pallet::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
 	// buy_now
 	buy_now{
-		frame_system::Pallet::set_block_number(1u32.into());
+		System::set_block_number(1u32.into());
 
 		let caller: AccountId = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(10));
@@ -79,7 +77,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &bidder, dollar(20));
 		mint_NFT(&caller);
 
-		auction::Pallet::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		Auction::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
 	authorise_metaverse_collection{
@@ -92,7 +90,7 @@ runtime_benchmarks! {
 		let alice: AccountId = account("alice", 0, SEED);
 		set_balance(CURRENCY_ID, &alice, dollar(10));
 		create_metaverse_for_account(&alice);
-		auction::Pallet::authorise_metaverse_collection(RawOrigin::Signed(alice.clone()).into(), 0u32.into(), METAVERSE_ID);
+		Auction::authorise_metaverse_collection(RawOrigin::Signed(alice.clone()).into(), 0u32.into(), METAVERSE_ID);
 	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
 }
 
