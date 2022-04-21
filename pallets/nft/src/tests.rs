@@ -133,7 +133,7 @@ fn create_class_should_work() {
 			CollectionType::Collectable,
 			Perbill::from_percent(0u32)
 		));
-		let class_deposit = <Runtime as Config>::DataDepositPerByte::get() * 5; // Test 5 bytes
+		let class_deposit = <Runtime as Config>::MintingPricePerNft::get()  * 5; // Test 5 bytes
 		assert_eq!(Nft::get_class_collection(0), 0);
 		assert_eq!(Nft::all_nft_collection_count(), 1);
 		assert_eq!(

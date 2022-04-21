@@ -96,13 +96,20 @@ pub mod pallet {
 		frame_system::Config
 		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
 	{
+		
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The data deposit per byte to calculate fee
+		//#[pallet::constant]
+		//type DataDepositPerByte: Get<BalanceOf<Self>>;
+		/// Default minting price per NFT token
 		#[pallet::constant]
-		type DataDepositPerByte: Get<BalanceOf<Self>>;
+		type MintingPricePerNft: Get<BalanceOf<Self>>;
+		/// Treasury
+		#[pallet::constant]
+		type Treasury: Get<PalletId>;
 		/// Currency type for reserve/unreserve balance
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-		//NFT Module Id
+		/// NFT Module Id
 		#[pallet::constant]
 		type PalletId: Get<PalletId>;
 		/// Weight info
@@ -421,17 +428,17 @@ pub mod pallet {
 			);
 
 			// Class fund
-			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(next_class_id);
+			let class_fund: T::AccountId = T::Treasury::get().into_account();
 
 			// Secure deposit of token class owner
-			let class_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
+			//let class_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
 			// Transfer fund to pot
-			<T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
+			<T as Config>::Currency::transfer(&sender, &class_fund, T::MintingPricePerNft::get(), ExistenceRequirement::KeepAlive)?;
 			// Reserve pot fund
-			<T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
+			//<T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
 
 			let class_data = NftClassData {
-				deposit: class_deposit,
+				deposit: T::MintingPricePerNft::get(),
 				token_type,
 				collection_type,
 				attributes: attributes,
@@ -775,12 +782,12 @@ impl<T: Config> Pallet<T> {
 
 		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
 		ensure!(sender.clone() == class_info.owner, Error::<T>::NoPermission);
-		let token_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
-		let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
-		let deposit = token_deposit.saturating_mul(Into::<BalanceOf<T>>::into(quantity));
+		//let token_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
+		let class_fund: T::AccountId = T::Treasury::get().into_account();
+		let deposit = T::MintingPricePerNft::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
-		<T as Config>::Currency::reserve(&class_fund, deposit)?;
+		//<T as Config>::Currency::reserve(&class_fund, deposit)?;
 
 		let new_nft_data = NftAssetData {
 			deposit,
@@ -834,10 +841,10 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Class fund
-		let class_fund: T::AccountId = T::PalletId::get().into_sub_account(next_class_id);
+		let class_fund: T::AccountId = T::Treasury::get().into_account();
 
 		// Secure deposit of token class owner
-		let class_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
+		let class_deposit = T::MintingPricePerNft::get();
 		// Transfer fund to pot
 		<T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
 		// Reserve pot fund
@@ -856,7 +863,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Calculate deposit fee
-	fn calculate_fee_deposit(attributes: &Attributes, metadata: &NftMetadata) -> Result<BalanceOf<T>, DispatchError> {
+	/*fn calculate_fee_deposit(attributes: &Attributes, metadata: &NftMetadata) -> Result<BalanceOf<T>, DispatchError> {
 		// Accumulate lens of attributes length
 		let attributes_len = attributes.iter().fold(0, |accumulate, (k, v)| {
 			accumulate.saturating_add(v.len().saturating_add(k.len()) as u32)
@@ -881,7 +888,7 @@ impl<T: Config> Pallet<T> {
 
 		Ok(total_deposit_required)
 	}
-
+*/
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
 		let mut num_nft_classes = 0;

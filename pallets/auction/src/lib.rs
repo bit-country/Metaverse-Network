@@ -124,6 +124,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		/// 
 		#[pallet::constant]
 		type AuctionTimeToClose: Get<Self::BlockNumber>;
 		/// The `AuctionHandler` that allow custom bidding logic and handles auction result

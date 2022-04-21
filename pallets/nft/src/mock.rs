@@ -217,6 +217,8 @@ impl pallet_scheduler::Config for Runtime {
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type MintingPricePerNft = MintingPricePerNft;
+    type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
 	type AuctionHandler = MockAuctionManager;
 	type WeightInfo = ();
@@ -225,12 +227,14 @@ impl Config for Runtime {
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
-	type DataDepositPerByte = MetadataDataDepositPerByte;
+	//type DataDepositPerByte = MetadataDataDepositPerByte;
 }
 
 parameter_types! {
 	pub MaxClassMetadata: u32 = 1024;
 	pub MaxTokenMetadata: u32 = 1024;
+	pub MintingPricePerNft: Balance = 1;
+	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 }
 
 impl orml_nft::Config for Runtime {
