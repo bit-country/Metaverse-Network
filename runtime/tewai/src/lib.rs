@@ -1034,19 +1034,18 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	//pub MetadataDepositPerByte: Balance = 1 * CENTS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
 	pub PromotionIncentive: Balance = 1 * DOLLARS;
-	pub MintingPricePerNft: Balance = 1 * DOLLARS;
+	pub AssetMintingFee: Balance = 1 * DOLLARS;
+	pub ClassMintingFee: Balance = 2 * DOLLARS;
 }
 
 impl nft::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
-	type MintingPricePerNft = MintingPricePerNft;
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
@@ -1056,7 +1055,8 @@ impl nft::Config for Runtime {
 	type MaxMetadata = MaxNftMetadata;
 	type MiningResourceId = MiningResourceCurrencyId;
 	type PromotionIncentive = PromotionIncentive;
-	//type DataDepositPerByte = MetadataDepositPerByte;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {

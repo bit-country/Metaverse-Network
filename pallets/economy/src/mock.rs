@@ -292,18 +292,17 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 }
 
 parameter_types! {
-	pub CreateClassDeposit: Balance = 2;
-	pub CreateAssetDeposit: Balance = 1;
+	pub ClassMintingFee: Balance = 2;
+	pub AssetMintingFee: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
+	pub MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy"); 
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
-	//pub PromotionIncentive: Balance = 1;
 }
 
 impl pallet_nft::Config for Runtime {
 	type Event = Event;
-	type DataDepositPerByte = CreateAssetDeposit;
 	type Currency = Balances;
 	type PalletId = NftPalletId;
 	type WeightInfo = ();
@@ -313,7 +312,9 @@ impl pallet_nft::Config for Runtime {
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
-	//type PromotionIncentive = PromotionIncentive;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {

@@ -95,15 +95,15 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config
 		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
-	{
-		
+	{	
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The data deposit per byte to calculate fee
-		//#[pallet::constant]
-		//type DataDepositPerByte: Get<BalanceOf<Self>>;
 		/// Default minting price per NFT token
 		#[pallet::constant]
-		type MintingPricePerNft: Get<BalanceOf<Self>>;
+		type AssetMintingFee: Get<BalanceOf<Self>>;
+		/// Default minting price per NFT token class
+		#[pallet::constant]
+		type ClassMintingFee: Get<BalanceOf<Self>>;
 		/// Treasury
 		#[pallet::constant]
 		type Treasury: Get<PalletId>;
@@ -412,42 +412,9 @@ pub mod pallet {
 			royalty_fee: Perbill,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			ensure!(
-				metadata.len() as u32 <= T::MaxMetadata::get(),
-				Error::<T>::ExceedMaximumMetadataLength
-			);
-			let next_class_id = NftModule::<T>::next_class_id();
-			ensure!(
-				GroupCollections::<T>::contains_key(collection_id),
-				Error::<T>::CollectionDoesNotExist
-			);
-
-			ensure!(
-				royalty_fee <= Perbill::from_percent(25u32),
-				Error::<T>::RoyaltyFeeExceedLimit
-			);
-
-			// Class fund
-			let class_fund: T::AccountId = T::Treasury::get().into_account();
-
-			// Secure deposit of token class owner
-			//let class_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
-			// Transfer fund to pot
-			<T as Config>::Currency::transfer(&sender, &class_fund, T::MintingPricePerNft::get(), ExistenceRequirement::KeepAlive)?;
-			// Reserve pot fund
-			//<T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
-
-			let class_data = NftClassData {
-				deposit: T::MintingPricePerNft::get(),
-				token_type,
-				collection_type,
-				attributes: attributes,
-			};
-
-			NftModule::<T>::create_class(&sender, metadata, class_data)?;
-			ClassDataCollection::<T>::insert(next_class_id, collection_id);
-
-			Self::deposit_event(Event::<T>::NewNftClassCreated(sender, next_class_id));
+			let class_id = Self::do_create_class(&sender, metadata, attributes, collection_id, token_type, collection_type, royalty_fee)?;
+			
+			Self::deposit_event(Event::<T>::NewNftClassCreated(sender, class_id));
 
 			Ok(().into())
 		}
@@ -548,7 +515,7 @@ pub mod pallet {
 			ensure!(!asset_by_owner.contains(&asset_id), Error::<T>::SignOwnAsset);
 
 			// Add contribution into class fund
-			let class_fund = Self::get_class_fund(&asset_id.0);
+			let class_fund = T::Treasury::get().into_account();
 
 			ensure!(
 				<T as Config>::Currency::free_balance(&sender) > contribution,
@@ -557,7 +524,7 @@ pub mod pallet {
 			// Transfer contribution to class fund pot
 			<T as Config>::Currency::transfer(&sender, &class_fund, contribution, ExistenceRequirement::KeepAlive)?;
 			// Reserve pot fund
-			<T as Config>::Currency::reserve(&class_fund, contribution)?;
+			//<T as Config>::Currency::reserve(&class_fund, contribution)?;
 
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
@@ -690,7 +657,6 @@ impl<T: Config> Pallet<T> {
 		})?;
 
 		// Insert asset to recipient
-
 		if AssetsByOwner::<T>::contains_key(to) {
 			AssetsByOwner::<T>::try_mutate(&to, |asset_ids| -> DispatchResult {
 				// Check if the asset_id already in the owner
@@ -784,10 +750,10 @@ impl<T: Config> Pallet<T> {
 		ensure!(sender.clone() == class_info.owner, Error::<T>::NoPermission);
 		//let token_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
 		let class_fund: T::AccountId = T::Treasury::get().into_account();
-		let deposit = T::MintingPricePerNft::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
-		//<T as Config>::Currency::reserve(&class_fund, deposit)?;
+		
 
 		let new_nft_data = NftAssetData {
 			deposit,
@@ -844,11 +810,9 @@ impl<T: Config> Pallet<T> {
 		let class_fund: T::AccountId = T::Treasury::get().into_account();
 
 		// Secure deposit of token class owner
-		let class_deposit = T::MintingPricePerNft::get();
+		let class_deposit = T::ClassMintingFee::get();
 		// Transfer fund to pot
 		<T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
-		// Reserve pot fund
-		<T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
 
 		let class_data = NftClassData {
 			deposit: class_deposit,
