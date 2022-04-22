@@ -272,7 +272,7 @@ parameter_types! {
 impl pallet_nft::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-    type Treasury = MetaverseNetworkTreasuryPalletId;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
 	type AuctionHandler = MockAuctionManager;
 	type WeightInfo = ();

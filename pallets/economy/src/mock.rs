@@ -295,7 +295,7 @@ parameter_types! {
 	pub ClassMintingFee: Balance = 2;
 	pub AssetMintingFee: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
-	pub MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy"); 
+	pub MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;

@@ -95,7 +95,7 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config
 		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
-	{	
+	{
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The data deposit per byte to calculate fee
 		/// Default minting price per NFT token
@@ -412,8 +412,15 @@ pub mod pallet {
 			royalty_fee: Perbill,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let class_id = Self::do_create_class(&sender, metadata, attributes, collection_id, token_type, collection_type, royalty_fee)?;
-			
+			let class_id = Self::do_create_class(
+				&sender,
+				metadata,
+				attributes,
+				collection_id,
+				token_type,
+				collection_type,
+				royalty_fee,
+			)?;
 			Self::deposit_event(Event::<T>::NewNftClassCreated(sender, class_id));
 
 			Ok(().into())
@@ -753,8 +760,6 @@ impl<T: Config> Pallet<T> {
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
-		
-
 		let new_nft_data = NftAssetData {
 			deposit,
 			attributes: attributes,
@@ -826,33 +831,6 @@ impl<T: Config> Pallet<T> {
 		Ok(next_class_id)
 	}
 
-	/// Calculate deposit fee
-	/*fn calculate_fee_deposit(attributes: &Attributes, metadata: &NftMetadata) -> Result<BalanceOf<T>, DispatchError> {
-		// Accumulate lens of attributes length
-		let attributes_len = attributes.iter().fold(0, |accumulate, (k, v)| {
-			accumulate.saturating_add(v.len().saturating_add(k.len()) as u32)
-		});
-
-		// Accumulate lens of metadata
-		let metadata_len = metadata.len() as u32;
-		ensure!(
-			attributes_len <= T::MaxMetadata::get(),
-			Error::<T>::ExceedMaximumMetadataLength
-		);
-
-		ensure!(
-			metadata_len <= T::MaxMetadata::get(),
-			Error::<T>::ExceedMaximumMetadataLength
-		);
-
-		let deposit_attribute_required = T::DataDepositPerByte::get().saturating_mul(attributes_len.into());
-		let total_deposit_required = T::DataDepositPerByte::get()
-			.saturating_mul(metadata_len.into())
-			.saturating_add(deposit_attribute_required);
-
-		Ok(total_deposit_required)
-	}
-*/
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
 		let mut num_nft_classes = 0;

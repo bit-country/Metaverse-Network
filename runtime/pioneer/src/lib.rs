@@ -988,7 +988,7 @@ parameter_types! {
 impl nft::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-    type Treasury = MetaverseNetworkTreasuryPalletId;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type MultiCurrency = Currencies;
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;

@@ -214,7 +214,7 @@ impl pallet_scheduler::Config for Runtime {
 	type NoPreimagePostponement = ();
 }
 
-parameter_types!{
+parameter_types! {
 	pub AssetMintingFee: Balance = 1;
 	pub ClassMintingFee: Balance = 2;
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
@@ -223,7 +223,7 @@ parameter_types!{
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-    type Treasury = MetaverseNetworkTreasuryPalletId;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
 	type AuctionHandler = MockAuctionManager;
 	type WeightInfo = ();
