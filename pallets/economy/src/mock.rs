@@ -177,6 +177,7 @@ impl Config for Runtime {
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumStake = MinimumStake;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
+	type WeightInfo = ();
 }
 
 parameter_type_with_key! {
