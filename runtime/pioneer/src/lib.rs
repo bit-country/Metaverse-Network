@@ -20,7 +20,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, RawOrigin,
 };
-use orml_traits::{arithmetic::Zero, parameter_type_with_key};
+use orml_traits::{arithmetic::Zero, parameter_type_with_key, MultiCurrency};
 pub use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 // XCM Imports
 use orml_xcm_support::DepositToAlternative;
@@ -50,10 +50,10 @@ use sp_version::RuntimeVersion;
 use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
-	AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedWeightBounds, IsConcrete, LocationInverter,
-	NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+	AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, IsConcrete,
+	LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation,
-	TakeWeightCredit, UsingComponents,
+	TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
 
@@ -731,6 +731,38 @@ parameter_types! {
 	pub SelfParaChainId: cumulus_primitives_core::ParaId = ParachainInfo::parachain_id();
 }
 
+parameter_types! {
+	pub KsmPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), ksm_per_second());
+	pub NeerPerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			1,
+			X2(Parachain(SelfParaId::get()), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+		).into(),
+		// NEER:KSM = 100:1
+		ksm_per_second() * 100
+	);
+}
+
+pub struct ToTreasury;
+impl TakeRevenue for ToTreasury {
+	fn take_revenue(revenue: MultiAsset) {
+		if let MultiAsset {
+			id: Concrete(location),
+			fun: Fungible(amount),
+		} = revenue
+		{
+			if let Some(currency_id) = FungibleTokenIdConvert::convert(location) {
+				let _ = Currencies::deposit(currency_id, &TreasuryModuleAccount::get(), amount);
+			}
+		}
+	}
+}
+
+pub type Trader = (
+	FixedRateOfFungible<KsmPerSecond, ToTreasury>,
+	FixedRateOfFungible<NeerPerSecond, ToTreasury>,
+);
+
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
 /// when determining ownership of accounts for asset transacting and when attempting to use XCM
 /// `Transact` in order to determine the dispatch Origin.
@@ -786,8 +818,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-	// One XCM operation is 1_000_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = 1_000_000_000;
+	// One XCM operation is 2_000_000_000 weight - almost certainly a conservative estimate.
+	pub UnitWeightCost: Weight = 2_000_000_000;
 	pub const MaxInstructions: u32 = 100;
 }
 
@@ -941,7 +973,7 @@ impl xcm_executor::Config for XcmConfig {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
-	type Trader = UsingComponents<IdentityFee<Balance>, RocLocation, AccountId, Balances, ()>;
+	type Trader = Trader;
 	type ResponseHandler = PolkadotXcm;
 	type AssetTrap = PolkadotXcm;
 	type AssetClaims = PolkadotXcm;

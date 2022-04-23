@@ -16,8 +16,8 @@ use sp_runtime::{
 
 use metaverse_runtime::MintingRateInfo;
 use pioneer_runtime::{
-	constants::currency::*, AccountId, AuraConfig, BalancesConfig, GenesisConfig, SessionKeys, Signature, SudoConfig,
-	SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY, ContinuumConfig, EstateConfig
+	constants::currency::*, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, EstateConfig, GenesisConfig,
+	SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
 use primitives::Balance;
 
@@ -156,7 +156,9 @@ fn pioneer_genesis(
 		balances: pioneer_runtime::BalancesConfig {
 			balances: initial_allocation,
 		},
-		sudo: pioneer_runtime::SudoConfig { key: Some(root_key.clone()), },
+		sudo: pioneer_runtime::SudoConfig {
+			key: Some(root_key.clone()),
+		},
 		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
@@ -210,7 +212,9 @@ fn testnet_genesis(
 				.map(|k| (k, 250 * KILODOLLARS))
 				.collect(),
 		},
-		sudo: pioneer_runtime::SudoConfig { key: Some(root_key.clone()), },
+		sudo: pioneer_runtime::SudoConfig {
+			key: Some(root_key.clone()),
+		},
 		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
