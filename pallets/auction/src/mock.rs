@@ -10,7 +10,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseTrait, NftAssetData, NftClassData};
-use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
+use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId};
 
 use crate as auction;
 
@@ -211,6 +211,14 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
+	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
+		15u32
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
+		16u32
 	}
 }
 

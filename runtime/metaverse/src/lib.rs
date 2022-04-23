@@ -506,6 +506,7 @@ impl metaverse::Config for Runtime {
 	type MinStakingAmount = MinContribution;
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakerPerMetaverse;
 	type MultiCurrency = Currencies;
+	type NFTHandler = Nft;
 }
 
 parameter_types! {

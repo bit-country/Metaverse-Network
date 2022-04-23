@@ -12,7 +12,7 @@ use sp_runtime::{
 };
 
 use primitives::FungibleTokenId::FungibleToken;
-use primitives::{Amount, CurrencyId, FungibleTokenId};
+use primitives::{Amount, ClassId, CurrencyId, FungibleTokenId};
 
 use crate as tokenization;
 use crate::{Config, Module};
@@ -133,6 +133,14 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
+	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
+		15u32
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
+		16u32
 	}
 }
 

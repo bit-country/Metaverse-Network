@@ -141,6 +141,10 @@ pub trait MetaverseTrait<AccountId> {
 	fn get_metaverse_token(metaverse_id: MetaverseId) -> Option<FungibleTokenId>;
 	/// Update metaverse token, this only use once per metaverse
 	fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
+	/// Get the land class for a specific metaverse
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId;
+	/// Get the estate class for a specific metaverse
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId;
 }
 
 pub trait MetaverseLandTrait<AccountId> {

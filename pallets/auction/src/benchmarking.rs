@@ -95,25 +95,6 @@ fn mint_NFT<T: Config>(caller: T::AccountId) {
 	);
 
 	T::NFTHandler::mint_token(&caller.clone(), 0u32.into(), vec![1], test_attributes(1));
-	/*
-		pallet_nft::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-		pallet_nft::Pallet::<T>::create_class(
-			RawOrigin::Signed(caller.clone()).into(),
-			vec![1],
-			test_attributes(1),
-			0u32.into(),
-			TokenType::Transferable,
-			CollectionType::Collectable,
-			Perbill::from_percent(0u32),
-		);
-		pallet_nft::Pallet::<T>::mint(
-			RawOrigin::Signed(caller.clone()).into(),
-			0u32.into(),
-			vec![1],
-			test_attributes(1),
-			3,
-		);
-	*/
 }
 
 fn create_metaverse_for_account<T: Config>(caller: T::AccountId) {
