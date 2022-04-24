@@ -736,7 +736,7 @@ parameter_types! {
 	pub NeerPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(SelfParaId::get()), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+			X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
 		).into(),
 		// NEER:KSM = 100:1
 		ksm_per_second() * 100
