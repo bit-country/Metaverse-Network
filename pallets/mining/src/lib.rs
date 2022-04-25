@@ -192,6 +192,10 @@ pub mod pallet {
 		OriginsIsNotExist,
 		/// Round update is on progress
 		RoundUpdateIsOnProgress,
+		/// Mining round already paused
+		MiningRoundAlreadyPaused,
+		/// Mining round is not paused
+		MiningRoundIsNotPaused,
 	}
 
 	#[pallet::call]
@@ -252,6 +256,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Update round length
 		#[pallet::weight(100_000)]
 		pub fn update_round_length(origin: OriginFor<T>, length: T::BlockNumber) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
@@ -268,6 +273,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Update mining issuance configuration
 		#[pallet::weight(100_000)]
 		pub fn update_mining_issuance_config(
 			origin: OriginFor<T>,
@@ -285,18 +291,32 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Pause current mining round so new round will not roll out until unpaused
 		#[pallet::weight(100_000)]
 		pub fn pause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			let mut current_round = Round::<T>::get();
-			ensure!(length >= Zero::zero(), Error::<T>::AmountZero);
+			let current_round = Round::<T>::get();
+			ensure!(!MiningPaused::<T>::get(), Error::<T>::MiningRoundAlreadyPaused);
 
-			current_round.length = length.saturated_into::<u32>();
+			MiningPaused::<T>::put(true);
+			let current_block = <system::Pallet<T>>::block_number();
+			Self::deposit_event(Event::<T>::MiningRoundPaused(current_block, current_round.current));
 
-			Round::<T>::put(current_round);
+			Ok(().into())
+		}
 
-			Self::deposit_event(Event::<T>::RoundLengthUpdated(length));
+		/// Unpause current mining round so new round can roll out
+		#[pallet::weight(100_000)]
+		pub fn unpause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			let current_round = Round::<T>::get();
+			ensure!(MiningPaused::<T>::get(), Error::<T>::MiningRoundIsNotPaused);
+
+			MiningPaused::<T>::put(false);
+			let current_block = <system::Pallet<T>>::block_number();
+			Self::deposit_event(Event::<T>::MiningRoundUnPaused(current_block, current_round.current));
 
 			Ok(().into())
 		}
