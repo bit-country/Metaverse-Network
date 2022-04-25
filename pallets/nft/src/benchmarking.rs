@@ -89,7 +89,7 @@ benchmarks! {
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
-	}: _(RawOrigin::Signed(caller), target.clone(),  0u32.into() )
+	}: _(RawOrigin::Signed(caller), target.clone(), (0u32.into(), 0u32.into()) )
 
 	transfer_batch{
 		let caller = funded_account::<T>("caller", 0);
@@ -102,7 +102,7 @@ benchmarks! {
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
-	}: _(RawOrigin::Signed(caller), vec![(target1.clone(), 0u32.into()), (target2.clone(), 1u32.into())] )
+	}: _(RawOrigin::Signed(caller), vec![(target1.clone(), (0u32.into(), 0u32.into())), (target2.clone(), (0u32.into(), 1u32.into()))] )
 
 	sign_asset{
 		let caller = funded_account::<T>("caller", 0);
@@ -113,7 +113,7 @@ benchmarks! {
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
-	}: _(RawOrigin::Signed(signer), 0u32.into(), 100u32.into() )
+	}: _(RawOrigin::Signed(signer), (0u32.into(), 0u32.into()), 100u32.into() )
 
 }
 
