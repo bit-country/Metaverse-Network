@@ -146,8 +146,18 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		royalty_fee: Perbill,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
-			ALICE => Ok(1),
-			BOB => Ok(2),
+			ALICE => {
+				if collection_id == 0 {
+					Ok(0)
+				}
+				else if collection_id == 1{
+					Ok(1)
+				}
+				else {
+					Ok(2)
+				}		
+			},
+			BOB => Ok(3),
 			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
 			_ => Ok(100),
 		}
@@ -203,7 +213,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		CLASS_FUND_ID
 	}
 
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<(NftClassData<Balance>), DispatchError> {
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
 		let new_data = NftClassData {
 			deposit: 0,
 			attributes: test_attributes(1),

@@ -118,6 +118,10 @@ pub struct MetaverseInfo<AccountId> {
 	pub currency_id: FungibleTokenId,
 	/// Whether the metaverse can be transferred or not.
 	pub is_frozen: bool,
+	/// Class Id for land tokens
+	pub land_class_id: ClassId,
+	/// Class Id for estate tokens
+	pub estate_class_id: ClassId,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -142,9 +146,9 @@ pub trait MetaverseTrait<AccountId> {
 	/// Update metaverse token, this only use once per metaverse
 	fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
 	/// Get the land class for a specific metaverse
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId;
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError>;
 	/// Get the estate class for a specific metaverse
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId;
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError>;
 }
 
 pub trait MetaverseLandTrait<AccountId> {
@@ -212,7 +216,7 @@ pub trait NFTTrait<AccountId, Balance> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<TokenId, DispatchError>;
-	/// Burn nft
+	/// Burn NFT
 	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
 	/// Check if item is on listing
 	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError>;

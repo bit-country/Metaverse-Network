@@ -34,8 +34,7 @@ pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::Estate, estate::LandUnitStatus, estate::OwnerId, Attributes, ClassId, EstateId, ItemId, MetaverseId,
-	NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType, ESTATE_CLASS_ID,
-	LAND_CLASS_ID,
+	NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType, 
 };
 pub use rate::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -1175,9 +1174,10 @@ impl<T: Config> Pallet<T> {
 						OwnerId::Account(a) => {
 							if is_tokenized {
 								let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
+								let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 								let asset_id = T::NFTTokenizationSource::mint_token(
 									&beneficiary,
-									T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id),
+									class_id,
 									token_properties.0,
 									token_properties.1,
 								)?;
@@ -1188,9 +1188,10 @@ impl<T: Config> Pallet<T> {
 					None => {
 						if is_tokenized {
 							let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
+							let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 							let asset_id = T::NFTTokenizationSource::mint_token(
 								&beneficiary,
-								T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id),
+								class_id,
 								token_properties.0,
 								token_properties.1,
 							)?;
@@ -1206,9 +1207,10 @@ impl<T: Config> Pallet<T> {
 				);
 				if is_tokenized {
 					let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
+					let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 					let asset_id = T::NFTTokenizationSource::mint_token(
 						&beneficiary,
-						T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id),
+						class_id,
 						token_properties.0,
 						token_properties.1,
 					)?;
@@ -1243,9 +1245,10 @@ impl<T: Config> Pallet<T> {
 		let mut owner = OwnerId::Account(beneficiary.clone());
 		if is_tokenized {
 			let token_properties = Self::get_estate_token_properties(metaverse_id, new_estate_id);
+			let class_id = T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id)?;
 			let asset_id: TokenId = T::NFTTokenizationSource::mint_token(
-				&beneficiary,
-				T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id),
+				beneficiary,
+				class_id,
 				token_properties.0,
 				token_properties.1,
 			)?;

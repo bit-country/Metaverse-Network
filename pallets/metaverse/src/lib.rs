@@ -258,6 +258,7 @@ pub mod pallet {
 				T::MinContribution::get(),
 				ExistenceRequirement::KeepAlive,
 			)?;
+			
 			let metaverse_id = Self::new_metaverse(&who, metadata)?;
 
 			MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
@@ -267,8 +268,7 @@ pub mod pallet {
 				.checked_add(One::one())
 				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 			AllMetaversesCount::<T>::put(new_total_metaverse_count);
-			//let metaverse_estate_class_id = Self::mint_metaverse_estate_class(&who, metaverse_id);
-			//let metaverse_land_class_id = Self::mint_metaverse_land_class(&who, metaverse_id);
+			
 			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), who));
 
 			Ok(().into())
@@ -612,12 +612,16 @@ impl<T: Config> Pallet<T> {
 			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableMetaverseId)?;
 			Ok(current_id)
 		})?;
-
+		let land_class_id = Self::mint_metaverse_land_class(owner, metaverse_id)?;
+		let estate_class_id = Self::mint_metaverse_estate_class(owner, metaverse_id)?;
+	
 		let metaverse_info = MetaverseInfo {
 			owner: owner.clone(),
 			currency_id: FungibleTokenId::NativeToken(0),
 			metadata,
 			is_frozen: false,
+			land_class_id,
+			estate_class_id,
 		};
 
 		Metaverses::<T>::insert(metaverse_id, metaverse_info);
@@ -644,7 +648,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) {
+	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId,DispatchError> {
 		// Pre-mint class for lands
 		let mut land_class_attributes = Attributes::new();
 		land_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
@@ -658,11 +662,10 @@ impl<T: Config> Pallet<T> {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(10u32)
-		);
-		// TO DO: Add class as metaverse parameter
+		)
 	}
 
-	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) {
+	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId,DispatchError> {
 		// Pre-mint class for estates
 		let mut estate_class_attributes = Attributes::new();
 		estate_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
@@ -676,8 +679,7 @@ impl<T: Config> Pallet<T> {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(10u32)
-		);
-		// TO DO: Add class as metaverse parameter
+		)
 	}
 }
 
@@ -712,12 +714,14 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 		})
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
-		return TryInto::<ClassId>::try_into(15u32).unwrap_or_default();
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
 	}
 	
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
-		return TryInto::<ClassId>::try_into(16u32).unwrap_or_default();
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
 	}
 
 }

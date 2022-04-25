@@ -56,9 +56,7 @@ use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
 use primitive_traits::{CollectionType, NftAssetData};
-use primitives::{
-	AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
-};
+use primitives::{AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]

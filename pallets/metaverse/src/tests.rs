@@ -36,6 +36,8 @@ fn create_metaverse_should_work() {
 				metadata: vec![1],
 				currency_id: FungibleTokenId::NativeToken(0),
 				is_frozen: false,
+				land_class_id: 0u32,
+				estate_class_id: 1u32,
 			})
 		);
 		let event = Event::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
