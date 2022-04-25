@@ -144,7 +144,7 @@ jobs:
     environment:
       name: pioneer-xcm
 
-    if: ${{  github.event.inputs.runtime == 'pioneer' }}
+    if: ${{  github.event.inputs.runtime == 'pioneer-xcm' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
