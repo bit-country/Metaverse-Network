@@ -19,25 +19,28 @@
 //! Benchmarks for the nft module.
 
 #![cfg(feature = "runtime-benchmarks")]
-
-use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
-use frame_support::traits::Get;
-use frame_system::RawOrigin;
-use orml_traits::BasicCurrencyExtended;
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
-use sp_std::prelude::*;
-use sp_std::vec;
-
-use primitives::Balance;
-
 use crate::Call;
 #[allow(unused)]
 use crate::Pallet as NftModule;
 pub use crate::*;
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_support::traits::Get;
+use frame_system::RawOrigin;
+use orml_traits::BasicCurrencyExtended;
+use primitive_traits::CollectionType;
+use primitives::{AssetId, Balance};
+//use core_primitives::NFTTrait;
+use scale_info::Type;
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
+use sp_std::prelude::*;
+use sp_std::vec;
 
 pub struct Pallet<T: Config>(crate::Pallet<T>);
 
 const SEED: u32 = 0;
+const ASSET_0: AssetId = 0;
+const ASSET_1: AssetId = 1;
 
 fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
@@ -69,7 +72,7 @@ benchmarks! {
 		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-	}: _(RawOrigin::Signed(caller), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable)
+	}: _(RawOrigin::Signed(caller), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(22u32))
 
 	mint{
 		let caller = funded_account::<T>("caller", 0);
@@ -89,7 +92,7 @@ benchmarks! {
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
-	}: _(RawOrigin::Signed(caller), target.clone(), (0u32.into(), 0u32.into()) )
+	}: _(RawOrigin::Signed(caller), target.clone(), (0u32.into(), 0u32.into()))
 
 	transfer_batch{
 		let caller = funded_account::<T>("caller", 0);

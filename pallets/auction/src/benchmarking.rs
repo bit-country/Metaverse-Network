@@ -25,18 +25,17 @@ use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 use sp_runtime::Perbill;
-use sp_std::prelude::*;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
-
 // use orml_traits::BasicCurrencyExtended;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{MetaverseInfo, MetaverseTrait};
-use pallet_nft::{Attributes, CollectionType, TokenType};
+use core_primitives::{Attributes, CollectionType, MetaverseInfo, MetaverseTrait, NftMetadata};
+use pallet_nft::{NFTTrait, TokenType};
 // use pallet_estate::Pallet as EstateModule;
-// use pallet_metaverse::Pallet as MetaverseModule;
-use pallet_nft::Pallet as NFTModule;
-use primitives::Balance;
-use primitives::{FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType};
+use pallet_metaverse::Pallet as MetaverseModule;
+
+use primitives::{
+	Balance, FungibleTokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType, LAND_CLASS_ID,
+};
 
 #[allow(unused)]
 pub use crate::Pallet as AuctionModule;
@@ -55,7 +54,7 @@ const METAVERSE_ID: u64 = 0;
 const ALICE: AccountId = 1;
 const BENEFICIARY_ID: AccountId = 99;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
-pub const BOB_METAVERSE_ID: MetaverseId = 2;
+pub const DEMO_METAVERSE_ID: MetaverseId = 3;
 
 const MAX_BOUND: (i32, i32) = (-100, 100);
 const COORDINATE_IN_1: (i32, i32) = (-10, 10);
@@ -77,10 +76,16 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	caller
 }
 
+fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
+}
+
 fn mint_NFT<T: Config>(caller: T::AccountId) {
-	NFTModule::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-	NFTModule::<T>::create_class(
-		RawOrigin::Signed(caller.clone()).into(),
+	//T::NFTHandler::mint_land_nft(caller.clone().into(), vec![1], test_attributes(1));
+	T::NFTHandler::create_token_class(
+		&caller.clone(),
 		vec![1],
 		test_attributes(1),
 		0u32.into(),
@@ -88,43 +93,15 @@ fn mint_NFT<T: Config>(caller: T::AccountId) {
 		CollectionType::Collectable,
 		Perbill::from_percent(0u32),
 	);
-	NFTModule::<T>::mint(
-		RawOrigin::Signed(caller.clone()).into(),
-		0u32.into(),
-		vec![1],
-		test_attributes(1),
-		3,
-	);
+
+	T::NFTHandler::mint_token(&caller.clone(), 0u32.into(), vec![1], test_attributes(1));
 }
 
-fn test_attributes(x: u8) -> Attributes {
-	let mut attr: Attributes = BTreeMap::new();
-	attr.insert(vec![x, x + 5], vec![x, x + 10]);
-	attr
-}
-
-pub struct MetaverseInfoSource {}
-
-impl MetaverseTrait<AccountId> for MetaverseInfoSource {
-	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
-		match *who {
-			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
-			BOB => *metaverse_id == BOB_METAVERSE_ID,
-			_ => false,
-		}
-	}
-
-	fn get_metaverse(metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
-		None
-	}
-
-	fn get_metaverse_token(metaverse_id: u64) -> Option<FungibleTokenId> {
-		return Some(FungibleTokenId::FungibleToken(0u32.into()));
-	}
-
-	fn update_metaverse_token(metaverse_id: u64, currency_id: FungibleTokenId) -> Result<(), DispatchError> {
-		Ok(())
-	}
+fn create_metaverse_for_account<T: Config>(caller: T::AccountId) {
+	//pallet_metaverse::Pallet::<T>::create_metaverse(
+	//	RawOrigin::Signed(caller.clone()).into(),
+	//	vec![1u8],
+	//);
 }
 
 benchmarks! {
@@ -134,7 +111,7 @@ benchmarks! {
 
 		let caller = funded_account::<T>("caller", 0);
 		mint_NFT::<T>(caller.clone());
-	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
 
 	// create_new_buy_now
 	create_new_buy_now{
@@ -142,7 +119,7 @@ benchmarks! {
 
 		let caller = funded_account::<T>("caller", 0);
 		mint_NFT::<T>(caller.clone());
-	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global)
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global)
 
 	// bid
 	bid{
@@ -152,7 +129,7 @@ benchmarks! {
 		let bidder = funded_account::<T>("bidder", 0);
 		mint_NFT::<T>(caller.clone());
 
-		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
 	// buy_now
@@ -163,8 +140,19 @@ benchmarks! {
 		let bidder = funded_account::<T>("bidder", 0);
 		mint_NFT::<T>(caller.clone());
 
-		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		crate::Pallet::<T>::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
+
+	authorise_metaverse_collection{
+		let alice = funded_account::<T>("alice", 0);
+		create_metaverse_for_account::<T>(alice.clone());
+	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
+
+	remove_authorise_metaverse_collection {
+		let alice = funded_account::<T>("alice", 0);
+		create_metaverse_for_account::<T>(alice.clone());
+		crate::Pallet::<T>::authorise_metaverse_collection(RawOrigin::Signed(alice.clone()).into(), 0u32.into(), METAVERSE_ID);
+	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

@@ -8,7 +8,10 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::*;
-use primitives::{estate::Estate, staking::MetaverseStakingTrait, Amount, EstateId, FungibleTokenId, ItemId};
+use core_primitives::NftAssetData;
+use primitives::estate::Estate;
+use primitives::staking::MetaverseStakingTrait;
+use primitives::{Amount, EstateId, FungibleTokenId, ItemId};
 
 use crate as economy;
 
@@ -160,6 +163,7 @@ impl pallet_mining::Config for Runtime {
 	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type MetaverseStakingHandler = MetaverseStakingHandler;
+	type WeightInfo = ();
 }
 
 ord_parameter_types! {
@@ -288,9 +292,10 @@ impl CheckAuctionItemHandler for MockAuctionManager {
 }
 
 parameter_types! {
-	pub CreateClassDeposit: Balance = 2;
-	pub CreateAssetDeposit: Balance = 1;
+	pub ClassMintingFee: Balance = 2;
+	pub AssetMintingFee: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
+	pub MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
@@ -298,7 +303,6 @@ parameter_types! {
 
 impl pallet_nft::Config for Runtime {
 	type Event = Event;
-	type DataDepositPerByte = CreateAssetDeposit;
 	type Currency = Balances;
 	type PalletId = NftPalletId;
 	type WeightInfo = ();
@@ -308,6 +312,9 @@ impl pallet_nft::Config for Runtime {
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {
@@ -317,7 +324,7 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
-	type ClassData = NftClassData<Balance>;
+	type ClassData = pallet_nft::NftClassData<Balance>;
 	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;

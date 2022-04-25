@@ -1225,10 +1225,12 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
+	type WeightInfo = (); //weights::module_mining::WeightInfo<Runtime>;
 }
 
 parameter_types! {
-	pub MetadataDepositPerByte: Balance = 1 * CENTS;
+	pub AssetMintingFee: Balance = 1 * DOLLARS;
+	pub ClassMintingFee: Balance = 2 * DOLLARS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -1237,6 +1239,7 @@ parameter_types! {
 impl nft::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type MultiCurrency = Currencies;
 	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 	type PalletId = NftPalletId;
@@ -1245,7 +1248,8 @@ impl nft::Config for Runtime {
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxNftMetadata;
 	type MiningResourceId = MiningResourceCurrencyId;
-	type DataDepositPerByte = MetadataDepositPerByte;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {
@@ -1280,6 +1284,7 @@ impl metaverse::Config for Runtime {
 	type MinStakingAmount = MinContribution;
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type MultiCurrency = Currencies;
+	type NFTHandler = Nft;
 }
 
 parameter_types! {

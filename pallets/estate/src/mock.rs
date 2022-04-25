@@ -1,19 +1,16 @@
 #![cfg(test)]
-
-use std::collections::BTreeMap;
-
+use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use core_primitives::{CollectionType, NftClassData, TokenType};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
+use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
+use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
-
-use crate as estate;
-
 use super::*;
+use crate as estate;
 
 pub type AccountId = u128;
 pub type Balance = u128;
@@ -142,6 +139,14 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
+		15u32
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
+		16u32
+	}
 }
 
 pub struct MockAuctionManager;
@@ -265,34 +270,52 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 		Ok(false)
 	}
-
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
 		Ok(ASSET_COLLECTION_ID)
 	}
 
-	fn mint_land_nft(
-		account: AccountId,
+	fn create_token_class(
+		sender: &AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<TokenId, DispatchError> {
-		match account {
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+	) -> Result<ClassId, DispatchError> {
+		match *sender {
 			ALICE => Ok(1),
 			BOB => Ok(2),
-			BENEFICIARY_ID => Ok(ASSET_ID_1),
-			_ => Ok(1000),
+			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
+			_ => Ok(100),
 		}
 	}
 
-	fn mint_estate_nft(
-		account: AccountId,
+	fn mint_token(
+		sender: &AccountId,
+		class_id: ClassId,
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<TokenId, DispatchError> {
-		match account {
-			ALICE => Ok(3),
-			BOB => Ok(4),
-			BENEFICIARY_ID => Ok(ASSET_ID_2),
-			_ => Ok(1001),
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => {
+				if class_id == 15 {
+					return Ok(ASSET_ID_1);
+				} else if class_id == 16 {
+					return Ok(ASSET_ID_2);
+				} else {
+					return Ok(200);
+				}
+			}
+			_ => {
+				if class_id == 0 {
+					return Ok(1000);
+				} else {
+					return Ok(1001);
+				}
+			}
 		}
 	}
 

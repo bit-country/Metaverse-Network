@@ -38,7 +38,7 @@ use core_primitives::*;
 use core_primitives::{MetaverseInfo, MetaverseTrait};
 pub use pallet::*;
 use primitives::staking::MetaverseStakingTrait;
-use primitives::{FungibleTokenId, MetaverseId, RoundIndex};
+use primitives::{ClassId, FungibleTokenId, MetaverseId, RoundIndex, TokenId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -122,6 +122,8 @@ pub mod pallet {
 		type MaxNumberOfStakersPerMetaverse: Get<u32>;
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
+		/// NFT handler required for minting classes for lands and estates when creating a metaverse
+		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 	}
 
 	#[pallet::storage]
@@ -256,7 +258,6 @@ pub mod pallet {
 				T::MinContribution::get(),
 				ExistenceRequirement::KeepAlive,
 			)?;
-
 			let metaverse_id = Self::new_metaverse(&who, metadata)?;
 
 			MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
@@ -266,6 +267,8 @@ pub mod pallet {
 				.checked_add(One::one())
 				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 			AllMetaversesCount::<T>::put(new_total_metaverse_count);
+			//let metaverse_estate_class_id = Self::mint_metaverse_estate_class(&who, metaverse_id);
+			//let metaverse_land_class_id = Self::mint_metaverse_land_class(&who, metaverse_id);
 			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), who));
 
 			Ok(().into())
@@ -640,6 +643,42 @@ impl<T: Config> Pallet<T> {
 			StakingInfo::<T>::insert(who, staking_info);
 		}
 	}
+
+	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) {
+		// Pre-mint class for lands
+		let mut land_class_attributes = Attributes::new();
+		land_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
+		land_class_attributes.insert("Category:".as_bytes().to_vec(), "Lands".as_bytes().to_vec());
+		let land_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
+		T::NFTHandler::create_token_class(
+			sender,
+			land_class_metadata,
+			land_class_attributes,
+			0,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(10u32),
+		);
+		// TO DO: Add class as metaverse parameter
+	}
+
+	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) {
+		// Pre-mint class for estates
+		let mut estate_class_attributes = Attributes::new();
+		estate_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
+		estate_class_attributes.insert("Category:".as_bytes().to_vec(), "Estates".as_bytes().to_vec());
+		let estate_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
+		T::NFTHandler::create_token_class(
+			sender,
+			estate_class_metadata,
+			estate_class_attributes,
+			1,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(10u32),
+		);
+		// TO DO: Add class as metaverse parameter
+	}
 }
 
 impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
@@ -671,6 +710,14 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 			Self::deposit_event(Event::<T>::MetaverseMintedNewCurrency(metaverse_id, currency_id));
 			Ok(())
 		})
+	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
+		return TryInto::<ClassId>::try_into(15u32).unwrap_or_default();
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
+		return TryInto::<ClassId>::try_into(16u32).unwrap_or_default();
 	}
 }
 
