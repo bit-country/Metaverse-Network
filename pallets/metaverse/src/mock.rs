@@ -162,34 +162,25 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		match *sender {
 			ALICE => Ok(1),
 			BOB => Ok(2),
-			BENEFICIARY_ID => Ok(ASSET_ID_1),
-			_ => Ok(1000),
-		}
-	}
-
-	fn mint_land_nft(
-		account: AccountId,
-		metadata: NftMetadata,
-		attributes: Attributes,
-	) -> Result<TokenId, DispatchError> {
-		match account {
-			ALICE => Ok(1),
-			BOB => Ok(2),
-			BENEFICIARY_ID => Ok(ASSET_ID_1),
-			_ => Ok(1000),
-		}
-	}
-
-	fn mint_estate_nft(
-		account: AccountId,
-		metadata: NftMetadata,
-		attributes: Attributes,
-	) -> Result<TokenId, DispatchError> {
-		match account {
-			ALICE => Ok(3),
-			BOB => Ok(4),
-			BENEFICIARY_ID => Ok(ASSET_ID_2),
-			_ => Ok(1001),
+			BENEFICIARY_ID => {
+				if class_id == 15 {
+					return Ok(ASSET_ID_1);
+				}
+				else if class_id == 16 {
+					return Ok(ASSET_ID_2);
+				}
+				else {
+					return Ok(200);
+				}
+			},
+			_ => {
+				if class_id == 0 {
+					return Ok(1000);
+				}
+				else {
+					return Ok(1001);
+				}
+			},
 		}
 	}
 

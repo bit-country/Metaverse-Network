@@ -907,30 +907,6 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		Ok(TryInto::<TokenId>::try_into(nft_token.1).unwrap_or_default())
 	}
 
-	fn mint_land_nft(
-		account: T::AccountId,
-		metadata: NftMetadata,
-		attributes: Attributes,
-	) -> Result<TokenId, DispatchError> {
-		let class_id: Self::ClassId = TryInto::<Self::ClassId>::try_into(LAND_CLASS_ID).unwrap_or_default(); //TO DO: Pre-mint land class or update the class id with more relevant value
-		let result: (Vec<(Self::ClassId, Self::TokenId)>, Self::TokenId) =
-			Self::do_mint_nfts(&account, class_id, metadata, attributes, 1)?;
-		let nft_value = *result.0.first().unwrap();
-		return Ok(TryInto::<TokenId>::try_into(nft_value.1).unwrap_or_default());
-	}
-
-	fn mint_estate_nft(
-		account: T::AccountId,
-		metadata: NftMetadata,
-		attributes: Attributes,
-	) -> Result<TokenId, DispatchError> {
-		let class_id: Self::ClassId = TryInto::<Self::ClassId>::try_into(ESTATE_CLASS_ID).unwrap_or_default(); //TO DO: Pre-mint estate class or update the class id with more relevant value
-		let result: (Vec<(Self::ClassId, Self::TokenId)>, Self::TokenId) =
-			Self::do_mint_nfts(&account, class_id, metadata, attributes, 1)?;
-		let nft_value = *result.0.first().unwrap();
-		return Ok(TryInto::<TokenId>::try_into(nft_value.1).unwrap_or_default());
-	}
-
 	fn burn_nft(account: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
 		Self::do_burn(account, nft)?;
 

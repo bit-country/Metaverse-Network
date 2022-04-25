@@ -1175,8 +1175,9 @@ impl<T: Config> Pallet<T> {
 						OwnerId::Account(a) => {
 							if is_tokenized {
 								let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
-								let asset_id = T::NFTTokenizationSource::mint_land_nft(
-									a.clone(),
+								let asset_id = T::NFTTokenizationSource::mint_token(
+									&beneficiary,
+									T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id),
 									token_properties.0,
 									token_properties.1,
 								)?;
@@ -1187,8 +1188,9 @@ impl<T: Config> Pallet<T> {
 					None => {
 						if is_tokenized {
 							let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
-							let asset_id = T::NFTTokenizationSource::mint_land_nft(
-								a.clone(),
+							let asset_id = T::NFTTokenizationSource::mint_token(
+								&beneficiary,
+								T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id),
 								token_properties.0,
 								token_properties.1,
 							)?;
@@ -1204,8 +1206,9 @@ impl<T: Config> Pallet<T> {
 				);
 				if is_tokenized {
 					let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
-					let asset_id = T::NFTTokenizationSource::mint_land_nft(
-						beneficiary.clone(),
+					let asset_id = T::NFTTokenizationSource::mint_token(
+						&beneficiary,
+						T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id),
 						token_properties.0,
 						token_properties.1,
 					)?;
@@ -1240,8 +1243,12 @@ impl<T: Config> Pallet<T> {
 		let mut owner = OwnerId::Account(beneficiary.clone());
 		if is_tokenized {
 			let token_properties = Self::get_estate_token_properties(metaverse_id, new_estate_id);
-			let asset_id: TokenId =
-				T::NFTTokenizationSource::mint_estate_nft(beneficiary.clone(), token_properties.0, token_properties.1)?;
+			let asset_id: TokenId = T::NFTTokenizationSource::mint_token(
+				&beneficiary,
+				T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id),
+				token_properties.0,
+				token_properties.1,
+			)?;
 			owner = OwnerId::Token(asset_id);
 		}
 

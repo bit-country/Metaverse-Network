@@ -212,18 +212,6 @@ pub trait NFTTrait<AccountId, Balance> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<TokenId, DispatchError>;
-	/// Mint land as NFT
-	fn mint_land_nft(
-		account: AccountId,
-		metadata: NftMetadata,
-		attributes: Attributes,
-	) -> Result<TokenId, DispatchError>;
-	/// Mint estate as NFT
-	fn mint_estate_nft(
-		account: AccountId,
-		metadata: NftMetadata,
-		attributes: Attributes,
-	) -> Result<TokenId, DispatchError>;
 	/// Burn nft
 	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
 	/// Check if item is on listing

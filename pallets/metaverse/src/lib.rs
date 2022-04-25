@@ -654,7 +654,7 @@ impl<T: Config> Pallet<T> {
 			sender,
 			land_class_metadata,
 			land_class_attributes,
-			1,
+			0,
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(10u32)

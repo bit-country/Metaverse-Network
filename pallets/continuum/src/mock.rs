@@ -202,6 +202,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
+	
 	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
 		15u32
 	}
