@@ -55,7 +55,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData};
+use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1};
 use primitives::{
 	AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
 };
@@ -385,7 +385,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(< T as Config >::WeightInfo::mint()* *quantity as u64)]
+		#[pallet::weight(< T as Config >::WeightInfo::mint() * * quantity as u64)]
 		pub fn mint(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -429,7 +429,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::WeightInfo::transfer_batch()* tos.len() as u64)]
+		#[pallet::weight(T::WeightInfo::transfer_batch() * tos.len() as u64)]
 		pub fn transfer_batch(
 			origin: OriginFor<T>,
 			tos: Vec<(T::AccountId, (ClassIdOf<T>, TokenIdOf<T>))>,
@@ -579,9 +579,10 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		//		fn on_runtime_upgrade() -> Weight {
-		//			0
-		//		}
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_class_data_v2();
+			0
+		}
 	}
 }
 
@@ -742,9 +743,9 @@ impl<T: Config> Pallet<T> {
 			deposit: class_deposit,
 			token_type,
 			collection_type,
-			attributes: attributes,
-			/*			is_locked: false,
-			 *			royalty_fee, */
+			attributes,
+			is_locked: false,
+			royalty_fee,
 		};
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
@@ -752,37 +753,49 @@ impl<T: Config> Pallet<T> {
 		Ok(next_class_id)
 	}
 
+	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
+		NftModule::<T>::burn(&sender, *asset_id)?;
+		Ok(())
+	}
+
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
 		let mut num_nft_classes = 0;
 		let mut asset_by_owner_updates = 0;
 
-		orml_nft::Classes::<T>::translate(|_k, class_info: ClassInfoOf<T>| {
-			num_nft_classes += 1;
-			log::info!("Upgrading class data");
-			let new_data = NftClassData {
-				deposit: class_info.data.deposit,
-				attributes: class_info.data.attributes,
-				token_type: class_info.data.token_type,
-				collection_type: class_info.data.collection_type,
-			};
+		Classes::<T>::translate(
+			|_k,
+			 class_info: ClassInfo<
+				T::TokenId,
+				T::AccountId,
+				NftClassDataV1<BalanceOf<T>>,
+				BoundedVec<u8, T::MaxClassMetadata>,
+			>| {
+				num_nft_classes += 1;
+				log::info!("Upgrading class data");
+				log::info!("Class id {:?}", _k);
 
-			let v: ClassInfoOf<T> = ClassInfo {
-				metadata: class_info.metadata,
-				total_issuance: class_info.total_issuance,
-				owner: class_info.owner,
-				data: new_data,
-			};
-			Some(v)
-		});
+				let new_data = NftClassData {
+					deposit: class_info.data.deposit,
+					attributes: class_info.data.attributes,
+					token_type: class_info.data.token_type,
+					collection_type: class_info.data.collection_type,
+					is_locked: false,
+					royalty_fee: Perbill::from_percent(0u32),
+				};
+
+				let v: ClassInfoOf<T> = ClassInfo {
+					metadata: class_info.metadata,
+					total_issuance: class_info.total_issuance,
+					owner: class_info.owner,
+					data: new_data,
+				};
+				Some(v)
+			},
+		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
 		0
-	}
-
-	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
-		NftModule::<T>::burn(&sender, *asset_id)?;
-		Ok(())
 	}
 }
 

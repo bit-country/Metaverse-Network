@@ -5077,6 +5077,7 @@ dependencies = [
  "frame-system 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
+ "frame-try-runtime 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "hex-literal",
  "orml-benchmarking",
  "orml-currencies 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.17)",
@@ -5136,6 +5137,7 @@ dependencies = [
  "sp-transaction-pool 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "sp-version 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "substrate-wasm-builder 5.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
+ "try-runtime-cli",
 ]
 
 [[package]]

@@ -91,6 +91,18 @@ pub struct NftClassData<Balance> {
 	pub attributes: Attributes,
 	pub token_type: TokenType,
 	pub collection_type: CollectionType,
+	pub is_locked: bool,
+	pub royalty_fee: Perbill,
+}
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftClassDataV1<Balance> {
+	// Minimum balance to create a collection of Asset
+	pub deposit: Balance,
+	pub attributes: Attributes,
+	pub token_type: TokenType,
+	pub collection_type: CollectionType,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
