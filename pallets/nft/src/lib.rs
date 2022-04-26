@@ -201,22 +201,19 @@ pub mod pallet {
 				name: "Metaverse Lands".as_bytes().to_vec(),
 				properties: "MetaverseId;Coordinates".as_bytes().to_vec(),
 			};
-			let land_collection_id = <Pallet<T>>::next_group_collection_id();
-			<GroupCollections<T>>::insert(land_collection_id, land_collection_data);
-			<NextGroupCollectionId<T>>::set(land_collection_id + 1);
-			<AllNftGroupCollection<T>>::set(land_collection_id + 1);
-			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(land_collection_id));
+			<GroupCollections<T>>::insert(0, land_collection_data);
+			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(0));
 
 			// Pre-mint group collection for estates
 			let estate_collection_data = NftGroupCollectionData {
 				name: "Metaverse Esates".as_bytes().to_vec(),
 				properties: "MetaverseId;EstateId".as_bytes().to_vec(),
 			};
-			let estate_collection_id = <Pallet<T>>::next_group_collection_id();
-			<GroupCollections<T>>::insert(estate_collection_id, estate_collection_data);
-			<NextGroupCollectionId<T>>::set(estate_collection_id + 1);
-			<AllNftGroupCollection<T>>::set(estate_collection_id + 1);
-			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(estate_collection_id));
+			<GroupCollections<T>>::insert(1, estate_collection_data);
+			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(1));
+
+			<NextGroupCollectionId<T>>::set(2);
+			<AllNftGroupCollection<T>>::set(2);
 		}
 	}
 
