@@ -1,16 +1,19 @@
 #![cfg(test)]
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{CollectionType, NftClassData, TokenType};
+
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
-use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 
-use super::*;
+use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use core_primitives::{CollectionType, NftClassData, TokenType};
+use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
+
 use crate as estate;
+
+use super::*;
 
 pub type AccountId = u128;
 pub type Balance = u128;

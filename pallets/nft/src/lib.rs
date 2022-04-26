@@ -146,11 +146,6 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, AssetId, (ClassIdOf<T>, TokenIdOf<T>), OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_assets_by_owner)]
-	pub(super) type AssetsByOwner<T: Config> =
-		StorageMap<_, Blake2_128Concat, T::AccountId, Vec<(ClassIdOf<T>, TokenIdOf<T>)>, ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
 	pub(super) type GroupCollections<T: Config> =
 		StorageMap<_, Blake2_128Concat, GroupCollectionId, NftGroupCollectionData, OptionQuery>;
@@ -458,7 +453,7 @@ pub mod pallet {
 						let asset_info =
 							NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
 						ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
-						Self::handle_asset_ownership_transfer(&owner, &item.0, item.1)?;
+
 						NftModule::<T>::transfer(&owner, &item.0, item.1)?;
 						Self::deposit_event(Event::<T>::TransferedNft(
 							owner.clone(),
@@ -482,11 +477,12 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			let asset_by_owner: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Self::get_assets_by_owner(&sender);
-			ensure!(!asset_by_owner.contains(&asset_id), Error::<T>::SignOwnAsset);
+			let token_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+			ensure!(token_info.owner != sender, Error::<T>::SignOwnAsset);
 
 			// Add contribution into class fund
-			let class_fund = T::Treasury::get().into_account();
+			let class_fund = Self::get_class_fund(&asset_id.0);
 
 			ensure!(
 				<T as Config>::Currency::free_balance(&sender) > contribution,
@@ -495,7 +491,7 @@ pub mod pallet {
 			// Transfer contribution to class fund pot
 			<T as Config>::Currency::transfer(&sender, &class_fund, contribution, ExistenceRequirement::KeepAlive)?;
 			// Reserve pot fund
-			//<T as Config>::Currency::reserve(&class_fund, contribution)?;
+			<T as Config>::Currency::reserve(&class_fund, contribution)?;
 
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
@@ -582,7 +578,11 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		//		fn on_runtime_upgrade() -> Weight {
+		//			0
+		//		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -613,36 +613,6 @@ impl<T: Config> Pallet<T> {
 		Ok(next_group_collection_id)
 	}
 
-	fn handle_asset_ownership_transfer(
-		sender: &T::AccountId,
-		to: &T::AccountId,
-		asset_id: (ClassIdOf<T>, TokenIdOf<T>),
-	) -> DispatchResult {
-		// Remove asset from sender
-		AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
-			// Check if the asset_id already in the owner
-			let asset_index = asset_ids.iter().position(|x| *x == asset_id).unwrap();
-			asset_ids.remove(asset_index);
-
-			Ok(())
-		})?;
-
-		// Insert asset to recipient
-		if AssetsByOwner::<T>::contains_key(to) {
-			AssetsByOwner::<T>::try_mutate(&to, |asset_ids| -> DispatchResult {
-				// Check if the asset_id already in the owner
-				asset_ids.push(asset_id);
-				Ok(())
-			})?;
-		} else {
-			let mut asset_ids = Vec::<(ClassIdOf<T>, TokenIdOf<T>)>::new();
-			asset_ids.push(asset_id);
-			AssetsByOwner::<T>::insert(&to, asset_ids);
-		}
-
-		Ok(())
-	}
-
 	pub fn do_transfer(
 		sender: &T::AccountId,
 		to: &T::AccountId,
@@ -657,8 +627,6 @@ impl<T: Config> Pallet<T> {
 			TokenType::Transferable => {
 				let check_ownership = Self::check_nft_ownership(&sender, &asset_id)?;
 				ensure!(check_ownership, Error::<T>::NoPermission);
-
-				Self::handle_asset_ownership_transfer(&sender, &to, asset_id)?;
 
 				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
 				Ok(asset_id.1)
@@ -693,8 +661,6 @@ impl<T: Config> Pallet<T> {
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		ensure!(!Self::is_collection_locked(&asset_id.0), Error::<T>::CollectionIsLocked);
 
-		Self::handle_asset_ownership_transfer(&sender, &to, asset_id)?;
-
 		NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
 		Ok(asset_id.1)
 	}
@@ -719,11 +685,10 @@ impl<T: Config> Pallet<T> {
 
 		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
 		ensure!(sender.clone() == class_info.owner, Error::<T>::NoPermission);
-		//let token_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
 		let class_fund: T::AccountId = T::Treasury::get().into_account();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
-
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+
 		let new_nft_data = NftAssetData {
 			deposit,
 			attributes: attributes,
@@ -736,16 +701,6 @@ impl<T: Config> Pallet<T> {
 			let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
 			new_asset_ids.push((class_id, token_id));
 
-			if AssetsByOwner::<T>::contains_key(&sender) {
-				AssetsByOwner::<T>::try_mutate(&sender, |asset_ids| -> DispatchResult {
-					asset_ids.push((class_id, token_id));
-					Ok(())
-				})?;
-			} else {
-				let mut assets = Vec::<(ClassIdOf<T>, TokenIdOf<T>)>::new();
-				assets.push((class_id, token_id));
-				AssetsByOwner::<T>::insert(&sender, assets)
-			}
 			last_token_id = token_id;
 		}
 		Ok((new_asset_ids, last_token_id))
@@ -788,6 +743,8 @@ impl<T: Config> Pallet<T> {
 			token_type,
 			collection_type,
 			attributes: attributes,
+			/*			is_locked: false,
+			 *			royalty_fee, */
 		};
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
@@ -824,10 +781,6 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
-		let asset_by_owner: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Self::get_assets_by_owner(&sender);
-
-		ensure!(asset_by_owner.contains(&asset_id), Error::<T>::NoPermission);
-
 		NftModule::<T>::burn(&sender, *asset_id)?;
 		Ok(())
 	}

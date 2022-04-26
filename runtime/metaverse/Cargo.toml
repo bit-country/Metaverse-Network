@@ -7,7 +7,7 @@ license = "Unlicense"
 name = "metaverse-runtime"
 description = "Metaverse Runtime"
 repository = "https://github.com/bit-country/Bit-Country-Blockchain"
-version = "0.0.28"
+version = "0.0.29"
 publish = false
 
 [package.metadata.docs.rs]

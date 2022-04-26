@@ -5063,7 +5063,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-runtime"
-version = "0.0.28"
+version = "0.0.29"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
