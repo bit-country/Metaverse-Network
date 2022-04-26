@@ -65,6 +65,7 @@ use currencies::BasicCurrencyAdapter;
 use primitives::{Amount, ClassId, FungibleTokenId, NftId, TokenSymbol};
 
 use crate::constants::parachains;
+use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -203,7 +204,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 6,
+	spec_version: 7,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -738,8 +739,24 @@ parameter_types! {
 			1,
 			X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
 		).into(),
-		// NEER:KSM = 100:1
-		ksm_per_second() * 100
+		// NEER:KSM = 50:1
+		native_per_second()
+	);
+	pub KUsdPerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			1,
+			X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KUSD_KEY.to_vec()))
+		).into(),
+		// kUSD:KSM = 200:1
+		ksm_per_second() * 200
+	);
+	pub KarPerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			1,
+			X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec()))
+		).into(),
+		// KAR:KSM = 50:1
+		ksm_per_second() * 50
 	);
 }
 
@@ -757,10 +774,14 @@ impl TakeRevenue for ToTreasury {
 		}
 	}
 }
-
+/// Trader - The means of purchasing weight credit for XCM execution.
+/// We need to ensure we have at least one rule per token we want to handle or else
+/// the xcm executor won't know how to charge fees for a transfer of said token.
 pub type Trader = (
 	FixedRateOfFungible<KsmPerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerPerSecond, ToTreasury>,
+	FixedRateOfFungible<KarPerSecond, ToTreasury>,
+	FixedRateOfFungible<KUsdPerSecond, ToTreasury>,
 );
 
 /// Type for specifying how a `MultiLocation` can be converted into an `AccountId`. This is used
@@ -952,8 +973,10 @@ impl Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 pub type Barrier = (
 	TakeWeightCredit,
 	AllowTopLevelPaidExecutionFrom<Everything>,
-	AllowUnpaidExecutionFrom<ParentOrParentsExecutivePlurality>,
-	// ^^^ Parent and its exec plurality get free execution
+	// Expected responses are OK.
+	AllowKnownQueryResponses<PolkadotXcm>,
+	// Subscriptions for version tracking are OK.
+	AllowSubscriptionsFrom<Everything>,
 );
 
 pub struct XcmConfig;
