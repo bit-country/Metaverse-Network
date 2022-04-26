@@ -24,7 +24,7 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
-use core_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait};
 use primitives::{ClassId, FungibleTokenId};
 
 use crate as continuum;
@@ -182,6 +182,10 @@ parameter_types! {
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		1u64
+	}
+	
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => *metaverse_id == ALICE_METAVERSE_ID,

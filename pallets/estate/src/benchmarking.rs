@@ -33,6 +33,7 @@ pub use crate::Pallet as EstateModule;
 // };
 
 use crate::*;
+use core_primitives::MetaverseMetadata;
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
@@ -48,7 +49,7 @@ pub type EstateId = u64;
 
 const SEED: u32 = 0;
 
-const METAVERSE_ID: u64 = 1;
+const METAVERSE_ID: u64 = 0;
 const ALICE: AccountId = 1;
 const BENEFICIARY_ID: AccountId = 99;
 
@@ -91,6 +92,10 @@ fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
 	};
 }
 
+fn create_metaverse_for_account<T: Config> (account: &T::AccountId) -> MetaverseId{
+	T::MetaverseInfoSource::create_metaverse(account, vec![1u8])
+}
+
 benchmarks! {
 	// set_max_bounds
 	set_max_bounds{
@@ -105,10 +110,11 @@ benchmarks! {
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
-	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, COORDINATE_IN_1, false)
+	 	let metaverse_id = create_metaverse_for_account::<T>(&caller);
+	}: _(RawOrigin::Root, caller.clone(), metaverse_id, COORDINATE_IN_1, true)
 	verify {
-		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Account(caller.clone())));
-		//assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0)));
+		//assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Account(caller.clone())));
+		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0)));
 	}
 	// mint_lands
 	mint_lands {

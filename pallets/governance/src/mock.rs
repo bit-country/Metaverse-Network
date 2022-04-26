@@ -16,7 +16,7 @@ use sp_runtime::{
 };
 use sp_std::collections::btree_map::BTreeMap;
 use metaverse_primitive::{
-	Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, 
+	Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseMetadata, MetaverseLandTrait, 
 	MetaverseTrait, NftClassData, NftMetadata, NFTTrait, TokenType
 };
 use primitives::{Amount, ClassId, GroupCollectionId, FungibleTokenId, TokenId};
@@ -133,6 +133,10 @@ impl pallet_scheduler::Config for Runtime {
 pub struct MetaverseInfo {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfo {
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		1u64
+	}
+	
 	fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
 		match *who {
 			ALICE => *country_id == ALICE_COUNTRY_ID,

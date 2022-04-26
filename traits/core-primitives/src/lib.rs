@@ -137,6 +137,8 @@ pub struct MetaverseFund<AccountId, Balance> {
 }
 
 pub trait MetaverseTrait<AccountId> {
+	/// Create metaverse
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId;
 	/// Check the ownership of this metaverse
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
 	/// Get the detail of this metaverse

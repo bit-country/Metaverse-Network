@@ -83,7 +83,6 @@ fn test_attributes(x: u8) -> Attributes {
 }
 
 fn mint_NFT<T: Config>(caller: T::AccountId) {
-	//T::NFTHandler::mint_land_nft(caller.clone().into(), vec![1], test_attributes(1));
 	T::NFTHandler::create_token_class(
 		&caller.clone(),
 		vec![1],

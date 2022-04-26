@@ -241,34 +241,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::create_metaverse())]
 		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-
-			ensure!(
-				metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
-				Error::<T>::MaxMetadataExceeded
-			);
-
-			ensure!(
-				T::Currency::free_balance(&who) >= T::MinContribution::get(),
-				Error::<T>::InsufficientContribution
-			);
-
-			T::Currency::transfer(
-				&who,
-				&Self::account_id(),
-				T::MinContribution::get(),
-				ExistenceRequirement::KeepAlive,
-			)?;
-			
-			let metaverse_id = Self::new_metaverse(&who, metadata)?;
-
-			MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
-
-			let total_metaverse_count = Self::all_metaverse_count();
-			let new_total_metaverse_count = total_metaverse_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
-			AllMetaversesCount::<T>::put(new_total_metaverse_count);
-			
+			let metaverse_id = Self::do_create_metaverse(&who, metadata)?;
 			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), who));
 
 			Ok(().into())
@@ -629,6 +602,36 @@ impl<T: Config> Pallet<T> {
 		Ok(metaverse_id)
 	}
 
+	fn do_create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId,DispatchError> {
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
+			Error::<T>::MaxMetadataExceeded
+		);
+
+		ensure!(
+			T::Currency::free_balance(&who) >= T::MinContribution::get(),
+			Error::<T>::InsufficientContribution
+		);
+
+		T::Currency::transfer(
+			&who,
+			&Self::account_id(),
+			T::MinContribution::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+		
+		let metaverse_id = Self::new_metaverse(&who, metadata)?;
+
+		MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
+
+		let total_metaverse_count = Self::all_metaverse_count();
+		let new_total_metaverse_count = total_metaverse_count
+			.checked_add(One::one())
+			.ok_or("Overflow adding new count to new_total_metaverse_count")?;
+		AllMetaversesCount::<T>::put(new_total_metaverse_count);
+		Ok(metaverse_id)
+	}
+
 	/// The account ID of the treasury pot.
 	///
 	/// This actually does computation. If you need to keep using it, then make sure you cache the
@@ -684,6 +687,10 @@ impl<T: Config> Pallet<T> {
 }
 
 impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
+	fn create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		Self::do_create_metaverse(who, metadata).unwrap_or_default()
+	}
+	 
 	fn check_ownership(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
 		Self::get_metaverse_owner(who, metaverse_id) == Some(())
 	}

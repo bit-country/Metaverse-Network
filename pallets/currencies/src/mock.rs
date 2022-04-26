@@ -6,7 +6,7 @@ use frame_support::{
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, CurrencyId};
+use primitives::{Amount, ClassId, CurrencyId};
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
@@ -108,6 +108,10 @@ pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, B
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		1u64
+	}
+
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => true,
@@ -121,6 +125,14 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn get_country_token(metaverse_id: MetaverseId) -> Option<CurrencyId> {
 		None
+	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
+		Ok(15u32)
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
+		Ok(16u32)
 	}
 }
 
