@@ -150,7 +150,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 28,
+	spec_version: 35,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -451,8 +451,8 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub AssetMintingFee: Balance = 1 * DOLLARS;
-	pub ClassMintingFee: Balance = 2 * DOLLARS;
+	pub AssetMintingFee: Balance = 10 * CENTS;
+	pub ClassMintingFee: Balance = 1 * DOLLARS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;

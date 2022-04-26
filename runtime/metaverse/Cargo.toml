@@ -7,7 +7,7 @@ license = "Unlicense"
 name = "metaverse-runtime"
 description = "Metaverse Runtime"
 repository = "https://github.com/bit-country/Bit-Country-Blockchain"
-version = "0.0.28"
+version = "0.0.29"
 publish = false
 
 [package.metadata.docs.rs]
@@ -51,7 +51,8 @@ pallet-utility = { default-features = false, git = "https://github.com/paritytec
 pallet-preimage = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
 pallet-membership = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
 pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.17" }
-
+frame-try-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.17", optional = true }
+try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.17", optional = true }
 
 # Used for the node template"s RPCs
 frame-system-rpc-runtime-api = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
@@ -172,6 +173,7 @@ std = [
     "pallet-contracts/std",
     "pallet-contracts-primitives/std",
     "pallet-contracts-rpc-runtime-api/std",
+    "frame-try-runtime/std",
 ]
 runtime-benchmarks = [
     "orml-benchmarking",
@@ -192,3 +194,9 @@ runtime-benchmarks = [
 ]
 
 disable-runtime-api = []
+
+try-runtime = [
+    "frame-executive/try-runtime",
+    "frame-try-runtime",
+    "frame-system/try-runtime",
+]

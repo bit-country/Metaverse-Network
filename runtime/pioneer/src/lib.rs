@@ -877,7 +877,6 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 
 		let para_id: u32 = u32::from(ParachainInfo::parachain_id());
-		// TODO: use TokenSymbol enum
 		// NativeToken
 		// 0 => NEER
 		// 1 => KSM

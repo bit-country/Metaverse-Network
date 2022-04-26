@@ -1,14 +1,16 @@
 #![cfg(test)]
 
-use crate as metaverse;
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
-use primitives::staking::RoundInfo;
-use primitives::{Amount, ClassId, GroupCollectionId, TokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+
+use primitives::staking::RoundInfo;
+use primitives::{Amount, ClassId, GroupCollectionId, TokenId};
+
+use crate as metaverse;
 
 use super::*;
 
@@ -206,6 +208,8 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			attributes: test_attributes(1),
 			token_type: TokenType::Transferable,
 			collection_type: CollectionType::Collectable,
+			is_locked: false,
+			royalty_fee: Perbill::from_percent(0u32),
 		};
 		Ok(new_data)
 	}
