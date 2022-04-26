@@ -1,7 +1,7 @@
 name: Docker build & push
 
 on:
-  #   # Allows you to run this workflow manually from the Actions tab
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
       runtime:
@@ -144,7 +144,7 @@ jobs:
     environment:
       name: pioneer-xcm
 
-    if: ${{  github.event.inputs.runtime == 'pioneer' }}
+    if: ${{  github.event.inputs.runtime == 'pioneer-xcm' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2

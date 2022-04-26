@@ -138,7 +138,9 @@ fn create_class_should_work() {
 				deposit: class_deposit,
 				token_type: TokenType::Transferable,
 				collection_type: CollectionType::Collectable,
+				is_locked: false,
 				attributes: test_attributes(1),
+				royalty_fee: Perbill::from_percent(0u32)
 			}
 		);
 

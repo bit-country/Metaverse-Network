@@ -27,6 +27,7 @@ use frame_system::{
 };
 use orml_traits::parameter_type_with_key;
 pub use pallet_balances::Call as BalancesCall;
+use pallet_contracts::weights::WeightInfo;
 use pallet_ethereum::{Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction};
 // EVM imports
 use pallet_evm::{
@@ -56,7 +57,7 @@ use sp_runtime::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Dispatchable, IdentifyAccount,
 		NumberFor, OpaqueKeys, PostDispatchInfoOf, Verify, Zero,
 	},
-	transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
+	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError},
 	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Perbill, Percent, Permill, Perquintill,
 };
 use sp_std::prelude::*;
@@ -71,7 +72,6 @@ use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use estate::weights::WeightInfo as EstateWeightInfo;
-use pallet_contracts::weights::WeightInfo;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 // primitives imports
@@ -150,7 +150,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 27,
+	spec_version: 35,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -451,8 +451,8 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub AssetMintingFee: Balance = 1 * DOLLARS;
-	pub ClassMintingFee: Balance = 2 * DOLLARS;
+	pub AssetMintingFee: Balance = 10 * CENTS;
+	pub ClassMintingFee: Balance = 1 * DOLLARS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -612,7 +612,9 @@ impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn successful_origin() -> Origin {
-		Origin::from(RawOrigin::Signed(Default::default()))
+		let zero_account_id = AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
+			.expect("infinite length input; no invalid inputs for type; qed");
+		Origin::from(RawOrigin::Signed(zero_account_id))
 	}
 }
 
@@ -976,11 +978,12 @@ impl pallet_evm::Config for Runtime {
 	type FindAuthor = FindAuthorTruncated<Aura>;
 	type PrecompilesType = ();
 	type PrecompilesValue = ();
+	type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
 }
 
 impl pallet_ethereum::Config for Runtime {
 	type Event = Event;
-	type StateRoot = pallet_ethereum::IntermediateStateRoot;
+	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
 }
 
 pub struct RPCCallFilter;
