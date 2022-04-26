@@ -63,16 +63,32 @@ pub mod time {
 
 	/// We allow for 0.5 of a second of compute with a 12 second average block time.
 	pub const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
+}
+
+pub mod xcm_fees {
+	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND};
+
+	use primitives::Balance;
+
+	use crate::CENTS;
 
 	fn base_tx_fee() -> Balance {
 		CENTS / 10
 	}
 
-	pub fn ksm_per_second() -> u128 {
+	// The fee cost per second for transferring the native token in cents.
+	pub fn native_per_second() -> Balance {
+		base_tx_per_second()
+	}
+
+	pub fn ksm_per_second() -> Balance {
+		base_tx_per_second() / 50
+	}
+
+	fn base_tx_per_second() -> Balance {
 		let base_weight = Balance::from(ExtrinsicBaseWeight::get());
 		let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
-		let fee_per_second = base_tx_per_second * base_tx_fee();
-		fee_per_second / 100
+		base_tx_per_second * base_tx_fee()
 	}
 }
 
