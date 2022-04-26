@@ -8,7 +8,7 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use primitives::staking::RoundInfo;
-use primitives::Amount;
+use primitives::{Amount, ClassId, GroupCollectionId, TokenId};
 
 use crate as metaverse;
 
@@ -24,6 +24,14 @@ pub const BOB: AccountId = 2;
 pub const FREEDY: AccountId = 3;
 pub const METAVERSE_ID: MetaverseId = 0;
 pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
+
+pub const CLASS_FUND_ID: AccountId = 123;
+pub const BENEFICIARY_ID: AccountId = 99;
+pub const ASSET_ID_1: TokenId = 101;
+pub const ASSET_ID_2: TokenId = 100;
+pub const ASSET_CLASS_ID: ClassId = 5;
+pub const ASSET_TOKEN_ID: TokenId = 6;
+pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
 
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 
@@ -86,6 +94,127 @@ parameter_types! {
 	pub const MaxNumberOfStakersPerMetaverse: u32 = 1;
 }
 
+fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
+}
+
+pub struct MockNFTHandler;
+
+impl NFTTrait<AccountId, Balance> for MockNFTHandler {
+	type TokenId = TokenId;
+	type ClassId = ClassId;
+
+	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		let nft_value = *asset_id;
+		if (*who == ALICE && (nft_value.1 == 1 || nft_value.1 == 3))
+			|| (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
+			|| (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101))
+		{
+			return Ok(true);
+		}
+		Ok(false)
+	}
+
+	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		let nft_value = *nft;
+		if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
+			return Ok(true);
+		}
+		Ok(false)
+	}
+
+	fn check_collection_and_class(
+		collection_id: GroupCollectionId,
+		class_id: Self::ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == ASSET_CLASS_ID && collection_id == ASSET_COLLECTION_ID {
+			return Ok(true);
+		}
+		Ok(false)
+	}
+	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
+		Ok(ASSET_COLLECTION_ID)
+	}
+
+	fn create_token_class(
+		sender: &AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+	) -> Result<ClassId, DispatchError> {
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
+			_ => Ok(100),
+		}
+	}
+
+	fn mint_token(
+		sender: &AccountId,
+		class_id: ClassId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<TokenId, DispatchError> {
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => {
+				if class_id == 15 {
+					return Ok(ASSET_ID_1);
+				} else if class_id == 16 {
+					return Ok(ASSET_ID_2);
+				} else {
+					return Ok(200);
+				}
+			}
+			_ => {
+				if class_id == 0 {
+					return Ok(1000);
+				} else {
+					return Ok(1001);
+				}
+			}
+		}
+	}
+
+	fn transfer_nft(from: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+		Ok(())
+	}
+
+	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+		Ok(())
+	}
+	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn get_class_fund(class_id: &Self::ClassId) -> AccountId {
+		CLASS_FUND_ID
+	}
+
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<(NftClassData<Balance>), DispatchError> {
+		let new_data = NftClassData {
+			deposit: 0,
+			attributes: test_attributes(1),
+			token_type: TokenType::Transferable,
+			collection_type: CollectionType::Collectable,
+			is_locked: false,
+			royalty_fee: Perbill::from_percent(0u32),
+		};
+		Ok(new_data)
+	}
+}
+
 ord_parameter_types! {
 	pub const One: AccountId = 1;
 	pub const Two: AccountId = 2;
@@ -103,6 +232,7 @@ impl Config for Runtime {
 	type MinStakingAmount = MinStakingAmount;
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type WeightInfo = ();
+	type NFTHandler = MockNFTHandler;
 }
 
 parameter_type_with_key! {

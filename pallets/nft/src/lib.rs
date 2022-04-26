@@ -54,8 +54,8 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
-use primitive_traits::NftAssetData;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
+use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1};
 use primitives::{
 	AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
 };
@@ -98,11 +98,18 @@ pub mod pallet {
 	{
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The data deposit per byte to calculate fee
+		/// Default minting price per NFT token
 		#[pallet::constant]
-		type DataDepositPerByte: Get<BalanceOf<Self>>;
+		type AssetMintingFee: Get<BalanceOf<Self>>;
+		/// Default minting price per NFT token class
+		#[pallet::constant]
+		type ClassMintingFee: Get<BalanceOf<Self>>;
+		/// Treasury
+		#[pallet::constant]
+		type Treasury: Get<PalletId>;
 		/// Currency type for reserve/unreserve balance
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-		//NFT Module Id
+		/// NFT Module Id
 		#[pallet::constant]
 		type PalletId: Get<PalletId>;
 		/// Weight info
@@ -172,6 +179,43 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_locked_collection)]
 	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			GenesisConfig {}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			// Pre-mint group collection for lands
+			let land_collection_data = NftGroupCollectionData {
+				name: "Metaverse Lands".as_bytes().to_vec(),
+				properties: "MetaverseId;Coordinates".as_bytes().to_vec(),
+			};
+			let land_collection_id = <Pallet<T>>::next_group_collection_id();
+			<GroupCollections<T>>::insert(land_collection_id, land_collection_data);
+			<NextGroupCollectionId<T>>::set(land_collection_id + 1);
+			<AllNftGroupCollection<T>>::set(land_collection_id + 1);
+			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(land_collection_id));
+
+			// Pre-mint group collection for estates
+			let estate_collection_data = NftGroupCollectionData {
+				name: "Metaverse Esates".as_bytes().to_vec(),
+				properties: "MetaverseId;EstateId".as_bytes().to_vec(),
+			};
+			let estate_collection_id = <Pallet<T>>::next_group_collection_id();
+			<GroupCollections<T>>::insert(estate_collection_id, estate_collection_data);
+			<NextGroupCollectionId<T>>::set(estate_collection_id + 1);
+			<AllNftGroupCollection<T>>::set(estate_collection_id + 1);
+			<Pallet<T>>::deposit_event(Event::NewNftCollectionCreated(estate_collection_id));
+		}
+	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -327,47 +371,21 @@ pub mod pallet {
 			royalty_fee: Perbill,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			ensure!(
-				metadata.len() as u32 <= T::MaxMetadata::get(),
-				Error::<T>::ExceedMaximumMetadataLength
-			);
-			let next_class_id = NftModule::<T>::next_class_id();
-			ensure!(
-				GroupCollections::<T>::contains_key(collection_id),
-				Error::<T>::CollectionDoesNotExist
-			);
-
-			ensure!(
-				royalty_fee <= Perbill::from_percent(25u32),
-				Error::<T>::RoyaltyFeeExceedLimit
-			);
-
-			// Class fund
-			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(next_class_id);
-
-			// Secure deposit of token class owner
-			let class_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
-			// Transfer fund to pot
-			<T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
-			// Reserve pot fund
-			<T as Config>::Currency::reserve(&class_fund, <T as Config>::Currency::free_balance(&class_fund))?;
-
-			let class_data = NftClassData {
-				deposit: class_deposit,
+			let class_id = Self::do_create_class(
+				&sender,
+				metadata,
+				attributes,
+				collection_id,
 				token_type,
 				collection_type,
-				attributes: attributes,
-			};
-
-			NftModule::<T>::create_class(&sender, metadata, class_data)?;
-			ClassDataCollection::<T>::insert(next_class_id, collection_id);
-
-			Self::deposit_event(Event::<T>::NewNftClassCreated(sender, next_class_id));
+				royalty_fee,
+			)?;
+			Self::deposit_event(Event::<T>::NewNftClassCreated(sender, class_id));
 
 			Ok(().into())
 		}
 
-		#[pallet::weight(< T as Config >::WeightInfo::mint(* quantity))]
+		#[pallet::weight(< T as Config >::WeightInfo::mint() * * quantity as u64)]
 		pub fn mint(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -377,48 +395,15 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
-			ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
-			ensure!(
-				quantity <= T::MaxBatchMinting::get(),
-				Error::<T>::ExceedMaximumBatchMinting
-			);
-			ensure!(
-				metadata.len() as u32 <= T::MaxMetadata::get(),
-				Error::<T>::ExceedMaximumMetadataLength
-			);
-
-			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
-			ensure!(sender == class_info.owner, Error::<T>::NoPermission);
-			let token_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
-			let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
-			let deposit = token_deposit.saturating_mul(Into::<BalanceOf<T>>::into(quantity));
-
-			<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
-			<T as Config>::Currency::reserve(&class_fund, deposit)?;
-
-			let new_nft_data = NftAssetData {
-				deposit,
-				attributes: attributes,
-			};
-
-			let mut new_asset_ids: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Vec::new();
-			let mut last_token_id: TokenIdOf<T> = Default::default();
-
-			for _ in 0..quantity {
-				let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
-				new_asset_ids.push((class_id, token_id));
-
-				last_token_id = token_id;
-			}
+			let minting_outcome = Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
 
 			Self::deposit_event(Event::<T>::NewNftMinted(
-				*new_asset_ids.first().unwrap(),
-				*new_asset_ids.last().unwrap(),
+				*minting_outcome.0.first().unwrap(),
+				*minting_outcome.0.last().unwrap(),
 				sender,
 				class_id,
 				quantity,
-				last_token_id,
+				minting_outcome.1,
 			));
 
 			Ok(().into())
@@ -444,7 +429,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::WeightInfo::transfer_batch(tos.len() as u32))]
+		#[pallet::weight(T::WeightInfo::transfer_batch() * tos.len() as u64)]
 		pub fn transfer_batch(
 			origin: OriginFor<T>,
 			tos: Vec<(T::AccountId, (ClassIdOf<T>, TokenIdOf<T>))>,
@@ -535,8 +520,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn burn(origin: OriginFor<T>, asset_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-
-			NftModule::<T>::burn(&sender, asset_id)?;
+			Self::do_burn(&sender, &asset_id)?;
 			Self::deposit_event(Event::<T>::BurnedNft(asset_id));
 			Ok(().into())
 		}
@@ -594,7 +578,12 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_class_data_v2();
+			0
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -697,12 +686,9 @@ impl<T: Config> Pallet<T> {
 
 		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
 		ensure!(sender.clone() == class_info.owner, Error::<T>::NoPermission);
-		let token_deposit = Self::calculate_fee_deposit(&attributes, &metadata)?;
-		let class_fund: T::AccountId = T::PalletId::get().into_sub_account(class_id);
-		let deposit = token_deposit.saturating_mul(Into::<BalanceOf<T>>::into(quantity));
-
+		let class_fund: T::AccountId = T::Treasury::get().into_account();
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
-		<T as Config>::Currency::reserve(&class_fund, deposit)?;
 
 		let new_nft_data = NftAssetData {
 			deposit,
@@ -721,31 +707,55 @@ impl<T: Config> Pallet<T> {
 		Ok((new_asset_ids, last_token_id))
 	}
 
-	/// Calculate deposit fee
-	fn calculate_fee_deposit(attributes: &Attributes, metadata: &NftMetadata) -> Result<BalanceOf<T>, DispatchError> {
-		// Accumulate lens of attributes length
-		let attributes_len = attributes.iter().fold(0, |accumulate, (k, v)| {
-			accumulate.saturating_add(v.len().saturating_add(k.len()) as u32)
-		});
-
-		// Accumulate lens of metadata
-		let metadata_len = metadata.len() as u32;
+	fn do_create_class(
+		sender: &T::AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+	) -> Result<<T as orml_nft::Config>::ClassId, DispatchError> {
 		ensure!(
-			attributes_len <= T::MaxMetadata::get(),
+			metadata.len() as u32 <= T::MaxMetadata::get(),
 			Error::<T>::ExceedMaximumMetadataLength
+		);
+		let next_class_id = NftModule::<T>::next_class_id();
+		ensure!(
+			GroupCollections::<T>::contains_key(collection_id),
+			Error::<T>::CollectionDoesNotExist
 		);
 
 		ensure!(
-			metadata_len <= T::MaxMetadata::get(),
-			Error::<T>::ExceedMaximumMetadataLength
+			royalty_fee <= Perbill::from_percent(25u32),
+			Error::<T>::RoyaltyFeeExceedLimit
 		);
 
-		let deposit_attribute_required = T::DataDepositPerByte::get().saturating_mul(attributes_len.into());
-		let total_deposit_required = T::DataDepositPerByte::get()
-			.saturating_mul(metadata_len.into())
-			.saturating_add(deposit_attribute_required);
+		// Class fund
+		let class_fund: T::AccountId = T::Treasury::get().into_account();
 
-		Ok(total_deposit_required)
+		// Secure deposit of token class owner
+		let class_deposit = T::ClassMintingFee::get();
+		// Transfer fund to pot
+		<T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
+
+		let class_data = NftClassData {
+			deposit: class_deposit,
+			token_type,
+			collection_type,
+			attributes,
+			is_locked: false,
+			royalty_fee,
+		};
+
+		NftModule::<T>::create_class(&sender, metadata, class_data)?;
+		ClassDataCollection::<T>::insert(next_class_id, collection_id);
+		Ok(next_class_id)
+	}
+
+	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
+		NftModule::<T>::burn(&sender, *asset_id)?;
+		Ok(())
 	}
 
 	pub fn upgrade_class_data_v2() -> Weight {
@@ -753,32 +763,39 @@ impl<T: Config> Pallet<T> {
 		let mut num_nft_classes = 0;
 		let mut asset_by_owner_updates = 0;
 
-		orml_nft::Classes::<T>::translate(|_k, class_info: ClassInfoOf<T>| {
-			num_nft_classes += 1;
-			log::info!("Upgrading class data");
-			let new_data = NftClassData {
-				deposit: class_info.data.deposit,
-				attributes: class_info.data.attributes,
-				token_type: class_info.data.token_type,
-				collection_type: class_info.data.collection_type,
-			};
+		Classes::<T>::translate(
+			|_k,
+			 class_info: ClassInfo<
+				T::TokenId,
+				T::AccountId,
+				NftClassDataV1<BalanceOf<T>>,
+				BoundedVec<u8, T::MaxClassMetadata>,
+			>| {
+				num_nft_classes += 1;
+				log::info!("Upgrading class data");
+				log::info!("Class id {:?}", _k);
 
-			let v: ClassInfoOf<T> = ClassInfo {
-				metadata: class_info.metadata,
-				total_issuance: class_info.total_issuance,
-				owner: class_info.owner,
-				data: new_data,
-			};
-			Some(v)
-		});
+				let new_data = NftClassData {
+					deposit: class_info.data.deposit,
+					attributes: class_info.data.attributes,
+					token_type: class_info.data.token_type,
+					collection_type: class_info.data.collection_type,
+					is_locked: false,
+					royalty_fee: Perbill::from_percent(0u32),
+				};
+
+				let v: ClassInfoOf<T> = ClassInfo {
+					metadata: class_info.metadata,
+					total_issuance: class_info.total_issuance,
+					owner: class_info.owner,
+					data: new_data,
+				};
+				Some(v)
+			},
+		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
 		0
-	}
-
-	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
-		NftModule::<T>::burn(&sender, *asset_id)?;
-		Ok(())
 	}
 }
 
@@ -798,7 +815,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		Ok(who == &asset_info.owner)
 	}
 
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<(NftClassData<BalanceOf<T>>), DispatchError> {
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<BalanceOf<T>>, DispatchError> {
 		let asset_info = NftModule::<T>::classes(asset_id.0).ok_or(Error::<T>::AssetInfoNotFound)?;
 
 		Ok(asset_info.data)
@@ -823,28 +840,37 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		Ok(class_collection_id == collection_id)
 	}
 
-	fn mint_land_nft(
-		account: T::AccountId,
+	fn create_token_class(
+		sender: &T::AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<TokenId, DispatchError> {
-		let class_id: Self::ClassId = TryInto::<Self::ClassId>::try_into(LAND_CLASS_ID).unwrap_or_default(); //TO DO: Pre-mint land class or update the class id with more relevant value
-		let result: (Vec<(Self::ClassId, Self::TokenId)>, Self::TokenId) =
-			Self::do_mint_nfts(&account, class_id, metadata, attributes, 1)?;
-		let nft_value = *result.0.first().unwrap();
-		return Ok(TryInto::<TokenId>::try_into(nft_value.1).unwrap_or_default());
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+	) -> Result<ClassId, DispatchError> {
+		let class_id = Self::do_create_class(
+			sender,
+			metadata,
+			attributes,
+			collection_id,
+			token_type,
+			collection_type,
+			royalty_fee,
+		)?;
+		Ok(TryInto::<ClassId>::try_into(class_id).unwrap_or_default())
 	}
 
-	fn mint_estate_nft(
-		account: T::AccountId,
+	fn mint_token(
+		sender: &T::AccountId,
+		class_id: ClassId,
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<TokenId, DispatchError> {
-		let class_id: Self::ClassId = TryInto::<Self::ClassId>::try_into(ESTATE_CLASS_ID).unwrap_or_default(); //TO DO: Pre-mint estate class or update the class id with more relevant value
-		let result: (Vec<(Self::ClassId, Self::TokenId)>, Self::TokenId) =
-			Self::do_mint_nfts(&account, class_id, metadata, attributes, 1)?;
-		let nft_value = *result.0.first().unwrap();
-		return Ok(TryInto::<TokenId>::try_into(nft_value.1).unwrap_or_default());
+		let class: Self::ClassId = TryInto::<Self::ClassId>::try_into(class_id).unwrap_or_default();
+		let outcome = Self::do_mint_nfts(sender, class, metadata, attributes, 1)?;
+		let nft_token = *outcome.0.first().unwrap();
+		Ok(TryInto::<TokenId>::try_into(nft_token.1).unwrap_or_default())
 	}
 
 	fn burn_nft(account: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {

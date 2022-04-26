@@ -22,6 +22,10 @@ check-all: githooks
 check-debug:
 	RUSTFLAGS="-Z macro-backtrace" SKIP_WASM_BUILD= cargo +nightly check --features with-metaverse-runtime
 
+.PHONY: check-formatting
+check-formatting:
+	cargo fmt --all -- --check
+
 .PHONY: test
 test:
 	SKIP_WASM_BUILD= cargo test --all
@@ -41,6 +45,10 @@ build-tewai:
 .PHONY: build-pioneer
 build-pioneer:
 	cargo build --release  --features with-pioneer-runtime
+
+.PHONY: build-benchmarking
+build-benchmarking:
+	cargo build --release --features runtime-benchmarks
 
 .PHONY: build-docker
 build-docker:

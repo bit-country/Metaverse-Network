@@ -19,11 +19,11 @@ pub mod currency {
 /// Time.
 pub mod time {
 	use frame_support::dispatch::Weight;
-	use frame_support::weights::constants::WEIGHT_PER_SECOND;
+	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND};
 
 	use primitives::{BlockNumber, Moment};
 
-	use crate::{Balance, Perbill};
+	use crate::{Balance, Perbill, CENTS};
 
 	/// This determines the average expected block time that we are targeting.
 	/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
@@ -63,4 +63,24 @@ pub mod time {
 
 	/// We allow for 0.5 of a second of compute with a 12 second average block time.
 	pub const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
+
+	fn base_tx_fee() -> Balance {
+		CENTS / 10
+	}
+
+	pub fn ksm_per_second() -> u128 {
+		let base_weight = Balance::from(ExtrinsicBaseWeight::get());
+		let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
+		let fee_per_second = base_tx_per_second * base_tx_fee();
+		fee_per_second / 100
+	}
+}
+
+#[allow(non_snake_case)]
+pub mod parachains {
+	pub mod karura {
+		pub const ID: u32 = 2000;
+		pub const KAR_KEY: &[u8] = &[0, 128];
+		pub const KUSD_KEY: &[u8] = &[0, 129];
+	}
 }

@@ -425,7 +425,7 @@ fn asset_transfers_after_auction() {
 
 		// Verify transfer of fund (minus gas)
 		// BOB only receive 200 - 2 (1% of 200 as loyalty fee) - 4 minting fee =
-		assert_eq!(Balances::free_balance(BOB), 688);
+		assert_eq!(Balances::free_balance(BOB), 695);
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 
 		// Verify Alice has the NFT and Bob doesn't
@@ -512,7 +512,7 @@ fn buy_now_work() {
 		// initial balance is 500 - sold 2 x 200 = 900
 		// loyalty fee is 1% for both sales is 8
 		// 900 - 8 + 7 for deposit minting = 885
-		assert_eq!(Balances::free_balance(BOB), 885);
+		assert_eq!(Balances::free_balance(BOB), 892);
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
@@ -773,8 +773,8 @@ fn on_finalize_should_work() {
 		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99900);
-		// BOB only receive 596 - 1 (1% of 100 as loyalty fee) + 6 minting fee = 589
-		assert_eq!(Balances::free_balance(BOB), 589);
+		// BOB only receive 596 - 1 (1% of 100 as loyalty fee) + 1 minting fee = 589
+		assert_eq!(Balances::free_balance(BOB), 596);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// event was triggered

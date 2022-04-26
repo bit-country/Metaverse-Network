@@ -91,6 +91,18 @@ pub struct NftClassData<Balance> {
 	pub attributes: Attributes,
 	pub token_type: TokenType,
 	pub collection_type: CollectionType,
+	pub is_locked: bool,
+	pub royalty_fee: Perbill,
+}
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftClassDataV1<Balance> {
+	// Minimum balance to create a collection of Asset
+	pub deposit: Balance,
+	pub attributes: Attributes,
+	pub token_type: TokenType,
+	pub collection_type: CollectionType,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
@@ -141,6 +153,10 @@ pub trait MetaverseTrait<AccountId> {
 	fn get_metaverse_token(metaverse_id: MetaverseId) -> Option<FungibleTokenId>;
 	/// Update metaverse token, this only use once per metaverse
 	fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
+	/// Get the land class for a specific metaverse
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId;
+	/// Get the estate class for a specific metaverse
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId;
 }
 
 pub trait MetaverseLandTrait<AccountId> {
@@ -183,7 +199,7 @@ pub trait NFTTrait<AccountId, Balance> {
 	/// Check the ownership of this nft tuple
 	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<(NftClassData<Balance>), DispatchError>;
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
 	/// Check if collection and class exist
@@ -191,15 +207,20 @@ pub trait NFTTrait<AccountId, Balance> {
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
 	) -> Result<bool, DispatchError>;
-	/// Mint land as NFT
-	fn mint_land_nft(
-		account: AccountId,
+	/// Create NFT token class
+	fn create_token_class(
+		sender: &AccountId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<TokenId, DispatchError>;
-	/// Mint estate as NFT
-	fn mint_estate_nft(
-		account: AccountId,
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+	) -> Result<ClassId, DispatchError>;
+	/// Mint NFT token
+	fn mint_token(
+		sender: &AccountId,
+		class_id: ClassId,
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<TokenId, DispatchError>;

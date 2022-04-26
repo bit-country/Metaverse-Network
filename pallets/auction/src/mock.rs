@@ -10,7 +10,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseTrait, NftAssetData, NftClassData};
-use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
+use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId};
 
 use crate as auction;
 
@@ -212,6 +212,14 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
+		15u32
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
+		16u32
+	}
 }
 
 impl Config for Runtime {
@@ -271,21 +279,26 @@ parameter_types! {
 
 impl pallet_nft::Config for Runtime {
 	type Event = Event;
-	type DataDepositPerByte = CreateAssetDeposit;
 	type Currency = Balances;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
-	type WeightInfo = ();
 	type AuctionHandler = MockAuctionManager;
+	type WeightInfo = ();
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {
 	pub MaxClassMetadata: u32 = 1024;
 	pub MaxTokenMetadata: u32 = 1024;
+	pub AssetMintingFee: Balance = 1;
+	pub ClassMintingFee: Balance = 2;
+	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 }
 
 impl orml_nft::Config for Runtime {

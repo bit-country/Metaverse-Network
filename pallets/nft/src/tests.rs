@@ -18,12 +18,8 @@ fn free_native_balance(who: AccountId) -> Balance {
 	<Runtime as Config>::Currency::free_balance(who)
 }
 
-fn reserved_balance(who: &AccountId) -> Balance {
-	<Runtime as Config>::Currency::reserved_balance(who)
-}
-
 fn class_id_account() -> AccountId {
-	<Runtime as Config>::PalletId::get().into_sub_account(CLASS_ID)
+	<Runtime as Config>::Treasury::get().into_account()
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -133,7 +129,7 @@ fn create_class_should_work() {
 			CollectionType::Collectable,
 			Perbill::from_percent(0u32)
 		));
-		let class_deposit = <Runtime as Config>::DataDepositPerByte::get() * 5; // Test 5 bytes
+		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_eq!(Nft::get_class_collection(0), 0);
 		assert_eq!(Nft::all_nft_collection_count(), 1);
 		assert_eq!(
@@ -142,14 +138,16 @@ fn create_class_should_work() {
 				deposit: class_deposit,
 				token_type: TokenType::Transferable,
 				collection_type: CollectionType::Collectable,
+				is_locked: false,
 				attributes: test_attributes(1),
+				royalty_fee: Perbill::from_percent(0u32)
 			}
 		);
 
 		let event = mock::Event::Nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
 		assert_eq!(last_event(), event);
 
-		assert_eq!(reserved_balance(&class_id_account()), class_deposit);
+		assert_eq!(free_native_balance(class_id_account()), class_deposit);
 	});
 }
 
@@ -160,8 +158,7 @@ fn mint_asset_should_work() {
 		assert_ok!(Nft::enable_promotion(Origin::root(), true));
 		init_test_nft(origin.clone());
 
-		// deposit 8 as 4 bytes for class deposit and 6 bytes for nft deposit
-		assert_eq!(reserved_balance(&class_id_account()), 10);
+		assert_eq!(free_native_balance(class_id_account()), 3);
 		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
 
 		let event = mock::Event::Nft(crate::Event::NewNftMinted((0, 0), (0, 0), ALICE, CLASS_ID, 1, 0));
@@ -351,16 +348,6 @@ fn do_create_group_collection_should_work() {
 			properties: vec![1],
 		};
 		assert_eq!(Nft::get_group_collection(0), Some(collection_data));
-	})
-}
-
-#[test]
-fn do_transfer_should_work() {
-	let origin = Origin::signed(ALICE);
-	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(origin.clone());
-		assert_ok!(Nft::do_transfer(&ALICE, &BOB, (0, 0)));
-		assert_eq!(OrmlNft::tokens_by_owner((BOB, 0, 0)), ());
 	})
 }
 

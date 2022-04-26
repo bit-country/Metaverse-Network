@@ -22,7 +22,6 @@ use codec::{Decode, Encode};
 use frame_support::traits::{Currency, Get, WithdrawReasons};
 use frame_support::PalletId;
 use frame_support::{
-	decl_error, decl_event, decl_module, decl_storage,
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
@@ -47,6 +46,10 @@ use core_primitives::*;
 pub use pallet::*;
 use primitives::staking::RoundInfo;
 use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+pub use weights::WeightInfo;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -72,6 +75,8 @@ pub const MAX_VESTINGS: usize = 20;
 
 pub const VESTING_LOCK_ID: LockIdentifier = *b"bcstvest";
 
+pub mod weights;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::sp_runtime::traits::Saturating;
@@ -90,6 +95,7 @@ pub mod pallet {
 	use super::*;
 
 	#[pallet::pallet]
+	#[pallet::generate_store(trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
@@ -113,6 +119,8 @@ pub mod pallet {
 		type EstateHandler: Estate<Self::AccountId>;
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
+		// Weight implementation for mining extrinsics
+		type WeightInfo: WeightInfo;
 	}
 
 	/// Minting origins
@@ -134,6 +142,11 @@ pub mod pallet {
 	#[pallet::getter(fn current_mining_resource_allocation)]
 	/// Mining resource issuance ratio config
 	pub type CurrentMiningResourceAllocation<T: Config> = StorageValue<_, MiningRange<Balance>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn mining_paused)]
+	/// Mining resource issuance ratio config
+	pub type MiningPaused<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -161,6 +174,10 @@ pub mod pallet {
 		MiningResourceMintedTo(T::AccountId, Balance),
 		/// Burn new Mining resource of [who] [amount]
 		MiningResourceBurnFrom(T::AccountId, Balance),
+		/// Temporary pause mining round rotation
+		MiningRoundPaused(T::BlockNumber, RoundIndex),
+		/// Mining round rotation is unpaused
+		MiningRoundUnPaused(T::BlockNumber, RoundIndex),
 	}
 
 	#[pallet::error]
@@ -183,6 +200,10 @@ pub mod pallet {
 		OriginsIsNotExist,
 		/// Round update is on progress
 		RoundUpdateIsOnProgress,
+		/// Mining round already paused
+		MiningRoundAlreadyPaused,
+		/// Mining round is not paused
+		MiningRoundIsNotPaused,
 	}
 
 	#[pallet::call]
@@ -190,7 +211,7 @@ pub mod pallet {
 		/// Issue mining resource on metaverse. There are, and will only ever be, `total`
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
-		#[pallet::weight(10_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::mint())]
 		pub fn mint(origin: OriginFor<T>, who: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
@@ -202,7 +223,7 @@ pub mod pallet {
 		/// Burn mining resource on metaverse. There are, and will only ever be, `total`
 		/// such assets and they'll all belong to the `origin` initially. It will have an
 		/// identifier `TokenId` instance: this will be specified in the `Issued` event.
-		#[pallet::weight(10_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::burn())]
 		pub fn burn(origin: OriginFor<T>, who: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
@@ -212,7 +233,7 @@ pub mod pallet {
 		}
 
 		/// Deposit Mining Resource from address to mining treasury
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::deposit())]
 		pub fn deposit(origin: OriginFor<T>, amount: Balance) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			Self::do_deposit(who, amount)?;
@@ -220,7 +241,7 @@ pub mod pallet {
 		}
 
 		/// Withdraw Mining Resource from mining engine to destination wallet
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::withdraw())]
 		pub fn withdraw(origin: OriginFor<T>, dest: T::AccountId, amount: Balance) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			Self::do_withdraw(who, dest, amount)?;
@@ -228,7 +249,7 @@ pub mod pallet {
 		}
 
 		/// Add new Minting Origin to Mining Resource
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::add_minting_origin())]
 		pub fn add_minting_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
 			T::AdminOrigin::ensure_origin(origin)?;
 			Self::do_add_minting_origin(who)?;
@@ -236,14 +257,15 @@ pub mod pallet {
 		}
 
 		/// Remove Minting Origin to Mining Resource
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::remove_minting_origin())]
 		pub fn remove_minting_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResultWithPostInfo {
 			T::AdminOrigin::ensure_origin(origin)?;
 			Self::do_remove_minting_origin(who)?;
 			Ok(().into())
 		}
 
-		#[pallet::weight(100_000)]
+		/// Update round length
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::update_round_length())]
 		pub fn update_round_length(origin: OriginFor<T>, length: T::BlockNumber) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -259,7 +281,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(100_000)]
+		/// Update mining issuance configuration
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::update_mining_issuance_config())]
 		pub fn update_mining_issuance_config(
 			origin: OriginFor<T>,
 			config: MiningResourceRateInfo,
@@ -272,6 +295,36 @@ pub mod pallet {
 			MiningConfig::<T>::put(config.clone());
 
 			Self::deposit_event(Event::<T>::MiningConfigUpdated(current_block, config));
+
+			Ok(().into())
+		}
+
+		/// Pause current mining round so new round will not roll out until unpaused
+		#[pallet::weight(100_000)]
+		pub fn pause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			let current_round = Round::<T>::get();
+			ensure!(!MiningPaused::<T>::get(), Error::<T>::MiningRoundAlreadyPaused);
+
+			MiningPaused::<T>::put(true);
+			let current_block = <system::Pallet<T>>::block_number();
+			Self::deposit_event(Event::<T>::MiningRoundPaused(current_block, current_round.current));
+
+			Ok(().into())
+		}
+
+		/// Unpause current mining round so new round can roll out
+		#[pallet::weight(100_000)]
+		pub fn unpause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			let current_round = Round::<T>::get();
+			ensure!(MiningPaused::<T>::get(), Error::<T>::MiningRoundIsNotPaused);
+
+			MiningPaused::<T>::put(false);
+			let current_block = <system::Pallet<T>>::block_number();
+			Self::deposit_event(Event::<T>::MiningRoundUnPaused(current_block, current_round.current));
 
 			Ok(().into())
 		}
