@@ -6,20 +6,20 @@ use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
+use metaverse_primitive::{
+	Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseMetadata,
+	MetaverseTrait, NFTTrait, NftClassData, NftMetadata, TokenType,
+};
 use orml_traits::parameter_type_with_key;
+use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, TokenId};
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
-	Perbill,
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
+	Perbill,
 };
 use sp_std::collections::btree_map::BTreeMap;
-use metaverse_primitive::{
-	Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseMetadata, MetaverseLandTrait, 
-	MetaverseTrait, NftClassData, NftMetadata, NFTTrait, TokenType
-};
-use primitives::{Amount, ClassId, GroupCollectionId, FungibleTokenId, TokenId};
 
 use crate as governance;
 
@@ -136,7 +136,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
 		1u64
 	}
-	
+
 	fn check_ownership(who: &AccountId, country_id: &CountryId) -> bool {
 		match *who {
 			ALICE => *country_id == ALICE_COUNTRY_ID,
@@ -157,11 +157,11 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 		Ok(())
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(15u32)
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(16u32)
 	}
 }
@@ -253,8 +253,16 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		royalty_fee: Perbill,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
-			ALICE => Ok(1),
-			BOB => Ok(2),
+			ALICE => {
+				if collection_id == 0 {
+					Ok(0)
+				} else if collection_id == 1 {
+					Ok(1)
+				} else {
+					Ok(2)
+				}
+			}
+			BOB => Ok(3),
 			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
 			_ => Ok(100),
 		}
@@ -272,22 +280,19 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			BENEFICIARY_ID => {
 				if class_id == 15 {
 					return Ok(ASSET_ID_1);
-				}
-				else if class_id == 16 {
+				} else if class_id == 16 {
 					return Ok(ASSET_ID_2);
-				}
-				else {
+				} else {
 					return Ok(200);
 				}
-			},
+			}
 			_ => {
 				if class_id == 0 {
 					return Ok(1000);
-				}
-				else {
+				} else {
 					return Ok(1001);
 				}
-			},
+			}
 		}
 	}
 

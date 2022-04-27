@@ -587,7 +587,6 @@ impl<T: Config> Pallet<T> {
 		})?;
 		let land_class_id = Self::mint_metaverse_land_class(owner, metaverse_id)?;
 		let estate_class_id = Self::mint_metaverse_estate_class(owner, metaverse_id)?;
-	
 		let metaverse_info = MetaverseInfo {
 			owner: owner.clone(),
 			currency_id: FungibleTokenId::NativeToken(0),
@@ -602,7 +601,7 @@ impl<T: Config> Pallet<T> {
 		Ok(metaverse_id)
 	}
 
-	fn do_create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId,DispatchError> {
+	fn do_create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId, DispatchError> {
 		ensure!(
 			metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
 			Error::<T>::MaxMetadataExceeded
@@ -619,7 +618,6 @@ impl<T: Config> Pallet<T> {
 			T::MinContribution::get(),
 			ExistenceRequirement::KeepAlive,
 		)?;
-		
 		let metaverse_id = Self::new_metaverse(&who, metadata)?;
 
 		MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
@@ -651,7 +649,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId,DispatchError> {
+	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for lands
 		let mut land_class_attributes = Attributes::new();
 		land_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
@@ -664,11 +662,11 @@ impl<T: Config> Pallet<T> {
 			0,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(10u32)
+			Perbill::from_percent(10u32),
 		)
 	}
 
-	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId,DispatchError> {
+	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for estates
 		let mut estate_class_attributes = Attributes::new();
 		estate_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
@@ -681,7 +679,7 @@ impl<T: Config> Pallet<T> {
 			1,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(10u32)
+			Perbill::from_percent(10u32),
 		)
 	}
 }
@@ -690,7 +688,7 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	fn create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> MetaverseId {
 		Self::do_create_metaverse(who, metadata).unwrap_or_default()
 	}
-	 
+
 	fn check_ownership(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
 		Self::get_metaverse_owner(who, metaverse_id) == Some(())
 	}
@@ -725,12 +723,11 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
 		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
 	}
-	
+
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
 		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
 	}
-
 }
 
 impl<T: Config> MetaverseStakingTrait<BalanceOf<T>> for Pallet<T> {

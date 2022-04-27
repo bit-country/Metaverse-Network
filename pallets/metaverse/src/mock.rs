@@ -1,14 +1,13 @@
 #![cfg(test)]
-
+use crate as metaverse;
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
-use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 use primitives::staking::RoundInfo;
 use primitives::{Amount, ClassId, GroupCollectionId, TokenId};
-use crate as metaverse;
+use sp_core::H256;
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use super::*;
 
@@ -149,14 +148,12 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			ALICE => {
 				if collection_id == 0 {
 					Ok(0)
-				}
-				else if collection_id == 1{
+				} else if collection_id == 1 {
 					Ok(1)
-				}
-				else {
+				} else {
 					Ok(2)
-				}		
-			},
+				}
+			}
 			BOB => Ok(3),
 			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
 			_ => Ok(100),
@@ -175,22 +172,19 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			BENEFICIARY_ID => {
 				if class_id == 15 {
 					return Ok(ASSET_ID_1);
-				}
-				else if class_id == 16 {
+				} else if class_id == 16 {
 					return Ok(ASSET_ID_2);
-				}
-				else {
+				} else {
 					return Ok(200);
 				}
-			},
+			}
 			_ => {
 				if class_id == 0 {
 					return Ok(1000);
-				}
-				else {
+				} else {
 					return Ok(1001);
 				}
-			},
+			}
 		}
 	}
 
@@ -244,7 +238,6 @@ impl Config for Runtime {
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type WeightInfo = ();
 	type NFTHandler = MockNFTHandler;
-	
 }
 
 parameter_type_with_key! {

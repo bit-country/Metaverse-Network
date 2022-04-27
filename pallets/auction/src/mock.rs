@@ -195,7 +195,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
 		1u64
 	}
-	
+
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
@@ -216,11 +216,11 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		Ok(())
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(15u32)
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(16u32)
 	}
 }

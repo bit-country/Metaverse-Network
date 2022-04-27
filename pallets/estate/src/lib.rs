@@ -34,7 +34,7 @@ pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::Estate, estate::LandUnitStatus, estate::OwnerId, Attributes, ClassId, EstateId, ItemId, MetaverseId,
-	NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType, 
+	NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -781,7 +781,8 @@ pub mod pallet {
 				// Reset estate ownership
 				match estate_owner_value {
 					OwnerId::Token(t) => {
-						let estate_class_id: ClassId = T::MetaverseInfoSource::get_metaverse_estate_class(estate_info.metaverse_id)?;
+						let estate_class_id: ClassId =
+							T::MetaverseInfoSource::get_metaverse_estate_class(estate_info.metaverse_id)?;
 						T::NFTTokenizationSource::burn_nft(&who, &(estate_class_id, t));
 						*estate_owner = None;
 					}
@@ -1251,12 +1252,8 @@ impl<T: Config> Pallet<T> {
 		if is_tokenized {
 			let token_properties = Self::get_estate_token_properties(metaverse_id, new_estate_id);
 			let class_id = T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id)?;
-			let asset_id: TokenId = T::NFTTokenizationSource::mint_token(
-				beneficiary,
-				class_id,
-				token_properties.0,
-				token_properties.1,
-			)?;
+			let asset_id: TokenId =
+				T::NFTTokenizationSource::mint_token(beneficiary, class_id, token_properties.0, token_properties.1)?;
 			owner = OwnerId::Token(asset_id);
 		}
 
@@ -1424,9 +1421,10 @@ impl<T: Config> Pallet<T> {
 			);
 
 			match estate_owner_value {
-				OwnerId::Token(t) => {	
+				OwnerId::Token(t) => {
 					let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-					let estate_class_id: ClassId = T::MetaverseInfoSource::get_metaverse_estate_class(estate_info.metaverse_id)?;
+					let estate_class_id: ClassId =
+						T::MetaverseInfoSource::get_metaverse_estate_class(estate_info.metaverse_id)?;
 					T::NFTTokenizationSource::transfer_nft(from, to, &(estate_class_id, t));
 				}
 				OwnerId::Account(a) => *estate_owner = Some(OwnerId::Account(to.clone())),
@@ -1464,7 +1462,8 @@ impl<T: Config> Pallet<T> {
 						match owner {
 							OwnerId::Account(a) => *land_unit_owner = Some(OwnerId::Account(to.clone())),
 							OwnerId::Token(t) => {
-								let land_class_id: ClassId = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
+								let land_class_id: ClassId =
+									T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 								T::NFTTokenizationSource::transfer_nft(from, to, &(land_class_id, *t));
 							}
 						}
@@ -1569,14 +1568,16 @@ impl<T: Config> Pallet<T> {
 			OwnerId::Account(a) => return a == who,
 			OwnerId::Token(asset_id) => {
 				if is_estate_owner {
-					let estate_class_id: ClassId = T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id).unwrap_or(0);
+					let estate_class_id: ClassId =
+						T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id).unwrap_or(0);
 					return T::NFTTokenizationSource::check_ownership(who, &(estate_class_id, *asset_id))
 						.unwrap_or(false);
 				} else {
-					let land_class_id: ClassId = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id).unwrap_or(0);
-					return T::NFTTokenizationSource::check_ownership(who, &(land_class_id, *asset_id)).unwrap_or(false);
+					let land_class_id: ClassId =
+						T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id).unwrap_or(0);
+					return T::NFTTokenizationSource::check_ownership(who, &(land_class_id, *asset_id))
+						.unwrap_or(false);
 				}
-				
 			}
 		}
 	}

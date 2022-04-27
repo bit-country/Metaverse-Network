@@ -143,12 +143,12 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
-	
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(15u32)
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(16u32)
 	}
 }
@@ -288,8 +288,16 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		royalty_fee: Perbill,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
-			ALICE => Ok(1),
-			BOB => Ok(2),
+			ALICE => {
+				if collection_id == 0 {
+					Ok(0)
+				} else if collection_id == 1 {
+					Ok(1)
+				} else {
+					Ok(2)
+				}
+			}
+			BOB => Ok(3),
 			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
 			_ => Ok(100),
 		}
@@ -307,22 +315,19 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			BENEFICIARY_ID => {
 				if class_id == 15 {
 					return Ok(ASSET_ID_1);
-				}
-				else if class_id == 16 {
+				} else if class_id == 16 {
 					return Ok(ASSET_ID_2);
-				}
-				else {
+				} else {
 					return Ok(200);
 				}
-			},
+			}
 			_ => {
 				if class_id == 0 {
 					return Ok(1000);
-				}
-				else {
+				} else {
 					return Ok(1001);
 				}
-			},
+			}
 		}
 	}
 
