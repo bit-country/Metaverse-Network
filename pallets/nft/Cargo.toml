@@ -2,7 +2,7 @@
 authors = ['Metaverse Network <https://github.com/bit-country>']
 description = 'Metaverse Network pallet for general nft logic.'
 edition = '2018'
-homepage = 'https://bit.country'
+homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'pallet-nft'
 repository = 'https://github.com/bit-country'

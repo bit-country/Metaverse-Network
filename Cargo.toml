@@ -8,6 +8,7 @@ members = [
     'node',
     'runtime/pioneer',
     'runtime/metaverse',
+    'runtime/integration-tests',
     'primitives/metaverse',
     'modules/relaychain',
     'modules/support',

@@ -3,10 +3,10 @@ authors = ['Metaverse Developers <https://metaverse.network>']
 build = 'build.rs'
 description = 'A decentralised world powered by economy.'
 edition = '2018'
-homepage = 'https://bit.country'
+homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'metaverse-node'
-repository = 'https://github.com/bit-country/Bit-Country-Blockchain/'
+repository = 'https://github.com/bit-country/Metaverse-Network/'
 version = '0.0.4'
 
 [package.metadata.docs.rs]

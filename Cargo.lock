@@ -8462,6 +8462,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "pioneer-integration-tests"
+version = "0.0.29"
+dependencies = [
+ "bit-country-primitives",
+ "core-primitives",
+ "cumulus-primitives-core",
+ "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
+ "frame-system 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
+ "kusama-runtime",
+ "metaverse-runtime",
+ "orml-tokens 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.17)",
+ "orml-traits 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.17)",
+ "orml-xcm",
+ "orml-xcm-support",
+ "orml-xtokens",
+ "pallet-balances 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
+ "pallet-xcm",
+ "parachain-info",
+ "pioneer-runtime",
+ "polkadot-parachain",
+ "polkadot-primitives",
+ "polkadot-runtime-parachains",
+ "sp-io 5.0.0",
+ "sp-runtime 5.0.0",
+ "xcm 0.9.17",
+ "xcm-builder",
+ "xcm-emulator",
+ "xcm-executor",
+]
+
+[[package]]
 name = "pioneer-runtime"
 version = "0.0.7"
 dependencies = [
@@ -14877,6 +14908,30 @@ dependencies = [
  "sp-arithmetic 4.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "sp-io 5.0.0",
  "sp-runtime 5.0.0",
+ "sp-std 4.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
+ "xcm 0.9.17",
+ "xcm-executor",
+]
+
+[[package]]
+name = "xcm-emulator"
+version = "0.1.0"
+source = "git+https://github.com/shaunxw/xcm-simulator?rev=24ccbce563d1f99019b4cdfa2f3af4e99bac0dfc#24ccbce563d1f99019b4cdfa2f3af4e99bac0dfc"
+dependencies = [
+ "cumulus-pallet-dmp-queue",
+ "cumulus-pallet-parachain-system",
+ "cumulus-pallet-xcmp-queue",
+ "cumulus-primitives-core",
+ "cumulus-primitives-parachain-inherent",
+ "cumulus-test-relay-sproof-builder",
+ "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
+ "frame-system 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
+ "parachain-info",
+ "parity-scale-codec 2.3.1",
+ "paste",
+ "polkadot-primitives",
+ "polkadot-runtime-parachains",
+ "sp-io 5.0.0",
  "sp-std 4.0.0 (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "xcm 0.9.17",
  "xcm-executor",
