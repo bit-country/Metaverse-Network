@@ -55,7 +55,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1};
+use primitive_traits::{CollectionType, NftAssetData, NftClassData};
 use primitives::{
 	AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
 };
