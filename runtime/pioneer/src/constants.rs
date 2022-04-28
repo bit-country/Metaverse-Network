@@ -5,7 +5,7 @@ pub mod currency {
 	pub const KILODOLLARS: Balance = 1_000_000_000_000_000_000_000;
 	pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 	pub const CENTS: Balance = DOLLARS / 100;
-	pub const RELAY_CENTS: Balance = DOLLARS / 10_000;
+	pub const RELAY_CENTS: Balance = CENTS / 1_000_000;
 	/// 10_000_000_000_000_000
 	pub const MILLICENTS: Balance = CENTS / 1000;
 	/// 10_000_000_000_000
@@ -74,7 +74,7 @@ pub mod xcm_fees {
 	use crate::{CENTS, MILLICENTS};
 
 	pub fn base_tx(currency: FungibleTokenId) -> Balance {
-		millicent(currency) / 10
+		cent(currency) / 10
 	}
 
 	// The fee cost per second for transferring the native token in cents.
@@ -83,7 +83,7 @@ pub mod xcm_fees {
 	}
 
 	pub fn ksm_per_second() -> Balance {
-		base_tx_per_second(FungibleTokenId::NativeToken(1)) / 100
+		base_tx_per_second(FungibleTokenId::NativeToken(1)) / 50
 	}
 
 	fn base_tx_per_second(currency: FungibleTokenId) -> Balance {

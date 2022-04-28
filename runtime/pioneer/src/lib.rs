@@ -182,8 +182,8 @@ impl WeightToFeePolynomial for WeightToFee {
 	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
 		// in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 CENTS:
 		// in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
-		let p = RELAY_CENTS / 10;
-		let q = 100 * Balance::from(ExtrinsicBaseWeight::get());
+		let p = RELAY_CENTS;
+		let q = Balance::from(ExtrinsicBaseWeight::get());
 		smallvec![WeightToFeeCoefficient {
 			degree: 1,
 			negative: false,
@@ -743,7 +743,14 @@ parameter_types! {
 	pub NeerPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+			X2(Parachain(2096), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+		).into(),
+		native_per_second()
+	);
+	pub BitPerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			1,
+			X2(Parachain(2096), GeneralKey(FungibleTokenId::MiningResource(0).encode()))
 		).into(),
 		native_per_second()
 	);
@@ -787,6 +794,7 @@ impl TakeRevenue for ToTreasury {
 pub type Trader = (
 	FixedRateOfFungible<KsmPerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerPerSecond, ToTreasury>,
+	FixedRateOfFungible<BitPerSecond, ToTreasury>,
 	FixedRateOfFungible<KarPerSecond, ToTreasury>,
 	FixedRateOfFungible<KUsdPerSecond, ToTreasury>,
 );

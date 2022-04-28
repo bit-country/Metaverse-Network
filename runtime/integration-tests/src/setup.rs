@@ -90,8 +90,16 @@ pub fn native_amount(amount: Balance) -> Balance {
 	amount * dollar(FungibleTokenId::NativeToken(0))
 }
 
+pub fn bit_amount(amount: Balance) -> Balance {
+	amount * dollar(FungibleTokenId::MiningResource(0))
+}
+
 pub fn kusd_amount(amount: Balance) -> Balance {
 	amount * dollar(FungibleTokenId::Stable(0))
+}
+
+pub fn kar_amount(amount: Balance) -> Balance {
+	amount * dollar(FungibleTokenId::NativeToken(2))
 }
 
 pub fn ksm_amount(amount: Balance) -> Balance {
