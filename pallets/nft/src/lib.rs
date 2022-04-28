@@ -768,7 +768,7 @@ impl<T: Config> Pallet<T> {
 			 class_info: ClassInfo<
 				T::TokenId,
 				T::AccountId,
-				NftClassDataV1<BalanceOf<T>>,
+				NftClassData<BalanceOf<T>>,
 				BoundedVec<u8, T::MaxClassMetadata>,
 			>| {
 				num_nft_classes += 1;
