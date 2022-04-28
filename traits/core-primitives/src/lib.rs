@@ -91,6 +91,8 @@ pub struct NftClassData<Balance> {
 	pub attributes: Attributes,
 	pub token_type: TokenType,
 	pub collection_type: CollectionType,
+	pub is_locked: bool,
+	pub royalty_fee: Perbill,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
