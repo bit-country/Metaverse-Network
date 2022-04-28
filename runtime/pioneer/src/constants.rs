@@ -5,6 +5,7 @@ pub mod currency {
 	pub const KILODOLLARS: Balance = 1_000_000_000_000_000_000_000;
 	pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 	pub const CENTS: Balance = DOLLARS / 100;
+	pub const RELAY_CENTS: Balance = DOLLARS / 10_000;
 	/// 10_000_000_000_000_000
 	pub const MILLICENTS: Balance = CENTS / 1000;
 	/// 10_000_000_000_000
@@ -68,27 +69,46 @@ pub mod time {
 pub mod xcm_fees {
 	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND};
 
-	use primitives::Balance;
+	use primitives::{Balance, FungibleTokenId};
 
-	use crate::CENTS;
+	use crate::{CENTS, MILLICENTS};
 
-	fn base_tx_fee() -> Balance {
-		CENTS / 10
+	pub fn base_tx(currency: FungibleTokenId) -> Balance {
+		millicent(currency) / 10
 	}
 
 	// The fee cost per second for transferring the native token in cents.
 	pub fn native_per_second() -> Balance {
-		base_tx_per_second()
+		base_tx_per_second(FungibleTokenId::NativeToken(0))
 	}
 
 	pub fn ksm_per_second() -> Balance {
-		base_tx_per_second() / 50
+		base_tx_per_second(FungibleTokenId::NativeToken(1)) / 100
 	}
 
-	fn base_tx_per_second() -> Balance {
+	fn base_tx_per_second(currency: FungibleTokenId) -> Balance {
 		let base_weight = Balance::from(ExtrinsicBaseWeight::get());
 		let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
-		base_tx_per_second * base_tx_fee()
+		base_tx_per_second * base_tx(currency)
+	}
+
+	pub fn dollar(currency_id: FungibleTokenId) -> Balance {
+		10u128.saturating_pow(currency_id.decimals().into())
+	}
+
+	pub fn cent(currency_id: FungibleTokenId) -> Balance {
+		dollar(currency_id) / 100
+	}
+	pub fn millicent(currency_id: FungibleTokenId) -> Balance {
+		cent(currency_id) / 1000
+	}
+
+	pub fn microcent(currency_id: FungibleTokenId) -> Balance {
+		millicent(currency_id) / 1000
+	}
+
+	pub fn base_tx_in_neer() -> Balance {
+		CENTS / 10
 	}
 }
 
