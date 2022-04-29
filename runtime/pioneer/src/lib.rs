@@ -944,50 +944,22 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 
 				_ => None,
 			},
+			MultiLocation { parents, interior } if parents == 0 => match interior {
+				X1(GeneralKey(key)) => {
+					// decode the general key
+					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
+						match currency_id {
+							NativeToken(0) | NativeToken(1) => Some(currency_id),
+							_ => None,
+						}
+					} else {
+						None
+					}
+				}
+				_ => None,
+			},
 			_ => None,
 		}
-
-		//		match location.clone() {
-		//			MultiLocation { parents, interior } if parents == 1 => match interior {
-		//				X2(Parachain(id), GeneralKey(key)) if id == para_id | 3000 => {
-		//					// decode the general key
-		//					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
-		//						match currency_id {
-		//							NativeToken(0) => Some(currency_id),
-		//							MiningResource(0) => Some(currency_id),
-		//							_ => None,
-		//						}
-		//					} else {
-		//						None
-		//					}
-		//				}
-		//				X2(Parachain(id), GeneralKey(key)) if id == parachains::karura::ID => {
-		//					if key == parachains::karura::KAR_KEY.to_vec() {
-		//						Some(NativeToken(2))
-		//					} else if key == parachains::karura::KUSD_KEY.to_vec() {
-		//						Some(Stable(0))
-		//					} else {
-		//						None
-		//					}
-		//				}
-		//				_ => None,
-		//			},
-		//			MultiLocation { parents, interior } if parents == 0 => match interior {
-		//				X1(GeneralKey(key)) => {
-		//					// decode the general key
-		//					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
-		//						match currency_id {
-		//							NativeToken(0) | NativeToken(1) => Some(currency_id),
-		//							_ => None,
-		//						}
-		//					} else {
-		//						None
-		//					}
-		//				}
-		//				_ => None,
-		//			},
-		//			_ => None,
-		//		}
 	}
 }
 
