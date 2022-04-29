@@ -2,7 +2,7 @@
 authors = ['Metaverse Network <https://github.com/bit-country>']
 description = 'Metaverse Network pallet for crowdloan reward logic.'
 edition = '2018'
-homepage = 'https://bit.country'
+homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'pallet-crowdloan'
 repository = 'https://github.com/bit-country'

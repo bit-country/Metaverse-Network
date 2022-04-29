@@ -3,10 +3,10 @@ authors = ['Metaverse Developers <https://metaverse.network>']
 build = 'build.rs'
 description = 'A decentralised world powered by economy.'
 edition = '2018'
-homepage = 'https://bit.country'
+homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'metaverse-node'
-repository = 'https://github.com/bit-country/Bit-Country-Blockchain/'
+repository = 'https://github.com/bit-country/Metaverse-Network/'
 version = '0.0.4'
 
 [package.metadata.docs.rs]
@@ -89,7 +89,7 @@ node-primitives = { git = "https://github.com/paritytech/substrate", branch = "p
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
 metaverse-runtime = { version = "0.0.29", path = "../runtime/metaverse", optional = true }
 tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
-pioneer-runtime = { version = "2.0.0-rc6", path = "../runtime/pioneer", optional = true }
+pioneer-runtime = { version = "0.0.7", path = "../runtime/pioneer", optional = true }
 #pallet-evm = { path = "../pallets/evm" }
 
 # Cumulus dependencies
