@@ -750,6 +750,10 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
 		return Self::get_metaverse_marketplace_listing_fee(metaverse_id);	
 	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {
+		return T::MetaverseTreasury::get().into_account();
+	}
 }
 
 impl<T: Config> MetaverseStakingTrait<BalanceOf<T>> for Pallet<T> {

@@ -39,6 +39,10 @@ pub const LAND_UNIT_EXIST: (i32, i32) = (0, 0);
 pub const LAND_UNIT_EXIST_1: (i32, i32) = (1, 1);
 pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
 
+pub const ALICE_METAVERSE_FUND: AccountId = 100;
+pub const BOB_METAVERSE_FUND: AccountId = 101;
+pub const GENERAL_METAVERSE_FUND: AccountId = 102;
+
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
@@ -223,6 +227,14 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
 		Perbill::from_percent(1u32)
+	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
+		match metaverse_id{
+			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
+			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
+			_ => GENERAL_METAVERSE_FUND,
+		}
 	}
 }
 

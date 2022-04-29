@@ -956,6 +956,7 @@ pub mod pallet {
 			high_bidder: &T::AccountId,
 			asset_id: &(ClassId, TokenId),
 			social_currency_id: FungibleTokenId,
+		//	listing_level: ListingLevel<T::AccountId>
 		) -> DispatchResult {
 			//let fee_scale = T::RoyaltyFee::get();
 			
@@ -970,6 +971,10 @@ pub mod pallet {
 				//.ok_or("Overflow")?;
 
 			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
+			//match listing_level{
+//
+			//}
+
 			// Transfer loyalty fee from winner to class fund pot
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
 				<T as Config>::Currency::transfer(
