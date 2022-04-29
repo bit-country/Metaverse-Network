@@ -957,19 +957,17 @@ pub mod pallet {
 			asset_id: &(ClassId, TokenId),
 			social_currency_id: FungibleTokenId,
 		) -> DispatchResult {
-			let fee_scale = T::RoyaltyFee::get();
-			// Calculate loyalty fee and deposit to pot fund
-			let royalty_fee = high_bid_price
-				.saturating_mul(fee_scale.into())
-				.checked_div(&10000u128.saturated_into())
-				.ok_or("Overflow")?;
+			//let fee_scale = T::RoyaltyFee::get();
+			
 
 			// Collect loyalty fee
 			// and deposit to class fund
 
 			// Get royalty fee
-			//			let fee = T::NFTHandler::get_nft_detail((asset_id.0,
-			// asset_id.1)).ok_or(Error::<T>::AssetIsNotExist)?;
+			let nft_details = T::NFTHandler::get_nft_detail((asset_id.0, asset_id.1))?;
+			let royalty_fee = nft_details.royalty_fee * *high_bid_price;
+				//.checked_div(&10000u128.saturated_into())
+				//.ok_or("Overflow")?;
 
 			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
 			// Transfer loyalty fee from winner to class fund pot
