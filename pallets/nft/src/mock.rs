@@ -150,6 +150,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_high_bidder: &u128,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
+		_listing_level: ListingLevel<AccountId>,
 	) -> DispatchResult {
 		Ok(())
 	}

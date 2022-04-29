@@ -349,6 +349,7 @@ pub mod pallet {
 								&auction_item.recipient,
 								&(class_id, token_id),
 								FungibleTokenId::NativeToken(0),
+								auction_item.listing_level,
 							);
 
 							let asset_transfer =
@@ -558,6 +559,7 @@ pub mod pallet {
 												&auction_item.recipient,
 												&(class_id, token_id),
 												FungibleTokenId::NativeToken(0),
+												auction_item.listing_level,
 											);
 											let asset_transfer = T::NFTHandler::transfer_nft(
 												&auction_item.recipient,
@@ -956,25 +958,19 @@ pub mod pallet {
 			high_bidder: &T::AccountId,
 			asset_id: &(ClassId, TokenId),
 			social_currency_id: FungibleTokenId,
-		//	listing_level: ListingLevel<T::AccountId>
+			listing_level: ListingLevel<T::AccountId>,
 		) -> DispatchResult {
-			//let fee_scale = T::RoyaltyFee::get();
-			
-
-			// Collect loyalty fee
-			// and deposit to class fund
-
 			// Get royalty fee
 			let nft_details = T::NFTHandler::get_nft_detail((asset_id.0, asset_id.1))?;
-			let royalty_fee = nft_details.royalty_fee * *high_bid_price;
-				//.checked_div(&10000u128.saturated_into())
-				//.ok_or("Overflow")?;
-
-			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
-			//match listing_level{
-//
-			//}
-
+			let mut royalty_fee = nft_details.royalty_fee * *high_bid_price;
+			let mut class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					class_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
+					royalty_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id) * *high_bid_price;
+				}
+				_ => {}
+			}
 			// Transfer loyalty fee from winner to class fund pot
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
 				<T as Config>::Currency::transfer(

@@ -23,7 +23,7 @@ use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::{Perbill, testing::Header, traits::IdentityLookup};
 
-use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
+use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseTrait};
 use primitives::{ClassId, FungibleTokenId};
 
@@ -162,6 +162,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_high_bidder: &u128,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
+		_listing_level: ListingLevel<AccountId>,
 	) -> DispatchResult {
 		Ok(())
 	}

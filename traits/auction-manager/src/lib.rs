@@ -121,6 +121,7 @@ pub trait Auction<AccountId, BlockNumber> {
 		high_bidder: &AccountId,
 		asset_id: &(ClassId, TokenId),
 		social_currency_id: FungibleTokenId,
+		listing_level: ListingLevel<AccountId>,
 	) -> DispatchResult;
 }
 
