@@ -183,6 +183,11 @@ pub mod pallet {
 	#[pallet::getter(fn staking_info)]
 	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
+	/// Local metaverse marketplace listing fee
+	#[pallet::storage]
+	#[pallet::getter(fn get_metaverse_marketplace_listing_fee)]
+	pub(crate) type MarketplaceListingFee<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, Perbill, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -196,6 +201,7 @@ pub mod pallet {
 		MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
 		MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
 		MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>),
+		MetaverseListingFeeUpdated(MetaverseId, Perbill),
 	}
 
 	#[pallet::error]
@@ -599,6 +605,22 @@ pub mod pallet {
 			<MetaverseRoundStake<T>>::insert(&metaverse_id, round, metaverse_stake_per_round);
 			Ok(().into())
 		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn update_metaverse_listing_fee(
+			origin: OriginFor<T>,
+			metaverse_id: MetaverseId,
+			new_listing_fee: Perbill,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			Self::do_update_metaverse_listing_fee(&who, &metaverse_id, new_listing_fee)?;
+			Self::deposit_event(Event::<T>::MetaverseListingFeeUpdated(
+				metaverse_id,
+				new_listing_fee,
+			));
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -659,7 +681,6 @@ impl<T: Config> Pallet<T> {
 			CollectionType::Collectable,
 			Perbill::from_percent(10u32),
 		);
-		// TO DO: Add class as metaverse parameter
 	}
 
 	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) {
@@ -677,7 +698,13 @@ impl<T: Config> Pallet<T> {
 			CollectionType::Collectable,
 			Perbill::from_percent(10u32),
 		);
-		// TO DO: Add class as metaverse parameter
+	}
+
+	fn do_update_metaverse_listing_fee(who: &T::AccountId, metaverse_id: &MetaverseId, new_listing_fee: Perbill) -> Result<(), DispatchError> {
+		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
+		MarketplaceListingFee::<T>::remove(metaverse_id);
+		MarketplaceListingFee::<T>::insert(metaverse_id, new_listing_fee);
+		Ok(())
 	}
 }
 
@@ -718,6 +745,10 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
 		return TryInto::<ClassId>::try_into(16u32).unwrap_or_default();
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
+		return Self::get_metaverse_marketplace_listing_fee(metaverse_id);	
 	}
 }
 

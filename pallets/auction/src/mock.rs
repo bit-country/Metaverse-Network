@@ -6,7 +6,7 @@ use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{Perbill, testing::Header, traits::IdentityLookup};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseTrait, NftAssetData, NftClassData};
@@ -219,6 +219,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
 		16u32
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
+		Perbill::from_percent(1u32)
 	}
 }
 

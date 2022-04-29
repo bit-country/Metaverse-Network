@@ -21,7 +21,7 @@ use frame_support::pallet_prelude::{GenesisBuild, Hooks};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{Perbill, testing::Header, traits::IdentityLookup};
 
 use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
 use core_primitives::{MetaverseInfo, MetaverseTrait};
@@ -209,6 +209,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
 		16u32
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
+		Perbill::from_percent(1u32)
 	}
 }
 

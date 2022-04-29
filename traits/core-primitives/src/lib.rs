@@ -157,6 +157,8 @@ pub trait MetaverseTrait<AccountId> {
 	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId;
 	/// Get the estate class for a specific metaverse
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId;
+	/// Get metaverse marketplace listing fee
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill;
 }
 
 pub trait MetaverseLandTrait<AccountId> {
