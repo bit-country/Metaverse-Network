@@ -606,7 +606,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		#[pallet::weight(T::DbWeight::update_metaverse_listing_fee())]
+		#[pallet::weight(T::WeightInfo::update_metaverse_listing_fee())]
 		pub fn update_metaverse_listing_fee(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
