@@ -967,7 +967,8 @@ pub mod pallet {
 			match listing_level {
 				ListingLevel::Local(metaverse_id) => {
 					class_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
-					royalty_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id) * *high_bid_price;
+					royalty_fee =
+						T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id) * *high_bid_price;
 				}
 				_ => {}
 			}

@@ -31,8 +31,8 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use primitives::Balance;
-use sp_runtime::Perbill;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
 
 pub type AccountId = u128;
 

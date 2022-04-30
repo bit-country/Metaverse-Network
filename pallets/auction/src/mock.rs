@@ -6,7 +6,7 @@ use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{Perbill, testing::Header, traits::IdentityLookup};
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseTrait, NftAssetData, NftClassData};
@@ -230,7 +230,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
-		match metaverse_id{
+		match metaverse_id {
 			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
 			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
 			_ => GENERAL_METAVERSE_FUND,

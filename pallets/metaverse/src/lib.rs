@@ -614,10 +614,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			Self::do_update_metaverse_listing_fee(&who, &metaverse_id, new_listing_fee)?;
-			Self::deposit_event(Event::<T>::MetaverseListingFeeUpdated(
-				metaverse_id,
-				new_listing_fee,
-			));
+			Self::deposit_event(Event::<T>::MetaverseListingFeeUpdated(metaverse_id, new_listing_fee));
 
 			Ok(().into())
 		}
@@ -700,7 +697,11 @@ impl<T: Config> Pallet<T> {
 		);
 	}
 
-	fn do_update_metaverse_listing_fee(who: &T::AccountId, metaverse_id: &MetaverseId, new_listing_fee: Perbill) -> Result<(), DispatchError> {
+	fn do_update_metaverse_listing_fee(
+		who: &T::AccountId,
+		metaverse_id: &MetaverseId,
+		new_listing_fee: Perbill,
+	) -> Result<(), DispatchError> {
 		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
 		MarketplaceListingFee::<T>::remove(metaverse_id);
 		MarketplaceListingFee::<T>::insert(metaverse_id, new_listing_fee);
@@ -748,7 +749,7 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	}
 
 	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
-		return Self::get_metaverse_marketplace_listing_fee(metaverse_id);	
+		return Self::get_metaverse_marketplace_listing_fee(metaverse_id);
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {
