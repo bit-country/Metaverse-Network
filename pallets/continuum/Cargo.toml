@@ -2,7 +2,7 @@
 authors = ['Metaverse Network <https://github.com/bit-country>']
 description = 'Metaverse Network pallet for country logic.'
 edition = '2018'
-homepage = 'https://bit.country'
+homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'pallet-continuum'
 repository = 'https://github.com/bit-country'

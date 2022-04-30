@@ -2,7 +2,7 @@
 authors = ['Bit Country <https://github.com/bit-country>']
 description = 'Bit Country pallet for governance logic.'
 edition = '2018'
-homepage = 'https://bit.country'
+homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'pallet-governance'
 repository = 'https://github.com/bit-country'

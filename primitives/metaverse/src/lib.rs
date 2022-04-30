@@ -188,6 +188,15 @@ impl FungibleTokenId {
 			_ => None,
 		}
 	}
+
+	pub fn decimals(&self) -> u8 {
+		match self {
+			FungibleTokenId::NativeToken(0) => 18, // Native token
+			FungibleTokenId::NativeToken(1) | FungibleTokenId::NativeToken(2) | FungibleTokenId::Stable(0) => 12, // KSM KAR KUSD
+			FungibleTokenId::MiningResource(0) => 18,
+			_ => 18,
+		}
+	}
 }
 
 /// App-specific crypto used for reporting equivocation/misbehavior in BABE and
