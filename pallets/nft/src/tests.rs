@@ -152,6 +152,43 @@ fn create_class_should_work() {
 }
 
 #[test]
+fn create_class_with_royalty_fee_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(10u32)
+		));
+		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		assert_eq!(Nft::get_class_collection(0), 0);
+		assert_eq!(Nft::all_nft_collection_count(), 1);
+		assert_eq!(
+			NftModule::<Runtime>::classes(CLASS_ID).unwrap().data,
+			NftClassData {
+				deposit: class_deposit,
+				token_type: TokenType::Transferable,
+				collection_type: CollectionType::Collectable,
+				is_locked: false,
+				attributes: test_attributes(1),
+				royalty_fee: Perbill::from_percent(10u32)
+			}
+		);
+
+		let event = mock::Event::Nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
+		assert_eq!(last_event(), event);
+
+		assert_eq!(free_native_balance(class_id_account()), class_deposit);
+	});
+}
+
+#[test]
 fn mint_asset_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);

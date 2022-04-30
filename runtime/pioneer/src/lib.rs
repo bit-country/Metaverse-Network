@@ -1,3 +1,20 @@
+// This file is part of Bit.Country.
+
+// Copyright (C) 2020-2021 Bit.Country.
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
@@ -20,6 +37,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, RawOrigin,
 };
+use orml_traits::location::Reserve;
 use orml_traits::{arithmetic::Zero, parameter_type_with_key, MultiCurrency};
 pub use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 // XCM Imports
@@ -164,8 +182,8 @@ impl WeightToFeePolynomial for WeightToFee {
 	fn polynomial() -> WeightToFeeCoefficients<Self::Balance> {
 		// in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 CENTS:
 		// in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
-		let p = CENTS / 10;
-		let q = 100 * Balance::from(ExtrinsicBaseWeight::get());
+		let p = RELAY_CENTS;
+		let q = Balance::from(ExtrinsicBaseWeight::get());
 		smallvec![WeightToFeeCoefficient {
 			degree: 1,
 			negative: false,
@@ -634,19 +652,7 @@ impl orml_tokens::Config for Runtime {
 parameter_types! {
 	pub const BaseXcmWeight: Weight = 100_000_000;
 	pub const MaxAssetsForTransfer: usize = 2;
-	// pub const RelayCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
-	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::parachain_id().into())));
-	pub ParachainAccount: AccountId = ParachainInfo::parachain_id().into_account();
-}
-
-pub fn create_x2_parachain_multilocation(index: u16) -> MultiLocation {
-	MultiLocation::new(
-		1,
-		X1(AccountId32 {
-			network: NetworkId::Any,
-			id: Utility::derivative_account_id(ParachainInfo::parachain_id().into_account(), index).into(),
-		}),
-	)
+	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
 }
 
 pub struct AccountIdToMultiLocation;
@@ -688,7 +694,7 @@ impl orml_unknown_tokens::Config for Runtime {
 
 impl orml_xcm::Config for Runtime {
 	type Event = Event;
-	type SovereignOrigin = EnsureRoot<AccountId>; //EnsureRootOrMetaverseTreasury; //EnsureRootOrThreeFourthsGeneralCouncil
+	type SovereignOrigin = EnsureRoot<AccountId>;
 }
 
 parameter_types! {
@@ -726,7 +732,7 @@ impl cumulus_pallet_aura_ext::Config for Runtime {}
 
 parameter_types! {
 	pub const RocLocation: MultiLocation = MultiLocation::parent();
-	pub const RelayNetwork: NetworkId = NetworkId::Any;
+	pub const RelayNetwork: NetworkId = NetworkId::Kusama;
 	pub RelayChainOrigin: Origin = cumulus_pallet_xcm::Origin::Relay.into();
 	pub Ancestry: MultiLocation = Parachain(ParachainInfo::parachain_id().into()).into();
 	pub SelfParaChainId: cumulus_primitives_core::ParaId = ParachainInfo::parachain_id();
@@ -737,9 +743,15 @@ parameter_types! {
 	pub NeerPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+			X2(Parachain(2096), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
 		).into(),
-		// NEER:KSM = 50:1
+		native_per_second()
+	);
+	pub BitPerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			1,
+			X2(Parachain(2096), GeneralKey(FungibleTokenId::MiningResource(0).encode()))
+		).into(),
 		native_per_second()
 	);
 	pub KUsdPerSecond: (AssetId, u128) = (
@@ -747,8 +759,8 @@ parameter_types! {
 			1,
 			X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KUSD_KEY.to_vec()))
 		).into(),
-		// kUSD:KSM = 200:1
-		ksm_per_second() * 200
+		// kUSD:KSM = 400:1
+		ksm_per_second() * 400
 	);
 	pub KarPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
@@ -761,6 +773,7 @@ parameter_types! {
 }
 
 pub struct ToTreasury;
+
 impl TakeRevenue for ToTreasury {
 	fn take_revenue(revenue: MultiAsset) {
 		if let MultiAsset {
@@ -774,12 +787,14 @@ impl TakeRevenue for ToTreasury {
 		}
 	}
 }
+
 /// Trader - The means of purchasing weight credit for XCM execution.
 /// We need to ensure we have at least one rule per token we want to handle or else
 /// the xcm executor won't know how to charge fees for a transfer of said token.
 pub type Trader = (
 	FixedRateOfFungible<KsmPerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerPerSecond, ToTreasury>,
+	FixedRateOfFungible<BitPerSecond, ToTreasury>,
 	FixedRateOfFungible<KarPerSecond, ToTreasury>,
 	FixedRateOfFungible<KUsdPerSecond, ToTreasury>,
 );
@@ -839,8 +854,8 @@ pub type XcmOriginToTransactDispatchOrigin = (
 );
 
 parameter_types! {
-	// One XCM operation is 2_000_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = 2_000_000_000;
+	// One XCM operation is 100_000_000 weight - almost certainly a conservative estimate.
+	pub UnitWeightCost: Weight = 100_000_000;
 	pub const MaxInstructions: u32 = 100;
 }
 
@@ -867,10 +882,6 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 	fn convert(id: FungibleTokenId) -> Option<MultiLocation> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 		match id {
-			// NEER
-			NativeToken(0) => Some(native_currency_location(id)),
-			// Mining resource BIT
-			MiningResource(0) => Some(native_currency_location(id)),
 			// KSM
 			NativeToken(1) => Some(MultiLocation::parent()),
 			// Karura currencyId types
@@ -888,7 +899,7 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 					GeneralKey(parachains::karura::KUSD_KEY.to_vec()),
 				),
 			)),
-			_ => None,
+			_ => Some(native_currency_location(id)),
 		}
 	}
 }
@@ -897,7 +908,6 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 	fn convert(location: MultiLocation) -> Option<FungibleTokenId> {
 		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
 
-		let para_id: u32 = u32::from(ParachainInfo::parachain_id());
 		// NativeToken
 		// 0 => NEER
 		// 1 => KSM
@@ -913,29 +923,25 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 		if location == MultiLocation::parent() {
 			return Some(NativeToken(1));
 		}
-		match location {
-			MultiLocation { parents, interior } if parents == 1 => match interior {
-				X2(Parachain(id), GeneralKey(key)) if id == para_id => {
-					// decode the general key
-					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
-						match currency_id {
-							NativeToken(0) => Some(currency_id),
-							MiningResource(0) => Some(currency_id),
-							_ => None,
-						}
-					} else {
-						None
-					}
-				}
-				X2(Parachain(id), GeneralKey(key)) if id == parachains::karura::ID => {
-					if key == parachains::karura::KAR_KEY.to_vec() {
-						Some(NativeToken(2))
-					} else if key == parachains::karura::KUSD_KEY.to_vec() {
-						Some(Stable(0))
-					} else {
-						None
-					}
-				}
+
+		match location.clone() {
+			MultiLocation {
+				parents: 1,
+				interior: X2(Parachain(para_id), GeneralKey(key)),
+			} => match para_id {
+				// Local testing para chain id
+				2096 | 3096 => match FungibleTokenId::decode(&mut &key[..]) {
+					Ok(NativeToken(0)) => Some(FungibleTokenId::NativeToken(0)),
+					Ok(MiningResource(0)) => Some(FungibleTokenId::MiningResource(0)),
+					_ => None,
+				},
+
+				parachains::karura::ID => match &key[..] {
+					parachains::karura::KAR_KEY => Some(FungibleTokenId::NativeToken(2)),
+					parachains::karura::KUSD_KEY => Some(FungibleTokenId::Stable(0)),
+					_ => None,
+				},
+
 				_ => None,
 			},
 			MultiLocation { parents, interior } if parents == 0 => match interior {
@@ -982,21 +988,21 @@ pub type Barrier = (
 pub struct XcmConfig;
 
 impl xcm_executor::Config for XcmConfig {
-	type Call = Call;
-	type XcmSender = XcmRouter;
+	type AssetTrap = PolkadotXcm;
+	type AssetClaims = PolkadotXcm;
 	// How to withdraw and deposit an asset.
 	type AssetTransactor = LocalAssetTransactor;
+	type Barrier = Barrier;
+	type Call = Call;
+	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = NativeAsset;
+	type IsReserve = MultiNativeAsset;
 	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
 	type LocationInverter = LocationInverter<Ancestry>;
-	type Barrier = Barrier;
 	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
 	type Trader = Trader;
 	type ResponseHandler = PolkadotXcm;
-	type AssetTrap = PolkadotXcm;
-	type AssetClaims = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
 }
 
@@ -1040,27 +1046,6 @@ impl cumulus_pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
-/// This is the type we use to convert an (incoming) XCM origin into a local `Origin` instance,
-/// ready for dispatching a transaction with Xcm's `Transact`. There is an `OriginKind` which can
-/// biases the kind of local `Origin` it will become.
-pub type XcmOriginToCallOrigin = (
-	// Sovereign account converter; this attempts to derive an `AccountId` from the origin location
-	// using `LocationToAccountId` and then turn that into the usual `Signed` origin. Useful for
-	// foreign chains who want to have a local sovereign account on this chain which they control.
-	SovereignSignedViaLocation<LocationToAccountId, Origin>,
-	// Native converter for Relay-chain (Parent) location; will converts to a `Relay` origin when
-	// recognized.
-	RelayChainAsNative<RelayChainOrigin, Origin>,
-	// Native converter for sibling Parachains; will convert to a `SiblingPara` origin when
-	// recognized.
-	SiblingParachainAsNative<cumulus_pallet_xcm::Origin, Origin>,
-	// Native signed account converter; this just converts an `AccountId32` origin into a normal
-	// `Origin::Signed` origin of the same 32-byte value.
-	SignedAccountId32AsNative<RelayNetwork, Origin>,
-	// Xcm origins can be represented natively under the Xcm pallet's Xcm origin.
-	XcmPassthrough<Origin>,
-);
-
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type Event = Event;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
@@ -1068,7 +1053,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type VersionWrapper = PolkadotXcm;
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 	type ControllerOrigin = EnsureRoot<AccountId>;
-	type ControllerOriginConverter = XcmOriginToCallOrigin;
+	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {

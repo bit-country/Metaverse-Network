@@ -2,7 +2,7 @@
 authors = ['Metaverse Network <https://github.com/bit-country>']
 description = 'Metaverse Network pallet for auction management.'
 edition = '2018'
-homepage = 'https://bit.country'
+homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'auction-manager'
 repository = 'https://github.com/bit-country'
