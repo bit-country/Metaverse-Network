@@ -7150,6 +7150,7 @@ dependencies = [
  "bit-country-primitives",
  "core-primitives",
  "currencies",
+ "frame-benchmarking 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "frame-system 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.17)",
  "orml-currencies 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.17)",

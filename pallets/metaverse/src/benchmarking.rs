@@ -206,7 +206,7 @@ benchmarks! {
 	}
 
 	// update metaverse marketplace listing fee
-	update_metaverse_marketplace_listing_fee {
+	update_metaverse_listing_fee {
 		let caller = funded_account::<T>("caller", 0);
 		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
 		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
