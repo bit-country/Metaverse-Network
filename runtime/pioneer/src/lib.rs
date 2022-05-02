@@ -747,10 +747,24 @@ parameter_types! {
 		).into(),
 		native_per_second()
 	);
+	pub NeerX1PerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			0,
+			X1(GeneralKey(FungibleTokenId::NativeToken(0).encode())),
+		).into(),
+		native_per_second()
+	);
 	pub BitPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
 			X2(Parachain(2096), GeneralKey(FungibleTokenId::MiningResource(0).encode()))
+		).into(),
+		native_per_second()
+	);
+	pub BitX1PerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			0,
+			X1(GeneralKey(FungibleTokenId::MiningResource(0).encode())),
 		).into(),
 		native_per_second()
 	);
@@ -949,7 +963,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
 						match currency_id {
-							NativeToken(0) | NativeToken(1) => Some(currency_id),
+							NativeToken(0) | MiningResource(0) => Some(currency_id),
 							_ => None,
 						}
 					} else {
