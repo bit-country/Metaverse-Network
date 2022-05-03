@@ -211,20 +211,30 @@ pub mod pallet {
 	/// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
-		AuctionNotExist,
-		AssetIsNotExist,
-		AuctionNotStarted,
+		/// Auction does not exist
+		AuctionDoesNotExist,
+		/// Asset for listing does not exist
+		AssetDoesNotExist,
+		/// Auction has not started
+		AuctionHasNotStarted,
+		/// Auction is expired
 		AuctionIsExpired,
+		/// Auction type is supported for listing
 		AuctionTypeIsNotSupported,
-		BidNotAccepted,
+		/// Bid is not accepted e.g owner == bidder, listing stop accepting bid
+		BidIsNotAccepted,
+		/// Insufficient free balance for bidding
 		InsufficientFreeBalance,
+		/// Bid price is invalid
 		InvalidBidPrice,
+		/// Auction is not found, either expired and not valid
 		NoAvailableAuctionId,
+		/// Has no permission to create auction. Check listing authorization
 		NoPermissionToCreateAuction,
-		SelfBidNotAccepted,
+		/// Self bidding is not accepted
 		CannotBidOnOwnAuction,
-		InvalidBuyItNowPrice,
-		InsufficientFunds,
+		/// Buy now input price is not valid
+		InvalidBuyNowPrice,
 		/// Invalid auction type
 		InvalidAuctionType,
 		/// Asset already in Auction
@@ -235,9 +245,9 @@ pub mod pallet {
 		FungibleTokenCurrencyNotFound,
 		/// Minimum Duration Is Too Low
 		AuctionEndIsLessThanMinimumDuration,
-		/// Overflow
-		Overflow,
+		/// Estate does not exist, check if estate id is correct
 		EstateDoesNotExist,
+		/// Land unit does not exist, check if estate id is correct
 		LandUnitDoesNotExist,
 		/// User has no permission to authorise collection
 		NoPermissionToAuthoriseCollection,
@@ -256,7 +266,7 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 
 			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
-				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
+				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			ensure!(
 				auction_item.auction_type == AuctionType::Auction,
 				Error::<T>::InvalidAuctionType
@@ -264,12 +274,12 @@ pub mod pallet {
 			ensure!(auction_item.recipient != from, Error::<T>::SelfBidNotAccepted);
 
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
-				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let block_number = <system::Pallet<T>>::block_number();
 
 				// make sure auction is started
-				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+				ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 
 				let auction_end: Option<T::BlockNumber> = auction.end;
 
@@ -283,7 +293,7 @@ pub mod pallet {
 				// implement hooks for future event
 				let bid_result = T::Handler::on_new_bid(block_number, id, (from.clone(), value), auction.bid.clone());
 
-				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
+				ensure!(bid_result.accept_bid, Error::<T>::BidIsNotAccepted);
 
 				ensure!(
 					<T as Config>::Currency::free_balance(&from) >= value,
@@ -306,8 +316,8 @@ pub mod pallet {
 		pub fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
-			let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
+			let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
+			let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 			ensure!(
 				auction_item.auction_type == AuctionType::BuyNow,
@@ -317,7 +327,7 @@ pub mod pallet {
 			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
 			let block_number = <system::Pallet<T>>::block_number();
-			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+			ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 			if !(auction.end.is_none()) {
 				let auction_end: T::BlockNumber = auction.end.unwrap();
 				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
@@ -671,7 +681,7 @@ pub mod pallet {
 			id: AuctionId,
 			info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>,
 		) -> DispatchResult {
-			let auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
+			let auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			if let Some(old_end) = auction.end {
 				<AuctionEndTime<T>>::remove(&old_end, id);
 			}
@@ -909,7 +919,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				match auction_item.clone().listing_level {
 					ListingLevel::NetworkSpot(allowed_bidders) => {
@@ -949,7 +959,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
@@ -999,7 +1009,7 @@ pub mod pallet {
 						<T as Config>::Currency::transfer(
 							&high_bidder,
 							&metaverse_fund,
-							listing_fee,
+							listing_fee_amount,
 							ExistenceRequirement::KeepAlive,
 						)?;
 					} else {
@@ -1007,7 +1017,7 @@ pub mod pallet {
 							social_currency_id.clone(),
 							&high_bidder,
 							&metaverse_fund,
-							listing_fee.saturated_into(),
+							listing_fee_amount.saturated_into(),
 						)?;
 					}
 				}
