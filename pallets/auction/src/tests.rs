@@ -102,7 +102,16 @@ fn create_new_auction_should_fail_for_non_exist_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		let item_id: ItemId = ItemId::Estate(ESTATE_ID_NOT_EXIST);
 		assert_noop!(
-			AuctionModule::create_auction(AuctionType::Auction, item_id, None, ALICE, 100, 0, ListingLevel::Global, Perbill::from_percent(0u32),),
+			AuctionModule::create_auction(
+				AuctionType::Auction,
+				item_id,
+				None,
+				ALICE,
+				100,
+				0,
+				ListingLevel::Global,
+				Perbill::from_percent(0u32),
+			),
 			Error::<Runtime>::EstateDoesNotExist
 		);
 	});
@@ -121,7 +130,7 @@ fn create_new_auction_should_work_for_valid_landunit() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
 		));
 		assert_eq!(
 			AuctionModule::auctions(0),
@@ -141,7 +150,16 @@ fn create_new_auction_should_work_for_non_exist_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
 		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
 		assert_noop!(
-			AuctionModule::create_auction(AuctionType::Auction, item_id, None, ALICE, 100, 0, ListingLevel::Global, Perbill::from_percent(0u32)),
+			AuctionModule::create_auction(
+				AuctionType::Auction,
+				item_id,
+				None,
+				ALICE,
+				100,
+				0,
+				ListingLevel::Global,
+				Perbill::from_percent(0u32),
+			),
 			Error::<Runtime>::LandUnitDoesNotExist
 		);
 	});
