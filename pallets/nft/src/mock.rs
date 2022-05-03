@@ -6,9 +6,9 @@ use frame_support::{construct_runtime, parameter_types};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
-use sp_runtime::Perbill;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
+use sp_runtime::Perbill;
 
 use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
 pub use primitive_traits::{CollectionType, NftAssetData, NftClassData};
