@@ -747,10 +747,10 @@ parameter_types! {
 		).into(),
 		native_per_second()
 	);
-	pub NeerX1PerSecond: (AssetId, u128) = (
+	pub NeerX2PerSecond: (AssetId, u128) = (
 		MultiLocation::new(
-			0,
-			X1(GeneralKey(FungibleTokenId::NativeToken(0).encode())),
+			1,
+			X2(Parachain(parachains::karura::ID), GeneralKey(FungibleTokenId::NativeToken(0).encode())),
 		).into(),
 		native_per_second()
 	);
@@ -808,6 +808,7 @@ impl TakeRevenue for ToTreasury {
 pub type Trader = (
 	FixedRateOfFungible<KsmPerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerPerSecond, ToTreasury>,
+	FixedRateOfFungible<NeerX2PerSecond, ToTreasury>,
 	FixedRateOfFungible<BitPerSecond, ToTreasury>,
 	FixedRateOfFungible<KarPerSecond, ToTreasury>,
 	FixedRateOfFungible<KUsdPerSecond, ToTreasury>,

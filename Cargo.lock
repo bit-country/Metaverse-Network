@@ -2181,7 +2181,8 @@ dependencies = [
 [[package]]
 name = "ethereum"
 version = "0.11.1"
-source = "git+https://github.com/AstarNetwork/ethereum?branch=polkadot-v0.9.17#42ee428264e27773da5e93f264f0aa7daf1a8a7f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34c90e0a755da706ce0970ec0fa8cc48aabcc8e8efa1245336acf718dab06ffe"
 dependencies = [
  "bytes 1.1.0",
  "ethereum-types",
@@ -2221,7 +2222,8 @@ checksum = "77f3309417938f28bf8228fcff79a4a37103981e3e186d2ccd19c74b38f4eb71"
 [[package]]
 name = "evm"
 version = "0.33.1"
-source = "git+https://github.com/AstarNetwork/evm?branch=polkadot-v0.9.17#7deff4781014e10684253d9c72540ef75f03830f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "408ffdd509e16de15ea9b51f5333748f6086601f29d445d2ba53dd7e95565574"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -2241,7 +2243,8 @@ dependencies = [
 [[package]]
 name = "evm-core"
 version = "0.33.0"
-source = "git+https://github.com/AstarNetwork/evm?branch=polkadot-v0.9.17#7deff4781014e10684253d9c72540ef75f03830f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4dfe4f2a56c4c05a8107b8596380e2332fc2019ffcf56b8f2d01971393a30c4d"
 dependencies = [
  "funty",
  "parity-scale-codec 2.3.1",
@@ -2253,7 +2256,8 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.33.0"
-source = "git+https://github.com/AstarNetwork/evm?branch=polkadot-v0.9.17#7deff4781014e10684253d9c72540ef75f03830f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c446679607eacac4e8c8738e20c97ea9b3c86eddd8b43666744b05f416037bd9"
 dependencies = [
  "environmental",
  "evm-core",
@@ -2264,9 +2268,9 @@ dependencies = [
 [[package]]
 name = "evm-runtime"
 version = "0.33.0"
-source = "git+https://github.com/AstarNetwork/evm?branch=polkadot-v0.9.17#7deff4781014e10684253d9c72540ef75f03830f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "419e8434ac6e850a8a4bc09a19406264582d1940913b2920be2af948f4ffc49b"
 dependencies = [
- "auto_impl",
  "environmental",
  "evm-core",
  "primitive-types",
@@ -15040,3 +15044,23 @@ dependencies = [
  "cc",
  "libc",
 ]
+
+[[patch.unused]]
+name = "ethereum"
+version = "0.12.0"
+source = "git+https://github.com/justinphamnz/ethereum?branch=master#755dffaa4903fbec1269f50cde9863cf86269a14"
+
+[[patch.unused]]
+name = "evm"
+version = "0.35.0"
+source = "git+https://github.com/justinphamnz/evm?branch=master#0b686f8c2c83a52638917caa649dc23302fda80d"
+
+[[patch.unused]]
+name = "evm-gasometer"
+version = "0.35.0"
+source = "git+https://github.com/justinphamnz/evm?branch=master#0b686f8c2c83a52638917caa649dc23302fda80d"
+
+[[patch.unused]]
+name = "evm-runtime"
+version = "0.35.0"
+source = "git+https://github.com/justinphamnz/evm?branch=master#0b686f8c2c83a52638917caa649dc23302fda80d"
