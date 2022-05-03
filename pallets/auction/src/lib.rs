@@ -94,6 +94,7 @@ pub mod migration_v2 {
 		pub auction_type: AuctionType,
 		pub listing_level: ListingLevel<AccountId>,
 		pub currency_id: FungibleTokenId,
+		pub listing_fee: Balance,
 	}
 }
 
@@ -350,6 +351,7 @@ pub mod pallet {
 								&(class_id, token_id),
 								FungibleTokenId::NativeToken(0),
 								auction_item.listing_level,
+								auction_item.listing_fee,
 							);
 
 							let asset_transfer =
@@ -428,6 +430,14 @@ pub mod pallet {
 				Error::<T>::AuctionEndIsLessThanMinimumDuration
 			);
 
+			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id);
+				}
+				_ => {} 
+			}
+
 			Self::create_auction(
 				AuctionType::Auction,
 				item_id,
@@ -436,6 +446,7 @@ pub mod pallet {
 				value.clone(),
 				start_time,
 				listing_level.clone(),
+				listing_fee,
 			)?;
 			Ok(().into())
 		}
@@ -462,6 +473,14 @@ pub mod pallet {
 				Error::<T>::AuctionEndIsLessThanMinimumDuration
 			);
 
+			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id);
+				}
+				_ => {} 
+			}
+
 			Self::create_auction(
 				AuctionType::BuyNow,
 				item_id,
@@ -470,6 +489,7 @@ pub mod pallet {
 				value.clone(),
 				start_time,
 				listing_level.clone(),
+				listing_fee,
 			)?;
 
 			Ok(().into())
@@ -560,6 +580,7 @@ pub mod pallet {
 												&(class_id, token_id),
 												FungibleTokenId::NativeToken(0),
 												auction_item.listing_level,
+												auction_item.listing_fee,
 											);
 											let asset_transfer = T::NFTHandler::transfer_nft(
 												&auction_item.recipient,
@@ -694,6 +715,7 @@ pub mod pallet {
 			initial_amount: Self::Balance,
 			_start: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
+			listing_fee: Perbill,
 		) -> Result<AuctionId, DispatchError> {
 			ensure!(
 				Self::items_in_auction(item_id) == None,
@@ -731,6 +753,7 @@ pub mod pallet {
 					}
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
+					//let listing_fee = 
 
 					let new_auction_item = AuctionItem {
 						item_id,
@@ -742,6 +765,7 @@ pub mod pallet {
 						auction_type,
 						listing_level: listing_level.clone(),
 						currency_id,
+						listing_fee,
 					};
 
 					<AuctionItems<T>>::insert(auction_id, new_auction_item);
@@ -772,6 +796,8 @@ pub mod pallet {
 						auction_type,
 						listing_level: listing_level.clone(),
 						currency_id: FungibleTokenId::NativeToken(0),
+						listing_fee,
+						
 					};
 
 					<AuctionItems<T>>::insert(auction_id, new_auction_item);
@@ -808,6 +834,7 @@ pub mod pallet {
 						auction_type,
 						listing_level: ListingLevel::Global,
 						currency_id: FungibleTokenId::NativeToken(0),
+						listing_fee,
 					};
 
 					<AuctionItems<T>>::insert(auction_id, new_auction_item);
@@ -844,6 +871,7 @@ pub mod pallet {
 						auction_type,
 						listing_level: ListingLevel::Global,
 						currency_id: FungibleTokenId::NativeToken(0),
+						listing_fee,
 					};
 
 					<AuctionItems<T>>::insert(auction_id, new_auction_item);
@@ -959,16 +987,32 @@ pub mod pallet {
 			asset_id: &(ClassId, TokenId),
 			social_currency_id: FungibleTokenId,
 			listing_level: ListingLevel<T::AccountId>,
+			listing_fee: Perbill
 		) -> DispatchResult {
 			// Get royalty fee
 			let nft_details = T::NFTHandler::get_nft_detail((asset_id.0, asset_id.1))?;
-			let mut royalty_fee = nft_details.royalty_fee * *high_bid_price;
-			let mut class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
+			let royalty_fee = nft_details.royalty_fee * *high_bid_price;
+			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
 			match listing_level {
 				ListingLevel::Local(metaverse_id) => {
-					class_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
-					royalty_fee =
-						T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id) * *high_bid_price;
+					let metaverse_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
+					let listing_fee_amount =
+						listing_fee * *high_bid_price;
+					if social_currency_id == FungibleTokenId::NativeToken(0) {
+						<T as Config>::Currency::transfer(
+							&high_bidder,
+							&metaverse_fund,
+							listing_fee,
+							ExistenceRequirement::KeepAlive,
+						)?;
+					} else {
+						T::FungibleTokenCurrency::transfer(
+							social_currency_id.clone(),
+							&high_bidder,
+							&metaverse_fund,
+							listing_fee.saturated_into(),
+						)?;
+					}
 				}
 				_ => {}
 			}

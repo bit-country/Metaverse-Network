@@ -9,7 +9,7 @@ use frame_support::dispatch::DispatchResult;
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, RuntimeDebug};
+use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, Perbill, RuntimeDebug};
 use sp_std::{
 	cmp::{Eq, PartialEq},
 	fmt::Debug,
@@ -56,6 +56,7 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	pub auction_type: AuctionType,
 	pub listing_level: ListingLevel<AccountId>,
 	pub currency_id: FungibleTokenId,
+	pub listing_fee: Perbill,
 }
 
 /// Auction info.
@@ -96,6 +97,7 @@ pub trait Auction<AccountId, BlockNumber> {
 		initial_amount: Self::Balance,
 		start: BlockNumber,
 		listing_level: ListingLevel<AccountId>,
+		listing_fee: Perbill,
 	) -> Result<AuctionId, DispatchError>;
 
 	/// Remove auction by `id`
@@ -122,6 +124,7 @@ pub trait Auction<AccountId, BlockNumber> {
 		asset_id: &(ClassId, TokenId),
 		social_currency_id: FungibleTokenId,
 		listing_level: ListingLevel<AccountId>,
+		listing_fee: Perbill,
 	) -> DispatchResult;
 }
 

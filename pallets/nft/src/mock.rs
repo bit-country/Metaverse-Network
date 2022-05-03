@@ -6,6 +6,7 @@ use frame_support::{construct_runtime, parameter_types};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
+use sp_runtime::Perbill;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
 
@@ -114,6 +115,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(0)
 	}
@@ -151,6 +153,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> DispatchResult {
 		Ok(())
 	}
