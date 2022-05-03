@@ -298,7 +298,7 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 
 			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
-				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
+				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			ensure!(
 				auction_item.auction_type == AuctionType::Auction,
 				Error::<T>::InvalidAuctionType
@@ -306,12 +306,12 @@ pub mod pallet {
 			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
-				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let block_number = <system::Pallet<T>>::block_number();
 
 				// make sure auction is started
-				ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+				ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 
 				let auction_end: Option<T::BlockNumber> = auction.end;
 
@@ -325,7 +325,7 @@ pub mod pallet {
 				// implement hooks for future event
 				let bid_result = T::Handler::on_new_bid(block_number, id, (from.clone(), value), auction.bid.clone());
 
-				ensure!(bid_result.accept_bid, Error::<T>::BidNotAccepted);
+				ensure!(bid_result.accept_bid, Error::<T>::BidIsNotAccepted);
 
 				ensure!(
 					<T as Config>::Currency::free_balance(&from) >= value,
@@ -357,8 +357,8 @@ pub mod pallet {
 		pub fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
-			let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionNotExist)?;
+			let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
+			let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 			ensure!(
 				auction_item.auction_type == AuctionType::BuyNow,
@@ -368,13 +368,13 @@ pub mod pallet {
 			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
 			let block_number = <system::Pallet<T>>::block_number();
-			ensure!(block_number >= auction.start, Error::<T>::AuctionNotStarted);
+			ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 			if !(auction.end.is_none()) {
 				let auction_end: T::BlockNumber = auction.end.unwrap();
 				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
 			}
 
-			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
+			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyNowPrice);
 			ensure!(
 				<T as Config>::Currency::free_balance(&from) >= value,
 				Error::<T>::InsufficientFreeBalance
@@ -738,7 +738,7 @@ pub mod pallet {
 			id: AuctionId,
 			info: AuctionInfo<T::AccountId, Self::Balance, T::BlockNumber>,
 		) -> DispatchResult {
-			let auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionNotExist)?;
+			let auction = <Auctions<T>>::get(id).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			if let Some(old_end) = auction.end {
 				<AuctionEndTime<T>>::remove(&old_end, id);
 			}
@@ -976,11 +976,11 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				match auction_item.clone().listing_level {
 					ListingLevel::NetworkSpot(allowed_bidders) => {
-						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidNotAccepted);
+						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidIsNotAccepted);
 					}
 					_ => {}
 				}
@@ -1017,7 +1017,7 @@ pub mod pallet {
 			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
 
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionNotExist)?;
+				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);

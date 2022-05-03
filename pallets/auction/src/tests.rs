@@ -336,7 +336,7 @@ fn cannot_bid_on_non_existent_auction() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
 			AuctionModule::bid(Origin::signed(ALICE), 0, 10),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 
 		assert_eq!(Balances::free_balance(ALICE), 100000);
@@ -385,7 +385,7 @@ fn cannot_bid_on_own_auction() {
 			ListingLevel::Global
 		));
 
-		assert_noop!(AuctionModule::bid(owner, 0, 50), Error::<Runtime>::SelfBidNotAccepted);
+		assert_noop!(AuctionModule::bid(owner, 0, 50), Error::<Runtime>::SelfBidIsNotAccepted);
 	});
 }
 
@@ -521,7 +521,7 @@ fn buy_now_work() {
 		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});
 }
@@ -576,7 +576,7 @@ fn buy_now_works_for_valid_estate() {
 		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});
 }
@@ -631,7 +631,7 @@ fn buy_now_works_for_valid_landunit() {
 		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});
 }
@@ -660,7 +660,7 @@ fn buy_now_should_fail() {
 		// no auction id
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 		// user is seller
 		assert_noop!(
@@ -670,12 +670,12 @@ fn buy_now_should_fail() {
 		// buy it now value is less than buy_now_amount
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 100),
-			Error::<Runtime>::InvalidBuyItNowPrice
+			Error::<Runtime>::InvalidBuyNowPrice
 		);
 		// buy it now value is more than buy_now_amount
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 200),
-			Error::<Runtime>::InvalidBuyItNowPrice
+			Error::<Runtime>::InvalidBuyNowPrice
 		);
 		// user does not have enough balance in wallet
 		assert_ok!(Balances::reserve(&ALICE, 100000));
@@ -688,7 +688,7 @@ fn buy_now_should_fail() {
 		System::set_block_number(0);
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 150),
-			Error::<Runtime>::AuctionNotStarted
+			Error::<Runtime>::AuctionHasNotStarted
 		);
 		System::set_block_number(101);
 		assert_noop!(
