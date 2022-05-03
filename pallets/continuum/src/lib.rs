@@ -54,7 +54,7 @@ use scale_info::TypeInfo;
 use sp_runtime::traits::CheckedAdd;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	DispatchError, RuntimeDebug,
+	DispatchError, Perbill, RuntimeDebug,
 };
 use sp_std::vec;
 use sp_std::vec::Vec;
@@ -565,6 +565,7 @@ impl<T: Config> Pallet<T> {
 					Default::default(),
 					now,
 					ListingLevel::NetworkSpot(recent_slot.participants),
+					Perbill::from_percent(0u32),
 				)?;
 				Self::deposit_event(Event::FinalizedVote(referendum_info.spot_id))
 			}
