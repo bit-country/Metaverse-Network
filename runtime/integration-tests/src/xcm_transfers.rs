@@ -326,6 +326,9 @@ fn currency_id_convert_test() {
 		X2(Parachain(2096), GeneralKey(FungibleTokenId::MiningResource(0).encode())),
 	);
 
+	let pioneer_general_key_parent_location: MultiLocation =
+		MultiLocation::new(0, X1(GeneralKey(FungibleTokenId::NativeToken(0).encode())));
+
 	assert_eq!(
 		FungibleTokenId::NativeToken(0).encode(),
 		vec![0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -344,6 +347,11 @@ fn currency_id_convert_test() {
 	assert_eq!(
 		FungibleTokenIdConvert::convert(pioneer_mining_resource_location.clone()),
 		Some(FungibleTokenId::MiningResource(0)),
+	);
+
+	assert_eq!(
+		FungibleTokenIdConvert::convert(pioneer_general_key_parent_location.clone()),
+		Some(FungibleTokenId::NativeToken(0))
 	);
 
 	Development::execute_with(|| {
