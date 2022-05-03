@@ -385,7 +385,10 @@ fn cannot_bid_on_own_auction() {
 			ListingLevel::Global
 		));
 
-		assert_noop!(AuctionModule::bid(owner, 0, 50), Error::<Runtime>::SelfBidIsNotAccepted);
+		assert_noop!(
+			AuctionModule::bid(owner, 0, 50),
+			Error::<Runtime>::CannotBidOnOwnAuction
+		);
 	});
 }
 
@@ -681,7 +684,7 @@ fn buy_now_should_fail() {
 		assert_ok!(Balances::reserve(&ALICE, 100000));
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 150),
-			Error::<Runtime>::InsufficientFunds
+			Error::<Runtime>::InsufficientFreeBalance
 		);
 		assert_eq!(Balances::unreserve(&ALICE, 100000), 0);
 		// auction has not started or is over
