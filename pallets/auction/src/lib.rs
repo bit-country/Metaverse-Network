@@ -105,6 +105,7 @@ pub mod pallet {
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use sp_runtime::ArithmeticError;
 
 	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use core_primitives::{MetaverseTrait, NFTTrait};
