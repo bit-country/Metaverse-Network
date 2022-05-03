@@ -271,7 +271,7 @@ pub mod pallet {
 				auction_item.auction_type == AuctionType::Auction,
 				Error::<T>::InvalidAuctionType
 			);
-			ensure!(auction_item.recipient != from, Error::<T>::SelfBidNotAccepted);
+			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
@@ -336,7 +336,7 @@ pub mod pallet {
 			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
 			ensure!(
 				<T as Config>::Currency::free_balance(&from) >= value,
-				Error::<T>::InsufficientFunds
+				Error::<T>::InsufficientFreeBalance
 			);
 
 			Self::remove_auction(auction_id.clone(), auction_item.item_id);
@@ -433,7 +433,7 @@ pub mod pallet {
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
+			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
 
 			ensure!(
 				remaining_time >= T::MinimumAuctionDuration::get(),
@@ -476,7 +476,7 @@ pub mod pallet {
 			);
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
-			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(Error::<T>::Overflow)?;
+			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
 
 			ensure!(
 				remaining_time >= T::MinimumAuctionDuration::get(),
