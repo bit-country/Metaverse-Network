@@ -793,7 +793,7 @@ fn invalid_auction_type() {
 }
 
 #[test]
-// Private auction_bid_handler should not work
+// Private auction_bid_handler should work
 fn on_finalize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = Origin::signed(BOB);
@@ -808,6 +808,41 @@ fn on_finalize_should_work() {
 			0,
 			ListingLevel::Global,
 			Perbill::from_percent(0u32)
+		));
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+		assert_ok!(AuctionModule::bid(bidder, 0, 100));
+		run_to_block(102);
+		assert_eq!(AuctionModule::auctions(0), None);
+		// check account received asset
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		// check balances were transferred
+		assert_eq!(Balances::free_balance(ALICE), 99900);
+		// BOB only receive 596 - 1 (1% of 100 as loyalty fee) + 1 minting fee = 589
+		assert_eq!(Balances::free_balance(BOB), 596);
+		// asset is not longer in auction
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
+		// event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
+		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+// Auction finalize with listing fee works
+fn on_finalize_with_listing_fee_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let bidder = Origin::signed(ALICE);
+		init_test_nft(owner.clone());
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(10u32)
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
