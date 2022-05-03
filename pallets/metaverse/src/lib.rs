@@ -62,6 +62,8 @@ pub struct MetaverseStakingSnapshot<Balance> {
 }
 
 const LOCK_STAKING: LockIdentifier = *b"stakelok";
+const ESTATE_CLASS_ROYALTY_FEE: u32 = 5;
+const LAND_CLASS_ROYALTY_FEE: u32 = 10;
 
 /// Storing the reward detail of metaverse that store the list of stakers for each metaverse
 /// This will be used to reward metaverse owner and the stakers.
@@ -656,13 +658,13 @@ impl<T: Config> Pallet<T> {
 		land_class_attributes.insert("Category:".as_bytes().to_vec(), "Lands".as_bytes().to_vec());
 		let land_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
 		T::NFTHandler::create_token_class(
-			sender,
+			T::MetaverseTreasury::get().into_account(),
 			land_class_metadata,
 			land_class_attributes,
 			0,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(10u32),
+			Perbill::from_percent(LAND_CLASS_ROYALTY_FEE),
 		)
 	}
 
@@ -673,13 +675,13 @@ impl<T: Config> Pallet<T> {
 		estate_class_attributes.insert("Category:".as_bytes().to_vec(), "Estates".as_bytes().to_vec());
 		let estate_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
 		T::NFTHandler::create_token_class(
-			sender,
+			T::MetaverseTreasury::get().into_account(),
 			estate_class_metadata,
 			estate_class_attributes,
 			1,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(10u32),
+			Perbill::from_percent(ESTATE_CLASS_ROYALTY_FEE),
 		)
 	}
 }

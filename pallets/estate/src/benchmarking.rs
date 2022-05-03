@@ -40,6 +40,7 @@ use primitives::estate::{EstateInfo, OwnerId};
 use primitives::Balance;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 // use orml_traits::BasicCurrencyExtended;
+//use pallet_nft::{Config, Pallet as NftModule};
 use primitives::UndeployedLandBlockType;
 
 pub type AccountId = u128;
@@ -91,6 +92,11 @@ fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
 	};
 }
 
+//fn create_land_and_estate_groups<T: Config + pallet_nft::Config>() {
+//	pallet_nft::Pallet::<T>::create_group(RawOrigin::Root, vec![1u8], vec![1u8]);
+//	pallet_nft::Pallet::<T>::create_group(RawOrigin::Root, vec![2u8], vec![2u8]);
+//}
+
 benchmarks! {
 	// set_max_bounds
 	set_max_bounds{
@@ -116,6 +122,7 @@ benchmarks! {
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
+		//create_land_and_estate_groups::<T>();
 	}: mint_land(RawOrigin::Root, caller.clone(), METAVERSE_ID, COORDINATE_IN_1, true)
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0)));
@@ -139,6 +146,7 @@ benchmarks! {
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
+		//create_land_and_estate_groups::<T>();
 	}: mint_lands(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2], true)
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0)));
@@ -183,6 +191,7 @@ benchmarks! {
 		let caller_lookup = T::Lookup::unlookup(caller.clone());
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
+		//create_land_and_estate_groups::<T>();
 	}: mint_estate(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1], true)
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(get_estate_info(vec![COORDINATE_IN_1])));
@@ -234,7 +243,7 @@ benchmarks! {
 
 		crate::Pallet::<T>::set_max_bounds(RawOrigin::Root.into(), METAVERSE_ID, MAX_BOUND);
 		crate::Pallet::<T>::mint_lands(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2], false);
-
+		//create_land_and_estate_groups::<T>();
 	}: create_estate(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2], false)
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_estates(0), Some(get_estate_info(vec![COORDINATE_IN_1, COORDINATE_IN_2])));

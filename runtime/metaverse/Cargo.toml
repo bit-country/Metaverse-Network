@@ -190,7 +190,9 @@ runtime-benchmarks = [
     "metaverse/runtime-benchmarks",
     "crowdloan/runtime-benchmarks",
     "economy/runtime-benchmarks",
-    "pallet-utility/runtime-benchmarks"
+    "pallet-utility/runtime-benchmarks",
+    "mining/runtime-benchmarks",
+    "pallet-ethereum/runtime-benchmarks"
 ]
 
 disable-runtime-api = []
