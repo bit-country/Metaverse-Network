@@ -422,6 +422,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
@@ -453,6 +454,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 		_listng_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> DispatchResult {
 		Ok(())
 	}
