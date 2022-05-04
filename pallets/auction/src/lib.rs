@@ -1186,10 +1186,11 @@ pub mod pallet {
 					Some(v2)
 				},
 			);
-			
+
 			log::info!("{} auction items upgraded:", num_auction_items);
 			0
 		}
+
 		fn check_valid_finality(end: &T::BlockNumber) -> bool {
 			let auctions_same_block = <AuctionEndTime<T>>::iter_prefix_values(end).count();
 
