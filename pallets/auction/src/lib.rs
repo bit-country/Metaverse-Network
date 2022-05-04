@@ -166,6 +166,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type MaxFinality: Get<u32>;
 
+		/// Max number of items in bundle can be finalised in an auction
+		#[pallet::constant]
+		type MaxBundleItem: Get<u32>;
+
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 	}
@@ -271,6 +275,8 @@ pub mod pallet {
 		AuctionEndIsLessThanMinimumDuration,
 		/// There is too many auction ends at the same time.
 		ExceedFinalityLimit,
+		/// There is too many item inside the bundle.
+		ExceedBundleLimit,
 		/// Estate does not exist, check if estate id is correct
 		EstateDoesNotExist,
 		/// Land unit does not exist, check if estate id is correct
@@ -357,6 +363,7 @@ pub mod pallet {
 		///
 		/// Emits `BuyNowFinalised` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
@@ -383,7 +390,7 @@ pub mod pallet {
 				Error::<T>::InsufficientFreeBalance
 			);
 
-			Self::remove_auction(auction_id.clone(), auction_item.item_id);
+			Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
 
 			// Transfer balance from buy it now user to asset owner
 			let currency_transfer = <T as Config>::Currency::transfer(
@@ -396,7 +403,7 @@ pub mod pallet {
 				Err(_e) => {}
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
-					<ItemsInAuction<T>>::remove(auction_item.item_id);
+					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
 					match auction_item.item_id {
 						ItemId::NFT(class_id, token_id) => {
 							Self::collect_royalty_fee(
@@ -471,6 +478,7 @@ pub mod pallet {
 		///
 		/// Emits `NewAuctionItem` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn create_new_auction(
 			origin: OriginFor<T>,
 			item_id: ItemId,
@@ -528,6 +536,7 @@ pub mod pallet {
 		///
 		/// Emits `NewAuctionItem` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn create_new_buy_now(
 			origin: OriginFor<T>,
 			item_id: ItemId,
@@ -543,6 +552,12 @@ pub mod pallet {
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
+
+			// Ensure auction duration is valid
+			ensure!(
+				remaining_time >= T::MinimumAuctionDuration::get(),
+				Error::<T>::AuctionEndIsLessThanMinimumDuration
+			);
 
 			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
 			match listing_level {
@@ -575,6 +590,7 @@ pub mod pallet {
 		///
 		/// Emits `CollectionAuthorizedInMetaverse` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn authorise_metaverse_collection(
 			origin: OriginFor<T>,
 			class_id: ClassId,
@@ -607,6 +623,7 @@ pub mod pallet {
 		///
 		/// Emits `CollectionAuthorizationRemoveInMetaverse` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
 		pub fn remove_authorise_metaverse_collection(
 			origin: OriginFor<T>,
 			class_id: ClassId,
@@ -639,7 +656,7 @@ pub mod pallet {
 			for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
 				if let Some(auction) = <Auctions<T>>::get(&auction_id) {
 					if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id) {
-						Self::remove_auction(auction_id.clone(), auction_item.item_id);
+						Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
 						// Transfer balance from high bidder to asset owner
 						if let Some(current_bid) = auction.bid {
 							let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
@@ -660,7 +677,7 @@ pub mod pallet {
 									// Transfer asset from asset owner to high bidder
 									// Check asset type and handle internal logic
 
-									match auction_item.item_id {
+									match auction_item.item_id.clone() {
 										ItemId::NFT(class_id, token_id) => {
 											Self::collect_royalty_fee(
 												&high_bid_price,
@@ -740,7 +757,7 @@ pub mod pallet {
 										}
 										_ => {} // Future implementation for Spot, Metaverse
 									}
-									<ItemsInAuction<T>>::remove(auction_item.item_id);
+									<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
 								}
 							}
 						} else {
@@ -810,7 +827,7 @@ pub mod pallet {
 			listing_fee: Perbill,
 		) -> Result<AuctionId, DispatchError> {
 			ensure!(
-				Self::items_in_auction(item_id) == None,
+				Self::items_in_auction(&item_id) == None,
 				Error::<T>::ItemAlreadyInAuction
 			);
 
@@ -845,13 +862,16 @@ pub mod pallet {
 					}
 
 					// Ensure auction end time below limit
-					ensure!(Self::check_valid_finality(&end_time), Error::<T>::ExceedFinalityLimit);
+					ensure!(
+						Self::check_valid_finality(&end_time, One::one()),
+						Error::<T>::ExceedFinalityLimit
+					);
 
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
 					let new_auction_item = AuctionItem {
-						item_id,
+						item_id: item_id.clone(),
 						recipient: recipient.clone(),
 						initial_amount: initial_amount,
 						amount: initial_amount,
@@ -882,7 +902,7 @@ pub mod pallet {
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
 					let new_auction_item = AuctionItem {
-						item_id,
+						item_id: item_id.clone(),
 						recipient: recipient.clone(),
 						initial_amount,
 						amount: initial_amount,
@@ -919,7 +939,7 @@ pub mod pallet {
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
 					let new_auction_item = AuctionItem {
-						item_id,
+						item_id: item_id.clone(),
 						recipient: recipient.clone(),
 						initial_amount,
 						amount: initial_amount,
@@ -956,7 +976,7 @@ pub mod pallet {
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
 					let new_auction_item = AuctionItem {
-						item_id,
+						item_id: item_id.clone(),
 						recipient: recipient.clone(),
 						initial_amount,
 						amount: initial_amount,
@@ -980,6 +1000,28 @@ pub mod pallet {
 					));
 					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
+				}
+				ItemId::Bundle(nfts) => {
+					ensure!(
+						(nfts.len() as u32) < T::MaxBundleItem::get(),
+						Error::<T>::ExceedBundleLimit
+					);
+
+					let start_time = <system::Pallet<T>>::block_number();
+
+					let mut end_time = start_time + T::AuctionTimeToClose::get();
+					if let Some(_end_block) = _end {
+						end_time = _end_block
+					}
+
+					// Make sure total item bundle is not exceed max finality
+					ensure!(
+						Self::check_valid_finality(&end_time, nfts.len() as u32),
+						Error::<T>::ExceedFinalityLimit
+					);
+
+					for item in nfts {}
+					Ok(1)
 				}
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
 			}
@@ -1157,10 +1199,11 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		fn check_valid_finality(end: &T::BlockNumber) -> bool {
-			let auctions_same_block = <AuctionEndTime<T>>::iter_prefix_values(end).count();
+		fn check_valid_finality(end: &T::BlockNumber, quantity: u32) -> bool {
+			let existing_auctions_same_block: u32 = <AuctionEndTime<T>>::iter_prefix_values(end).count() as u32;
+			let total_auction_in_same_block = existing_auctions_same_block.saturating_add(quantity);
 
-			T::MaxFinality::get() > auctions_same_block as u32
+			T::MaxFinality::get() > total_auction_in_same_block
 		}
 
 		// Runtime upgrade V1 - may required for production release
