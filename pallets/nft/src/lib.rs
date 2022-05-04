@@ -39,7 +39,7 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::pallet_prelude::*;
-use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule};
+use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, Tokens};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -693,6 +693,7 @@ impl<T: Config> Pallet<T> {
 		let new_nft_data = NftAssetData {
 			deposit,
 			attributes: attributes,
+			is_locked: false,
 		};
 
 		let mut new_asset_ids: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Vec::new();
@@ -903,5 +904,21 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 
 	fn get_class_fund(class_id: &Self::ClassId) -> T::AccountId {
 		T::PalletId::get().into_sub_account(class_id)
+	}
+
+	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {
+		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+			info.data.is_locked = is_locked;
+			Ok(())
+		})
+	}
+
+	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
+		Tokens::<T>::try_mutate(token_id.0, token_id.1, |token_info| -> DispatchResult {
+			let t = token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
+			t.data.is_locked = is_locked;
+			Ok(())
+		})
 	}
 }
