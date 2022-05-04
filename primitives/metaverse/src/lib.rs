@@ -126,7 +126,7 @@ pub const LAND_CLASS_ID: ClassId = 15;
 pub const ESTATE_CLASS_ID: ClassId = 16;
 
 /// Public item id for auction
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId {
 	NFT(ClassId, TokenId),
@@ -135,6 +135,7 @@ pub enum ItemId {
 	Block(u64),
 	Estate(EstateId),
 	LandUnit((i32, i32), MetaverseId),
+	Bundle(Vec<(ClassId, TokenId)>),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
@@ -144,7 +145,6 @@ pub enum FungibleTokenId {
 	FungibleToken(TokenId),
 	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
-
 	Stable(TokenId), // kUSD
 }
 
