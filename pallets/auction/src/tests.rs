@@ -266,6 +266,84 @@ fn create_auction_fail() {
 }
 
 #[test]
+// Creating auction should work
+fn create_new_auction_should_fail_when_exceed_finality_limit() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+
+		// Create 4 nfts
+
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 1),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 2),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+
+		// Mocking max finality is 3
+		// 4th auction with new block should fail
+		assert_noop!(
+			AuctionModule::create_auction(
+				AuctionType::Auction,
+				ItemId::NFT(0, 3),
+				None,
+				ALICE,
+				100,
+				0,
+				ListingLevel::Global,
+				Perbill::from_percent(0u32)
+			),
+			Error::<Runtime>::ExceedFinalityLimit
+		);
+
+		run_to_block(2);
+
+		// Should able to create auction for next block
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 3),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+	});
+}
+
+#[test]
 // Private remove_auction should work
 fn remove_auction_work() {
 	ExtBuilder::default().build().execute_with(|| {

@@ -128,7 +128,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		/// Default auction close time if there is end time specified
+		/// Default auction close time if there is no end time specified
 		#[pallet::constant]
 		type AuctionTimeToClose: Get<Self::BlockNumber>;
 
@@ -269,6 +269,8 @@ pub mod pallet {
 		FungibleTokenCurrencyNotFound,
 		/// Minimum Duration Is Too Low
 		AuctionEndIsLessThanMinimumDuration,
+		/// There is too many auction ends at the same time.
+		ExceedFinalityLimit,
 		/// Estate does not exist, check if estate id is correct
 		EstateDoesNotExist,
 		/// Land unit does not exist, check if estate id is correct
@@ -478,8 +480,9 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
+			// Only support NFT on marketplace
 			ensure!(
-				matches!(item_id, ItemId::NFT(_, _)),
+				matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -487,6 +490,7 @@ pub mod pallet {
 
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
 
+			// Ensure auction duration is valid
 			ensure!(
 				remaining_time >= T::MinimumAuctionDuration::get(),
 				Error::<T>::AuctionEndIsLessThanMinimumDuration
@@ -539,11 +543,6 @@ pub mod pallet {
 
 			let start_time: T::BlockNumber = <system::Pallet<T>>::block_number();
 			let remaining_time: T::BlockNumber = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
-
-			ensure!(
-				remaining_time >= T::MinimumAuctionDuration::get(),
-				Error::<T>::AuctionEndIsLessThanMinimumDuration
-			);
 
 			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
 			match listing_level {
@@ -844,6 +843,10 @@ pub mod pallet {
 					if let Some(_end_block) = _end {
 						end_time = _end_block
 					}
+
+					// Ensure auction end time below limit
+					ensure!(Self::check_valid_finality(&end_time), Error::<T>::ExceedFinalityLimit);
+
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -1154,6 +1157,12 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		fn check_valid_finality(end: &T::BlockNumber) -> bool {
+			let auctions_same_block = <AuctionEndTime<T>>::iter_prefix_values(end).count();
+
+			T::MaxFinality::get() > auctions_same_block as u32
+		}
+
 		// Runtime upgrade V1 - may required for production release
 		//		pub fn upgrade_asset_auction_data_v2() -> Weight {
 		//			log::info!("Start upgrading nft class data v2");
