@@ -35,7 +35,9 @@ use sp_runtime::{
 	DispatchError, DispatchResult, Perbill,
 };
 
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionItemV1, AuctionType, Change, OnNewBidResult};
+use auction_manager::{
+	Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionItemV1, AuctionType, Change, OnNewBidResult,
+};
 pub use pallet::*;
 use pallet_nft::Pallet as NFTModule;
 use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
@@ -750,7 +752,7 @@ pub mod pallet {
 				};
 			}
 		}
-	
+
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_auction_item_data_v2();
 			0
@@ -1185,7 +1187,7 @@ pub mod pallet {
 				},
 			);
 			
-			log::info!("{} auction items upgraded:",num_auction_items);
+			log::info!("{} auction items upgraded:", num_auction_items);
 			0
 		}
 		fn check_valid_finality(end: &T::BlockNumber) -> bool {
