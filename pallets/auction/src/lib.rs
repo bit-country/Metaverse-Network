@@ -402,6 +402,8 @@ pub mod pallet {
 								&auction_item.recipient,
 								&(class_id, token_id),
 								FungibleTokenId::NativeToken(0),
+								auction_item.listing_level,
+								auction_item.listing_fee,
 							);
 
 							let asset_transfer =
@@ -490,6 +492,14 @@ pub mod pallet {
 				Error::<T>::AuctionEndIsLessThanMinimumDuration
 			);
 
+			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id);
+				}
+				_ => {}
+			}
+
 			Self::create_auction(
 				AuctionType::Auction,
 				item_id,
@@ -498,6 +508,7 @@ pub mod pallet {
 				value.clone(),
 				start_time,
 				listing_level.clone(),
+				listing_fee,
 			)?;
 			Ok(().into())
 		}
@@ -534,6 +545,14 @@ pub mod pallet {
 				Error::<T>::AuctionEndIsLessThanMinimumDuration
 			);
 
+			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id);
+				}
+				_ => {}
+			}
+
 			Self::create_auction(
 				AuctionType::BuyNow,
 				item_id,
@@ -542,6 +561,7 @@ pub mod pallet {
 				value.clone(),
 				start_time,
 				listing_level.clone(),
+				listing_fee,
 			)?;
 
 			Ok(().into())
