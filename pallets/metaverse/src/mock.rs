@@ -145,7 +145,10 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		royalty_fee: Perbill,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
-			ALICE => {
+			ALICE => Ok(100),
+			BOB => Ok(3),
+			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
+			_ => {
 				if collection_id == 0 {
 					Ok(0)
 				} else if collection_id == 1 {
@@ -153,10 +156,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 				} else {
 					Ok(2)
 				}
-			}
-			BOB => Ok(3),
-			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
-			_ => Ok(100),
+			},
 		}
 	}
 
