@@ -156,7 +156,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 				} else {
 					Ok(2)
 				}
-			},
+			}
 		}
 	}
 
