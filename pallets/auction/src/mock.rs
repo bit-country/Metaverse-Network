@@ -251,6 +251,7 @@ impl Config for Runtime {
 	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
 	type NFTHandler = NFTModule;
+	type MaxBundleItem = MaxFinality;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;

@@ -417,6 +417,8 @@ pub mod pallet {
 
 							let asset_transfer =
 								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(class_id, token_id));
+
+							T::NFTHandler::set_lock_nft((class_id, token_id), false);
 							match asset_transfer {
 								Err(_) => (),
 								Ok(_) => {
@@ -692,7 +694,7 @@ pub mod pallet {
 												&high_bidder,
 												&(class_id, token_id),
 											);
-
+											T::NFTHandler::set_lock_nft((class_id, token_id), false);
 											match asset_transfer {
 												Err(_) => continue,
 												Ok(_) => {
@@ -827,11 +829,11 @@ pub mod pallet {
 			listing_fee: Perbill,
 		) -> Result<AuctionId, DispatchError> {
 			ensure!(
-				Self::items_in_auction(&item_id) == None,
+				Self::items_in_auction(item_id.clone()) == None,
 				Error::<T>::ItemAlreadyInAuction
 			);
 
-			match item_id {
+			match item_id.clone() {
 				ItemId::NFT(class_id, token_id) => {
 					// Check ownership
 					let is_owner = T::NFTHandler::check_ownership(&recipient, &(class_id, token_id))?;
@@ -867,6 +869,7 @@ pub mod pallet {
 						Error::<T>::ExceedFinalityLimit
 					);
 
+					T::NFTHandler::set_lock_nft((class_id, token_id), true)?;
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -1020,8 +1023,46 @@ pub mod pallet {
 						Error::<T>::ExceedFinalityLimit
 					);
 
-					for item in nfts {}
-					Ok(1)
+					for item in nfts {
+						// Check ownership
+						let is_owner = T::NFTHandler::check_ownership(&recipient, &(item.0, item.1))?;
+						ensure!(is_owner == true, Error::<T>::NoPermissionToCreateAuction);
+
+						let is_transferable = T::NFTHandler::is_transferable(&(item.0, item.1))?;
+						ensure!(is_transferable == true, Error::<T>::NoPermissionToCreateAuction);
+
+						// Lock NFT
+						T::NFTHandler::set_lock_nft(item, true)?
+					}
+
+					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
+
+					let new_auction_item = AuctionItem {
+						item_id: item_id.clone(),
+						recipient: recipient.clone(),
+						initial_amount,
+						amount: initial_amount,
+						start_time,
+						end_time,
+						auction_type,
+						listing_level: listing_level.clone(),
+						currency_id,
+						listing_fee,
+					};
+
+					<AuctionItems<T>>::insert(auction_id, new_auction_item);
+
+					Self::deposit_event(Event::NewAuctionItem(
+						auction_id,
+						recipient,
+						listing_level,
+						initial_amount,
+						initial_amount,
+						end_time,
+					));
+					<ItemsInAuction<T>>::insert(item_id, true);
+					Ok(auction_id)
 				}
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
 			}
@@ -1203,7 +1244,7 @@ pub mod pallet {
 			let existing_auctions_same_block: u32 = <AuctionEndTime<T>>::iter_prefix_values(end).count() as u32;
 			let total_auction_in_same_block = existing_auctions_same_block.saturating_add(quantity);
 
-			T::MaxFinality::get() > total_auction_in_same_block
+			T::MaxFinality::get() >= total_auction_in_same_block
 		}
 
 		// Runtime upgrade V1 - may required for production release

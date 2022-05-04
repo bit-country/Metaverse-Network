@@ -76,7 +76,7 @@ fn create_new_auction_should_work_for_valid_estate() {
 		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			item_id,
+			item_id.clone(),
 			None,
 			ALICE,
 			100,
@@ -92,7 +92,7 @@ fn create_new_auction_should_work_for_valid_estate() {
 				end: Some(101),
 			})
 		);
-		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
+		assert_eq!(AuctionModule::items_in_auction(item_id.clone()), Some(true));
 	});
 }
 
@@ -124,7 +124,7 @@ fn create_new_auction_should_work_for_valid_landunit() {
 		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			item_id,
+			item_id.clone(),
 			None,
 			ALICE,
 			100,
