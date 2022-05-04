@@ -350,12 +350,7 @@ pub mod pallet {
 			ensure_root(origin)?;
 
 			// Mint land unit
-			let owner = Self::mint_land_unit(
-				metaverse_id,
-				beneficiary,
-				coordinate,
-				LandUnitStatus::NonExisting,
-			)?;
+			let owner = Self::mint_land_unit(metaverse_id, beneficiary, coordinate, LandUnitStatus::NonExisting)?;
 
 			// Update total land count
 			Self::set_total_land_unit(One::one(), false)?;
@@ -474,12 +469,7 @@ pub mod pallet {
 			}
 
 			// Update estate information
-			Self::update_estate_information(
-				new_estate_id,
-				metaverse_id,
-				&beneficiary,
-				coordinates.clone(),
-			)?;
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone())?;
 
 			Ok(().into())
 		}
@@ -539,12 +529,7 @@ pub mod pallet {
 
 					// Mint land units
 					for coordinate in coordinates.clone() {
-						Self::mint_land_unit(
-							metaverse_id,
-							who.clone(),
-							coordinate,
-							LandUnitStatus::NonExisting,
-						)?;
+						Self::mint_land_unit(metaverse_id, who.clone(), coordinate, LandUnitStatus::NonExisting)?;
 					}
 
 					// Update total land count
@@ -1168,7 +1153,6 @@ impl<T: Config> Pallet<T> {
 						}
 					},
 					None => {
-
 						let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
 						let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 						let asset_id = T::NFTTokenizationSource::mint_token(
@@ -1186,7 +1170,7 @@ impl<T: Config> Pallet<T> {
 					!LandUnits::<T>::contains_key(metaverse_id, coordinate),
 					Error::<T>::LandUnitIsNotAvailable
 				);
-		
+
 				let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
 				let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 				let asset_id = T::NFTTokenizationSource::mint_token(

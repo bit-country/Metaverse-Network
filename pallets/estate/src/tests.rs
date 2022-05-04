@@ -52,12 +52,7 @@ fn set_max_bound_should_work() {
 fn mint_land_should_reject_non_root() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EstateModule::mint_land(
-				Origin::signed(ALICE),
-				BENEFICIARY_ID,
-				METAVERSE_ID,
-				COORDINATE_IN_1
-			),
+			EstateModule::mint_land(Origin::signed(ALICE), BENEFICIARY_ID, METAVERSE_ID, COORDINATE_IN_1),
 			BadOrigin
 		);
 	});
@@ -193,12 +188,7 @@ fn mint_lands_should_reject_with_duplicate_coordinates() {
 
 		assert_eq!(EstateModule::all_land_units_count(), 2);
 		assert_noop!(
-			EstateModule::mint_lands(
-				Origin::root(),
-				BENEFICIARY_ID,
-				METAVERSE_ID,
-				vec![COORDINATE_IN_1]
-			),
+			EstateModule::mint_lands(Origin::root(), BENEFICIARY_ID, METAVERSE_ID, vec![COORDINATE_IN_1]),
 			Error::<Runtime>::LandUnitIsNotAvailable
 		);
 	});
@@ -489,12 +479,7 @@ fn mint_estate_should_fail_for_minted_land() {
 		));
 
 		assert_err!(
-			EstateModule::mint_estate(
-				Origin::root(),
-				BENEFICIARY_ID,
-				METAVERSE_ID,
-				vec![COORDINATE_IN_1]
-			),
+			EstateModule::mint_estate(Origin::root(), BENEFICIARY_ID, METAVERSE_ID, vec![COORDINATE_IN_1]),
 			Error::<Runtime>::LandUnitIsNotAvailable
 		);
 	});
