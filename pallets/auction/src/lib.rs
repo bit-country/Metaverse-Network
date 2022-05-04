@@ -1185,7 +1185,7 @@ pub mod pallet {
 			let mut num_auction_items = 0;
 
 			AuctionItems::<T>::translate(
-				|_k, auction_v1: migration_v2::AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+				|_k, auction_v1: AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
 					num_auction_items += 1;
 					let v2: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
 						item_id: auction_v1.item_id,
