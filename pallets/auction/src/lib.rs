@@ -1075,6 +1075,7 @@ pub mod pallet {
 		pub fn upgrade_auction_item_data_v2() -> Weight {
 			log::info!("Start upgrading auction item data v2");
 			let mut num_auction_items = 0;
+
 			AuctionItems::<T>::translate(
 				|_k, auction_v1: AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
 					num_auction_items += 1;
@@ -1090,8 +1091,10 @@ pub mod pallet {
 						currency_id: auction_v1.currency_id,
 						listing_fee: Perbill::from_percent(0u32),
 					};
+					Some(v2)
 				},
 			);
+			
 			log::info!("{} auction items upgraded:",num_auction_items);
 			0
 		}

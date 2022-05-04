@@ -59,6 +59,8 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	pub listing_fee: Perbill,
 }
 
+#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct AuctionItemV1<AccountId, BlockNumber, Balance> {
 	pub item_id: ItemId,
 	pub recipient: AccountId,
