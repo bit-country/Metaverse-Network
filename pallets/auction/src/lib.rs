@@ -98,6 +98,22 @@ pub mod migration_v2 {
 		pub currency_id: FungibleTokenId,
 		pub listing_fee: Balance,
 	}
+
+	#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
+	#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
+	pub struct AuctionItemV1<AccountId, BlockNumber, Balance> {
+		pub item_id: V1ItemId,
+		pub recipient: AccountId,
+		pub initial_amount: Balance,
+		/// Current amount for sale
+		pub amount: Balance,
+		/// Auction start time
+		pub start_time: BlockNumber,
+		pub end_time: BlockNumber,
+		pub auction_type: AuctionType,
+		pub listing_level: ListingLevel<AccountId>,
+		pub currency_id: FungibleTokenId,
+	}
 }
 
 #[frame_support::pallet]
@@ -1169,7 +1185,7 @@ pub mod pallet {
 			let mut num_auction_items = 0;
 
 			AuctionItems::<T>::translate(
-				|_k, auction_v1: AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+				|_k, auction_v1: migration_v2::AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
 					num_auction_items += 1;
 					let v2: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
 						item_id: auction_v1.item_id,
