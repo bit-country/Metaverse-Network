@@ -1516,7 +1516,7 @@ impl<T: Config> Pallet<T> {
 		nft_metadata.append(&mut land_coordinate_attribute.clone());
 
 		let mut nft_attributes: Attributes = Attributes::new();
-		nft_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
+		nft_attributes.insert("MetaverseId:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
 		nft_attributes.insert("Coordinate:".as_bytes().to_vec(), land_coordinate_attribute);
 
 		return (nft_metadata, nft_attributes);
@@ -1528,7 +1528,7 @@ impl<T: Config> Pallet<T> {
 		nft_metadata.append(&mut estate_id.to_be_bytes().to_vec());
 
 		let mut nft_attributes: Attributes = Attributes::new();
-		nft_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
+		nft_attributes.insert("MetaverseId:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
 		nft_attributes.insert("Estate Id:".as_bytes().to_vec(), estate_id.to_be_bytes().to_vec());
 
 		return (nft_metadata, nft_attributes);
