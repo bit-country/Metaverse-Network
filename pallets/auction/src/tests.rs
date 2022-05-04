@@ -6,6 +6,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, NFTTrait, TokenType};
 use mock::{Event, *};
+use primitives::ClassId;
 use primitives::ItemId::NFT;
 
 use super::*;
@@ -66,6 +67,38 @@ fn create_new_auction_work() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+	});
+}
+
+#[test]
+// Creating auction should work
+fn create_new_auction_bundle_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+
+		let tokens: Vec<(u32, u64)> = vec![(0, 0), (0, 1), (0, 2)];
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::Bundle(tokens),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
 	});
 }
 

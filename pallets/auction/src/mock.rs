@@ -192,6 +192,7 @@ parameter_types! {
 	// Test 1% royalty fee
 	pub const RoyaltyFee: u16 = 100;
 	pub const MaxFinality: u32 = 3;
+	pub const MaxBundleItem: u32 = 5;
 }
 
 pub struct MetaverseInfoSource {}
@@ -251,7 +252,7 @@ impl Config for Runtime {
 	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
 	type NFTHandler = NFTModule;
-	type MaxBundleItem = MaxFinality;
+	type MaxBundleItem = MaxBundleItem;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
