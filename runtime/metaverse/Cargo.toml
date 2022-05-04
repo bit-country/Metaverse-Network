@@ -2,11 +2,11 @@
 [package]
 authors = ["Bit.Country Developers <https://github.com/bit-country>"]
 edition = "2018"
-homepage = "https://bit.country"
+homepage = "https://metaverse.network"
 license = "Unlicense"
 name = "metaverse-runtime"
 description = "Metaverse Runtime"
-repository = "https://github.com/bit-country/Bit-Country-Blockchain"
+repository = "https://github.com/bit-country/Metaverse-Network"
 version = "0.0.29"
 publish = false
 
@@ -190,8 +190,8 @@ runtime-benchmarks = [
     "metaverse/runtime-benchmarks",
     "crowdloan/runtime-benchmarks",
     "economy/runtime-benchmarks",
-    "pallet-utility/runtime-benchmarks",
     "mining/runtime-benchmarks",
+    "pallet-utility/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks"
 ]
 

@@ -1,6 +1,6 @@
-// This file is part of Bit.Country
+// This file is part of Metaverse.Network & Bit.Country
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -152,5 +152,6 @@ benchmarks! {
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &origin.clone()), 900);
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &dest.clone()), 1100);
 	}
+
 }
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

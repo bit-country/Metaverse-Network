@@ -8,6 +8,7 @@ use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
+use sp_runtime::Perbill;
 
 use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
 pub use primitive_traits::{CollectionType, NftAssetData, NftClassData};
@@ -114,6 +115,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(0)
 	}
@@ -150,6 +152,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_high_bidder: &u128,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
+		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> DispatchResult {
 		Ok(())
 	}

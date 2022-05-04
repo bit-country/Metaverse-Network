@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -185,6 +185,11 @@ pub mod pallet {
 	#[pallet::getter(fn staking_info)]
 	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
+	/// Local metaverse marketplace listing fee
+	#[pallet::storage]
+	#[pallet::getter(fn get_metaverse_marketplace_listing_fee)]
+	pub(crate) type MarketplaceListingFee<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, Perbill, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -198,6 +203,7 @@ pub mod pallet {
 		MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
 		MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
 		MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>),
+		MetaverseListingFeeUpdated(MetaverseId, Perbill),
 	}
 
 	#[pallet::error]
@@ -244,7 +250,7 @@ pub mod pallet {
 		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let metaverse_id = Self::do_create_metaverse(&who, metadata)?;
-			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), who));
+			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id, who));
 
 			Ok(().into())
 		}
@@ -574,6 +580,19 @@ pub mod pallet {
 			<MetaverseRoundStake<T>>::insert(&metaverse_id, round, metaverse_stake_per_round);
 			Ok(().into())
 		}
+
+		#[pallet::weight(T::WeightInfo::update_metaverse_listing_fee())]
+		pub fn update_metaverse_listing_fee(
+			origin: OriginFor<T>,
+			metaverse_id: MetaverseId,
+			new_listing_fee: Perbill,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			Self::do_update_metaverse_listing_fee(&who, &metaverse_id, new_listing_fee)?;
+			Self::deposit_event(Event::<T>::MetaverseListingFeeUpdated(metaverse_id, new_listing_fee));
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -654,10 +673,10 @@ impl<T: Config> Pallet<T> {
 	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for lands
 		let mut land_class_attributes = Attributes::new();
-		land_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
+		land_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
 		land_class_attributes.insert("Category:".as_bytes().to_vec(), "Lands".as_bytes().to_vec());
 		let land_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
-		let class_owner: T::AccountId =  T::MetaverseTreasury::get().into_account();
+		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account();
 		T::NFTHandler::create_token_class(
 			&class_owner,
 			land_class_metadata,
@@ -672,10 +691,10 @@ impl<T: Config> Pallet<T> {
 	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for estates
 		let mut estate_class_attributes = Attributes::new();
-		estate_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
+		estate_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
 		estate_class_attributes.insert("Category:".as_bytes().to_vec(), "Estates".as_bytes().to_vec());
 		let estate_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
-		let class_owner: T::AccountId =  T::MetaverseTreasury::get().into_account();
+		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account();
 		T::NFTHandler::create_token_class(
 			&class_owner,
 			estate_class_metadata,
@@ -685,6 +704,16 @@ impl<T: Config> Pallet<T> {
 			CollectionType::Collectable,
 			Perbill::from_percent(ESTATE_CLASS_ROYALTY_FEE),
 		)
+	}
+
+	fn do_update_metaverse_listing_fee(
+		who: &T::AccountId,
+		metaverse_id: &MetaverseId,
+		new_listing_fee: Perbill,
+	) -> Result<(), DispatchError> {
+		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
+		MarketplaceListingFee::<T>::insert(metaverse_id, new_listing_fee);
+		Ok(())
 	}
 }
 
@@ -731,6 +760,14 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
 		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
+		return Self::get_metaverse_marketplace_listing_fee(metaverse_id);
+	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {
+		return T::MetaverseTreasury::get().into_account();
 	}
 }
 

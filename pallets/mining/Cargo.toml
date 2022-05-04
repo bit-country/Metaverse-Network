@@ -2,7 +2,7 @@
 authors = ['Metaverse Network <https://github.com/bit-country>']
 description = 'Metaverse Network pallet for tokenization logic.'
 edition = '2018'
-homepage = 'https://bit.country'
+homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'pallet-mining'
 repository = 'https://github.com/bit-country'
@@ -66,4 +66,10 @@ std = [
     'swap/std',
     'currencies/std',
     'scale-info/std',
+    'frame-benchmarking/std',
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
 ]

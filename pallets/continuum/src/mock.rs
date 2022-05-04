@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,9 @@ use frame_support::pallet_prelude::{GenesisBuild, Hooks};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
-use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
+use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait};
 use primitives::{ClassId, FungibleTokenId};
 
@@ -50,6 +50,10 @@ pub const CHARLIE: AccountId = 3;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
 pub const CHARLIE_METAVERSE_ID: MetaverseId = 3;
+
+pub const ALICE_METAVERSE_FUND: AccountId = 100;
+pub const BOB_METAVERSE_FUND: AccountId = 101;
+pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -128,6 +132,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
@@ -158,6 +163,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_high_bidder: &u128,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
+		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> DispatchResult {
 		Ok(())
 	}
@@ -213,6 +220,18 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(16u32)
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
+		Perbill::from_percent(1u32)
+	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
+		match metaverse_id {
+			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
+			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
+			_ => GENERAL_METAVERSE_FUND,
+		}
 	}
 }
 

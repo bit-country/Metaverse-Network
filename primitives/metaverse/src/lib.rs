@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -186,6 +186,15 @@ impl FungibleTokenId {
 				FungibleTokenId::NativeToken(token_currency_id_1),
 			) => Some(FungibleTokenId::DEXShare(token_currency_id_1, token_currency_id_0)),
 			_ => None,
+		}
+	}
+
+	pub fn decimals(&self) -> u8 {
+		match self {
+			FungibleTokenId::NativeToken(0) => 18, // Native token
+			FungibleTokenId::NativeToken(1) | FungibleTokenId::NativeToken(2) | FungibleTokenId::Stable(0) => 12, // KSM KAR KUSD
+			FungibleTokenId::MiningResource(0) => 18,
+			_ => 18,
 		}
 	}
 }
