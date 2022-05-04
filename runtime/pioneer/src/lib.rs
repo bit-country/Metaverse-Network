@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -747,10 +747,31 @@ parameter_types! {
 		).into(),
 		native_per_second()
 	);
+	pub NeerX1PerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			1,
+			X2(Parachain(3096), GeneralKey(FungibleTokenId::NativeToken(0).encode())),
+		).into(),
+		native_per_second()
+	);
+	pub NeerX2PerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			1,
+			X2(Parachain(parachains::karura::ID), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+		).into(),
+		native_per_second()
+	);
 	pub BitPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
 			X2(Parachain(2096), GeneralKey(FungibleTokenId::MiningResource(0).encode()))
+		).into(),
+		native_per_second()
+	);
+	pub BitX1PerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			0,
+			X1(GeneralKey(FungibleTokenId::MiningResource(0).encode())),
 		).into(),
 		native_per_second()
 	);
@@ -794,6 +815,8 @@ impl TakeRevenue for ToTreasury {
 pub type Trader = (
 	FixedRateOfFungible<KsmPerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerPerSecond, ToTreasury>,
+	FixedRateOfFungible<NeerX1PerSecond, ToTreasury>,
+	FixedRateOfFungible<NeerX2PerSecond, ToTreasury>,
 	FixedRateOfFungible<BitPerSecond, ToTreasury>,
 	FixedRateOfFungible<KarPerSecond, ToTreasury>,
 	FixedRateOfFungible<KUsdPerSecond, ToTreasury>,
@@ -949,7 +972,7 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 					// decode the general key
 					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
 						match currency_id {
-							NativeToken(0) | NativeToken(1) => Some(currency_id),
+							NativeToken(0) | MiningResource(0) => Some(currency_id),
 							_ => None,
 						}
 					} else {
@@ -1164,7 +1187,7 @@ impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn successful_origin() -> Origin {
-		Origin::from(RawOrigin::Signed(Default::default()))
+		Origin::from(RawOrigin::Root)
 	}
 }
 

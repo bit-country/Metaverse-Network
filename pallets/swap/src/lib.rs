@@ -1,7 +1,7 @@
-// This file is part of Bit.Country
+// This file is part of Metaverse.Network & Bit.Country
 // The DEX logic influences by Acala DEX and Uniswap V2 Smart contract
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");

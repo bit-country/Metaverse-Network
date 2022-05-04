@@ -6,7 +6,7 @@ use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseTrait, NftAssetData, NftClassData};
@@ -38,6 +38,10 @@ pub const ESTATE_ID_NOT_EXIST: EstateId = 99;
 pub const LAND_UNIT_EXIST: (i32, i32) = (0, 0);
 pub const LAND_UNIT_EXIST_1: (i32, i32) = (1, 1);
 pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
+
+pub const ALICE_METAVERSE_FUND: AccountId = 100;
+pub const BOB_METAVERSE_FUND: AccountId = 101;
+pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
@@ -140,7 +144,7 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 		_last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
 		// Test with Alice bid
-		if new_bid.0 == ALICE {
+		if new_bid.0 == ALICE || new_bid.0 == BOB {
 			OnNewBidResult {
 				accept_bid: true,
 				auction_end_change: Change::NoChange,
@@ -187,7 +191,7 @@ parameter_types! {
 	pub const MinimumAuctionDuration: u64 = 10;
 	// Test 1% royalty fee
 	pub const RoyaltyFee: u16 = 100;
-	pub const MaxFinality: u32 = 100;
+	pub const MaxFinality: u32 = 3;
 }
 
 pub struct MetaverseInfoSource {}
@@ -219,6 +223,18 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
 		16u32
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
+		Perbill::from_percent(1u32)
+	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
+		match metaverse_id {
+			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
+			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
+			_ => GENERAL_METAVERSE_FUND,
+		}
 	}
 }
 
@@ -406,6 +422,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
@@ -436,6 +453,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_high_bidder: &u128,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
+		_listng_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> DispatchResult {
 		Ok(())
 	}

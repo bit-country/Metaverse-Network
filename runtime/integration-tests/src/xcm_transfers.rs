@@ -70,6 +70,63 @@ fn transfer_native_to_sibling() {
 }
 
 #[test]
+fn transfer_native_from_sibling_development() {
+	TestNet::reset();
+
+	let alice_initial_balance = native_amount(10000);
+	let bob_initial_balance = native_amount(10000);
+	let transfer_amount = native_amount(1);
+
+	Sibling::execute_with(|| {
+		assert_eq!(Balances::free_balance(&ALICE.into()), alice_initial_balance);
+		assert_eq!(Balances::free_balance(&development_account()), 0);
+	});
+
+	Development::execute_with(|| {
+		assert_eq!(Balances::free_balance(&BOB.into()), bob_initial_balance);
+	});
+
+	Sibling::execute_with(|| {
+		assert_ok!(XTokens::transfer(
+			Origin::signed(ALICE.into()),
+			FungibleTokenId::NativeToken(0),
+			transfer_amount,
+			Box::new(
+				MultiLocation::new(
+					1,
+					X2(
+						Parachain(PARA_ID_DEVELOPMENT),
+						Junction::AccountId32 {
+							network: NetworkId::Any,
+							id: BOB.into(),
+						}
+					)
+				)
+				.into()
+			),
+			8_000_000_000_000,
+		));
+
+		// Confirm that Alice's balance is initial balance - amount transferred
+		assert_eq!(
+			Balances::free_balance(&ALICE.into()),
+			alice_initial_balance - transfer_amount
+		);
+
+		// Verify that the amount transferred is now part of the sibling account here
+		assert_eq!(Balances::free_balance(&development_account()), transfer_amount);
+	});
+
+	Development::execute_with(|| {
+		// Verify that BOB now has initial balance + amount transferred - fee
+		assert_eq!(
+			Balances::free_balance(&BOB.into()),
+			bob_initial_balance + transfer_amount - native_fee(),
+		);
+	});
+}
+
+#[test]
 fn transfer_bit_to_sibling() {
 	TestNet::reset();
 
@@ -326,6 +383,9 @@ fn currency_id_convert_test() {
 		X2(Parachain(2096), GeneralKey(FungibleTokenId::MiningResource(0).encode())),
 	);
 
+	let pioneer_general_key_parent_location: MultiLocation =
+		MultiLocation::new(0, X1(GeneralKey(FungibleTokenId::NativeToken(0).encode())));
+
 	assert_eq!(
 		FungibleTokenId::NativeToken(0).encode(),
 		vec![0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -344,6 +404,11 @@ fn currency_id_convert_test() {
 	assert_eq!(
 		FungibleTokenIdConvert::convert(pioneer_mining_resource_location.clone()),
 		Some(FungibleTokenId::MiningResource(0)),
+	);
+
+	assert_eq!(
+		FungibleTokenIdConvert::convert(pioneer_general_key_parent_location.clone()),
+		Some(FungibleTokenId::NativeToken(0))
 	);
 
 	Development::execute_with(|| {
