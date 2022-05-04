@@ -82,7 +82,7 @@ fn create_new_auction_bundle_work() {
 		let tokens: Vec<(u32, u64)> = vec![(0, 0), (0, 1), (0, 2)];
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::Bundle(tokens),
+			ItemId::Bundle(tokens.clone()),
 			None,
 			ALICE,
 			100,
@@ -98,6 +98,11 @@ fn create_new_auction_bundle_work() {
 				start: 1,
 				end: Some(101),
 			})
+		);
+
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
+			Some(true)
 		);
 	});
 }
