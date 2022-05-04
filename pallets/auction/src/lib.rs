@@ -411,8 +411,16 @@ pub mod pallet {
 								&auction_item.recipient,
 								&(class_id, token_id),
 								FungibleTokenId::NativeToken(0),
-								auction_item.listing_level,
+								auction_item.listing_level.clone(),
 								auction_item.listing_fee,
+							);
+
+							Self::collect_listing_fee(
+								&value,
+								&auction_item.recipient,
+								FungibleTokenId::NativeToken(0),
+								auction_item.listing_level.clone(),
+								auction_item.listing_fee.clone(),
 							);
 
 							let asset_transfer =
@@ -686,9 +694,18 @@ pub mod pallet {
 												&auction_item.recipient,
 												&(class_id, token_id),
 												FungibleTokenId::NativeToken(0),
-												auction_item.listing_level,
+												auction_item.listing_level.clone(),
 												auction_item.listing_fee,
 											);
+
+											Self::collect_listing_fee(
+												&high_bid_price,
+												&auction_item.recipient,
+												FungibleTokenId::NativeToken(0),
+												auction_item.listing_level.clone(),
+												auction_item.listing_fee,
+											);
+
 											let asset_transfer = T::NFTHandler::transfer_nft(
 												&auction_item.recipient,
 												&high_bidder,
@@ -756,6 +773,40 @@ pub mod pallet {
 													));
 												}
 											}
+										}
+										ItemId::Bundle(tokens) => {
+											let listing_level = auction_item.listing_level.clone();
+
+											Self::collect_listing_fee(
+												&high_bid_price,
+												&auction_item.recipient,
+												FungibleTokenId::NativeToken(0),
+												auction_item.listing_level.clone(),
+												auction_item.listing_fee,
+											);
+
+											for token in tokens {
+												Self::collect_royalty_fee(
+													&high_bid_price,
+													&auction_item.recipient,
+													&(token.0, token.1),
+													FungibleTokenId::NativeToken(0),
+													listing_level.clone(),
+													Perbill::from_percent(0u32),
+												);
+												T::NFTHandler::transfer_nft(
+													&auction_item.recipient,
+													&high_bidder,
+													&(token.0, token.1),
+												);
+												T::NFTHandler::set_lock_nft((token.0, token.1), false);
+											}
+
+											Self::deposit_event(Event::AuctionFinalized(
+												auction_id,
+												high_bidder.clone(),
+												high_bid_price,
+											));
 										}
 										_ => {} // Future implementation for Spot, Metaverse
 									}
@@ -1004,9 +1055,9 @@ pub mod pallet {
 					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
-				ItemId::Bundle(nfts) => {
+				ItemId::Bundle(tokens) => {
 					ensure!(
-						(nfts.len() as u32) < T::MaxBundleItem::get(),
+						(tokens.len() as u32) < T::MaxBundleItem::get(),
 						Error::<T>::ExceedBundleLimit
 					);
 
@@ -1019,11 +1070,11 @@ pub mod pallet {
 
 					// Make sure total item bundle is not exceed max finality
 					ensure!(
-						Self::check_valid_finality(&end_time, nfts.len() as u32),
+						Self::check_valid_finality(&end_time, tokens.len() as u32),
 						Error::<T>::ExceedFinalityLimit
 					);
 
-					for item in nfts {
+					for item in tokens {
 						// Check ownership
 						let is_owner = T::NFTHandler::check_ownership(&recipient, &(item.0, item.1))?;
 						ensure!(is_owner == true, Error::<T>::NoPermissionToCreateAuction);
@@ -1175,28 +1226,7 @@ pub mod pallet {
 			let nft_details = T::NFTHandler::get_nft_detail((asset_id.0, asset_id.1))?;
 			let royalty_fee = nft_details.royalty_fee * *high_bid_price;
 			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					let metaverse_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
-					let listing_fee_amount = listing_fee * *high_bid_price;
-					if social_currency_id == FungibleTokenId::NativeToken(0) {
-						<T as Config>::Currency::transfer(
-							&high_bidder,
-							&metaverse_fund,
-							listing_fee_amount,
-							ExistenceRequirement::KeepAlive,
-						)?;
-					} else {
-						T::FungibleTokenCurrency::transfer(
-							social_currency_id.clone(),
-							&high_bidder,
-							&metaverse_fund,
-							listing_fee_amount.saturated_into(),
-						)?;
-					}
-				}
-				_ => {}
-			}
+
 			// Transfer loyalty fee from winner to class fund pot
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
 				<T as Config>::Currency::transfer(
@@ -1245,6 +1275,39 @@ pub mod pallet {
 			let total_auction_in_same_block = existing_auctions_same_block.saturating_add(quantity);
 
 			T::MaxFinality::get() >= total_auction_in_same_block
+		}
+
+		/// Collect listing fee for auction
+		fn collect_listing_fee(
+			high_bid_price: &BalanceOf<T>,
+			high_bidder: &T::AccountId,
+			social_currency_id: FungibleTokenId,
+			listing_level: ListingLevel<T::AccountId>,
+			listing_fee: Perbill,
+		) -> DispatchResult {
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					let metaverse_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
+					let listing_fee_amount = listing_fee * *high_bid_price;
+					if social_currency_id == FungibleTokenId::NativeToken(0) {
+						<T as Config>::Currency::transfer(
+							&high_bidder,
+							&metaverse_fund,
+							listing_fee_amount,
+							ExistenceRequirement::KeepAlive,
+						)?;
+					} else {
+						T::FungibleTokenCurrency::transfer(
+							social_currency_id.clone(),
+							&high_bidder,
+							&metaverse_fund,
+							listing_fee_amount.saturated_into(),
+						)?;
+					}
+				}
+				_ => {}
+			}
+			Ok(())
 		}
 
 		// Runtime upgrade V1 - may required for production release
