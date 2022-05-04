@@ -144,7 +144,7 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 		_last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
 		// Test with Alice bid
-		if new_bid.0 == ALICE {
+		if new_bid.0 == ALICE || new_bid.0 == BOB {
 			OnNewBidResult {
 				accept_bid: true,
 				auction_end_change: Change::NoChange,

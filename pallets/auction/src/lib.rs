@@ -334,7 +334,7 @@ pub mod pallet {
 				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
 			}
 
-			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyItNowPrice);
+			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyNowPrice);
 			ensure!(
 				<T as Config>::Currency::free_balance(&from) >= value,
 				Error::<T>::InsufficientFreeBalance
@@ -924,7 +924,7 @@ pub mod pallet {
 
 				match auction_item.clone().listing_level {
 					ListingLevel::NetworkSpot(allowed_bidders) => {
-						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidNotAccepted);
+						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidIsNotAccepted);
 					}
 					_ => {}
 				}

@@ -365,7 +365,7 @@ fn cannot_bid_on_non_existent_auction() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
 			AuctionModule::bid(Origin::signed(ALICE), 0, 10),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 
 		assert_eq!(Balances::free_balance(ALICE), 100000);
@@ -416,7 +416,10 @@ fn cannot_bid_on_own_auction() {
 			Perbill::from_percent(0u32)
 		));
 
-		assert_noop!(AuctionModule::bid(owner, 0, 50), Error::<Runtime>::SelfBidNotAccepted);
+		assert_noop!(
+			AuctionModule::bid(owner, 0, 50),
+			Error::<Runtime>::CannotBidOnOwnAuction
+		);
 	});
 }
 
@@ -556,7 +559,7 @@ fn buy_now_work() {
 		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});
 }
@@ -613,7 +616,7 @@ fn buy_now_works_for_valid_estate() {
 		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});
 }
@@ -670,7 +673,7 @@ fn buy_now_works_for_valid_landunit() {
 		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});
 }
@@ -700,7 +703,7 @@ fn buy_now_should_fail() {
 		// no auction id
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionNotExist
+			Error::<Runtime>::AuctionDoesNotExist
 		);
 		// user is seller
 		assert_noop!(
@@ -710,25 +713,25 @@ fn buy_now_should_fail() {
 		// buy it now value is less than buy_now_amount
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 100),
-			Error::<Runtime>::InvalidBuyItNowPrice
+			Error::<Runtime>::InvalidBuyNowPrice
 		);
 		// buy it now value is more than buy_now_amount
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 200),
-			Error::<Runtime>::InvalidBuyItNowPrice
+			Error::<Runtime>::InvalidBuyNowPrice
 		);
 		// user does not have enough balance in wallet
 		assert_ok!(Balances::reserve(&ALICE, 100000));
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 150),
-			Error::<Runtime>::InsufficientFunds
+			Error::<Runtime>::InsufficientFreeBalance
 		);
 		assert_eq!(Balances::unreserve(&ALICE, 100000), 0);
 		// auction has not started or is over
 		System::set_block_number(0);
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 150),
-			Error::<Runtime>::AuctionNotStarted
+			Error::<Runtime>::AuctionHasNotStarted
 		);
 		System::set_block_number(101);
 		assert_noop!(
@@ -831,17 +834,19 @@ fn on_finalize_should_work() {
 // Auction finalize with listing fee works
 fn on_finalize_with_listing_fee_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = Origin::signed(ALICE);
+		let bidder = Origin::signed(BOB);
 		init_test_nft(owner.clone());
+		// After minting new NFT, it costs 3 unit
+		assert_eq!(Balances::free_balance(ALICE), 99997);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::NFT(0, 0),
 			None,
-			BOB,
+			ALICE,
 			100,
 			0,
-			ListingLevel::Global,
+			ListingLevel::Local(ALICE_METAVERSE_ID),
 			Perbill::from_percent(10u32)
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
@@ -849,15 +854,17 @@ fn on_finalize_with_listing_fee_should_work() {
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
 		// check balances were transferred
-		assert_eq!(Balances::free_balance(ALICE), 99900);
-		// BOB only receive 596 - 1 (1% of 100 as loyalty fee) + 1 minting fee = 589
-		assert_eq!(Balances::free_balance(BOB), 596);
+		// Bob bid 100 for item, his new balance will be 500 - 100
+		assert_eq!(Balances::free_balance(BOB), 400);
+		// Alice only receive 89 for item sold - cost breakdown 100 - 1 (royalty) - 10 (listing fee)
+		// Free balance of Alice is 99997 + 86 = 100086
+		assert_eq!(Balances::free_balance(ALICE), 100086);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
+		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 100));
 		assert_eq!(last_event(), event);
 	});
 }
