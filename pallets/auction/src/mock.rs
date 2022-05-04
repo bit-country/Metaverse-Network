@@ -191,7 +191,7 @@ parameter_types! {
 	pub const MinimumAuctionDuration: u64 = 10;
 	// Test 1% royalty fee
 	pub const RoyaltyFee: u16 = 100;
-	pub const MaxFinality: u32 = 100;
+	pub const MaxFinality: u32 = 3;
 }
 
 pub struct MetaverseInfoSource {}
