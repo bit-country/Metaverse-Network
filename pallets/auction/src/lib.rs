@@ -35,7 +35,7 @@ use sp_runtime::{
 	DispatchError, DispatchResult, Perbill,
 };
 
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
+use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionItemV1, AuctionType, Change, OnNewBidResult};
 pub use pallet::*;
 use pallet_nft::Pallet as NFTModule;
 use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
@@ -673,6 +673,11 @@ pub mod pallet {
 				};
 			}
 		}
+	
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_auction_item_data_v2();
+			0
+		}
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
@@ -1067,6 +1072,29 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		pub fn upgrade_auction_item_data_v2() -> Weight {
+			log::info!("Start upgrading auction item data v2");
+			let mut num_auction_items = 0;
+			AuctionItems::<T>::translate(
+				|_k, auction_v1: AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+					num_auction_items += 1;
+					let v2: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
+						item_id: auction_v1.item_id,
+						recipient: auction_v1.recipient,
+						initial_amount: auction_v1.initial_amount,
+						amount: auction_v1.amount,
+						start_time: auction_v1.start_time,
+						end_time: auction_v1.end_time,
+						auction_type: auction_v1.auction_type,
+						listing_level: auction_v1.listing_level,
+						currency_id: auction_v1.currency_id,
+						listing_fee: Perbill::from_percent(0u32),
+					};
+				},
+			);
+			log::info!("{} auction items upgraded:",num_auction_items);
+			0
+		}
 		//		pub fn upgrade_asset_auction_data_v2() -> Weight {
 		//			log::info!("Start upgrading nft class data v2");
 		//			let mut num_auction_item = 0;
