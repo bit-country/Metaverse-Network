@@ -346,7 +346,6 @@ pub mod pallet {
 			beneficiary: T::AccountId,
 			metaverse_id: MetaverseId,
 			coordinate: (i32, i32),
-			is_tokenized: bool,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -356,7 +355,6 @@ pub mod pallet {
 				beneficiary,
 				coordinate,
 				LandUnitStatus::NonExisting,
-				is_tokenized,
 			)?;
 
 			// Update total land count
@@ -373,7 +371,6 @@ pub mod pallet {
 			beneficiary: T::AccountId,
 			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
-			are_tokenized: bool,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -384,7 +381,6 @@ pub mod pallet {
 					beneficiary.clone(),
 					coordinate,
 					LandUnitStatus::NonExisting,
-					are_tokenized,
 				)?;
 			}
 
@@ -425,7 +421,6 @@ pub mod pallet {
 			beneficiary: T::AccountId,
 			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
-			is_tokenized: bool,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -437,29 +432,18 @@ pub mod pallet {
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
-				if is_tokenized {
-					Self::mint_land_unit(
-						metaverse_id,
-						beneficiary.clone(),
-						coordinate,
-						LandUnitStatus::NonExisting,
-						is_tokenized,
-					)?;
-				} else {
-					Self::mint_land_unit(
-						metaverse_id,
-						estate_account_id.clone(),
-						coordinate,
-						LandUnitStatus::NonExisting,
-						is_tokenized,
-					)?;
-				}
+				Self::mint_land_unit(
+					metaverse_id,
+					beneficiary.clone(),
+					coordinate,
+					LandUnitStatus::NonExisting,
+				)?;
 			}
 			// Update total land count
 			Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates, is_tokenized)?;
+			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates)?;
 			Ok(().into())
 		}
 
@@ -470,7 +454,6 @@ pub mod pallet {
 			beneficiary: T::AccountId,
 			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
-			is_tokenized: bool,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -487,7 +470,6 @@ pub mod pallet {
 					estate_account_id.clone(),
 					coordinate,
 					LandUnitStatus::Existing(beneficiary.clone()),
-					is_tokenized,
 				)?;
 			}
 
@@ -497,7 +479,6 @@ pub mod pallet {
 				metaverse_id,
 				&beneficiary,
 				coordinates.clone(),
-				is_tokenized,
 			)?;
 
 			Ok(().into())
@@ -530,7 +511,6 @@ pub mod pallet {
 			undeployed_land_block_id: UndeployedLandBlockId,
 			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
-			are_tokenized: bool,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -564,7 +544,6 @@ pub mod pallet {
 							who.clone(),
 							coordinate,
 							LandUnitStatus::NonExisting,
-							are_tokenized,
 						)?;
 					}
 
@@ -1151,7 +1130,6 @@ impl<T: Config> Pallet<T> {
 		beneficiary: T::AccountId,
 		coordinate: (i32, i32),
 		land_unit_status: LandUnitStatus<T::AccountId>,
-		is_tokenized: bool,
 	) -> Result<OwnerId<T::AccountId, TokenId>, DispatchError> {
 		// Ensure the max bound is set for the bit country
 		ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
@@ -1178,21 +1156,6 @@ impl<T: Config> Pallet<T> {
 					Some(owner_value) => match owner_value {
 						OwnerId::Token(t) => owner = owner_value,
 						OwnerId::Account(a) => {
-							if is_tokenized {
-								let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
-								let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
-								let asset_id = T::NFTTokenizationSource::mint_token(
-									&beneficiary,
-									class_id,
-									token_properties.0,
-									token_properties.1,
-								)?;
-								owner = OwnerId::Token(asset_id);
-							}
-						}
-					},
-					None => {
-						if is_tokenized {
 							let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
 							let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 							let asset_id = T::NFTTokenizationSource::mint_token(
@@ -1203,6 +1166,18 @@ impl<T: Config> Pallet<T> {
 							)?;
 							owner = OwnerId::Token(asset_id);
 						}
+					},
+					None => {
+
+						let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
+						let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
+						let asset_id = T::NFTTokenizationSource::mint_token(
+							&beneficiary,
+							class_id,
+							token_properties.0,
+							token_properties.1,
+						)?;
+						owner = OwnerId::Token(asset_id);
 					}
 				}
 			}
@@ -1211,17 +1186,16 @@ impl<T: Config> Pallet<T> {
 					!LandUnits::<T>::contains_key(metaverse_id, coordinate),
 					Error::<T>::LandUnitIsNotAvailable
 				);
-				if is_tokenized {
-					let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
-					let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
-					let asset_id = T::NFTTokenizationSource::mint_token(
-						&beneficiary,
-						class_id,
-						token_properties.0,
-						token_properties.1,
-					)?;
-					owner = OwnerId::Token(asset_id);
-				}
+		
+				let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
+				let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
+				let asset_id = T::NFTTokenizationSource::mint_token(
+					&beneficiary,
+					class_id,
+					token_properties.0,
+					token_properties.1,
+				)?;
+				owner = OwnerId::Token(asset_id);
 			}
 		}
 		LandUnits::<T>::insert(metaverse_id, coordinate, owner.clone());
@@ -1233,7 +1207,6 @@ impl<T: Config> Pallet<T> {
 		metaverse_id: MetaverseId,
 		beneficiary: &T::AccountId,
 		coordinates: Vec<(i32, i32)>,
-		is_tokenized: bool,
 	) -> DispatchResult {
 		// Update total estates
 		let total_estates_count = Self::all_estates_count();
@@ -1248,14 +1221,11 @@ impl<T: Config> Pallet<T> {
 			land_units: coordinates.clone(),
 		};
 
-		let mut owner = OwnerId::Account(beneficiary.clone());
-		if is_tokenized {
-			let token_properties = Self::get_estate_token_properties(metaverse_id, new_estate_id);
-			let class_id = T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id)?;
-			let asset_id: TokenId =
-				T::NFTTokenizationSource::mint_token(beneficiary, class_id, token_properties.0, token_properties.1)?;
-			owner = OwnerId::Token(asset_id);
-		}
+		let token_properties = Self::get_estate_token_properties(metaverse_id, new_estate_id);
+		let class_id = T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id)?;
+		let asset_id: TokenId =
+			T::NFTTokenizationSource::mint_token(beneficiary, class_id, token_properties.0, token_properties.1)?;
+		let owner = OwnerId::Token(asset_id);
 
 		Estates::<T>::insert(new_estate_id, estate_info);
 

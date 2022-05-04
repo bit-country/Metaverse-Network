@@ -657,8 +657,9 @@ impl<T: Config> Pallet<T> {
 		land_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
 		land_class_attributes.insert("Category:".as_bytes().to_vec(), "Lands".as_bytes().to_vec());
 		let land_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
+		let class_owner: T::AccountId =  T::MetaverseTreasury::get().into_account();
 		T::NFTHandler::create_token_class(
-			T::MetaverseTreasury::get().into_account(),
+			&class_owner,
 			land_class_metadata,
 			land_class_attributes,
 			0,
@@ -674,8 +675,9 @@ impl<T: Config> Pallet<T> {
 		estate_class_attributes.insert("Metaverse Id:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
 		estate_class_attributes.insert("Category:".as_bytes().to_vec(), "Estates".as_bytes().to_vec());
 		let estate_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
+		let class_owner: T::AccountId =  T::MetaverseTreasury::get().into_account();
 		T::NFTHandler::create_token_class(
-			T::MetaverseTreasury::get().into_account(),
+			&class_owner,
 			estate_class_metadata,
 			estate_class_attributes,
 			1,
