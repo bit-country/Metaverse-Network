@@ -32,6 +32,7 @@ use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
 use primitives::Balance;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
 
 pub type AccountId = u128;
 
@@ -202,6 +203,16 @@ benchmarks! {
 	verify {
 		let staking_info = crate::Pallet::<T>::staking_info(caller);
 		assert_eq!(staking_info, amount.into());
+	}
+
+	// update metaverse marketplace listing fee
+	update_metaverse_listing_fee {
+		let caller = funded_account::<T>("caller", 0);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
+	}: _(RawOrigin::Signed(caller.clone()), 0, Perbill::from_percent(1u32))
+	verify {
+		assert_eq!(crate::Pallet::<T>::get_metaverse_marketplace_listing_fee(0), Perbill::from_percent(1u32))
 	}
 }
 

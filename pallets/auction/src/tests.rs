@@ -53,7 +53,8 @@ fn create_new_auction_work() {
 			ALICE,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_eq!(
@@ -80,7 +81,8 @@ fn create_new_auction_should_work_for_valid_estate() {
 			ALICE,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 		assert_eq!(
 			AuctionModule::auctions(0),
@@ -100,7 +102,16 @@ fn create_new_auction_should_fail_for_non_exist_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		let item_id: ItemId = ItemId::Estate(ESTATE_ID_NOT_EXIST);
 		assert_noop!(
-			AuctionModule::create_auction(AuctionType::Auction, item_id, None, ALICE, 100, 0, ListingLevel::Global),
+			AuctionModule::create_auction(
+				AuctionType::Auction,
+				item_id,
+				None,
+				ALICE,
+				100,
+				0,
+				ListingLevel::Global,
+				Perbill::from_percent(0u32),
+			),
 			Error::<Runtime>::EstateDoesNotExist
 		);
 	});
@@ -118,7 +129,8 @@ fn create_new_auction_should_work_for_valid_landunit() {
 			ALICE,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
 		));
 		assert_eq!(
 			AuctionModule::auctions(0),
@@ -138,7 +150,16 @@ fn create_new_auction_should_work_for_non_exist_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
 		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
 		assert_noop!(
-			AuctionModule::create_auction(AuctionType::Auction, item_id, None, ALICE, 100, 0, ListingLevel::Global),
+			AuctionModule::create_auction(
+				AuctionType::Auction,
+				item_id,
+				None,
+				ALICE,
+				100,
+				0,
+				ListingLevel::Global,
+				Perbill::from_percent(0u32),
+			),
 			Error::<Runtime>::LandUnitDoesNotExist
 		);
 	});
@@ -178,7 +199,8 @@ fn create_auction_fail() {
 				BOB,
 				100,
 				0,
-				ListingLevel::Global
+				ListingLevel::Global,
+				Perbill::from_percent(0u32)
 			),
 			Error::<Runtime>::NoPermissionToCreateAuction
 		);
@@ -210,7 +232,8 @@ fn create_auction_fail() {
 				ALICE,
 				100,
 				0,
-				ListingLevel::Global
+				ListingLevel::Global,
+				Perbill::from_percent(0u32)
 			),
 			Error::<Runtime>::NoPermissionToCreateAuction
 		);
@@ -223,7 +246,8 @@ fn create_auction_fail() {
 			ALICE,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 		assert_noop!(
 			AuctionModule::create_auction(
@@ -233,7 +257,8 @@ fn create_auction_fail() {
 				ALICE,
 				100,
 				0,
-				ListingLevel::Global
+				ListingLevel::Global,
+				Perbill::from_percent(0u32)
 			),
 			Error::<Runtime>::ItemAlreadyInAuction
 		);
@@ -253,7 +278,8 @@ fn remove_auction_work() {
 			ALICE,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 		AuctionModule::remove_auction(0, ItemId::NFT(0, 0));
 		assert_eq!(AuctionModule::auctions(0), None);
@@ -276,7 +302,8 @@ fn bid_works() {
 			BOB,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
@@ -299,7 +326,8 @@ fn bid_works_for_valid_estate() {
 			BOB,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
@@ -322,7 +350,8 @@ fn bid_works_for_valid_land_unit() {
 			BOB,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
@@ -357,7 +386,8 @@ fn cannot_bid_with_insufficient_funds() {
 			BOB,
 			600,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_noop!(
@@ -382,7 +412,8 @@ fn cannot_bid_on_own_auction() {
 			ALICE,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_noop!(
@@ -413,7 +444,8 @@ fn asset_transfers_after_auction() {
 			BOB,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
@@ -451,7 +483,8 @@ fn cannot_bid_on_ended_auction() {
 			BOB,
 			150,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		System::set_block_number(101);
@@ -479,7 +512,8 @@ fn buy_now_work() {
 			BOB,
 			200,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		// buy now successful
@@ -500,7 +534,8 @@ fn buy_now_work() {
 			BOB,
 			200,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 200));
@@ -545,7 +580,8 @@ fn buy_now_works_for_valid_estate() {
 			BOB,
 			150,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		// buy now successful
@@ -561,7 +597,8 @@ fn buy_now_works_for_valid_estate() {
 			BOB,
 			150,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
@@ -600,7 +637,8 @@ fn buy_now_works_for_valid_landunit() {
 			BOB,
 			150,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		// buy now successful
@@ -616,7 +654,8 @@ fn buy_now_works_for_valid_landunit() {
 			BOB,
 			150,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
@@ -657,7 +696,8 @@ fn buy_now_should_fail() {
 			BOB,
 			150,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 
 		// no auction id
@@ -708,7 +748,8 @@ fn buy_now_should_fail() {
 				BOB,
 				150,
 				0,
-				ListingLevel::Global
+				ListingLevel::Global,
+				Perbill::from_percent(0u32)
 			),
 			Error::<Runtime>::NoPermissionToCreateAuction
 		);
@@ -729,7 +770,8 @@ fn invalid_auction_type() {
 			BOB,
 			150,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 		assert_noop!(
 			AuctionModule::bid(participant.clone(), 0, 200),
@@ -743,7 +785,8 @@ fn invalid_auction_type() {
 			BOB,
 			150,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 		assert_noop!(
 			AuctionModule::buy_now(participant.clone(), 1, 150),
@@ -753,7 +796,7 @@ fn invalid_auction_type() {
 }
 
 #[test]
-// Private auction_bid_handler should not work
+// Private auction_bid_handler should work
 fn on_finalize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = Origin::signed(BOB);
@@ -766,7 +809,8 @@ fn on_finalize_should_work() {
 			BOB,
 			100,
 			0,
-			ListingLevel::Global
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
@@ -782,6 +826,45 @@ fn on_finalize_should_work() {
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
+		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+// Auction finalize with listing fee works
+fn on_finalize_with_listing_fee_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(ALICE);
+		let bidder = Origin::signed(BOB);
+		init_test_nft(owner.clone());
+		// After minting new NFT, it costs 3 unit
+		assert_eq!(Balances::free_balance(ALICE), 99997);
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Local(ALICE_METAVERSE_ID),
+			Perbill::from_percent(10u32)
+		));
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+		assert_ok!(AuctionModule::bid(bidder, 0, 100));
+		run_to_block(102);
+		assert_eq!(AuctionModule::auctions(0), None);
+		// check account received asset
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
+		// check balances were transferred
+		// Bob bid 100 for item, his new balance will be 500 - 100
+		assert_eq!(Balances::free_balance(BOB), 400);
+		// Alice only receive 89 for item sold - cost breakdown 100 - 1 (royalty) - 10 (listing fee)
+		// Free balance of Alice is 99997 + 86 = 100086
+		assert_eq!(Balances::free_balance(ALICE), 100086);
+		// asset is not longer in auction
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
+		// event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 100));
 		assert_eq!(last_event(), event);
 	});
 }

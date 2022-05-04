@@ -1179,7 +1179,7 @@ impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn successful_origin() -> Origin {
-		Origin::from(RawOrigin::Signed(Default::default()))
+		Origin::from(RawOrigin::Root)
 	}
 }
 
