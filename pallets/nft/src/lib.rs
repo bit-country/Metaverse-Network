@@ -81,6 +81,7 @@ pub enum StorageVersion {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+	use sp_runtime::ArithmeticError;
 
 	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
 	use primitives::{ClassId, FungibleTokenId, ItemId};
@@ -141,11 +142,6 @@ pub mod pallet {
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_asset)]
-	pub(super) type Assets<T: Config> =
-		StorageMap<_, Blake2_128Concat, AssetId, (ClassIdOf<T>, TokenIdOf<T>), OptionQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
 	pub(super) type GroupCollections<T: Config> =
 		StorageMap<_, Blake2_128Concat, GroupCollectionId, NftGroupCollectionData, OptionQuery>;
@@ -195,7 +191,7 @@ pub mod pallet {
 		fn build(&self) {
 			// Pre-mint group collection for lands
 			let land_collection_data = NftGroupCollectionData {
-				name: "Metaverse Lands".as_bytes().to_vec(),
+				name: "MetaverseLands".as_bytes().to_vec(),
 				properties: "MetaverseId;Coordinates".as_bytes().to_vec(),
 			};
 			let land_collection_id = <Pallet<T>>::next_group_collection_id();
@@ -206,7 +202,7 @@ pub mod pallet {
 
 			// Pre-mint group collection for estates
 			let estate_collection_data = NftGroupCollectionData {
-				name: "Metaverse Esates".as_bytes().to_vec(),
+				name: "MetaverseEstate".as_bytes().to_vec(),
 				properties: "MetaverseId;EstateId".as_bytes().to_vec(),
 			};
 			let estate_collection_id = <Pallet<T>>::next_group_collection_id();
@@ -326,6 +322,8 @@ pub mod pallet {
 		CollectionIsNotLocked,
 		/// NFT Royalty fee exceed 50%
 		RoyaltyFeeExceedLimit,
+		/// NFT Asset is locked e.g on marketplace, or other locks
+		AssetIsLocked,
 	}
 
 	#[pallet::call]
@@ -350,9 +348,7 @@ pub mod pallet {
 			GroupCollections::<T>::insert(next_group_collection_id, collection_data);
 
 			let all_collection_count = Self::all_nft_collection_count();
-			let new_all_nft_collection_count = all_collection_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding a new collection to total collection")?;
+			let new_all_nft_collection_count = all_collection_count.checked_add(One::one()).ok_or("Overflow")?;
 
 			AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
@@ -623,6 +619,9 @@ impl<T: Config> Pallet<T> {
 
 		let class_info = NftModule::<T>::classes(asset_id.0).ok_or(Error::<T>::ClassIdNotFound)?;
 		let data = class_info.data;
+		let token_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+		ensure!(!token_info.data.is_locked, Error::<T>::AssetIsLocked);
 
 		match data.token_type {
 			TokenType::Transferable => {
