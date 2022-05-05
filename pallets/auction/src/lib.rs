@@ -406,19 +406,19 @@ pub mod pallet {
 					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
 					match auction_item.item_id {
 						ItemId::NFT(class_id, token_id) => {
-							Self::collect_royalty_fee(
-								&value,
-								&auction_item.recipient,
-								&(class_id, token_id),
-								FungibleTokenId::NativeToken(0),
-							);
-
 							Self::collect_listing_fee(
 								&value,
 								&auction_item.recipient,
 								FungibleTokenId::NativeToken(0),
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee.clone(),
+							);
+
+							Self::collect_royalty_fee(
+								&value,
+								&auction_item.recipient,
+								&(class_id, token_id),
+								FungibleTokenId::NativeToken(0),
 							);
 
 							let asset_transfer =
@@ -468,7 +468,31 @@ pub mod pallet {
 								}
 							}
 						}
-						_ => {} // Future implementation for Land, Metaverse
+						ItemId::Bundle(tokens) => {
+							// Collect listing fee once
+							Self::collect_listing_fee(
+								&value,
+								&auction_item.recipient,
+								FungibleTokenId::NativeToken(0),
+								auction_item.listing_level.clone(),
+								auction_item.listing_fee,
+							);
+
+							for token in tokens {
+								// Collect royalty fee of each nft sold in the bundle
+								Self::collect_royalty_fee(
+									&token.2,
+									&auction_item.recipient,
+									&(token.0, token.1),
+									FungibleTokenId::NativeToken(0),
+								);
+								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1));
+								T::NFTHandler::set_lock_nft((token.0, token.1), false);
+							}
+
+							Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+						}
+						_ => {} // Future implementation for other items
 					}
 				}
 			}
@@ -687,19 +711,19 @@ pub mod pallet {
 
 									match auction_item.item_id.clone() {
 										ItemId::NFT(class_id, token_id) => {
-											Self::collect_royalty_fee(
-												&high_bid_price,
-												&auction_item.recipient,
-												&(class_id, token_id),
-												FungibleTokenId::NativeToken(0),
-											);
-
 											Self::collect_listing_fee(
 												&high_bid_price,
 												&auction_item.recipient,
 												FungibleTokenId::NativeToken(0),
 												auction_item.listing_level.clone(),
 												auction_item.listing_fee,
+											);
+
+											Self::collect_royalty_fee(
+												&high_bid_price,
+												&auction_item.recipient,
+												&(class_id, token_id),
+												FungibleTokenId::NativeToken(0),
 											);
 
 											let asset_transfer = T::NFTHandler::transfer_nft(
@@ -771,8 +795,6 @@ pub mod pallet {
 											}
 										}
 										ItemId::Bundle(tokens) => {
-											let listing_level = auction_item.listing_level.clone();
-
 											// Collect listing fee once
 											Self::collect_listing_fee(
 												&high_bid_price,
@@ -1218,7 +1240,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Get royalty fee
 			let nft_details = T::NFTHandler::get_nft_detail((asset_id.0, asset_id.1))?;
-			let royalty_fee = nft_details.royalty_fee * *high_bid_price;
+			let royalty_fee: Self::Balance = nft_details.royalty_fee * *high_bid_price;
 			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
 
 			// Transfer loyalty fee from winner to class fund pot
