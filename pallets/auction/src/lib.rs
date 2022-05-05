@@ -421,10 +421,11 @@ pub mod pallet {
 								FungibleTokenId::NativeToken(0),
 							);
 
+							T::NFTHandler::set_lock_nft((class_id, token_id), false);
+
 							let asset_transfer =
 								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(class_id, token_id));
 
-							T::NFTHandler::set_lock_nft((class_id, token_id), false);
 							match asset_transfer {
 								Err(_) => (),
 								Ok(_) => {
@@ -486,8 +487,8 @@ pub mod pallet {
 									&(token.0, token.1),
 									FungibleTokenId::NativeToken(0),
 								);
-								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1));
 								T::NFTHandler::set_lock_nft((token.0, token.1), false);
+								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1));
 							}
 
 							Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
@@ -726,12 +727,12 @@ pub mod pallet {
 												FungibleTokenId::NativeToken(0),
 											);
 
+											T::NFTHandler::set_lock_nft((class_id, token_id), false);
 											let asset_transfer = T::NFTHandler::transfer_nft(
 												&auction_item.recipient,
 												&high_bidder,
 												&(class_id, token_id),
 											);
-											T::NFTHandler::set_lock_nft((class_id, token_id), false);
 											match asset_transfer {
 												Err(_) => continue,
 												Ok(_) => {
@@ -812,12 +813,12 @@ pub mod pallet {
 													&(token.0, token.1),
 													FungibleTokenId::NativeToken(0),
 												);
+												T::NFTHandler::set_lock_nft((token.0, token.1), false);
 												T::NFTHandler::transfer_nft(
 													&auction_item.recipient,
 													&high_bidder,
 													&(token.0, token.1),
 												);
-												T::NFTHandler::set_lock_nft((token.0, token.1), false);
 											}
 
 											Self::deposit_event(Event::AuctionFinalized(
