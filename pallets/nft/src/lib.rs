@@ -39,7 +39,7 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::pallet_prelude::*;
-use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule};
+use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -55,7 +55,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1};
+use primitive_traits::{CollectionType, NftAssetData, NftAssetDataV1, NftClassDataV1};
 use primitives::{
 	AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
 };
@@ -81,6 +81,7 @@ pub enum StorageVersion {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+	use sp_runtime::ArithmeticError;
 
 	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
 	use primitives::{ClassId, FungibleTokenId, ItemId};
@@ -115,7 +116,7 @@ pub mod pallet {
 		/// Weight info
 		type WeightInfo: WeightInfo;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
+		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Max transfer batch
 		#[pallet::constant]
 		type MaxBatchTransfer: Get<u32>;
@@ -139,11 +140,6 @@ pub mod pallet {
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 	pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_asset)]
-	pub(super) type Assets<T: Config> =
-		StorageMap<_, Blake2_128Concat, AssetId, (ClassIdOf<T>, TokenIdOf<T>), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
@@ -195,7 +191,7 @@ pub mod pallet {
 		fn build(&self) {
 			// Pre-mint group collection for lands
 			let land_collection_data = NftGroupCollectionData {
-				name: "Metaverse Lands".as_bytes().to_vec(),
+				name: "MetaverseLands".as_bytes().to_vec(),
 				properties: "MetaverseId;Coordinates".as_bytes().to_vec(),
 			};
 			let land_collection_id = <Pallet<T>>::next_group_collection_id();
@@ -206,7 +202,7 @@ pub mod pallet {
 
 			// Pre-mint group collection for estates
 			let estate_collection_data = NftGroupCollectionData {
-				name: "Metaverse Esates".as_bytes().to_vec(),
+				name: "MetaverseEstate".as_bytes().to_vec(),
 				properties: "MetaverseId;EstateId".as_bytes().to_vec(),
 			};
 			let estate_collection_id = <Pallet<T>>::next_group_collection_id();
@@ -326,6 +322,8 @@ pub mod pallet {
 		CollectionIsNotLocked,
 		/// NFT Royalty fee exceed 50%
 		RoyaltyFeeExceedLimit,
+		/// NFT Asset is locked e.g on marketplace, or other locks
+		AssetIsLocked,
 	}
 
 	#[pallet::call]
@@ -350,9 +348,7 @@ pub mod pallet {
 			GroupCollections::<T>::insert(next_group_collection_id, collection_data);
 
 			let all_collection_count = Self::all_nft_collection_count();
-			let new_all_nft_collection_count = all_collection_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding a new collection to total collection")?;
+			let new_all_nft_collection_count = all_collection_count.checked_add(One::one()).ok_or("Overflow")?;
 
 			AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
@@ -623,6 +619,9 @@ impl<T: Config> Pallet<T> {
 
 		let class_info = NftModule::<T>::classes(asset_id.0).ok_or(Error::<T>::ClassIdNotFound)?;
 		let data = class_info.data;
+		let token_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+		ensure!(!token_info.data.is_locked, Error::<T>::AssetIsLocked);
 
 		match data.token_type {
 			TokenType::Transferable => {
@@ -693,6 +692,7 @@ impl<T: Config> Pallet<T> {
 		let new_nft_data = NftAssetData {
 			deposit,
 			attributes: attributes,
+			is_locked: false,
 		};
 
 		let mut new_asset_ids: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Vec::new();
@@ -760,7 +760,9 @@ impl<T: Config> Pallet<T> {
 
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
+		log::info!("Start upgrading nft token data v2");
 		let mut num_nft_classes = 0;
+		let mut num_nft_tokens = 0;
 		let mut asset_by_owner_updates = 0;
 
 		Classes::<T>::translate(
@@ -793,8 +795,29 @@ impl<T: Config> Pallet<T> {
 				Some(v)
 			},
 		);
+		Tokens::<T>::translate(
+			|_k, _k2, token_info: TokenInfo<T::AccountId, NftAssetDataV1<BalanceOf<T>>, TokenMetadataOf<T>>| {
+				num_nft_tokens += 1;
+				log::info!("Upgrading existing token data to set is_locked");
+				log::info!("Token id {:?}", _k);
+
+				let new_data = NftAssetData {
+					deposit: token_info.data.deposit,
+					attributes: token_info.data.attributes,
+					is_locked: false,
+				};
+
+				let v: TokenInfoOf<T> = TokenInfo {
+					metadata: token_info.metadata,
+					owner: token_info.owner,
+					data: new_data,
+				};
+				Some(v)
+			},
+		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
+		log::info!("Tokens upgraded: {}", num_nft_tokens);
 		0
 	}
 }
@@ -903,5 +926,21 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 
 	fn get_class_fund(class_id: &Self::ClassId) -> T::AccountId {
 		T::PalletId::get().into_sub_account(class_id)
+	}
+
+	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {
+		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+			info.data.is_locked = is_locked;
+			Ok(())
+		})
+	}
+
+	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
+		Tokens::<T>::try_mutate(token_id.0, token_id.1, |token_info| -> DispatchResult {
+			let t = token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
+			t.data.is_locked = is_locked;
+			Ok(())
+		})
 	}
 }

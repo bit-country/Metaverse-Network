@@ -111,6 +111,15 @@ pub struct NftAssetData<Balance> {
 	// Deposit balance to create each token
 	pub deposit: Balance,
 	pub attributes: Attributes,
+	pub is_locked: bool,
+}
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftAssetDataV1<Balance> {
+	// Deposit balance to create each token
+	pub deposit: Balance,
+	pub attributes: Attributes,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -238,6 +247,10 @@ pub trait NFTTrait<AccountId, Balance> {
 	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get collection account fund
 	fn get_class_fund(class_id: &Self::ClassId) -> AccountId;
+	/// Set lock collection
+	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> DispatchResult;
+	/// Set lock nft
+	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> DispatchResult;
 }
 
 pub trait RoundTrait<BlockNumber> {
