@@ -114,6 +114,14 @@ pub struct NftAssetData<Balance> {
 	pub is_locked: bool,
 }
 
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftAssetDataV1<Balance> {
+	// Deposit balance to create each token
+	pub deposit: Balance,
+	pub attributes: Attributes,
+}
+
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseAssetData {
 	pub image: Vec<u8>,

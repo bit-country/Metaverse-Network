@@ -39,7 +39,7 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::pallet_prelude::*;
-use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, Tokens};
+use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -55,7 +55,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1};
+use primitive_traits::{CollectionType, NftAssetData, NftAssetDataV1, NftClassDataV1};
 use primitives::{
 	AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
 };
@@ -760,7 +760,9 @@ impl<T: Config> Pallet<T> {
 
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
+		log::info!("Start upgrading nft token data v2");
 		let mut num_nft_classes = 0;
+		let mut num_nft_tokens = 0;
 		let mut asset_by_owner_updates = 0;
 
 		Classes::<T>::translate(
@@ -793,8 +795,29 @@ impl<T: Config> Pallet<T> {
 				Some(v)
 			},
 		);
+		Tokens::<T>::translate(
+			|_k, _k2, token_info: TokenInfo<T::AccountId, NftAssetDataV1<BalanceOf<T>>, TokenMetadataOf<T>>| {
+				num_nft_tokens += 1;
+				log::info!("Upgrading existing token data to set is_locked");
+				log::info!("Token id {:?}", _k);
+
+				let new_data = NftAssetData {
+					deposit: token_info.data.deposit,
+					attributes: token_info.data.attributes,
+					is_locked: false,
+				};
+
+				let v: TokenInfoOf<T> = TokenInfo {
+					metadata: token_info.metadata,
+					owner: token_info.owner,
+					data: new_data,
+				};
+				Some(v)
+			},
+		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
+		log::info!("Tokens upgraded: {}", num_nft_tokens);
 		0
 	}
 }
