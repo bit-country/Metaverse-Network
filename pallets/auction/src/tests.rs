@@ -79,7 +79,7 @@ fn create_new_auction_bundle_work() {
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
 
-		let tokens: Vec<(u32, u64)> = vec![(0, 0), (0, 1), (0, 2)];
+		let tokens: Vec<(u32, u64, Balance)> = vec![(0, 0, 30), (0, 1, 30), (0, 2, 40)];
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::Bundle(tokens.clone()),
@@ -111,7 +111,7 @@ fn create_new_auction_bundle_work() {
 // Creating auction should work
 fn create_new_auction_should_work_for_valid_estate() {
 	ExtBuilder::default().build().execute_with(|| {
-		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
+		let item_id: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			item_id.clone(),
@@ -138,7 +138,7 @@ fn create_new_auction_should_work_for_valid_estate() {
 // Creating auction should work
 fn create_new_auction_should_fail_for_non_exist_estate() {
 	ExtBuilder::default().build().execute_with(|| {
-		let item_id: ItemId = ItemId::Estate(ESTATE_ID_NOT_EXIST);
+		let item_id: ItemId<Balance> = ItemId::Estate(ESTATE_ID_NOT_EXIST);
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::Auction,
@@ -159,7 +159,7 @@ fn create_new_auction_should_fail_for_non_exist_estate() {
 // Creating auction should work
 fn create_new_auction_should_work_for_valid_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
-		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
+		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			item_id.clone(),
@@ -186,7 +186,7 @@ fn create_new_auction_should_work_for_valid_landunit() {
 // Creating auction should work
 fn create_new_auction_should_work_for_non_exist_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
-		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
+		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::Auction,
@@ -433,7 +433,7 @@ fn bid_works() {
 fn bid_works_for_valid_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		let bidder = Origin::signed(ALICE);
-		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
+		let item_id: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -457,7 +457,7 @@ fn bid_works_for_valid_estate() {
 fn bid_works_for_valid_land_unit() {
 	ExtBuilder::default().build().execute_with(|| {
 		let bidder = Origin::signed(ALICE);
-		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
+		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -687,7 +687,7 @@ fn buy_now_works_for_valid_estate() {
 		// let owner = Origin::signed(BOB);
 		let buyer = Origin::signed(ALICE);
 
-		let item_id: ItemId = ItemId::Estate(ESTATE_ID_EXIST);
+		let item_id: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST);
 		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -705,7 +705,7 @@ fn buy_now_works_for_valid_estate() {
 
 		assert_eq!(Balances::free_balance(BOB), 650);
 
-		let item_id_1: ItemId = ItemId::Estate(ESTATE_ID_EXIST_1);
+		let item_id_1: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST_1);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
 			item_id_1,
@@ -744,7 +744,7 @@ fn buy_now_works_for_valid_landunit() {
 		// let owner = Origin::signed(BOB);
 		let buyer = Origin::signed(ALICE);
 
-		let item_id: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
+		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
 		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -762,7 +762,7 @@ fn buy_now_works_for_valid_landunit() {
 
 		assert_eq!(Balances::free_balance(BOB), 650);
 
-		let item_id_1: ItemId = ItemId::LandUnit(LAND_UNIT_EXIST_1, ALICE_METAVERSE_ID);
+		let item_id_1: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST_1, ALICE_METAVERSE_ID);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
 			item_id_1,

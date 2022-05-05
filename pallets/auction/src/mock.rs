@@ -418,7 +418,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn create_auction(
 		_auction_type: AuctionType,
-		_item_id: ItemId,
+		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
 		_recipient: u128,
 		_initial_amount: Self::Balance,
@@ -429,7 +429,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		Ok(1)
 	}
 
-	fn remove_auction(_id: u64, _item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -455,15 +455,13 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_high_bidder: &u128,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
-		_listng_level: ListingLevel<AccountId>,
-		_listing_fee: Perbill,
 	) -> DispatchResult {
 		Ok(())
 	}
 }
 
-impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(_item_id: ItemId) -> bool {
+impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
+	fn check_item_in_auction(_item_id: ItemId<Balance>) -> bool {
 		return false;
 	}
 }

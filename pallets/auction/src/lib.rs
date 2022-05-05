@@ -189,7 +189,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn items_in_auction)]
 	/// Track which Assets are in auction
-	pub(super) type ItemsInAuction<T: Config> = StorageMap<_, Twox64Concat, ItemId, bool, OptionQuery>;
+	pub(super) type ItemsInAuction<T: Config> = StorageMap<_, Twox64Concat, ItemId<BalanceOf<T>>, bool, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn auctions_index)]
@@ -411,8 +411,6 @@ pub mod pallet {
 								&auction_item.recipient,
 								&(class_id, token_id),
 								FungibleTokenId::NativeToken(0),
-								auction_item.listing_level.clone(),
-								auction_item.listing_fee,
 							);
 
 							Self::collect_listing_fee(
@@ -491,7 +489,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn create_new_auction(
 			origin: OriginFor<T>,
-			item_id: ItemId,
+			item_id: ItemId<BalanceOf<T>>,
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
@@ -549,7 +547,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn create_new_buy_now(
 			origin: OriginFor<T>,
-			item_id: ItemId,
+			item_id: ItemId<BalanceOf<T>>,
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
@@ -694,8 +692,6 @@ pub mod pallet {
 												&auction_item.recipient,
 												&(class_id, token_id),
 												FungibleTokenId::NativeToken(0),
-												auction_item.listing_level.clone(),
-												auction_item.listing_fee,
 											);
 
 											Self::collect_listing_fee(
@@ -777,6 +773,7 @@ pub mod pallet {
 										ItemId::Bundle(tokens) => {
 											let listing_level = auction_item.listing_level.clone();
 
+											// Collect listing fee once
 											Self::collect_listing_fee(
 												&high_bid_price,
 												&auction_item.recipient,
@@ -786,13 +783,12 @@ pub mod pallet {
 											);
 
 											for token in tokens {
+												// Collect royalty fee of each nft sold in the bundle
 												Self::collect_royalty_fee(
-													&high_bid_price,
+													&token.2,
 													&auction_item.recipient,
 													&(token.0, token.1),
 													FungibleTokenId::NativeToken(0),
-													listing_level.clone(),
-													Perbill::from_percent(0u32),
 												);
 												T::NFTHandler::transfer_nft(
 													&auction_item.recipient,
@@ -871,7 +867,7 @@ pub mod pallet {
 		/// Internal create auction extension
 		fn create_auction(
 			auction_type: AuctionType,
-			item_id: ItemId,
+			item_id: ItemId<Self::Balance>,
 			_end: Option<T::BlockNumber>,
 			recipient: T::AccountId,
 			initial_amount: Self::Balance,
@@ -1083,7 +1079,7 @@ pub mod pallet {
 						ensure!(is_transferable == true, Error::<T>::NoPermissionToCreateAuction);
 
 						// Lock NFT
-						T::NFTHandler::set_lock_nft(item, true)?
+						T::NFTHandler::set_lock_nft((item.0, item.1), true)?
 					}
 
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
@@ -1120,7 +1116,7 @@ pub mod pallet {
 		}
 
 		/// Internal remove auction extension
-		fn remove_auction(id: AuctionId, item_id: ItemId) {
+		fn remove_auction(id: AuctionId, item_id: ItemId<Self::Balance>) {
 			if let Some(auction) = <Auctions<T>>::get(&id) {
 				if let Some(end_block) = auction.end {
 					<AuctionEndTime<T>>::remove(end_block, id);
@@ -1219,8 +1215,6 @@ pub mod pallet {
 			high_bidder: &T::AccountId,
 			asset_id: &(ClassId, TokenId),
 			social_currency_id: FungibleTokenId,
-			listing_level: ListingLevel<T::AccountId>,
-			listing_fee: Perbill,
 		) -> DispatchResult {
 			// Get royalty fee
 			let nft_details = T::NFTHandler::get_nft_detail((asset_id.0, asset_id.1))?;
@@ -1247,8 +1241,8 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> CheckAuctionItemHandler for Pallet<T> {
-		fn check_item_in_auction(item_id: ItemId) -> bool {
+	impl<T: Config> CheckAuctionItemHandler<BalanceOf<T>> for Pallet<T> {
+		fn check_item_in_auction(item_id: ItemId<BalanceOf<T>>) -> bool {
 			Self::items_in_auction(item_id) == Some(true)
 		}
 	}
