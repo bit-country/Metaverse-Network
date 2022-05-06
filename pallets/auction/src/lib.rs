@@ -523,7 +523,8 @@ pub mod pallet {
 
 			// Only support NFT on marketplace
 			ensure!(
-				matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)),
+				(matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)))
+					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_))),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -579,7 +580,8 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
-				matches!(item_id, ItemId::NFT(_, _)),
+				(matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)))
+					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_))),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -839,6 +841,11 @@ pub mod pallet {
 				};
 			}
 		}
+
+		//		fn on_runtime_upgrade() -> Weight {
+		//			Self::upgrade_auction_item_data_v2();
+		//			0
+		//		}
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {

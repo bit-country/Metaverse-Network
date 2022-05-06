@@ -617,10 +617,10 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_metaverse_info_v2();
-			0
-		}
+		//		fn on_runtime_upgrade() -> Weight {
+		//			Self::upgrade_metaverse_info_v2();
+		//			0
+		//		}
 	}
 }
 
