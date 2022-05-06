@@ -106,7 +106,7 @@ pub mod pallet {
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 
-		/// Slashing handler 
+		/// Slashing handler
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 
 		/// Metaverse info trait for getting information from metaverse
@@ -123,10 +123,10 @@ pub mod pallet {
 
 		/// The proposal type for filtering preimages
 		type ProposalType: Parameter + Member + Default + InstanceFilter<Self::Proposal>;
-		
+
 		/// The Scheduler.
 		type Scheduler: ScheduleNamed<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
-		
+
 		/// Metaverse Council which collective of members
 		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
 	}
@@ -241,7 +241,7 @@ pub mod pallet {
 		ReferendumCancelled(ReferendumId),
 		/// Vote for local governance referendum is recorded
 		VoteRecorded(T::AccountId, ReferendumId, bool),
-		/// Removed a vote for local governance referendum 
+		/// Removed a vote for local governance referendum
 		VoteRemoved(T::AccountId, ReferendumId),
 		/// Local governance proposal is seconded
 		Seconded(T::AccountId, ProposalId),
@@ -277,9 +277,9 @@ pub mod pallet {
 		ReferendumIsOver,
 		/// Cannot find deposit
 		DepositNotFound,
-		/// Proposal ID is out of scope 
+		/// Proposal ID is out of scope
 		ProposalIdOverflow,
-		/// Referendum ID is out of scope 
+		/// Referendum ID is out of scope
 		ReferendumIdOverflow,
 		/// Proposal queue overflows
 		ProposalQueueOverflow,
@@ -363,7 +363,7 @@ pub mod pallet {
 		}
 
 		/// Create new metaverse-level referendum proposal if provided valid proposal hash and sufficient funds.
-		/// 
+		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only metaverse members who own piece of land has the ability to create local metaverse
 		/// proposal
@@ -469,9 +469,9 @@ pub mod pallet {
 			}
 		}
 
-		/// Cancel proposal if it exist for a selected metaverse 
+		/// Cancel proposal if it exist for a selected metaverse
 		/// and it has not launched as a referendum yet
-		/// 
+		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only the creator of a proposal can use this call.
 		/// - `proposal`: the ID of the proposal that will be cancelled
@@ -498,10 +498,10 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Fast track proposal to referendum if it exist for a selected metaverse 
+		/// Fast track proposal to referendum if it exist for a selected metaverse
 		/// and has not launched as a referendum yet
-		/// 
-		/// The dispatch origin for this call must be _Signed_. 
+		///
+		/// The dispatch origin for this call must be _Signed_.
 		/// Only metaverse council can use this call.
 		/// - `proposal`: the ID of the proposal that will be fast tracked
 		/// - `metaverse_id`: the metaverse ID of the proposal
@@ -526,7 +526,7 @@ pub mod pallet {
 		}
 
 		/// Second a proposal to referendum if it exist and second upper bound is not reached
-		/// 
+		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only metaverse council can use this call.
 		/// - `proposal`: the ID of the proposal that will be fast tracked
@@ -549,7 +549,7 @@ pub mod pallet {
 
 		/// Vote for a local metaverse referendum if an account has not voted yet.
 		/// and has sufficient balance for the vote
-		/// 
+		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only metaverse members who own piece of land has the ability to vote on local metaverse
 		/// referendum
@@ -601,7 +601,7 @@ pub mod pallet {
 		}
 
 		/// Remove vote for a local metaverse referendum.
-		/// 
+		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only metaverse members who voted on a referendum can use this call
 		/// - `referendum`: the referendum ID for the vote
@@ -655,8 +655,8 @@ pub mod pallet {
 		}
 
 		/// Emergency cancel ongoing referendum
-		/// 
-		/// The dispatch origin for this call must be _Signed_. 
+		///
+		/// The dispatch origin for this call must be _Signed_.
 		/// Only metaverse council can use this call.
 		/// - `metaverse`: the metaverse ID of the referendum
 		/// - `referendum`: the referendum ID which will be canceled
@@ -685,8 +685,8 @@ pub mod pallet {
 		}
 
 		/// Unlock balance after referendum ended and conviction period is over.
-		/// 
-		/// The dispatch origin for this call must be _Signed_. 
+		///
+		/// The dispatch origin for this call must be _Signed_.
 		/// - `target`: the account which funds will be unlocked
 		///
 		/// Emits nothing if successful.
@@ -698,8 +698,8 @@ pub mod pallet {
 		}
 
 		/// Enacting proposal after successfully passed referendum
-		/// 
-		/// The dispatch origin for this call must be _Root_. 
+		///
+		/// The dispatch origin for this call must be _Root_.
 		/// - `proposal_id`: the ID of the proposal
 		/// - `metaverse_id`: the metaverse ID of the proposal
 		/// - `referendum_id`: the referendum ID of the proposal

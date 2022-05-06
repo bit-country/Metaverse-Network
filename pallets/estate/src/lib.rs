@@ -132,7 +132,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_land_units)]
-	/// Index land owners by metaverse ID and coordinate 
+	/// Index land owners by metaverse ID and coordinate
 	pub type LandUnits<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
@@ -160,7 +160,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_owner)]
-	/// Track estate owners 
+	/// Track estate owners
 	pub type EstateOwner<T: Config> =
 		StorageMap<_, Twox64Concat, EstateId, OwnerId<T::AccountId, TokenId>, OptionQuery>;
 
@@ -1329,7 +1329,7 @@ impl<T: Config> Pallet<T> {
 		Ok(undeployed_land_block_id)
 	}
 
-	/// Internal transfer of undeployed land block 
+	/// Internal transfer of undeployed land block
 	fn do_transfer_undeployed_land_block(
 		who: &T::AccountId,
 		to: &T::AccountId,
