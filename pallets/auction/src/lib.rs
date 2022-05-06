@@ -107,7 +107,7 @@ pub mod pallet {
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_runtime::ArithmeticError;
 
-	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
+	use auction_manager::{AuctionItemV1, CheckAuctionItemHandler, ListingLevel};
 	use core_primitives::{MetaverseTrait, NFTTrait};
 	use primitives::{AssetId, Balance, ClassId, FungibleTokenId, MetaverseId, TokenId};
 
@@ -1325,6 +1325,33 @@ pub mod pallet {
 				_ => {}
 			}
 			Ok(())
+		}
+
+		pub fn upgrade_auction_item_data_v2() -> Weight {
+			log::info!("Start upgrading auction item data v2");
+			let mut num_auction_items = 0;
+
+			AuctionItems::<T>::translate(
+				|_k, auction_v1: AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+					num_auction_items += 1;
+					let v2: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
+						item_id: auction_v1.item_id,
+						recipient: auction_v1.recipient,
+						initial_amount: auction_v1.initial_amount,
+						amount: auction_v1.amount,
+						start_time: auction_v1.start_time,
+						end_time: auction_v1.end_time,
+						auction_type: auction_v1.auction_type,
+						listing_level: auction_v1.listing_level,
+						currency_id: auction_v1.currency_id,
+						listing_fee: Perbill::from_percent(0u32),
+					};
+					Some(v2)
+				},
+			);
+
+			log::info!("{} auction items upgraded:", num_auction_items);
+			0
 		}
 
 		// Runtime upgrade V1 - may required for production release
