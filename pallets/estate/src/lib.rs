@@ -282,7 +282,8 @@ pub mod pallet {
 		/// Undeployed land block is transferred [From Account Id, To Account Id, Undeployed
 		/// Land Block Id]
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
-		/// Undeployed land block is approved [Owner Account Id, Approved Account Id, Undeployed Land Block Id]
+		/// Undeployed land block is approved [Owner Account Id, Approved Account Id, Undeployed
+		/// Land Block Id]
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
 		/// Estate is destroyed [Estate Id, Owner Id]
 		EstateDestroyed(EstateId, OwnerId<T::AccountId, TokenId>),
