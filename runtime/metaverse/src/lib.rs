@@ -533,6 +533,7 @@ parameter_types! {
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
 	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 1;
+	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
 }
 
 impl estate::Config for Runtime {
@@ -548,6 +549,7 @@ impl estate::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
 	type NFTTokenizationSource = Nft;
+	type DefaultMaxBound = DefaultMaxBound;
 }
 
 parameter_types! {
