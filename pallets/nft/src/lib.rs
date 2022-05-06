@@ -790,6 +790,7 @@ impl<T: Config> Pallet<T> {
 		let new_nft_data = NftAssetData {
 			deposit,
 			attributes: attributes,
+			is_locked: false,
 		};
 
 		let mut new_asset_ids: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Vec::new();
