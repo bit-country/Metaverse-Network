@@ -115,7 +115,7 @@ pub mod pallet {
 		/// Weight info
 		type WeightInfo: WeightInfo;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
+		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Max transfer batch
 		#[pallet::constant]
 		type MaxBatchTransfer: Get<u32>;
