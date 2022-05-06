@@ -183,11 +183,6 @@ pub mod pallet {
 	#[pallet::getter(fn staking_info)]
 	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
-	/// Local metaverse marketplace listing fee
-	#[pallet::storage]
-	#[pallet::getter(fn get_metaverse_marketplace_listing_fee)]
-	pub(crate) type MarketplaceListingFee<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, Perbill, ValueQuery>;
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -637,6 +632,7 @@ impl<T: Config> Pallet<T> {
 			currency_id: FungibleTokenId::NativeToken(0),
 			metadata,
 			is_frozen: false,
+			listing_fee: Perbill::from_percent(0u32),
 		};
 
 		Metaverses::<T>::insert(metaverse_id, metaverse_info);
@@ -703,8 +699,12 @@ impl<T: Config> Pallet<T> {
 		new_listing_fee: Perbill,
 	) -> Result<(), DispatchError> {
 		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
-		MarketplaceListingFee::<T>::insert(metaverse_id, new_listing_fee);
-		Ok(())
+
+		Metaverses::<T>::try_mutate(metaverse_id, |metaverse_info| -> DispatchResult {
+			let t = metaverse_info.as_mut().ok_or(Error::<T>::MetaverseInfoNotFound)?;
+			t.listing_fee = new_listing_fee;
+			Ok(())
+		})
 	}
 }
 
@@ -747,8 +747,10 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 		return TryInto::<ClassId>::try_into(16u32).unwrap_or_default();
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
-		return Self::get_metaverse_marketplace_listing_fee(metaverse_id);
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		let metaverse_info = Metaverses::<T>::get(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+
+		Ok(metaverse_info.listing_fee)
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {

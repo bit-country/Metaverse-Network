@@ -540,7 +540,7 @@ pub mod pallet {
 			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
 			match listing_level {
 				ListingLevel::Local(metaverse_id) => {
-					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id);
+					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
 				}
 				_ => {}
 			}
@@ -595,7 +595,7 @@ pub mod pallet {
 			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
 			match listing_level {
 				ListingLevel::Local(metaverse_id) => {
-					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id);
+					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
 				}
 				_ => {}
 			}
