@@ -94,14 +94,11 @@ pub mod pallet {
 		type RewardPaymentDelay: Get<u32>;
 		/// NFT Trait required for land and estate tokenization
 		type NFTTokenizationSource: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+		/// Default max bound for each metaverse mapping system, this could change through proposal
+		type DefaultMaxBound: Get<(i32, i32)>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-	/// Get max bound
-	#[pallet::storage]
-	#[pallet::getter(fn get_max_bounds)]
-	pub type MaxBounds<T: Config> = StorageMap<_, Blake2_128Concat, MetaverseId, (i32, i32), ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_land_units_count)]
@@ -325,21 +322,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(T::WeightInfo::set_max_bounds())]
-		pub fn set_max_bounds(
-			origin: OriginFor<T>,
-			metaverse_id: MetaverseId,
-			new_bound: (i32, i32),
-		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
-
-			MaxBounds::<T>::insert(metaverse_id, new_bound);
-
-			Self::deposit_event(Event::<T>::MaxBoundSet(metaverse_id, new_bound));
-
-			Ok(().into())
-		}
-
 		#[pallet::weight(T::WeightInfo::mint_land())]
 		pub fn mint_land(
 			origin: OriginFor<T>,
@@ -1116,10 +1098,8 @@ impl<T: Config> Pallet<T> {
 		coordinate: (i32, i32),
 		land_unit_status: LandUnitStatus<T::AccountId>,
 	) -> Result<OwnerId<T::AccountId, TokenId>, DispatchError> {
-		// Ensure the max bound is set for the bit country
-		ensure!(MaxBounds::<T>::contains_key(metaverse_id), Error::<T>::NoMaxBoundSet);
-
-		let max_bound = MaxBounds::<T>::get(metaverse_id);
+		// Ensure the max bound is set for the metaverse
+		let max_bound = T::DefaultMaxBound::get();
 
 		// Check whether the coordinate is within the bound
 		ensure!(
