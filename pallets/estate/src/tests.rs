@@ -25,30 +25,6 @@ use mock::{Event, *};
 use super::*;
 
 #[test]
-fn set_max_bound_should_reject_non_root() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EstateModule::set_max_bounds(Origin::signed(ALICE), METAVERSE_ID, MAX_BOUND),
-			BadOrigin
-		);
-	});
-}
-
-#[test]
-fn set_max_bound_should_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
-		assert_eq!(
-			last_event(),
-			Event::Estate(crate::Event::MaxBoundSet(METAVERSE_ID, MAX_BOUND))
-		);
-
-		assert_eq!(EstateModule::get_max_bounds(METAVERSE_ID), MAX_BOUND);
-	});
-}
-
-#[test]
 fn mint_land_should_reject_non_root() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
@@ -59,20 +35,8 @@ fn mint_land_should_reject_non_root() {
 }
 
 #[test]
-fn mint_land_should_reject_no_max_bound_set() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EstateModule::mint_land(Origin::root(), BENEFICIARY_ID, METAVERSE_ID, COORDINATE_IN_1),
-			Error::<Runtime>::NoMaxBoundSet
-		);
-	});
-}
-
-#[test]
 fn mint_land_should_reject_out_bound() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_noop!(
 			EstateModule::mint_land(Origin::root(), BENEFICIARY_ID, METAVERSE_ID, COORDINATE_OUT),
 			Error::<Runtime>::LandUnitIsOutOfBound
@@ -83,8 +47,6 @@ fn mint_land_should_reject_out_bound() {
 #[test]
 fn mint_land_should_work_with_one_coordinate() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -108,8 +70,6 @@ fn mint_land_should_work_with_one_coordinate() {
 #[test]
 fn mint_land_token_should_work_have_correct_owner() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_eq!(EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1), None);
 
 		assert_ok!(EstateModule::mint_land(
@@ -139,8 +99,6 @@ fn mint_land_token_should_work_have_correct_owner() {
 #[test]
 fn mint_land_should_reject_with_duplicate_coordinates() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -168,8 +126,6 @@ fn mint_land_should_reject_with_duplicate_coordinates() {
 #[test]
 fn mint_lands_should_reject_with_duplicate_coordinates() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_lands(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -197,8 +153,6 @@ fn mint_lands_should_reject_with_duplicate_coordinates() {
 #[test]
 fn mint_land_should_work_with_different_coordinate() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -253,25 +207,8 @@ fn mint_lands_should_reject_non_root() {
 }
 
 #[test]
-fn mint_lands_should_reject_no_max_bound_set() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EstateModule::mint_lands(
-				Origin::root(),
-				BENEFICIARY_ID,
-				METAVERSE_ID,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
-			),
-			Error::<Runtime>::NoMaxBoundSet
-		);
-	});
-}
-
-#[test]
 fn mint_lands_should_reject_out_bound() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_noop!(
 			EstateModule::mint_lands(
 				Origin::root(),
@@ -287,8 +224,6 @@ fn mint_lands_should_reject_out_bound() {
 #[test]
 fn mint_lands_should_work_with_one_coordinate() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_lands(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -316,8 +251,6 @@ fn mint_lands_should_work_with_one_coordinate() {
 #[test]
 fn mint_lands_should_work_with_more_than_one_coordinate() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_lands(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -341,8 +274,6 @@ fn mint_lands_should_work_with_more_than_one_coordinate() {
 #[test]
 fn transfer_land_token_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -381,8 +312,6 @@ fn transfer_land_token_should_work() {
 #[test]
 fn transfer_land_should_reject_no_permission() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -405,8 +334,6 @@ fn transfer_land_should_reject_no_permission() {
 #[test]
 fn transfer_land_should_do_fail_for_same_account() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -469,8 +396,6 @@ fn mint_estate_should_reject_non_root() {
 #[test]
 fn mint_estate_should_fail_for_minted_land() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -488,8 +413,6 @@ fn mint_estate_should_fail_for_minted_land() {
 #[test]
 fn dissolve_estate_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		// Mint estate
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
@@ -531,8 +454,6 @@ fn dissolve_estate_should_work() {
 #[test]
 fn dissolve_estate_should_reject_non_owner() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		// Mint estate
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
@@ -551,8 +472,6 @@ fn dissolve_estate_should_reject_non_owner() {
 #[test]
 fn add_land_unit_to_estate_should_reject_non_owner() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		// Mint estate
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
@@ -571,8 +490,6 @@ fn add_land_unit_to_estate_should_reject_non_owner() {
 #[test]
 fn add_land_unit_to_estate_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		// Mint estate
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
@@ -630,8 +547,6 @@ fn add_land_unit_to_estate_should_work() {
 #[test]
 fn remove_land_unit_from_estate_should_reject_non_owner() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		// Mint estate
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
@@ -650,8 +565,6 @@ fn remove_land_unit_from_estate_should_reject_non_owner() {
 #[test]
 fn remove_land_unit_from_estate_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		// Mint estate
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
@@ -702,7 +615,6 @@ fn remove_land_unit_from_estate_should_work() {
 #[test]
 fn mint_estate_and_land_should_return_correct_total_land_unit() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -742,7 +654,6 @@ fn mint_estate_and_land_should_return_correct_total_land_unit() {
 #[test]
 fn mint_estate_should_return_none_for_non_exist_estate() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -771,7 +682,6 @@ fn mint_estate_should_return_none_for_non_exist_estate() {
 #[test]
 fn transfer_estate_token_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -799,7 +709,6 @@ fn transfer_estate_token_should_work() {
 #[test]
 fn transfer_estate_should_reject_no_permission() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -830,7 +739,6 @@ fn transfer_estate_should_reject_already_in_auction() {
 #[test]
 fn transfer_estate_should_fail_with_same_account() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -868,8 +776,6 @@ fn create_estate_should_reject_non_root() {
 #[test]
 fn create_estate_should_fail_for_not_minted_land() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_err!(
 			EstateModule::create_estate(
 				Origin::root(),
@@ -885,8 +791,6 @@ fn create_estate_should_fail_for_not_minted_land() {
 #[test]
 fn create_estate_token_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_lands(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -918,8 +822,6 @@ fn create_estate_token_should_work() {
 #[test]
 fn create_estate_token_after_minting_account_and_token_based_lands_should_give_correct_total_user_land_units() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_land(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -963,8 +865,6 @@ fn create_estate_token_after_minting_account_and_token_based_lands_should_give_c
 #[test]
 fn create_estate_should_return_none_for_non_exist_estate() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::mint_lands(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -1522,35 +1422,8 @@ fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
 }
 
 #[test]
-fn deploy_undeployed_land_block_should_fail_if_no_maxbound() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::issue_undeployed_land_blocks(
-			Origin::root(),
-			BOB,
-			1,
-			100,
-			UndeployedLandBlockType::BoundToAddress
-		));
-
-		let undeployed_land_block_id: UndeployedLandBlockId = 0;
-
-		assert_noop!(
-			EstateModule::deploy_land_block(
-				Origin::signed(BOB),
-				undeployed_land_block_id,
-				METAVERSE_ID,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
-			),
-			Error::<Runtime>::NoMaxBoundSet
-		);
-	});
-}
-
-#[test]
 fn deploy_undeployed_land_block_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
-
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
@@ -1943,7 +1816,6 @@ fn burn_undeployed_land_block_should_work() {
 #[test]
 fn bond_more_should_reject_estate_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -1965,7 +1837,6 @@ fn bond_more_should_reject_estate_does_not_exist() {
 #[test]
 fn bond_more_should_reject_no_permission() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -1986,7 +1857,6 @@ fn bond_more_should_reject_no_permission() {
 #[test]
 fn bond_more_should_reject_below_minimum() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2007,7 +1877,6 @@ fn bond_more_should_reject_below_minimum() {
 #[test]
 fn bond_more_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2044,7 +1913,6 @@ fn bond_more_should_work() {
 #[test]
 fn bond_more_should_work_with_more_than_one_operation() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2079,7 +1947,6 @@ fn bond_more_should_work_with_more_than_one_operation() {
 #[test]
 fn bond_less_should_reject_estate_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2101,7 +1968,6 @@ fn bond_less_should_reject_estate_does_not_exist() {
 #[test]
 fn bond_less_should_reject_no_permission() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2122,7 +1988,6 @@ fn bond_less_should_reject_no_permission() {
 #[test]
 fn bond_less_should_reject_below_minimum() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2149,7 +2014,6 @@ fn bond_less_should_reject_below_minimum() {
 #[test]
 fn bond_less_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2192,7 +2056,6 @@ fn bond_less_should_work() {
 #[test]
 fn leave_staking_should_reject_estate_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2214,7 +2077,6 @@ fn leave_staking_should_reject_estate_does_not_exist() {
 #[test]
 fn leave_staking_should_reject_no_staking() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2235,7 +2097,6 @@ fn leave_staking_should_reject_no_staking() {
 #[test]
 fn leave_staking_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2266,7 +2127,6 @@ fn leave_staking_should_work() {
 #[test]
 fn leave_staking_should_reject_has_already_left() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2297,7 +2157,6 @@ fn leave_staking_should_reject_has_already_left() {
 #[test]
 fn bond_less_should_reject_stake_has_already_left() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
@@ -2325,7 +2184,6 @@ fn bond_less_should_reject_stake_has_already_left() {
 #[test]
 fn bond_more_should_reject_stake_has_already_left() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::set_max_bounds(Origin::root(), METAVERSE_ID, MAX_BOUND));
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
 			BENEFICIARY_ID,
