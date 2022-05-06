@@ -70,47 +70,63 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
+		/// Constant equivalent to one block
 		#[pallet::constant]
 		type OneBlock: Get<Self::BlockNumber>;
 
+		/// Default preimage byte deposit
 		#[pallet::constant]
 		type DefaultPreimageByteDeposit: Get<BalanceOf<Self>>;
 
+		/// Minimum proposal deposit balance
 		#[pallet::constant]
 		type MinimumProposalDeposit: Get<BalanceOf<Self>>;
 
+		/// Default launch period for a proposal
 		#[pallet::constant]
 		type DefaultProposalLaunchPeriod: Get<u32>;
 
+		/// Default voting period for a local referendum
 		#[pallet::constant]
 		type DefaultVotingPeriod: Get<u32>;
 
+		/// Default proposal enactment period after a local referendum passes
 		#[pallet::constant]
 		type DefaultEnactmentPeriod: Get<u32>;
 
+		/// Default vote locking period for a local referendum
 		#[pallet::constant]
 		type DefaultLocalVoteLockingPeriod: Get<u32>;
 
+		/// Default max number of proposals in a local referendum queue
 		#[pallet::constant]
 		type DefaultMaxProposalsPerMetaverse: Get<u32>;
 
+		/// Native currency type that handles voting
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 
+		/// Slashing handler 
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
 
+		/// Metaverse info trait for getting information from metaverse
 		type MetaverseInfo: MetaverseTrait<Self::AccountId>;
 
+		/// Metaverse land info trait for getting information from a land
 		type MetaverseLandInfo: MetaverseLandTrait<Self::AccountId>;
 
 		/// Overarching type of all pallets origins.
 		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
 
+		/// The proposal.
 		type Proposal: Parameter + Dispatchable<Origin = Self::Origin> + From<Call<Self>>;
 
+		/// The proposal type for filtering preimages
 		type ProposalType: Parameter + Member + Default + InstanceFilter<Self::Proposal>;
+		
 		/// The Scheduler.
 		type Scheduler: ScheduleNamed<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
+		
 		/// Metaverse Council which collective of members
 		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
 	}
@@ -121,6 +137,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn preimages)]
+	/// Indexes local governance preimages status by metaverse ID and preimage hash.
 	pub type Preimages<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
@@ -133,6 +150,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn proposals)]
+	/// Index local governance proposal information by metaverse ID and proposal ID.
 	pub type Proposals<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
@@ -145,18 +163,22 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_proposal)]
+	/// Track the next local governance proposal ID.
 	pub type NextProposalId<T: Config> = StorageValue<_, ProposalId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn proposals_per_metaverse)]
+	/// Store number of proposals for each metaverse.
 	pub type TotalProposalsPerMetaverse<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, u8, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn deposit_of)]
+	/// Store deposits for each local governance proposal.
 	pub type DepositOf<T: Config> = StorageMap<_, Twox64Concat, ProposalId, (Vec<T::AccountId>, BalanceOf<T>)>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn referendum_info)]
+	/// Index local referendum information by metaverse ID and referendum ID.
 	pub type ReferendumInfoOf<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
@@ -169,81 +191,136 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_referendum)]
+	/// Track local governance referendum ID.
 	pub type NextReferendumId<T: Config> = StorageValue<_, ReferendumId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn referendum_parameters)]
+	/// Store local governance referendum parameters for each metaverse
 	pub type ReferendumParametersOf<T: Config> =
 		StorageMap<_, Twox64Concat, MetaverseId, ReferendumParameters<T::BlockNumber>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn voting_record)]
+	/// Store voting records for each account
 	pub type VotingOf<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, VotingRecord<BalanceOf<T>, T::BlockNumber>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Noted a local governance preimage
 		PreimageNoted(MetaverseId, T::Hash, T::AccountId, BalanceOf<T>),
+		/// Local governance preimage is invalid
 		PreimageInvalid(MetaverseId, T::Hash, ReferendumId),
+		/// Local governance preimage is missing
 		PreimageMissing(MetaverseId, T::Hash, ReferendumId),
+		/// Local governance preimage is used
 		PreimageUsed(MetaverseId, T::Hash, T::AccountId, BalanceOf<T>),
+		/// Local governance preimage is enacted
 		PreimageEnacted(MetaverseId, T::Hash, DispatchResult),
+		/// Local governance referendum parameters are updated
 		ReferendumParametersUpdated(MetaverseId),
+		/// Local governance proposal is refused
 		ProposalRefused(MetaverseId, T::Hash),
+		/// Local governance proposal is submitted
 		ProposalSubmitted(T::AccountId, MetaverseId, ProposalId),
+		/// Local governance proposal is cancelled
 		ProposalCancelled(MetaverseId, ProposalId),
+		/// Local governance proposal is fast-tracked
 		ProposalFastTracked(MetaverseId, ProposalId),
+		/// Local governance proposal is enacted
 		ProposalEnacted(MetaverseId, ReferendumId),
+		/// Local governance referendum has started
 		ReferendumStarted(MetaverseId, ProposalId, ReferendumId, VoteThreshold),
+		/// Local governance referendum has passed
 		ReferendumPassed(ReferendumId),
+		/// Local governance referendum has not passed
 		ReferendumNotPassed(ReferendumId),
+		/// Local governance referendum is canceled
 		ReferendumCancelled(ReferendumId),
+		/// Vote for local governance referendum is recorded
 		VoteRecorded(T::AccountId, ReferendumId, bool),
+		/// Removed a vote for local governance referendum 
 		VoteRemoved(T::AccountId, ReferendumId),
+		/// Local governance proposal is seconded
 		Seconded(T::AccountId, ProposalId),
+		/// Local governance proposal is added to the proposal queue
 		Tabled(ProposalId, BalanceOf<T>, Vec<T::AccountId>),
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
+		/// Account is not a metaverse member
 		AccountIsNotMetaverseMember,
+		/// Account is not a metaverse owner
 		AccountIsNotMetaverseOwner,
+		/// Referendum parameters are out of scope
 		ReferendumParametersOutOfScope,
+		/// Insufficient funds
 		InsufficientBalance,
+		/// Deposit is less than the minimum deposit for local governance proposal
 		DepositTooLow,
+		/// Proposal parameters are out of scope
 		ProposalParametersOutOfScope,
+		/// Invalid proposal parameters
 		InvalidProposalParameters,
+		/// Proposal queue is full
 		ProposalQueueFull,
+		/// Proposal does not exist
 		ProposalDoesNotExist,
+		/// Account is not a creator of a given proposal
 		NotProposalCreator,
-		InsufficientPrivileges,
+		/// Non-existing referendum
 		ReferendumDoesNotExist,
+		/// Referendum voting period has passed
 		ReferendumIsOver,
-		JuryNotSelected,
+		/// Cannot find deposit
 		DepositNotFound,
+		/// Proposal ID is out of scope 
 		ProposalIdOverflow,
+		/// Referendum ID is out of scope 
 		ReferendumIdOverflow,
+		/// Proposal queue overflows
 		ProposalQueueOverflow,
+		/// Voting tally overflow
 		TallyOverflow,
+		/// Account has not voted in a given local referendum
 		AccountHasNotVoted,
+		/// Account has already voted in a given local referendum
 		AccountAlreadyVoted,
-		InvalidJuryAddress,
+		/// Invalid referendum outcome
 		InvalidReferendumOutcome,
+		/// Invalid referendum parameter value
 		InvalidReferendumParameterValue,
+		/// Referendum parameter does not exist
 		ReferendumParametersDoesNotExist,
+		/// Missing preimage
 		PreimageMissing,
+		/// Invalid preimage
 		PreimageInvalid,
+		/// Calls in a preimage are out local governance scope
 		PreimageCallsOutOfScope,
+		/// Preimage is duplicated
 		DuplicatePreimage,
+		/// Proposal is missing
 		ProposalMissing,
+		/// Invalid upper bound
 		WrongUpperBound,
+		/// No proposals are waiting to launch as referendums
 		NoneWaiting,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Metaverse owner can update referendum parameters
+		/// Metaverse owner can update the metaverse referendum parameters
+		///
+		/// The dispatch origin for this call must be _Signed_. Only owner of metaverse can make
+		/// this call
+		/// - `metaverse_id`: the metaverse ID which will have its referendum parameters updated
+		/// - `new_referendum_parameters`: the updated referendum parameters
+		///
+		/// Emits `ReferendumParametersUpdated` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn update_referendum_parameters(
 			origin: OriginFor<T>,
@@ -261,6 +338,15 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Create proposal preimage for a metaverse-level referendums
+		///
+		/// The dispatch origin for this call must be _Signed_. Only owner of land in the
+		/// given metaverse can make this call
+		/// - `metaverse_id`: the metaverse ID for which local referendums's preimage will be created.
+		/// - `encoded_proposal`: encoded version of the proposal
+		///
+		/// Emits `PreimageNoted` if successful and preimage is valid.
+		/// Emits `ProposalRefused` if successful and preimage is invalid.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn note_preimage(
 			origin: OriginFor<T>,
@@ -276,9 +362,17 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Create new metaverse proposal
-		/// Only metaverse members who own piece of land has the ability to vote on local metaverse
+		/// Create new metaverse-level referendum proposal if provided valid proposal hash and sufficient funds.
+		/// 
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse members who own piece of land has the ability to create local metaverse
 		/// proposal
+		/// - `metaverse_id`: the metaverse ID for which local referendums' proposal will be created
+		/// - `balance`: deposit for the proposal
+		/// - `preimage_hash`: hash of the selected preimage that will be part of the proposal
+		/// - `proposal_description`: description of the proposal encoded as vector of numbers
+		///
+		/// Emits `Tabled` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn propose(
 			origin: OriginFor<T>,
@@ -375,8 +469,15 @@ pub mod pallet {
 			}
 		}
 
-		/// Cancel proposal if you are the proposal owner, the proposal exist, and it has not
-		/// launched as a referendum yet
+		/// Cancel proposal if it exist for a selected metaverse 
+		/// and it has not launched as a referendum yet
+		/// 
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only the creator of a proposal can use this call.
+		/// - `proposal`: the ID of the proposal that will be cancelled
+		/// - `metaverse_id`: the metaverse ID of the proposal
+		///
+		/// Emits `ProposalCancelled` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn cancel_proposal(
 			origin: OriginFor<T>,
@@ -397,8 +498,15 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Fast track proposal to referendum if you are metaverse council and it has not launched
-		/// as a referendum yet
+		/// Fast track proposal to referendum if it exist for a selected metaverse 
+		/// and has not launched as a referendum yet
+		/// 
+		/// The dispatch origin for this call must be _Signed_. 
+		/// Only metaverse council can use this call.
+		/// - `proposal`: the ID of the proposal that will be fast tracked
+		/// - `metaverse_id`: the metaverse ID of the proposal
+		///
+		/// Emits `ProposalFastTracked` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn fast_track_proposal(
 			origin: OriginFor<T>,
@@ -417,6 +525,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Second a proposal to referendum if it exist and second upper bound is not reached
+		/// 
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse council can use this call.
+		/// - `proposal`: the ID of the proposal that will be fast tracked
+		/// - `seconds_upper_bound`: selected upper bound for proposal seconding
+		///
+		/// Emits `Seconded` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn second(origin: OriginFor<T>, proposal: ProposalId, seconds_upper_bound: u32) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -431,7 +547,17 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Vote for local metaverse proposal
+		/// Vote for a local metaverse referendum if an account has not voted yet.
+		/// and has sufficient balance for the vote
+		/// 
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse members who own piece of land has the ability to vote on local metaverse
+		/// referendum
+		/// - `metaverse`: the metaverse ID of the local referendum
+		/// - `referendum`: the referendum ID for the vote
+		/// - `vote`: the vote value, balance, and conviction
+		///
+		/// Emits `VoteRecorded` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn try_vote(
 			origin: OriginFor<T>,
@@ -474,6 +600,14 @@ pub mod pallet {
 			})
 		}
 
+		/// Remove vote for a local metaverse referendum.
+		/// 
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse members who voted on a referendum can use this call
+		/// - `referendum`: the referendum ID for the vote
+		/// - `metaverse`: the metaverse ID of the local referendum
+		///
+		/// Emits `VoteRemoved` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn try_remove_vote(
 			origin: OriginFor<T>,
@@ -520,6 +654,14 @@ pub mod pallet {
 			})
 		}
 
+		/// Emergency cancel ongoing referendum
+		/// 
+		/// The dispatch origin for this call must be _Signed_. 
+		/// Only metaverse council can use this call.
+		/// - `metaverse`: the metaverse ID of the referendum
+		/// - `referendum`: the referendum ID which will be canceled
+		///
+		/// Emits `ReferendumCancelled` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn emergency_cancel_referendum(
 			origin: OriginFor<T>,
@@ -542,6 +684,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Unlock balance after referendum ended and conviction period is over.
+		/// 
+		/// The dispatch origin for this call must be _Signed_. 
+		/// - `target`: the account which funds will be unlocked
+		///
+		/// Emits nothing if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn unlock_balance(origin: OriginFor<T>, target: T::AccountId) -> DispatchResult {
 			ensure_signed(origin)?;
@@ -549,6 +697,15 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Enacting proposal after successfully passed referendum
+		/// 
+		/// The dispatch origin for this call must be _Root_. 
+		/// - `proposal_id`: the ID of the proposal
+		/// - `metaverse_id`: the metaverse ID of the proposal
+		/// - `referendum_id`: the referendum ID of the proposal
+		/// - `proposal_hash`: the hash of the proposal
+		///
+		/// Emits `ProposalEnacted` and 'PreimageEnacted' if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn enact_proposal(
 			origin: OriginFor<T>,
@@ -566,7 +723,7 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		/// Finalization
+		/// Hooks that call every new block finalized.
 		fn on_finalize(now: T::BlockNumber) {
 			for (metaverse_id, referendum_id, referendum_info) in <ReferendumInfoOf<T>>::iter() {
 				match referendum_info {
@@ -599,7 +756,7 @@ impl<T: Config> Pallet<T> {
 		decode_compact_u32_at(&<DepositOf<T>>::hashed_key_for(proposal))
 	}
 
-	// See `note_preimage`
+	/// Internal creation of preimage for proposal
 	fn note_preimage_inner(who: T::AccountId, metaverse_id: MetaverseId, encoded_proposal: Vec<u8>) -> DispatchResult {
 		let preimage_hash = T::Hashing::hash(&encoded_proposal[..]);
 		ensure!(
@@ -640,6 +797,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Internal initialization of a referendum
 	fn start_referendum(
 		metaverse_id: MetaverseId,
 		proposal_id: ProposalId,
@@ -724,6 +882,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Internal getter of next proposall ID
 	fn get_next_proposal_id() -> Result<ProposalId, DispatchError> {
 		<NextProposalId<T>>::try_mutate(|next_id| -> Result<ProposalId, DispatchError> {
 			let current_id = *next_id;
@@ -732,6 +891,7 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
+	/// Internal getter of next referendum ID
 	fn get_next_referendum_id() -> Result<ReferendumId, DispatchError> {
 		<NextReferendumId<T>>::try_mutate(|next_id| -> Result<ReferendumId, DispatchError> {
 			let current_id = *next_id;
@@ -740,6 +900,7 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
+	/// Internal getter of referendum launch block for a metaverse
 	fn get_proposal_launch_block(metaverse_id: MetaverseId) -> Result<T::BlockNumber, DispatchError> {
 		let current_block = <frame_system::Pallet<T>>::block_number();
 		match Self::referendum_parameters(metaverse_id) {
@@ -766,6 +927,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Internal update of number of proposals for a metaverse
 	fn update_proposals_per_metaverse_number(metaverse_id: MetaverseId, is_proposal_added: bool) -> DispatchResult {
 		<TotalProposalsPerMetaverse<T>>::try_mutate(metaverse_id, |number_of_proposals| -> DispatchResult {
 			if is_proposal_added {
@@ -781,6 +943,7 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
+	/// Internal getter of referendum status
 	fn referendum_status(
 		metaverse_id: MetaverseId,
 		referendum_id: ReferendumId,
@@ -799,6 +962,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Internal finalization of referendum voting
 	fn finalize_vote(
 		metaverse_id: MetaverseId,
 		referendum_id: ReferendumId,
@@ -866,6 +1030,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Internal enacting of successfully passed proposal
 	fn do_enact_proposal(
 		proposal_id: ProposalId,
 		metaverse_id: MetaverseId,
@@ -909,6 +1074,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Internal update of locked funds for account
 	fn update_lock(who: &T::AccountId) {
 		let lock_needed = VotingOf::<T>::mutate(who, |voting| {
 			voting.rejig(frame_system::Pallet::<T>::block_number());
