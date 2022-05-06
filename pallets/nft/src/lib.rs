@@ -339,7 +339,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Create a new NFT group collection from provided name and properties 
+		/// Create a new NFT group collection from provided name and properties
 		/// as NFT metadata
 		///
 		/// The dispatch origin for this call must be _Root_.
@@ -413,7 +413,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Minting new NFTs using provided class ID, metadata, 
+		/// Minting new NFTs using provided class ID, metadata,
 		/// attributes, and quantity
 		///
 		/// The dispatch origin for this call must be _Signed_.
@@ -474,7 +474,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Transfer a batch of existing NFT assets if the batch size no more 
+		/// Transfer a batch of existing NFT assets if the batch size no more
 		/// than the max batch transfer size and the asset are owned by the sender
 		///
 		/// The dispatch origin for this call must be _Signed_.
@@ -568,7 +568,7 @@ pub mod pallet {
 		}
 
 		/// Change NFT minting promotion status to the provided value
-		/// 
+		///
 		/// The dispatch origin for this call must be _Root_.
 		/// - `enable`: the promotion status (on or off)
 		///
@@ -584,7 +584,7 @@ pub mod pallet {
 		}
 
 		/// Destroys NFT asset if the sender owns it
-		/// 
+		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// - `asset_id`: the asset (class ID, token ID) that will be burned
 		///
@@ -598,7 +598,7 @@ pub mod pallet {
 		}
 
 		/// Lock the provided collection by governance if it is not already locked
-		/// 
+		///
 		/// The dispatch origin for this call must be _Root_.
 		/// - `class_id`: the class ID of the collection
 		///
@@ -640,7 +640,7 @@ pub mod pallet {
 		}
 
 		/// Transfer a NFT asset triggered by governance
-		/// 
+		///
 		/// The dispatch origin for this call must be _Root_.
 		/// - `to`: account to transfer the NFT asset to
 		/// - `asset_id`: the asset (class ID, token ID) that will be transferred
