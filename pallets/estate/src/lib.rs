@@ -72,27 +72,43 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
+		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		/// Land treasury
 		#[pallet::constant]
 		type LandTreasury: Get<PalletId>;
-		/// Source of Bit Country Info
+
+		/// Source of metaverse info
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
-		/// Currency
+
+		/// Currency type
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-		/// Minimum Land Price
+
+		/// Minimum land price
 		type MinimumLandPrice: Get<BalanceOf<Self>>;
+
 		/// Council origin which allows to update max bound
 		type CouncilOrigin: EnsureOrigin<Self::Origin>;
-		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
+
+		/// Auction handler
+		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
+
+		/// Minimum block per round
 		#[pallet::constant]
 		type MinBlocksPerRound: Get<u32>;
+
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
+
+		/// Minimum stake for land and estate staking
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
+
+		/// Reward payment delay
 		#[pallet::constant]
 		type RewardPaymentDelay: Get<u32>;
+
 		/// NFT Trait required for land and estate tokenization
 		type NFTTokenizationSource: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 	}
@@ -273,8 +289,11 @@ pub mod pallet {
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
 		/// Starting Block, Round, Total Land Unit
 		NewRound(T::BlockNumber, RoundIndex, u64),
+		/// Land Staking snapshot updated
 		StakeSnapshotUpdated(RoundIndex, BalanceOf<T>),
+		/// Staker paid
 		StakersPaid(RoundIndex),
+		/// Staking exit queue cleared
 		ExitQueueCleared(RoundIndex),
 		/// OwnerId, Estate Id, Balance
 		EstateStakeIncreased(OwnerId<T::AccountId, TokenId>, EstateId, BalanceOf<T>),
