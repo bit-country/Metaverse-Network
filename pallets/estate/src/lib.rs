@@ -301,6 +301,7 @@ pub mod pallet {
 		UndeployedLandBlockNotFound,
 		UndeployedLandBlockIsNotTransferable,
 		UndeployedLandBlockDoesNotHaveEnoughLandUnits,
+		UndeployedLandBlockUnitAndInputDoesNotMatch,
 		AlreadyOwnTheUndeployedLandBlock,
 		UndeployedLandBlockFreezed,
 		UndeployedLandBlockAlreadyFreezed,
@@ -504,9 +505,11 @@ pub mod pallet {
 					);
 
 					let land_units_to_mint = coordinates.len() as u32;
+
+					// Ensure undeployed land block only deployed once
 					ensure!(
-						undeployed_land_block_record.number_land_units > land_units_to_mint,
-						Error::<T>::UndeployedLandBlockDoesNotHaveEnoughLandUnits
+						undeployed_land_block_record.number_land_units == land_units_to_mint,
+						Error::<T>::UndeployedLandBlockUnitAndInputDoesNotMatch
 					);
 
 					// Mint land units
@@ -517,15 +520,9 @@ pub mod pallet {
 					// Update total land count
 					Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
-					// Update undeployed land block
-					if undeployed_land_block_record.number_land_units == land_units_to_mint {
-						Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
-					} else {
-						undeployed_land_block_record.number_land_units = undeployed_land_block_record
-							.number_land_units
-							.checked_sub(land_units_to_mint)
-							.ok_or("Overflow deduct land units from undeployed land block")?;
-					}
+					// Burn undeployed land block
+					Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
+
 					Self::set_total_undeployed_land_unit(land_units_to_mint as u64, true)?;
 
 					Self::deposit_event(Event::<T>::LandBlockDeployed(
