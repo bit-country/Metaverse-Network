@@ -20,7 +20,7 @@
 use codec::{Decode, Encode, HasCompact};
 use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
-	ensure,
+	ensure, log,
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
 	PalletId,
@@ -616,7 +616,12 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_metaverse_info_v2();
+			0
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -705,6 +710,26 @@ impl<T: Config> Pallet<T> {
 			t.listing_fee = new_listing_fee;
 			Ok(())
 		})
+	}
+
+	pub fn upgrade_metaverse_info_v2() -> Weight {
+		log::info!("Start upgrade_metaverse_info_v2");
+		let mut num_metaverse_items = 0;
+
+		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
+			num_metaverse_items += 1;
+			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
+				owner: metaverse_info_v1.owner,
+				metadata: metaverse_info_v1.metadata,
+				currency_id: metaverse_info_v1.currency_id,
+				is_frozen: false,
+				listing_fee: Perbill::from_percent(0u32),
+			};
+			Some(v2)
+		});
+
+		log::info!("{} metaverses upgraded:", num_metaverse_items);
+		0
 	}
 }
 

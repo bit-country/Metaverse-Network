@@ -144,6 +144,18 @@ pub struct MetaverseInfo<AccountId> {
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+pub struct MetaverseInfoV1<AccountId> {
+	/// The owner of this metaverse
+	pub owner: AccountId,
+	/// The metadata of this metaverse
+	pub metadata: MetaverseMetadata,
+	/// The currency use in this metaverse
+	pub currency_id: FungibleTokenId,
+	/// Whether the metaverse can be transferred or not.
+	pub is_frozen: bool,
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseFund<AccountId, Balance> {
 	/// The fund account of this metaverse
 	pub vault: AccountId,
