@@ -273,11 +273,14 @@ pub mod pallet {
 		NewEstateMinted(EstateId, OwnerId<T::AccountId, TokenId>, MetaverseId, Vec<(i32, i32)>),
 		/// Max bound is set for a metaverse [Metaverse Id, Min and Max Coordinate]
 		MaxBoundSet(MetaverseId, (i32, i32)),
-		/// Land block is deployed [From Account Id, Metaverse Id, Undeployed Land Block Id, Coordinates]
+		/// Land block is deployed [From Account Id, Metaverse Id, Undeployed Land Block Id,
+		/// Coordinates]
 		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>),
-		/// Undeployed land block is issued [Beneficial Account Id, Undeployed Land Block Id]
+		/// Undeployed land block is issued [Beneficial Account Id, Undeployed Land
+		/// Block Id]
 		UndeployedLandBlockIssued(T::AccountId, UndeployedLandBlockId),
-		/// Undeployed land block is transferred [From Account Id, To Account Id, Undeployed Land Block Id]
+		/// Undeployed land block is transferred [From Account Id, To Account Id, Undeployed
+		/// Land Block Id]
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
 		/// Undeployed land block is approved [Owner Account Id, Approved Account Id, Undeployed Land Block Id]
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),

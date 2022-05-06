@@ -342,7 +342,8 @@ pub mod pallet {
 		///
 		/// The dispatch origin for this call must be _Signed_. Only owner of land in the
 		/// given metaverse can make this call
-		/// - `metaverse_id`: the metaverse ID for which local referendums's preimage will be created.
+		/// - `metaverse_id`: the metaverse ID for which local referendums's preimage will be
+		/// created.
 		/// - `encoded_proposal`: encoded version of the proposal
 		///
 		/// Emits `PreimageNoted` if successful and preimage is valid.
@@ -362,7 +363,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Create new metaverse-level referendum proposal if provided valid proposal hash and sufficient funds.
+		/// Create new metaverse-level referendum proposal if provided valid proposal hash and
+		/// sufficient funds.
 		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only metaverse members who own piece of land has the ability to create local metaverse
