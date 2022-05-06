@@ -330,6 +330,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		///
 		#[pallet::weight(T::WeightInfo::create_group())]
 		pub fn create_group(
 			origin: OriginFor<T>,
@@ -648,13 +649,11 @@ impl<T: Config> Pallet<T> {
 		return Ok(false);
 	}
 
-	/// Check if the NFT collection is locked
 	pub fn is_collection_locked(class_id: &ClassIdOf<T>) -> bool {
 		let is_locked = LockedCollection::<T>::get(class_id).is_some();
 		return is_locked;
 	}
 
-	/// Force transfer NFT only for governance override action
 	fn do_force_transfer(
 		sender: &T::AccountId,
 		to: &T::AccountId,
@@ -753,11 +752,13 @@ impl<T: Config> Pallet<T> {
 		Ok(next_class_id)
 	}
 
+	/// Internal NFT burning
 	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
 		NftModule::<T>::burn(&sender, *asset_id)?;
 		Ok(())
 	}
 
+	/// Upgrading NFT class data
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
 		let mut num_nft_classes = 0;
