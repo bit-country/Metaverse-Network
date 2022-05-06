@@ -178,7 +178,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_auction_item)]
-	//Store asset with Auction
+	/// Store asset with Auction
 	pub(super) type AuctionItems<T: Config> =
 		StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
 

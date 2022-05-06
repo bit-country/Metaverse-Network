@@ -109,7 +109,7 @@ pub mod pallet {
 		type Treasury: Get<PalletId>;
 		/// Currency type for reserve/unreserve balance
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
-		/// NFT Module Id
+		/// NFT Module ID
 		#[pallet::constant]
 		type PalletId: Get<PalletId>;
 		/// Weight info
@@ -131,7 +131,7 @@ pub mod pallet {
 			CurrencyId = FungibleTokenId,
 			Balance = BalanceOf<Self>,
 		>;
-		/// Fungible token id for promotion incentive
+		/// Fungible token ID for promotion incentive
 		#[pallet::constant]
 		type MiningResourceId: Get<FungibleTokenId>;
 	}
@@ -142,42 +142,51 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_asset)]
+	/// Stores NFT asset information (token ID, class ID)
 	pub(super) type Assets<T: Config> =
 		StorageMap<_, Blake2_128Concat, AssetId, (ClassIdOf<T>, TokenIdOf<T>), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
+	/// Stores NFT group collection data
 	pub(super) type GroupCollections<T: Config> =
 		StorageMap<_, Blake2_128Concat, GroupCollectionId, NftGroupCollectionData, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_class_collection)]
+	/// Stores group collection IDs for every class
 	pub(super) type ClassDataCollection<T: Config> =
 		StorageMap<_, Blake2_128Concat, ClassIdOf<T>, GroupCollectionId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_group_collection_id)]
+	/// Track the next group collection ID
 	pub(super) type NextGroupCollectionId<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_nft_collection_count)]
+	/// Track the total NFT group collection IDs
 	pub(super) type AllNftGroupCollection<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_asset_id)]
+	/// Track the next asset ID
 	pub(super) type NextAssetId<T: Config> = StorageValue<_, AssetId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_asset_supporters)]
+	/// Stores list of supporter accounts for every NFT assets  
 	pub(super) type AssetSupporters<T: Config> =
 		StorageMap<_, Blake2_128Concat, (ClassIdOf<T>, TokenIdOf<T>), Vec<T::AccountId>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_promotion_enabled)]
+	/// Tracks if promotion is enabled
 	pub(super) type PromotionEnabled<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_locked_collection)]
+	/// Index locked collections by class ID
 	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
 
 	#[pallet::genesis_config]
@@ -330,6 +339,14 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Create a new NFT group collection from provided name and properties 
+		/// as NFT metadata
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `name`: name of the group collection as NFT metadata
+		/// - `properties`: properties of the group collection as NFT metadata
+		///
+		/// Emits `NewNftCollectionCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_group())]
 		pub fn create_group(
 			origin: OriginFor<T>,
@@ -360,6 +377,17 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Create new NFT class using provided NFT class data details
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `metadata`: class metadata as NFT metadata
+		/// - `attributes`: class' attributes
+		/// - `collection`: the class' group collection ID
+		/// - `token_type`: the type of token which will be minted for this class
+		/// - `collection_type`: the type of collection the class will be
+		/// - `royalty_fee` - the fee (as a percent value) which will go to the class owner
+		///
+		/// Emits `NewNftClassCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_class())]
 		pub fn create_class(
 			origin: OriginFor<T>,
@@ -385,6 +413,16 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Minting new NFTs using provided class ID, metadata, 
+		/// attributes, and quantity
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `class_id`: class ID of the collection the NFT will be part of
+		/// - `metadata`: NFT assets metadata as NFT metadata
+		/// - `attributes`: NFTs' attributes
+		/// - `quantity`: the number of NFTs to be minted
+		///
+		/// Emits `NewNftMinted` if successful.
 		#[pallet::weight(< T as Config >::WeightInfo::mint() * * quantity as u64)]
 		pub fn mint(
 			origin: OriginFor<T>,
@@ -409,6 +447,13 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Transfer an existing NFT asset if it is not listed in an auction
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `to`: account to transfer the NFT asset to
+		/// - `asset_id`: the asset (class ID, token ID) that will be transferred
+		///
+		/// Emits `TransferedNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer())]
 		pub fn transfer(
 			origin: OriginFor<T>,
@@ -429,6 +474,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Transfer a batch of existing NFT assets if the batch size no more 
+		/// than the max batch transfer size and the asset are owned by the sender
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `to`: account to transfer the NFT asset to
+		/// - `tos`: list of assets (class ID, token ID) that will be transferred
+		///
+		/// Emits `TransferedNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_batch() * tos.len() as u64)]
 		pub fn transfer_batch(
 			origin: OriginFor<T>,
@@ -469,6 +522,13 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Support an NFT asset with provided contribution amount if not the asset owner
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `asset_id`: the asset (class ID, token ID) that will be signed
+		/// - `contribution`: the amount the sender contributes to the Nft
+		///
+		/// Emits no event if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn sign_asset(
 			origin: OriginFor<T>,
@@ -507,6 +567,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Change NFT minting promotion status to the provided value
+		/// 
+		/// The dispatch origin for this call must be _Root_.
+		/// - `enable`: the promotion status (on or off)
+		///
+		/// Emits `PromotionEnabled` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn enable_promotion(origin: OriginFor<T>, enable: bool) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
@@ -517,6 +583,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Destroys NFT asset if the sender owns it
+		/// 
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `asset_id`: the asset (class ID, token ID) that will be burned
+		///
+		/// Emits `CollectionLocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn burn(origin: OriginFor<T>, asset_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
@@ -525,6 +597,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Lock the provided collection by governance if it is not already locked
+		/// 
+		/// The dispatch origin for this call must be _Root_.
+		/// - `class_id`: the class ID of the collection
+		///
+		/// Emits `BurnedNft` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn force_lock_collection(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResult {
 			ensure_root(origin)?;
@@ -540,6 +618,12 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Unlock the provided collection by governance if already locked
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `class_id`: the class ID of the collection
+		///
+		/// Emits `CollectionUnlocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn force_unlock_collection(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResult {
 			ensure_root(origin)?;
@@ -555,7 +639,13 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Force NFT transfer which only triggered by governance
+		/// Transfer a NFT asset triggered by governance
+		/// 
+		/// The dispatch origin for this call must be _Root_.
+		/// - `to`: account to transfer the NFT asset to
+		/// - `asset_id`: the asset (class ID, token ID) that will be transferred
+		///
+		/// Emits `ForceTransferredNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer())]
 		pub fn force_transfer(
 			origin: OriginFor<T>,
@@ -579,6 +669,7 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		/// Hooks for storage migration
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_class_data_v2();
 			0
@@ -587,14 +678,17 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	/// Check if promotion is enabled
 	pub fn is_promotion_enabled() -> bool {
 		Self::get_promotion_enabled()
 	}
 
+	/// Getting a class fund
 	pub fn get_class_fund(class_id: &ClassIdOf<T>) -> T::AccountId {
 		T::PalletId::get().into_sub_account(class_id)
 	}
 
+	/// Internal creation of group collection
 	fn do_create_group_collection(name: Vec<u8>, properties: Vec<u8>) -> Result<GroupCollectionId, DispatchError> {
 		let next_group_collection_id =
 			NextGroupCollectionId::<T>::try_mutate(|collection_id| -> Result<GroupCollectionId, DispatchError> {
@@ -614,6 +708,7 @@ impl<T: Config> Pallet<T> {
 		Ok(next_group_collection_id)
 	}
 
+	/// Transfer an NFT
 	pub fn do_transfer(
 		sender: &T::AccountId,
 		to: &T::AccountId,
@@ -636,6 +731,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Check if account owns an NFT
 	pub fn check_nft_ownership(
 		sender: &T::AccountId,
 		asset_id: &(ClassIdOf<T>, TokenIdOf<T>),
@@ -654,7 +750,7 @@ impl<T: Config> Pallet<T> {
 		return is_locked;
 	}
 
-	/// Force transfer NFT only for governance override action
+	/// Internal force transfer NFT only for governance override action
 	fn do_force_transfer(
 		sender: &T::AccountId,
 		to: &T::AccountId,
@@ -666,6 +762,7 @@ impl<T: Config> Pallet<T> {
 		Ok(asset_id.1)
 	}
 
+	/// Internal NFT minting
 	fn do_mint_nfts(
 		sender: &T::AccountId,
 		class_id: ClassIdOf<T>,
@@ -707,6 +804,7 @@ impl<T: Config> Pallet<T> {
 		Ok((new_asset_ids, last_token_id))
 	}
 
+	/// Internal NFT class creation
 	fn do_create_class(
 		sender: &T::AccountId,
 		metadata: NftMetadata,
@@ -753,11 +851,13 @@ impl<T: Config> Pallet<T> {
 		Ok(next_class_id)
 	}
 
+	/// Internal NFT burning
 	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
 		NftModule::<T>::burn(&sender, *asset_id)?;
 		Ok(())
 	}
 
+	/// Upgrading NFT class data
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
 		let mut num_nft_classes = 0;
