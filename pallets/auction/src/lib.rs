@@ -839,11 +839,6 @@ pub mod pallet {
 				};
 			}
 		}
-
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_auction_item_data_v2();
-			0
-		}
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
