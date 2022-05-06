@@ -92,7 +92,7 @@ pub mod pallet {
 		type CouncilOrigin: EnsureOrigin<Self::Origin>;
 
 		/// Auction handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
+		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
 
 		/// Minimum number of blocks per round
 		#[pallet::constant]
