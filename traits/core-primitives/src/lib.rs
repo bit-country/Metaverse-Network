@@ -139,6 +139,20 @@ pub struct MetaverseInfo<AccountId> {
 	pub currency_id: FungibleTokenId,
 	/// Whether the metaverse can be transferred or not.
 	pub is_frozen: bool,
+	/// Metaverse listing fee
+	pub listing_fee: Perbill,
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+pub struct MetaverseInfoV1<AccountId> {
+	/// The owner of this metaverse
+	pub owner: AccountId,
+	/// The metadata of this metaverse
+	pub metadata: MetaverseMetadata,
+	/// The currency use in this metaverse
+	pub currency_id: FungibleTokenId,
+	/// Whether the metaverse can be transferred or not.
+	pub is_frozen: bool,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -167,7 +181,7 @@ pub trait MetaverseTrait<AccountId> {
 	/// Get the estate class for a specific metaverse
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId;
 	/// Get metaverse marketplace listing fee
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill;
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError>;
 	/// Get metaverse treasury
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId;
 }
