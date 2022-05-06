@@ -306,7 +306,6 @@ fn burn_nft_should_work() {
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::burn(origin, (0, 0)));
 		let event = mock::Event::Nft(crate::Event::BurnedNft((0, 0)));
-		assert_eq!(Nft::get_asset(0), None);
 		assert_eq!(last_event(), event);
 	})
 }

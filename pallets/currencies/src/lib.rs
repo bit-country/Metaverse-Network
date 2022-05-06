@@ -96,12 +96,13 @@ pub mod pallet {
 		InsufficientBalance,
 		/// No permission to issue token
 		NoPermissionTokenIssuance,
-		/// Country Currency already issued for this metaverse
+		/// Metaverse Currency already issued for this metaverse
 		FungibleTokenAlreadyIssued,
 		/// No available next token id
 		NoAvailableTokenId,
-		//Country Is Not Available
+		/// Metaverse is not available
 		MetaverseFundIsNotAvailable,
+		/// Conversion failed
 		AmountIntoBalanceFailed,
 	}
 

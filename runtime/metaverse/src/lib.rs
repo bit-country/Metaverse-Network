@@ -556,6 +556,7 @@ parameter_types! {
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
 	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
 	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
+	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
 }
 
 impl auction::Config for Runtime {
@@ -571,6 +572,7 @@ impl auction::Config for Runtime {
 	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
 	type NFTHandler = Nft;
+	type MaxBundleItem = MaxBundleItem;
 }
 
 impl continuum::Config for Runtime {

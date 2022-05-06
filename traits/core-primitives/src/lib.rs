@@ -111,6 +111,15 @@ pub struct NftAssetData<Balance> {
 	// Deposit balance to create each token
 	pub deposit: Balance,
 	pub attributes: Attributes,
+	pub is_locked: bool,
+}
+
+#[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftAssetDataV1<Balance> {
+	// Deposit balance to create each token
+	pub deposit: Balance,
+	pub attributes: Attributes,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -122,6 +131,20 @@ pub type MetaverseMetadata = Vec<u8>;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseInfo<AccountId> {
+	/// The owner of this metaverse
+	pub owner: AccountId,
+	/// The metadata of this metaverse
+	pub metadata: MetaverseMetadata,
+	/// The currency use in this metaverse
+	pub currency_id: FungibleTokenId,
+	/// Whether the metaverse can be transferred or not.
+	pub is_frozen: bool,
+	/// Metaverse listing fee
+	pub listing_fee: Perbill,
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+pub struct MetaverseInfoV1<AccountId> {
 	/// The owner of this metaverse
 	pub owner: AccountId,
 	/// The metadata of this metaverse
@@ -158,7 +181,7 @@ pub trait MetaverseTrait<AccountId> {
 	/// Get the estate class for a specific metaverse
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId;
 	/// Get metaverse marketplace listing fee
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill;
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError>;
 	/// Get metaverse treasury
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId;
 }
@@ -238,6 +261,10 @@ pub trait NFTTrait<AccountId, Balance> {
 	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get collection account fund
 	fn get_class_fund(class_id: &Self::ClassId) -> AccountId;
+	/// Set lock collection
+	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> DispatchResult;
+	/// Set lock nft
+	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> DispatchResult;
 }
 
 pub trait RoundTrait<BlockNumber> {

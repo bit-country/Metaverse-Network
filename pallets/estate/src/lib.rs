@@ -79,19 +79,19 @@ pub mod pallet {
 		#[pallet::constant]
 		type LandTreasury: Get<PalletId>;
 
-		/// Source of Bit Country Info
+		/// Source of metaverse info
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
 
-		/// Currency
+		/// Currency type
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
-		/// Minimum Land Price
+		/// Minimum land price
 		type MinimumLandPrice: Get<BalanceOf<Self>>;
 
 		/// Council origin which allows to update max bound
 		type CouncilOrigin: EnsureOrigin<Self::Origin>;
 
-		/// Auction Handler
+		/// Auction handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
 
 		/// Minimum number of blocks per round
