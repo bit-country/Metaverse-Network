@@ -39,7 +39,7 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::pallet_prelude::*;
-use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule};
+use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
@@ -139,12 +139,6 @@ pub mod pallet {
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 	pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
-	#[pallet::storage]
-	#[pallet::getter(fn get_asset)]
-	/// Stores NFT asset information (token ID, class ID)
-	pub(super) type Assets<T: Config> =
-		StorageMap<_, Blake2_128Concat, AssetId, (ClassIdOf<T>, TokenIdOf<T>), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
