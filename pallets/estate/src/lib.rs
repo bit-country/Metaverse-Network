@@ -75,7 +75,7 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
-		/// Land treasury
+		/// Land treasury source
 		#[pallet::constant]
 		type LandTreasury: Get<PalletId>;
 
@@ -94,42 +94,45 @@ pub mod pallet {
 		/// Auction handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
 
-		/// Minimum block per round
+		/// Minimum number of blocks per round
 		#[pallet::constant]
 		type MinBlocksPerRound: Get<u32>;
 
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
 
-		/// Minimum stake for land and estate staking
+		/// Minimum staking balance
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
 
-		/// Reward payment delay
+		/// Delay of staking reward payment (in number of rounds)
 		#[pallet::constant]
 		type RewardPaymentDelay: Get<u32>;
 
-		/// NFT Trait required for land and estate tokenization
+		/// NFT trait required for land and estate tokenization
 		type NFTTokenizationSource: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
-	/// Get max bound
 	#[pallet::storage]
 	#[pallet::getter(fn get_max_bounds)]
+	/// Store max coordinate bound for a metaverse
 	pub type MaxBounds<T: Config> = StorageMap<_, Blake2_128Concat, MetaverseId, (i32, i32), ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_land_units_count)]
+	/// Track the total number of land units
 	pub(super) type AllLandUnitsCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_undeployed_land_unit)]
+	/// Track the total of undeployed land units
 	pub(super) type TotalUndeployedLandUnit<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_land_units)]
+	/// Index land owners by metaverse ID and coordinate
 	pub type LandUnits<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
@@ -142,32 +145,39 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_estate_id)]
+	/// Track the next estate ID
 	pub type NextEstateId<T: Config> = StorageValue<_, EstateId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_estates_count)]
+	/// Track the total of estates
 	pub(super) type AllEstatesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estates)]
+	/// Store estate information  
 	pub(super) type Estates<T: Config> = StorageMap<_, Twox64Concat, EstateId, EstateInfo, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_owner)]
+	/// Track estate owners
 	pub type EstateOwner<T: Config> =
 		StorageMap<_, Twox64Concat, EstateId, OwnerId<T::AccountId, TokenId>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_undeployed_land_block_id)]
+	/// Track the next undeployed land ID
 	pub(super) type NextUndeployedLandBlockId<T: Config> = StorageValue<_, UndeployedLandBlockId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_undeployed_land_block)]
+	/// Store undeployed land blocks
 	pub(super) type UndeployedLandBlocks<T: Config> =
 		StorageMap<_, Blake2_128Concat, UndeployedLandBlockId, UndeployedLandBlock<T::AccountId>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_undeployed_land_block_owner)]
+	/// Index undeployed land blocks by account ID
 	pub type UndeployedLandBlocksOwner<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
 
@@ -251,95 +261,119 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Beneficial Account Id, Metaverse Id, Coordinates
+		/// New lands are minted [Beneficial Account Id, Metaverse Id, Coordinates]
 		NewLandsMinted(T::AccountId, MetaverseId, Vec<(i32, i32)>),
-		/// Metaverse Id, Coordinates, From Account Id, To Account Id
+		/// Land unit is transferred [Metaverse Id, Coordinates, From Account Id, To Account Id]
 		TransferredLandUnit(MetaverseId, (i32, i32), T::AccountId, T::AccountId),
-		/// Estate Id, From Account Id, To Account Id
+		/// Estate unit is transferred [Estate Id, From Account Id, To Account Id]
 		TransferredEstate(EstateId, T::AccountId, T::AccountId),
-		/// Owner Id, Metaverse Id, Coordinates
+		/// New land is minted [Beneficial Account Id, Metaverse Id, Coordinates]
 		NewLandUnitMinted(OwnerId<T::AccountId, TokenId>, MetaverseId, (i32, i32)),
-		/// Estate Id, OwnerId, Metaverse Id, Coordinates
+		/// New estate is minted [Estate Id, OwnerId, Metaverse Id, Coordinates]
 		NewEstateMinted(EstateId, OwnerId<T::AccountId, TokenId>, MetaverseId, Vec<(i32, i32)>),
-		/// Metaverse Id, Min and Max Coordinate
+		/// Max bound is set for a metaverse [Metaverse Id, Min and Max Coordinate]
 		MaxBoundSet(MetaverseId, (i32, i32)),
-		/// From Account Id, Metaverse Id, Undeployed Land Block Id, Coordinates
+		/// Land block is deployed [From Account Id, Metaverse Id, Undeployed Land Block Id,
+		/// Coordinates]
 		LandBlockDeployed(T::AccountId, MetaverseId, UndeployedLandBlockId, Vec<(i32, i32)>),
-		/// Beneficial Account Id, Undeployed Land Block Id
+		/// Undeployed land block is issued [Beneficial Account Id, Undeployed Land
+		/// Block Id]
 		UndeployedLandBlockIssued(T::AccountId, UndeployedLandBlockId),
-		/// From Account Id, To Account Id, Undeployed Land Block Id
+		/// Undeployed land block is transferred [From Account Id, To Account Id, Undeployed
+		/// Land Block Id]
 		UndeployedLandBlockTransferred(T::AccountId, T::AccountId, UndeployedLandBlockId),
-		/// Owner Account Id, Approved Account Id, Undeployed Land Block Id
+		/// Undeployed land block is approved [Owner Account Id, Approved Account Id, Undeployed
+		/// Land Block Id]
 		UndeployedLandBlockApproved(T::AccountId, T::AccountId, UndeployedLandBlockId),
-		/// Owner Id, Estate Id
+		/// Estate is destroyed [Estate Id, Owner Id]
 		EstateDestroyed(EstateId, OwnerId<T::AccountId, TokenId>),
-		/// Estate Id, Owner Id, Coordinates
+		/// Estate is updated [Estate Id, Owner Id, Coordinates]
 		EstateUpdated(EstateId, OwnerId<T::AccountId, TokenId>, Vec<(i32, i32)>),
-		/// Estate Id, Owner Id, Coordinates
+		/// Land unit is added to an estate [Estate Id, Owner Id, Coordinates]
 		LandUnitAdded(EstateId, OwnerId<T::AccountId, TokenId>, Vec<(i32, i32)>),
-		/// Estate Id, Owner Id, Coordinates
+		/// Land unit is removed from an estate [Estate Id, Owner Id, Coordinates]
 		LandUnitsRemoved(EstateId, OwnerId<T::AccountId, TokenId>, Vec<(i32, i32)>),
-		/// Undeployed Land Block Id
+		/// Undeployed land block is unapproved [Undeployed Land Block Id]
 		UndeployedLandBlockUnapproved(UndeployedLandBlockId),
-		/// Undeployed Land Block Id
+		/// Undeployed land block is freezed [Undeployed Land Block Id]
 		UndeployedLandBlockFreezed(UndeployedLandBlockId),
-		/// Undeployed Land Block Id
+		/// Undeployed land block is unfreezed [Undeployed Land Block Id]
 		UndeployedLandBlockUnfreezed(UndeployedLandBlockId),
-		/// Undeployed Land Block Id
+		/// Undeployed land block is burnt [Undeployed Land Block Id]
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
-		/// Starting Block, Round, Total Land Unit
+		/// New staking round started [Starting Block, Round, Total Land Unit]
 		NewRound(T::BlockNumber, RoundIndex, u64),
-		/// Land Staking snapshot updated
+		/// Updated staking snapshot [Round Index, Balance]
 		StakeSnapshotUpdated(RoundIndex, BalanceOf<T>),
-		/// Staker paid
+		/// Stakers are paid for the round [Round Index]
 		StakersPaid(RoundIndex),
-		/// Staking exit queue cleared
+		/// Exit queue is cleared [Round Index]
 		ExitQueueCleared(RoundIndex),
-		/// OwnerId, Estate Id, Balance
+		/// Increased stake on an estate [OwnerId, Estate Id, Balance]
 		EstateStakeIncreased(OwnerId<T::AccountId, TokenId>, EstateId, BalanceOf<T>),
-		/// OwnerId, Estate Id, Balance
+		/// Decreased stake on an estate [OwnerId, Estate Id, Balance]
 		EstateStakeDecreased(OwnerId<T::AccountId, TokenId>, EstateId, BalanceOf<T>),
-		/// OwnerId, Estate Id
+		/// Left staking on an estate [OwnerId, Estate Id]
 		EstateStakeLeft(OwnerId<T::AccountId, TokenId>, EstateId),
-		/// Account Id, Balance
+		/// Account rewarded for staking [Account Id, Balance]
 		StakingRewarded(T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		// No permission
+		/// No permission
 		NoPermission,
-		// NoAvailableLandId,
+		/// No available estate ID
 		NoAvailableEstateId,
-		// Insufficient fund
+		/// Insufficient fund
 		InsufficientFund,
-		// Estate id already exist
+		/// Estate ID already exist
 		EstateIdAlreadyExist,
-		// Land unit is not available
+		/// Land unit is not available
 		LandUnitIsNotAvailable,
-		// Land unit is out of bound
+		/// Land unit is out of bound
 		LandUnitIsOutOfBound,
-		// No max bound set
+		/// No max bound set
 		NoMaxBoundSet,
+		/// Undeployed land block is not found
 		UndeployedLandBlockNotFound,
+		/// Undeployed land block is not transferable
 		UndeployedLandBlockIsNotTransferable,
+		/// Undeployed land block does not hae enough land units
 		UndeployedLandBlockDoesNotHaveEnoughLandUnits,
+		/// Already own the undeployed land block
 		AlreadyOwnTheUndeployedLandBlock,
+		/// Undeployed land block is freezed
 		UndeployedLandBlockFreezed,
+		/// Undeployed land block is already freezed
 		UndeployedLandBlockAlreadyFreezed,
+		/// Undeployed land block is not frozen
 		UndeployedLandBlockNotFrozen,
+		/// Already owning the estate
 		AlreadyOwnTheEstate,
+		/// Already owning the land unit
 		AlreadyOwnTheLandUnit,
+		/// Estate is not in auction
 		EstateNotInAuction,
+		/// Land unit is not in auction
 		LandUnitNotInAuction,
+		/// Estate is already in auction
 		EstateAlreadyInAuction,
+		/// Land unit is already in auction
 		LandUnitAlreadyInAuction,
+		/// Estate is does not exist
 		EstateDoesNotExist,
+		/// Land unit does not exist
 		LandUnitDoesNotExist,
+		/// Only frozen undeployed land block can be destroyed
 		OnlyFrozenUndeployedLandBlockCanBeDestroyed,
+		/// Below minimum staking amount
 		BelowMinimumStake,
+		/// Value overflow
 		Overflow,
+		/// Estate stake is already left
 		EstateStakeAlreadyLeft,
+		/// Account has not staked anything
 		AccountHasNoStake,
 	}
 
@@ -1151,6 +1185,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	/// Internal getter for new estate ID
 	fn get_new_estate_id() -> Result<EstateId, DispatchError> {
 		let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
 			let current_id = *id;
@@ -1160,6 +1195,7 @@ impl<T: Config> Pallet<T> {
 		Ok(estate_id)
 	}
 
+	/// Internal minting of land unit
 	fn mint_land_unit(
 		metaverse_id: MetaverseId,
 		beneficiary: T::AccountId,
@@ -1239,6 +1275,7 @@ impl<T: Config> Pallet<T> {
 		Ok(owner)
 	}
 
+	/// Internal updating information about an estate
 	fn update_estate_information(
 		new_estate_id: EstateId,
 		metaverse_id: MetaverseId,
@@ -1285,6 +1322,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Internal getter of new undeployed land block ID
 	fn get_new_undeployed_land_block_id() -> Result<UndeployedLandBlockId, DispatchError> {
 		let undeployed_land_block_id =
 			NextUndeployedLandBlockId::<T>::try_mutate(|id| -> Result<UndeployedLandBlockId, DispatchError> {
@@ -1295,6 +1333,7 @@ impl<T: Config> Pallet<T> {
 		Ok(undeployed_land_block_id)
 	}
 
+	/// Internal transfer of undeployed land block
 	fn do_transfer_undeployed_land_block(
 		who: &T::AccountId,
 		to: &T::AccountId,
@@ -1338,6 +1377,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
+	/// Internal burn of undeployed land block
 	fn do_burn_undeployed_land_block(
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
@@ -1357,6 +1397,7 @@ impl<T: Config> Pallet<T> {
 		Ok(undeployed_land_block_id)
 	}
 
+	/// Internal freeze of undeployed land block
 	fn do_freeze_undeployed_land_block(
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
@@ -1381,6 +1422,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
+	/// Internal issue of undeployed land block
 	fn do_issue_undeployed_land_blocks(
 		beneficiary: &T::AccountId,
 		number_of_land_block: u32,
@@ -1419,6 +1461,7 @@ impl<T: Config> Pallet<T> {
 		Ok(undeployed_land_block_ids)
 	}
 
+	/// Internal transfer of estate
 	fn do_transfer_estate(
 		estate_id: EstateId,
 		from: &T::AccountId,
@@ -1450,6 +1493,7 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
+	/// Internal transfer of land unit
 	fn do_transfer_landunit(
 		coordinate: (i32, i32),
 		from: &T::AccountId,
@@ -1491,6 +1535,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
+	/// Internal setting of total undeployed land units
 	fn set_total_undeployed_land_unit(total: u64, deduct: bool) -> Result<(), DispatchError> {
 		let total_undeployed_land_units = Self::all_undeployed_land_unit();
 
@@ -1509,6 +1554,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Internal setting of total land units
 	fn set_total_land_unit(total: u64, deduct: bool) -> Result<(), DispatchError> {
 		let total_land_units_count = Self::all_land_units_count();
 
@@ -1526,6 +1572,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Internal getter of land token properties
 	fn get_land_token_properties(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> (NftMetadata, Attributes) {
 		let mut land_coordinate_attribute = Vec::<u8>::new();
 		land_coordinate_attribute.append(&mut coordinate.0.to_be_bytes().to_vec());
@@ -1541,6 +1588,7 @@ impl<T: Config> Pallet<T> {
 		return (nft_metadata, nft_attributes);
 	}
 
+	/// Internal getter of estate token properties
 	fn get_estate_token_properties(metaverse_id: MetaverseId, estate_id: EstateId) -> (NftMetadata, Attributes) {
 		let mut nft_metadata: NftMetadata = NftMetadata::new();
 		nft_metadata.append(&mut metaverse_id.to_be_bytes().to_vec());
@@ -1553,6 +1601,7 @@ impl<T: Config> Pallet<T> {
 		return (nft_metadata, nft_attributes);
 	}
 
+	/// Internal update of land when estate changes
 	fn update_land_on_estate_change(
 		who: &T::AccountId,
 		owner_value: &Option<OwnerId<T::AccountId, TokenId>>,
@@ -1566,6 +1615,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Internal check if account owns land or estate
 	fn check_if_land_or_estate_owner(
 		who: &T::AccountId,
 		owner_id: &OwnerId<T::AccountId, TokenId>,
