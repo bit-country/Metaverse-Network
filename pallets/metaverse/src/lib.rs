@@ -20,7 +20,7 @@
 use codec::{Decode, Encode, HasCompact};
 use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
-	ensure,
+	ensure, log,
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
 	PalletId,
@@ -35,7 +35,7 @@ use sp_runtime::{
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use core_primitives::*;
-use core_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseInfoV1, MetaverseTrait};
 pub use pallet::*;
 use primitives::staking::MetaverseStakingTrait;
 use primitives::{ClassId, FungibleTokenId, MetaverseId, RoundIndex, TokenId};
@@ -596,7 +596,12 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		//		fn on_runtime_upgrade() -> Weight {
+		//			Self::upgrade_metaverse_info_v2();
+		//			0
+		//		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -714,6 +719,30 @@ impl<T: Config> Pallet<T> {
 		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
 		MarketplaceListingFee::<T>::insert(metaverse_id, new_listing_fee);
 		Ok(())
+	}
+
+	pub fn upgrade_metaverse_info_v2() -> Weight {
+		log::info!("Start upgrade_metaverse_info_v2");
+		let mut num_metaverse_items = 0;
+		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
+		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
+
+		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
+			num_metaverse_items += 1;
+			
+			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
+				owner: metaverse_info_v1.owner,
+				metadata: metaverse_info_v1.metadata,
+				currency_id: metaverse_info_v1.currency_id,
+				is_frozen: false,
+				land_class_id: default_land_class_id,
+				estate_class_id: default_estate_class_id,
+			};
+			Some(v2)
+		});
+
+		log::info!("{} metaverses upgraded:", num_metaverse_items);
+		0
 	}
 }
 

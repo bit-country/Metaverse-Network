@@ -100,13 +100,6 @@ fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
 //}
 
 benchmarks! {
-	// set_max_bounds
-	set_max_bounds{
-	}: _(RawOrigin::Root, METAVERSE_ID, MAX_BOUND)
-	verify {
-		assert_eq!(crate::Pallet::<T>::get_max_bounds(METAVERSE_ID), MAX_BOUND)
-	}
-
 	// mint_land as tokens
 	mint_land {
 		let caller: T::AccountId = whitelisted_caller();
