@@ -464,7 +464,7 @@ pub mod pallet {
 		/// or NFT collection has authorized to list
 		///
 		/// The dispatch origin for this call must be _Signed_.
-		/// - `item_id`: he enum of what item type want to list
+		/// - `item_id`: the enum of what item type want to list
 		/// - `value`: value of the listing
 		/// - `listing_level`: if listing is on local or global marketplace
 		/// - `end_time`: the listing end time.
@@ -1114,7 +1114,7 @@ pub mod pallet {
 				}
 				_ => {}
 			}
-			// Transfer loyalty fee from winner to class fund pot
+			// Transfer royalty fee from winner to class fund pot
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
 				<T as Config>::Currency::transfer(
 					&high_bidder,

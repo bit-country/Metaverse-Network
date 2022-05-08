@@ -19,6 +19,10 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
+#[cfg(feature = "runtime-benchmarks")]
+#[macro_use]
+extern crate orml_benchmarking;
+
 use codec::{Decode, Encode, MaxEncodedLen};
 use fp_rpc::TransactionStatus;
 // use metaverse::weights::WeightInfo;
@@ -557,7 +561,7 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
-	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
+	pub const RoyaltyFee: u16 = 10; // Royalty fee 0.1%
 	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
 }
 
@@ -1152,9 +1156,7 @@ pub type SignedExtra = (
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
-#[cfg(feature = "runtime-benchmarks")]
-#[macro_use]
-extern crate orml_benchmarking;
+
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	define_benchmarks!(

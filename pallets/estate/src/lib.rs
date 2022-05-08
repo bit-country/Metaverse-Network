@@ -1325,11 +1325,11 @@ impl<T: Config> Pallet<T> {
 						from.clone(),
 						to.clone(),
 					));
-		
+
 					Ok(estate_id)
 				}
 				_ => Err(Error::<T>::InvalidOwnerValue.into()),
-			}			
+			}
 		})
 	}
 
@@ -1366,13 +1366,13 @@ impl<T: Config> Pallet<T> {
 								));
 
 								Ok(coordinate)
-							},
+							}
 							_ => Err(Error::<T>::InvalidOwnerValue.into()),
 						}
 					}
 					None => Err(DispatchError::Other("No Permissson")),
 				}
-			}
+			},
 		)
 	}
 
@@ -1458,8 +1458,14 @@ impl<T: Config> Pallet<T> {
 						.unwrap_or(false);
 				}
 			}
-			_=> return false,
+			_ => return false,
 		}
+	}
+
+	fn verify_land_for_estate(land_units: Vec<(i32, i32)>) -> bool {
+		// TODO: check if axis is adjacent
+		// TODO: check if yxis is adjacent
+		true
 	}
 }
 
