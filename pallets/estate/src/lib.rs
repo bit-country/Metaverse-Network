@@ -358,6 +358,8 @@ pub mod pallet {
 		EstateAlreadyInAuction,
 		/// Land unit is already in auction
 		LandUnitAlreadyInAuction,
+		/// Undeployed land block is already in auction
+		UndeployedLandBlockAlreadyInAuction,
 		/// Estate is does not exist
 		EstateDoesNotExist,
 		/// Land unit does not exist
@@ -550,6 +552,13 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(
+					ItemId::UndeployedLandBlock(undeployed_land_block_id)
+				),
+				Error::<T>::UndeployedLandBlockAlreadyInAuction
+			);
+
 			// Ensure the max bound is set for the metaverse
 			let max_bound = T::DefaultMaxBound::get();
 
@@ -667,6 +676,13 @@ pub mod pallet {
 						Error::<T>::UndeployedLandBlockNotFrozen
 					);
 
+					ensure!(
+						!T::AuctionHandler::check_item_in_auction(
+							ItemId::UndeployedLandBlock(undeployed_land_block_id)
+						),
+						Error::<T>::UndeployedLandBlockAlreadyInAuction
+					);
+
 					undeployed_land_block_record.is_locked = false;
 
 					Self::deposit_event(Event::<T>::UndeployedLandBlockUnfreezed(undeployed_land_block_id));
@@ -729,6 +745,13 @@ pub mod pallet {
 						Error::<T>::UndeployedLandBlockAlreadyFreezed
 					);
 
+					ensure!(
+						!T::AuctionHandler::check_item_in_auction(
+							ItemId::UndeployedLandBlock(undeployed_land_block_id)
+						),
+						Error::<T>::UndeployedLandBlockAlreadyInAuction
+					);
+
 					undeployed_land_block_record.approved = Some(to.clone());
 
 					Self::deposit_event(Event::<T>::UndeployedLandBlockApproved(
@@ -765,6 +788,13 @@ pub mod pallet {
 					ensure!(
 						undeployed_land_block_record.is_locked == false,
 						Error::<T>::UndeployedLandBlockAlreadyFreezed
+					);
+
+					ensure!(
+						!T::AuctionHandler::check_item_in_auction(
+							ItemId::UndeployedLandBlock(undeployed_land_block_id)
+						),
+						Error::<T>::UndeployedLandBlockAlreadyInAuction
 					);
 
 					undeployed_land_block_record.approved = None;
@@ -1299,6 +1329,14 @@ impl<T: Config> Pallet<T> {
 			!undeployed_land_block_info.is_locked,
 			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
 		);
+
+		ensure!(
+			!T::AuctionHandler::check_item_in_auction(
+				ItemId::UndeployedLandBlock(undeployed_land_block_id)
+			),
+			Error::<T>::UndeployedLandBlockAlreadyInAuction
+		);
+
 		Self::set_total_undeployed_land_unit(undeployed_land_block_info.number_land_units as u64, true)?;
 		UndeployedLandBlocksOwner::<T>::remove(undeployed_land_block_info.owner, &undeployed_land_block_id);
 		UndeployedLandBlocks::<T>::remove(&undeployed_land_block_id);
@@ -1323,6 +1361,13 @@ impl<T: Config> Pallet<T> {
 					undeployed_land_block_record.is_locked == false,
 					Error::<T>::UndeployedLandBlockAlreadyFreezed
 				);
+
+				ensure!(
+					!T::AuctionHandler::check_item_in_auction(
+						ItemId::UndeployedLandBlock(undeployed_land_block_id)
+					),
+					Error::<T>::UndeployedLandBlockAlreadyInAuction
+				);				
 
 				undeployed_land_block_record.is_locked = true;
 
@@ -1700,6 +1745,10 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 
 	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		Ok(LandUnits::<T>::contains_key(metaverse_id, coordinate))
+	}
+
+	fn check_undeployed_land_block(undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError> {
+		Ok(UndeployedLandBlocks::<T>::contains_key(undeployed_land_block_id))
 	}
 
 	fn get_total_land_units() -> u64 {

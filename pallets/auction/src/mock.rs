@@ -42,6 +42,9 @@ pub const ALICE_METAVERSE_FUND: AccountId = 100;
 pub const BOB_METAVERSE_FUND: AccountId = 101;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
+pub const UNDEPLOYED_LAND_BLOCK_ID_EXIST: UndeployedLandBlockId = 4;
+pub const UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST: UndeployedLandBlockId = 5;
+
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
@@ -118,7 +121,7 @@ impl Estate<u128> for EstateHandler {
 
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
 		match estate_id {
-			ESTATE_ID_EXIST | ESTATE_ID_EXIST_1 => Ok(true),
+			ESTATE_ID_EXIST | ESTATE_UNDEPLOYED_LAND_ID_EXIST_1 => Ok(true),
 			ESTATE_ID_NOT_EXIST => Ok(false),
 			_ => Ok(false),
 		}
@@ -132,6 +135,13 @@ impl Estate<u128> for EstateHandler {
 		}
 	}
 
+	fn check_undeployed_land_block(undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError> {
+			match undeployed_land_block_id{
+				UNDEPLOYED_LAND_BLOCK_ID_EXIST => Ok(true),
+				UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST => Ok(false),
+				_ => Ok(false),
+			}
+	}
 
 	fn get_total_land_units() -> u64 {
 		100

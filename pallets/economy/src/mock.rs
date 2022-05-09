@@ -146,6 +146,10 @@ impl Estate<u128> for EstateHandler {
 		Ok(true)
 	}
 
+	fn check_undeployed_land_block(undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
 	fn get_total_land_units() -> u64 {
 		10
 	}

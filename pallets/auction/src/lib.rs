@@ -1179,10 +1179,10 @@ pub mod pallet {
 				}
 				ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
 					// Ensure the undeployed land block exist
-				//	ensure!(
-				//		T::EstateHandler::check_undeployed_land_block(undepoyed_land_block_id)?,
-				//		Error::<T>::UndeployedLandBlockDoesNotExist
-				//	);
+					ensure!(
+						T::EstateHandler::check_undeployed_land_block(undeployed_land_block_id)?,
+						Error::<T>::UndeployedLandBlockDoesNotExist
+					);
 
 					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
