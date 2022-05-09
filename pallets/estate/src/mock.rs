@@ -30,6 +30,7 @@ pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
 pub const MAX_BOUND: (i32, i32) = (-100, 100);
+pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
 pub const COORDINATE_IN_1: (i32, i32) = (-10, 10);
 pub const COORDINATE_IN_2: (i32, i32) = (-5, 5);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);

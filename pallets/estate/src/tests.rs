@@ -35,16 +35,6 @@ fn mint_land_should_reject_non_root() {
 }
 
 #[test]
-fn mint_land_should_reject_out_bound() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EstateModule::mint_land(Origin::root(), BENEFICIARY_ID, METAVERSE_ID, COORDINATE_OUT),
-			Error::<Runtime>::LandUnitIsOutOfBound
-		);
-	});
-}
-
-#[test]
 fn mint_land_should_work_with_one_coordinate() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::mint_land(
@@ -202,21 +192,6 @@ fn mint_lands_should_reject_non_root() {
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			),
 			BadOrigin
-		);
-	});
-}
-
-#[test]
-fn mint_lands_should_reject_out_bound() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EstateModule::mint_lands(
-				Origin::root(),
-				BENEFICIARY_ID,
-				METAVERSE_ID,
-				vec![COORDINATE_OUT, COORDINATE_IN_1]
-			),
-			Error::<Runtime>::LandUnitIsOutOfBound
 		);
 	});
 }
@@ -1334,6 +1309,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_found() {
 				Origin::signed(ALICE),
 				undeployed_land_block_id,
 				METAVERSE_ID,
+				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1]
 			),
 			Error::<Runtime>::UndeployedLandBlockNotFound
@@ -1359,6 +1335,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_owner() {
 				Origin::signed(ALICE),
 				undeployed_land_block_id,
 				METAVERSE_ID,
+				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1]
 			),
 			Error::<Runtime>::NoPermission
@@ -1389,6 +1366,7 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 				Origin::signed(BOB),
 				undeployed_land_block_id,
 				METAVERSE_ID,
+				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1]
 			),
 			Error::<Runtime>::UndeployedLandBlockFreezed
@@ -1414,6 +1392,7 @@ fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
 				Origin::signed(BOB),
 				undeployed_land_block_id,
 				METAVERSE_ID,
+				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			),
 			Error::<Runtime>::UndeployedLandBlockUnitAndInputDoesNotMatch
@@ -1449,6 +1428,7 @@ fn deploy_undeployed_land_block_should_work() {
 			Origin::signed(BOB),
 			undeployed_land_block_id,
 			METAVERSE_ID,
+			LANDBLOCK_COORDINATE,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
@@ -2187,4 +2167,28 @@ fn bond_more_should_reject_stake_has_already_left() {
 			Error::<Runtime>::EstateStakeAlreadyLeft
 		);
 	});
+}
+
+#[test]
+fn ensure_land_unit_within_land_block_bound_should_work() {
+	let coordinates: Vec<(i32, i32)> = vec![(-49, 0), (-48, 0), (-47, 0), (0, 50)];
+	assert_eq!(EstateModule::verify_land_unit_in_bound(&(0, 0), &coordinates), true);
+
+	let second_coordinates: Vec<(i32, i32)> = vec![(-249, 2), (-248, 2), (-150, 2), (-150, 6)];
+	assert_eq!(
+		EstateModule::verify_land_unit_in_bound(&(-200, 2), &second_coordinates),
+		true
+	);
+}
+
+#[test]
+fn ensure_land_unit_out_of_land_block_bound_should_fail() {
+	let coordinates: Vec<(i32, i32)> = vec![(-51, 0), (-48, 0), (-47, 0), (0, 51)];
+	assert_eq!(EstateModule::verify_land_unit_in_bound(&(0, 0), &coordinates), false);
+
+	let second_coordinates: Vec<(i32, i32)> = vec![(-250, 2), (-248, 2), (-150, 2), (-151, 6)];
+	assert_eq!(
+		EstateModule::verify_land_unit_in_bound(&(-200, 2), &second_coordinates),
+		false
+	);
 }
