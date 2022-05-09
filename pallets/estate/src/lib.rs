@@ -532,8 +532,6 @@ pub mod pallet {
 					// Burn undeployed land block
 					Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
 
-					Self::set_total_undeployed_land_unit(land_units_to_mint as u64, true)?;
-
 					Self::deposit_event(Event::<T>::LandBlockDeployed(
 						who.clone(),
 						metaverse_id,
@@ -1232,7 +1230,7 @@ impl<T: Config> Pallet<T> {
 			UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 		ensure!(
-			undeployed_land_block_info.is_locked,
+			!undeployed_land_block_info.is_locked,
 			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
 		);
 		Self::set_total_undeployed_land_unit(undeployed_land_block_info.number_land_units as u64, true)?;
@@ -1284,7 +1282,7 @@ impl<T: Config> Pallet<T> {
 				number_land_units: number_land_units_per_land_block,
 				undeployed_land_block_type,
 				approved: None,
-				is_locked: true,
+				is_locked: false,
 				owner: beneficiary.clone(),
 			};
 

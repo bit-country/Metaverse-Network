@@ -938,7 +938,7 @@ fn issue_land_block_should_work() {
 				assert_eq!(a.owner, BOB);
 				assert_eq!(a.number_land_units, 20);
 				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test
@@ -973,7 +973,7 @@ fn issue_two_land_block_should_work() {
 				assert_eq!(a.owner, BOB);
 				assert_eq!(a.number_land_units, 20);
 				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test
@@ -1003,7 +1003,7 @@ fn issue_two_land_block_should_work() {
 				assert_eq!(a.owner, ALICE);
 				assert_eq!(a.number_land_units, 30);
 				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test
@@ -1051,7 +1051,7 @@ fn freeze_undeployed_land_block_should_work() {
 				assert_eq!(a.owner, BOB);
 				assert_eq!(a.number_land_units, 20);
 				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test
@@ -1068,7 +1068,7 @@ fn freeze_undeployed_land_block_should_work() {
 		let frozen_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
 		match frozen_undeployed_land_block {
 			Some(a) => {
-				assert_eq!(a.is_frozen, true);
+				assert_eq!(a.is_locked, true);
 			}
 			_ => {
 				// Should fail test
@@ -1154,7 +1154,7 @@ fn unfreeze_undeployed_land_block_should_work() {
 		let freezed_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
 		match freezed_undeployed_land_block {
 			Some(a) => {
-				assert_eq!(a.is_frozen, true);
+				assert_eq!(a.is_locked, true);
 			}
 			_ => {
 				// Should fail test
@@ -1172,7 +1172,7 @@ fn unfreeze_undeployed_land_block_should_work() {
 		let unfreezed_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
 		match unfreezed_undeployed_land_block {
 			Some(a) => {
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test
@@ -1416,7 +1416,7 @@ fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
 				METAVERSE_ID,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			),
-			Error::<Runtime>::UndeployedLandBlockDoesNotHaveEnoughLandUnits
+			Error::<Runtime>::UndeployedLandBlockUnitAndInputDoesNotMatch
 		);
 	});
 }
@@ -1428,7 +1428,7 @@ fn deploy_undeployed_land_block_should_work() {
 			Origin::root(),
 			BOB,
 			1,
-			100,
+			2,
 			UndeployedLandBlockType::BoundToAddress
 		));
 
@@ -1437,7 +1437,7 @@ fn deploy_undeployed_land_block_should_work() {
 		let undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
 		match undeployed_land_block {
 			Some(a) => {
-				assert_eq!(a.number_land_units, 100);
+				assert_eq!(a.number_land_units, 2);
 			}
 			_ => {
 				// Should fail test
@@ -1465,7 +1465,7 @@ fn deploy_undeployed_land_block_should_work() {
 		let updated_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
 		match updated_undeployed_land_block {
 			Some(a) => {
-				assert_eq!(a.number_land_units, 98);
+				assert_eq!(a.number_land_units, 2);
 			}
 			_ => {
 				// Should fail test
@@ -1744,24 +1744,6 @@ fn burn_undeployed_land_block_should_fail_not_found() {
 }
 
 #[test]
-fn burn_undeployed_land_block_should_fail_if_not_frozon() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EstateModule::issue_undeployed_land_blocks(
-			Origin::root(),
-			BOB,
-			1,
-			20,
-			UndeployedLandBlockType::BoundToAddress
-		));
-
-		assert_noop!(
-			EstateModule::burn_undeployed_land_blocks(Origin::root(), 0),
-			Error::<Runtime>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
-		);
-	});
-}
-
-#[test]
 fn burn_undeployed_land_block_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
@@ -1791,8 +1773,6 @@ fn burn_undeployed_land_block_should_work() {
 			EstateModule::get_undeployed_land_block_owner(BOB, undeployed_land_block_id),
 			Some(())
 		);
-
-		assert_ok!(EstateModule::freeze_undeployed_land_blocks(Origin::root(), 0));
 
 		assert_ok!(EstateModule::burn_undeployed_land_blocks(
 			Origin::root(),
