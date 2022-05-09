@@ -380,6 +380,14 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Minting of a land unit
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the land unit
+		/// - `metaverse_id`: the metaverse id that the land united will be minted on
+		/// - `coordinate`: coordinate of the land unit
+		///
+		/// Emits `NewLandsMinted` if successful.
 		#[pallet::weight(T::WeightInfo::mint_land())]
 		pub fn mint_land(
 			origin: OriginFor<T>,
@@ -400,6 +408,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Minting of a land units
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the land units
+		/// - `metaverse_id`: the metaverse id that the land units will be minted on
+		/// - `coordinates`: list of land units coordinates
+		///
+		/// Emits `NewLandsMinted` if successful.
 		#[pallet::weight(T::WeightInfo::mint_lands())]
 		pub fn mint_lands(
 			origin: OriginFor<T>,
@@ -431,6 +447,15 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Transferring a land unit if it is not already in auction
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only the owner of a land can make this call.
+		/// - `to`: the account which will be the owner of the land units
+		/// - `metaverse_id`: the metaverse id of the land unit
+		/// - `coordinate`: the coordinate of the land unit
+		///
+		/// Emits `TransferredLandUnit` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_land())]
 		pub fn transfer_land(
 			origin: OriginFor<T>,
@@ -449,7 +474,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Mint new estate with no existing land unit
+		/// Mint new estate with no existing land units
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the land units
+		/// - `metaverse_id`: the metaverse id that the land units will be minted on
+		/// - `coordinates`: list of land units coordinates
+		///
+		/// Emits `NewEstateMinted` if successful.
 		#[pallet::weight(T::WeightInfo::mint_estate())]
 		pub fn mint_estate(
 			origin: OriginFor<T>,
@@ -483,6 +515,13 @@ pub mod pallet {
 		}
 
 		/// Create new estate from existing land units
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the land units
+		/// - `metaverse_id`: the metaverse id that the land units will be minted on
+		/// - `coordinates`: list of land units coordinates
+		///
+		/// Emits `NewEstateMinted` if successful.
 		#[pallet::weight(T::WeightInfo::create_estate())]
 		pub fn create_estate(
 			origin: OriginFor<T>,
@@ -519,7 +558,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Transfer estate ownership
+		/// Transfer estate ownership if it is not in auction.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only the owner of an estate can make this call.
+		/// - `to`: the account which will be the owner of the estate
+		/// - `estate_id`: the estate ID of the the estate that will be transferred
+		///
+		/// Emits `TransferredEstate` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_estate())]
 		pub fn transfer_estate(
 			origin: OriginFor<T>,
@@ -540,6 +586,15 @@ pub mod pallet {
 
 		/// Deploy raw land block to metaverse and turn raw land block to land unit with given
 		/// coordinates
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `undeployed_land_block_id`: the undeployed land block ID
+		/// - `metaverse_id`: the metaverse ID that the land block will be deployed on
+		/// - `land_block_coordinates`: the coordinates of the land block
+		/// - `coordinates`: list of land units coordinates
+		///
+		/// Emits `LandBlockDeployed` if successful.
 		#[pallet::weight(T::WeightInfo::deploy_land_block())]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
@@ -613,7 +668,16 @@ pub mod pallet {
 			)
 		}
 
-		/// Sudo issues new raw land block
+		/// Issues new undeployed land block(s)
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the undeployed land block(s)
+		/// - `number_of_land_block`: the number of undeployed land block(s) that will be created
+		/// - `number_land_units_per_land_block`: the number of land units in each undeployed land
+		///   block
+		/// - `land_block_coordinates`: the coordinates of the undeployed land block
+		///
+		/// Emits `UndeployedLandBlockIssued` if successful.
 		#[pallet::weight(T::WeightInfo::issue_undeployed_land_blocks())]
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
@@ -634,7 +698,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Sudo Freeze raw land block
+		/// Freezes undeployed land block which is not already frozen
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be freezed
+		///
+		/// Emits `UndeployedLandBlockFreezed` if successful.
 		#[pallet::weight(T::WeightInfo::freeze_undeployed_land_blocks())]
 		pub fn freeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -647,7 +716,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Sudo Unfreeze raw land block
+		/// Unfreezes undeployed land block which is frozen.
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be unfreezed
+		///
+		/// Emits `UndeployedLandBlockUnfreezed` if successful.
 		#[pallet::weight(T::WeightInfo::unfreeze_undeployed_land_blocks())]
 		pub fn unfreeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -676,7 +750,14 @@ pub mod pallet {
 			)
 		}
 
-		/// Transfer raw land block
+		/// Transfer undeployed land block owner if it is not in auction.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `to`: the account that will receive the undeployed land block
+		/// - `undeployed_land_block_id`: the ID of the land block that will be transferred
+		///
+		/// Emits `UndeployedLandBlockTransferred` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_undeployed_land_blocks())]
 		pub fn transfer_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -691,6 +772,12 @@ pub mod pallet {
 		}
 
 		/// Burn raw land block that will reduce total supply
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be burned
+		///
+		/// Emits `UndeployedLandBlockBurnt` if successful.
 		#[pallet::weight(T::WeightInfo::burn_undeployed_land_blocks())]
 		pub fn burn_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -703,7 +790,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Burn raw land block that will reduce total supply
+		/// Approve existing undeployed land block which is not frozen.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `to`: the account for which the undeployed land block will be approved
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be burned
+		///
+		/// Emits `UndeployedLandBlockApproved` if successful
 		#[pallet::weight(T::WeightInfo::approve_undeployed_land_blocks())]
 		pub fn approve_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -742,7 +836,14 @@ pub mod pallet {
 			)
 		}
 
-		/// Unapprove external wallet to access raw land block.
+		/// Unapprove existing undeployed land block which is not frozen.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be
+		///   unapproved
+		///
+		/// Emits `UndeployedLandBlockUnapproved` if successful
 		#[pallet::weight(T::WeightInfo::unapprove_undeployed_land_blocks())]
 		pub fn unapprove_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -778,7 +879,13 @@ pub mod pallet {
 			)
 		}
 
-		/// Dissolve estate to land units
+		/// Dissolve estate to land units if it is not in auction.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
+		/// - `estate_id`: the ID of the estate that will be dissolved
+		///
+		/// Emits `EstateDestroyed` if successful
 		#[pallet::weight(T::WeightInfo::dissolve_estate())]
 		pub fn dissolve_estate(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -829,7 +936,15 @@ pub mod pallet {
 			})
 		}
 
-		/// Add more land units to existing estate
+		/// Add more land units to existing estate that is not in auction
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
+		/// They must also own the land units.
+		/// - `estate_id`: the ID of the estate that the land units will be added to
+		/// - `land_units`: list of land unit coordinates that will be added to estate
+		///
+		/// Emits `LandUnitAdded` if successful
 		#[pallet::weight(T::WeightInfo::add_land_unit_to_estate())]
 		pub fn add_land_unit_to_estate(
 			origin: OriginFor<T>,
@@ -881,7 +996,14 @@ pub mod pallet {
 			})
 		}
 
-		/// Remove land units from existing estate
+		/// Remove land units from existing estate if it is not in auction.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
+		/// - `estate_id`: the ID of the estate that the land units will be removed from
+		/// - `land_units`: list of land unit coordinates that will be added to estate
+		///
+		/// Emits `LandUnitsRemoved` if successful
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
 		pub fn remove_land_unit_from_estate(
 			origin: OriginFor<T>,
