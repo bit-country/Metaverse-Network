@@ -492,6 +492,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
 			metaverse_id: MetaverseId,
+			land_block_coordinate: (i32, i32),
 			coordinates: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -1471,9 +1472,11 @@ impl<T: Config> Pallet<T> {
 		let mut vec_axis = land_units.iter().map(|lu| lu.0).collect::<Vec<_>>();
 		let mut vec_yaxis = land_units.iter().map(|lu| lu.1).collect::<Vec<_>>();
 
-		// Sort by ascending
+		// Sort by ascending and dedup
 		vec_axis.sort();
+		vec_axis.dedup();
 		vec_yaxis.sort();
+		vec_yaxis.dedup();
 
 		let mut is_axis_valid = true;
 		let mut is_yaxis_valid = true;
@@ -1501,6 +1504,16 @@ impl<T: Config> Pallet<T> {
 		}
 
 		is_axis_valid && is_yaxis_valid
+	}
+
+	fn verify_land_unit_in_bound(block_coordinate: &(i32, i32), land_unit_coordinates: &Vec<(i32, i32)>) -> bool {
+		let mut vec_axis = land_unit_coordinates.iter().map(|lu| lu.0).collect::<Vec<_>>();
+		let mut vec_yaxis = land_unit_coordinates.iter().map(|lu| lu.1).collect::<Vec<_>>();
+
+		block_coordinate.0.saturating_sub(49i32) <= *vec_axis.iter().min().unwrap()
+			&& block_coordinate.0.saturating_add(50i32) <= *vec_axis.iter().max().unwrap()
+			&& block_coordinate.1.saturating_sub(49i32) <= *vec_yaxis.iter().min().unwrap()
+			&& block_coordinate.1.saturating_add(50i32) <= *vec_yaxis.iter().max().unwrap()
 	}
 }
 
