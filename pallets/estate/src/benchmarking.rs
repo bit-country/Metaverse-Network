@@ -23,16 +23,15 @@
 use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
 use frame_support::traits::{Currency, Get};
 use frame_system::RawOrigin;
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
-use sp_std::prelude::*;
-use sp_std::vec;
-
 use primitives::estate::{EstateInfo, OwnerId};
 use primitives::staking::RoundInfo;
 use primitives::Balance;
 // use orml_traits::BasicCurrencyExtended;
 //use pallet_nft::{Config, Pallet as NftModule};
 use primitives::UndeployedLandBlockType;
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_std::prelude::*;
+use sp_std::vec;
 
 #[allow(unused)]
 pub use crate::Pallet as EstateModule;
@@ -233,7 +232,7 @@ benchmarks! {
 				assert_eq!(a.owner, caller.clone());
 				assert_eq!(a.number_land_units, 100);
 				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test
@@ -254,7 +253,7 @@ benchmarks! {
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
-				assert_eq!(a.is_frozen, true);
+				assert_eq!(a.is_locked, true);
 			}
 			_ => {
 				// Should fail test
@@ -276,7 +275,7 @@ benchmarks! {
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test

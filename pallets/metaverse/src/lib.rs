@@ -729,7 +729,7 @@ impl<T: Config> Pallet<T> {
 
 		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
 			num_metaverse_items += 1;
-			
+
 			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
 				owner: metaverse_info_v1.owner,
 				metadata: metaverse_info_v1.metadata,

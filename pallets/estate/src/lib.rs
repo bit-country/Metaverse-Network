@@ -24,7 +24,7 @@ use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating},
-	DispatchError,
+	ArithmeticError, DispatchError,
 };
 use sp_std::vec::Vec;
 
@@ -319,8 +319,10 @@ pub mod pallet {
 		Overflow,
 		EstateStakeAlreadyLeft,
 		AccountHasNoStake,
-		/// Invalid owner value
+		// Invalid owner value
 		InvalidOwnerValue,
+		// Coordinate for estate is not valid
+		CoordinatesForEstateIsNotValid,
 	}
 
 	#[pallet::call]
@@ -437,6 +439,11 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
+			ensure!(
+				Self::verify_land_unit_for_estate(coordinates.clone()),
+				Error::<T>::CoordinatesForEstateIsNotValid
+			);
+
 			// Generate new estate id
 			let new_estate_id = Self::get_new_estate_id()?;
 
@@ -502,7 +509,7 @@ pub mod pallet {
 					);
 
 					ensure!(
-						undeployed_land_block_record.is_frozen == false,
+						undeployed_land_block_record.is_locked == false,
 						Error::<T>::UndeployedLandBlockFreezed
 					);
 
@@ -589,11 +596,11 @@ pub mod pallet {
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 					ensure!(
-						undeployed_land_block_record.is_frozen == true,
+						undeployed_land_block_record.is_locked == true,
 						Error::<T>::UndeployedLandBlockNotFrozen
 					);
 
-					undeployed_land_block_record.is_frozen = false;
+					undeployed_land_block_record.is_locked = false;
 
 					Self::deposit_event(Event::<T>::UndeployedLandBlockUnfreezed(undeployed_land_block_id));
 
@@ -651,7 +658,7 @@ pub mod pallet {
 					);
 
 					ensure!(
-						undeployed_land_block_record.is_frozen == false,
+						undeployed_land_block_record.is_locked == false,
 						Error::<T>::UndeployedLandBlockAlreadyFreezed
 					);
 
@@ -689,7 +696,7 @@ pub mod pallet {
 					);
 
 					ensure!(
-						undeployed_land_block_record.is_frozen == false,
+						undeployed_land_block_record.is_locked == false,
 						Error::<T>::UndeployedLandBlockAlreadyFreezed
 					);
 
@@ -1193,7 +1200,7 @@ impl<T: Config> Pallet<T> {
 				);
 
 				ensure!(
-					undeployed_land_block_record.is_frozen == false,
+					undeployed_land_block_record.is_locked == false,
 					Error::<T>::UndeployedLandBlockAlreadyFreezed
 				);
 
@@ -1225,7 +1232,7 @@ impl<T: Config> Pallet<T> {
 			UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 		ensure!(
-			undeployed_land_block_info.is_frozen,
+			undeployed_land_block_info.is_locked,
 			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
 		);
 		Self::set_total_undeployed_land_unit(undeployed_land_block_info.number_land_units as u64, true)?;
@@ -1248,11 +1255,11 @@ impl<T: Config> Pallet<T> {
 					.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 				ensure!(
-					undeployed_land_block_record.is_frozen == false,
+					undeployed_land_block_record.is_locked == false,
 					Error::<T>::UndeployedLandBlockAlreadyFreezed
 				);
 
-				undeployed_land_block_record.is_frozen = true;
+				undeployed_land_block_record.is_locked = true;
 
 				Self::deposit_event(Event::<T>::UndeployedLandBlockFreezed(undeployed_land_block_id));
 
@@ -1277,7 +1284,7 @@ impl<T: Config> Pallet<T> {
 				number_land_units: number_land_units_per_land_block,
 				undeployed_land_block_type,
 				approved: None,
-				is_frozen: false,
+				is_locked: true,
 				owner: beneficiary.clone(),
 			};
 
@@ -1462,10 +1469,40 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn verify_land_for_estate(land_units: Vec<(i32, i32)>) -> bool {
-		// TODO: check if axis is adjacent
-		// TODO: check if yxis is adjacent
-		true
+	fn verify_land_unit_for_estate(land_units: Vec<(i32, i32)>) -> bool {
+		let mut vec_axis = land_units.iter().map(|lu| lu.0).collect::<Vec<_>>();
+		let mut vec_yaxis = land_units.iter().map(|lu| lu.1).collect::<Vec<_>>();
+
+		// Sort by ascending
+		vec_axis.sort();
+		vec_yaxis.sort();
+
+		let mut is_axis_valid = true;
+		let mut is_yaxis_valid = true;
+
+		// Ensure axis is next to each other
+		for (i, axis) in vec_axis.iter().enumerate() {
+			if axis != &vec_axis[i] {
+				let valid = axis.saturating_sub(vec_axis[i + 1]);
+				if valid != 1 {
+					is_axis_valid = false;
+					break;
+				}
+			}
+		}
+
+		// Ensure yaxis is next to each other
+		for (i, yaxis) in vec_yaxis.iter().enumerate() {
+			if yaxis != &vec_yaxis[i] {
+				let valid = yaxis.saturating_sub(vec_yaxis[i + 1]);
+				if valid != 1 {
+					is_yaxis_valid = false;
+					break;
+				}
+			}
+		}
+
+		is_axis_valid && is_yaxis_valid
 	}
 }
 
