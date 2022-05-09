@@ -1009,6 +1009,48 @@ fn freeze_undeployed_land_block_should_fail_not_found() {
 }
 
 #[test]
+fn freeze_undeployed_land_block_should_fail_if_already_in_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			1,
+			UndeployedLandBlockType::Transferable,
+		));
+
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			21,
+			UndeployedLandBlockType::Transferable,
+		));
+		
+
+		let issued_undeployed_land_block 
+			= EstateModule::get_undeployed_land_block(UNDEPLOYED_LAND_BLOCK_IN_AUCTION);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 21);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
+				assert_eq!(a.is_locked, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+		assert_noop!(
+			EstateModule::freeze_undeployed_land_blocks(Origin::root(), UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
+		);
+	});
+}
+
+#[test]
 fn freeze_undeployed_land_block_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
@@ -1091,6 +1133,48 @@ fn unfreeze_undeployed_land_block_should_fail_not_found() {
 		assert_noop!(
 			EstateModule::unfreeze_undeployed_land_blocks(Origin::root(), 0),
 			Error::<Runtime>::UndeployedLandBlockNotFound
+		);
+	});
+}
+
+#[test]
+fn unfreeze_undeployed_land_block_should_fail_if_already_in_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			1,
+			UndeployedLandBlockType::Transferable,
+		));
+
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			21,
+			UndeployedLandBlockType::Transferable,
+		));
+		
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 21);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
+				assert_eq!(a.is_locked, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_noop!(
+			EstateModule::unfreeze_undeployed_land_blocks(Origin::root(), UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
 	});
 }
@@ -1212,6 +1296,8 @@ fn transfer_undeployed_land_block_should_fail_if_freezed() {
 	});
 }
 
+
+
 #[test]
 fn transfer_undeployed_land_block_should_fail_if_not_transferable() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -1228,6 +1314,48 @@ fn transfer_undeployed_land_block_should_fail_if_not_transferable() {
 		assert_noop!(
 			EstateModule::transfer_undeployed_land_blocks(Origin::signed(BOB), ALICE, undeployed_land_block_id),
 			Error::<Runtime>::UndeployedLandBlockIsNotTransferable
+		);
+	});
+}
+
+#[test]
+fn transfer_undeployed_land_block_should_fail_if_already_in_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			1,
+			UndeployedLandBlockType::Transferable,
+		));
+
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			21,
+			UndeployedLandBlockType::Transferable,
+		));
+		
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 21);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
+				assert_eq!(a.is_locked, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_noop!(
+			EstateModule::transfer_undeployed_land_blocks(Origin::signed(BOB), ALICE, UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
 	});
 }
@@ -1375,27 +1503,50 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 }
 
 #[test]
-fn deploy_undeployed_land_block_should_fail_not_enough_land_units() {
+fn deploy_undeployed_land_block_should_fail_if_already_in_auction() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
 			Origin::root(),
 			BOB,
 			1,
 			1,
-			UndeployedLandBlockType::BoundToAddress
+			UndeployedLandBlockType::Transferable,
 		));
 
-		let undeployed_land_block_id: UndeployedLandBlockId = 0;
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			21,
+			UndeployedLandBlockType::Transferable,
+		));
+		
+
+		let issued_undeployed_land_block 
+			= EstateModule::get_undeployed_land_block(1);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 21);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
+				assert_eq!(a.is_locked, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
 
 		assert_noop!(
 			EstateModule::deploy_land_block(
 				Origin::signed(BOB),
-				undeployed_land_block_id,
+				UNDEPLOYED_LAND_BLOCK_IN_AUCTION,
 				METAVERSE_ID,
 				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			),
-			Error::<Runtime>::UndeployedLandBlockUnitAndInputDoesNotMatch
+			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
 	});
 }
@@ -1508,6 +1659,49 @@ fn approve_undeployed_land_block_should_fail_if_freezed() {
 		assert_noop!(
 			EstateModule::approve_undeployed_land_blocks(Origin::signed(BOB), ALICE, undeployed_land_block_id),
 			Error::<Runtime>::UndeployedLandBlockAlreadyFreezed
+		);
+	});
+}
+
+#[test]
+fn approve_undeployed_land_block_should_fail_if_already_in_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			1,
+			UndeployedLandBlockType::Transferable,
+		));
+
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			21,
+			UndeployedLandBlockType::Transferable,
+		));
+		
+
+		let issued_undeployed_land_block 
+			= EstateModule::get_undeployed_land_block(1);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 21);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
+				assert_eq!(a.is_locked, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_noop!(
+			EstateModule::approve_undeployed_land_blocks(Origin::signed(BOB), ALICE, UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
 	});
 }
@@ -1633,6 +1827,49 @@ fn unapprove_undeployed_land_block_should_fail_if_freezed() {
 }
 
 #[test]
+fn unapprove_undeployed_land_block_should_fail_if_already_in_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			1,
+			UndeployedLandBlockType::Transferable,
+		));
+
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			21,
+			UndeployedLandBlockType::Transferable,
+		));
+		
+
+		let issued_undeployed_land_block 
+			= EstateModule::get_undeployed_land_block(1);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 21);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
+				assert_eq!(a.is_locked, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_noop!(
+			EstateModule::unapprove_undeployed_land_blocks(Origin::signed(BOB), UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
+		);
+	});
+}
+
+#[test]
 fn unapprove_undeployed_land_block_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::issue_undeployed_land_blocks(
@@ -1722,6 +1959,49 @@ fn burn_undeployed_land_block_should_fail_not_found() {
 		);
 	});
 }
+
+#[test]
+fn burn_undeployed_land_block_should_fail_if_already_in_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			1,
+			UndeployedLandBlockType::Transferable,
+		));
+
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			21,
+			UndeployedLandBlockType::Transferable,
+		));
+		
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 21);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::Transferable);
+				assert_eq!(a.is_locked, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		assert_noop!(
+			EstateModule::burn_undeployed_land_blocks(Origin::root(), UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
+		);
+	});
+}
+
 
 #[test]
 fn burn_undeployed_land_block_should_work() {

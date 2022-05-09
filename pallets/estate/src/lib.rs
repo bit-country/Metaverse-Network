@@ -672,15 +672,15 @@ pub mod pallet {
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 					ensure!(
-						undeployed_land_block_record.is_locked == true,
-						Error::<T>::UndeployedLandBlockNotFrozen
-					);
-
-					ensure!(
 						!T::AuctionHandler::check_item_in_auction(
 							ItemId::UndeployedLandBlock(undeployed_land_block_id)
 						),
 						Error::<T>::UndeployedLandBlockAlreadyInAuction
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_locked == true,
+						Error::<T>::UndeployedLandBlockNotFrozen
 					);
 
 					undeployed_land_block_record.is_locked = false;
@@ -700,6 +700,13 @@ pub mod pallet {
 			undeployed_land_block_id: UndeployedLandBlockId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			ensure!(
+				!T::AuctionHandler::check_item_in_auction(
+					ItemId::UndeployedLandBlock(undeployed_land_block_id)
+				),
+				Error::<T>::UndeployedLandBlockAlreadyInAuction
+			);
 
 			Self::do_transfer_undeployed_land_block(&who, &to, undeployed_land_block_id)?;
 
@@ -741,15 +748,15 @@ pub mod pallet {
 					);
 
 					ensure!(
-						undeployed_land_block_record.is_locked == false,
-						Error::<T>::UndeployedLandBlockAlreadyFreezed
-					);
-
-					ensure!(
 						!T::AuctionHandler::check_item_in_auction(
 							ItemId::UndeployedLandBlock(undeployed_land_block_id)
 						),
 						Error::<T>::UndeployedLandBlockAlreadyInAuction
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_locked == false,
+						Error::<T>::UndeployedLandBlockAlreadyFreezed
 					);
 
 					undeployed_land_block_record.approved = Some(to.clone());
@@ -786,15 +793,15 @@ pub mod pallet {
 					);
 
 					ensure!(
-						undeployed_land_block_record.is_locked == false,
-						Error::<T>::UndeployedLandBlockAlreadyFreezed
-					);
-
-					ensure!(
 						!T::AuctionHandler::check_item_in_auction(
 							ItemId::UndeployedLandBlock(undeployed_land_block_id)
 						),
 						Error::<T>::UndeployedLandBlockAlreadyInAuction
+					);
+
+					ensure!(
+						undeployed_land_block_record.is_locked == false,
+						Error::<T>::UndeployedLandBlockAlreadyFreezed
 					);
 
 					undeployed_land_block_record.approved = None;
@@ -1326,15 +1333,15 @@ impl<T: Config> Pallet<T> {
 			UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 		ensure!(
-			!undeployed_land_block_info.is_locked,
-			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
-		);
-
-		ensure!(
 			!T::AuctionHandler::check_item_in_auction(
 				ItemId::UndeployedLandBlock(undeployed_land_block_id)
 			),
 			Error::<T>::UndeployedLandBlockAlreadyInAuction
+		);
+
+		ensure!(
+			!undeployed_land_block_info.is_locked,
+			Error::<T>::OnlyFrozenUndeployedLandBlockCanBeDestroyed
 		);
 
 		Self::set_total_undeployed_land_unit(undeployed_land_block_info.number_land_units as u64, true)?;

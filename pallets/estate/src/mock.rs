@@ -36,6 +36,7 @@ pub const COORDINATE_IN_2: (i32, i32) = (-5, 5);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 pub const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 pub const ESTATE_IN_AUCTION: EstateId = 99;
+pub const UNDEPLOYED_LAND_BLOCK_IN_AUCTION: UndeployedLandBlockId = 1;
 
 pub const BOND_AMOUNT_1: Balance = 1000;
 pub const BOND_AMOUNT_2: Balance = 2000;
@@ -243,6 +244,9 @@ impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
 	fn check_item_in_auction(item_id: ItemId<Balance>) -> bool {
 		match item_id {
 			ItemId::Estate(ESTATE_IN_AUCTION) => {
+				return true;
+			}
+			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_IN_AUCTION) => {
 				return true;
 			}
 			ItemId::LandUnit(COORDINATE_IN_AUCTION, METAVERSE_ID) => {
