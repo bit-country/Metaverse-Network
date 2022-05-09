@@ -185,11 +185,6 @@ pub mod pallet {
 	#[pallet::getter(fn staking_info)]
 	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
-	/// Local metaverse marketplace listing fee
-	#[pallet::storage]
-	#[pallet::getter(fn get_metaverse_marketplace_listing_fee)]
-	pub(crate) type MarketplaceListingFee<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, Perbill, ValueQuery>;
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -596,12 +591,7 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		//		fn on_runtime_upgrade() -> Weight {
-		//			Self::upgrade_metaverse_info_v2();
-		//			0
-		//		}
-	}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {
@@ -620,6 +610,7 @@ impl<T: Config> Pallet<T> {
 			is_frozen: false,
 			land_class_id,
 			estate_class_id,
+			listing_fee: Perbill::from_percent(0u32),
 		};
 
 		Metaverses::<T>::insert(metaverse_id, metaverse_info);
@@ -717,24 +708,29 @@ impl<T: Config> Pallet<T> {
 		new_listing_fee: Perbill,
 	) -> Result<(), DispatchError> {
 		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
-		MarketplaceListingFee::<T>::insert(metaverse_id, new_listing_fee);
-		Ok(())
+
+		Metaverses::<T>::try_mutate(metaverse_id, |metaverse_info| -> DispatchResult {
+			let t = metaverse_info.as_mut().ok_or(Error::<T>::MetaverseInfoNotFound)?;
+			t.listing_fee = new_listing_fee;
+			Ok(())
+		})
 	}
 
 	pub fn upgrade_metaverse_info_v2() -> Weight {
 		log::info!("Start upgrade_metaverse_info_v2");
 		let mut num_metaverse_items = 0;
+
 		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
 		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
 
 		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
 			num_metaverse_items += 1;
-
 			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
 				owner: metaverse_info_v1.owner,
 				metadata: metaverse_info_v1.metadata,
 				currency_id: metaverse_info_v1.currency_id,
 				is_frozen: false,
+				listing_fee: Perbill::from_percent(0u32),
 				land_class_id: default_land_class_id,
 				estate_class_id: default_estate_class_id,
 			};
@@ -791,8 +787,10 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
-		return Self::get_metaverse_marketplace_listing_fee(metaverse_id);
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		let metaverse_info = Metaverses::<T>::get(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+
+		Ok(metaverse_info.listing_fee)
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {

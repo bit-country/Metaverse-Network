@@ -191,6 +191,7 @@ parameter_types! {
 	// Test 1% royalty fee
 	pub const RoyaltyFee: u16 = 100;
 	pub const MaxFinality: u32 = 3;
+	pub const MaxBundleItem: u32 = 5;
 }
 
 pub struct MetaverseInfoSource {}
@@ -228,8 +229,8 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		Ok(16u32)
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
-		Perbill::from_percent(1u32)
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		Ok(Perbill::from_percent(1u32))
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
@@ -254,6 +255,7 @@ impl Config for Runtime {
 	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
 	type NFTHandler = NFTModule;
+	type MaxBundleItem = MaxBundleItem;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -419,7 +421,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn create_auction(
 		_auction_type: AuctionType,
-		_item_id: ItemId,
+		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
 		_recipient: u128,
 		_initial_amount: Self::Balance,
@@ -430,7 +432,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		Ok(1)
 	}
 
-	fn remove_auction(_id: u64, _item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -456,15 +458,13 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_high_bidder: &u128,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
-		_listng_level: ListingLevel<AccountId>,
-		_listing_fee: Perbill,
 	) -> DispatchResult {
 		Ok(())
 	}
 }
 
-impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(_item_id: ItemId) -> bool {
+impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
+	fn check_item_in_auction(_item_id: ItemId<Balance>) -> bool {
 		return false;
 	}
 }

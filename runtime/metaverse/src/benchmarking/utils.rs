@@ -22,8 +22,8 @@ pub fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
-//pub fn lookup_of_account(who: AccountId) 
-//-> <<Runtime as frame_system::Config>::Lookup as StaticLookup>::Source { 	
+//pub fn lookup_of_account(who: AccountId)
+//-> <<Runtime as frame_system::Config>::Lookup as StaticLookup>::Source {
 //	<Runtime as frame_system::Config>::Lookup::unlookup(who)
 //}
 

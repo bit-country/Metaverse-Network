@@ -120,21 +120,23 @@ pub type EvmAddress = sp_core::H160;
 pub type NftMetadata = Vec<u8>;
 /// NFT Attributes
 pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
+
 /// Land Token Class Id
 pub const LAND_CLASS_ID: ClassId = 15;
 /// Estate Token Class Id
 pub const ESTATE_CLASS_ID: ClassId = 16;
 
 /// Public item id for auction
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum ItemId {
+pub enum ItemId<Balance> {
 	NFT(ClassId, TokenId),
 	Spot(u64, MetaverseId),
 	Country(MetaverseId),
 	Block(u64),
 	Estate(EstateId),
 	LandUnit((i32, i32), MetaverseId),
+	Bundle(Vec<(ClassId, TokenId, Balance)>),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
@@ -144,7 +146,6 @@ pub enum FungibleTokenId {
 	FungibleToken(TokenId),
 	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
-
 	Stable(TokenId), // kUSD
 }
 

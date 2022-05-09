@@ -39,6 +39,7 @@ fn create_metaverse_should_work() {
 				is_frozen: false,
 				land_class_id: 0u32,
 				estate_class_id: 1u32,
+				listing_fee: Perbill::from_percent(0u32)
 			})
 		);
 		let event = Event::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
@@ -353,7 +354,7 @@ fn update_metaverse_listing_fee_should_work() {
 		));
 		assert_eq!(
 			MetaverseModule::get_metaverse_marketplace_listing_fee(METAVERSE_ID),
-			Perbill::from_percent(10u32)
+			Ok(Perbill::from_percent(10u32))
 		);
 	})
 }

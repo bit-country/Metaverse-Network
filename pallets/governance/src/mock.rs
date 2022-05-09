@@ -171,8 +171,8 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 		Ok(16u32)
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
-		Perbill::from_percent(1u32)
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		Ok(Perbill::from_percent(1u32))
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
@@ -343,6 +343,14 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			royalty_fee: Perbill::from_percent(0u32),
 		};
 		Ok(new_data)
+	}
+
+	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {
+		todo!()
+	}
+
+	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
+		todo!()
 	}
 }
 

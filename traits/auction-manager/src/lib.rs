@@ -45,7 +45,7 @@ pub enum ListingLevel<AccountId> {
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct AuctionItem<AccountId, BlockNumber, Balance> {
-	pub item_id: ItemId,
+	pub item_id: ItemId<Balance>,
 	pub recipient: AccountId,
 	pub initial_amount: Balance,
 	/// Current amount for sale
@@ -57,6 +57,22 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 	pub listing_level: ListingLevel<AccountId>,
 	pub currency_id: FungibleTokenId,
 	pub listing_fee: Perbill,
+}
+
+#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
+pub struct AuctionItemV1<AccountId, BlockNumber, Balance> {
+	pub item_id: ItemId<Balance>,
+	pub recipient: AccountId,
+	pub initial_amount: Balance,
+	/// Current amount for sale
+	pub amount: Balance,
+	/// Auction start time
+	pub start_time: BlockNumber,
+	pub end_time: BlockNumber,
+	pub auction_type: AuctionType,
+	pub listing_level: ListingLevel<AccountId>,
+	pub currency_id: FungibleTokenId,
 }
 
 /// Auction info.
@@ -91,7 +107,7 @@ pub trait Auction<AccountId, BlockNumber> {
 
 	fn create_auction(
 		auction_type: AuctionType,
-		item_id: ItemId,
+		item_id: ItemId<Self::Balance>,
 		end: Option<BlockNumber>,
 		recipient: AccountId,
 		initial_amount: Self::Balance,
@@ -101,7 +117,7 @@ pub trait Auction<AccountId, BlockNumber> {
 	) -> Result<AuctionId, DispatchError>;
 
 	/// Remove auction by `id`
-	fn remove_auction(id: AuctionId, item_id: ItemId);
+	fn remove_auction(id: AuctionId, item_id: ItemId<Self::Balance>);
 
 	fn auction_bid_handler(
 		_now: BlockNumber,
@@ -123,13 +139,11 @@ pub trait Auction<AccountId, BlockNumber> {
 		high_bidder: &AccountId,
 		asset_id: &(ClassId, TokenId),
 		social_currency_id: FungibleTokenId,
-		listing_level: ListingLevel<AccountId>,
-		listing_fee: Perbill,
 	) -> DispatchResult;
 }
 
-pub trait CheckAuctionItemHandler {
-	fn check_item_in_auction(item_id: ItemId) -> bool;
+pub trait CheckAuctionItemHandler<Balance> {
+	fn check_item_in_auction(item_id: ItemId<Balance>) -> bool;
 }
 
 /// The result of bid handling.

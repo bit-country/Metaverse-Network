@@ -153,8 +153,8 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		Ok(16u32)
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill {
-		Perbill::from_percent(1u32)
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		Ok(Perbill::from_percent(1u32))
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
