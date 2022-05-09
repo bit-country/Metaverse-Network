@@ -30,6 +30,7 @@ pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
 pub const MAX_BOUND: (i32, i32) = (-100, 100);
+pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
 pub const COORDINATE_IN_1: (i32, i32) = (-10, 10);
 pub const COORDINATE_IN_2: (i32, i32) = (-5, 5);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
@@ -127,6 +128,10 @@ parameter_types! {
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		1u64
+	}
+
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
@@ -147,12 +152,12 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		Ok(())
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
-		15u32
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		Ok(15u32)
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
-		16u32
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		Ok(16u32)
 	}
 
 	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
@@ -304,8 +309,16 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		royalty_fee: Perbill,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
-			ALICE => Ok(1),
-			BOB => Ok(2),
+			ALICE => {
+				if collection_id == 0 {
+					Ok(0)
+				} else if collection_id == 1 {
+					Ok(1)
+				} else {
+					Ok(2)
+				}
+			}
+			BOB => Ok(3),
 			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
 			_ => Ok(100),
 		}
@@ -358,14 +371,14 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		CLASS_FUND_ID
 	}
 
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<(NftClassData<Balance>), DispatchError> {
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
 		let new_data = NftClassData {
 			deposit: 0,
 			attributes: test_attributes(1),
 			token_type: TokenType::Transferable,
 			collection_type: CollectionType::Collectable,
 			is_locked: false,
-			royalty_fee: Perbill::from_percent(0),
+			royalty_fee: Perbill::from_percent(0u32),
 		};
 		Ok(new_data)
 	}
@@ -384,6 +397,7 @@ parameter_types! {
 	pub const MinimumStake: Balance = 200;
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
+	pub const DefaultMaxBound: (i32,i32) = MAX_BOUND;
 }
 
 impl Config for Runtime {
@@ -399,6 +413,7 @@ impl Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
 	type NFTTokenizationSource = MockNFTHandler;
+	type DefaultMaxBound = DefaultMaxBound;
 }
 
 construct_runtime!(

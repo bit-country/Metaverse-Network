@@ -851,6 +851,7 @@ impl<T: Config> Pallet<T> {
 		Ok(next_class_id)
 	}
 
+	/// Internal NFT burning
 	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
 		NftModule::<T>::burn(&sender, *asset_id)?;
 		Ok(())

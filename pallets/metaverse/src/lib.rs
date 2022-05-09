@@ -35,7 +35,7 @@ use sp_runtime::{
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use core_primitives::*;
-use core_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseInfoV1, MetaverseTrait};
 pub use pallet::*;
 use primitives::staking::MetaverseStakingTrait;
 use primitives::{ClassId, FungibleTokenId, MetaverseId, RoundIndex, TokenId};
@@ -62,6 +62,8 @@ pub struct MetaverseStakingSnapshot<Balance> {
 }
 
 const LOCK_STAKING: LockIdentifier = *b"stakelok";
+const ESTATE_CLASS_ROYALTY_FEE: u32 = 5;
+const LAND_CLASS_ROYALTY_FEE: u32 = 10;
 
 /// Storing the reward detail of metaverse that store the list of stakers for each metaverse
 /// This will be used to reward metaverse owner and the stakers.
@@ -242,35 +244,8 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::create_metaverse())]
 		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-
-			ensure!(
-				metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
-				Error::<T>::MaxMetadataExceeded
-			);
-
-			ensure!(
-				T::Currency::free_balance(&who) >= T::MinContribution::get(),
-				Error::<T>::InsufficientContribution
-			);
-
-			T::Currency::transfer(
-				&who,
-				&Self::account_id(),
-				T::MinContribution::get(),
-				ExistenceRequirement::KeepAlive,
-			)?;
-			let metaverse_id = Self::new_metaverse(&who, metadata)?;
-
-			MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
-
-			let total_metaverse_count = Self::all_metaverse_count();
-			let new_total_metaverse_count = total_metaverse_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
-			AllMetaversesCount::<T>::put(new_total_metaverse_count);
-			Self::mint_metaverse_estate_class(&who, metaverse_id);
-			Self::mint_metaverse_land_class(&who, metaverse_id);
-			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), who));
+			let metaverse_id = Self::do_create_metaverse(&who, metadata)?;
+			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id, who));
 
 			Ok(().into())
 		}
@@ -616,12 +591,7 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		//		fn on_runtime_upgrade() -> Weight {
-		//			Self::upgrade_metaverse_info_v2();
-		//			0
-		//		}
-	}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {
@@ -631,17 +601,49 @@ impl<T: Config> Pallet<T> {
 			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableMetaverseId)?;
 			Ok(current_id)
 		})?;
-
+		let land_class_id = Self::mint_metaverse_land_class(owner, metaverse_id)?;
+		let estate_class_id = Self::mint_metaverse_estate_class(owner, metaverse_id)?;
 		let metaverse_info = MetaverseInfo {
 			owner: owner.clone(),
 			currency_id: FungibleTokenId::NativeToken(0),
 			metadata,
 			is_frozen: false,
+			land_class_id,
+			estate_class_id,
 			listing_fee: Perbill::from_percent(0u32),
 		};
 
 		Metaverses::<T>::insert(metaverse_id, metaverse_info);
 
+		Ok(metaverse_id)
+	}
+
+	fn do_create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId, DispatchError> {
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
+			Error::<T>::MaxMetadataExceeded
+		);
+
+		ensure!(
+			T::Currency::free_balance(&who) >= T::MinContribution::get(),
+			Error::<T>::InsufficientContribution
+		);
+
+		T::Currency::transfer(
+			&who,
+			&Self::account_id(),
+			T::MinContribution::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+		let metaverse_id = Self::new_metaverse(&who, metadata)?;
+
+		MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
+
+		let total_metaverse_count = Self::all_metaverse_count();
+		let new_total_metaverse_count = total_metaverse_count
+			.checked_add(One::one())
+			.ok_or("Overflow adding new count to new_total_metaverse_count")?;
+		AllMetaversesCount::<T>::put(new_total_metaverse_count);
 		Ok(metaverse_id)
 	}
 
@@ -664,38 +666,40 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) {
+	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for lands
 		let mut land_class_attributes = Attributes::new();
 		land_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
 		land_class_attributes.insert("Category:".as_bytes().to_vec(), "Lands".as_bytes().to_vec());
 		let land_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
+		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account();
 		T::NFTHandler::create_token_class(
-			sender,
+			&class_owner,
 			land_class_metadata,
 			land_class_attributes,
 			0,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(10u32),
-		);
+			Perbill::from_percent(LAND_CLASS_ROYALTY_FEE),
+		)
 	}
 
-	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) {
+	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for estates
 		let mut estate_class_attributes = Attributes::new();
 		estate_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
 		estate_class_attributes.insert("Category:".as_bytes().to_vec(), "Estates".as_bytes().to_vec());
 		let estate_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
+		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account();
 		T::NFTHandler::create_token_class(
-			sender,
+			&class_owner,
 			estate_class_metadata,
 			estate_class_attributes,
 			1,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(10u32),
-		);
+			Perbill::from_percent(ESTATE_CLASS_ROYALTY_FEE),
+		)
 	}
 
 	fn do_update_metaverse_listing_fee(
@@ -716,6 +720,9 @@ impl<T: Config> Pallet<T> {
 		log::info!("Start upgrade_metaverse_info_v2");
 		let mut num_metaverse_items = 0;
 
+		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
+		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
+
 		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
 			num_metaverse_items += 1;
 			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
@@ -724,6 +731,8 @@ impl<T: Config> Pallet<T> {
 				currency_id: metaverse_info_v1.currency_id,
 				is_frozen: false,
 				listing_fee: Perbill::from_percent(0u32),
+				land_class_id: default_land_class_id,
+				estate_class_id: default_estate_class_id,
 			};
 			Some(v2)
 		});
@@ -734,6 +743,10 @@ impl<T: Config> Pallet<T> {
 }
 
 impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
+	fn create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		Self::do_create_metaverse(who, metadata).unwrap_or_default()
+	}
+
 	fn check_ownership(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
 		Self::get_metaverse_owner(who, metaverse_id) == Some(())
 	}
@@ -764,12 +777,14 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 		})
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId {
-		return TryInto::<ClassId>::try_into(15u32).unwrap_or_default();
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId {
-		return TryInto::<ClassId>::try_into(16u32).unwrap_or_default();
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
 	}
 
 	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {

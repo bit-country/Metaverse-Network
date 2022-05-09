@@ -1123,7 +1123,7 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
-	pub const RoyaltyFee: u16 = 10; // Loyalty fee 0.1%
+	pub const RoyaltyFee: u16 = 10; // Royalty fee 0.1%
 }
 
 impl auction::Config for Runtime {
