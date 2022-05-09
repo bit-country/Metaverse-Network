@@ -296,8 +296,7 @@ pub mod pallet {
 		LandUnitIsNotAvailable,
 		// Land unit is out of bound
 		LandUnitIsOutOfBound,
-		// No max bound set
-		NoMaxBoundSet,
+		// Undeployed land block not found
 		UndeployedLandBlockNotFound,
 		UndeployedLandBlockIsNotTransferable,
 		UndeployedLandBlockDoesNotHaveEnoughLandUnits,
@@ -496,6 +495,21 @@ pub mod pallet {
 			coordinates: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			// Ensure the max bound is set for the metaverse
+			let max_bound = T::DefaultMaxBound::get();
+
+			// Check whether the coordinate is within the bound
+			ensure!(
+				(land_block_coordinate.0 >= max_bound.0 && max_bound.1 >= land_block_coordinate.0)
+					&& (land_block_coordinate.1 >= max_bound.0 && max_bound.1 >= land_block_coordinate.1),
+				Error::<T>::LandUnitIsOutOfBound
+			);
+
+			ensure!(
+				Self::verify_land_unit_in_bound(&land_block_coordinate, &coordinates),
+				Error::<T>::LandUnitIsOutOfBound
+			);
 
 			UndeployedLandBlocks::<T>::try_mutate_exists(
 				&undeployed_land_block_id,
@@ -1064,15 +1078,6 @@ impl<T: Config> Pallet<T> {
 		coordinate: (i32, i32),
 		land_unit_status: LandUnitStatus<T::AccountId>,
 	) -> Result<OwnerId<T::AccountId, TokenId>, DispatchError> {
-		// Ensure the max bound is set for the metaverse
-		let max_bound = T::DefaultMaxBound::get();
-
-		// Check whether the coordinate is within the bound
-		ensure!(
-			(coordinate.0 >= max_bound.0 && max_bound.1 >= coordinate.0)
-				&& (coordinate.1 >= max_bound.0 && max_bound.1 >= coordinate.1),
-			Error::<T>::LandUnitIsOutOfBound
-		);
 		let mut owner = OwnerId::Account(beneficiary.clone());
 
 		match land_unit_status {
@@ -1510,10 +1515,13 @@ impl<T: Config> Pallet<T> {
 		let mut vec_axis = land_unit_coordinates.iter().map(|lu| lu.0).collect::<Vec<_>>();
 		let mut vec_yaxis = land_unit_coordinates.iter().map(|lu| lu.1).collect::<Vec<_>>();
 
+		let max_axis = *vec_axis.iter().max().unwrap();
+		let max_yaxis = *vec_yaxis.iter().max().unwrap();
+
 		block_coordinate.0.saturating_sub(49i32) <= *vec_axis.iter().min().unwrap()
-			&& block_coordinate.0.saturating_add(50i32) <= *vec_axis.iter().max().unwrap()
+			&& block_coordinate.0 <= max_axis.saturating_add(50i32)
 			&& block_coordinate.1.saturating_sub(49i32) <= *vec_yaxis.iter().min().unwrap()
-			&& block_coordinate.1.saturating_add(50i32) <= *vec_yaxis.iter().max().unwrap()
+			&& block_coordinate.1 <= max_yaxis.saturating_add(50i32)
 	}
 }
 
