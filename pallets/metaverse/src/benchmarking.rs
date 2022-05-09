@@ -20,19 +20,21 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use super::*;
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_support::traits::{Currency, Get};
+use frame_system::RawOrigin;
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
 use sp_std::prelude::*;
 use sp_std::vec;
+
+use primitives::Balance;
 
 #[allow(unused)]
 pub use crate::Pallet as MetaverseModule;
 use crate::*;
-use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
-use frame_support::traits::{Currency, Get};
-use frame_system::RawOrigin;
-use primitives::Balance;
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
-use sp_runtime::Perbill;
+
+use super::*;
 
 pub type AccountId = u128;
 

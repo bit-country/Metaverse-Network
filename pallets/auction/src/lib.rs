@@ -182,7 +182,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_auction_item)]
-	//Store asset with Auction
+	/// Store asset with Auction
 	pub(super) type AuctionItems<T: Config> =
 		StorageMap<_, Twox64Concat, AuctionId, AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>>, OptionQuery>;
 
@@ -523,7 +523,8 @@ pub mod pallet {
 
 			// Only support NFT on marketplace
 			ensure!(
-				matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)),
+				(matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)))
+					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_))),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -540,7 +541,7 @@ pub mod pallet {
 			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
 			match listing_level {
 				ListingLevel::Local(metaverse_id) => {
-					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id);
+					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
 				}
 				_ => {}
 			}
@@ -579,7 +580,8 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
-				matches!(item_id, ItemId::NFT(_, _)),
+				(matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)))
+					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_))),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -595,7 +597,7 @@ pub mod pallet {
 			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
 			match listing_level {
 				ListingLevel::Local(metaverse_id) => {
-					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id);
+					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
 				}
 				_ => {}
 			}
@@ -839,6 +841,11 @@ pub mod pallet {
 				};
 			}
 		}
+
+		//		fn on_runtime_upgrade() -> Weight {
+		//			Self::upgrade_auction_item_data_v2();
+		//			0
+		//		}
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {

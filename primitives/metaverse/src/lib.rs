@@ -310,18 +310,18 @@ impl Default for UndeployedLandBlockType {
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 // #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct UndeployedLandBlock<AccountId> {
-	// Minimum balance to create a collection of Asset
+	/// id of undeploy land block
 	pub id: UndeployedLandBlockId,
-	// Metadata from ipfs
+	/// Number of land units in this undeployed land block
 	pub number_land_units: u32,
+	/// Type of undeployed land block type
 	pub undeployed_land_block_type: UndeployedLandBlockType,
-
 	/// The owner of this asset.
 	pub owner: AccountId,
-	/// The approved transferrer of this asset, if one is set.
+	/// The approved co-owned of this asset, if one is set.
 	pub approved: Option<AccountId>,
-	/// Whether the asset can be transferred or not.
-	pub is_frozen: bool,
+	/// Whether the undeployed land block is locked
+	pub is_locked: bool,
 }
 
 // create_currency_id! {

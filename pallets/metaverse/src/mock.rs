@@ -1,16 +1,13 @@
 #![cfg(test)]
-
+use crate as metaverse;
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
-use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
-
 use primitives::staking::RoundInfo;
 use primitives::{Amount, ClassId, GroupCollectionId, TokenId};
-
-use crate as metaverse;
+use sp_core::H256;
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use super::*;
 
@@ -148,10 +145,18 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		royalty_fee: Perbill,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
-			ALICE => Ok(1),
-			BOB => Ok(2),
+			ALICE => Ok(100),
+			BOB => Ok(3),
 			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
-			_ => Ok(100),
+			_ => {
+				if collection_id == 0 {
+					Ok(0)
+				} else if collection_id == 1 {
+					Ok(1)
+				} else {
+					Ok(2)
+				}
+			}
 		}
 	}
 

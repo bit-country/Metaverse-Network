@@ -1,4 +1,5 @@
 use frame_support::assert_ok;
+use frame_support::codec::Encode;
 use orml_traits::MultiCurrency;
 use xcm::latest::{Junction, Junction::*, Junctions::*, MultiLocation, NetworkId};
 use xcm_emulator::TestExt;
@@ -20,6 +21,8 @@ fn transfer_native_to_sibling() {
 	let bob_initial_balance = native_amount(10000);
 	let transfer_amount = native_amount(1);
 
+	let currency_id = FungibleTokenId::NativeToken(0).encode();
+	let bit_id = FungibleTokenId::MiningResource(0).encode();
 	Development::execute_with(|| {
 		assert_eq!(Balances::free_balance(&ALICE.into()), alice_initial_balance);
 		assert_eq!(Balances::free_balance(&sibling_account()), 0);

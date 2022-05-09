@@ -139,6 +139,24 @@ pub struct MetaverseInfo<AccountId> {
 	pub currency_id: FungibleTokenId,
 	/// Whether the metaverse can be transferred or not.
 	pub is_frozen: bool,
+	/// Metaverse listing fee
+	pub listing_fee: Perbill,
+	/// Class Id for land tokens
+	pub land_class_id: ClassId,
+	/// Class Id for estate tokens
+	pub estate_class_id: ClassId,
+}
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+pub struct MetaverseInfoV1<AccountId> {
+	/// The owner of this metaverse
+	pub owner: AccountId,
+	/// The metadata of this metaverse
+	pub metadata: MetaverseMetadata,
+	/// The currency use in this metaverse
+	pub currency_id: FungibleTokenId,
+	/// Whether the metaverse can be transferred or not.
+	pub is_frozen: bool,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
@@ -154,6 +172,8 @@ pub struct MetaverseFund<AccountId, Balance> {
 }
 
 pub trait MetaverseTrait<AccountId> {
+	/// Create metaverse
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId;
 	/// Check the ownership of this metaverse
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
 	/// Get the detail of this metaverse
@@ -163,11 +183,11 @@ pub trait MetaverseTrait<AccountId> {
 	/// Update metaverse token, this only use once per metaverse
 	fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
 	/// Get the land class for a specific metaverse
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> ClassId;
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError>;
 	/// Get the estate class for a specific metaverse
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> ClassId;
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError>;
 	/// Get metaverse marketplace listing fee
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Perbill;
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError>;
 	/// Get metaverse treasury
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId;
 }
