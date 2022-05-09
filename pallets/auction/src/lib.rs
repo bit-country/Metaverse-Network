@@ -493,6 +493,9 @@ pub mod pallet {
 
 							Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
 						}
+						ItemId::UndeployedLandBlock(undeployed_land_block_id) {
+							todo!()
+						}
 						_ => {} // Future implementation for other items
 					}
 				}
@@ -829,6 +832,9 @@ pub mod pallet {
 												high_bid_price,
 											));
 										}
+										ItemId::UndeployedLandBlock(undeployed_land_block_id) {
+											todo!()
+										}
 										_ => {} // Future implementation for Spot, Metaverse
 									}
 									<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
@@ -1140,6 +1146,9 @@ pub mod pallet {
 					));
 					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
+				}
+				ItemId::UndeployedLandBlock(undeployed_land_block_id) {
+					todo!()
 				}
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
 			}

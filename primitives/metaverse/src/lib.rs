@@ -137,6 +137,7 @@ pub enum ItemId<Balance> {
 	Estate(EstateId),
 	LandUnit((i32, i32), MetaverseId),
 	Bundle(Vec<(ClassId, TokenId, Balance)>),
+	UndeployedLandBlock(UndeployedLandBlockId),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
