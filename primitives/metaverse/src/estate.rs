@@ -6,6 +6,7 @@ use sp_runtime::DispatchError;
 use sp_runtime::{Perbill, RuntimeDebug};
 
 use crate::{EstateId, MetaverseId, TokenId};
+use crate::UndeployedLandBlockId;
 
 pub trait Estate<AccountId> {
 	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId) -> Result<EstateId, DispatchError>;
@@ -16,9 +17,17 @@ pub trait Estate<AccountId> {
 		to: &(AccountId, MetaverseId),
 	) -> Result<(i32, i32), DispatchError>;
 
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		to: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError>;
+
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError>;
 
 	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError>;
+
+	// fn check_undeployed_land_block(undeployed_land_block: UndeployedLandBlockId) -> Result<bool, DispatchError>;
 
 	fn get_total_land_units() -> u64;
 

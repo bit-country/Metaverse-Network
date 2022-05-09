@@ -1684,6 +1684,16 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 		Ok(coordinate)
 	}
 
+	fn transfer_undeployed_land_block(
+		who: &T::AccountId,
+		to: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		let undeployed_land_block_id = Self::do_transfer_undeployed_land_block(who, to, undeployed_land_block_id)?;
+
+		Ok(undeployed_land_block_id)
+	}
+
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(Estates::<T>::contains_key(estate_id))
 	}

@@ -14,7 +14,7 @@ use sp_runtime::{
 use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
 use primitives::FungibleTokenId::FungibleToken;
-use primitives::{Amount, CurrencyId, EstateId, FungibleTokenId, RoundIndex};
+use primitives::{Amount, CurrencyId, EstateId, FungibleTokenId, RoundIndex, UndeployedLandBlockId};
 
 use crate as mining;
 use crate::{Config, Module};
@@ -144,6 +144,14 @@ impl Estate<u128> for EstateHandler {
 		to: &(u128, primitives::MetaverseId),
 	) -> Result<(i32, i32), DispatchError> {
 		Ok(coordinate)
+	}
+
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		to: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		Ok(2)
 	}
 
 	fn check_estate(_estate_id: EstateId) -> Result<bool, DispatchError> {
