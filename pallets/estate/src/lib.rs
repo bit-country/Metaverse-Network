@@ -1080,6 +1080,7 @@ impl<T: Config> Pallet<T> {
 						OwnerId::Token(t) => {
 							let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 
+							// Implement check if user own nft
 							ensure!(
 								T::NFTTokenizationSource::check_nft_ownership(&a, &(class_id, t))?,
 								Error::<T>::NoPermission
@@ -1087,7 +1088,10 @@ impl<T: Config> Pallet<T> {
 
 							owner = owner_value;
 						}
-						OwnerId::Account(a) => {
+						OwnerId::Account(existing_owner) => {
+							// Implement check if Ownership is still AccountId, rare case but better check.
+							ensure!(existing_owner == a, Error::<T>::NoPermission);
+
 							let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
 							let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
 							let asset_id = T::NFTTokenizationSource::mint_token(
