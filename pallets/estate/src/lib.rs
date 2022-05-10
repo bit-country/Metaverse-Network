@@ -338,6 +338,8 @@ pub mod pallet {
 		UndeployedLandBlockDoesNotHaveEnoughLandUnits,
 		/// Number of land block credit and land unit does not match
 		UndeployedLandBlockUnitAndInputDoesNotMatch,
+		/// Account is not the owner of a given undeployed land block
+		UndeployedLandBlockNotOwned,
 		/// Already own the undeployed land block
 		AlreadyOwnTheUndeployedLandBlock,
 		/// Undeployed land block is freezed
@@ -553,9 +555,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			ensure!(
-				!T::AuctionHandler::check_item_in_auction(
-					ItemId::UndeployedLandBlock(undeployed_land_block_id)
-				),
+				!T::AuctionHandler::check_item_in_auction(ItemId::UndeployedLandBlock(undeployed_land_block_id)),
 				Error::<T>::UndeployedLandBlockAlreadyInAuction
 			);
 
@@ -672,9 +672,9 @@ pub mod pallet {
 						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 					ensure!(
-						!T::AuctionHandler::check_item_in_auction(
-							ItemId::UndeployedLandBlock(undeployed_land_block_id)
-						),
+						!T::AuctionHandler::check_item_in_auction(ItemId::UndeployedLandBlock(
+							undeployed_land_block_id
+						)),
 						Error::<T>::UndeployedLandBlockAlreadyInAuction
 					);
 
@@ -702,9 +702,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			ensure!(
-				!T::AuctionHandler::check_item_in_auction(
-					ItemId::UndeployedLandBlock(undeployed_land_block_id)
-				),
+				!T::AuctionHandler::check_item_in_auction(ItemId::UndeployedLandBlock(undeployed_land_block_id)),
 				Error::<T>::UndeployedLandBlockAlreadyInAuction
 			);
 
@@ -748,9 +746,9 @@ pub mod pallet {
 					);
 
 					ensure!(
-						!T::AuctionHandler::check_item_in_auction(
-							ItemId::UndeployedLandBlock(undeployed_land_block_id)
-						),
+						!T::AuctionHandler::check_item_in_auction(ItemId::UndeployedLandBlock(
+							undeployed_land_block_id
+						)),
 						Error::<T>::UndeployedLandBlockAlreadyInAuction
 					);
 
@@ -793,9 +791,9 @@ pub mod pallet {
 					);
 
 					ensure!(
-						!T::AuctionHandler::check_item_in_auction(
-							ItemId::UndeployedLandBlock(undeployed_land_block_id)
-						),
+						!T::AuctionHandler::check_item_in_auction(ItemId::UndeployedLandBlock(
+							undeployed_land_block_id
+						)),
 						Error::<T>::UndeployedLandBlockAlreadyInAuction
 					);
 
@@ -1333,9 +1331,7 @@ impl<T: Config> Pallet<T> {
 			UndeployedLandBlocks::<T>::get(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
 		ensure!(
-			!T::AuctionHandler::check_item_in_auction(
-				ItemId::UndeployedLandBlock(undeployed_land_block_id)
-			),
+			!T::AuctionHandler::check_item_in_auction(ItemId::UndeployedLandBlock(undeployed_land_block_id)),
 			Error::<T>::UndeployedLandBlockAlreadyInAuction
 		);
 
@@ -1370,11 +1366,9 @@ impl<T: Config> Pallet<T> {
 				);
 
 				ensure!(
-					!T::AuctionHandler::check_item_in_auction(
-						ItemId::UndeployedLandBlock(undeployed_land_block_id)
-					),
+					!T::AuctionHandler::check_item_in_auction(ItemId::UndeployedLandBlock(undeployed_land_block_id)),
 					Error::<T>::UndeployedLandBlockAlreadyInAuction
-				);				
+				);
 
 				undeployed_land_block_record.is_locked = true;
 
@@ -1754,12 +1748,18 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 		Ok(LandUnits::<T>::contains_key(metaverse_id, coordinate))
 	}
 
-	fn check_undeployed_land_block(undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError> {
-		let undeployed_land_block 
-			= Self::get_undeployed_land_block(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
-		if undeployed_land_block.is_locked 
-			|| undeployed_land_block.undeployed_land_block_type == UndeployedLandBlockType::BoundToAddress {
-			return Ok(false)
+	fn check_undeployed_land_block(
+		owner: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError> {
+		let undeployed_land_block =
+			Self::get_undeployed_land_block(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+		if undeployed_land_block.is_locked
+			|| undeployed_land_block.undeployed_land_block_type == UndeployedLandBlockType::BoundToAddress
+			|| undeployed_land_block.owner != *owner
+		{
+			return Ok(false);
 		}
 		return Ok(true);
 	}

@@ -1026,10 +1026,8 @@ fn freeze_undeployed_land_block_should_fail_if_already_in_auction() {
 			21,
 			UndeployedLandBlockType::Transferable,
 		));
-		
 
-		let issued_undeployed_land_block 
-			= EstateModule::get_undeployed_land_block(UNDEPLOYED_LAND_BLOCK_IN_AUCTION);
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(UNDEPLOYED_LAND_BLOCK_IN_AUCTION);
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
@@ -1155,7 +1153,6 @@ fn unfreeze_undeployed_land_block_should_fail_if_already_in_auction() {
 			21,
 			UndeployedLandBlockType::Transferable,
 		));
-		
 
 		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
 		match issued_undeployed_land_block {
@@ -1296,8 +1293,6 @@ fn transfer_undeployed_land_block_should_fail_if_freezed() {
 	});
 }
 
-
-
 #[test]
 fn transfer_undeployed_land_block_should_fail_if_not_transferable() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -1336,7 +1331,6 @@ fn transfer_undeployed_land_block_should_fail_if_already_in_auction() {
 			21,
 			UndeployedLandBlockType::Transferable,
 		));
-		
 
 		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
 		match issued_undeployed_land_block {
@@ -1520,10 +1514,8 @@ fn deploy_undeployed_land_block_should_fail_if_already_in_auction() {
 			21,
 			UndeployedLandBlockType::Transferable,
 		));
-		
 
-		let issued_undeployed_land_block 
-			= EstateModule::get_undeployed_land_block(1);
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
@@ -1681,10 +1673,8 @@ fn approve_undeployed_land_block_should_fail_if_already_in_auction() {
 			21,
 			UndeployedLandBlockType::Transferable,
 		));
-		
 
-		let issued_undeployed_land_block 
-			= EstateModule::get_undeployed_land_block(1);
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
@@ -1844,10 +1834,8 @@ fn unapprove_undeployed_land_block_should_fail_if_already_in_auction() {
 			21,
 			UndeployedLandBlockType::Transferable,
 		));
-		
 
-		let issued_undeployed_land_block 
-			= EstateModule::get_undeployed_land_block(1);
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
@@ -1978,7 +1966,6 @@ fn burn_undeployed_land_block_should_fail_if_already_in_auction() {
 			21,
 			UndeployedLandBlockType::Transferable,
 		));
-		
 
 		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(1);
 		match issued_undeployed_land_block {
@@ -2001,7 +1988,6 @@ fn burn_undeployed_land_block_should_fail_if_already_in_auction() {
 		);
 	});
 }
-
 
 #[test]
 fn burn_undeployed_land_block_should_work() {

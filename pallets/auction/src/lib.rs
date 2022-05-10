@@ -36,8 +36,8 @@ use sp_runtime::{
 };
 
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
-pub use pallet::*;
 use core_primitives::UndeployedLandBlocksTrait;
+pub use pallet::*;
 use pallet_nft::Pallet as NFTModule;
 use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
 pub use weights::WeightInfo;
@@ -509,7 +509,6 @@ pub mod pallet {
 									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
 								}
 							}
-
 						}
 						_ => {} // Future implementation for other items
 					}
@@ -848,12 +847,13 @@ pub mod pallet {
 											));
 										}
 										ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
-											let undeployed_land_block = T::EstateHandler::transfer_undeployed_land_block(
-												&high_bidder.clone(),
-												&auction_item.recipient,
-												undeployed_land_block_id,
-											);
-				
+											let undeployed_land_block =
+												T::EstateHandler::transfer_undeployed_land_block(
+													&high_bidder.clone(),
+													&auction_item.recipient,
+													undeployed_land_block_id,
+												);
+
 											match undeployed_land_block {
 												Err(_) => (),
 												Ok(_) => {
@@ -1180,7 +1180,7 @@ pub mod pallet {
 				ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
 					// Ensure the undeployed land block exist and can be used in auction
 					ensure!(
-						T::EstateHandler::check_undeployed_land_block(undeployed_land_block_id)?,
+						T::EstateHandler::check_undeployed_land_block(&recipient, undeployed_land_block_id)?,
 						Error::<T>::UndeployedLandBlockDoesNotExistOrNotAvailable
 					);
 

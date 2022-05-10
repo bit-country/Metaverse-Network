@@ -9,7 +9,9 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
-use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, UndeployedLandBlockId};
+use primitives::{
+	continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, UndeployedLandBlockId,
+};
 
 use crate as auction;
 
@@ -135,12 +137,15 @@ impl Estate<u128> for EstateHandler {
 		}
 	}
 
-	fn check_undeployed_land_block(undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError> {
-			match undeployed_land_block_id{
-				UNDEPLOYED_LAND_BLOCK_ID_EXIST => Ok(true),
-				UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST => Ok(false),
-				_ => Ok(false),
-			}
+	fn check_undeployed_land_block(
+		owner: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError> {
+		match undeployed_land_block_id {
+			UNDEPLOYED_LAND_BLOCK_ID_EXIST => Ok(true),
+			UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST => Ok(false),
+			_ => Ok(false),
+		}
 	}
 
 	fn get_total_land_units() -> u64 {

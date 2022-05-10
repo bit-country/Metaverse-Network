@@ -146,7 +146,10 @@ impl Estate<u128> for EstateHandler {
 		Ok(true)
 	}
 
-	fn check_undeployed_land_block(undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError> {
+	fn check_undeployed_land_block(
+		owner: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
