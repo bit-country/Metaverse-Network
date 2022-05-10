@@ -406,7 +406,7 @@ fn dissolve_estate_should_work() {
 				metaverse_id: METAVERSE_ID,
 				land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2]
 			})
-		); //vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
@@ -734,36 +734,6 @@ fn transfer_estate_should_fail_with_same_account() {
 }
 
 #[test]
-fn create_estate_should_reject_non_root() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EstateModule::create_estate(
-				Origin::signed(ALICE),
-				BENEFICIARY_ID,
-				METAVERSE_ID,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
-			),
-			BadOrigin
-		);
-	});
-}
-
-#[test]
-fn create_estate_should_fail_for_not_minted_land() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_err!(
-			EstateModule::create_estate(
-				Origin::root(),
-				BENEFICIARY_ID,
-				METAVERSE_ID,
-				vec![COORDINATE_IN_1, COORDINATE_IN_2]
-			),
-			Error::<Runtime>::LandUnitIsNotAvailable
-		);
-	});
-}
-
-#[test]
 fn create_estate_token_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::mint_lands(
@@ -774,8 +744,7 @@ fn create_estate_token_should_work() {
 		));
 
 		assert_ok!(EstateModule::create_estate(
-			Origin::root(),
-			BENEFICIARY_ID,
+			Origin::signed(BENEFICIARY_ID),
 			METAVERSE_ID,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
@@ -812,8 +781,7 @@ fn create_estate_token_after_minting_account_and_token_based_lands_should_give_c
 		));
 
 		assert_ok!(EstateModule::create_estate(
-			Origin::root(),
-			BENEFICIARY_ID,
+			Origin::signed(BENEFICIARY_ID),
 			METAVERSE_ID,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
@@ -848,8 +816,7 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 		));
 
 		assert_ok!(EstateModule::create_estate(
-			Origin::root(),
-			BENEFICIARY_ID,
+			Origin::signed(BENEFICIARY_ID),
 			METAVERSE_ID,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
@@ -1795,4 +1762,58 @@ fn ensure_land_unit_out_of_land_block_bound_should_fail() {
 		EstateModule::verify_land_unit_in_bound(&(-200, 2), &second_coordinates),
 		false
 	);
+}
+
+#[test]
+fn issue_land_block_and_create_estate_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::issue_undeployed_land_blocks(
+			Origin::root(),
+			BOB,
+			1,
+			2,
+			UndeployedLandBlockType::BoundToAddress
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::UndeployedLandBlockIssued(BOB, 0))
+		);
+
+		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
+
+		let issued_undeployed_land_block = EstateModule::get_undeployed_land_block(0);
+		match issued_undeployed_land_block {
+			Some(a) => {
+				// Verify details of UndeployedLandBlock
+				assert_eq!(a.owner, BOB);
+				assert_eq!(a.number_land_units, 2);
+				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
+				assert_eq!(a.is_locked, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+
+		// Bob can deploy raw land block to his metaverse
+		assert_ok!(EstateModule::deploy_land_block(
+			Origin::signed(BOB),
+			0,
+			METAVERSE_ID,
+			LANDBLOCK_COORDINATE,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_eq!(
+			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
+			Some(OwnerId::Token(2))
+		);
+
+		assert_eq!(
+			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_2),
+			Some(OwnerId::Token(2))
+		);
+	});
 }

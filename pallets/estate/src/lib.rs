@@ -152,7 +152,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estates)]
-	/// Store estate information  
+	/// Store estate information
 	pub(super) type Estates<T: Config> = StorageMap<_, Twox64Concat, EstateId, EstateInfo, OptionQuery>;
 
 	#[pallet::storage]
@@ -380,7 +380,8 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Minting of a land unit
+		/// Minting of a land unit, only used by council to manually mint single land for
+		/// beneficiary
 		///
 		/// The dispatch origin for this call must be _Root_.
 		/// - `beneficiary`: the account which will be the owner of the land unit
@@ -408,7 +409,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Minting of a land units
+		/// Minting of a land units, only used by council to manually mint number of lands for
+		/// beneficiary
 		///
 		/// The dispatch origin for this call must be _Root_.
 		/// - `beneficiary`: the account which will be the owner of the land units
@@ -474,7 +476,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Mint new estate with no existing land units
+		/// Mint new estate with no existing land units, only used for council to manually mint
+		/// estate for beneficiary
 		///
 		/// The dispatch origin for this call must be _Root_.
 		/// - `beneficiary`: the account which will be the owner of the land units
@@ -493,9 +496,6 @@ pub mod pallet {
 
 			// Generate new estate id
 			let new_estate_id = Self::get_new_estate_id()?;
-
-			// Generate sub account from estate
-			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
@@ -516,8 +516,7 @@ pub mod pallet {
 
 		/// Create new estate from existing land units
 		///
-		/// The dispatch origin for this call must be _Root_.
-		/// - `beneficiary`: the account which will be the owner of the land units
+		/// The dispatch origin for this call must be _Signed_.
 		/// - `metaverse_id`: the metaverse id that the land units will be minted on
 		/// - `coordinates`: list of land units coordinates
 		///
@@ -525,11 +524,10 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::create_estate())]
 		pub fn create_estate(
 			origin: OriginFor<T>,
-			beneficiary: T::AccountId,
 			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
+			let who = ensure_signed(origin)?;
 
 			ensure!(
 				Self::verify_land_unit_for_estate(coordinates.clone()),
@@ -548,12 +546,12 @@ pub mod pallet {
 					metaverse_id,
 					estate_account_id.clone(),
 					coordinate,
-					LandUnitStatus::Existing(beneficiary.clone()),
+					LandUnitStatus::Existing(who.clone()),
 				)?;
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone())?;
+			Self::update_estate_information(new_estate_id, metaverse_id, &who, coordinates.clone())?;
 
 			Ok(().into())
 		}
@@ -1079,7 +1077,16 @@ impl<T: Config> Pallet<T> {
 				let existing_owner_value = Self::get_land_units(metaverse_id, coordinate);
 				match existing_owner_value {
 					Some(owner_value) => match owner_value {
-						OwnerId::Token(t) => owner = owner_value,
+						OwnerId::Token(t) => {
+							let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
+
+							ensure!(
+								T::NFTTokenizationSource::check_nft_ownership(&a, &(class_id, t))?,
+								Error::<T>::NoPermission
+							);
+
+							owner = owner_value;
+						}
 						OwnerId::Account(a) => {
 							let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
 							let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
