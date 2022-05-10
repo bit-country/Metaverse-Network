@@ -9,7 +9,9 @@ use sp_std::default::Default;
 
 use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{CollectionType, NftClassData, TokenType};
-use primitives::{AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId};
+use primitives::{
+	AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId, LAND_CLASS_ID,
+};
 
 use crate as estate;
 
@@ -285,6 +287,9 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		let nft_value = *nft;
 		if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
+			return Ok(true);
+		}
+		if *who == BENEFICIARY_ID && nft_value.0 == LAND_CLASS_ID && nft_value.1 == ASSET_ID_1 {
 			return Ok(true);
 		}
 		Ok(false)
