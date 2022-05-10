@@ -1755,7 +1755,13 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 	}
 
 	fn check_undeployed_land_block(undeployed_land_block_id: UndeployedLandBlockId) -> Result<bool, DispatchError> {
-		Ok(UndeployedLandBlocks::<T>::contains_key(undeployed_land_block_id))
+		let undeployed_land_block 
+			= Self::get_undeployed_land_block(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+		if undeployed_land_block.is_locked 
+			|| undeployed_land_block.undeployed_land_block_type == UndeployedLandBlockType::BoundToAddress {
+			return Ok(false)
+		}
+		return Ok(true);
 	}
 
 	fn get_total_land_units() -> u64 {

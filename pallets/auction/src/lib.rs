@@ -282,8 +282,8 @@ pub mod pallet {
 		EstateDoesNotExist,
 		/// Land unit does not exist, check if estate id is correct
 		LandUnitDoesNotExist,
-		/// Undeployed land block does not exist
-		UndeployedLandBlockDoesNotExist,
+		/// Undeployed land block does not exist or is not available for auction
+		UndeployedLandBlockDoesNotExistOrNotAvailable,
 		/// User has no permission to authorise collection
 		NoPermissionToAuthoriseCollection,
 		/// Collection has already authorised
@@ -1178,10 +1178,10 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
-					// Ensure the undeployed land block exist
+					// Ensure the undeployed land block exist and can be used in auction
 					ensure!(
 						T::EstateHandler::check_undeployed_land_block(undeployed_land_block_id)?,
-						Error::<T>::UndeployedLandBlockDoesNotExist
+						Error::<T>::UndeployedLandBlockDoesNotExistOrNotAvailable
 					);
 
 					let start_time = <system::Pallet<T>>::block_number();
