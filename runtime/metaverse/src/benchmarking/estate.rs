@@ -3,11 +3,11 @@ use super::utils::{
 	create_land_and_estate_groups, create_metaverse_for_account, dollar, get_estate_info,
 	issue_new_undeployed_land_block, mint_NFT, set_balance,
 };
-use crate::{Balances, Call, Currencies, Estate, Event, Metaverse, Nft, Runtime, System};
+use crate::{Balances, Call, Currencies, Estate, Event, Metaverse, MinimumStake, Nft, Runtime, System};
 use estate::Config;
 use estate::{MintingRateConfig, MintingRateInfo, Round};
 use frame_benchmarking::{account, whitelisted_caller};
-use frame_support::traits::{Currency, Get};
+use frame_support::traits::{Currency, Get, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
 use primitives::estate::{EstateInfo, OwnerId};
@@ -30,6 +30,7 @@ const COORDINATE_OUT: (i32, i32) = (0, 101);
 const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 const ESTATE_IN_AUCTION: EstateId = 99;
 const ESTATE_ID: EstateId = 0;
+const MINIMUM_STAKE: Balance = MinimumStake::get();
 
 runtime_benchmarks! {
 	{ Runtime, estate }
@@ -39,7 +40,7 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 
 		create_land_and_estate_groups();
-	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, COORDINATE_IN_1)
+	}: mint_land(RawOrigin::Root, caller.clone(), METAVERSE_ID, COORDINATE_IN_1)
 	verify {
 		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0)));
 	}
@@ -50,7 +51,7 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 
 		create_land_and_estate_groups();
-	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
+	}: mint_lands(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
 	verify {
 		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0)));
 		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_2), Some(OwnerId::Token(1)))
@@ -173,7 +174,7 @@ runtime_benchmarks! {
 				assert_eq!(a.owner, caller.clone());
 				assert_eq!(a.number_land_units, 100);
 				assert_eq!(a.undeployed_land_block_type, UndeployedLandBlockType::BoundToAddress);
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test
@@ -194,7 +195,7 @@ runtime_benchmarks! {
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
-				assert_eq!(a.is_frozen, true);
+				assert_eq!(a.is_locked, true);
 			}
 			_ => {
 				// Should fail test
@@ -216,7 +217,7 @@ runtime_benchmarks! {
 		match issued_undeployed_land_block {
 			Some(a) => {
 				// Verify details of UndeployedLandBlock
-				assert_eq!(a.is_frozen, false);
+				assert_eq!(a.is_locked, false);
 			}
 			_ => {
 				// Should fail test
@@ -327,7 +328,7 @@ runtime_benchmarks! {
 		}
 	}
 
-	active_issue_undeploy_land_block{
+	on_initialize {
 		// INITIALIZE RUNTIME STATE
 		let minting_info = 	MintingRateInfo {
 			expect: Default::default(),
@@ -367,15 +368,13 @@ runtime_benchmarks! {
 
 	// bond_more
 	bond_more {
-		let min_stake = estate::Pallet<Runtime>::MinimumStake::get();
-
 		let caller: AccountId = whitelisted_caller();
 		set_balance(FungibleTokenId::NativeToken(0), &caller, 10000);
 		create_land_and_estate_groups();
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-	}: _(RawOrigin::Signed(caller.clone()), 0, estate::Pallet<Runtime>::MinimumStake::get())
+	}: bond_more(RawOrigin::Signed(caller.clone()), 0, MINIMUM_STAKE)
 	verify {
-		assert_eq!(Estate::estate_stake(0, caller.clone()), estate::Pallet<Runtime>::MinimumStake::get())
+		assert_eq!(Estate::estate_stake(0, caller.clone()), MINIMUM_STAKE)
 	}
 
 	// bond_less
@@ -383,14 +382,13 @@ runtime_benchmarks! {
 		let caller: AccountId = whitelisted_caller();
 		set_balance(FungibleTokenId::NativeToken(0), &caller, 10000);
 
-		let min_stake = estate::Pallet<Runtime>::MinimumStake::get();
-		let bond_amount = min_stake + 1u32.into();
+		let bond_amount = MINIMUM_STAKE + 1u32.into();
 		create_land_and_estate_groups();
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, bond_amount);
 	}: _(RawOrigin::Signed(caller.clone()), 0, 1u32.into())
 	verify {
-		assert_eq!(Estate::estate_stake(0, caller.clone()),  estate::Pallet<Runtime>::MinimumStake::get())
+		assert_eq!(Estate::estate_stake(0, caller.clone()),  MINIMUM_STAKE)
 	}
 
 	// leave_staking
@@ -398,8 +396,7 @@ runtime_benchmarks! {
 		let caller: AccountId = whitelisted_caller();
 		set_balance(FungibleTokenId::NativeToken(0), &caller, 10000);
 
-		let min_stake = estate::Pallet<Runtime>::MinimumStake::get();
-		let bond_amount = min_stake + 1u32.into();
+		let bond_amount = MINIMUM_STAKE + 1u32.into();
 		create_land_and_estate_groups();
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, bond_amount);
