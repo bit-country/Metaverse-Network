@@ -1162,7 +1162,7 @@ pub type SignedExtra = (
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
 	define_benchmarks!(
-		[estate benchmarking::estate]
+		[estate, benchmarking::estate]
 	);
 }
 /// Unchecked extrinsic type as expected by this runtime.

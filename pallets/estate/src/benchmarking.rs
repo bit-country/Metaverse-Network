@@ -99,6 +99,7 @@ fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
 //}
 
 benchmarks! {
+	/* 
 	// mint_land as tokens
 	mint_land {
 		let caller: T::AccountId = whitelisted_caller();
@@ -423,45 +424,7 @@ benchmarks! {
 		EstateModule::<T>::on_initialize(6u32.into());
 	}
 
-	// bond_more
-	bond_more {
-		let min_stake = T::MinimumStake::get();
-
-		let caller = funded_account::<T>("caller", 10000);
-
-		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-	}: _(RawOrigin::Signed(caller.clone()), 0, T::MinimumStake::get())
-	verify {
-		assert_eq!(crate::Pallet::<T>::estate_stake(0, caller.clone()), T::MinimumStake::get())
-	}
-
-	// bond_less
-	bond_less {
-		let caller = funded_account::<T>("caller", 10000);
-
-		let min_stake = T::MinimumStake::get();
-		let bond_amount = min_stake + 1u32.into();
-
-		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, bond_amount);
-	}: _(RawOrigin::Signed(caller.clone()), 0, 1u32.into())
-	verify {
-		assert_eq!(crate::Pallet::<T>::estate_stake(0, caller.clone()),  T::MinimumStake::get())
-	}
-
-	// leave_staking
-	leave_staking {
-		let caller = funded_account::<T>("caller", 10000);
-
-		let min_stake = T::MinimumStake::get();
-		let bond_amount = min_stake + 1u32.into();
-
-		crate::Pallet::<T>::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		crate::Pallet::<T>::bond_more(RawOrigin::Signed(caller.clone()).into(), 0, bond_amount);
-	}: _(RawOrigin::Signed(caller.clone()), 0)
-	verify {
-		assert_eq!(crate::Pallet::<T>::exit_queue(caller.clone(), 0), Some(()))
-	}
+	*/
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);
