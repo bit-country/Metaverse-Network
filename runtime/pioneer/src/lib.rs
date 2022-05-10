@@ -222,7 +222,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 7,
+	spec_version: 8,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -740,10 +740,24 @@ parameter_types! {
 
 parameter_types! {
 	pub KsmPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), ksm_per_second());
+	pub GenericNeerPerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			1,
+			X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+		).into(),
+		native_per_second()
+	);
 	pub NeerPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
 			X2(Parachain(2096), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+		).into(),
+		native_per_second()
+	);
+	pub NeerX0PerSecond: (AssetId, u128) = (
+		MultiLocation::new(
+			0,
+			X1(GeneralKey(FungibleTokenId::NativeToken(0).encode()))
 		).into(),
 		native_per_second()
 	);
@@ -814,7 +828,9 @@ impl TakeRevenue for ToTreasury {
 /// the xcm executor won't know how to charge fees for a transfer of said token.
 pub type Trader = (
 	FixedRateOfFungible<KsmPerSecond, ToTreasury>,
+	FixedRateOfFungible<GenericNeerPerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerPerSecond, ToTreasury>,
+	FixedRateOfFungible<NeerX0PerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerX1PerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerX2PerSecond, ToTreasury>,
 	FixedRateOfFungible<BitPerSecond, ToTreasury>,
@@ -999,14 +1015,7 @@ impl Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 	}
 }
 
-pub type Barrier = (
-	TakeWeightCredit,
-	AllowTopLevelPaidExecutionFrom<Everything>,
-	// Expected responses are OK.
-	AllowKnownQueryResponses<PolkadotXcm>,
-	// Subscriptions for version tracking are OK.
-	AllowSubscriptionsFrom<Everything>,
-);
+pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
 pub struct XcmConfig;
 
