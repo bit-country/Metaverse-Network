@@ -123,7 +123,7 @@ impl Estate<u128> for EstateHandler {
 
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
 		match estate_id {
-			ESTATE_ID_EXIST | ESTATE_UNDEPLOYED_LAND_ID_EXIST_1 => Ok(true),
+			ESTATE_ID_EXIST | ESTATE_ID_EXIST_1 => Ok(true),
 			ESTATE_ID_NOT_EXIST => Ok(false),
 			_ => Ok(false),
 		}
