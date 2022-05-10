@@ -152,7 +152,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_estates)]
-	/// Store estate information  
+	/// Store estate information
 	pub(super) type Estates<T: Config> = StorageMap<_, Twox64Concat, EstateId, EstateInfo, OptionQuery>;
 
 	#[pallet::storage]
@@ -380,6 +380,15 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Minting of a land unit, only used by council to manually mint single land for
+		/// beneficiary
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the land unit
+		/// - `metaverse_id`: the metaverse id that the land united will be minted on
+		/// - `coordinate`: coordinate of the land unit
+		///
+		/// Emits `NewLandsMinted` if successful.
 		#[pallet::weight(T::WeightInfo::mint_land())]
 		pub fn mint_land(
 			origin: OriginFor<T>,
@@ -400,6 +409,15 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Minting of a land units, only used by council to manually mint number of lands for
+		/// beneficiary
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the land units
+		/// - `metaverse_id`: the metaverse id that the land units will be minted on
+		/// - `coordinates`: list of land units coordinates
+		///
+		/// Emits `NewLandsMinted` if successful.
 		#[pallet::weight(T::WeightInfo::mint_lands())]
 		pub fn mint_lands(
 			origin: OriginFor<T>,
@@ -431,6 +449,15 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Transferring a land unit if it is not already in auction
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only the owner of a land can make this call.
+		/// - `to`: the account which will be the owner of the land units
+		/// - `metaverse_id`: the metaverse id of the land unit
+		/// - `coordinate`: the coordinate of the land unit
+		///
+		/// Emits `TransferredLandUnit` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_land())]
 		pub fn transfer_land(
 			origin: OriginFor<T>,
@@ -449,7 +476,15 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Mint new estate with no existing land unit
+		/// Mint new estate with no existing land units, only used for council to manually mint
+		/// estate for beneficiary
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the land units
+		/// - `metaverse_id`: the metaverse id that the land units will be minted on
+		/// - `coordinates`: list of land units coordinates
+		///
+		/// Emits `NewEstateMinted` if successful.
 		#[pallet::weight(T::WeightInfo::mint_estate())]
 		pub fn mint_estate(
 			origin: OriginFor<T>,
@@ -461,9 +496,6 @@ pub mod pallet {
 
 			// Generate new estate id
 			let new_estate_id = Self::get_new_estate_id()?;
-
-			// Generate sub account from estate
-			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
@@ -483,14 +515,19 @@ pub mod pallet {
 		}
 
 		/// Create new estate from existing land units
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `metaverse_id`: the metaverse id that the land units will be minted on
+		/// - `coordinates`: list of land units coordinates
+		///
+		/// Emits `NewEstateMinted` if successful.
 		#[pallet::weight(T::WeightInfo::create_estate())]
 		pub fn create_estate(
 			origin: OriginFor<T>,
-			beneficiary: T::AccountId,
 			metaverse_id: MetaverseId,
 			coordinates: Vec<(i32, i32)>,
 		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
+			let who = ensure_signed(origin)?;
 
 			ensure!(
 				Self::verify_land_unit_for_estate(coordinates.clone()),
@@ -509,17 +546,24 @@ pub mod pallet {
 					metaverse_id,
 					estate_account_id.clone(),
 					coordinate,
-					LandUnitStatus::Existing(beneficiary.clone()),
+					LandUnitStatus::Existing(who.clone()),
 				)?;
 			}
 
 			// Update estate information
-			Self::update_estate_information(new_estate_id, metaverse_id, &beneficiary, coordinates.clone())?;
+			Self::update_estate_information(new_estate_id, metaverse_id, &who, coordinates.clone())?;
 
 			Ok(().into())
 		}
 
-		/// Transfer estate ownership
+		/// Transfer estate ownership if it is not in auction.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only the owner of an estate can make this call.
+		/// - `to`: the account which will be the owner of the estate
+		/// - `estate_id`: the estate ID of the the estate that will be transferred
+		///
+		/// Emits `TransferredEstate` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_estate())]
 		pub fn transfer_estate(
 			origin: OriginFor<T>,
@@ -540,6 +584,15 @@ pub mod pallet {
 
 		/// Deploy raw land block to metaverse and turn raw land block to land unit with given
 		/// coordinates
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `undeployed_land_block_id`: the undeployed land block ID
+		/// - `metaverse_id`: the metaverse ID that the land block will be deployed on
+		/// - `land_block_coordinates`: the coordinates of the land block
+		/// - `coordinates`: list of land units coordinates
+		///
+		/// Emits `LandBlockDeployed` if successful.
 		#[pallet::weight(T::WeightInfo::deploy_land_block())]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
@@ -613,7 +666,16 @@ pub mod pallet {
 			)
 		}
 
-		/// Sudo issues new raw land block
+		/// Issues new undeployed land block(s)
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `beneficiary`: the account which will be the owner of the undeployed land block(s)
+		/// - `number_of_land_block`: the number of undeployed land block(s) that will be created
+		/// - `number_land_units_per_land_block`: the number of land units in each undeployed land
+		///   block
+		/// - `land_block_coordinates`: the coordinates of the undeployed land block
+		///
+		/// Emits `UndeployedLandBlockIssued` if successful.
 		#[pallet::weight(T::WeightInfo::issue_undeployed_land_blocks())]
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
@@ -634,7 +696,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Sudo Freeze raw land block
+		/// Freezes undeployed land block which is not already frozen
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be freezed
+		///
+		/// Emits `UndeployedLandBlockFreezed` if successful.
 		#[pallet::weight(T::WeightInfo::freeze_undeployed_land_blocks())]
 		pub fn freeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -647,7 +714,12 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Sudo Unfreeze raw land block
+		/// Unfreezes undeployed land block which is frozen.
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be unfreezed
+		///
+		/// Emits `UndeployedLandBlockUnfreezed` if successful.
 		#[pallet::weight(T::WeightInfo::unfreeze_undeployed_land_blocks())]
 		pub fn unfreeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -676,7 +748,14 @@ pub mod pallet {
 			)
 		}
 
-		/// Transfer raw land block
+		/// Transfer undeployed land block owner if it is not in auction.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `to`: the account that will receive the undeployed land block
+		/// - `undeployed_land_block_id`: the ID of the land block that will be transferred
+		///
+		/// Emits `UndeployedLandBlockTransferred` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_undeployed_land_blocks())]
 		pub fn transfer_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -691,6 +770,12 @@ pub mod pallet {
 		}
 
 		/// Burn raw land block that will reduce total supply
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be burned
+		///
+		/// Emits `UndeployedLandBlockBurnt` if successful.
 		#[pallet::weight(T::WeightInfo::burn_undeployed_land_blocks())]
 		pub fn burn_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -703,7 +788,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Burn raw land block that will reduce total supply
+		/// Approve existing undeployed land block which is not frozen.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `to`: the account for which the undeployed land block will be approved
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be burned
+		///
+		/// Emits `UndeployedLandBlockApproved` if successful
 		#[pallet::weight(T::WeightInfo::approve_undeployed_land_blocks())]
 		pub fn approve_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -742,7 +834,14 @@ pub mod pallet {
 			)
 		}
 
-		/// Unapprove external wallet to access raw land block.
+		/// Unapprove existing undeployed land block which is not frozen.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the undeployed land block owner can make this call.
+		/// - `undeployed_land_block_id`: the ID of the undeployed land block that will be
+		///   unapproved
+		///
+		/// Emits `UndeployedLandBlockUnapproved` if successful
 		#[pallet::weight(T::WeightInfo::unapprove_undeployed_land_blocks())]
 		pub fn unapprove_undeployed_land_blocks(
 			origin: OriginFor<T>,
@@ -778,7 +877,13 @@ pub mod pallet {
 			)
 		}
 
-		/// Dissolve estate to land units
+		/// Dissolve estate to land units if it is not in auction.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
+		/// - `estate_id`: the ID of the estate that will be dissolved
+		///
+		/// Emits `EstateDestroyed` if successful
 		#[pallet::weight(T::WeightInfo::dissolve_estate())]
 		pub fn dissolve_estate(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -829,7 +934,15 @@ pub mod pallet {
 			})
 		}
 
-		/// Add more land units to existing estate
+		/// Add more land units to existing estate that is not in auction
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
+		/// They must also own the land units.
+		/// - `estate_id`: the ID of the estate that the land units will be added to
+		/// - `land_units`: list of land unit coordinates that will be added to estate
+		///
+		/// Emits `LandUnitAdded` if successful
 		#[pallet::weight(T::WeightInfo::add_land_unit_to_estate())]
 		pub fn add_land_unit_to_estate(
 			origin: OriginFor<T>,
@@ -871,9 +984,6 @@ pub mod pallet {
 				let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
 				mut_estate_info.land_units.append(&mut land_units.clone());
 
-				// Mutate land unit ownership
-				let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
-
 				Self::deposit_event(Event::<T>::LandUnitAdded(
 					estate_id.clone(),
 					estate_owner_value.clone(),
@@ -884,7 +994,14 @@ pub mod pallet {
 			})
 		}
 
-		/// Remove land units from existing estate
+		/// Remove land units from existing estate if it is not in auction.
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
+		/// - `estate_id`: the ID of the estate that the land units will be removed from
+		/// - `land_units`: list of land unit coordinates that will be added to estate
+		///
+		/// Emits `LandUnitsRemoved` if successful
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
 		pub fn remove_land_unit_from_estate(
 			origin: OriginFor<T>,
@@ -927,192 +1044,6 @@ pub mod pallet {
 				Ok(().into())
 			})
 		}
-
-		/// Bond native token to the estate
-		#[pallet::weight(T::WeightInfo::bond_more())]
-		pub fn bond_more(origin: OriginFor<T>, estate_id: EstateId, more: BalanceOf<T>) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-
-			// Check estate ownership
-			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
-			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-			ensure!(
-				Self::check_if_land_or_estate_owner(&who, &estate_owner_value, true, estate_info.metaverse_id),
-				Error::<T>::NoPermission
-			);
-
-			// Check exit queue
-			ensure!(
-				<ExitQueue<T>>::get(&who, estate_id) == None,
-				Error::<T>::EstateStakeAlreadyLeft
-			);
-
-			// Update EstateStake
-			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
-			let total = staked_balance.checked_add(&more).ok_or(Error::<T>::Overflow)?;
-
-			ensure!(total >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
-
-			// Reserve balance
-			T::Currency::reserve(&who, more)?;
-
-			<EstateStake<T>>::insert(estate_id, &who, total);
-
-			// Update TotalStake
-			let new_total_staked = <TotalStake<T>>::get().saturating_add(more);
-			<TotalStake<T>>::put(new_total_staked);
-
-			Self::deposit_event(Event::EstateStakeIncreased(estate_owner_value, estate_id, more));
-
-			Ok(().into())
-		}
-
-		/// Unbond native token from the estate
-		#[pallet::weight(T::WeightInfo::bond_less())]
-		pub fn bond_less(origin: OriginFor<T>, estate_id: EstateId, less: BalanceOf<T>) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-
-			// Check estate ownership
-			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
-			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-			ensure!(
-				Self::check_if_land_or_estate_owner(&who, &estate_owner_value, true, estate_info.metaverse_id),
-				Error::<T>::NoPermission
-			);
-
-			// Check exit queue
-			ensure!(
-				<ExitQueue<T>>::get(&who, estate_id) == None,
-				Error::<T>::EstateStakeAlreadyLeft
-			);
-
-			// Check stake balance
-			let mut staked_balance = <EstateStake<T>>::get(estate_id, &who);
-			let remaining = staked_balance.checked_sub(&less).ok_or(Error::<T>::Overflow)?;
-
-			ensure!(remaining >= T::MinimumStake::get(), Error::<T>::BelowMinimumStake);
-
-			// Reserve balance
-			T::Currency::unreserve(&who, less);
-
-			<EstateStake<T>>::insert(estate_id, &who, remaining);
-
-			// Update TotalStake
-			let new_total_staked = <TotalStake<T>>::get().saturating_sub(less);
-			<TotalStake<T>>::put(new_total_staked);
-
-			Self::deposit_event(Event::EstateStakeDecreased(estate_owner_value, estate_id, less));
-
-			Ok(().into())
-		}
-
-		/// Leave staking
-		#[pallet::weight(T::WeightInfo::leave_staking())]
-		pub fn leave_staking(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-			ensure!(
-				Self::check_if_land_or_estate_owner(&who, &estate_owner_value, true, estate_info.metaverse_id),
-				Error::<T>::NoPermission
-			);
-
-			Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-
-			ensure!(
-				<ExitQueue<T>>::get(&who, estate_id) == None,
-				Error::<T>::EstateStakeAlreadyLeft
-			);
-
-			ensure!(
-				<EstateStake<T>>::get(estate_id, &who) > BalanceOf::<T>::zero(),
-				Error::<T>::AccountHasNoStake
-			);
-
-			<ExitQueue<T>>::insert(&who, estate_id, ());
-
-			Self::deposit_event(Event::EstateStakeLeft(estate_owner_value, estate_id));
-
-			Ok(().into())
-		}
-	}
-
-	impl<T: Config> Pallet<T> {
-		fn pay_stakers(next: RoundIndex) {
-			// payout is next - duration rounds ago => next - duration > 0 else return early
-			let duration = T::RewardPaymentDelay::get();
-			if next <= duration {
-				return;
-			}
-			let round_to_payout = next - duration;
-
-			// issue BIT for rewards distribution
-			let total_staked = <Staked<T>>::get(round_to_payout);
-			let total_issuance = Self::compute_issuance(total_staked);
-
-			let mut left_issuance = total_issuance;
-
-			// a local fn to transfer rewards to the account specified
-			let mint = |amt: BalanceOf<T>, to: T::AccountId| {
-				if let Ok(imb) = T::Currency::deposit_into_existing(&to, amt) {
-					Self::deposit_event(Event::StakingRewarded(to.clone(), imb.peek()));
-				}
-			};
-
-			for (estate_id, stake_snapshot) in <AtStake<T>>::drain_prefix(round_to_payout) {
-				for Bond { staker: owner, amount } in stake_snapshot.stakers {
-					// TODO: TBD on the rewards amount
-					let amount_due = amount;
-					mint(1u32.into(), owner);
-				}
-			}
-		}
-
-		/// Clear exit queue. return stake to account
-		fn clear_exit_queue(now: RoundIndex) {
-			for (account_id, estate_id, val) in <ExitQueue<T>>::drain() {
-				let staked_amount = <EstateStake<T>>::get(estate_id, &account_id);
-
-				// return stake to account
-				T::Currency::unreserve(&account_id, staked_amount);
-
-				<EstateStake<T>>::remove(estate_id, &account_id);
-			}
-		}
-
-		fn update_stake_snapshot(next: RoundIndex) -> BalanceOf<T> {
-			let mut total = BalanceOf::<T>::zero();
-
-			for estate_id in <Estates<T>>::iter_keys() {
-				let mut total_bond = BalanceOf::<T>::zero();
-				let mut stakers: Vec<Bond<T::AccountId, BalanceOf<T>>> = Vec::new();
-
-				for (account_id, amount) in <EstateStake<T>>::iter_prefix(estate_id) {
-					stakers.push(Bond {
-						staker: account_id.clone(),
-						amount,
-					});
-
-					total += amount;
-					total_bond += amount;
-				}
-				if stakers.len() > 0 {
-					<AtStake<T>>::insert(next, estate_id, StakeSnapshot { stakers, total_bond });
-				}
-			}
-
-			<TotalStake<T>>::put(total);
-			total
-		}
-
-		fn compute_issuance(staked: BalanceOf<T>) -> BalanceOf<T> {
-			//TODO: need to decide on how much BIT need to be issued per session
-			staked.saturating_add(staked)
-		}
 	}
 }
 
@@ -1146,7 +1077,16 @@ impl<T: Config> Pallet<T> {
 				let existing_owner_value = Self::get_land_units(metaverse_id, coordinate);
 				match existing_owner_value {
 					Some(owner_value) => match owner_value {
-						OwnerId::Token(t) => owner = owner_value,
+						OwnerId::Token(t) => {
+							let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
+
+							ensure!(
+								T::NFTTokenizationSource::check_nft_ownership(&a, &(class_id, t))?,
+								Error::<T>::NoPermission
+							);
+
+							owner = owner_value;
+						}
 						OwnerId::Account(a) => {
 							let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
 							let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
