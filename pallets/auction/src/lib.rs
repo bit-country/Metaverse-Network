@@ -541,7 +541,9 @@ pub mod pallet {
 			// Only support NFT on marketplace
 			ensure!(
 				(matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)))
-					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_))),
+					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_)))
+					|| (matches!(item_id, ItemId::UndeployedLandBlock(_))
+						&& matches!(listing_level, ListingLevel::Global)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -598,7 +600,9 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 			ensure!(
 				(matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)))
-					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_))),
+					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_)))
+					|| (matches!(item_id, ItemId::UndeployedLandBlock(_))
+						&& matches!(listing_level, ListingLevel::Global)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
