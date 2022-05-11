@@ -11,7 +11,7 @@ use auction_manager::*;
 use core_primitives::NftAssetData;
 use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
-use primitives::{Amount, EstateId, FungibleTokenId, ItemId};
+use primitives::{Amount, EstateId, FungibleTokenId, ItemId, UndeployedLandBlockId};
 
 use crate as economy;
 
@@ -130,11 +130,26 @@ impl Estate<u128> for EstateHandler {
 		Ok(coordinate)
 	}
 
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		to: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		Ok(2)
+	}
+
 	fn check_estate(_estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
 	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn check_undeployed_land_block(
+		owner: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 

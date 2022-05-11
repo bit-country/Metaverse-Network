@@ -36,6 +36,7 @@ use sp_runtime::{
 };
 
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
+use core_primitives::UndeployedLandBlocksTrait;
 pub use pallet::*;
 use pallet_nft::Pallet as NFTModule;
 use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
@@ -281,6 +282,8 @@ pub mod pallet {
 		EstateDoesNotExist,
 		/// Land unit does not exist, check if estate id is correct
 		LandUnitDoesNotExist,
+		/// Undeployed land block does not exist or is not available for auction
+		UndeployedLandBlockDoesNotExistOrNotAvailable,
 		/// User has no permission to authorise collection
 		NoPermissionToAuthoriseCollection,
 		/// Collection has already authorised
@@ -493,6 +496,20 @@ pub mod pallet {
 
 							Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
 						}
+						ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
+							let undeployed_land_block = T::EstateHandler::transfer_undeployed_land_block(
+								&from.clone(),
+								&auction_item.recipient,
+								undeployed_land_block_id,
+							);
+
+							match undeployed_land_block {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
+							}
+						}
 						_ => {} // Future implementation for other items
 					}
 				}
@@ -524,7 +541,9 @@ pub mod pallet {
 			// Only support NFT on marketplace
 			ensure!(
 				(matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)))
-					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_))),
+					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_)))
+					|| (matches!(item_id, ItemId::UndeployedLandBlock(_))
+						&& matches!(listing_level, ListingLevel::Global)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -581,7 +600,9 @@ pub mod pallet {
 			let from = ensure_signed(origin)?;
 			ensure!(
 				(matches!(item_id, ItemId::NFT(_, _)) && matches!(listing_level, ListingLevel::Local(_)))
-					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_))),
+					|| (matches!(item_id, ItemId::Bundle(_)) && matches!(listing_level, ListingLevel::Local(_)))
+					|| (matches!(item_id, ItemId::UndeployedLandBlock(_))
+						&& matches!(listing_level, ListingLevel::Global)),
 				Error::<T>::NoPermissionToCreateAuction
 			);
 
@@ -828,6 +849,25 @@ pub mod pallet {
 												high_bidder.clone(),
 												high_bid_price,
 											));
+										}
+										ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
+											let undeployed_land_block =
+												T::EstateHandler::transfer_undeployed_land_block(
+													&high_bidder.clone(),
+													&auction_item.recipient,
+													undeployed_land_block_id,
+												);
+
+											match undeployed_land_block {
+												Err(_) => (),
+												Ok(_) => {
+													Self::deposit_event(Event::AuctionFinalized(
+														auction_id,
+														high_bidder,
+														high_bid_price,
+													));
+												}
+											}
 										}
 										_ => {} // Future implementation for Spot, Metaverse
 									}
@@ -1125,6 +1165,43 @@ pub mod pallet {
 						auction_type,
 						listing_level: listing_level.clone(),
 						currency_id,
+						listing_fee,
+					};
+
+					<AuctionItems<T>>::insert(auction_id, new_auction_item);
+
+					Self::deposit_event(Event::NewAuctionItem(
+						auction_id,
+						recipient,
+						listing_level,
+						initial_amount,
+						initial_amount,
+						end_time,
+					));
+					<ItemsInAuction<T>>::insert(item_id, true);
+					Ok(auction_id)
+				}
+				ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
+					// Ensure the undeployed land block exist and can be used in auction
+					ensure!(
+						T::EstateHandler::check_undeployed_land_block(&recipient, undeployed_land_block_id)?,
+						Error::<T>::UndeployedLandBlockDoesNotExistOrNotAvailable
+					);
+
+					let start_time = <system::Pallet<T>>::block_number();
+					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
+					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					let new_auction_item = AuctionItem {
+						item_id: item_id.clone(),
+						recipient: recipient.clone(),
+						initial_amount,
+						amount: initial_amount,
+						start_time,
+						end_time,
+						auction_type,
+						listing_level: ListingLevel::Global,
+						currency_id: FungibleTokenId::NativeToken(0),
 						listing_fee,
 					};
 

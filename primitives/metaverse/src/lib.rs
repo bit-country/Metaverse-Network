@@ -132,11 +132,12 @@ pub const ESTATE_CLASS_ID: ClassId = 16;
 pub enum ItemId<Balance> {
 	NFT(ClassId, TokenId),
 	Spot(u64, MetaverseId),
-	Country(MetaverseId),
+	Metaverse(MetaverseId),
 	Block(u64),
 	Estate(EstateId),
 	LandUnit((i32, i32), MetaverseId),
 	Bundle(Vec<(ClassId, TokenId, Balance)>),
+	UndeployedLandBlock(UndeployedLandBlockId),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]

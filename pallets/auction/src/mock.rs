@@ -9,7 +9,9 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
-use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId};
+use primitives::{
+	continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, UndeployedLandBlockId,
+};
 
 use crate as auction;
 
@@ -41,6 +43,9 @@ pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
 pub const ALICE_METAVERSE_FUND: AccountId = 100;
 pub const BOB_METAVERSE_FUND: AccountId = 101;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
+
+pub const UNDEPLOYED_LAND_BLOCK_ID_EXIST: UndeployedLandBlockId = 4;
+pub const UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST: UndeployedLandBlockId = 5;
 
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
@@ -108,6 +113,14 @@ impl Estate<u128> for EstateHandler {
 		Ok((0, 0))
 	}
 
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		to: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		Ok(2)
+	}
+
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
 		match estate_id {
 			ESTATE_ID_EXIST | ESTATE_ID_EXIST_1 => Ok(true),
@@ -120,6 +133,17 @@ impl Estate<u128> for EstateHandler {
 		match coordinate {
 			LAND_UNIT_EXIST | LAND_UNIT_EXIST_1 => Ok(true),
 			LAND_UNIT_NOT_EXIST => Ok(false),
+			_ => Ok(false),
+		}
+	}
+
+	fn check_undeployed_land_block(
+		owner: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError> {
+		match undeployed_land_block_id {
+			UNDEPLOYED_LAND_BLOCK_ID_EXIST => Ok(true),
+			UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST => Ok(false),
 			_ => Ok(false),
 		}
 	}
