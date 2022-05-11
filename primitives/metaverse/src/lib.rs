@@ -132,7 +132,7 @@ pub const ESTATE_CLASS_ID: ClassId = 16;
 pub enum ItemId<Balance> {
 	NFT(ClassId, TokenId),
 	Spot(u64, MetaverseId),
-	Country(MetaverseId),
+	Metaverse(MetaverseId),
 	Block(u64),
 	Estate(EstateId),
 	LandUnit((i32, i32), MetaverseId),
