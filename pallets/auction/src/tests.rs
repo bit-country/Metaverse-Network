@@ -1155,3 +1155,65 @@ fn list_item_on_buy_now_local_marketplace_should_work() {
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true))
 	});
 }
+
+#[test]
+// Creating auction for undeployed land block should work
+fn create_new_auction_for_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST)),
+			Some(true)
+		);
+	});
+}
+
+#[test]
+// Creating buy now for undeployed land block should work
+fn create_buy_now_for_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST)),
+			Some(true)
+		);
+	});
+}
