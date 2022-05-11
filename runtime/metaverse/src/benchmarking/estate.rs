@@ -20,7 +20,7 @@ pub type LandId = u64;
 pub type EstateId = u64;
 
 const SEED: u32 = 0;
-const METAVERSE_ID: u64 = 1;
+const METAVERSE_ID: u64 = 0;
 
 const MAX_BOUND: (i32, i32) = (-100, 100);
 const COORDINATE_IN_1: (i32, i32) = (-10, 10);
