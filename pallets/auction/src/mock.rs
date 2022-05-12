@@ -212,10 +212,10 @@ parameter_types! {
 	pub const AuctionTimeToClose: u64 = 100;
 	// Test auction end within 100 blocks
 	pub const MinimumAuctionDuration: u64 = 10;
-	// Test 1% royalty fee
-	pub const RoyaltyFee: u16 = 100;
 	pub const MaxFinality: u32 = 3;
 	pub const MaxBundleItem: u32 = 5;
+	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 }
 
 pub struct MetaverseInfoSource {}
@@ -276,10 +276,11 @@ impl Config for Runtime {
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
-	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
 	type NFTHandler = NFTModule;
 	type MaxBundleItem = MaxBundleItem;
+	type NetworkFeeReserve = NetworkFeeReserve;
+	type NetworkFeeCommission = NetworkFeeCommission;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;

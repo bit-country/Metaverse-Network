@@ -159,10 +159,6 @@ pub mod pallet {
 		/// Estate handler that support land and estate listing
 		type EstateHandler: Estate<Self::AccountId>;
 
-		/// Default royalty fee
-		#[pallet::constant]
-		type RoyaltyFee: Get<u16>;
-
 		/// Max number of listing can be finalised in a single block
 		#[pallet::constant]
 		type MaxFinality: Get<u32>;
@@ -173,6 +169,15 @@ pub mod pallet {
 
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+
+		/// Network fee that will be reserved when an item is listed for auction or buy now. 
+		/// The fee will be unreserved after the auction or buy now is completed.
+		#[pallet::constant]
+		type NetworkFeeReserve: BalanceOf<Self>;
+
+		/// Network fee that will be collected when auction or buy now is completed.
+		#[pallet::constant]
+		type NetworkFeeCommission: Get<Perbill>;
 	}
 
 	#[pallet::storage]
