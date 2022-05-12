@@ -784,7 +784,7 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
-		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
+		Ok(TryInto::<ClassId>::try_into(metaverse_info.estate_class_id).unwrap_or_default())
 	}
 
 	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {

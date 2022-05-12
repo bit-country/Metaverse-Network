@@ -52,11 +52,14 @@ pub const ASSET_ID_2: TokenId = 100;
 pub const ASSET_CLASS_ID: ClassId = 5;
 pub const ASSET_TOKEN_ID: TokenId = 6;
 pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
+pub const METAVERSE_LAND_CLASS: ClassId = 15;
+pub const METAVERSE_ESTATE_CLASS: ClassId = 16;
 
-pub const OWNER_ACCOUNT_ID: OwnerId<AccountId, TokenId> = OwnerId::Account(BENEFICIARY_ID);
-pub const OWNER_ID_ALICE: OwnerId<AccountId, TokenId> = OwnerId::Account(ALICE);
-pub const OWNER_LAND_ASSET_ID: OwnerId<AccountId, TokenId> = OwnerId::Token(ASSET_ID_1);
-pub const OWNER_ESTATE_ASSET_ID: OwnerId<AccountId, TokenId> = OwnerId::Token(ASSET_ID_2);
+pub const OWNER_ACCOUNT_ID: OwnerId<AccountId, ClassId, TokenId> = OwnerId::Account(BENEFICIARY_ID);
+pub const OWNER_ID_ALICE: OwnerId<AccountId, ClassId, TokenId> = OwnerId::Account(ALICE);
+pub const OWNER_LAND_ASSET_ID: OwnerId<AccountId, ClassId, TokenId> = OwnerId::Token(METAVERSE_LAND_CLASS, ASSET_ID_1);
+pub const OWNER_ESTATE_ASSET_ID: OwnerId<AccountId, ClassId, TokenId> =
+	OwnerId::Token(METAVERSE_ESTATE_CLASS, ASSET_ID_2);
 
 pub const ALICE_METAVERSE_FUND: AccountId = 100;
 pub const BOB_METAVERSE_FUND: AccountId = 101;
@@ -156,11 +159,11 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
-		Ok(15u32)
+		Ok(METAVERSE_LAND_CLASS)
 	}
 
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
-		Ok(16u32)
+		Ok(METAVERSE_ESTATE_CLASS)
 	}
 
 	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
