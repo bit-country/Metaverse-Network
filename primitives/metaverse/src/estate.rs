@@ -47,9 +47,9 @@ pub struct EstateInfo {
 }
 
 #[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub enum OwnerId<AccountId, TokenId> {
+pub enum OwnerId<AccountId, ClassId, TokenId> {
 	Account(AccountId),
-	Token(TokenId),
+	Token(ClassId, TokenId),
 }
 
 #[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]

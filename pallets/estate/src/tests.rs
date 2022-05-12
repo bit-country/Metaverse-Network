@@ -2067,12 +2067,12 @@ fn issue_land_block_and_create_estate_should_work() {
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
-			Some(OwnerId::Token(2))
+			Some(OwnerId::Token(METAVERSE_LAND_CLASS, 2))
 		);
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_2),
-			Some(OwnerId::Token(2))
+			Some(OwnerId::Token(METAVERSE_LAND_CLASS, 2))
 		);
 	});
 }
