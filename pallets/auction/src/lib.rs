@@ -412,6 +412,17 @@ pub mod pallet {
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
 					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
+
+					// Unreserve network deposit fee
+					<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get())?;
+					
+					// Collect network commission fee
+					Self::collect_network_fee(
+						&high_bid_price,
+						&auction_item.recipient,
+						FungibleTokenId::NativeToken(0),
+					);
+
 					match auction_item.item_id {
 						ItemId::NFT(class_id, token_id) => {
 							Self::collect_listing_fee(
@@ -737,6 +748,16 @@ pub mod pallet {
 								Ok(_v) => {
 									// Transfer asset from asset owner to high bidder
 									// Check asset type and handle internal logic
+									
+									// Unreserve network deposit fee
+									<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get())?;
+									
+									// Collect network commission fee
+									Self::collect_network_fee(
+										&high_bid_price,
+										&auction_item.recipient,
+										FungibleTokenId::NativeToken(0),
+									);
 
 									match auction_item.item_id.clone() {
 										ItemId::NFT(class_id, token_id) => {
@@ -954,6 +975,9 @@ pub mod pallet {
 				Self::items_in_auction(item_id.clone()) == None,
 				Error::<T>::ItemAlreadyInAuction
 			);
+
+			// Reserve network deposit fee
+			<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
 			match item_id.clone() {
 				ItemId::NFT(class_id, token_id) => {
@@ -1408,6 +1432,37 @@ pub mod pallet {
 							&high_bidder,
 							&metaverse_fund,
 							listing_fee_amount.saturated_into(),
+						)?;
+					}
+				}
+				_ => {}
+			}
+			Ok(())
+		}
+
+		/// Collect network fee for auction
+		fn collect_network_fee(
+			high_bid_price: &BalanceOf<T>,
+			high_bidder: &T::AccountId,
+			social_currency_id: FungibleTokenId,
+		) -> DispatchResult {
+			match listing_level {
+				ListingLevel::Local(metaverse_id) => {
+					let network_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
+					let network_fee: BalanceOf<T> = T::NetworkFeeCommission::get() * *high_bid_price;
+					if social_currency_id == FungibleTokenId::NativeToken(0) {
+						<T as Config>::Currency::transfer(
+							&network_fund,
+							&metaverse_fund,
+							network_fee,
+							ExistenceRequirement::KeepAlive,
+						)?;
+					} else {
+						T::FungibleTokenCurrency::transfer(
+							social_currency_id.clone(),
+							&high_bidder,
+							&network_fund,
+							network_fee.saturated_into(),
 						)?;
 					}
 				}
