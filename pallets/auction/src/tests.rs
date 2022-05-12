@@ -709,6 +709,8 @@ fn buy_now_work() {
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
 		assert_eq!(last_event(), event);
 
+		// check of auction item is still valid
+		assert_eq!(AuctionItems::<Runtime>::get(1), None);
 		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
@@ -1031,6 +1033,8 @@ fn on_finalize_should_work() {
 		assert_eq!(Balances::free_balance(BOB), 596);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
+		// auction item should not in storage
+		assert_eq!(AuctionItems::<Runtime>::get(0), None);
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
 		assert_eq!(last_event(), event);

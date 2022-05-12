@@ -872,6 +872,7 @@ pub mod pallet {
 										_ => {} // Future implementation for Spot, Metaverse
 									}
 									<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
+									<AuctionItems<T>>::remove(auction_id.clone());
 								}
 							}
 						} else {
@@ -1229,6 +1230,7 @@ pub mod pallet {
 					<AuctionEndTime<T>>::remove(end_block, id);
 					<Auctions<T>>::remove(&id);
 					<ItemsInAuction<T>>::remove(item_id);
+					<AuctionItems<T>>::remove(&id);
 				}
 			}
 		}
