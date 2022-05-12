@@ -627,52 +627,46 @@ pub mod pallet {
 				Error::<T>::LandUnitIsOutOfBound
 			);
 
-			UndeployedLandBlocks::<T>::try_mutate_exists(
-				&undeployed_land_block_id,
-				|undeployed_land_block| -> DispatchResultWithPostInfo {
-					let mut undeployed_land_block_record = undeployed_land_block
-						.as_mut()
-						.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+			let undeployed_land_block_record = UndeployedLandBlocks::<T>::get(undeployed_land_block_id)
+				.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 
-					ensure!(
-						undeployed_land_block_record.owner == who.clone(),
-						Error::<T>::NoPermission
-					);
+			ensure!(
+				undeployed_land_block_record.owner == who.clone(),
+				Error::<T>::NoPermission
+			);
 
-					ensure!(
-						undeployed_land_block_record.is_locked == false,
-						Error::<T>::UndeployedLandBlockFreezed
-					);
+			ensure!(
+				undeployed_land_block_record.is_locked == false,
+				Error::<T>::UndeployedLandBlockFreezed
+			);
 
-					let land_units_to_mint = coordinates.len() as u32;
+			let land_units_to_mint = coordinates.len() as u32;
 
-					// Ensure undeployed land block only deployed once
-					ensure!(
-						undeployed_land_block_record.number_land_units == land_units_to_mint,
-						Error::<T>::UndeployedLandBlockUnitAndInputDoesNotMatch
-					);
+			// Ensure undeployed land block only deployed once
+			ensure!(
+				undeployed_land_block_record.number_land_units == land_units_to_mint,
+				Error::<T>::UndeployedLandBlockUnitAndInputDoesNotMatch
+			);
 
-					// Mint land units
-					for coordinate in coordinates.clone() {
-						Self::mint_land_unit(metaverse_id, who.clone(), coordinate, LandUnitStatus::NonExisting)?;
-					}
+			// Mint land units
+			for coordinate in coordinates.clone() {
+				Self::mint_land_unit(metaverse_id, who.clone(), coordinate, LandUnitStatus::NonExisting)?;
+			}
 
-					// Update total land count
-					Self::set_total_land_unit(coordinates.len() as u64, false)?;
+			// Update total land count
+			Self::set_total_land_unit(coordinates.len() as u64, false)?;
 
-					// Burn undeployed land block
-					Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
+			// Burn undeployed land block
+			Self::do_burn_undeployed_land_block(undeployed_land_block_id)?;
 
-					Self::deposit_event(Event::<T>::LandBlockDeployed(
-						who.clone(),
-						metaverse_id,
-						undeployed_land_block_id,
-						coordinates,
-					));
+			Self::deposit_event(Event::<T>::LandBlockDeployed(
+				who.clone(),
+				metaverse_id,
+				undeployed_land_block_id,
+				coordinates,
+			));
 
-					Ok(().into())
-				},
-			)
+			Ok(().into())
 		}
 
 		/// Issues new undeployed land block(s)

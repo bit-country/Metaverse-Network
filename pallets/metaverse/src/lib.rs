@@ -695,7 +695,7 @@ impl<T: Config> Pallet<T> {
 			&class_owner,
 			estate_class_metadata,
 			estate_class_attributes,
-			1,
+			0,
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(ESTATE_CLASS_ROYALTY_FEE),

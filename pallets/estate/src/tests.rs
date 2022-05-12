@@ -1553,15 +1553,8 @@ fn deploy_undeployed_land_block_should_work() {
 		);
 
 		let updated_undeployed_land_block = EstateModule::get_undeployed_land_block(undeployed_land_block_id);
-		match updated_undeployed_land_block {
-			Some(a) => {
-				assert_eq!(a.number_land_units, 2);
-			}
-			_ => {
-				// Should fail test
-				assert_eq!(0, 1);
-			}
-		}
+
+		assert_eq!(updated_undeployed_land_block, None);
 
 		assert_eq!(EstateModule::all_land_units_count(), 2);
 	});
