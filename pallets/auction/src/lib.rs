@@ -1443,30 +1443,25 @@ pub mod pallet {
 		/// Collect network fee for auction
 		fn collect_network_fee(
 			high_bid_price: &BalanceOf<T>,
-			high_bidder: &T::AccountId,
+			recipient: &T::AccountId,
 			social_currency_id: FungibleTokenId,
 		) -> DispatchResult {
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					let network_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
-					let network_fee: BalanceOf<T> = T::NetworkFeeCommission::get() * *high_bid_price;
-					if social_currency_id == FungibleTokenId::NativeToken(0) {
-						<T as Config>::Currency::transfer(
-							&network_fund,
-							&metaverse_fund,
-							network_fee,
-							ExistenceRequirement::KeepAlive,
-						)?;
-					} else {
-						T::FungibleTokenCurrency::transfer(
-							social_currency_id.clone(),
-							&high_bidder,
-							&network_fund,
-							network_fee.saturated_into(),
-						)?;
-					}
-				}
-				_ => {}
+			let network_fund = T::MetaverseInfoSource::get_network_treasury();
+			let network_fee: BalanceOf<T> = T::NetworkFeeCommission::get() * *high_bid_price;
+			if social_currency_id == FungibleTokenId::NativeToken(0) {
+				<T as Config>::Currency::transfer(
+					&recipient,
+					&network_fund,
+					network_fee,
+					ExistenceRequirement::KeepAlive,
+				)?;
+			} else {
+				T::FungibleTokenCurrency::transfer(
+					social_currency_id.clone(),
+					&recipient,
+					&network_fund,
+					network_fee.saturated_into(),
+				)?;
 			}
 			Ok(())
 		}

@@ -58,8 +58,6 @@ pub const OWNER_ID_ALICE: OwnerId<AccountId, TokenId> = OwnerId::Account(ALICE);
 pub const OWNER_LAND_ASSET_ID: OwnerId<AccountId, TokenId> = OwnerId::Token(ASSET_ID_1);
 pub const OWNER_ESTATE_ASSET_ID: OwnerId<AccountId, TokenId> = OwnerId::Token(ASSET_ID_2);
 
-pub const ALICE_METAVERSE_FUND: AccountId = 100;
-pub const BOB_METAVERSE_FUND: AccountId = 101;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 ord_parameter_types! {
@@ -168,11 +166,11 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
-		match metaverse_id {
-			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
-			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
-			_ => GENERAL_METAVERSE_FUND,
-		}
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
 	}
 }
 
