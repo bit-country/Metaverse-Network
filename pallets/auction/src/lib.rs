@@ -173,7 +173,7 @@ pub mod pallet {
 		/// Network fee that will be reserved when an item is listed for auction or buy now. 
 		/// The fee will be unreserved after the auction or buy now is completed.
 		#[pallet::constant]
-		type NetworkFeeReserve: BalanceOf<Self>;
+		type NetworkFeeReserve: Get<BalanceOf<Self>>;
 
 		/// Network fee that will be collected when auction or buy now is completed.
 		#[pallet::constant]
@@ -400,6 +400,9 @@ pub mod pallet {
 
 			Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
 
+			// Unreserve network deposit fee
+			<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get()); 
+
 			// Transfer balance from buy it now user to asset owner
 			let currency_transfer = <T as Config>::Currency::transfer(
 				&from,
@@ -407,18 +410,16 @@ pub mod pallet {
 				value,
 				ExistenceRequirement::KeepAlive,
 			);
+
 			match currency_transfer {
 				Err(_e) => {}
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
 					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
-
-					// Unreserve network deposit fee
-					<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get())?;
 					
 					// Collect network commission fee
 					Self::collect_network_fee(
-						&high_bid_price,
+						&value,
 						&auction_item.recipient,
 						FungibleTokenId::NativeToken(0),
 					);
@@ -735,6 +736,9 @@ pub mod pallet {
 							// Handle listing
 							<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
 
+							// Unreserve network deposit fee
+							<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
+
 							// Handle balance transfer
 							let currency_transfer = <T as Config>::Currency::transfer(
 								&high_bidder,
@@ -746,12 +750,6 @@ pub mod pallet {
 							match currency_transfer {
 								Err(_e) => continue,
 								Ok(_v) => {
-									// Transfer asset from asset owner to high bidder
-									// Check asset type and handle internal logic
-									
-									// Unreserve network deposit fee
-									<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get())?;
-									
 									// Collect network commission fee
 									Self::collect_network_fee(
 										&high_bid_price,
@@ -759,6 +757,8 @@ pub mod pallet {
 										FungibleTokenId::NativeToken(0),
 									);
 
+									// Transfer asset from asset owner to high bidder
+									// Check asset type and handle internal logic
 									match auction_item.item_id.clone() {
 										ItemId::NFT(class_id, token_id) => {
 											Self::collect_listing_fee(

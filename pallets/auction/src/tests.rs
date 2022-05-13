@@ -67,6 +67,7 @@ fn create_new_auction_work() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+		assert_eq!(Balances::free_balance(ALICE), 99996);
 	});
 }
 
@@ -104,6 +105,7 @@ fn create_new_auction_bundle_work() {
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
 			Some(true)
 		);
+		assert_eq!(Balances::free_balance(ALICE), 99990);
 	});
 }
 
@@ -141,6 +143,7 @@ fn create_new_buy_now_bundle_work() {
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
 			Some(true)
 		);
+		assert_eq!(Balances::free_balance(ALICE), 99990);
 	});
 }
 
@@ -168,6 +171,7 @@ fn create_new_auction_should_work_for_valid_estate() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(item_id.clone()), Some(true));
+		assert_eq!(Balances::free_balance(ALICE), 99999);
 	});
 }
 
@@ -216,6 +220,7 @@ fn create_new_auction_should_work_for_valid_landunit() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
+		assert_eq!(Balances::free_balance(ALICE), 99999);
 	});
 }
 
@@ -669,6 +674,8 @@ fn buy_now_work() {
 			Perbill::from_percent(0u32)
 		));
 
+		//assert_eq!(Balances::free_balance(BOB), 499);
+
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
@@ -701,9 +708,10 @@ fn buy_now_work() {
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99600);
 		// initial balance is 500 - sold 2 x 200 = 900
-		// royalty fee is 1% for both sales is 8
-		// 900 - 8 + 7 for deposit minting = 885
-		assert_eq!(Balances::free_balance(BOB), 892);
+		// royalty fee 1% for both sales is 8
+		// network fee 1% for both sales is 8
+		// 900 - 16 + 7 for deposit minting = 885
+		assert_eq!(Balances::free_balance(BOB), 888);
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));

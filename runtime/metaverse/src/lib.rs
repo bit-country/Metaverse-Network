@@ -508,7 +508,7 @@ impl orml_nft::Config for Runtime {
 	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
-}-
+}
 
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
