@@ -255,10 +255,10 @@ pub trait NFTTrait<AccountId, Balance> {
 	/// Mint NFT token
 	fn mint_token(
 		sender: &AccountId,
-		class_id: ClassId,
+		class_id: Self::ClassId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<TokenId, DispatchError>;
+	) -> Result<Self::TokenId, DispatchError>;
 	/// Burn nft
 	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
 	/// Check if item is on listing
