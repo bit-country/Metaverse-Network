@@ -1161,9 +1161,7 @@ pub type SignedExtra = (
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
-	define_benchmarks!(
-		[estate, benchmarking::estate]
-	);
+	define_benchmarks!([estate, benchmarking::estate]);
 }
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = fp_self_contained::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
