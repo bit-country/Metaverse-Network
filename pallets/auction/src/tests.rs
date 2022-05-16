@@ -636,7 +636,7 @@ fn asset_transfers_after_auction() {
 		);
 
 		// Verify transfer of fund (minus gas)
-		// BOB only receive 200 - 2 (1% of 200 as royalty fee) - 2 (1% of 200 as network fee) - 4 minting fee = 193
+		// BOB only receive 200 - 2 (1% royalty fee) - 2 (1% network fee) - 4 (minting fee) = 193
 		// 500 + 193 = 693
 		assert_eq!(Balances::free_balance(BOB), 693);
 		assert_eq!(Balances::free_balance(ALICE), 99800);
