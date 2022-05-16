@@ -956,6 +956,9 @@ fn buy_now_should_fail() {
 			Perbill::from_percent(0u32)
 		));
 
+		// BOB balance is 500 - 1 (network fee) - 3 (minting fee) = 496
+		assert_eq!(Balances::free_balance(BOB), 496);
+
 		// no auction id
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
@@ -977,12 +980,12 @@ fn buy_now_should_fail() {
 			Error::<Runtime>::InvalidBuyNowPrice
 		);
 		// user does not have enough balance in wallet
-		assert_ok!(Balances::reserve(&ALICE, 100000));
+		assert_ok!(Balances::reserve(&ALICE, 99996));
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 150),
 			Error::<Runtime>::InsufficientFreeBalance
 		);
-		assert_eq!(Balances::unreserve(&ALICE, 100000), 0);
+		assert_eq!(Balances::unreserve(&ALICE, 99996), 0);
 		// auction has not started or is over
 		System::set_block_number(0);
 		assert_noop!(
@@ -996,6 +999,10 @@ fn buy_now_should_fail() {
 		);
 		System::set_block_number(1);
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
+
+		// BOB balance is 500 + 150 - 1 (royalty fee) - 1 (network fee) - 3 (minting fee) = 495
+		assert_eq!(Balances::free_balance(BOB), 645);
+
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::BuyNow,
