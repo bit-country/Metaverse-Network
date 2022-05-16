@@ -225,8 +225,8 @@ fn create_new_auction_should_work_for_valid_landunit() {
 }
 
 #[test]
-// Creating auction should work
-fn create_new_auction_should_work_for_non_exist_landunit() {
+// Creating auction should fail
+fn create_new_auction_should_fail_for_non_exist_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
 		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
 		assert_noop!(
@@ -329,6 +329,10 @@ fn create_auction_fail() {
 			ListingLevel::Global,
 			Perbill::from_percent(0u32)
 		));
+
+		// ALICE balance is 100000 - 1 (network fee) - 6 (minting fee) = 99993
+		assert_eq!(Balances::free_balance(ALICE), 99993);
+
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::Auction,
@@ -369,6 +373,9 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			Perbill::from_percent(0u32)
 		));
 
+		// ALICE balance is 100 000 - 1 (network fee) - 12 (minting fees) = 99987
+		assert_eq!(Balances::free_balance(ALICE), 99987);
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::NFT(0, 1),
@@ -380,6 +387,9 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			Perbill::from_percent(0u32)
 		));
 
+		// ALICE balance is 99987 - 1 (network fee) = 99986
+		assert_eq!(Balances::free_balance(ALICE), 99986);
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::NFT(0, 2),
@@ -390,6 +400,9 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			ListingLevel::Global,
 			Perbill::from_percent(0u32)
 		));
+
+		// ALICE balance is 99986 - 1 (network fee) = 99985
+		assert_eq!(Balances::free_balance(ALICE), 99985);
 
 		// Mocking max finality is 3
 		// 4th auction with new block should fail
@@ -420,6 +433,9 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			ListingLevel::Global,
 			Perbill::from_percent(0u32)
 		));
+
+		// ALICE balance is 99985 - 1 (network fee) = 99984
+		assert_eq!(Balances::free_balance(ALICE), 99984);
 	});
 }
 
@@ -772,7 +788,7 @@ fn buy_now_works_for_valid_estate() {
 			Perbill::from_percent(0u32)
 		));
 
-		// BOB balance is 649 - 1(network reserve fee) 
+		// BOB balance is 649 - 1  (network reserve fee)
 		assert_eq!(Balances::free_balance(BOB), 648);
 
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
@@ -837,7 +853,7 @@ fn buy_now_works_for_valid_landunit() {
 			Perbill::from_percent(0u32)
 		));
 
-		// BOB balance is 649 - 1(network reserve fee) 
+		// BOB balance is 649 - 1(network reserve fee)
 		assert_eq!(Balances::free_balance(BOB), 648);
 
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
@@ -890,7 +906,7 @@ fn buy_now_with_bundle_should_work() {
 
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
-		
+
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
 		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
@@ -1155,8 +1171,8 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 		// check balances were transferred
 		// Bob bid 200 for item, his new balance will be 500 - 200
 		assert_eq!(Balances::free_balance(BOB), 300);
-		// Alice only receive 176 for item sold 
-		// Cost breakdown 200 - 2 (royalty)  - 2 (1% network fee) - 20 (listing fee)
+		// Alice only receive 176 for item solds
+		// Cost breakdown 200 - 2 (royalty) - 2 (1% network fee) - 20 (listing fee)
 		// Free balance of Alice is 99994 + 176 = 100170
 		assert_eq!(Balances::free_balance(ALICE), 100170);
 		// asset is not longer in auction

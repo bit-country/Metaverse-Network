@@ -170,7 +170,7 @@ pub mod pallet {
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 
-		/// Network fee that will be reserved when an item is listed for auction or buy now. 
+		/// Network fee that will be reserved when an item is listed for auction or buy now.
 		/// The fee will be unreserved after the auction or buy now is completed.
 		#[pallet::constant]
 		type NetworkFeeReserve: Get<BalanceOf<Self>>;
@@ -401,7 +401,7 @@ pub mod pallet {
 			Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
 
 			// Unreserve network deposit fee
-			<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get()); 
+			<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 
 			// Transfer balance from buy it now user to asset owner
 			let currency_transfer = <T as Config>::Currency::transfer(
@@ -416,13 +416,9 @@ pub mod pallet {
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
 					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
-					
+
 					// Collect network commission fee
-					Self::collect_network_fee(
-						&value,
-						&auction_item.recipient,
-						FungibleTokenId::NativeToken(0),
-					);
+					Self::collect_network_fee(&value, &auction_item.recipient, FungibleTokenId::NativeToken(0));
 
 					match auction_item.item_id {
 						ItemId::NFT(class_id, token_id) => {
@@ -977,9 +973,6 @@ pub mod pallet {
 				Error::<T>::ItemAlreadyInAuction
 			);
 
-			// Reserve network deposit fee
-			<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
-
 			match item_id.clone() {
 				ItemId::NFT(class_id, token_id) => {
 					// Check ownership
@@ -1016,6 +1009,9 @@ pub mod pallet {
 						Error::<T>::ExceedFinalityLimit
 					);
 
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
+
 					T::NFTHandler::set_lock_nft((class_id, token_id), true)?;
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
@@ -1050,6 +1046,9 @@ pub mod pallet {
 					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get();
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
@@ -1088,6 +1087,9 @@ pub mod pallet {
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
+
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
 						recipient: recipient.clone(),
@@ -1124,6 +1126,9 @@ pub mod pallet {
 					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
@@ -1185,6 +1190,9 @@ pub mod pallet {
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
+
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
 						recipient: recipient.clone(),
@@ -1221,6 +1229,9 @@ pub mod pallet {
 					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
