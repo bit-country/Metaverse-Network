@@ -538,6 +538,7 @@ parameter_types! {
 	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 1;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
+	pub const NetworkFee: Perbill = Perbill::from_percent(1); // Network fee 
 }
 
 impl estate::Config for Runtime {
@@ -554,6 +555,7 @@ impl estate::Config for Runtime {
 	type RewardPaymentDelay = RewardPaymentDelay;
 	type NFTTokenizationSource = Nft;
 	type DefaultMaxBound = DefaultMaxBound;
+	type NetworkFee = NetworkFee;
 }
 
 parameter_types! {

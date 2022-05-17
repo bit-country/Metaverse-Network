@@ -1101,6 +1101,7 @@ parameter_types! {
 	pub const MinimumStake: Balance = 5 * DOLLARS;
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
+	pub const NetworkFee: Perbill = Perbill::from_percent(1); // Network fee 
 }
 
 impl estate::Config for Runtime {
@@ -1116,6 +1117,7 @@ impl estate::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
 	type NFTTokenizationSource = Nft;
+	type NetworkFee = NetworkFee;
 }
 
 parameter_types! {

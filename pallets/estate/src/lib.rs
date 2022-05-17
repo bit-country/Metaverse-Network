@@ -24,7 +24,7 @@ use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating},
-	ArithmeticError, DispatchError,
+	ArithmeticError, DispatchError, Perbill,
 };
 use sp_std::vec::Vec;
 
@@ -113,6 +113,10 @@ pub mod pallet {
 
 		/// Default max bound for each metaverse mapping system, this could change through proposal
 		type DefaultMaxBound: Get<(i32, i32)>;
+
+		/// Network fee charged when deploying a land block or creating an estate
+		#[pallet::constant]
+		type NetworkFee: Get<Perbill>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
