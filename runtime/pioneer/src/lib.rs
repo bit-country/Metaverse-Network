@@ -1333,7 +1333,7 @@ parameter_types! {
 	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
-	pub const NetworkFee: Perbill = Perbill::from_percent(1); // Network fee 
+	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee 
 }
 
 impl estate::Config for Runtime {

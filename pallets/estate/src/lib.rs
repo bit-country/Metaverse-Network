@@ -18,13 +18,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
+use frame_support::traits::{Currency, ExistenceRequirement};
 use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Saturating},
-	ArithmeticError, DispatchError, Perbill,
+	ArithmeticError, DispatchError,
 };
 use sp_std::vec::Vec;
 
@@ -33,8 +34,8 @@ use core_primitives::*;
 pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
-	estate::Estate, estate::LandUnitStatus, estate::OwnerId, Attributes, ClassId, EstateId, ItemId, MetaverseId,
-	NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
+	estate::Estate, estate::LandUnitStatus, estate::OwnerId, Attributes, ClassId, EstateId, FungibleTokenId, ItemId,
+	MetaverseId, NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -116,7 +117,7 @@ pub mod pallet {
 
 		/// Network fee charged when deploying a land block or creating an estate
 		#[pallet::constant]
-		type NetworkFee: Get<Perbill>;
+		type NetworkFee: Get<BalanceOf<Self>>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -385,10 +386,12 @@ pub mod pallet {
 		EstateStakeAlreadyLeft,
 		/// Account has not staked anything
 		AccountHasNoStake,
-		// Invalid owner value
+		/// Invalid owner value
 		InvalidOwnerValue,
-		// Coordinate for estate is not valid
+		/// Coordinate for estate is not valid
 		CoordinatesForEstateIsNotValid,
+		/// Insufficient balance for deploying land blocks or creating estates
+		InsufficientBalanceForDeployingLandOrCreatingEstate,
 	}
 
 	#[pallet::call]
@@ -546,7 +549,8 @@ pub mod pallet {
 				Self::verify_land_unit_for_estate(coordinates.clone()),
 				Error::<T>::CoordinatesForEstateIsNotValid
 			);
-
+			// Collect network fee
+			Self::collect_network_fee(&who)?;
 			// Generate new estate id
 			let new_estate_id = Self::get_new_estate_id()?;
 
@@ -656,6 +660,9 @@ pub mod pallet {
 				undeployed_land_block_record.number_land_units == land_units_to_mint,
 				Error::<T>::UndeployedLandBlockUnitAndInputDoesNotMatch
 			);
+
+			// Collect network fee
+			Self::collect_network_fee(&who)?;
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
@@ -1557,6 +1564,29 @@ impl<T: Config> Pallet<T> {
 			&& block_coordinate.0 <= max_axis.saturating_add(50i32)
 			&& block_coordinate.1.saturating_sub(49i32) <= *vec_yaxis.iter().min().unwrap()
 			&& block_coordinate.1 <= max_yaxis.saturating_add(50i32)
+	}
+
+	fn collect_network_fee(
+		recipient: &T::AccountId,
+		// social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		let network_fund = T::MetaverseInfoSource::get_network_treasury();
+		//if social_currency_id == FungibleTokenId::NativeToken(0) {
+		<T as Config>::Currency::transfer(
+			&recipient,
+			&network_fund,
+			T::NetworkFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+		//	} else {
+		//	T::FungibleTokenCurrency::transfer(
+		//		social_currency_id.clone(),
+		//		&recipient,
+		//		&network_fund,
+			//	T::NetworkFee::get(),
+			//)?;
+		//}
+		Ok(())
 	}
 }
 

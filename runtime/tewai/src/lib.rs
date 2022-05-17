@@ -1101,7 +1101,7 @@ parameter_types! {
 	pub const MinimumStake: Balance = 5 * DOLLARS;
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
-	pub const NetworkFee: Perbill = Perbill::from_percent(1); // Network fee 
+	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee 
 }
 
 impl estate::Config for Runtime {
