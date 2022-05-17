@@ -1127,6 +1127,34 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 }
 
 #[test]
+// Auction finalize with bundle and listing fee works
+fn on_finalize_with_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let bidder = Origin::signed(BOB);
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST),
+			None,
+			ALICE,
+			200,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST)),
+			Some(true)
+		);
+		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		run_to_block(102);
+		assert_eq!(AuctionModule::auctions(0), None);
+		// event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 200));
+		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
 // List item on local marketplace should work if metaverse owner
 fn list_item_on_auction_local_marketplace_should_work() {
 	ExtBuilder::default().build().execute_with(|| {

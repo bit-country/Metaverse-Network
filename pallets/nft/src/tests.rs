@@ -53,7 +53,7 @@ fn init_bound_to_address_nft(owner: Origin) {
 		vec![1],
 		test_attributes(1),
 		COLLECTION_ID,
-		TokenType::Transferable,
+		TokenType::BoundToAddress,
 		CollectionType::Collectable,
 		Perbill::from_percent(0u32)
 	));
@@ -414,6 +414,31 @@ fn do_transfer_should_fail() {
 		assert_noop!(
 			Nft::do_transfer(&ALICE, &BOB, (0, 1)),
 			Error::<Runtime>::AssetInfoNotFound
+		);
+	})
+}
+
+#[test]
+fn do_transfer_should_fail_if_bound_to_address() {
+	let origin = Origin::signed(ALICE);
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			Nft::do_transfer(&ALICE, &BOB, (0, 0)),
+			Error::<Runtime>::ClassIdNotFound
+		);
+
+		init_bound_to_address_nft(origin.clone());
+
+		// Owner allowed to transfer
+		assert_ok!(Nft::transfer(origin.clone(), BOB, (0, 0)));
+
+		let event = mock::Event::Nft(crate::Event::TransferedNft(ALICE, BOB, 0, (0, 0)));
+		assert_eq!(last_event(), event);
+
+		// Reject ownership if BOB tries to transfer
+		assert_noop!(
+			Nft::do_transfer(&BOB, &ALICE, (0, 0)),
+			Error::<Runtime>::NonTransferable
 		);
 	})
 }
