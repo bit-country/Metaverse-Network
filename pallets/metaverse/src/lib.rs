@@ -721,7 +721,7 @@ impl<T: Config> Pallet<T> {
 		let mut upgraded_metaverse_items = 0;
 		let mut total_metaverse_items = 0;
 
-		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>|  {
+		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
 			total_metaverse_items += 1;
 			let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v1.owner, k).unwrap_or({
 				log::info!("Cannot create land class for metaverse {}:", total_metaverse_items);

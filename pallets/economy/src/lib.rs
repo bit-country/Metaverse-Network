@@ -544,7 +544,7 @@ pub mod pallet {
 
 			// Check if executor is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &distributor_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
 				Error::<T>::NoPermissionToExecuteBuyPowerOrder
 			);
 
@@ -626,7 +626,7 @@ pub mod pallet {
 
 			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &distributor_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
 				Error::<T>::NoPermissionToBuyPower
 			);
 
@@ -709,7 +709,7 @@ pub mod pallet {
 
 			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &generator_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &generator_nft_id)?,
 				Error::<T>::NoPermissionToExecuteGeneratingPowerOrder
 			);
 
@@ -938,7 +938,7 @@ pub mod pallet {
 
 			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &generator_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &generator_nft_id)?,
 				Error::<T>::NoPermissionToBuyPower
 			);
 
@@ -988,10 +988,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Check if origin is the owner of the NFT
-			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &nft_id)?,
-				Error::<T>::NoPermission
-			);
+			ensure!(T::NFTHandler::check_ownership(&who, &nft_id)?, Error::<T>::NoPermission);
 
 			// Check nft is part of generator collection
 			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&nft_id.0)?;
@@ -1028,8 +1025,8 @@ pub mod pallet {
 
 			// Check if origin is the owner of the NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &nft_id)?,
-				Error::<T>::NoPermission
+				T::NFTHandler::check_ownership(&who, &nft_id)?,
+				Error::<T>::NoPermissions
 			);
 
 			// Get NFT account id
@@ -1092,7 +1089,7 @@ pub mod pallet {
 
 			// Check if origin is the owner of the NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &receiver_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &receiver_nft_id)?,
 				Error::<T>::NoPermission
 			);
 
