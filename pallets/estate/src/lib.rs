@@ -19,7 +19,7 @@
 
 use frame_support::pallet_prelude::*;
 use frame_support::traits::{Currency, ExistenceRequirement};
-use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
+use frame_support::{dispatch::DispatchResult, ensure, traits::Get, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
@@ -538,6 +538,7 @@ pub mod pallet {
 		///
 		/// Emits `NewEstateMinted` if successful.
 		#[pallet::weight(T::WeightInfo::create_estate())]
+		#[transactional]
 		pub fn create_estate(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -611,6 +612,7 @@ pub mod pallet {
 		///
 		/// Emits `LandBlockDeployed` if successful.
 		#[pallet::weight(T::WeightInfo::deploy_land_block())]
+		#[transactional]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -1583,8 +1585,8 @@ impl<T: Config> Pallet<T> {
 		//		social_currency_id.clone(),
 		//		&recipient,
 		//		&network_fund,
-			//	T::NetworkFee::get(),
-			//)?;
+		//	T::NetworkFee::get(),
+		//)?;
 		//}
 		Ok(())
 	}
