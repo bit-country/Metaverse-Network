@@ -973,6 +973,13 @@ pub mod pallet {
 				Error::<T>::ItemAlreadyInAuction
 			);
 
+			let start_time = <system::Pallet<T>>::block_number();
+
+			let mut end_time = start_time + T::AuctionTimeToClose::get();
+			if let Some(_end_block) = _end {
+				end_time = _end_block
+			}
+
 			match item_id.clone() {
 				ItemId::NFT(class_id, token_id) => {
 					// Check ownership
@@ -994,13 +1001,6 @@ pub mod pallet {
 							);
 						}
 						_ => {}
-					}
-
-					let start_time = <system::Pallet<T>>::block_number();
-
-					let mut end_time = start_time + T::AuctionTimeToClose::get();
-					if let Some(_end_block) = _end {
-						end_time = _end_block
 					}
 
 					// Ensure auction end time below limit
@@ -1162,13 +1162,6 @@ pub mod pallet {
 						Error::<T>::ExceedBundleLimit
 					);
 
-					let start_time = <system::Pallet<T>>::block_number();
-
-					let mut end_time = start_time + T::AuctionTimeToClose::get();
-					if let Some(_end_block) = _end {
-						end_time = _end_block
-					}
-
 					// Make sure total item bundle is not exceed max finality
 					ensure!(
 						Self::check_valid_finality(&end_time, tokens.len() as u32),
@@ -1226,8 +1219,6 @@ pub mod pallet {
 						Error::<T>::UndeployedLandBlockDoesNotExistOrNotAvailable
 					);
 
-					let start_time = <system::Pallet<T>>::block_number();
-					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
 					// Reserve network deposit fee

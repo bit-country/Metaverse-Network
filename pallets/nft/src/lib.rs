@@ -726,7 +726,12 @@ impl<T: Config> Pallet<T> {
 				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
 				Ok(asset_id.1)
 			}
-			TokenType::BoundToAddress => Err(Error::<T>::NonTransferable.into()),
+			// Only allowed collection owner to transfer
+			TokenType::BoundToAddress => {
+				ensure!(class_info.owner == *sender, Error::<T>::NonTransferable);
+				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
+				Ok(asset_id.1)
+			}
 		}
 	}
 
