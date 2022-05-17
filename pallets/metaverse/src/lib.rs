@@ -718,26 +718,35 @@ impl<T: Config> Pallet<T> {
 
 	pub fn upgrade_metaverse_info_v2() -> Weight {
 		log::info!("Start upgrade_metaverse_info_v2");
-		let mut num_metaverse_items = 0;
+		let mut upgraded_metaverse_items = 0;
+		let mut total_metaverse_items = 0;
 
-		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
-		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
+		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>|  {
+			total_metaverse_items += 1;
+			let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v1.owner, k).unwrap_or({
+				log::info!("Cannot create land class for metaverse {}:", total_metaverse_items);
+				return None;
+			});
+			let new_estate_class_id = Self::mint_metaverse_estate_class(&metaverse_info_v1.owner, k).unwrap_or({
+				log::info!("Cannot create estate class for metaverse {}:", total_metaverse_items);
+				return None;
+			});
 
-		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
-			num_metaverse_items += 1;
+			upgraded_metaverse_items += 1;
+
 			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
 				owner: metaverse_info_v1.owner,
 				metadata: metaverse_info_v1.metadata,
 				currency_id: metaverse_info_v1.currency_id,
 				is_frozen: false,
 				listing_fee: Perbill::from_percent(0u32),
-				land_class_id: default_land_class_id,
-				estate_class_id: default_estate_class_id,
+				land_class_id: new_land_class_id,
+				estate_class_id: new_estate_class_id,
 			};
 			Some(v2)
 		});
-
-		log::info!("{} metaverses upgraded:", num_metaverse_items);
+		log::info!("{} metaverses in total:", total_metaverse_items);
+		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
 		0
 	}
 }
