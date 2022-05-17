@@ -1024,10 +1024,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Check if origin is the owner of the NFT
-			ensure!(
-				T::NFTHandler::check_ownership(&who, &nft_id)?,
-				Error::<T>::NoPermission
-			);
+			ensure!(T::NFTHandler::check_ownership(&who, &nft_id)?, Error::<T>::NoPermission);
 
 			// Get NFT account id
 			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(nft_id);
