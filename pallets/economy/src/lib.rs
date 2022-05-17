@@ -1026,7 +1026,7 @@ pub mod pallet {
 			// Check if origin is the owner of the NFT
 			ensure!(
 				T::NFTHandler::check_ownership(&who, &nft_id)?,
-				Error::<T>::NoPermissions
+				Error::<T>::NoPermission
 			);
 
 			// Get NFT account id
