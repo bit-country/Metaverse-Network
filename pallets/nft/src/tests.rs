@@ -41,7 +41,8 @@ fn init_test_nft(owner: Origin) {
 		COLLECTION_ID,
 		TokenType::Transferable,
 		CollectionType::Collectable,
-		Perbill::from_percent(0u32)
+		Perbill::from_percent(0u32),
+		None
 	));
 	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
@@ -55,7 +56,8 @@ fn init_bound_to_address_nft(owner: Origin) {
 		COLLECTION_ID,
 		TokenType::BoundToAddress,
 		CollectionType::Collectable,
-		Perbill::from_percent(0u32)
+		Perbill::from_percent(0u32),
+		None
 	));
 	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
@@ -127,7 +129,8 @@ fn create_class_should_work() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_eq!(Nft::get_class_collection(0), 0);
@@ -140,7 +143,8 @@ fn create_class_should_work() {
 				collection_type: CollectionType::Collectable,
 				is_locked: false,
 				attributes: test_attributes(1),
-				royalty_fee: Perbill::from_percent(0u32)
+				royalty_fee: Perbill::from_percent(0u32),
+				mint_limit: None,
 			}
 		);
 
@@ -164,7 +168,8 @@ fn create_class_with_royalty_fee_should_work() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(10u32)
+			Perbill::from_percent(10u32),
+			None
 		));
 		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_eq!(Nft::get_class_collection(0), 0);
@@ -177,7 +182,8 @@ fn create_class_with_royalty_fee_should_work() {
 				collection_type: CollectionType::Collectable,
 				is_locked: false,
 				attributes: test_attributes(1),
-				royalty_fee: Perbill::from_percent(10u32)
+				royalty_fee: Perbill::from_percent(10u32),
+				mint_limit: None,
 			}
 		);
 
@@ -250,7 +256,8 @@ fn mint_asset_should_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 		assert_noop!(
 			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 0),
@@ -279,7 +286,8 @@ fn mint_exceed_max_batch_should_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 		assert_noop!(
 			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 20),
@@ -322,7 +330,8 @@ fn transfer_batch_should_work() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
 		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, (1, 0)), (BOB, (1, 1))]));
@@ -343,7 +352,8 @@ fn transfer_batch_exceed_length_should_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
 		assert_noop!(
@@ -365,7 +375,8 @@ fn transfer_batch_should_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 		assert_noop!(
@@ -407,7 +418,8 @@ fn do_transfer_should_fail() {
 			COLLECTION_ID,
 			TokenType::BoundToAddress,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 

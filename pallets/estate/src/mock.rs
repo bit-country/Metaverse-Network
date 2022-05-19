@@ -319,6 +319,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		token_type: TokenType,
 		collection_type: CollectionType,
 		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
 			ALICE => {
@@ -391,6 +392,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			collection_type: CollectionType::Collectable,
 			is_locked: false,
 			royalty_fee: Perbill::from_percent(0u32),
+			mint_limit: None,
 		};
 		Ok(new_data)
 	}

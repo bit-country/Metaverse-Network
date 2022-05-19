@@ -394,6 +394,7 @@ pub mod pallet {
 			token_type: TokenType,
 			collection_type: CollectionType,
 			royalty_fee: Perbill,
+			mint_limit: Option<u32>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let class_id = Self::do_create_class(
@@ -404,6 +405,7 @@ pub mod pallet {
 				token_type,
 				collection_type,
 				royalty_fee,
+				mint_limit,
 			)?;
 			Self::deposit_event(Event::<T>::NewNftClassCreated(sender, class_id));
 
@@ -818,6 +820,7 @@ impl<T: Config> Pallet<T> {
 		token_type: TokenType,
 		collection_type: CollectionType,
 		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
 	) -> Result<<T as orml_nft::Config>::ClassId, DispatchError> {
 		ensure!(
 			metadata.len() as u32 <= T::MaxMetadata::get(),
@@ -849,6 +852,7 @@ impl<T: Config> Pallet<T> {
 			attributes,
 			is_locked: false,
 			royalty_fee,
+			mint_limit,
 		};
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
@@ -889,6 +893,7 @@ impl<T: Config> Pallet<T> {
 					collection_type: class_info.data.collection_type,
 					is_locked: false,
 					royalty_fee: Perbill::from_percent(0u32),
+					mint_limit: None,
 				};
 
 				let v: ClassInfoOf<T> = ClassInfo {
@@ -976,6 +981,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		token_type: TokenType,
 		collection_type: CollectionType,
 		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
 	) -> Result<ClassId, DispatchError> {
 		let class_id = Self::do_create_class(
 			sender,
@@ -985,6 +991,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			token_type,
 			collection_type,
 			royalty_fee,
+			mint_limit,
 		)?;
 		Ok(TryInto::<ClassId>::try_into(class_id).unwrap_or_default())
 	}
