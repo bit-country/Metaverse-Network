@@ -709,6 +709,8 @@ fn buy_now_work() {
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
 		assert_eq!(last_event(), event);
 
+		// check of auction item is still valid
+		assert_eq!(AuctionItems::<Runtime>::get(1), None);
 		// Check that auction is over
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
@@ -1031,6 +1033,8 @@ fn on_finalize_should_work() {
 		assert_eq!(Balances::free_balance(BOB), 596);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
+		// auction item should not in storage
+		assert_eq!(AuctionItems::<Runtime>::get(0), None);
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
 		assert_eq!(last_event(), event);
@@ -1116,6 +1120,34 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 		assert_eq!(Balances::free_balance(ALICE), 100172);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())), None);
+		// event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 200));
+		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+// Auction finalize with bundle and listing fee works
+fn on_finalize_with_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let bidder = Origin::signed(BOB);
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST),
+			None,
+			ALICE,
+			200,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST)),
+			Some(true)
+		);
+		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		run_to_block(102);
+		assert_eq!(AuctionModule::auctions(0), None);
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 200));
 		assert_eq!(last_event(), event);

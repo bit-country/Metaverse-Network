@@ -726,7 +726,12 @@ impl<T: Config> Pallet<T> {
 				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
 				Ok(asset_id.1)
 			}
-			TokenType::BoundToAddress => Err(Error::<T>::NonTransferable.into()),
+			// Only allowed collection owner to transfer
+			TokenType::BoundToAddress => {
+				ensure!(class_info.owner == *sender, Error::<T>::NonTransferable);
+				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
+				Ok(asset_id.1)
+			}
 		}
 	}
 
@@ -986,14 +991,30 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 
 	fn mint_token(
 		sender: &T::AccountId,
-		class_id: ClassId,
+		class_id: Self::ClassId,
 		metadata: NftMetadata,
 		attributes: Attributes,
-	) -> Result<TokenId, DispatchError> {
-		let class: Self::ClassId = TryInto::<Self::ClassId>::try_into(class_id).unwrap_or_default();
-		let outcome = Self::do_mint_nfts(sender, class, metadata, attributes, 1)?;
-		let nft_token = *outcome.0.first().unwrap();
-		Ok(TryInto::<TokenId>::try_into(nft_token.1).unwrap_or_default())
+	) -> Result<Self::TokenId, DispatchError> {
+		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
+
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
+
+		let class_fund: T::AccountId = T::Treasury::get().into_account();
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
+		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+
+		let new_nft_data = NftAssetData {
+			deposit,
+			attributes: attributes,
+			is_locked: false,
+		};
+
+		let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
+
+		Ok(token_id)
 	}
 
 	fn burn_nft(account: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
