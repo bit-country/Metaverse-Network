@@ -672,7 +672,7 @@ pub mod pallet {
 		/// - `class_id`: the class ID of the class which funds will be withdrawn
 		///
 		/// Emits `ClassFundsWithdrawn` if successful.
-		#[pallet::weight(T::WeightInfo::transfer())]
+		#[pallet::weight(T::WeightInfo::withdraw_funds_from_class_fund())]
 		pub fn withdraw_funds_from_class_fund(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,

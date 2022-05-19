@@ -214,7 +214,7 @@ benchmarks! {
 		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
 	}: _(RawOrigin::Signed(caller.clone()), 0, Perbill::from_percent(1u32))
 	verify {
-		assert_eq!(crate::Pallet::<T>::get_metaverse_marketplace_listing_fee(0), Perbill::from_percent(1u32))
+		assert_eq!(crate::Pallet::<T>::get_metaverse_marketplace_listing_fee(0), Ok(Perbill::from_percent(1u32)))
 	}
 }
 
