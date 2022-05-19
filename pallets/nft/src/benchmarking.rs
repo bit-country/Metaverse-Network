@@ -118,6 +118,13 @@ benchmarks! {
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
 	}: _(RawOrigin::Signed(signer), (0u32.into(), 0u32.into()), 100u32.into() )
 
+	withdraw_funds_from_class_fund{
+		let caller = funded_account::<T>("caller", 0);
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
+		let class_fund = T::PalletId::get().into_sub_account(0u32.into());
+		T::Currency::make_free_balance_be(&class_fund, dollar(100).unique_saturated_into());
+	}: _(RawOrigin::Signed(caller), 0u32.into())
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

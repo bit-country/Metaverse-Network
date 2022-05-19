@@ -673,22 +673,22 @@ pub mod pallet {
 		///
 		/// Emits `ClassFundsWithdrawn` if successful.
 		#[pallet::weight(T::WeightInfo::transfer())]
-		pub fn withdraw_funds_from_class_fund(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResultWithPostInfo {
+		pub fn withdraw_funds_from_class_fund(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
-			ensure!(
-				who.clone() == class_info.owner,
-				Error::<T>::NoPermission
-			);
+			ensure!(who.clone() == class_info.owner, Error::<T>::NoPermission);
 			let class_fund_account = Self::get_class_fund(&class_id);
-			let class_fund_balance = <T as Config>::Currency::free_balance(&class_fund_account);
+			let class_fund_balance = <T as Config>::Currency::free_balance(&class_fund_account) - 1u32.into();
 			<T as Config>::Currency::transfer(
 				&class_fund_account,
 				&who,
 				class_fund_balance,
 				ExistenceRequirement::KeepAlive,
 			)?;
-			
+
 			Self::deposit_event(Event::<T>::ClassFundsWithdrawn(class_id));
 
 			Ok(().into())
