@@ -681,14 +681,21 @@ pub mod pallet {
 		///
 		/// Emits `HardLimitSet` if successful.
 		#[pallet::weight(T::WeightInfo::set_hard_limit())]
-		pub fn set_hard_limit(origin: OriginFor<T>, class_id: ClassIdOf<T>, hard_limit: u32) -> DispatchResultWithPostInfo {
+		pub fn set_hard_limit(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+			hard_limit: u32,
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResultWithPostInfo {
 				let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
 
 				ensure!(who.clone() == info.owner, Error::<T>::NoPermission);
 				ensure!(info.data.mint_limit == None, Error::<T>::HardLimitIsAlreadySet);
-				ensure!(info.data.total_minted_tokens <= hard_limit, Error::<T>::TotalMintedAssetsForClassExceededProposedLimit);
+				ensure!(
+					info.data.total_minted_tokens <= hard_limit,
+					Error::<T>::TotalMintedAssetsForClassExceededProposedLimit
+				);
 
 				info.data.mint_limit = Some(hard_limit);
 				Self::deposit_event(Event::<T>::HardLimitSet(class_id));
@@ -821,7 +828,7 @@ impl<T: Config> Pallet<T> {
 
 		// Update class total issuance
 		Self::update_class_total_issuance(&sender, &class_id, quantity)?;
-	
+
 		let class_fund: T::AccountId = T::Treasury::get().into_account();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
@@ -908,7 +915,10 @@ impl<T: Config> Pallet<T> {
 			ensure!(sender.clone() == info.owner, Error::<T>::NoPermission);
 			match info.data.mint_limit {
 				Some(l) => {
-					ensure!(l >= quantity + info.data.total_minted_tokens, Error::<T>::ExceededMintingLimit);
+					ensure!(
+						l >= quantity + info.data.total_minted_tokens,
+						Error::<T>::ExceededMintingLimit
+					);
 				}
 				None => {}
 			}

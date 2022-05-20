@@ -276,7 +276,7 @@ fn mint_asset_should_fail() {
 	})
 }
 
-#[test] 
+#[test]
 fn mint_exceed_max_minting_limit_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
@@ -333,7 +333,6 @@ fn transfer_should_work() {
 		assert_ok!(Nft::transfer(origin, BOB, (0, 0)));
 		let event = mock::Event::Nft(crate::Event::TransferedNft(ALICE, BOB, 0, (0, 0)));
 		assert_eq!(last_event(), event);
-		
 	})
 }
 
@@ -346,7 +345,6 @@ fn burn_nft_should_work() {
 		assert_ok!(Nft::burn(origin, (0, 1)));
 		let event = mock::Event::Nft(crate::Event::BurnedNft((0, 1)));
 		assert_eq!(last_event(), event);
-		
 	})
 }
 
@@ -527,7 +525,7 @@ fn setting_hard_limit_should_fail() {
 			Nft::set_hard_limit(failing_origin.clone(), CLASS_ID, 10u32),
 			Error::<Runtime>::NoPermission
 		);
-		
+
 		assert_ok!(Nft::create_class(
 			origin.clone(),
 			vec![1],
@@ -549,7 +547,6 @@ fn setting_hard_limit_should_fail() {
 			Nft::set_hard_limit(origin.clone(), CLASS_ID, 1u32),
 			Error::<Runtime>::TotalMintedAssetsForClassExceededProposedLimit
 		);
-		
 	})
 }
 
