@@ -274,6 +274,8 @@ pub mod pallet {
 		CollectionLocked(ClassIdOf<T>),
 		/// Collection is unlocked
 		CollectionUnlocked(ClassIdOf<T>),
+		/// Hard limit is set
+		HardLimitSet(ClassIdOf<T>),
 	}
 
 	#[pallet::error]
@@ -334,6 +336,10 @@ pub mod pallet {
 		AssetIsLocked,
 		/// NFT mint limit is exceeded
 		ExceededMintingLimit,
+		/// The total amount of minted NFTs is more than the proposed hard limit
+		TotalMintedAssetsForClassExceededProposedLimit,
+		/// Hard limit is already set
+		HardLimitIsAlreadySet,
 	}
 
 	#[pallet::call]
@@ -665,6 +671,30 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::ForceTransferredNft(from, to, token_id, asset_id.clone()));
 
 			Ok(().into())
+		}
+
+		/// Set hard limit of minted tokens for a NFT class.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only class owner can make this call.
+		/// - `class_id`: the class ID of the collection
+		///
+		/// Emits `HardLimitSet` if successful.
+		#[pallet::weight(T::WeightInfo::transfer())]
+		pub fn set_hard_limit(origin: OriginFor<T>, class_id: ClassIdOf<T>, hard_limit: u32) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResultWithPostInfo {
+				let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+
+				ensure!(who.clone() == info.owner, Error::<T>::NoPermission);
+				ensure!(info.data.mint_limit == None, Error::<T>::HardLimitIsAlreadySet);
+				ensure!(info.data.total_minted_tokens <= hard_limit, Error::<T>::TotalMintedAssetsForClassExceededProposedLimit);
+
+				info.data.mint_limit = Some(hard_limit);
+				Self::deposit_event(Event::<T>::HardLimitSet(class_id));
+
+				Ok(().into())
+			})
 		}
 	}
 
