@@ -145,6 +145,7 @@ fn create_class_should_work() {
 				attributes: test_attributes(1),
 				royalty_fee: Perbill::from_percent(0u32),
 				mint_limit: None,
+				total_minted_tokens: 0u32,
 			}
 		);
 
@@ -184,6 +185,7 @@ fn create_class_with_royalty_fee_should_work() {
 				attributes: test_attributes(1),
 				royalty_fee: Perbill::from_percent(10u32),
 				mint_limit: None,
+				total_minted_tokens: 0u32,
 			}
 		);
 
@@ -257,7 +259,7 @@ fn mint_asset_should_fail() {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(0u32),
-			None
+			Some(10)
 		));
 		assert_noop!(
 			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 0),
@@ -270,6 +272,33 @@ fn mint_asset_should_fail() {
 		assert_noop!(
 			Nft::mint(invalid_owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1),
 			Error::<Runtime>::NoPermission
+		);
+	})
+}
+
+#[test] 
+fn mint_exceed_max_minting_limit_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(0u32),
+			Some(10)
+		));
+		assert_noop!(
+			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 11),
+			Error::<Runtime>::ExceededMintingLimit
+		);
+		assert_ok!(Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 10));
+		assert_noop!(
+			Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 1),
+			Error::<Runtime>::ExceededMintingLimit
 		);
 	})
 }
@@ -304,6 +333,7 @@ fn transfer_should_work() {
 		assert_ok!(Nft::transfer(origin, BOB, (0, 0)));
 		let event = mock::Event::Nft(crate::Event::TransferedNft(ALICE, BOB, 0, (0, 0)));
 		assert_eq!(last_event(), event);
+		
 	})
 }
 
@@ -312,9 +342,11 @@ fn burn_nft_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		init_test_nft(origin.clone());
-		assert_ok!(Nft::burn(origin, (0, 0)));
-		let event = mock::Event::Nft(crate::Event::BurnedNft((0, 0)));
+		assert_ok!(Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
+		assert_ok!(Nft::burn(origin, (0, 1)));
+		let event = mock::Event::Nft(crate::Event::BurnedNft((0, 1)));
 		assert_eq!(last_event(), event);
+		
 	})
 }
 

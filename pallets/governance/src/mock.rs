@@ -343,6 +343,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			is_locked: false,
 			royalty_fee: Perbill::from_percent(0u32),
 			mint_limit: None,
+			total_minted_tokens: 0u32,
 		};
 		Ok(new_data)
 	}

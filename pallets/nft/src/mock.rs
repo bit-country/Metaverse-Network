@@ -167,7 +167,7 @@ parameter_types! {
 	pub MetadataDataDepositPerByte: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
 	pub MaxBatchTransfer: u32 = 3;
-	pub MaxBatchMinting: u32 = 10;
+	pub MaxBatchMinting: u32 = 12;
 	pub MaxMetadata: u32 = 10;
 	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
@@ -286,7 +286,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000)],
+			balances: vec![(ALICE, 100000), (BOB, 1000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

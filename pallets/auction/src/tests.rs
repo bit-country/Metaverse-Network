@@ -22,7 +22,8 @@ fn init_test_nft(owner: Origin) {
 		COLLECTION_ID,
 		TokenType::Transferable,
 		CollectionType::Collectable,
-		Perbill::from_percent(1u32)
+		Perbill::from_percent(1u32),
+		None
 	));
 
 	assert_ok!(NFTModule::<Runtime>::mint(
@@ -255,7 +256,8 @@ fn create_auction_fail() {
 			COLLECTION_ID,
 			TokenType::Transferable,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 
 		assert_ok!(NFTModule::<Runtime>::mint(
@@ -287,7 +289,8 @@ fn create_auction_fail() {
 			COLLECTION_ID,
 			TokenType::BoundToAddress,
 			CollectionType::Collectable,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			None
 		));
 
 		assert_ok!(NFTModule::<Runtime>::mint(

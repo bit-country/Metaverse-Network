@@ -94,6 +94,7 @@ pub struct NftClassData<Balance> {
 	pub is_locked: bool,
 	pub royalty_fee: Perbill,
 	pub mint_limit: Option<u32>,
+	pub total_minted_tokens: u32,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
@@ -113,6 +114,7 @@ pub struct NftAssetData<Balance> {
 	pub deposit: Balance,
 	pub attributes: Attributes,
 	pub is_locked: bool,
+	// pub issue_no: u32,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]

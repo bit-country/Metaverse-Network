@@ -332,6 +332,8 @@ pub mod pallet {
 		RoyaltyFeeExceedLimit,
 		/// NFT Asset is locked e.g on marketplace, or other locks
 		AssetIsLocked,
+		/// NFT mint limit is exceeded
+		ExceededMintingLimit,
 	}
 
 	#[pallet::call]
@@ -787,8 +789,9 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::ExceedMaximumMetadataLength
 		);
 
-		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
-		ensure!(sender.clone() == class_info.owner, Error::<T>::NoPermission);
+		// Update class total issuance
+		Self::update_class_total_issuance(&sender, &class_id, quantity)?;
+	
 		let class_fund: T::AccountId = T::Treasury::get().into_account();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
@@ -853,6 +856,7 @@ impl<T: Config> Pallet<T> {
 			is_locked: false,
 			royalty_fee,
 			mint_limit,
+			total_minted_tokens: 0u32,
 		};
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
@@ -864,6 +868,23 @@ impl<T: Config> Pallet<T> {
 	fn do_burn(sender: &T::AccountId, asset_id: &(ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
 		NftModule::<T>::burn(&sender, *asset_id)?;
 		Ok(())
+	}
+
+	/// Update total minted tokens for a class
+	fn update_class_total_issuance(sender: &T::AccountId, class_id: &ClassIdOf<T>, quantity: u32) -> DispatchResult {
+		// update class total issuance
+		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+			ensure!(sender.clone() == info.owner, Error::<T>::NoPermission);
+			match info.data.mint_limit {
+				Some(l) => {
+					ensure!(l >= quantity + info.data.total_minted_tokens, Error::<T>::ExceededMintingLimit);
+				}
+				None => {}
+			}
+			info.data.total_minted_tokens += quantity;
+			Ok(())
+		})
 	}
 
 	/// Upgrading NFT class data
@@ -894,6 +915,7 @@ impl<T: Config> Pallet<T> {
 					is_locked: false,
 					royalty_fee: Perbill::from_percent(0u32),
 					mint_limit: None,
+					total_minted_tokens: 0u32,
 				};
 
 				let v: ClassInfoOf<T> = ClassInfo {
