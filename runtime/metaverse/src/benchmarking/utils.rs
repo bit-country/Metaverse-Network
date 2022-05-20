@@ -45,6 +45,7 @@ pub fn mint_NFT(caller: &AccountId) {
 		TokenType::Transferable,
 		CollectionType::Collectable,
 		Perbill::from_percent(0u32),
+		None
 	);
 	Nft::mint(
 		RawOrigin::Signed(caller.clone()).into(),

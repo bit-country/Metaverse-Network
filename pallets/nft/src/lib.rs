@@ -680,7 +680,7 @@ pub mod pallet {
 		/// - `class_id`: the class ID of the collection
 		///
 		/// Emits `HardLimitSet` if successful.
-		#[pallet::weight(T::WeightInfo::transfer())]
+		#[pallet::weight(T::WeightInfo::set_hard_limit())]
 		pub fn set_hard_limit(origin: OriginFor<T>, class_id: ClassIdOf<T>, hard_limit: u32) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResultWithPostInfo {

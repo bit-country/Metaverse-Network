@@ -91,6 +91,7 @@ fn mint_NFT<T: Config>(caller: T::AccountId) {
 		TokenType::Transferable,
 		CollectionType::Collectable,
 		Perbill::from_percent(0u32),
+		None
 	);
 
 	T::NFTHandler::mint_token(&caller.clone(), 0u32.into(), vec![1], test_attributes(1));
