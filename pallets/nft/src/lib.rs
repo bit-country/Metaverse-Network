@@ -405,7 +405,6 @@ pub mod pallet {
 				collection_type,
 				royalty_fee,
 			)?;
-			Self::deposit_event(Event::<T>::NewNftClassCreated(sender, class_id));
 
 			Ok(().into())
 		}
@@ -430,16 +429,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			let minting_outcome = Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
-
-			Self::deposit_event(Event::<T>::NewNftMinted(
-				*minting_outcome.0.first().unwrap(),
-				*minting_outcome.0.last().unwrap(),
-				sender,
-				class_id,
-				quantity,
-				minting_outcome.1,
-			));
+			Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
 
 			Ok(().into())
 		}
@@ -806,6 +796,16 @@ impl<T: Config> Pallet<T> {
 
 			last_token_id = token_id;
 		}
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			*new_asset_ids.first().unwrap(),
+			*new_asset_ids.last().unwrap(),
+			sender.clone(),
+			class_id,
+			quantity,
+			last_token_id,
+		));
+
 		Ok((new_asset_ids, last_token_id))
 	}
 
@@ -853,6 +853,9 @@ impl<T: Config> Pallet<T> {
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
 		ClassDataCollection::<T>::insert(next_class_id, collection_id);
+
+		Self::deposit_event(Event::<T>::NewNftClassCreated(sender.clone(), next_class_id));
+
 		Ok(next_class_id)
 	}
 
@@ -1013,6 +1016,15 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		};
 
 		let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, token_id.clone()),
+			(class_id, token_id),
+			sender.clone(),
+			class_id,
+			1u32,
+			token_id,
+		));
 
 		Ok(token_id)
 	}
