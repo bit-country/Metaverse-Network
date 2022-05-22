@@ -391,14 +391,11 @@ fn do_create_group_collection_should_work() {
 fn do_transfer_should_fail() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			Nft::do_transfer(&ALICE, &BOB, (0, 0)),
-			Error::<Runtime>::ClassIdNotFound
-		);
+		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 0)), Error::<Runtime>::ClassIdNotFound);
 
 		init_test_nft(origin.clone());
 
-		assert_noop!(Nft::do_transfer(&BOB, &ALICE, (0, 0)), Error::<Runtime>::NoPermission);
+		assert_noop!(Nft::do_transfer(BOB, ALICE, (0, 0)), Error::<Runtime>::NoPermission);
 
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -412,7 +409,7 @@ fn do_transfer_should_fail() {
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 
 		assert_noop!(
-			Nft::do_transfer(&ALICE, &BOB, (0, 1)),
+			Nft::do_transfer(ALICE, BOB, (0, 1)),
 			Error::<Runtime>::AssetInfoNotFound
 		);
 	})
@@ -422,10 +419,7 @@ fn do_transfer_should_fail() {
 fn do_transfer_should_fail_if_bound_to_address() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			Nft::do_transfer(&ALICE, &BOB, (0, 0)),
-			Error::<Runtime>::ClassIdNotFound
-		);
+		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 0)), Error::<Runtime>::ClassIdNotFound);
 
 		init_bound_to_address_nft(origin.clone());
 
@@ -436,10 +430,7 @@ fn do_transfer_should_fail_if_bound_to_address() {
 		assert_eq!(last_event(), event);
 
 		// Reject ownership if BOB tries to transfer
-		assert_noop!(
-			Nft::do_transfer(&BOB, &ALICE, (0, 0)),
-			Error::<Runtime>::NonTransferable
-		);
+		assert_noop!(Nft::do_transfer(BOB, ALICE, (0, 0)), Error::<Runtime>::NonTransferable);
 	})
 }
 

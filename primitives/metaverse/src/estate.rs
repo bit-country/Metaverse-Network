@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::DispatchError;
 use sp_runtime::{Perbill, RuntimeDebug};
 
-use crate::UndeployedLandBlockId;
+use crate::{AccountId, ClassId, UndeployedLandBlockId};
 use crate::{EstateId, MetaverseId, TokenId};
 
 pub trait Estate<AccountId> {
@@ -56,4 +56,5 @@ pub enum OwnerId<AccountId, ClassId, TokenId> {
 pub enum LandUnitStatus<AccountId> {
 	NonExisting,
 	Existing(AccountId),
+	NonExistingWithEstate,
 }

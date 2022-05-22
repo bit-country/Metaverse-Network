@@ -231,6 +231,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 			_ => GENERAL_METAVERSE_FUND,
 		}
 	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
+	}
 }
 
 impl Config for Runtime {
