@@ -24,6 +24,10 @@ use mock::{Event, *};
 
 use super::*;
 
+fn estate_sub_account(estate_id: mock::EstateId) -> AccountId {
+	<Runtime as Config>::LandTreasury::get().into_sub_account(estate_id)
+}
+
 #[test]
 fn mint_land_should_reject_non_root() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -408,6 +412,7 @@ fn dissolve_estate_should_work() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
@@ -483,11 +488,13 @@ fn add_land_unit_to_estate_should_work() {
 				land_units: vec![COORDINATE_IN_1]
 			})
 		);
-		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			1
 		);
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
 		assert_eq!(EstateModule::all_land_units_count(), 1);
 
 		assert_ok!(EstateModule::mint_land(
@@ -608,6 +615,7 @@ fn mint_estate_and_land_should_return_correct_total_land_unit() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
