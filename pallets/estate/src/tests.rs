@@ -768,6 +768,7 @@ fn create_estate_token_should_work() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 999999);
 	});
 }
 
@@ -810,6 +811,7 @@ fn create_estate_token_after_minting_account_and_token_based_lands_should_give_c
 			2
 		);
 		assert_eq!(EstateModule::all_land_units_count(), 2);
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 999999);
 	});
 }
 
@@ -828,6 +830,7 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 			METAVERSE_ID,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 999999);
 
 		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
@@ -1411,6 +1414,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_found() {
 			),
 			Error::<Runtime>::UndeployedLandBlockNotFound
 		);
+		assert_eq!(Balances::free_balance(BOB), 100000);
 	});
 }
 
@@ -1437,6 +1441,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_owner() {
 			),
 			Error::<Runtime>::NoPermission
 		);
+		assert_eq!(Balances::free_balance(ALICE), 100000);
 	});
 }
 
@@ -1468,6 +1473,7 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 			),
 			Error::<Runtime>::UndeployedLandBlockFreezed
 		);
+		assert_eq!(Balances::free_balance(BOB), 100000);
 	});
 }
 
@@ -1515,6 +1521,7 @@ fn deploy_undeployed_land_block_should_fail_if_already_in_auction() {
 			),
 			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
+		assert_eq!(Balances::free_balance(BOB), 100000);
 	});
 }
 
@@ -1565,6 +1572,7 @@ fn deploy_undeployed_land_block_should_work() {
 		assert_eq!(updated_undeployed_land_block, None);
 
 		assert_eq!(EstateModule::all_land_units_count(), 2);
+		assert_eq!(Balances::free_balance(BOB), 99999);
 	});
 }
 
@@ -2072,6 +2080,7 @@ fn issue_land_block_and_create_estate_should_work() {
 			LANDBLOCK_COORDINATE,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
+		assert_eq!(Balances::free_balance(BOB), 99999);
 
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),

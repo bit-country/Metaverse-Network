@@ -408,6 +408,7 @@ parameter_types! {
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = MAX_BOUND;
+	pub const NetworkFee: Balance = 1; // Network fee
 }
 
 impl Config for Runtime {
@@ -424,6 +425,7 @@ impl Config for Runtime {
 	type RewardPaymentDelay = RewardPaymentDelay;
 	type NFTTokenizationSource = MockNFTHandler;
 	type DefaultMaxBound = DefaultMaxBound;
+	type NetworkFee = NetworkFee;
 }
 
 construct_runtime!(

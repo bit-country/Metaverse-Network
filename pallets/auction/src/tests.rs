@@ -1000,7 +1000,7 @@ fn buy_now_should_fail() {
 		System::set_block_number(1);
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
 
-		// BOB balance is 500 + 150 - 1 (royalty fee) - 1 (network fee) - 3 (minting fee) = 495
+		// BOB balance is 500 + 150 - 1 (royalty fee) - 1 (network fee) - 3 (minting fee) = 645
 		assert_eq!(Balances::free_balance(BOB), 645);
 
 		assert_noop!(
