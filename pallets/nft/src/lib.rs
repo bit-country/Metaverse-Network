@@ -454,9 +454,7 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			let token_id = Self::do_transfer(&sender, &to, asset_id)?;
-
-			Self::deposit_event(Event::<T>::TransferedNft(sender, to, token_id, asset_id.clone()));
+			Self::do_transfer(sender, to, asset_id)?;
 
 			Ok(().into())
 		}
@@ -696,8 +694,8 @@ impl<T: Config> Pallet<T> {
 
 	/// Transfer an NFT
 	pub fn do_transfer(
-		sender: &T::AccountId,
-		to: &T::AccountId,
+		sender: T::AccountId,
+		to: T::AccountId,
 		asset_id: (ClassIdOf<T>, TokenIdOf<T>),
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		ensure!(!Self::is_collection_locked(&asset_id.0), Error::<T>::CollectionIsLocked);
@@ -714,12 +712,25 @@ impl<T: Config> Pallet<T> {
 				ensure!(check_ownership, Error::<T>::NoPermission);
 
 				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
+
+				Self::deposit_event(Event::<T>::TransferedNft(
+					sender.clone(),
+					to.clone(),
+					asset_id.1,
+					asset_id.clone(),
+				));
 				Ok(asset_id.1)
 			}
 			// Only allowed collection owner to transfer
 			TokenType::BoundToAddress => {
-				ensure!(class_info.owner == *sender, Error::<T>::NonTransferable);
+				ensure!(class_info.owner == sender, Error::<T>::NonTransferable);
 				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
+				Self::deposit_event(Event::<T>::TransferedNft(
+					sender.clone(),
+					to.clone(),
+					asset_id.1,
+					asset_id.clone(),
+				));
 				Ok(asset_id.1)
 			}
 		}
@@ -1046,7 +1057,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	}
 
 	fn transfer_nft(sender: &T::AccountId, to: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
-		Self::do_transfer(sender, to, nft.clone())?;
+		Self::do_transfer(sender.clone(), to.clone(), nft.clone())?;
 
 		Ok(())
 	}

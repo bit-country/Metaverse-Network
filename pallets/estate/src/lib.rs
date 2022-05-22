@@ -18,7 +18,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
-use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
+use frame_support::{dispatch::DispatchResult, ensure, log, traits::Get, transactional, PalletId};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
@@ -385,6 +385,8 @@ pub mod pallet {
 		InvalidOwnerValue,
 		// Coordinate for estate is not valid
 		CoordinatesForEstateIsNotValid,
+		// Land Unit already formed in Estate
+		LandUnitAlreadyInEstate,
 	}
 
 	#[pallet::call]
@@ -549,6 +551,7 @@ pub mod pallet {
 		///
 		/// Emits `NewEstateMinted` if successful.
 		#[pallet::weight(T::WeightInfo::create_estate())]
+		#[transactional]
 		pub fn create_estate(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -598,6 +601,7 @@ pub mod pallet {
 		///
 		/// Emits `TransferredEstate` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_estate())]
+		#[transactional]
 		pub fn transfer_estate(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -627,6 +631,7 @@ pub mod pallet {
 		///
 		/// Emits `LandBlockDeployed` if successful.
 		#[pallet::weight(T::WeightInfo::deploy_land_block())]
+		#[transactional]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -715,6 +720,7 @@ pub mod pallet {
 		///
 		/// Emits `UndeployedLandBlockIssued` if successful.
 		#[pallet::weight(T::WeightInfo::issue_undeployed_land_blocks())]
+		#[transactional]
 		pub fn issue_undeployed_land_blocks(
 			who: OriginFor<T>,
 			beneficiary: T::AccountId,
@@ -741,6 +747,7 @@ pub mod pallet {
 		///
 		/// Emits `UndeployedLandBlockFreezed` if successful.
 		#[pallet::weight(T::WeightInfo::freeze_undeployed_land_blocks())]
+		#[transactional]
 		pub fn freeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -759,6 +766,7 @@ pub mod pallet {
 		///
 		/// Emits `UndeployedLandBlockUnfreezed` if successful.
 		#[pallet::weight(T::WeightInfo::unfreeze_undeployed_land_blocks())]
+		#[transactional]
 		pub fn unfreeze_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -802,6 +810,7 @@ pub mod pallet {
 		///
 		/// Emits `UndeployedLandBlockTransferred` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_undeployed_land_blocks())]
+		#[transactional]
 		pub fn transfer_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -827,6 +836,7 @@ pub mod pallet {
 		///
 		/// Emits `UndeployedLandBlockBurnt` if successful.
 		#[pallet::weight(T::WeightInfo::burn_undeployed_land_blocks())]
+		#[transactional]
 		pub fn burn_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -847,6 +857,7 @@ pub mod pallet {
 		///
 		/// Emits `UndeployedLandBlockApproved` if successful
 		#[pallet::weight(T::WeightInfo::approve_undeployed_land_blocks())]
+		#[transactional]
 		pub fn approve_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -900,6 +911,7 @@ pub mod pallet {
 		///
 		/// Emits `UndeployedLandBlockUnapproved` if successful
 		#[pallet::weight(T::WeightInfo::unapprove_undeployed_land_blocks())]
+		#[transactional]
 		pub fn unapprove_undeployed_land_blocks(
 			origin: OriginFor<T>,
 			undeployed_land_block_id: UndeployedLandBlockId,
@@ -949,6 +961,7 @@ pub mod pallet {
 		///
 		/// Emits `EstateDestroyed` if successful
 		#[pallet::weight(T::WeightInfo::dissolve_estate())]
+		#[transactional]
 		pub fn dissolve_estate(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -1006,6 +1019,7 @@ pub mod pallet {
 		///
 		/// Emits `LandUnitAdded` if successful
 		#[pallet::weight(T::WeightInfo::add_land_unit_to_estate())]
+		#[transactional]
 		pub fn add_land_unit_to_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
@@ -1063,6 +1077,7 @@ pub mod pallet {
 		///
 		/// Emits `LandUnitsRemoved` if successful
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[transactional]
 		pub fn remove_land_unit_from_estate(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
@@ -1105,6 +1120,14 @@ pub mod pallet {
 			})
 		}
 	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_runtime_upgrade() -> Weight {
+			Self::remove_all_estate_storage();
+			0
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -1145,6 +1168,10 @@ impl<T: Config> Pallet<T> {
 								T::NFTTokenizationSource::check_nft_ownership(&a, &(class_id, token_id))?,
 								Error::<T>::NoPermission
 							);
+
+							if let OwnerId::Token(owner_class_id, owner_token_id) = token_owner {
+								ensure!(owner_class_id != class_id, Error::<T>::LandUnitAlreadyInEstate)
+							}
 
 							// Ensure not locked
 							T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
@@ -1516,6 +1543,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn verify_land_unit_for_estate(land_units: Vec<(i32, i32)>) -> bool {
+		if land_units.len() == 1 {
+			return false;
+		}
+
 		let mut vec_axis = land_units.iter().map(|lu| lu.0).collect::<Vec<_>>();
 		let mut vec_yaxis = land_units.iter().map(|lu| lu.1).collect::<Vec<_>>();
 
@@ -1564,6 +1595,18 @@ impl<T: Config> Pallet<T> {
 			&& block_coordinate.0 <= max_axis.saturating_add(50i32)
 			&& block_coordinate.1.saturating_sub(49i32) <= *vec_yaxis.iter().min().unwrap()
 			&& block_coordinate.1 <= max_yaxis.saturating_add(50i32)
+	}
+
+	/// Remove all land unit and estate
+	pub fn remove_all_estate_storage() -> Weight {
+		log::info!("Start removing all land unit and estates");
+		LandUnits::<T>::remove_all(None);
+		Estates::<T>::remove_all(None);
+		EstateOwner::<T>::remove_all(None);
+		NextEstateId::<T>::put(1);
+		AllLandUnitsCount::<T>::put(0);
+		AllEstatesCount::<T>::put(0);
+		0
 	}
 }
 
