@@ -31,6 +31,7 @@ pub const METAVERSE_ID: MetaverseId = 1;
 pub const COUNTRY_ID_NOT_EXIST: MetaverseId = 1;
 pub const NUUM: CurrencyId = 0;
 pub const COUNTRY_FUND: CurrencyId = 1;
+pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 // Configure a mock runtime to test the pallet.
 
@@ -133,6 +134,18 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn get_metaverse_estate_class(metaverse_id: MetaverseId) ->  Result<ClassId, DispatchError> {
 		Ok(16u32)
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		Ok(Perbill::from_percent(1u32))
+	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
 	}
 }
 

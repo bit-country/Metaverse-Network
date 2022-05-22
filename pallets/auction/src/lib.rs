@@ -159,10 +159,6 @@ pub mod pallet {
 		/// Estate handler that support land and estate listing
 		type EstateHandler: Estate<Self::AccountId>;
 
-		/// Default royalty fee
-		#[pallet::constant]
-		type RoyaltyFee: Get<u16>;
-
 		/// Max number of listing can be finalised in a single block
 		#[pallet::constant]
 		type MaxFinality: Get<u32>;
@@ -173,6 +169,15 @@ pub mod pallet {
 
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+
+		/// Network fee that will be reserved when an item is listed for auction or buy now.
+		/// The fee will be unreserved after the auction or buy now is completed.
+		#[pallet::constant]
+		type NetworkFeeReserve: Get<BalanceOf<Self>>;
+
+		/// Network fee that will be collected when auction or buy now is completed.
+		#[pallet::constant]
+		type NetworkFeeCommission: Get<Perbill>;
 	}
 
 	#[pallet::storage]
@@ -395,6 +400,9 @@ pub mod pallet {
 
 			Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
 
+			// Unreserve network deposit fee
+			<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
+
 			// Transfer balance from buy it now user to asset owner
 			let currency_transfer = <T as Config>::Currency::transfer(
 				&from,
@@ -402,11 +410,16 @@ pub mod pallet {
 				value,
 				ExistenceRequirement::KeepAlive,
 			);
+
 			match currency_transfer {
 				Err(_e) => {}
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
 					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
+
+					// Collect network commission fee
+					Self::collect_network_fee(&value, &auction_item.recipient, FungibleTokenId::NativeToken(0));
+
 					match auction_item.item_id {
 						ItemId::NFT(class_id, token_id) => {
 							Self::collect_listing_fee(
@@ -719,6 +732,9 @@ pub mod pallet {
 							// Handle listing
 							<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
 
+							// Unreserve network deposit fee
+							<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
+
 							// Handle balance transfer
 							let currency_transfer = <T as Config>::Currency::transfer(
 								&high_bidder,
@@ -730,9 +746,15 @@ pub mod pallet {
 							match currency_transfer {
 								Err(_e) => continue,
 								Ok(_v) => {
+									// Collect network commission fee
+									Self::collect_network_fee(
+										&high_bid_price,
+										&auction_item.recipient,
+										FungibleTokenId::NativeToken(0),
+									);
+
 									// Transfer asset from asset owner to high bidder
 									// Check asset type and handle internal logic
-
 									match auction_item.item_id.clone() {
 										ItemId::NFT(class_id, token_id) => {
 											Self::collect_listing_fee(
@@ -987,6 +1009,9 @@ pub mod pallet {
 						Error::<T>::ExceedFinalityLimit
 					);
 
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
+
 					T::NFTHandler::set_lock_nft((class_id, token_id), true)?;
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
@@ -1021,6 +1046,9 @@ pub mod pallet {
 					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get();
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
@@ -1059,6 +1087,9 @@ pub mod pallet {
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
+
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
 						recipient: recipient.clone(),
@@ -1095,6 +1126,9 @@ pub mod pallet {
 					let start_time = <system::Pallet<T>>::block_number();
 					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
@@ -1149,6 +1183,9 @@ pub mod pallet {
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
+
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
 						recipient: recipient.clone(),
@@ -1183,6 +1220,9 @@ pub mod pallet {
 					);
 
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
@@ -1400,6 +1440,32 @@ pub mod pallet {
 					}
 				}
 				_ => {}
+			}
+			Ok(())
+		}
+
+		/// Collect network fee for auction
+		fn collect_network_fee(
+			high_bid_price: &BalanceOf<T>,
+			recipient: &T::AccountId,
+			social_currency_id: FungibleTokenId,
+		) -> DispatchResult {
+			let network_fund = T::MetaverseInfoSource::get_network_treasury();
+			let network_fee: BalanceOf<T> = T::NetworkFeeCommission::get() * *high_bid_price;
+			if social_currency_id == FungibleTokenId::NativeToken(0) {
+				<T as Config>::Currency::transfer(
+					&recipient,
+					&network_fund,
+					network_fee,
+					ExistenceRequirement::KeepAlive,
+				)?;
+			} else {
+				T::FungibleTokenCurrency::transfer(
+					social_currency_id.clone(),
+					&recipient,
+					&network_fund,
+					network_fee.saturated_into(),
+				)?;
 			}
 			Ok(())
 		}
