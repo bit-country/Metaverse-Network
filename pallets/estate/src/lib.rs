@@ -1233,7 +1233,7 @@ impl<T: Config> Pallet<T> {
 		to: &T::AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
-		UndeployedLandBlocks::<T>::try_mutate_exists(
+		UndeployedLandBlocks::<T>::try_mutate(
 			&undeployed_land_block_id,
 			|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
 				let undeployed_land_block_record = undeployed_land_block
@@ -1611,7 +1611,7 @@ impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 		to: &T::AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
-		let undeployed_land_block_id = Self::do_transfer_undeployed_land_block(who, to, undeployed_land_block_id)?;
+		Self::do_transfer_undeployed_land_block(who, to, undeployed_land_block_id)?;
 
 		Ok(undeployed_land_block_id)
 	}

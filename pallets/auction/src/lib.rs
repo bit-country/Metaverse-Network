@@ -498,8 +498,8 @@ pub mod pallet {
 						}
 						ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
 							let undeployed_land_block = T::EstateHandler::transfer_undeployed_land_block(
-								&from.clone(),
 								&auction_item.recipient,
+								&from.clone(),
 								undeployed_land_block_id,
 							);
 
@@ -853,8 +853,8 @@ pub mod pallet {
 										ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
 											let undeployed_land_block =
 												T::EstateHandler::transfer_undeployed_land_block(
-													&high_bidder.clone(),
 													&auction_item.recipient,
+													&high_bidder.clone(),
 													undeployed_land_block_id,
 												);
 
