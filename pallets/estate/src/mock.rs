@@ -396,11 +396,11 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	}
 
 	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {
-		todo!()
+		Ok(())
 	}
 
 	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
-		todo!()
+		Ok(())
 	}
 }
 
