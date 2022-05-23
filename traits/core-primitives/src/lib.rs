@@ -193,6 +193,8 @@ pub trait MetaverseTrait<AccountId> {
 	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError>;
 	/// Get metaverse treasury
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId;
+	/// Get network treasury
+	fn get_network_treasury() -> AccountId;
 }
 
 pub trait MetaverseLandTrait<AccountId> {

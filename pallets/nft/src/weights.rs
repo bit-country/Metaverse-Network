@@ -43,7 +43,8 @@ use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for nft.
-pub trait WeightInfo {	fn create_group() -> Weight;	fn create_class() -> Weight;	fn mint() -> Weight;	fn transfer() -> Weight;	fn transfer_batch() -> Weight;	fn sign_asset() -> Weight;	fn set_hard_limit() -> Weight;}
+pub trait WeightInfo {	fn create_group() -> Weight;	fn create_class() -> Weight;	fn mint() -> Weight;	fn transfer() -> Weight;	fn transfer_batch() -> Weight;	fn sign_asset() -> Weight;	fn set_hard_limit() -> Weight; fn withdraw_funds_from_class_fund() -> Weight;}
+
 
 /// Weights for nft using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
@@ -54,7 +55,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn create_grou
 		(68_700_000 as Weight)			.saturating_add(T::DbWeight::get().reads(4 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn transfer_batch() -> Weight {
 		(86_600_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(6 as Weight))	}	fn sign_asset() -> Weight {
 		(108_900_000 as Weight)			.saturating_add(T::DbWeight::get().reads(4 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn set_hard_limit() -> Weight {
-		(29_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}}
+		(29_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	} 	fn withdraw_funds_from_class_fund() -> Weight {
+		(65_500_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}}
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn create_group() -> Weight {
@@ -64,4 +66,6 @@ impl WeightInfo for () {	fn create_group() -> Weight {
 		(68_700_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn transfer_batch() -> Weight {
 		(86_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(6 as Weight))	}	fn sign_asset() -> Weight {
 		(108_900_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn set_hard_limit() -> Weight {
-		(29_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}}
+		(29_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn withdraw_funds_from_class_fund() -> Weight {
+		(65_500_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}}
+

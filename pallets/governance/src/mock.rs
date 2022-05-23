@@ -72,9 +72,6 @@ pub const ASSET_TOKEN_ID: TokenId = 6;
 pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
 
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
-pub const BOB_METAVERSE_ID: MetaverseId = 2;
-pub const ALICE_METAVERSE_FUND: AccountId = 100;
-pub const BOB_METAVERSE_FUND: AccountId = 101;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 impl frame_system::Config for Runtime {
@@ -176,11 +173,11 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
-		match metaverse_id {
-			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
-			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
-			_ => GENERAL_METAVERSE_FUND,
-		}
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
 	}
 }
 

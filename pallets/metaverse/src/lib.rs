@@ -798,6 +798,10 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {
 		return T::MetaverseTreasury::get().into_account();
 	}
+
+	fn get_network_treasury() -> T::AccountId {
+		return T::MetaverseTreasury::get().into_account();
+	}
 }
 
 impl<T: Config> MetaverseStakingTrait<BalanceOf<T>> for Pallet<T> {

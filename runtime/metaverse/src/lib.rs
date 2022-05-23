@@ -172,7 +172,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 40,
+	spec_version: 43,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -538,6 +538,7 @@ parameter_types! {
 	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 1;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
+	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
 }
 
 impl estate::Config for Runtime {
@@ -554,6 +555,7 @@ impl estate::Config for Runtime {
 	type RewardPaymentDelay = RewardPaymentDelay;
 	type NFTTokenizationSource = Nft;
 	type DefaultMaxBound = DefaultMaxBound;
+	type NetworkFee = NetworkFee;
 }
 
 parameter_types! {
@@ -561,9 +563,10 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
-	pub const RoyaltyFee: u16 = 10; // Royalty fee 0.1%
 	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
+	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 }
 
 impl auction::Config for Runtime {
@@ -576,10 +579,11 @@ impl auction::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = Estate;
-	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
 	type NFTHandler = Nft;
 	type MaxBundleItem = MaxBundleItem;
+	type NetworkFeeReserve = NetworkFeeReserve;
+	type NetworkFeeCommission = NetworkFeeCommission;
 }
 
 impl continuum::Config for Runtime {
