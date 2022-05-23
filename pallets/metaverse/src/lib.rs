@@ -666,6 +666,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Minting of a land class for the metaverse
 	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for lands
 		let mut land_class_attributes = Attributes::new();
@@ -684,6 +685,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
+	/// Minting of an estate class for the metaverse
 	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for estates
 		let mut estate_class_attributes = Attributes::new();
@@ -719,19 +721,11 @@ impl<T: Config> Pallet<T> {
 	pub fn upgrade_metaverse_info_v2() -> Weight {
 		log::info!("Start upgrade_metaverse_info_v2");
 		let mut upgraded_metaverse_items = 0;
-		let mut total_metaverse_items = 0;
+
+		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
+		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
 
 		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
-			total_metaverse_items += 1;
-			let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v1.owner, k).unwrap_or({
-				log::info!("Cannot create land class for metaverse {}:", total_metaverse_items);
-				return None;
-			});
-			let new_estate_class_id = Self::mint_metaverse_estate_class(&metaverse_info_v1.owner, k).unwrap_or({
-				log::info!("Cannot create estate class for metaverse {}:", total_metaverse_items);
-				return None;
-			});
-
 			upgraded_metaverse_items += 1;
 
 			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
@@ -740,10 +734,47 @@ impl<T: Config> Pallet<T> {
 				currency_id: metaverse_info_v1.currency_id,
 				is_frozen: false,
 				listing_fee: Perbill::from_percent(0u32),
-				land_class_id: new_land_class_id,
-				estate_class_id: new_estate_class_id,
+				land_class_id: default_land_class_id,
+				estate_class_id: default_estate_class_id,
 			};
 			Some(v2)
+		});
+		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
+		0
+	}
+
+	pub fn upgrade_metaverse_info_v3() -> Weight {
+		log::info!("Start upgrade_metaverse_info_v3");
+		let mut upgraded_metaverse_items = 0;
+		let mut total_metaverse_items = 0;
+
+		Metaverses::<T>::translate(|k, metaverse_info_v2: MetaverseInfo<T::AccountId>| {
+			total_metaverse_items += 1;
+			if metaverse_info_v2.land_class_id == 0 && metaverse_info_v2.estate_class_id == 1 {
+				let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v2.owner, k).unwrap_or({
+					log::info!("Cannot create land class for metaverse {}:", total_metaverse_items);
+					return None;
+				});
+				let new_estate_class_id = Self::mint_metaverse_estate_class(&metaverse_info_v2.owner, k).unwrap_or({
+					log::info!("Cannot create estate class for metaverse {}:", total_metaverse_items);
+					return None;
+				});
+
+				upgraded_metaverse_items += 1;
+
+				let v3: MetaverseInfo<T::AccountId> = MetaverseInfo {
+					owner: metaverse_info_v2.owner,
+					metadata: metaverse_info_v2.metadata,
+					currency_id: metaverse_info_v2.currency_id,
+					is_frozen: false,
+					listing_fee: Perbill::from_percent(0u32),
+					land_class_id: new_land_class_id,
+					estate_class_id: new_estate_class_id,
+				};
+				Some(v3)
+			} else {
+				return None;
+			}
 		});
 		log::info!("{} metaverses in total:", total_metaverse_items);
 		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
