@@ -391,14 +391,11 @@ fn do_create_group_collection_should_work() {
 fn do_transfer_should_fail() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			Nft::do_transfer(&ALICE, &BOB, (0, 0)),
-			Error::<Runtime>::ClassIdNotFound
-		);
+		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 0)), Error::<Runtime>::ClassIdNotFound);
 
 		init_test_nft(origin.clone());
 
-		assert_noop!(Nft::do_transfer(&BOB, &ALICE, (0, 0)), Error::<Runtime>::NoPermission);
+		assert_noop!(Nft::do_transfer(BOB, ALICE, (0, 0)), Error::<Runtime>::NoPermission);
 
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -412,7 +409,7 @@ fn do_transfer_should_fail() {
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 
 		assert_noop!(
-			Nft::do_transfer(&ALICE, &BOB, (0, 1)),
+			Nft::do_transfer(ALICE, BOB, (0, 1)),
 			Error::<Runtime>::AssetInfoNotFound
 		);
 	})
@@ -422,10 +419,7 @@ fn do_transfer_should_fail() {
 fn do_transfer_should_fail_if_bound_to_address() {
 	let origin = Origin::signed(ALICE);
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			Nft::do_transfer(&ALICE, &BOB, (0, 0)),
-			Error::<Runtime>::ClassIdNotFound
-		);
+		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 0)), Error::<Runtime>::ClassIdNotFound);
 
 		init_bound_to_address_nft(origin.clone());
 
@@ -436,10 +430,7 @@ fn do_transfer_should_fail_if_bound_to_address() {
 		assert_eq!(last_event(), event);
 
 		// Reject ownership if BOB tries to transfer
-		assert_noop!(
-			Nft::do_transfer(&BOB, &ALICE, (0, 0)),
-			Error::<Runtime>::NonTransferable
-		);
+		assert_noop!(Nft::do_transfer(BOB, ALICE, (0, 0)), Error::<Runtime>::NonTransferable);
 	})
 }
 
@@ -460,5 +451,46 @@ fn do_check_nft_ownership_should_fail() {
 			Nft::check_nft_ownership(&ALICE, &(CLASS_ID, TOKEN_ID)),
 			Error::<Runtime>::AssetInfoNotFound
 		);
+	})
+}
+
+#[test]
+fn do_withdraw_funds_from_class_fund_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		assert_noop!(
+			Nft::withdraw_funds_from_class_fund(origin.clone(), NON_EXISTING_CLASS_ID),
+			Error::<Runtime>::ClassIdNotFound
+		);
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1]));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(0u32)
+		));
+		let non_class_owner_origin = Origin::signed(BOB);
+		assert_noop!(
+			Nft::withdraw_funds_from_class_fund(non_class_owner_origin, CLASS_ID),
+			Error::<Runtime>::NoPermission
+		);
+	})
+}
+
+#[test]
+fn do_withdraw_funds_from_class_fund_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		let class_fund: AccountId = <Runtime as Config>::PalletId::get().into_sub_account(CLASS_ID);
+		assert_ok!(<Runtime as Config>::Currency::transfer(origin.clone(), class_fund, 100));
+		assert_eq!(free_native_balance(ALICE), 99897);
+		assert_eq!(free_native_balance(class_fund), 100);
+		assert_ok!(Nft::withdraw_funds_from_class_fund(origin.clone(), CLASS_ID));
+		assert_eq!(free_native_balance(ALICE), 99996);
+		assert_eq!(free_native_balance(class_fund), 1);
 	})
 }

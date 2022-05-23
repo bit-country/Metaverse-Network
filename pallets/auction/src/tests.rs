@@ -67,6 +67,7 @@ fn create_new_auction_work() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+		assert_eq!(Balances::free_balance(ALICE), 99996);
 	});
 }
 
@@ -104,6 +105,7 @@ fn create_new_auction_bundle_work() {
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
 			Some(true)
 		);
+		assert_eq!(Balances::free_balance(ALICE), 99990);
 	});
 }
 
@@ -141,6 +143,7 @@ fn create_new_buy_now_bundle_work() {
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
 			Some(true)
 		);
+		assert_eq!(Balances::free_balance(ALICE), 99990);
 	});
 }
 
@@ -168,6 +171,7 @@ fn create_new_auction_should_work_for_valid_estate() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(item_id.clone()), Some(true));
+		assert_eq!(Balances::free_balance(ALICE), 99999);
 	});
 }
 
@@ -216,12 +220,13 @@ fn create_new_auction_should_work_for_valid_landunit() {
 			})
 		);
 		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
+		assert_eq!(Balances::free_balance(ALICE), 99999);
 	});
 }
 
 #[test]
-// Creating auction should work
-fn create_new_auction_should_work_for_non_exist_landunit() {
+// Creating auction should fail
+fn create_new_auction_should_fail_for_non_exist_landunit() {
 	ExtBuilder::default().build().execute_with(|| {
 		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
 		assert_noop!(
@@ -324,6 +329,10 @@ fn create_auction_fail() {
 			ListingLevel::Global,
 			Perbill::from_percent(0u32)
 		));
+
+		// ALICE balance is 100000 - 1 (network fee) - 6 (minting fee) = 99993
+		assert_eq!(Balances::free_balance(ALICE), 99993);
+
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::Auction,
@@ -364,6 +373,9 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			Perbill::from_percent(0u32)
 		));
 
+		// ALICE balance is 100 000 - 1 (network fee) - 12 (minting fees) = 99987
+		assert_eq!(Balances::free_balance(ALICE), 99987);
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::NFT(0, 1),
@@ -375,6 +387,9 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			Perbill::from_percent(0u32)
 		));
 
+		// ALICE balance is 99987 - 1 (network fee) = 99986
+		assert_eq!(Balances::free_balance(ALICE), 99986);
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::NFT(0, 2),
@@ -385,6 +400,9 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			ListingLevel::Global,
 			Perbill::from_percent(0u32)
 		));
+
+		// ALICE balance is 99986 - 1 (network fee) = 99985
+		assert_eq!(Balances::free_balance(ALICE), 99985);
 
 		// Mocking max finality is 3
 		// 4th auction with new block should fail
@@ -415,6 +433,9 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			ListingLevel::Global,
 			Perbill::from_percent(0u32)
 		));
+
+		// ALICE balance is 99985 - 1 (network fee) = 99984
+		assert_eq!(Balances::free_balance(ALICE), 99984);
 	});
 }
 
@@ -604,6 +625,9 @@ fn asset_transfers_after_auction() {
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
 
+		// BOB should have 500 - 1 (network reserve fee) - 3 minting fee = 496
+		assert_eq!(Balances::free_balance(BOB), 496);
+
 		run_to_block(102);
 		// Verify asset transfers to alice after end of auction
 		assert_eq!(
@@ -612,8 +636,9 @@ fn asset_transfers_after_auction() {
 		);
 
 		// Verify transfer of fund (minus gas)
-		// BOB only receive 200 - 2 (1% of 200 as royalty fee) - 4 minting fee =
-		assert_eq!(Balances::free_balance(BOB), 695);
+		// BOB only receive 200 - 2 (1% royalty fee) - 2 (1% network fee) - 4 (minting fee) = 193
+		// 500 + 193 = 693
+		assert_eq!(Balances::free_balance(BOB), 693);
 		assert_eq!(Balances::free_balance(ALICE), 99800);
 
 		// Verify Alice has the NFT and Bob doesn't
@@ -669,6 +694,8 @@ fn buy_now_work() {
 			Perbill::from_percent(0u32)
 		));
 
+		//assert_eq!(Balances::free_balance(BOB), 499);
+
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
@@ -701,9 +728,10 @@ fn buy_now_work() {
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99600);
 		// initial balance is 500 - sold 2 x 200 = 900
-		// royalty fee is 1% for both sales is 8
-		// 900 - 8 + 7 for deposit minting = 885
-		assert_eq!(Balances::free_balance(BOB), 892);
+		// royalty fee 1% for both sales is 8
+		// network fee 1% for both sales is 8
+		// 900 - 16 + 7 for deposit minting = 885
+		assert_eq!(Balances::free_balance(BOB), 888);
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
@@ -739,10 +767,14 @@ fn buy_now_works_for_valid_estate() {
 			Perbill::from_percent(0u32)
 		));
 
+		// BOB balance is  500 - 1 (network reserve fee) = 499
+		assert_eq!(Balances::free_balance(BOB), 499);
+
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
 
-		assert_eq!(Balances::free_balance(BOB), 650);
+		// BOB balance is  500 + 150 - 1 (network fee)
+		assert_eq!(Balances::free_balance(BOB), 649);
 
 		let item_id_1: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST_1);
 		assert_ok!(AuctionModule::create_auction(
@@ -756,13 +788,17 @@ fn buy_now_works_for_valid_estate() {
 			Perbill::from_percent(0u32)
 		));
 
+		// BOB balance is 649 - 1  (network reserve fee)
+		assert_eq!(Balances::free_balance(BOB), 648);
+
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
 
 		assert_eq!(AuctionModule::auctions(0), None);
 
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99700);
-		assert_eq!(Balances::free_balance(BOB), 800);
+		// BOB balance is  649 + 150 - 1 (network fee)
+		assert_eq!(Balances::free_balance(BOB), 798);
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
@@ -796,10 +832,14 @@ fn buy_now_works_for_valid_landunit() {
 			Perbill::from_percent(0u32)
 		));
 
+		// BOB balance is  500 - 1 (network reserve fee) = 499
+		assert_eq!(Balances::free_balance(BOB), 499);
+
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
 
-		assert_eq!(Balances::free_balance(BOB), 650);
+		// BOB balance is  500 + 150 - 1 (network fee)
+		assert_eq!(Balances::free_balance(BOB), 649);
 
 		let item_id_1: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST_1, ALICE_METAVERSE_ID);
 		assert_ok!(AuctionModule::create_auction(
@@ -813,13 +853,17 @@ fn buy_now_works_for_valid_landunit() {
 			Perbill::from_percent(0u32)
 		));
 
+		// BOB balance is 649 - 1(network reserve fee)
+		assert_eq!(Balances::free_balance(BOB), 648);
+
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
 
 		assert_eq!(AuctionModule::auctions(0), None);
 
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99700);
-		assert_eq!(Balances::free_balance(BOB), 800);
+		// BOB balance is  649 + 150 - 1 (network fee)
+		assert_eq!(Balances::free_balance(BOB), 798);
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
@@ -857,6 +901,9 @@ fn buy_now_with_bundle_should_work() {
 			Perbill::from_percent(0u32)
 		));
 
+		// BOB Balance is 500 - 1 (network reserve fee) - 9 (minting fee) = 490
+		assert_eq!(Balances::free_balance(BOB), 490);
+
 		// buy now successful
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
@@ -871,9 +918,9 @@ fn buy_now_with_bundle_should_work() {
 
 		// initial BOB balance is 500
 		// bundle buy now price is 200
-		// 200 - 2 (1% royalty_fee) - 10 (minting fee) = 188
-		// 500 + 188 = 688
-		assert_eq!(Balances::free_balance(BOB), 688);
+		// 200 - 2 (1% royalty_fee) - 2 (1% network fee) - 10 (minting fee) = 186
+		// 500 + 186 = 686
+		assert_eq!(Balances::free_balance(BOB), 686);
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
@@ -909,6 +956,9 @@ fn buy_now_should_fail() {
 			Perbill::from_percent(0u32)
 		));
 
+		// BOB balance is 500 - 1 (network fee) - 3 (minting fee) = 496
+		assert_eq!(Balances::free_balance(BOB), 496);
+
 		// no auction id
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
@@ -930,12 +980,12 @@ fn buy_now_should_fail() {
 			Error::<Runtime>::InvalidBuyNowPrice
 		);
 		// user does not have enough balance in wallet
-		assert_ok!(Balances::reserve(&ALICE, 100000));
+		assert_ok!(Balances::reserve(&ALICE, 99996));
 		assert_noop!(
 			AuctionModule::buy_now(buyer.clone(), 0, 150),
 			Error::<Runtime>::InsufficientFreeBalance
 		);
-		assert_eq!(Balances::unreserve(&ALICE, 100000), 0);
+		assert_eq!(Balances::unreserve(&ALICE, 99996), 0);
 		// auction has not started or is over
 		System::set_block_number(0);
 		assert_noop!(
@@ -949,6 +999,10 @@ fn buy_now_should_fail() {
 		);
 		System::set_block_number(1);
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
+
+		// BOB balance is 500 + 150 - 1 (royalty fee) - 1 (network fee) - 3 (minting fee) = 645
+		assert_eq!(Balances::free_balance(BOB), 645);
+
 		assert_noop!(
 			AuctionModule::create_auction(
 				AuctionType::BuyNow,
@@ -1023,14 +1077,18 @@ fn on_finalize_should_work() {
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
+		// BOB's should have 500 - 1 (network reserve fee) - 3 (minting fee) = 496
+		assert_eq!(Balances::free_balance(BOB), 496);
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
 		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99900);
-		// BOB only receive 596 - 1 (1% of 100 as royalty fee) + 1 minting fee = 589
-		assert_eq!(Balances::free_balance(BOB), 596);
+		// BOB's initial balance is 500
+		// 100 - 1 (1% of 100 as royalty fee) - 1 (1% of 100 as network fee) - 3 minting fee = 96
+		// 500 + 95 = 595
+		assert_eq!(Balances::free_balance(BOB), 595);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// auction item should not in storage
@@ -1062,6 +1120,8 @@ fn on_finalize_with_listing_fee_should_work() {
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
+		// Free balance of Alice is 99997 - 1 = 99996
+		assert_eq!(Balances::free_balance(ALICE), 99996);
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
@@ -1069,9 +1129,10 @@ fn on_finalize_with_listing_fee_should_work() {
 		// check balances were transferred
 		// Bob bid 100 for item, his new balance will be 500 - 100
 		assert_eq!(Balances::free_balance(BOB), 400);
-		// Alice only receive 89 for item sold - cost breakdown 100 - 1 (royalty) - 10 (listing fee)
-		// Free balance of Alice is 99997 + 86 = 100086
-		assert_eq!(Balances::free_balance(ALICE), 100086);
+		// Alice only receive 88 for item sold:
+		// cost breakdown 100 - 10 (listing fee) - 1 (1% network fee) - 1 (1% royalty fee)
+		// Free balance of Alice is 99997 + 88 = 100085
+		assert_eq!(Balances::free_balance(ALICE), 100085);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// event was triggered
@@ -1108,6 +1169,8 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 			Some(true)
 		);
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		// Free balance of Alice is 99994 - 1 (network reserve fee)
+		assert_eq!(Balances::free_balance(ALICE), 99993);
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
@@ -1115,9 +1178,10 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 		// check balances were transferred
 		// Bob bid 200 for item, his new balance will be 500 - 200
 		assert_eq!(Balances::free_balance(BOB), 300);
-		// Alice only receive 178 for item sold - cost breakdown 200 - 2 (royalty) - 20 (listing fee)
-		// Free balance of Alice is 99994 + 178 = 100172
-		assert_eq!(Balances::free_balance(ALICE), 100172);
+		// Alice only receive 176 for item solds
+		// Cost breakdown 200 - 2 (royalty) - 2 (1% network fee) - 20 (listing fee)
+		// Free balance of Alice is 99994 + 176 = 100170
+		assert_eq!(Balances::free_balance(ALICE), 100170);
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())), None);
 		// event was triggered

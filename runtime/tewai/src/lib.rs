@@ -1101,6 +1101,7 @@ parameter_types! {
 	pub const MinimumStake: Balance = 5 * DOLLARS;
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
+	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
 }
 
 impl estate::Config for Runtime {
@@ -1116,6 +1117,7 @@ impl estate::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
 	type NFTTokenizationSource = Nft;
+	type NetworkFee = NetworkFee;
 }
 
 parameter_types! {
@@ -1123,7 +1125,8 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
-	pub const RoyaltyFee: u16 = 10; // Royalty fee 0.1%
+	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 }
 
 impl auction::Config for Runtime {
@@ -1136,7 +1139,8 @@ impl auction::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = Estate;
-	type RoyaltyFee = RoyaltyFee;
+	type NetworkFeeReserve = NetworkFeeReserve;
+	type NetworkFeeCommission = NetworkFeeCommission;
 }
 
 impl continuum::Config for Runtime {
