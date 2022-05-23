@@ -927,6 +927,15 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
+	/// Find total amount of issued tokens for a class
+	fn get_class_token_amount(class_id: &ClassIdOf<T>) -> u32 {
+		let total_minted_tokens = 0u32;
+		for value in Tokens::<T>::iter_prefix_values(class_id) {
+			total_minted_tokens += 1;
+		}
+		total_minted_tokens
+	}
+
 	/// Upgrading NFT class data
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
@@ -936,7 +945,7 @@ impl<T: Config> Pallet<T> {
 		let mut asset_by_owner_updates = 0;
 
 		Classes::<T>::translate(
-			|_k,
+			|k,
 			 class_info: ClassInfo<
 				T::TokenId,
 				T::AccountId,
@@ -945,7 +954,9 @@ impl<T: Config> Pallet<T> {
 			>| {
 				num_nft_classes += 1;
 				log::info!("Upgrading class data");
-				log::info!("Class id {:?}", _k);
+				log::info!("Class id {:?}", k);
+
+				let total_minted_tokens_for_a_class = Self::get_class_token_amount(k);
 
 				let new_data = NftClassData {
 					deposit: class_info.data.deposit,
@@ -955,7 +966,7 @@ impl<T: Config> Pallet<T> {
 					is_locked: false,
 					royalty_fee: Perbill::from_percent(0u32),
 					mint_limit: None,
-					total_minted_tokens: 0u32,
+					total_minted_tokens: total_minted_tokens_for_a_class,
 				};
 
 				let v: ClassInfoOf<T> = ClassInfo {
