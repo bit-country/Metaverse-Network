@@ -544,6 +544,17 @@ fn setting_hard_limit_should_fail() {
 		let origin = Origin::signed(ALICE);
 		let failing_origin = Origin::signed(BOB);
 		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(0u32),
+			None
+		));
+
 		assert_noop!(
 			Nft::set_hard_limit(failing_origin.clone(), CLASS_ID, 10u32),
 			Error::<Runtime>::NoPermission
