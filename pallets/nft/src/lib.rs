@@ -81,6 +81,7 @@ pub enum StorageVersion {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+	use sp_runtime::traits::CheckedSub;
 	use sp_runtime::ArithmeticError;
 
 	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
@@ -274,6 +275,8 @@ pub mod pallet {
 		CollectionLocked(ClassIdOf<T>),
 		/// Collection is unlocked
 		CollectionUnlocked(ClassIdOf<T>),
+		/// Class funds are withdrawn
+		ClassFundsWithdrawn(ClassIdOf<T>),
 	}
 
 	#[pallet::error]
@@ -647,6 +650,38 @@ pub mod pallet {
 			let token_id = Self::do_force_transfer(&from, &to, asset_id)?;
 
 			Self::deposit_event(Event::<T>::ForceTransferredNft(from, to, token_id, asset_id.clone()));
+
+			Ok(().into())
+		}
+
+		/// Withdraws funds from class fund
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only class owner can withdraw funds.
+		/// - `class_id`: the class ID of the class which funds will be withdrawn
+		///
+		/// Emits `ClassFundsWithdrawn` if successful.
+		#[pallet::weight(T::WeightInfo::withdraw_funds_from_class_fund())]
+		pub fn withdraw_funds_from_class_fund(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+			ensure!(who.clone() == class_info.owner, Error::<T>::NoPermission);
+			let class_fund_account = Self::get_class_fund(&class_id);
+			// Balance minus existential deposit
+			let class_fund_balance = <T as Config>::Currency::free_balance(&class_fund_account)
+				.checked_sub(&<T as Config>::Currency::minimum_balance())
+				.ok_or(ArithmeticError::Underflow)?;
+			<T as Config>::Currency::transfer(
+				&class_fund_account,
+				&who,
+				class_fund_balance,
+				ExistenceRequirement::KeepAlive,
+			)?;
+
+			Self::deposit_event(Event::<T>::ClassFundsWithdrawn(class_id));
 
 			Ok(().into())
 		}

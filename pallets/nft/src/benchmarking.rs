@@ -28,7 +28,7 @@ use frame_support::traits::Get;
 use frame_system::RawOrigin;
 use orml_traits::BasicCurrencyExtended;
 use primitive_traits::CollectionType;
-use primitives::{AssetId, Balance};
+use primitives::{AssetId, Balance, ClassId};
 //use core_primitives::NFTTrait;
 use scale_info::Type;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
@@ -51,6 +51,10 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
 	T::Currency::make_free_balance_be(&caller, dollar(100).unique_saturated_into());
 	caller
+}
+
+fn get_class_fund<T: Config>(class_id: ClassId) -> T::AccountId {
+	T::PalletId::get().into_sub_account(class_id)
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -118,6 +122,13 @@ benchmarks! {
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
 	}: _(RawOrigin::Signed(signer), (0u32.into(), 0u32.into()), 100u32.into() )
 
+	withdraw_funds_from_class_fund{
+		let caller = funded_account::<T>("caller", 0);
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
+		let class_fund = get_class_fund::<T>(0u32.into());
+		T::Currency::make_free_balance_be(&class_fund, dollar(100).unique_saturated_into());
+	}: _(RawOrigin::Signed(caller), 0u32.into())
 }
 
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);
