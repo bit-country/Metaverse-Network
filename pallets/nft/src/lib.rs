@@ -979,7 +979,7 @@ impl<T: Config> Pallet<T> {
 	/// Find total amount of issued tokens for a class
 	fn get_class_token_amount(class_id: &ClassIdOf<T>) -> u32 {
 		let total_minted_tokens = 0u32;
-		for value in Tokens::<T>::iter_prefix_values(class_id) {
+		for value in Tokens::<T>::iter_prefix_values(*class_id) {
 			total_minted_tokens += 1;
 		}
 		total_minted_tokens
@@ -1005,7 +1005,7 @@ impl<T: Config> Pallet<T> {
 				log::info!("Upgrading class data");
 				log::info!("Class id {:?}", k);
 
-				let total_minted_tokens_for_a_class = Self::get_class_token_amount(k);
+				let total_minted_tokens_for_a_class = Self::get_class_token_amount(&k);
 
 				let new_data = NftClassData {
 					deposit: class_info.data.deposit,
