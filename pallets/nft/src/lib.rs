@@ -694,7 +694,7 @@ pub mod pallet {
 				Ok(().into())
 			})
 		}
-		
+
 		/// Withdraws funds from class fund
 		///
 		/// The dispatch origin for this call must be _Signed_.

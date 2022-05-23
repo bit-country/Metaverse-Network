@@ -607,4 +607,3 @@ fn setting_hard_limit_should_work() {
 		assert_eq!(last_event(), event);
 	})
 }
-
