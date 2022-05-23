@@ -978,7 +978,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Find total amount of issued tokens for a class
 	fn get_class_token_amount(class_id: &ClassIdOf<T>) -> u32 {
-		let total_minted_tokens = 0u32;
+		let mut total_minted_tokens = 0u32;
 		for value in Tokens::<T>::iter_prefix_values(*class_id) {
 			total_minted_tokens += 1;
 		}
