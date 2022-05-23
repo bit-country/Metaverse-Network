@@ -81,6 +81,7 @@ pub enum StorageVersion {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+	use sp_runtime::traits::CheckedSub;
 	use sp_runtime::ArithmeticError;
 
 	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
@@ -669,7 +670,10 @@ pub mod pallet {
 			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
 			ensure!(who.clone() == class_info.owner, Error::<T>::NoPermission);
 			let class_fund_account = Self::get_class_fund(&class_id);
-			let class_fund_balance = <T as Config>::Currency::free_balance(&class_fund_account) - 1u32.into();
+			// Balance minus existential deposit
+			let class_fund_balance = <T as Config>::Currency::free_balance(&class_fund_account)
+				.checked_sub(&<T as Config>::Currency::minimum_balance())
+				.ok_or(ArithmeticError::Underflow)?;
 			<T as Config>::Currency::transfer(
 				&class_fund_account,
 				&who,
