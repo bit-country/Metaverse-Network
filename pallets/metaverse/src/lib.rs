@@ -773,7 +773,7 @@ impl<T: Config> Pallet<T> {
 				};
 				Some(v3)
 			} else {
-				return None;
+				Some(metaverse_info_v2)
 			}
 		});
 		log::info!("{} metaverses in total:", total_metaverse_items);
