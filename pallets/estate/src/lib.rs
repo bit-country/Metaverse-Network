@@ -1180,7 +1180,7 @@ impl<T: Config> Pallet<T> {
 						OwnerId::Token(class_id, token_id) => {
 							// Implement check if user own nft
 							ensure!(
-								T::NFTTokenizationSource::check_nft_ownership(&a, &(class_id, token_id))?,
+								T::NFTTokenizationSource::check_ownership(&a, &(class_id, token_id))?,
 								Error::<T>::NoPermission
 							);
 
