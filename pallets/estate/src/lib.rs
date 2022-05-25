@@ -658,6 +658,11 @@ pub mod pallet {
 				Error::<T>::UndeployedLandBlockAlreadyInAuction
 			);
 
+			ensure!(
+				T::MetaverseInfoSource::check_ownership(&who, &metaverse_id),
+				Error::<T>::NoPermission
+			);
+
 			// Ensure the max bound is set for the metaverse
 			let max_bound = T::DefaultMaxBound::get();
 
@@ -1133,14 +1138,6 @@ pub mod pallet {
 
 				Ok(().into())
 			})
-		}
-	}
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_runtime_upgrade() -> Weight {
-			Self::remove_all_estate_storage();
-			0
 		}
 	}
 }

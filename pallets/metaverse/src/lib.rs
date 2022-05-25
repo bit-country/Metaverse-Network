@@ -756,7 +756,7 @@ impl<T: Config> Pallet<T> {
 
 		Metaverses::<T>::translate(|k, metaverse_info_v2: MetaverseInfo<T::AccountId>| {
 			total_metaverse_items += 1;
-			if metaverse_info_v2.land_class_id == 0 && metaverse_info_v2.estate_class_id == 1 {
+			if metaverse_info_v2.land_class_id == 0 || metaverse_info_v2.estate_class_id == 1 {
 				let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v2.owner, k).unwrap_or({
 					log::info!("Cannot create land class for metaverse {}:", total_metaverse_items);
 					return None;

@@ -668,8 +668,10 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+
 			ensure!(who.clone() == class_info.owner, Error::<T>::NoPermission);
 			let class_fund_account = Self::get_class_fund(&class_id);
+
 			// Balance minus existential deposit
 			let class_fund_balance = <T as Config>::Currency::free_balance(&class_fund_account)
 				.checked_sub(&<T as Config>::Currency::minimum_balance())
