@@ -237,6 +237,8 @@ pub mod pallet {
 		MetaverseStakingAlreadyPaid,
 		/// Metaverse has no stake
 		MetaverseHasNoStake,
+		/// Listing fee exceed threshold
+		MetaverseListingFeeExceedThreshold,
 	}
 
 	#[pallet::call]
@@ -710,6 +712,10 @@ impl<T: Config> Pallet<T> {
 		new_listing_fee: Perbill,
 	) -> Result<(), DispatchError> {
 		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
+		ensure!(
+			new_listing_fee <= Perbill::from_percent(25u32),
+			Error::<T>::MetaverseListingFeeExceedThreshold
+		);
 
 		Metaverses::<T>::try_mutate(metaverse_id, |metaverse_info| -> DispatchResult {
 			let t = metaverse_info.as_mut().ok_or(Error::<T>::MetaverseInfoNotFound)?;
