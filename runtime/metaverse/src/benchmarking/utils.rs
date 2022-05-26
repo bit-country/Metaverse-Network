@@ -70,6 +70,8 @@ pub fn mint_NFT(caller: &AccountId) {
 }
 
 pub fn create_metaverse_for_account(caller: &AccountId) {
+	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 	Metaverse::create_metaverse(
 		RawOrigin::Signed(caller.clone()).into(),
 		vec![1u8],
