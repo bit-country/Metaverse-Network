@@ -94,7 +94,19 @@ runtime_benchmarks! {
 		create_metaverse_for_account(&alice);
 		Auction::authorise_metaverse_collection(RawOrigin::Signed(alice.clone()).into(), 0u32.into(), METAVERSE_ID);
 	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
-	 
+/* 
+	finalize_auctions {
+		frame_system::Pallet::<T>::set_block_number(1u32.into());
+
+		let caller = funded_account::<T>("caller", 0);
+		let bidder = funded_account::<T>("bidder", 0);
+		mint_NFT::<T>(caller.clone());
+		crate::Pallet::<T>::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), 100u32.into(), ListingLevel::Global);
+		crate::Pallet::<T>::bid(RawOrigin::Signed(bidder.clone()).into(), 0u32.into(), 100u32.into())
+	}: {
+		//crate::Pallet::<T>::on_finalize(10u32);
+	}
+*/	 
 }
 
 #[cfg(test)]
