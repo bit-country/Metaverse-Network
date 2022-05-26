@@ -565,7 +565,7 @@ parameter_types! {
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
 	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
-	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 }
 
