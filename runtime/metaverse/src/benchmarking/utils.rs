@@ -1,44 +1,31 @@
-// This file is part of Acala.
-
-// Copyright (C) 2020-2022 Acala Foundation.
-// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-use crate::{Balances, Currencies, Metaverse, Nft, Runtime};
+use crate::{Auction, Balances, Currencies, Estate, Metaverse, Nft, Runtime};
 use core_primitives::{Attributes, CollectionType, TokenType};
 use frame_benchmarking::account;
 use frame_support::traits::tokens::fungibles;
 use frame_support::{assert_ok, traits::Contains};
 use frame_system::RawOrigin;
 use orml_traits::MultiCurrencyExtended;
-use primitives::{AccountId, Balance, FungibleTokenId};
+use primitives::estate::EstateInfo;
+use primitives::{AccountId, Balance, FungibleTokenId, UndeployedLandBlockType};
+use sp_runtime::Perbill;
 use sp_runtime::{
 	traits::{SaturatedConversion, StaticLookup},
 	DispatchResult,
 };
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
-use sp_runtime::Perbill;
+
+const SEED: u32 = 0;
+const METAVERSE_ID: u64 = 1;
 
 pub fn dollar(d: u32) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(1_000_000_000_000_000_000)
 }
-// pub fn lookup_of_account(who: AccountId) -> <<Runtime as frame_system::Config>::Lookup as
-// StaticLookup>::Source { 	<Runtime as frame_system::Config>::Lookup::unlookup(who)
-// }
+//pub fn lookup_of_account(who: AccountId)
+//-> <<Runtime as frame_system::Config>::Lookup as StaticLookup>::Source {
+//	<Runtime as frame_system::Config>::Lookup::unlookup(who)
+//}
 
 pub fn set_balance(currency_id: FungibleTokenId, who: &AccountId, balance: Balance) {
 	assert_ok!(<Currencies as MultiCurrencyExtended<_>>::update_balance(
@@ -47,7 +34,6 @@ pub fn set_balance(currency_id: FungibleTokenId, who: &AccountId, balance: Balan
 		balance.saturated_into()
 	));
 }
-
 
 pub fn mint_NFT(caller: &AccountId) {
 	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
@@ -69,13 +55,36 @@ pub fn mint_NFT(caller: &AccountId) {
 	);
 }
 
+pub fn create_land_and_estate_groups() {
+	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+	Nft::create_group(RawOrigin::Root.into(), vec![2], vec![2]);
+}
+
+pub fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
+	return EstateInfo {
+		metaverse_id: METAVERSE_ID,
+		land_units: lands,
+	};
+}
+
+pub fn issue_new_undeployed_land_block(n: u32) -> Result<bool, &'static str> {
+	let caller: AccountId = account("caller", 0, SEED);
+	set_balance(FungibleTokenId::NativeToken(0), &caller, 10000);
+	Estate::issue_undeployed_land_blocks(
+		RawOrigin::Root.into(),
+		caller,
+		n,
+		100,
+		UndeployedLandBlockType::Transferable,
+	);
+
+	Ok(true)
+}
+
 pub fn create_metaverse_for_account(caller: &AccountId) {
 	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-	Metaverse::create_metaverse(
-		RawOrigin::Signed(caller.clone()).into(),
-		vec![1u8],
-	);
+	Nft::create_group(RawOrigin::Root.into(), vec![2], vec![2]);
+	Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -83,32 +92,6 @@ fn test_attributes(x: u8) -> Attributes {
 	attr.insert(vec![x, x + 5], vec![x, x + 10]);
 	attr
 }
-
-// pub fn feed_price(prices: Vec<(CurrencyId, Price)>) -> DispatchResult {
-// 	for i in 0..MinimumCount::get() {
-// 		let oracle: AccountId = account("oracle", 0, i);
-// 		if !OperatorMembershipAcala::contains(&oracle) {
-// 			OperatorMembershipAcala::add_member(RawOrigin::Root.into(), oracle.clone())?;
-// 		}
-// 		AcalaOracle::feed_values(RawOrigin::Signed(oracle).into(), prices.to_vec())
-// 			.map_or_else(|e| Err(e.error), |_| Ok(()))?;
-// 	}
-//
-// 	Ok(())
-// }
-//
-// pub fn set_balance_fungibles(currency_id: CurrencyId, who: &AccountId, balance: Balance) {
-// 	assert_ok!(<orml_tokens::Pallet<Runtime> as fungibles::Mutate<AccountId>>::mint_into(currency_id,
-// who, balance)); }
-//
-//pub fn dollar(currency_id: CurrencyId) -> Balance {
-// 	if let Some(decimals) =
-// module_asset_registry::EvmErc20InfoMapping::<Runtime>::decimals(currency_id) {
-// 		10u128.saturating_pow(decimals.into())
-// 	} else {
-// 		panic!("{:?} not support decimals", currency_id);
-// 	}
-// }
 
 #[cfg(test)]
 pub mod tests {

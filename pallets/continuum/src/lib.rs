@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,7 +54,7 @@ use scale_info::TypeInfo;
 use sp_runtime::traits::CheckedAdd;
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	DispatchError, RuntimeDebug,
+	DispatchError, Perbill, RuntimeDebug,
 };
 use sp_std::vec;
 use sp_std::vec::Vec;
@@ -130,7 +130,7 @@ pub mod pallet {
 		/// Emergency shutdown origin which allow cancellation in an emergency
 		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler;
+		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Auction duration
 		#[pallet::constant]
 		type AuctionDuration: Get<Self::BlockNumber>;
@@ -565,6 +565,7 @@ impl<T: Config> Pallet<T> {
 					Default::default(),
 					now,
 					ListingLevel::NetworkSpot(recent_slot.participants),
+					Perbill::from_percent(0u32),
 				)?;
 				Self::deposit_event(Event::FinalizedVote(referendum_info.spot_id))
 			}

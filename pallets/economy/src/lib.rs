@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -97,40 +97,57 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
+		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
 		/// The currency type
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
 			+ ReservableCurrency<Self::AccountId>;
+
 		/// Multi-fungible token currency
 		type FungibleTokenCurrency: MultiReservableCurrency<
 			Self::AccountId,
 			CurrencyId = FungibleTokenId,
 			Balance = Balance,
 		>;
+
 		/// NFT handler
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+
 		/// Round handler
 		type RoundHandler: RoundTrait<Self::BlockNumber>;
+
+		/// Economy treasury fund
 		#[pallet::constant]
 		type EconomyTreasury: Get<PalletId>;
+
+		/// The currency id of BIT
 		#[pallet::constant]
 		type MiningCurrencyId: Get<FungibleTokenId>;
+
+		/// The minimum stake required for staking
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
+
+		/// The Power Amount per block
 		#[pallet::constant]
 		type PowerAmountPerBlock: Get<PowerAmount>;
+
 		/// Weight info
 		type WeightInfo: WeightInfo;
 	}
 
+	/// BIT to power exchange rate
 	#[pallet::storage]
 	#[pallet::getter(fn get_bit_power_exchange_rate)]
 	pub(super) type BitPowerExchangeRate<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
+	/// Element index
 	#[pallet::storage]
 	#[pallet::getter(fn get_element_index)]
 	pub type ElementIndex<T: Config> = StorageMap<_, Twox64Concat, ElementId, ElementInfo>;
 
+	/// Element balance of individual account
 	#[pallet::storage]
 	#[pallet::getter(fn get_elements_by_account)]
 	pub type ElementBalance<T: Config> =
@@ -153,16 +170,19 @@ pub mod pallet {
 	#[pallet::getter(fn get_power_conversion_commission)]
 	pub type EconomyCommission<T: Config> = StorageMap<_, Twox64Concat, (ClassId, TokenId), Perbill, OptionQuery>;
 
+	/// Buy power by user request queue
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
 	pub type BuyPowerByUserRequestQueue<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, (ClassId, TokenId), Twox64Concat, T::AccountId, OrderInfo<T::BlockNumber>>;
 
+	/// Buy power by distributor request queue
 	#[pallet::storage]
 	#[pallet::getter(fn get_buy_power_by_distributor_request_queue)]
 	pub type BuyPowerByDistributorRequestQueue<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, (ClassId, TokenId), Twox64Concat, T::AccountId, OrderInfo<T::BlockNumber>>;
 
+	/// Power balance of user
 	#[pallet::storage]
 	#[pallet::getter(fn get_power_balance)]
 	pub type PowerBalance<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, PowerAmount, ValueQuery>;
@@ -184,29 +204,46 @@ pub mod pallet {
 	pub type ExitQueue<T: Config> =
 		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, RoundIndex, BalanceOf<T>, OptionQuery>;
 
+	/// Total native token locked in this pallet
 	#[pallet::storage]
 	#[pallet::getter(fn total_stake)]
-	/// Total native token locked in this pallet
 	type TotalStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Power generator collection has authorized [group_collection_id, class_id]
 		PowerGeneratorCollectionAuthorized(GroupCollectionId, ClassId),
+		/// Power distributor collection has authorized [group_collection_id, class_id]
 		PowerDistributorCollectionAuthorized(GroupCollectionId, ClassId),
+		/// New power order by user has added to queue [sender, power_amount, (class_id, token_id)]
 		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		/// New power order by user has executed [sender, power_amount, (class_id, token_id)]
 		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		/// New power order by distributor has added to the queue [sender, power_amount, (class_id,
+		/// token_id)]
 		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		/// New power order by distributor has executed [sender, power_amount, (class_id, token_id)]
 		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		/// New power order by generator has executed [sender, power_amount, (class_id, token_id)]
 		BuyPowerOrderByGeneratorToNetworkExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
+		/// New element minted on chain [sender, element_index, quantity]
 		ElementMinted(T::AccountId, u32, u64),
+		/// Mining resource burned [amount]
 		MiningResourceBurned(Balance),
+		/// Self staking to economy 101 [staker, amount]
 		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
+		/// Self staking removed from economy 101 [staker, amount]
 		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>),
+		/// New BIT to Power exchange rate has updated [amount]
 		BitPowerExchangeRateUpdated(Balance),
+		/// Unstaked amount has been withdrew after it's expired [account, rate]
 		UnstakedAmountWithdrew(T::AccountId, BalanceOf<T>),
+		/// Set power balance by sudo [account, power_amount]
 		SetPowerBalance(T::AccountId, PowerAmount),
+		/// Commission has been updated [(class_id, token_id), percent]
 		CommissionUpdated((ClassId, TokenId), Perbill),
+		/// Power conversion request has cancelled [(class_id, token_id), account]
 		CancelPowerConversionRequest((ClassId, TokenId), T::AccountId),
 	}
 
@@ -281,7 +318,12 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Set bit power exchange rate
-		/// BIT price per Power, accept decimal
+		///
+		/// The dispatch origin for this call must be _Root_.
+		///
+		/// `rate`: exchange rate of bit to power. input is BIT price per power
+		///
+		/// Emit `BitPowerExchangeRateUpdated` event if successful
 		#[pallet::weight(T::WeightInfo::set_bit_power_exchange_rate())]
 		#[transactional]
 		pub fn set_bit_power_exchange_rate(origin: OriginFor<T>, rate: Balance) -> DispatchResultWithPostInfo {
@@ -295,7 +337,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Set power balance for NFTs
+		/// Set power balance for specific NFT
+		///
+		/// The dispatch origin for this call must be _Root_.
+		///
+		/// `beneficiary`: NFT account that receives power
+		/// `amount`: amount of power
+		///
+		/// Emit `SetPowerBalance` event if successful
 		#[pallet::weight(T::WeightInfo::set_power_balance())]
 		#[transactional]
 		pub fn set_power_balance(
@@ -314,6 +363,13 @@ pub mod pallet {
 		}
 
 		/// Authorize a NFT collector for power generator
+		///
+		/// The dispatch origin for this call must be _Root_.
+		///
+		/// `collection_id`: group NFT collection id - future support multi-chain
+		/// `class_id`: NFT collection itself
+		///
+		/// Emit `PowerGeneratorCollectionAuthorized` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn authorize_power_generator_collection(
@@ -347,6 +403,14 @@ pub mod pallet {
 		}
 
 		/// Authorize a NFT collector for power distributor
+		///
+		/// The dispatch origin for this call must be _Root_.
+		///
+		///
+		/// `collection_id`: group NFT collection id - future support multi-chain
+		/// `class_id`: NFT collection itself
+		///
+		/// Emit `PowerDistributorCollectionAuthorized` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn authorize_power_distributor_collection(
@@ -378,7 +442,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Enable user to buy mining power with specific distributor NFT
+		/// Buy power with specific distributor NFT
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `power_amount`: power amount
+		/// `distributor_nft_id`: NFT id of power distributor
+		///
+		/// Emit `BuyPowerOrderByUserHasAddedToQueue` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn buy_power_by_user(
@@ -442,7 +513,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Execute user's mining power buying order
+		/// Execute power order from specific distributor NFT
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `distributor_nft_id`: distributor nft id of how execute the order
+		/// `beneficiary`: the account of order
+		///
+		/// Emit `BuyPowerOrderByUserExecuted` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn execute_buy_power_order(
@@ -466,7 +544,7 @@ pub mod pallet {
 
 			// Check if executor is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &distributor_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
 				Error::<T>::NoPermissionToExecuteBuyPowerOrder
 			);
 
@@ -506,7 +584,15 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Enable distributor to buy mining power with specific generator NFT
+		/// Buy power from specific power generator
+		///
+		/// The dispatch origin for this call must be _Signed_. The owner of power distributor nft
+		///
+		/// `generator_nft_id`: nft id of power generator
+		/// `distributor_nft_id`: NFT id of power distributor
+		/// `power_amount`: power amount
+		///
+		/// Emit `BuyPowerOrderByDistributorHasAddedToQueue` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn buy_power_by_distributor(
@@ -540,7 +626,7 @@ pub mod pallet {
 
 			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &distributor_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
 				Error::<T>::NoPermissionToBuyPower
 			);
 
@@ -595,7 +681,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Execute distributor's mining power buying order
+		/// Execute buying power order of power distributors from specific generator NFT
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `distributor_nft_id`: distributor nft id of how execute the order
+		/// `beneficiary`: the account of order
+		///
+		/// Emit `BuyPowerOrderByUserExecuted` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn execute_generate_power_order(
@@ -616,7 +709,7 @@ pub mod pallet {
 
 			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &generator_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &generator_nft_id)?,
 				Error::<T>::NoPermissionToExecuteGeneratingPowerOrder
 			);
 
@@ -650,7 +743,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Mint Element
+		/// Mint new elements
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `element_index`: the element index
+		/// `number_of_element`: number of element needs to be minted
+		///
+		/// Emit `ElementMinted` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn mint_element(
@@ -689,7 +789,13 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Stake native token to staking ledger for mining power calculation
+		/// Stake native token to staking ledger to receive build material every round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `amount`: the stake amount
+		///
+		/// Emit `SelfStakedToEconomy101` event if successful
 		#[pallet::weight(T::WeightInfo::stake())]
 		#[transactional]
 		pub fn stake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
@@ -728,7 +834,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Stake native token to staking ledger for mining power calculation
+		/// Unstake native token from staking ledger. The unstaked amount able to redeem from the
+		/// next round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `amount`: the stake amount
+		///
+		/// Emit `SelfStakingRemovedFromEconomy101` event if successful
 		#[pallet::weight(T::WeightInfo::unstake())]
 		pub fn unstake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -771,14 +884,17 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Stake native token to staking ledger for mining power calculation
+		/// Withdraw unstaked token from unstaking queue. The unstaked amount will be unreserved and
+		/// become transferrable
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `round_index`: the round index that user can unstake.
+		///
+		/// Emit `UnstakedAmountWithdrew` event if successful
 		#[pallet::weight(T::WeightInfo::withdraw_unreserved())]
 		pub fn withdraw_unreserved(origin: OriginFor<T>, round_index: RoundIndex) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-
-			let current_round = T::RoundHandler::get_current_round_info();
-
-			// ensure!(round_index <= current_round.current, Error::<T>::WithdrawFutureRound);
 
 			// Get user exit queue
 			let exit_balance = ExitQueue::<T>::get(&who, round_index).ok_or(Error::<T>::ExitQueueDoesNotExit)?;
@@ -792,6 +908,13 @@ pub mod pallet {
 		}
 
 		/// Get more power from the network from specific generator NFT
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `generator_nft_id`: generator nft
+		/// `power_amount`: the power amount that generator want to request
+		///
+		/// Emit `BuyPowerOrderByGeneratorToNetworkExecuted` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn get_more_power_by_generator(
@@ -815,7 +938,7 @@ pub mod pallet {
 
 			// Check if origin is the owner of the Distributor NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &generator_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &generator_nft_id)?,
 				Error::<T>::NoPermissionToBuyPower
 			);
 
@@ -847,7 +970,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// update commission of power distributor / generator
+		/// Update commission of power distributor / generator
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `nft_id`: nft id of either power generator or distributor
+		/// `commission`: the new commission rate
+		///
+		/// Emit `CommissionUpdated` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn update_commission(
@@ -858,10 +988,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Check if origin is the owner of the NFT
-			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &nft_id)?,
-				Error::<T>::NoPermission
-			);
+			ensure!(T::NFTHandler::check_ownership(&who, &nft_id)?, Error::<T>::NoPermission);
 
 			// Check nft is part of generator collection
 			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&nft_id.0)?;
@@ -879,7 +1006,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// update commission of power distributor / generator
+		/// Withdraw mining resource from nft account
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `nft_id`: nft id of either power generator or distributor
+		/// `amount`: the amount needs to withdraw
+		///
+		/// Emit `Transferred` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn withdraw_mining_resource(
@@ -890,10 +1024,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Check if origin is the owner of the NFT
-			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &nft_id)?,
-				Error::<T>::NoPermission
-			);
+			ensure!(T::NFTHandler::check_ownership(&who, &nft_id)?, Error::<T>::NoPermission);
 
 			// Get NFT account id
 			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(nft_id);
@@ -903,6 +1034,12 @@ pub mod pallet {
 		}
 
 		/// Cancel queue order of power distributor
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `nft_id`: nft id of either power generator
+		///
+		/// Emit `CancelPowerConversionRequest` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn cancel_user_queue_order(origin: OriginFor<T>, nft_id: (ClassId, TokenId)) -> DispatchResultWithPostInfo {
@@ -931,7 +1068,13 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Cancel queue order of user
+		/// Cancel queue power order of user
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `nft_id`: nft id of power distributor
+		///
+		/// Emit `CancelPowerConversionRequest` event if successful
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn cancel_distributor_queue_order(
@@ -943,7 +1086,7 @@ pub mod pallet {
 
 			// Check if origin is the owner of the NFT
 			ensure!(
-				T::NFTHandler::check_nft_ownership(&who, &receiver_nft_id)?,
+				T::NFTHandler::check_ownership(&who, &receiver_nft_id)?,
 				Error::<T>::NoPermission
 			);
 
@@ -982,12 +1125,7 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_order_info_data_v2();
-			0
-		}
-	}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {

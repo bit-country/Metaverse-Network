@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@
 use codec::{Decode, Encode, HasCompact};
 use frame_support::traits::{LockIdentifier, WithdrawReasons};
 use frame_support::{
-	ensure,
+	ensure, log,
 	pallet_prelude::*,
 	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
 	PalletId,
@@ -35,10 +35,10 @@ use sp_runtime::{
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use core_primitives::*;
-use core_primitives::{MetaverseInfo, MetaverseTrait};
+use core_primitives::{MetaverseInfo, MetaverseInfoV1, MetaverseTrait};
 pub use pallet::*;
 use primitives::staking::MetaverseStakingTrait;
-use primitives::{FungibleTokenId, MetaverseId, RoundIndex};
+use primitives::{ClassId, FungibleTokenId, MetaverseId, RoundIndex, TokenId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -62,6 +62,8 @@ pub struct MetaverseStakingSnapshot<Balance> {
 }
 
 const LOCK_STAKING: LockIdentifier = *b"stakelok";
+const ESTATE_CLASS_ROYALTY_FEE: u32 = 5;
+const LAND_CLASS_ROYALTY_FEE: u32 = 10;
 
 /// Storing the reward detail of metaverse that store the list of stakers for each metaverse
 /// This will be used to reward metaverse owner and the stakers.
@@ -122,6 +124,8 @@ pub mod pallet {
 		type MaxNumberOfStakersPerMetaverse: Get<u32>;
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
+		/// NFT handler required for minting classes for lands and estates when creating a metaverse
+		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 	}
 
 	#[pallet::storage]
@@ -194,6 +198,7 @@ pub mod pallet {
 		MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
 		MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
 		MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>),
+		MetaverseListingFeeUpdated(MetaverseId, Perbill),
 	}
 
 	#[pallet::error]
@@ -232,6 +237,8 @@ pub mod pallet {
 		MetaverseStakingAlreadyPaid,
 		/// Metaverse has no stake
 		MetaverseHasNoStake,
+		/// Listing fee exceed threshold
+		MetaverseListingFeeExceedThreshold,
 	}
 
 	#[pallet::call]
@@ -239,34 +246,8 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::create_metaverse())]
 		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-
-			ensure!(
-				metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
-				Error::<T>::MaxMetadataExceeded
-			);
-
-			ensure!(
-				T::Currency::free_balance(&who) >= T::MinContribution::get(),
-				Error::<T>::InsufficientContribution
-			);
-
-			T::Currency::transfer(
-				&who,
-				&Self::account_id(),
-				T::MinContribution::get(),
-				ExistenceRequirement::KeepAlive,
-			)?;
-
-			let metaverse_id = Self::new_metaverse(&who, metadata)?;
-
-			MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
-
-			let total_metaverse_count = Self::all_metaverse_count();
-			let new_total_metaverse_count = total_metaverse_count
-				.checked_add(One::one())
-				.ok_or("Overflow adding new count to new_total_metaverse_count")?;
-			AllMetaversesCount::<T>::put(new_total_metaverse_count);
-			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id.clone(), who));
+			let metaverse_id = Self::do_create_metaverse(&who, metadata)?;
+			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id, who));
 
 			Ok(().into())
 		}
@@ -596,6 +577,19 @@ pub mod pallet {
 			<MetaverseRoundStake<T>>::insert(&metaverse_id, round, metaverse_stake_per_round);
 			Ok(().into())
 		}
+
+		#[pallet::weight(T::WeightInfo::update_metaverse_listing_fee())]
+		pub fn update_metaverse_listing_fee(
+			origin: OriginFor<T>,
+			metaverse_id: MetaverseId,
+			new_listing_fee: Perbill,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			Self::do_update_metaverse_listing_fee(&who, &metaverse_id, new_listing_fee)?;
+			Self::deposit_event(Event::<T>::MetaverseListingFeeUpdated(metaverse_id, new_listing_fee));
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -609,16 +603,49 @@ impl<T: Config> Pallet<T> {
 			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableMetaverseId)?;
 			Ok(current_id)
 		})?;
-
+		let land_class_id = Self::mint_metaverse_land_class(owner, metaverse_id)?;
+		let estate_class_id = Self::mint_metaverse_estate_class(owner, metaverse_id)?;
 		let metaverse_info = MetaverseInfo {
 			owner: owner.clone(),
 			currency_id: FungibleTokenId::NativeToken(0),
 			metadata,
 			is_frozen: false,
+			land_class_id,
+			estate_class_id,
+			listing_fee: Perbill::from_percent(0u32),
 		};
 
 		Metaverses::<T>::insert(metaverse_id, metaverse_info);
 
+		Ok(metaverse_id)
+	}
+
+	fn do_create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId, DispatchError> {
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
+			Error::<T>::MaxMetadataExceeded
+		);
+
+		ensure!(
+			T::Currency::free_balance(&who) >= T::MinContribution::get(),
+			Error::<T>::InsufficientContribution
+		);
+
+		T::Currency::transfer(
+			&who,
+			&Self::account_id(),
+			T::MinContribution::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+		let metaverse_id = Self::new_metaverse(&who, metadata)?;
+
+		MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
+
+		let total_metaverse_count = Self::all_metaverse_count();
+		let new_total_metaverse_count = total_metaverse_count
+			.checked_add(One::one())
+			.ok_or("Overflow adding new count to new_total_metaverse_count")?;
+		AllMetaversesCount::<T>::put(new_total_metaverse_count);
 		Ok(metaverse_id)
 	}
 
@@ -640,9 +667,132 @@ impl<T: Config> Pallet<T> {
 			StakingInfo::<T>::insert(who, staking_info);
 		}
 	}
+
+	/// Minting of a land class for the metaverse
+	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		// Pre-mint class for lands
+		let mut land_class_attributes = Attributes::new();
+		land_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
+		land_class_attributes.insert("Category:".as_bytes().to_vec(), "Lands".as_bytes().to_vec());
+		let land_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
+		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account();
+		T::NFTHandler::create_token_class(
+			&class_owner,
+			land_class_metadata,
+			land_class_attributes,
+			0,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(LAND_CLASS_ROYALTY_FEE),
+		)
+	}
+
+	/// Minting of an estate class for the metaverse
+	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		// Pre-mint class for estates
+		let mut estate_class_attributes = Attributes::new();
+		estate_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
+		estate_class_attributes.insert("Category:".as_bytes().to_vec(), "Estates".as_bytes().to_vec());
+		let estate_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
+		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account();
+		T::NFTHandler::create_token_class(
+			&class_owner,
+			estate_class_metadata,
+			estate_class_attributes,
+			0,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(ESTATE_CLASS_ROYALTY_FEE),
+		)
+	}
+
+	fn do_update_metaverse_listing_fee(
+		who: &T::AccountId,
+		metaverse_id: &MetaverseId,
+		new_listing_fee: Perbill,
+	) -> Result<(), DispatchError> {
+		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
+		ensure!(
+			new_listing_fee <= Perbill::from_percent(25u32),
+			Error::<T>::MetaverseListingFeeExceedThreshold
+		);
+
+		Metaverses::<T>::try_mutate(metaverse_id, |metaverse_info| -> DispatchResult {
+			let t = metaverse_info.as_mut().ok_or(Error::<T>::MetaverseInfoNotFound)?;
+			t.listing_fee = new_listing_fee;
+			Ok(())
+		})
+	}
+
+	pub fn upgrade_metaverse_info_v2() -> Weight {
+		log::info!("Start upgrade_metaverse_info_v2");
+		let mut upgraded_metaverse_items = 0;
+
+		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
+		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
+
+		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
+			upgraded_metaverse_items += 1;
+
+			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
+				owner: metaverse_info_v1.owner,
+				metadata: metaverse_info_v1.metadata,
+				currency_id: metaverse_info_v1.currency_id,
+				is_frozen: false,
+				listing_fee: Perbill::from_percent(0u32),
+				land_class_id: default_land_class_id,
+				estate_class_id: default_estate_class_id,
+			};
+			Some(v2)
+		});
+		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
+		0
+	}
+
+	pub fn upgrade_metaverse_info_v3() -> Weight {
+		log::info!("Start upgrade_metaverse_info_v3");
+		let mut upgraded_metaverse_items = 0;
+		let mut total_metaverse_items = 0;
+
+		Metaverses::<T>::translate(|k, metaverse_info_v2: MetaverseInfo<T::AccountId>| {
+			total_metaverse_items += 1;
+			if metaverse_info_v2.land_class_id == 0 || metaverse_info_v2.estate_class_id == 1 {
+				let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v2.owner, k).unwrap_or({
+					log::info!("Cannot create land class for metaverse {}:", total_metaverse_items);
+					return None;
+				});
+				let new_estate_class_id = Self::mint_metaverse_estate_class(&metaverse_info_v2.owner, k).unwrap_or({
+					log::info!("Cannot create estate class for metaverse {}:", total_metaverse_items);
+					return None;
+				});
+
+				upgraded_metaverse_items += 1;
+
+				let v3: MetaverseInfo<T::AccountId> = MetaverseInfo {
+					owner: metaverse_info_v2.owner,
+					metadata: metaverse_info_v2.metadata,
+					currency_id: metaverse_info_v2.currency_id,
+					is_frozen: false,
+					listing_fee: Perbill::from_percent(0u32),
+					land_class_id: new_land_class_id,
+					estate_class_id: new_estate_class_id,
+				};
+				Some(v3)
+			} else {
+				Some(metaverse_info_v2)
+			}
+		});
+		log::info!("{} metaverses in total:", total_metaverse_items);
+		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
+		0
+	}
 }
 
 impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
+	fn create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		Self::do_create_metaverse(who, metadata).unwrap_or_default()
+	}
+
 	fn check_ownership(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
 		Self::get_metaverse_owner(who, metaverse_id) == Some(())
 	}
@@ -671,6 +821,30 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 			Self::deposit_event(Event::<T>::MetaverseMintedNewCurrency(metaverse_id, currency_id));
 			Ok(())
 		})
+	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+		Ok(TryInto::<ClassId>::try_into(metaverse_info.land_class_id).unwrap_or_default())
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+		Ok(TryInto::<ClassId>::try_into(metaverse_info.estate_class_id).unwrap_or_default())
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		let metaverse_info = Metaverses::<T>::get(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+
+		Ok(metaverse_info.listing_fee)
+	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {
+		return T::MetaverseTreasury::get().into_account();
+	}
+
+	fn get_network_treasury() -> T::AccountId {
+		return T::MetaverseTreasury::get().into_account();
 	}
 }
 

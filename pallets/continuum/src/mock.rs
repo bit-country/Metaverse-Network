@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,11 +21,11 @@ use frame_support::pallet_prelude::{GenesisBuild, Hooks};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
-use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler};
-use core_primitives::{MetaverseInfo, MetaverseTrait};
-use primitives::FungibleTokenId;
+use auction_manager::{Auction, AuctionInfo, CheckAuctionItemHandler, ListingLevel};
+use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait};
+use primitives::{ClassId, FungibleTokenId};
 
 use crate as continuum;
 
@@ -50,6 +50,10 @@ pub const CHARLIE: AccountId = 3;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
 pub const CHARLIE_METAVERSE_ID: MetaverseId = 3;
+
+pub const ALICE_METAVERSE_FUND: AccountId = 100;
+pub const BOB_METAVERSE_FUND: AccountId = 101;
+pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -122,17 +126,18 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn create_auction(
 		_auction_type: AuctionType,
-		_item_id: ItemId,
+		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
 		_recipient: u128,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
-	fn remove_auction(_id: u64, _item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -163,8 +168,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 }
 
-impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(_item_id: ItemId) -> bool {
+impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
+	fn check_item_in_auction(_item_id: ItemId<Balance>) -> bool {
 		return false;
 	}
 }
@@ -182,6 +187,10 @@ parameter_types! {
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		1u64
+	}
+
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
@@ -201,6 +210,30 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
+	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		Ok(15u32)
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		Ok(16u32)
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		Ok(Perbill::from_percent(1u32))
+	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
+		match metaverse_id {
+			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
+			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
+			_ => GENERAL_METAVERSE_FUND,
+		}
+	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
 	}
 }
 

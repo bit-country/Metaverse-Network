@@ -8,6 +8,7 @@ use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
+use sp_runtime::Perbill;
 
 use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
 pub use primitive_traits::{CollectionType, NftAssetData, NftClassData};
@@ -28,6 +29,7 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
+pub const NON_EXISTING_CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 1000;
 pub const TOKEN_ID: <Runtime as orml_nft::Config>::TokenId = 0;
 pub const COLLECTION_ID: u64 = 0;
 
@@ -108,17 +110,18 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn create_auction(
 		_auction_type: AuctionType,
-		_item_id: ItemId,
+		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
 		_recipient: u128,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(0)
 	}
 
-	fn remove_auction(_id: u64, _item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -155,8 +158,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 }
 
-impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(_item_id: ItemId) -> bool {
+impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
+	fn check_item_in_auction(_item_id: ItemId<Balance>) -> bool {
 		return false;
 	}
 }
@@ -214,9 +217,16 @@ impl pallet_scheduler::Config for Runtime {
 	type NoPreimagePostponement = ();
 }
 
+parameter_types! {
+	pub AssetMintingFee: Balance = 1;
+	pub ClassMintingFee: Balance = 2;
+	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
 	type AuctionHandler = MockAuctionManager;
 	type WeightInfo = ();
@@ -225,7 +235,8 @@ impl Config for Runtime {
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
-	type DataDepositPerByte = MetadataDataDepositPerByte;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {

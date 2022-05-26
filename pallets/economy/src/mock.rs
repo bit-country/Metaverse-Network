@@ -11,7 +11,7 @@ use auction_manager::*;
 use core_primitives::NftAssetData;
 use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
-use primitives::{Amount, EstateId, FungibleTokenId, ItemId};
+use primitives::{Amount, EstateId, FungibleTokenId, ItemId, UndeployedLandBlockId};
 
 use crate as economy;
 
@@ -130,11 +130,26 @@ impl Estate<u128> for EstateHandler {
 		Ok(coordinate)
 	}
 
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		to: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		Ok(2)
+	}
+
 	fn check_estate(_estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
 	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn check_undeployed_land_block(
+		owner: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
@@ -244,17 +259,18 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn create_auction(
 		_auction_type: AuctionType,
-		_item_id: ItemId,
+		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
 		_recipient: u128,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
-	fn remove_auction(_id: u64, _item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -285,25 +301,24 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 }
 
-impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(_item_id: ItemId) -> bool {
+impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
+	fn check_item_in_auction(_item_id: ItemId<Balance>) -> bool {
 		return false;
 	}
 }
 
 parameter_types! {
-	pub CreateClassDeposit: Balance = 2;
-	pub CreateAssetDeposit: Balance = 1;
+	pub ClassMintingFee: Balance = 2;
+	pub AssetMintingFee: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
+	pub MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
-	//pub PromotionIncentive: Balance = 1;
 }
 
 impl pallet_nft::Config for Runtime {
 	type Event = Event;
-	type DataDepositPerByte = CreateAssetDeposit;
 	type Currency = Balances;
 	type PalletId = NftPalletId;
 	type WeightInfo = ();
@@ -313,7 +328,9 @@ impl pallet_nft::Config for Runtime {
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
-	//type PromotionIncentive = PromotionIncentive;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {

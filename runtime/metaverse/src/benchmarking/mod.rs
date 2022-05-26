@@ -25,7 +25,9 @@ pub mod utils;
 // module benchmarking
 pub mod economy;
 pub mod auction;
+// pub mod estate;
 
 // pub fn get_vesting_account() -> super::AccountId {
 // 	super::TreasuryPalletId::get().into_account()
 // }
+

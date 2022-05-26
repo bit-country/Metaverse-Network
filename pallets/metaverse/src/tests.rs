@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 
 use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
+use sp_runtime::Perbill;
 
 use mock::{Event, *};
 use primitives::staking::RoundInfo;
@@ -36,6 +37,9 @@ fn create_metaverse_should_work() {
 				metadata: vec![1],
 				currency_id: FungibleTokenId::NativeToken(0),
 				is_frozen: false,
+				land_class_id: 0u32,
+				estate_class_id: 0u32,
+				listing_fee: Perbill::from_percent(0u32)
 			})
 		);
 		let event = Event::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
@@ -335,5 +339,54 @@ fn unstake_should_work() {
 			MetaverseModule::get_metaverse_stake_per_round(METAVERSE_ID, current_staking_round.current).unwrap();
 
 		assert_eq!(*(metaverse_stake_per_round.stakers.entry(ALICE).or_default()), 9900u64);
+	})
+}
+
+#[test]
+fn update_metaverse_listing_fee_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::update_metaverse_listing_fee(
+			Origin::signed(ALICE),
+			METAVERSE_ID,
+			Perbill::from_percent(10u32)
+		));
+		assert_eq!(
+			MetaverseModule::get_metaverse_marketplace_listing_fee(METAVERSE_ID),
+			Ok(Perbill::from_percent(10u32))
+		);
+	})
+}
+
+#[test]
+fn update_metaverse_listing_fee_should_fail_if_exceed_25_percents() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_noop!(
+			MetaverseModule::update_metaverse_listing_fee(
+				Origin::signed(ALICE),
+				METAVERSE_ID,
+				Perbill::from_percent(26u32)
+			),
+			Error::<Runtime>::MetaverseListingFeeExceedThreshold
+		);
+	})
+}
+
+#[test]
+fn update_metaverse_listing_fee_should_fail_if_not_metaverse_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_noop!(
+			MetaverseModule::update_metaverse_listing_fee(
+				Origin::signed(BOB),
+				METAVERSE_ID,
+				Perbill::from_percent(10u32)
+			),
+			Error::<Runtime>::NoPermission
+		);
 	})
 }

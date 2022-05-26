@@ -1,6 +1,6 @@
-// This file is part of Bit.Country Metaverse Network.
+// This file is part of Metaverse.Network & Bit.Country Metaverse Network.
 
-// Copyright (C) 2020-2021 Bit.Country Innovation PTE.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country  Innovation PTE.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify

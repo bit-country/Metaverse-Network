@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,14 +15,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Helper methods to compute the issuance rate for undeployed land.
-use crate::pallet::{Config, Pallet};
-use crate::{AllLandUnitsCount, TotalUndeployedLandUnit};
 use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::{Perbill, RuntimeDebug};
+
+use crate::{AllLandUnitsCount, TotalUndeployedLandUnit};
+// Helper methods to compute the issuance rate for undeployed land.
+use crate::pallet::{Config, Pallet};
 
 const SECONDS_PER_YEAR: u32 = 31557600;
 const SECONDS_PER_BLOCK: u32 = 12;
@@ -33,7 +34,6 @@ fn rounds_per_year<T: Config>() -> u32 {
 	BLOCKS_PER_YEAR / blocks_per_round
 }
 
-#[warn(dead_code)]
 fn get_annual_max_issuance<T: Config>(max_supply: u64, annual_percentage: u64) -> u64 {
 	let total_land_unit_circulating = <AllLandUnitsCount<T>>::get();
 	let total_undeployed_land_unit_circulating = <TotalUndeployedLandUnit<T>>::get();

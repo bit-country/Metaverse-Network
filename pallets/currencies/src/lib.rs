@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -96,12 +96,13 @@ pub mod pallet {
 		InsufficientBalance,
 		/// No permission to issue token
 		NoPermissionTokenIssuance,
-		/// Country Currency already issued for this metaverse
+		/// Metaverse Currency already issued for this metaverse
 		FungibleTokenAlreadyIssued,
 		/// No available next token id
 		NoAvailableTokenId,
-		//Country Is Not Available
+		/// Metaverse is not available
 		MetaverseFundIsNotAvailable,
+		/// Conversion failed
 		AmountIntoBalanceFailed,
 	}
 

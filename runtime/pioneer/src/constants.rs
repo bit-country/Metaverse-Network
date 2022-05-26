@@ -5,6 +5,7 @@ pub mod currency {
 	pub const KILODOLLARS: Balance = 1_000_000_000_000_000_000_000;
 	pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 	pub const CENTS: Balance = DOLLARS / 100;
+	pub const RELAY_CENTS: Balance = CENTS / 1_000_000;
 	/// 10_000_000_000_000_000
 	pub const MILLICENTS: Balance = CENTS / 1000;
 	/// 10_000_000_000_000
@@ -19,11 +20,11 @@ pub mod currency {
 /// Time.
 pub mod time {
 	use frame_support::dispatch::Weight;
-	use frame_support::weights::constants::WEIGHT_PER_SECOND;
+	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND};
 
 	use primitives::{BlockNumber, Moment};
 
-	use crate::{Balance, Perbill};
+	use crate::{Balance, Perbill, CENTS};
 
 	/// This determines the average expected block time that we are targeting.
 	/// Blocks will be produced at a minimum duration defined by `SLOT_DURATION`.
@@ -63,4 +64,59 @@ pub mod time {
 
 	/// We allow for 0.5 of a second of compute with a 12 second average block time.
 	pub const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
+}
+
+pub mod xcm_fees {
+	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND};
+
+	use primitives::{Balance, FungibleTokenId};
+
+	use crate::{CENTS, MILLICENTS};
+
+	pub fn base_tx(currency: FungibleTokenId) -> Balance {
+		cent(currency) / 10
+	}
+
+	// The fee cost per second for transferring the native token in cents.
+	pub fn native_per_second() -> Balance {
+		base_tx_per_second(FungibleTokenId::NativeToken(0))
+	}
+
+	pub fn ksm_per_second() -> Balance {
+		base_tx_per_second(FungibleTokenId::NativeToken(1)) / 50
+	}
+
+	fn base_tx_per_second(currency: FungibleTokenId) -> Balance {
+		let base_weight = Balance::from(ExtrinsicBaseWeight::get());
+		let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
+		base_tx_per_second * base_tx(currency)
+	}
+
+	pub fn dollar(currency_id: FungibleTokenId) -> Balance {
+		10u128.saturating_pow(currency_id.decimals().into())
+	}
+
+	pub fn cent(currency_id: FungibleTokenId) -> Balance {
+		dollar(currency_id) / 100
+	}
+	pub fn millicent(currency_id: FungibleTokenId) -> Balance {
+		cent(currency_id) / 1000
+	}
+
+	pub fn microcent(currency_id: FungibleTokenId) -> Balance {
+		millicent(currency_id) / 1000
+	}
+
+	pub fn base_tx_in_neer() -> Balance {
+		CENTS / 10
+	}
+}
+
+#[allow(non_snake_case)]
+pub mod parachains {
+	pub mod karura {
+		pub const ID: u32 = 2000;
+		pub const KAR_KEY: &[u8] = &[0, 128];
+		pub const KUSD_KEY: &[u8] = &[0, 129];
+	}
 }

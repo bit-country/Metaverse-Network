@@ -1,6 +1,6 @@
-// This file is part of Bit.Country
+// This file is part of Metaverse.Network & Bit.Country
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -20,18 +20,21 @@
 
 #![cfg(feature = "runtime-benchmarks")]
 
-use super::*;
+use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
+use frame_support::traits::{Currency, Get};
+use frame_system::RawOrigin;
+use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
 use sp_std::prelude::*;
 use sp_std::vec;
+
+use primitives::Balance;
 
 #[allow(unused)]
 pub use crate::Pallet as MetaverseModule;
 use crate::*;
-use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whitelisted_caller};
-use frame_support::traits::{Currency, Get};
-use frame_system::RawOrigin;
-use primitives::Balance;
-use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+
+use super::*;
 
 pub type AccountId = u128;
 
@@ -202,6 +205,16 @@ benchmarks! {
 	verify {
 		let staking_info = crate::Pallet::<T>::staking_info(caller);
 		assert_eq!(staking_info, amount.into());
+	}
+
+	// update metaverse marketplace listing fee
+	update_metaverse_listing_fee {
+		let caller = funded_account::<T>("caller", 0);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		crate::Pallet::<T>::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
+	}: _(RawOrigin::Signed(caller.clone()), 0, Perbill::from_percent(1u32))
+	verify {
+		assert_eq!(crate::Pallet::<T>::get_metaverse_marketplace_listing_fee(0), Ok(Perbill::from_percent(1u32)))
 	}
 }
 

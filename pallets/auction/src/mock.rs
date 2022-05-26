@@ -1,16 +1,17 @@
 #![cfg(test)]
-
 use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{testing::Header, traits::IdentityLookup};
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{MetaverseInfo, MetaverseTrait, NftAssetData, NftClassData};
-use primitives::{continuum::Continuum, estate::Estate, Amount, AuctionId, EstateId, FungibleTokenId};
+use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
+use primitives::{
+	continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, UndeployedLandBlockId,
+};
 
 use crate as auction;
 
@@ -38,6 +39,11 @@ pub const ESTATE_ID_NOT_EXIST: EstateId = 99;
 pub const LAND_UNIT_EXIST: (i32, i32) = (0, 0);
 pub const LAND_UNIT_EXIST_1: (i32, i32) = (1, 1);
 pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
+
+pub const GENERAL_METAVERSE_FUND: AccountId = 102;
+
+pub const UNDEPLOYED_LAND_BLOCK_ID_EXIST: UndeployedLandBlockId = 4;
+pub const UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST: UndeployedLandBlockId = 5;
 
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
@@ -105,6 +111,14 @@ impl Estate<u128> for EstateHandler {
 		Ok((0, 0))
 	}
 
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		to: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError> {
+		Ok(2)
+	}
+
 	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
 		match estate_id {
 			ESTATE_ID_EXIST | ESTATE_ID_EXIST_1 => Ok(true),
@@ -117,6 +131,17 @@ impl Estate<u128> for EstateHandler {
 		match coordinate {
 			LAND_UNIT_EXIST | LAND_UNIT_EXIST_1 => Ok(true),
 			LAND_UNIT_NOT_EXIST => Ok(false),
+			_ => Ok(false),
+		}
+	}
+
+	fn check_undeployed_land_block(
+		owner: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError> {
+		match undeployed_land_block_id {
+			UNDEPLOYED_LAND_BLOCK_ID_EXIST => Ok(true),
+			UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST => Ok(false),
 			_ => Ok(false),
 		}
 	}
@@ -140,7 +165,7 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 		_last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
 		// Test with Alice bid
-		if new_bid.0 == ALICE {
+		if new_bid.0 == ALICE || new_bid.0 == BOB {
 			OnNewBidResult {
 				accept_bid: true,
 				auction_end_change: Change::NoChange,
@@ -185,14 +210,19 @@ parameter_types! {
 	pub const AuctionTimeToClose: u64 = 100;
 	// Test auction end within 100 blocks
 	pub const MinimumAuctionDuration: u64 = 10;
-	// Test 1% royalty fee
-	pub const RoyaltyFee: u16 = 100;
-	pub const MaxFinality: u32 = 100;
+	pub const MaxFinality: u32 = 3;
+	pub const MaxBundleItem: u32 = 5;
+	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 }
 
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+		1u64
+	}
+
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
 		match *who {
 			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
@@ -212,6 +242,26 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn update_metaverse_token(_metaverse_id: u64, _currency_id: FungibleTokenId) -> Result<(), DispatchError> {
 		Ok(())
 	}
+
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		Ok(15u32)
+	}
+
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+		Ok(16u32)
+	}
+
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+		Ok(Perbill::from_percent(1u32))
+	}
+
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
+	}
 }
 
 impl Config for Runtime {
@@ -224,9 +274,11 @@ impl Config for Runtime {
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
-	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
 	type NFTHandler = NFTModule;
+	type MaxBundleItem = MaxBundleItem;
+	type NetworkFeeReserve = NetworkFeeReserve;
+	type NetworkFeeCommission = NetworkFeeCommission;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -271,21 +323,26 @@ parameter_types! {
 
 impl pallet_nft::Config for Runtime {
 	type Event = Event;
-	type DataDepositPerByte = CreateAssetDeposit;
 	type Currency = Balances;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
-	type WeightInfo = ();
 	type AuctionHandler = MockAuctionManager;
+	type WeightInfo = ();
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {
 	pub MaxClassMetadata: u32 = 1024;
 	pub MaxTokenMetadata: u32 = 1024;
+	pub AssetMintingFee: Balance = 1;
+	pub ClassMintingFee: Balance = 2;
+	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 }
 
 impl orml_nft::Config for Runtime {
@@ -387,17 +444,18 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn create_auction(
 		_auction_type: AuctionType,
-		_item_id: ItemId,
+		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
 		_recipient: u128,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 
-	fn remove_auction(_id: u64, _item_id: ItemId) {}
+	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
 		_now: u64,
@@ -428,8 +486,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 }
 
-impl CheckAuctionItemHandler for MockAuctionManager {
-	fn check_item_in_auction(_item_id: ItemId) -> bool {
+impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
+	fn check_item_in_auction(_item_id: ItemId<Balance>) -> bool {
 		return false;
 	}
 }

@@ -249,13 +249,13 @@ where
 		let transaction_pool = transaction_pool.clone();
 
 		Box::new(move |deny_unsafe, _| {
-			let deps = crate::rpc::FullDeps {
+			let deps = crate::rpc::pioneer_fulldeps {
 				client: client.clone(),
 				pool: transaction_pool.clone(),
 				deny_unsafe,
 			};
 
-			Ok(crate::rpc::create_full(deps))
+			Ok(crate::rpc::pioneer_crate_full(deps))
 		})
 	};
 

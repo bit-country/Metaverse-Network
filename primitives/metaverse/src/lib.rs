@@ -1,6 +1,6 @@
-// This file is part of Bit.Country.
+// This file is part of Metaverse.Network & Bit.Country.
 
-// Copyright (C) 2020-2021 Bit.Country.
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -120,21 +120,24 @@ pub type EvmAddress = sp_core::H160;
 pub type NftMetadata = Vec<u8>;
 /// NFT Attributes
 pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
+
 /// Land Token Class Id
 pub const LAND_CLASS_ID: ClassId = 15;
 /// Estate Token Class Id
 pub const ESTATE_CLASS_ID: ClassId = 16;
 
 /// Public item id for auction
-#[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum ItemId {
+pub enum ItemId<Balance> {
 	NFT(ClassId, TokenId),
 	Spot(u64, MetaverseId),
-	Country(MetaverseId),
+	Metaverse(MetaverseId),
 	Block(u64),
 	Estate(EstateId),
 	LandUnit((i32, i32), MetaverseId),
+	Bundle(Vec<(ClassId, TokenId, Balance)>),
+	UndeployedLandBlock(UndeployedLandBlockId),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
@@ -144,6 +147,7 @@ pub enum FungibleTokenId {
 	FungibleToken(TokenId),
 	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
+	Stable(TokenId), // kUSD
 }
 
 impl FungibleTokenId {
@@ -184,6 +188,15 @@ impl FungibleTokenId {
 				FungibleTokenId::NativeToken(token_currency_id_1),
 			) => Some(FungibleTokenId::DEXShare(token_currency_id_1, token_currency_id_0)),
 			_ => None,
+		}
+	}
+
+	pub fn decimals(&self) -> u8 {
+		match self {
+			FungibleTokenId::NativeToken(0) => 18, // Native token
+			FungibleTokenId::NativeToken(1) | FungibleTokenId::NativeToken(2) | FungibleTokenId::Stable(0) => 12, // KSM KAR KUSD
+			FungibleTokenId::MiningResource(0) => 18,
+			_ => 18,
 		}
 	}
 }
@@ -298,16 +311,45 @@ impl Default for UndeployedLandBlockType {
 #[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 // #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct UndeployedLandBlock<AccountId> {
-	// Minimum balance to create a collection of Asset
+	/// id of undeploy land block
 	pub id: UndeployedLandBlockId,
-	// Metadata from ipfs
+	/// Number of land units in this undeployed land block
 	pub number_land_units: u32,
+	/// Type of undeployed land block type
 	pub undeployed_land_block_type: UndeployedLandBlockType,
-
 	/// The owner of this asset.
 	pub owner: AccountId,
-	/// The approved transferrer of this asset, if one is set.
+	/// The approved co-owned of this asset, if one is set.
 	pub approved: Option<AccountId>,
-	/// Whether the asset can be transferred or not.
-	pub is_frozen: bool,
+	/// Whether the undeployed land block is locked
+	pub is_locked: bool,
+}
+
+// create_currency_id! {
+// Represent a Token symbol with 8 bit
+// Bit 8 : 0 for Pokladot Ecosystem, 1 for Kusama Ecosystem
+// Bit 7 : Reserved
+// Bit 6 - 1 : The token ID
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[repr(u8)]
+pub enum TokenSymbol {
+	// 0 => NEER
+	// 1 => KSM
+	// 2 => KAR
+	// 3 => KUSD
+	NEER = 0,
+	// NEER("NEER Token", 18) = 10,
+	KSM = 1,
+	// KSM("Kusama", 12) = 4,
+	KAR = 2,
+	// KAR("Karura", 12) = 6,
+	KUSD = 3, // KUSD("Karura Dollar", 12) = 2,
+}
+// }
+
+impl Default for TokenSymbol {
+	fn default() -> Self {
+		Self::NEER
+	}
 }

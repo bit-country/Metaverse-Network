@@ -8,7 +8,10 @@ members = [
     'node',
     'runtime/pioneer',
     'runtime/metaverse',
+    'runtime/integration-tests',
     'primitives/metaverse',
+    'modules/relaychain',
+    'modules/support',
 ]
 exclude = [
     '/dapps/luckydraw',
@@ -23,7 +26,7 @@ exclude = [
 ]
 
 [patch.crates-io]
-ethereum = { git = "https://github.com/AstarNetwork/ethereum", branch = "polkadot-v0.9.16" }
-evm = { git = "https://github.com/AstarNetwork/evm", branch = "polkadot-v0.9.16" }
-evm-gasometer = { git = "https://github.com/AstarNetwork/evm", branch = "polkadot-v0.9.16" }
-evm-runtime = { git = "https://github.com/AstarNetwork/evm", branch = "polkadot-v0.9.16" }
+ethereum = { git = "https://github.com/justinphamnz/ethereum", branch = "master" }
+evm = { git = "https://github.com/justinphamnz/evm", branch = "master" }
+evm-gasometer = { git = "https://github.com/justinphamnz/evm", branch = "master" }
+evm-runtime = { git = "https://github.com/justinphamnz/evm", branch = "master" }
