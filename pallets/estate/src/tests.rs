@@ -2017,13 +2017,26 @@ fn burn_undeployed_land_block_should_work() {
 
 #[test]
 fn ensure_land_unit_within_land_block_bound_should_work() {
-	let coordinates: Vec<(i32, i32)> = vec![(-49, 0), (-48, 0), (-47, 0), (0, 50)];
-	assert_eq!(EstateModule::verify_land_unit_in_bound(&(0, 0), &coordinates), true);
+	//	let coordinates: Vec<(i32, i32)> = vec![(-4, 0), (-3, 0), (-3, 0), (0, 5)];
+	//	assert_eq!(EstateModule::verify_land_unit_in_bound(&(0, 0), &coordinates), true);
 
-	let second_coordinates: Vec<(i32, i32)> = vec![(-249, 2), (-248, 2), (-150, 2), (-150, 6)];
+	let second_coordinates: Vec<(i32, i32)> = vec![(-204, 25), (-203, 24), (-195, 20), (-197, 16)];
 	assert_eq!(
-		EstateModule::verify_land_unit_in_bound(&(-200, 2), &second_coordinates),
+		EstateModule::verify_land_unit_in_bound(&(-20, 2), &second_coordinates),
 		true
+	);
+
+	let third_coordinates: Vec<(i32, i32)> = vec![(-64, 5), (-64, 4), (-64, 4), (-55, -4)];
+	assert_eq!(
+		EstateModule::verify_land_unit_in_bound(&(-6, 0), &third_coordinates),
+		true
+	);
+
+	// Combined in and out bound should fail
+	let fourth_coordinates: Vec<(i32, i32)> = vec![(-5, 3), (-4, 6), (-5, 4)];
+	assert_eq!(
+		EstateModule::verify_land_unit_in_bound(&(0, 0), &fourth_coordinates),
+		false
 	);
 }
 

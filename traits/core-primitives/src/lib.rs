@@ -231,8 +231,6 @@ pub trait NFTTrait<AccountId, Balance> {
 	type ClassId;
 	/// Check the ownership of this nft asset
 	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
-	/// Check the ownership of this nft tuple
-	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError>;
 	/// Get the detail of this nft

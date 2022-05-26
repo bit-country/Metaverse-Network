@@ -658,6 +658,11 @@ pub mod pallet {
 				Error::<T>::UndeployedLandBlockAlreadyInAuction
 			);
 
+			ensure!(
+				T::MetaverseInfoSource::check_ownership(&who, &metaverse_id),
+				Error::<T>::NoPermission
+			);
+
 			// Ensure the max bound is set for the metaverse
 			let max_bound = T::DefaultMaxBound::get();
 
@@ -1135,14 +1140,6 @@ pub mod pallet {
 			})
 		}
 	}
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_runtime_upgrade() -> Weight {
-			Self::remove_all_estate_storage();
-			0
-		}
-	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -1180,7 +1177,7 @@ impl<T: Config> Pallet<T> {
 						OwnerId::Token(class_id, token_id) => {
 							// Implement check if user own nft
 							ensure!(
-								T::NFTTokenizationSource::check_nft_ownership(&a, &(class_id, token_id))?,
+								T::NFTTokenizationSource::check_ownership(&a, &(class_id, token_id))?,
 								Error::<T>::NoPermission
 							);
 
@@ -1603,13 +1600,38 @@ impl<T: Config> Pallet<T> {
 		let mut vec_axis = land_unit_coordinates.iter().map(|lu| lu.0).collect::<Vec<_>>();
 		let mut vec_yaxis = land_unit_coordinates.iter().map(|lu| lu.1).collect::<Vec<_>>();
 
-		let max_axis = *vec_axis.iter().max().unwrap();
-		let max_yaxis = *vec_yaxis.iter().max().unwrap();
+		let max_axis = vec_axis.iter().max().unwrap();
+		let max_yaxis = vec_yaxis.iter().max().unwrap();
+		let min_axis = vec_axis.iter().min().unwrap();
+		let min_yaxis = vec_yaxis.iter().min().unwrap();
 
-		block_coordinate.0.saturating_sub(49i32) <= *vec_axis.iter().min().unwrap()
-			&& block_coordinate.0 <= max_axis.saturating_add(50i32)
-			&& block_coordinate.1.saturating_sub(49i32) <= *vec_yaxis.iter().min().unwrap()
-			&& block_coordinate.1 <= max_yaxis.saturating_add(50i32)
+		let top_left_axis = block_coordinate
+			.0
+			.saturating_mul(100i32)
+			.saturating_sub(50i32)
+			.saturating_div(10i32)
+			.saturating_add(1i32);
+		let top_right_axis = block_coordinate
+			.0
+			.saturating_mul(100i32)
+			.saturating_add(50i32)
+			.saturating_div(10i32);
+		let top_left_yaxis = block_coordinate
+			.1
+			.saturating_mul(100i32)
+			.saturating_add(50i32)
+			.saturating_div(10i32);
+		let top_right_yaxis = block_coordinate
+			.1
+			.saturating_mul(100i32)
+			.saturating_sub(50i32)
+			.saturating_div(10i32)
+			.saturating_add(1i32);
+
+		top_left_axis <= *min_axis
+			&& top_right_axis >= *max_axis
+			&& top_left_yaxis >= *max_yaxis
+			&& top_right_yaxis <= *min_yaxis
 	}
 
 	/// Remove all land unit and estate

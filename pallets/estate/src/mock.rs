@@ -33,8 +33,8 @@ pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
 pub const MAX_BOUND: (i32, i32) = (-100, 100);
 pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
-pub const COORDINATE_IN_1: (i32, i32) = (-10, 10);
-pub const COORDINATE_IN_2: (i32, i32) = (-5, 5);
+pub const COORDINATE_IN_1: (i32, i32) = (-4, 4);
+pub const COORDINATE_IN_2: (i32, i32) = (-4, 5);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 pub const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 pub const ESTATE_IN_AUCTION: EstateId = 99;
@@ -280,17 +280,6 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			|| (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
 			|| (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101))
 		{
-			return Ok(true);
-		}
-		Ok(false)
-	}
-
-	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		let nft_value = *nft;
-		if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
-			return Ok(true);
-		}
-		if *who == BENEFICIARY_ID && nft_value.0 == LAND_CLASS_ID && nft_value.1 == ASSET_ID_1 {
 			return Ok(true);
 		}
 		Ok(false)

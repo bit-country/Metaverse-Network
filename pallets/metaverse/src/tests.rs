@@ -360,6 +360,22 @@ fn update_metaverse_listing_fee_should_work() {
 }
 
 #[test]
+fn update_metaverse_listing_fee_should_fail_if_exceed_25_percents() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::register_metaverse(Origin::signed(ALICE), METAVERSE_ID));
+		assert_noop!(
+			MetaverseModule::update_metaverse_listing_fee(
+				Origin::signed(ALICE),
+				METAVERSE_ID,
+				Perbill::from_percent(26u32)
+			),
+			Error::<Runtime>::MetaverseListingFeeExceedThreshold
+		);
+	})
+}
+
+#[test]
 fn update_metaverse_listing_fee_should_fail_if_not_metaverse_owner() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
