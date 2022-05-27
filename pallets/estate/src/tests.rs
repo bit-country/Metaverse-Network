@@ -1408,7 +1408,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_found() {
 			EstateModule::deploy_land_block(
 				Origin::signed(ALICE),
 				undeployed_land_block_id,
-				METAVERSE_ID,
+				ALICE_METAVERSE_ID,
 				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1]
 			),
@@ -1467,7 +1467,7 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 			EstateModule::deploy_land_block(
 				Origin::signed(BOB),
 				undeployed_land_block_id,
-				METAVERSE_ID,
+				BOB_METAVERSE_ID,
 				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1]
 			),
@@ -1552,7 +1552,7 @@ fn deploy_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::deploy_land_block(
 			Origin::signed(BOB),
 			undeployed_land_block_id,
-			METAVERSE_ID,
+			BOB_METAVERSE_ID,
 			LANDBLOCK_COORDINATE,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
@@ -1561,7 +1561,7 @@ fn deploy_undeployed_land_block_should_work() {
 			last_event(),
 			Event::Estate(crate::Event::LandBlockDeployed(
 				BOB,
-				METAVERSE_ID,
+				BOB_METAVERSE_ID,
 				undeployed_land_block_id,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
@@ -2089,19 +2089,19 @@ fn issue_land_block_and_create_estate_should_work() {
 		assert_ok!(EstateModule::deploy_land_block(
 			Origin::signed(BOB),
 			0,
-			METAVERSE_ID,
+			BOB_METAVERSE_ID,
 			LANDBLOCK_COORDINATE,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 		assert_eq!(Balances::free_balance(BOB), 99999);
 
 		assert_eq!(
-			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
+			EstateModule::get_land_units(BOB_METAVERSE_ID, COORDINATE_IN_1),
 			Some(OwnerId::Token(METAVERSE_LAND_CLASS, 2))
 		);
 
 		assert_eq!(
-			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_2),
+			EstateModule::get_land_units(BOB_METAVERSE_ID, COORDINATE_IN_2),
 			Some(OwnerId::Token(METAVERSE_LAND_CLASS, 2))
 		);
 	});

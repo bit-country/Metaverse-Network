@@ -840,11 +840,17 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {
-		return T::MetaverseTreasury::get().into_account();
+		return T::MetaverseTreasury::get().into_sub_account(metaverse_id);
 	}
 
 	fn get_network_treasury() -> T::AccountId {
 		return T::MetaverseTreasury::get().into_account();
+	}
+
+	fn check_if_metaverse_estate(metaverse_id: MetaverseId, class_id: &ClassId) -> Result<bool, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+
+		Ok(class_id == &metaverse_info.land_class_id || class_id == &metaverse_info.estate_class_id)
 	}
 }
 
