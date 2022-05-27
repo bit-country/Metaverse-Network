@@ -175,6 +175,16 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn get_network_treasury() -> AccountId {
 		GENERAL_METAVERSE_FUND
 	}
+
+	fn check_if_metaverse_estate(
+		metaverse_id: primitives::MetaverseId,
+		class_id: &ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == &METAVERSE_LAND_CLASS || class_id == &METAVERSE_ESTATE_CLASS {
+			return Ok(true);
+		}
+		return Ok(false);
+	}
 }
 
 pub struct MockAuctionManager;
