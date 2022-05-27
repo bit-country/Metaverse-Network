@@ -996,7 +996,8 @@ pub mod pallet {
 						ListingLevel::Local(metaverse_id) => {
 							ensure!(
 								MetaverseCollection::<T>::contains_key(metaverse_id, class_id)
-									|| T::MetaverseInfoSource::check_ownership(&recipient, &metaverse_id),
+									|| T::MetaverseInfoSource::check_ownership(&recipient, &metaverse_id)
+									|| T::MetaverseInfoSource::check_if_metaverse_estate(metaverse_id, &class_id)?,
 								Error::<T>::NoPermissionToCreateAuction
 							);
 						}
