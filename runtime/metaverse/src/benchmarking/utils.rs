@@ -35,7 +35,7 @@ pub fn set_balance(currency_id: FungibleTokenId, who: &AccountId, balance: Balan
 	));
 }
 
-pub fn mint_NFT(caller: &AccountId) {
+pub fn mint_NFT(caller: &AccountId)  {
 	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 	Nft::create_class(
 		RawOrigin::Signed(caller.clone()).into(),
