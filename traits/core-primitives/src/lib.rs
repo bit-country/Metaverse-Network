@@ -192,6 +192,8 @@ pub trait MetaverseTrait<AccountId> {
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId;
 	/// Get network treasury
 	fn get_network_treasury() -> AccountId;
+	/// Check if nft is estate or land belongs to metaverse
+	fn check_if_metaverse_estate(metaverse_id: MetaverseId, class_id: &ClassId) -> Result<bool, DispatchError>;
 }
 
 pub trait MetaverseLandTrait<AccountId> {
