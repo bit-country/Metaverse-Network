@@ -31,13 +31,13 @@ impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(10 as Weight))
 	}
 	fn authorise_metaverse_collection() -> Weight {
-		(39_100_000 as Weight)			
-		.saturating_add(T::DbWeight::get().reads(2 as Weight))			
-		.saturating_add(T::DbWeight::get().writes(1 as Weight))
-	}	
+		(39_100_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(2 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
 	fn remove_authorise_metaverse_collection() -> Weight {
-		(40_300_000 as Weight)			
-		.saturating_add(T::DbWeight::get().reads(2 as Weight))			
-		.saturating_add(T::DbWeight::get().writes(1 as Weight))	
+		(40_300_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(2 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 }

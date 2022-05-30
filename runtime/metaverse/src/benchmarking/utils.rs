@@ -35,7 +35,7 @@ pub fn set_balance(currency_id: FungibleTokenId, who: &AccountId, balance: Balan
 	));
 }
 
-pub fn mint_NFT(caller: AccountId)  {
+pub fn mint_NFT(caller: &AccountId) {
 	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
 	assert_ok!(Nft::create_class(
 		RawOrigin::Signed(caller.clone()).into(),
@@ -49,15 +49,15 @@ pub fn mint_NFT(caller: AccountId)  {
 	assert_ok!(Nft::mint(
 		RawOrigin::Signed(caller.clone()).into(),
 		0u32.into(),
-		vec![1],
-		test_attributes(1),
+		vec![3],
+		test_attributes(3),
 		3,
 	));
 }
 
 pub fn create_land_and_estate_groups() {
-	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-	Nft::create_group(RawOrigin::Root.into(), vec![2], vec![2]);
+	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
+	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![2], vec![2]));
 }
 
 pub fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
@@ -82,9 +82,11 @@ pub fn issue_new_undeployed_land_block(n: u32) -> Result<bool, &'static str> {
 }
 
 pub fn create_metaverse_for_account(caller: &AccountId) {
-	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
-	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![2], vec![2]));
-	assert_ok!(Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]));
+	create_land_and_estate_groups();
+	assert_ok!(Metaverse::create_metaverse(
+		RawOrigin::Signed(caller.clone()).into(),
+		vec![1u8]
+	));
 }
 
 fn test_attributes(x: u8) -> Attributes {
