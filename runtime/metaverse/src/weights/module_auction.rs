@@ -39,7 +39,6 @@ impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn on_finalize() -> Weight {
-		(50_100_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+		(50_100_000 as Weight).saturating_add(T::DbWeight::get().reads(1 as Weight))
 	}
 }
