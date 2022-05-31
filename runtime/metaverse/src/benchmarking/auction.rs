@@ -1,6 +1,6 @@
 #![cfg(feature = "runtime-benchmarks")]
 use super::utils::{create_metaverse_for_account, create_nft_group, dollar, mint_NFT, set_balance, test_attributes};
-use crate::{Auction, Balances, Call, Currencies, Event, Metaverse, Nft, Runtime, System};
+use crate::{Auction, Balances, Call, Currencies, Event, Metaverse, MinimumAuctionDuration, Nft, Runtime, System};
 use auction::Config;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{Attributes, CollectionType, MetaverseInfo, MetaverseTrait, NftMetadata, TokenType};
@@ -121,21 +121,22 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(alice.clone()).into(), vec![1u8]);
 		Auction::authorise_metaverse_collection(RawOrigin::Signed(alice.clone()).into(), 0u32.into(), METAVERSE_ID);
 	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
-/*
+
 	on_finalize {
 		System::set_block_number(1u32.into());
 		let caller = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 		let bidder = account("bidder", 1, SEED);
 		set_balance(CURRENCY_ID, &bidder, dollar(10));
+		create_nft_group();
+		create_nft_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
-		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID));
+		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), MinimumAuctionDuration::get(), ListingLevel::Local(METAVERSE_ID));
 		Auction::bid(RawOrigin::Signed(bidder.clone()).into(), 0u32.into(), 100u32.into());
 	}: {
-		Auction::on_finalize(System::block_number() + 100u32.into());
+		Auction::on_finalize(System::block_number() + MinimumAuctionDuration::get());
 	}
-*/
 }
 
 #[cfg(test)]
