@@ -373,6 +373,8 @@ pub mod pallet {
 
 			AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
+			log::info!("NFT Group Id {:?}", next_group_collection_id);
+
 			Self::deposit_event(Event::<T>::NewNftCollectionCreated(next_group_collection_id));
 			Ok(().into())
 		}
@@ -408,7 +410,7 @@ pub mod pallet {
 				collection_type,
 				royalty_fee,
 			)?;
-
+			log::info!("NFT Class Id {:?}", class_id);
 			Ok(().into())
 		}
 
@@ -853,7 +855,8 @@ impl<T: Config> Pallet<T> {
 			quantity,
 			last_token_id,
 		));
-
+		log::info!("Successfully minted NFT with token id {:?}", last_token_id);
+		log::info!("Successfully minted NFT with class id {:?}", class_id);
 		Ok((new_asset_ids, last_token_id))
 	}
 
