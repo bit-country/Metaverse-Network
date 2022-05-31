@@ -82,7 +82,6 @@ runtime_benchmarks! {
 		mint_NFT(&caller);
 		let duration = MinimumAuctionDuration::get() * 2;
 		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), 100u32.into(), duration, ListingLevel::Local(METAVERSE_ID));
-		
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
 	// buy_now
