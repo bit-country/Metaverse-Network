@@ -52,7 +52,7 @@ pub fn mint_NFT(caller: &AccountId, class_id: u32) {
 		class_id,
 		vec![3],
 		test_attributes(3),
-		3,
+		1,
 	));
 }
 
