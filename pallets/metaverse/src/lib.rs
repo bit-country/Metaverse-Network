@@ -593,7 +593,12 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_metaverse_info_v3();
+			0
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -754,33 +759,24 @@ impl<T: Config> Pallet<T> {
 		let mut upgraded_metaverse_items = 0;
 		let mut total_metaverse_items = 0;
 
-		Metaverses::<T>::translate(|k, metaverse_info_v2: MetaverseInfo<T::AccountId>| {
+		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
 			total_metaverse_items += 1;
-			if metaverse_info_v2.land_class_id == 0 || metaverse_info_v2.estate_class_id == 1 {
-				let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v2.owner, k).unwrap_or({
-					log::info!("Cannot create land class for metaverse {}:", total_metaverse_items);
-					return None;
-				});
-				let new_estate_class_id = Self::mint_metaverse_estate_class(&metaverse_info_v2.owner, k).unwrap_or({
-					log::info!("Cannot create estate class for metaverse {}:", total_metaverse_items);
-					return None;
-				});
+			let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v1.owner, k).unwrap_or_default();
+			let new_estate_class_id =
+				Self::mint_metaverse_estate_class(&metaverse_info_v1.owner, k).unwrap_or_default();
 
-				upgraded_metaverse_items += 1;
+			upgraded_metaverse_items += 1;
 
-				let v3: MetaverseInfo<T::AccountId> = MetaverseInfo {
-					owner: metaverse_info_v2.owner,
-					metadata: metaverse_info_v2.metadata,
-					currency_id: metaverse_info_v2.currency_id,
-					is_frozen: false,
-					listing_fee: Perbill::from_percent(0u32),
-					land_class_id: new_land_class_id,
-					estate_class_id: new_estate_class_id,
-				};
-				Some(v3)
-			} else {
-				Some(metaverse_info_v2)
-			}
+			let v3: MetaverseInfo<T::AccountId> = MetaverseInfo {
+				owner: metaverse_info_v1.owner,
+				metadata: metaverse_info_v1.metadata,
+				currency_id: metaverse_info_v1.currency_id,
+				is_frozen: false,
+				listing_fee: Perbill::from_percent(0u32),
+				land_class_id: new_land_class_id,
+				estate_class_id: new_estate_class_id,
+			};
+			Some(v3)
 		});
 		log::info!("{} metaverses in total:", total_metaverse_items);
 		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
