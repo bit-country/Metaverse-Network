@@ -51,7 +51,7 @@ pub fn mint_NFT(caller: &AccountId) {
 		0u32.into(),
 		vec![3],
 		test_attributes(3),
-		3,
+		1,
 	));
 }
 
