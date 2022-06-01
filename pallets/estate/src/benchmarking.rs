@@ -99,7 +99,7 @@ fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
 //}
 
 benchmarks! {
-	/* 
+/* 
 	// mint_land as tokens
 	mint_land {
 		let caller: T::AccountId = whitelisted_caller();
@@ -423,7 +423,6 @@ benchmarks! {
 	}: {
 		EstateModule::<T>::on_initialize(6u32.into());
 	}
-
 	*/
 }
 

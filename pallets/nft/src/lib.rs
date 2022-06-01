@@ -81,6 +81,7 @@ pub enum StorageVersion {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
+	use sp_runtime::traits::CheckedSub;
 	use sp_runtime::ArithmeticError;
 
 	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
@@ -274,6 +275,8 @@ pub mod pallet {
 		CollectionLocked(ClassIdOf<T>),
 		/// Collection is unlocked
 		CollectionUnlocked(ClassIdOf<T>),
+		/// Class funds are withdrawn
+		ClassFundsWithdrawn(ClassIdOf<T>),
 	}
 
 	#[pallet::error]
@@ -405,7 +408,6 @@ pub mod pallet {
 				collection_type,
 				royalty_fee,
 			)?;
-			Self::deposit_event(Event::<T>::NewNftClassCreated(sender, class_id));
 
 			Ok(().into())
 		}
@@ -430,16 +432,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			let minting_outcome = Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
-
-			Self::deposit_event(Event::<T>::NewNftMinted(
-				*minting_outcome.0.first().unwrap(),
-				*minting_outcome.0.last().unwrap(),
-				sender,
-				class_id,
-				quantity,
-				minting_outcome.1,
-			));
+			Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
 
 			Ok(().into())
 		}
@@ -464,9 +457,7 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			let token_id = Self::do_transfer(&sender, &to, asset_id)?;
-
-			Self::deposit_event(Event::<T>::TransferedNft(sender, to, token_id, asset_id.clone()));
+			Self::do_transfer(sender, to, asset_id)?;
 
 			Ok(().into())
 		}
@@ -662,6 +653,40 @@ pub mod pallet {
 
 			Ok(().into())
 		}
+
+		/// Withdraws funds from class fund
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only class owner can withdraw funds.
+		/// - `class_id`: the class ID of the class which funds will be withdrawn
+		///
+		/// Emits `ClassFundsWithdrawn` if successful.
+		#[pallet::weight(T::WeightInfo::withdraw_funds_from_class_fund())]
+		pub fn withdraw_funds_from_class_fund(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+
+			ensure!(who.clone() == class_info.owner, Error::<T>::NoPermission);
+			let class_fund_account = Self::get_class_fund(&class_id);
+
+			// Balance minus existential deposit
+			let class_fund_balance = <T as Config>::Currency::free_balance(&class_fund_account)
+				.checked_sub(&<T as Config>::Currency::minimum_balance())
+				.ok_or(ArithmeticError::Underflow)?;
+			<T as Config>::Currency::transfer(
+				&class_fund_account,
+				&who,
+				class_fund_balance,
+				ExistenceRequirement::KeepAlive,
+			)?;
+
+			Self::deposit_event(Event::<T>::ClassFundsWithdrawn(class_id));
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
@@ -706,8 +731,8 @@ impl<T: Config> Pallet<T> {
 
 	/// Transfer an NFT
 	pub fn do_transfer(
-		sender: &T::AccountId,
-		to: &T::AccountId,
+		sender: T::AccountId,
+		to: T::AccountId,
 		asset_id: (ClassIdOf<T>, TokenIdOf<T>),
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		ensure!(!Self::is_collection_locked(&asset_id.0), Error::<T>::CollectionIsLocked);
@@ -724,9 +749,27 @@ impl<T: Config> Pallet<T> {
 				ensure!(check_ownership, Error::<T>::NoPermission);
 
 				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
+
+				Self::deposit_event(Event::<T>::TransferedNft(
+					sender.clone(),
+					to.clone(),
+					asset_id.1,
+					asset_id.clone(),
+				));
 				Ok(asset_id.1)
 			}
-			TokenType::BoundToAddress => Err(Error::<T>::NonTransferable.into()),
+			// Only allowed collection owner to transfer
+			TokenType::BoundToAddress => {
+				ensure!(class_info.owner == sender, Error::<T>::NonTransferable);
+				NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
+				Self::deposit_event(Event::<T>::TransferedNft(
+					sender.clone(),
+					to.clone(),
+					asset_id.1,
+					asset_id.clone(),
+				));
+				Ok(asset_id.1)
+			}
 		}
 	}
 
@@ -801,6 +844,16 @@ impl<T: Config> Pallet<T> {
 
 			last_token_id = token_id;
 		}
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			*new_asset_ids.first().unwrap(),
+			*new_asset_ids.last().unwrap(),
+			sender.clone(),
+			class_id,
+			quantity,
+			last_token_id,
+		));
+
 		Ok((new_asset_ids, last_token_id))
 	}
 
@@ -848,6 +901,9 @@ impl<T: Config> Pallet<T> {
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
 		ClassDataCollection::<T>::insert(next_class_id, collection_id);
+
+		Self::deposit_event(Event::<T>::NewNftClassCreated(sender.clone(), next_class_id));
+
 		Ok(next_class_id)
 	}
 
@@ -932,12 +988,6 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		Ok(who == &asset_info.owner)
 	}
 
-	fn check_nft_ownership(who: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		let asset_info = NftModule::<T>::tokens(nft.0, nft.1).ok_or(Error::<T>::AssetInfoNotFound)?;
-
-		Ok(who == &asset_info.owner)
-	}
-
 	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<BalanceOf<T>>, DispatchError> {
 		let asset_info = NftModule::<T>::classes(asset_id.0).ok_or(Error::<T>::AssetInfoNotFound)?;
 
@@ -1009,6 +1059,15 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 
 		let token_id = NftModule::<T>::mint(&sender, class_id, metadata.clone(), new_nft_data.clone())?;
 
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, token_id.clone()),
+			(class_id, token_id),
+			sender.clone(),
+			class_id,
+			1u32,
+			token_id,
+		));
+
 		Ok(token_id)
 	}
 
@@ -1029,7 +1088,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	}
 
 	fn transfer_nft(sender: &T::AccountId, to: &T::AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
-		Self::do_transfer(sender, to, nft.clone())?;
+		Self::do_transfer(sender.clone(), to.clone(), nft.clone())?;
 
 		Ok(())
 	}

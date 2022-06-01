@@ -1,4 +1,5 @@
 #![cfg(test)]
+
 use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use frame_system::EnsureRoot;
@@ -40,8 +41,6 @@ pub const LAND_UNIT_EXIST: (i32, i32) = (0, 0);
 pub const LAND_UNIT_EXIST_1: (i32, i32) = (1, 1);
 pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
 
-pub const ALICE_METAVERSE_FUND: AccountId = 100;
-pub const BOB_METAVERSE_FUND: AccountId = 101;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 pub const UNDEPLOYED_LAND_BLOCK_ID_EXIST: UndeployedLandBlockId = 4;
@@ -212,10 +211,10 @@ parameter_types! {
 	pub const AuctionTimeToClose: u64 = 100;
 	// Test auction end within 100 blocks
 	pub const MinimumAuctionDuration: u64 = 10;
-	// Test 1% royalty fee
-	pub const RoyaltyFee: u16 = 100;
 	pub const MaxFinality: u32 = 3;
 	pub const MaxBundleItem: u32 = 5;
+	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 }
 
 pub struct MetaverseInfoSource {}
@@ -258,11 +257,21 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
-		match metaverse_id {
-			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
-			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
-			_ => GENERAL_METAVERSE_FUND,
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn check_if_metaverse_estate(
+		metaverse_id: primitives::MetaverseId,
+		class_id: &ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == &15u32 || class_id == &16u32 {
+			return Ok(true);
 		}
+		return Ok(false);
 	}
 }
 
@@ -276,10 +285,11 @@ impl Config for Runtime {
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type MinimumAuctionDuration = MinimumAuctionDuration;
 	type EstateHandler = EstateHandler;
-	type RoyaltyFee = RoyaltyFee;
 	type MaxFinality = MaxFinality;
 	type NFTHandler = NFTModule;
 	type MaxBundleItem = MaxBundleItem;
+	type NetworkFeeReserve = NetworkFeeReserve;
+	type NetworkFeeCommission = NetworkFeeCommission;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;

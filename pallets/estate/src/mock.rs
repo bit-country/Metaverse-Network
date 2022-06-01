@@ -33,8 +33,8 @@ pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
 pub const MAX_BOUND: (i32, i32) = (-100, 100);
 pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
-pub const COORDINATE_IN_1: (i32, i32) = (-10, 10);
-pub const COORDINATE_IN_2: (i32, i32) = (-5, 5);
+pub const COORDINATE_IN_1: (i32, i32) = (-4, 4);
+pub const COORDINATE_IN_2: (i32, i32) = (-4, 5);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 pub const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 pub const ESTATE_IN_AUCTION: EstateId = 99;
@@ -61,8 +61,6 @@ pub const OWNER_LAND_ASSET_ID: OwnerId<AccountId, ClassId, TokenId> = OwnerId::T
 pub const OWNER_ESTATE_ASSET_ID: OwnerId<AccountId, ClassId, TokenId> =
 	OwnerId::Token(METAVERSE_ESTATE_CLASS, ASSET_ID_2);
 
-pub const ALICE_METAVERSE_FUND: AccountId = 100;
-pub const BOB_METAVERSE_FUND: AccountId = 101;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 ord_parameter_types! {
@@ -171,11 +169,21 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
-		match metaverse_id {
-			ALICE_METAVERSE_ID => return ALICE_METAVERSE_FUND,
-			BOB_METAVERSE_ID => return BOB_METAVERSE_FUND,
-			_ => GENERAL_METAVERSE_FUND,
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn check_if_metaverse_estate(
+		metaverse_id: primitives::MetaverseId,
+		class_id: &ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == &METAVERSE_LAND_CLASS || class_id == &METAVERSE_ESTATE_CLASS {
+			return Ok(true);
 		}
+		return Ok(false);
 	}
 }
 
@@ -287,17 +295,6 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(false)
 	}
 
-	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		let nft_value = *nft;
-		if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
-			return Ok(true);
-		}
-		if *who == BENEFICIARY_ID && nft_value.0 == LAND_CLASS_ID && nft_value.1 == ASSET_ID_1 {
-			return Ok(true);
-		}
-		Ok(false)
-	}
-
 	fn check_collection_and_class(
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
@@ -396,11 +393,11 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	}
 
 	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {
-		todo!()
+		Ok(())
 	}
 
 	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
-		todo!()
+		Ok(())
 	}
 }
 
@@ -410,6 +407,7 @@ parameter_types! {
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = MAX_BOUND;
+	pub const NetworkFee: Balance = 1; // Network fee
 }
 
 impl Config for Runtime {
@@ -426,6 +424,7 @@ impl Config for Runtime {
 	type RewardPaymentDelay = RewardPaymentDelay;
 	type NFTTokenizationSource = MockNFTHandler;
 	type DefaultMaxBound = DefaultMaxBound;
+	type NetworkFee = NetworkFee;
 }
 
 construct_runtime!(

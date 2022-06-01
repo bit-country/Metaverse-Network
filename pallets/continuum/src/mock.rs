@@ -231,6 +231,20 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 			_ => GENERAL_METAVERSE_FUND,
 		}
 	}
+
+	fn get_network_treasury() -> AccountId {
+		GENERAL_METAVERSE_FUND
+	}
+
+	fn check_if_metaverse_estate(
+		metaverse_id: primitives::MetaverseId,
+		class_id: &ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == &15u32 || class_id == &16u32 {
+			return Ok(true);
+		}
+		return Ok(false);
+	}
 }
 
 impl Config for Runtime {

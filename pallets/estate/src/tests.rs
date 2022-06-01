@@ -24,6 +24,10 @@ use mock::{Event, *};
 
 use super::*;
 
+fn estate_sub_account(estate_id: mock::EstateId) -> AccountId {
+	<Runtime as Config>::LandTreasury::get().into_sub_account(estate_id)
+}
+
 #[test]
 fn mint_land_should_reject_non_root() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -408,6 +412,7 @@ fn dissolve_estate_should_work() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
@@ -483,11 +488,13 @@ fn add_land_unit_to_estate_should_work() {
 				land_units: vec![COORDINATE_IN_1]
 			})
 		);
-		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			1
 		);
+		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
 		assert_eq!(EstateModule::all_land_units_count(), 1);
 
 		assert_ok!(EstateModule::mint_land(
@@ -608,6 +615,7 @@ fn mint_estate_and_land_should_return_correct_total_land_unit() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+
 		assert_eq!(
 			EstateModule::get_user_land_units(&BENEFICIARY_ID, &METAVERSE_ID).len(),
 			2
@@ -760,6 +768,7 @@ fn create_estate_token_should_work() {
 			})
 		);
 		assert_eq!(EstateModule::get_estate_owner(estate_id), Some(OWNER_ESTATE_ASSET_ID));
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 999999);
 	});
 }
 
@@ -802,6 +811,7 @@ fn create_estate_token_after_minting_account_and_token_based_lands_should_give_c
 			2
 		);
 		assert_eq!(EstateModule::all_land_units_count(), 2);
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 999999);
 	});
 }
 
@@ -820,6 +830,7 @@ fn create_estate_should_return_none_for_non_exist_estate() {
 			METAVERSE_ID,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 999999);
 
 		let estate_id: u64 = 0;
 		assert_eq!(EstateModule::all_estates_count(), 1);
@@ -1397,12 +1408,13 @@ fn deploy_undeployed_land_block_should_fail_if_not_found() {
 			EstateModule::deploy_land_block(
 				Origin::signed(ALICE),
 				undeployed_land_block_id,
-				METAVERSE_ID,
+				ALICE_METAVERSE_ID,
 				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1]
 			),
 			Error::<Runtime>::UndeployedLandBlockNotFound
 		);
+		assert_eq!(Balances::free_balance(BOB), 100000);
 	});
 }
 
@@ -1429,6 +1441,7 @@ fn deploy_undeployed_land_block_should_fail_if_not_owner() {
 			),
 			Error::<Runtime>::NoPermission
 		);
+		assert_eq!(Balances::free_balance(ALICE), 100000);
 	});
 }
 
@@ -1454,12 +1467,13 @@ fn deploy_undeployed_land_block_should_fail_if_freezed() {
 			EstateModule::deploy_land_block(
 				Origin::signed(BOB),
 				undeployed_land_block_id,
-				METAVERSE_ID,
+				BOB_METAVERSE_ID,
 				LANDBLOCK_COORDINATE,
 				vec![COORDINATE_IN_1]
 			),
 			Error::<Runtime>::UndeployedLandBlockFreezed
 		);
+		assert_eq!(Balances::free_balance(BOB), 100000);
 	});
 }
 
@@ -1507,6 +1521,7 @@ fn deploy_undeployed_land_block_should_fail_if_already_in_auction() {
 			),
 			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
+		assert_eq!(Balances::free_balance(BOB), 100000);
 	});
 }
 
@@ -1537,7 +1552,7 @@ fn deploy_undeployed_land_block_should_work() {
 		assert_ok!(EstateModule::deploy_land_block(
 			Origin::signed(BOB),
 			undeployed_land_block_id,
-			METAVERSE_ID,
+			BOB_METAVERSE_ID,
 			LANDBLOCK_COORDINATE,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
@@ -1546,7 +1561,7 @@ fn deploy_undeployed_land_block_should_work() {
 			last_event(),
 			Event::Estate(crate::Event::LandBlockDeployed(
 				BOB,
-				METAVERSE_ID,
+				BOB_METAVERSE_ID,
 				undeployed_land_block_id,
 				vec![COORDINATE_IN_1, COORDINATE_IN_2],
 			))
@@ -1557,6 +1572,7 @@ fn deploy_undeployed_land_block_should_work() {
 		assert_eq!(updated_undeployed_land_block, None);
 
 		assert_eq!(EstateModule::all_land_units_count(), 2);
+		assert_eq!(Balances::free_balance(BOB), 99999);
 	});
 }
 
@@ -2001,13 +2017,26 @@ fn burn_undeployed_land_block_should_work() {
 
 #[test]
 fn ensure_land_unit_within_land_block_bound_should_work() {
-	let coordinates: Vec<(i32, i32)> = vec![(-49, 0), (-48, 0), (-47, 0), (0, 50)];
-	assert_eq!(EstateModule::verify_land_unit_in_bound(&(0, 0), &coordinates), true);
+	//	let coordinates: Vec<(i32, i32)> = vec![(-4, 0), (-3, 0), (-3, 0), (0, 5)];
+	//	assert_eq!(EstateModule::verify_land_unit_in_bound(&(0, 0), &coordinates), true);
 
-	let second_coordinates: Vec<(i32, i32)> = vec![(-249, 2), (-248, 2), (-150, 2), (-150, 6)];
+	let second_coordinates: Vec<(i32, i32)> = vec![(-204, 25), (-203, 24), (-195, 20), (-197, 16)];
 	assert_eq!(
-		EstateModule::verify_land_unit_in_bound(&(-200, 2), &second_coordinates),
+		EstateModule::verify_land_unit_in_bound(&(-20, 2), &second_coordinates),
 		true
+	);
+
+	let third_coordinates: Vec<(i32, i32)> = vec![(-64, 5), (-64, 4), (-64, 4), (-55, -4)];
+	assert_eq!(
+		EstateModule::verify_land_unit_in_bound(&(-6, 0), &third_coordinates),
+		true
+	);
+
+	// Combined in and out bound should fail
+	let fourth_coordinates: Vec<(i32, i32)> = vec![(-5, 3), (-4, 6), (-5, 4)];
+	assert_eq!(
+		EstateModule::verify_land_unit_in_bound(&(0, 0), &fourth_coordinates),
+		false
 	);
 }
 
@@ -2060,18 +2089,19 @@ fn issue_land_block_and_create_estate_should_work() {
 		assert_ok!(EstateModule::deploy_land_block(
 			Origin::signed(BOB),
 			0,
-			METAVERSE_ID,
+			BOB_METAVERSE_ID,
 			LANDBLOCK_COORDINATE,
 			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
+		assert_eq!(Balances::free_balance(BOB), 99999);
 
 		assert_eq!(
-			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_1),
+			EstateModule::get_land_units(BOB_METAVERSE_ID, COORDINATE_IN_1),
 			Some(OwnerId::Token(METAVERSE_LAND_CLASS, 2))
 		);
 
 		assert_eq!(
-			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_2),
+			EstateModule::get_land_units(BOB_METAVERSE_ID, COORDINATE_IN_2),
 			Some(OwnerId::Token(METAVERSE_LAND_CLASS, 2))
 		);
 	});
