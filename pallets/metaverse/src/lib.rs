@@ -651,6 +651,7 @@ impl<T: Config> Pallet<T> {
 			.checked_add(One::one())
 			.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 		AllMetaversesCount::<T>::put(new_total_metaverse_count);
+		log::info!("Metaverse Id {:?}", metaverse_id);
 		Ok(metaverse_id)
 	}
 

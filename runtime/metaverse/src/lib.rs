@@ -28,6 +28,7 @@ use fp_rpc::TransactionStatus;
 // use metaverse::weights::WeightInfo;
 #[cfg(feature = "runtime-benchmarks")]
 use frame_benchmarking::frame_support::pallet_prelude::Get;
+use frame_benchmarking::runtime_decl_for_Benchmark::Benchmark;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
@@ -1545,6 +1546,7 @@ impl_runtime_apis! {
 			Vec<frame_support::traits::StorageInfo>,
 		) {
 			use frame_benchmarking::{list_benchmark, Benchmarking, BenchmarkList};
+			use orml_benchmarking::list_benchmark as orml_list_benchmark;
 			use frame_support::traits::StorageInfoTrait;
 			use frame_system_benchmarking::Pallet as SystemBench;
 			use nft::benchmarking::Pallet as NftBench;
@@ -1554,7 +1556,7 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
-			use orml_benchmarking::list_benchmark as orml_list_benchmark;
+			
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1567,9 +1569,9 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
-			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
-			//orml_list_benchmark!(list, extra, estate, benchmarking::estate);
+			list_benchmark!(list, extra, pallet_utility, Utility);
+			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1580,6 +1582,7 @@ impl_runtime_apis! {
 			config: frame_benchmarking::BenchmarkConfig
 		) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
+			use orml_benchmarking::add_benchmark as orml_add_benchmark;
 
 			use frame_system_benchmarking::Pallet as SystemBench;
 			impl frame_system_benchmarking::Config for Runtime {}
@@ -1591,7 +1594,7 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
-			use orml_benchmarking::add_benchmark as orml_add_benchmark;
+			
 
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
@@ -1619,9 +1622,9 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
-			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
-			//orml_add_benchmark!(params, batches, estate, benchmarking::estate);
+			add_benchmark!(params, batches, pallet_utility, Utility);
+			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			Ok(batches)
 		}
 	}
