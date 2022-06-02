@@ -1556,7 +1556,6 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
-			
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1594,8 +1593,6 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
-			
-
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number

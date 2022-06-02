@@ -85,7 +85,10 @@ pub fn issue_new_undeployed_land_block(n: u32) -> Result<bool, &'static str> {
 
 pub fn create_metaverse_for_account(caller: &AccountId) {
 	create_land_and_estate_group();
-	assert_ok!(Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]));
+	assert_ok!(Metaverse::create_metaverse(
+		RawOrigin::Signed(caller.clone()).into(),
+		vec![1u8]
+	));
 }
 
 fn test_attributes(x: u8) -> Attributes {
