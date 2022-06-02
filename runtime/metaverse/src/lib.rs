@@ -28,7 +28,6 @@ use fp_rpc::TransactionStatus;
 // use metaverse::weights::WeightInfo;
 #[cfg(feature = "runtime-benchmarks")]
 use frame_benchmarking::frame_support::pallet_prelude::Get;
-use frame_benchmarking::runtime_decl_for_Benchmark::Benchmark;
 pub use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},

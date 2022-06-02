@@ -94,7 +94,6 @@ runtime_benchmarks! {
 	verify {
 		assert_eq!(Estate::get_estates(0), Some(get_estate_info(vec![COORDINATE_IN_1])));
 		assert_eq!(Estate::get_estate_owner(0), Some(OwnerId::Token(1,0)));
-		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0,1)));
 	}
 
 	// dissolve_estate
