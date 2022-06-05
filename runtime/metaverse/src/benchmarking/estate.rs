@@ -22,12 +22,9 @@ pub type EstateId = u64;
 const SEED: u32 = 0;
 const METAVERSE_ID: u64 = 0;
 
-const MAX_BOUND: (i32, i32) = (-100, 100);
-const COORDINATE_IN_1: (i32, i32) = (-10, 10);
-const COORDINATE_IN_2: (i32, i32) = (-5, 5);
+const COORDINATE_IN_1: (i32, i32) = (-1, 1);
+const COORDINATE_IN_2: (i32, i32) = (-1, 0);
 const COORDINATE_OUT: (i32, i32) = (0, 101);
-const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
-const ESTATE_IN_AUCTION: EstateId = 99;
 const ESTATE_ID: EstateId = 0;
 const CURRENCY_ID: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -204,7 +201,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 		create_land_and_estate_group();
 		issue_new_undeployed_land_block(5)?;
-	}: _(RawOrigin::Root, 0)
+	}: _(RawOrigin::Root, Default::default())
 	verify {
 		let issued_undeployed_land_block = Estate::get_undeployed_land_block(0);
 		match issued_undeployed_land_block {
@@ -227,7 +224,7 @@ runtime_benchmarks! {
 		create_land_and_estate_group();
 		issue_new_undeployed_land_block(5)?;
 		Estate::freeze_undeployed_land_blocks(RawOrigin::Root.into(), Default::default());
-	}: _(RawOrigin::Root, 0)
+	}: _(RawOrigin::Root, Default::default())
 	verify {
 		let issued_undeployed_land_block = Estate::get_undeployed_land_block(0);
 		match issued_undeployed_land_block {
@@ -242,19 +239,6 @@ runtime_benchmarks! {
 		}
 	}
 
-	// burn_undeployed_land_blocks
-	burn_undeployed_land_blocks {
-		let caller: AccountId = whitelisted_caller();
-		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		create_land_and_estate_group();
-		issue_new_undeployed_land_block(5)?;
-		Estate::freeze_undeployed_land_blocks(RawOrigin::Root.into(), Default::default());
-	}: _(RawOrigin::Root, 0)
-	verify {
-		assert_eq!(Estate::get_undeployed_land_block(0), None)
-	}
-
 	// approve_undeployed_land_blocks
 	approve_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
@@ -263,6 +247,7 @@ runtime_benchmarks! {
 
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
 		create_land_and_estate_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
@@ -285,8 +270,12 @@ runtime_benchmarks! {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
+		let target: AccountId = account("target", 0, SEED);
+		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &target, dollar(10));
 		create_land_and_estate_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
+		Estate::approve_undeployed_land_blocks(RawOrigin::Signed(caller.clone()).into(), target.clone(), Default::default());
 	}: _(RawOrigin::Signed(caller.clone()), Default::default())
 	verify {
 		let issued_undeployed_land_block = Estate::get_undeployed_land_block(0);
@@ -334,20 +323,12 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
-		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::Transferable);
+		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 2, UndeployedLandBlockType::Transferable);
 	}: _(RawOrigin::Signed(caller.clone()), Default::default(), METAVERSE_ID, (0,0), vec![COORDINATE_IN_1, COORDINATE_IN_2])
 	verify {
-		let issued_undeployed_land_block = Estate::get_undeployed_land_block(0);
-		match issued_undeployed_land_block {
-			Some(a) => {
-				// Verify details of UndeployedLandBlock
-				assert_eq!(a.number_land_units, 98);
-			}
-			_ => {
-				// Should fail test
-				assert_eq!(0, 1);
-			}
-		}
+		assert_eq!(Estate::get_undeployed_land_block(0), None);
+		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0, 0)));
+		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_2), Some(OwnerId::Token(0, 1)))
 	}
 
 	on_initialize {
@@ -385,6 +366,19 @@ runtime_benchmarks! {
 	}: {
 		Estate::on_initialize(6u32.into());
 	}
+
+	// burn_undeployed_land_blocks
+	burn_undeployed_land_blocks {
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
+		create_land_and_estate_group();
+		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 2, UndeployedLandBlockType::Transferable);
+	}: _(RawOrigin::Root, Default::default())
+	verify {
+		assert_eq!(Estate::get_undeployed_land_block(0), None)
+	}
+
 }
 
 #[cfg(test)]
