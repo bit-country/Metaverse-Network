@@ -314,48 +314,7 @@ pub mod pallet {
 		pub fn bid(origin: OriginFor<T>, id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
-			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
-				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
-			ensure!(
-				auction_item.auction_type == AuctionType::Auction,
-				Error::<T>::InvalidAuctionType
-			);
-			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
-
-			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
-				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
-
-				let block_number = <system::Pallet<T>>::block_number();
-
-				// make sure auction is started
-				ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
-
-				let auction_end: Option<T::BlockNumber> = auction.end;
-
-				ensure!(block_number < auction_end.unwrap(), Error::<T>::AuctionIsExpired);
-
-				if let Some(ref current_bid) = auction.bid {
-					ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
-				} else {
-					ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
-				}
-				// implement hooks for future event
-				let bid_result = T::Handler::on_new_bid(block_number, id, (from.clone(), value), auction.bid.clone());
-
-				ensure!(bid_result.accept_bid, Error::<T>::BidIsNotAccepted);
-
-				ensure!(
-					<T as Config>::Currency::free_balance(&from) >= value,
-					Error::<T>::InsufficientFreeBalance
-				);
-
-				Self::auction_bid_handler(block_number, id, (from.clone(), value), auction.bid.clone())?;
-
-				auction.bid = Some((from.clone(), value));
-				Self::deposit_event(Event::Bid(id, from, value));
-
-				Ok(())
-			})?;
+			Self::auction_bid_handler(from, id, value)?;
 
 			Ok(().into())
 		}
@@ -1118,43 +1077,51 @@ pub mod pallet {
 		}
 
 		/// Internal auction bid handler
-		fn auction_bid_handler(
-			_now: T::BlockNumber,
-			id: AuctionId,
-			new_bid: (T::AccountId, Self::Balance),
-			last_bid: Option<(T::AccountId, Self::Balance)>,
-		) -> DispatchResult {
-			let (new_bidder, new_bid_price) = new_bid;
-			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
+		fn auction_bid_handler(from: T::AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
+			ensure!(
+				auction_item.auction_type == AuctionType::Auction,
+				Error::<T>::InvalidAuctionType
+			);
+			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
-			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
-				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
+				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
-				match auction_item.clone().listing_level {
-					ListingLevel::NetworkSpot(allowed_bidders) => {
-						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidIsNotAccepted);
-					}
-					_ => {}
+				let block_number = <system::Pallet<T>>::block_number();
+
+				// make sure auction is started
+				ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
+
+				let auction_end: Option<T::BlockNumber> = auction.end;
+
+				ensure!(block_number < auction_end.unwrap(), Error::<T>::AuctionIsExpired);
+
+				if let Some(ref current_bid) = auction.bid {
+					ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
+				} else {
+					ensure!(!value.is_zero(), Error::<T>::InvalidBidPrice);
 				}
+				// implement hooks for future event
+				let bid_result = T::Handler::on_new_bid(block_number, id, (from.clone(), value), auction.bid.clone());
 
-				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
-				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
+				ensure!(bid_result.accept_bid, Error::<T>::BidIsNotAccepted);
 
-				if let Some(last_bidder) = last_bidder {
-					//unlock reserve amount
-					if !last_bid_price.is_zero() {
-						//Unreserve balance of last bidder
-						<T as Config>::Currency::unreserve(&last_bidder, last_bid_price);
-					}
-				}
+				ensure!(
+					<T as Config>::Currency::free_balance(&from) >= value,
+					Error::<T>::InsufficientFreeBalance
+				);
 
-				// Lock fund of new bidder
-				// Reserve balance
-				<T as Config>::Currency::reserve(&new_bidder, new_bid_price)?;
-				auction_item.amount = new_bid_price.clone();
+				Self::swap_new_bid(id, (from.clone(), value), auction.bid.clone())?;
+
+				auction.bid = Some((from.clone(), value));
+				Self::deposit_event(Event::Bid(id, from, value));
 
 				Ok(())
-			})
+			})?;
+
+			Ok(())
 		}
 
 		/// Internal auction bid handler for local marketplace
@@ -1577,5 +1544,43 @@ pub mod pallet {
 		//			log::info!("Asset Item in Auction upgraded: {}", num_auction_item);
 		//			0
 		//		}
+
+		pub fn swap_new_bid(
+			id: AuctionId,
+			new_bid: (T::AccountId, BalanceOf<T>),
+			last_bid: Option<(T::AccountId, BalanceOf<T>)>,
+		) -> DispatchResult {
+			let (new_bidder, new_bid_price) = new_bid;
+			ensure!(!new_bid_price.is_zero(), Error::<T>::InvalidBidPrice);
+
+			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
+				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+
+				match auction_item.clone().listing_level {
+					ListingLevel::NetworkSpot(allowed_bidders) => {
+						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidIsNotAccepted);
+					}
+					_ => {}
+				}
+
+				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
+				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
+
+				if let Some(last_bidder) = last_bidder {
+					//unlock reserve amount
+					if !last_bid_price.is_zero() {
+						//Unreserve balance of last bidder
+						<T as Config>::Currency::unreserve(&last_bidder, last_bid_price);
+					}
+				}
+
+				// Lock fund of new bidder
+				// Reserve balance
+				<T as Config>::Currency::reserve(&new_bidder, new_bid_price)?;
+				auction_item.amount = new_bid_price.clone();
+
+				Ok(())
+			})
+		}
 	}
 }

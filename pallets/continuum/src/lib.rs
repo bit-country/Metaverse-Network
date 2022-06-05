@@ -45,9 +45,12 @@
 #![allow(clippy::unused_unit)]
 
 use codec::{Decode, Encode};
-#[cfg(feature = "std")]
-use frame_support::traits::{Currency, GenesisBuild, Get, LockableCurrency, ReservableCurrency};
-use frame_support::{dispatch::DispatchResult, ensure, transactional, PalletId};
+use frame_support::{
+	dispatch::DispatchResult,
+	ensure,
+	traits::{Currency, Get, LockableCurrency, ReservableCurrency},
+	transactional, PalletId,
+};
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
 use sp_runtime::traits::CheckedAdd;
@@ -103,8 +106,6 @@ pub struct AuctionSlot<BlockNumber, AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use std::convert::TryInto;
-
 	use frame_support::traits::ExistenceRequirement;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::OriginFor;
@@ -435,6 +436,37 @@ pub mod pallet {
 			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
 
 			T::AuctionHandler::buy_now_handler(sender, auction_id, value)?;
+
+			Ok(())
+		}
+
+		/// Buy continuum slot with fixed price
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn bid_map_spot(
+			origin: OriginFor<T>,
+			auction_id: AuctionId,
+			value: BalanceOf<T>,
+			metaverse_id: MetaverseId,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?;
+			ensure!(
+				T::MetaverseInfoSource::check_ownership(&sender, &metaverse_id),
+				Error::<T>::NotMetaverseOwner
+			);
+
+			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
+
+			ensure!(auction_item.item_id.is_map_spot(), Error::<T>::InvalidSpotAuction);
+
+			// Swap metaverse_id of the spot_id
+			let spot_detail = auction_item
+				.item_id
+				.get_map_spot_detail()
+				.ok_or(Error::<T>::InvalidSpotAuction)?;
+			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
+
+			T::AuctionHandler::auction_bid_handler(sender, auction_id, value)?;
 
 			Ok(())
 		}

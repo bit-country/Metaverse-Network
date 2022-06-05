@@ -127,12 +127,7 @@ pub trait Auction<AccountId, BlockNumber> {
 	/// Remove auction by `id`
 	fn remove_auction(id: AuctionId, item_id: ItemId<Self::Balance>);
 
-	fn auction_bid_handler(
-		_now: BlockNumber,
-		id: AuctionId,
-		new_bid: (AccountId, Self::Balance),
-		last_bid: Option<(AccountId, Self::Balance)>,
-	) -> DispatchResult;
+	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult;
 
 	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult;
 
