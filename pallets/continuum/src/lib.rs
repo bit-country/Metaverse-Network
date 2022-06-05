@@ -62,7 +62,7 @@ use sp_std::vec::Vec;
 use auction_manager::{Auction, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::MetaverseTrait;
 pub use pallet::*;
-use primitives::{continuum::Continuum, ItemId, MetaverseId, SpotId};
+use primitives::{continuum::MapTrait, ItemId, MapSpotId, MetaverseId, SpotId};
 pub use types::*;
 pub use vote::*;
 
@@ -107,6 +107,9 @@ pub mod pallet {
 	use frame_support::traits::ExistenceRequirement;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::OriginFor;
+
+	use core_primitives::TokenType;
+	use primitives::{MapSpotId, MapSpotId};
 
 	use super::*;
 
@@ -184,20 +187,6 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		/// Initialization
-		fn on_initialize(now: T::BlockNumber) -> Weight {
-			let auction_duration: T::BlockNumber = T::SessionDuration::get();
-			if !auction_duration.is_zero() && (now % auction_duration).is_zero() {
-				Self::rotate_auction_slots(now);
-				20_000_000
-			} else {
-				0
-			}
-		}
-	}
-
 	/// Get current active session
 	#[pallet::storage]
 	#[pallet::getter(fn current_session)]
@@ -207,6 +196,14 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_continuum_spot)]
 	pub type ContinuumSpots<T: Config> = StorageMap<_, Twox64Concat, SpotId, ContinuumSpot, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_map_spot)]
+	pub type MapSpots<T: Config> = StorageMap<_, Twox64Concat, MapSpotId, MapSpot<T::AccountId>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_map_spot_owner)]
+	pub type MapSpotOwner<T: Config> = StorageMap<_, Twox64Concat, MapSpotId, T::AccountId, ValueQuery>;
 
 	/// Continuum Spot Position
 	#[pallet::storage]
@@ -289,6 +286,8 @@ pub mod pallet {
 		NewAuctionSlotRotated(T::BlockNumber),
 		/// Finalize vote
 		FinalizedVote(SpotId),
+		/// New Map Spot issued
+		NewMapSpotIssued(MapSpotId, T::AccountId),
 	}
 
 	#[pallet::error]
@@ -327,10 +326,41 @@ pub mod pallet {
 		ContinuumBuyNowIsDisabled,
 		/// Continuum Spot is in auction
 		SpotIsInAuction,
+		/// Map slot already exists
+		MapSlotAlreadyExits,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Issue new map slot
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn issue_map_slot(
+			origin: OriginFor<T>,
+			coordinate: (i32, i32),
+			slot_type: TokenType,
+			beneficiary: &T::AccountId,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			ensure!(
+				!MapSpots::<T>::contains_key(&coordinate),
+				Error::<T>::MapSlotAlreadyExits
+			);
+
+			let map_slot = MapSpot {
+				metaverse_id: None,
+				owner: beneficiary,
+				slot_type,
+			};
+
+			MapSpots::<T>::insert(coordinate.clone(), map_slot);
+			MapSpotOwner::<T>::insert(coordinate.clone(), beneficiary);
+
+			Self::deposit_event(Event::<T>::NewMapSpotIssued(coordinate, beneficiary));
+
+			Ok(())
+		}
+
 		/// Buy continuum slot with fixed price
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn buy_continuum_spot(
@@ -767,26 +797,20 @@ impl<T: Config> Pallet<T> {
 	}
 }
 
-impl<T: Config> Continuum<T::AccountId> for Pallet<T> {
-	fn transfer_spot(
-		spot_id: SpotId,
-		from: &T::AccountId,
-		to: &(T::AccountId, MetaverseId),
-	) -> Result<SpotId, DispatchError> {
+impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
+	fn transfer_spot(spot_id: MapSpotId, from: &T::AccountId, to: &T::AccountId) -> Result<MapSpotId, DispatchError> {
 		ensure!(
-			!T::AuctionHandler::check_item_in_auction(ItemId::Spot(spot_id, to.1.clone())),
+			!T::AuctionHandler::check_item_in_auction(ItemId::Spot(spot_id)),
 			Error::<T>::SpotIsInAuction
 		);
-		ContinuumSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<SpotId, DispatchError> {
+
+		MapSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<MapSpotId, DispatchError> {
+			// Ensure only treasury can transferred
 			let treasury = Self::account_id();
-			if *from != treasury {
-				ensure!(
-					T::MetaverseInfoSource::check_ownership(&from, &to.1),
-					Error::<T>::NoPermission
-				)
-			}
+			ensure!(from == treasury, Error::<T>::NoPermission);
+
 			let mut spot = maybe_spot;
-			spot.metaverse_id = to.1;
+			spot.owner = to;
 			Ok(spot_id)
 		})
 	}

@@ -92,6 +92,8 @@ pub type NftId = u64;
 pub type AuctionId = u64;
 /// SpotId
 pub type SpotId = u64;
+/// MapSpotId
+pub type MapSpotId = (i32, i32);
 /// ProposalId
 pub type ProposalId = u64;
 /// ReferendumId
@@ -131,7 +133,7 @@ pub const ESTATE_CLASS_ID: ClassId = 16;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId<Balance> {
 	NFT(ClassId, TokenId),
-	Spot(u64, MetaverseId),
+	Spot(MapSpotId),
 	Metaverse(MetaverseId),
 	Block(u64),
 	Estate(EstateId),
