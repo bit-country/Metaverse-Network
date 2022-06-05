@@ -412,7 +412,7 @@ pub mod pallet {
 			auction_id: AuctionId,
 			value: BalanceOf<T>,
 			metaverse_id: MetaverseId,
-		) -> DispatchResultWithPostInfo {
+		) -> DispatchResult {
 			let sender = ensure_signed(origin)?;
 			ensure!(
 				T::MetaverseInfoSource::check_ownership(&sender, &metaverse_id),
