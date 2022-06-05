@@ -314,6 +314,14 @@ pub mod pallet {
 		pub fn bid(origin: OriginFor<T>, id: AuctionId, value: BalanceOf<T>) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 
+			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
+
+			ensure!(
+				!auction_item.item_id.is_map_spot(),
+				Error::<T>::AuctionTypeIsNotSupported
+			);
+
 			Self::auction_bid_handler(from, id, value)?;
 
 			Ok(().into())
@@ -333,6 +341,14 @@ pub mod pallet {
 		#[transactional]
 		pub fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResult {
 			let from = ensure_signed(origin)?;
+
+			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+				Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
+
+			ensure!(
+				!auction_item.item_id.is_map_spot(),
+				Error::<T>::AuctionTypeIsNotSupported
+			);
 
 			Self::buy_now_handler(from, auction_id, value)?;
 
