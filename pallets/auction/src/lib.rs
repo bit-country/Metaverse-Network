@@ -39,7 +39,7 @@ use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, Auction
 use core_primitives::UndeployedLandBlocksTrait;
 pub use pallet::*;
 use pallet_nft::Pallet as NFTModule;
-use primitives::{continuum::Continuum, estate::Estate, AuctionId, ItemId};
+use primitives::{continuum::MapTrait, estate::Estate, AuctionId, ItemId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -147,7 +147,7 @@ pub mod pallet {
 			Balance = Balance,
 		>;
 		/// Continuum protocol handler for Continuum Spot Auction
-		type ContinuumHandler: Continuum<Self::AccountId>;
+		type ContinuumHandler: MapTrait<Self::AccountId>;
 
 		/// Metaverse info trait for getting information from metaverse
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;

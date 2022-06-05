@@ -11,7 +11,8 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
 use primitives::{
-	continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, UndeployedLandBlockId,
+	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId,
+	UndeployedLandBlockId,
 };
 
 use crate as auction;
@@ -91,8 +92,8 @@ impl pallet_balances::Config for Runtime {
 
 pub struct Continuumm;
 
-impl Continuum<u128> for Continuumm {
-	fn transfer_spot(_spot_id: u64, _from: &AccountId, _to: &(AccountId, u64)) -> Result<u64, DispatchError> {
+impl MapTrait<u128> for Continuumm {
+	fn transfer_spot(_spot_id: u64, _from: &AccountId, _to: &AccountId) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 }
