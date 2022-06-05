@@ -144,7 +144,7 @@ pub enum ItemId<Balance> {
 
 impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 	pub fn is_map_spot(&self) -> bool {
-		matches!(self, FungibleTokenId::Spot(_, _))
+		matches!(self, ItemId::Spot(_, _))
 	}
 
 	pub fn get_map_spot_detail(&self) -> Option<(&MapSpotId, &MetaverseId)> {

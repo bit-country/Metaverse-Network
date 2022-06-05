@@ -375,7 +375,7 @@ pub mod pallet {
 		pub fn buy_now(origin: OriginFor<T>, auction_id: AuctionId, value: BalanceOf<T>) -> DispatchResult {
 			let from = ensure_signed(origin)?;
 
-			Self::buy_now_handler(from, auction_id, &value)?;
+			Self::buy_now_handler(from, auction_id, value)?;
 
 			Ok(())
 		}
@@ -642,8 +642,8 @@ pub mod pallet {
 										ItemId::Spot(spot_id, metaverse_id) => {
 											let continuum_spot = T::ContinuumHandler::transfer_spot(
 												spot_id,
-												&auction_item.recipient,
-												&(high_bidder.clone(), metaverse_id),
+												auction_item.recipient.clone(),
+												(high_bidder.clone(), metaverse_id),
 											);
 											match continuum_spot {
 												Err(_) => continue,
@@ -1201,7 +1201,7 @@ pub mod pallet {
 		}
 
 		/// Internal get auction info
-		fn auction_item(id: AuctionId) -> Option<AuctionItem<T::AccountId, Self::Balance, T::BlockNumber>> {
+		fn auction_item(id: AuctionId) -> Option<AuctionItem<T::AccountId, T::BlockNumber, Self::Balance>> {
 			Self::get_auction_item(id)
 		}
 
@@ -1213,8 +1213,13 @@ pub mod pallet {
 				Error::<T>::AuctionTypeIsNotSupported
 			);
 
-			let spot_detail = item_id.get_map_spot_detail()?;
-			let old_spot_detail = auction_item.item_id.get_map_spot_detail()?;
+			let spot_detail = item_id
+				.get_map_spot_detail()
+				.ok_or(Error::<T>::AuctionTypeIsNotSupported)?;
+			let old_spot_detail = auction_item
+				.item_id
+				.get_map_spot_detail()
+				.ok_or(Error::<T>::AuctionTypeIsNotSupported)?;
 
 			AuctionItems::<T>::try_mutate_exists(&id, |maybe_auction_item| -> DispatchResult {
 				let auction_item_record = maybe_auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
@@ -1259,11 +1264,7 @@ pub mod pallet {
 		}
 
 		/// Internal buy now handler
-		fn buy_now_handler(
-			from: T::AccountId,
-			auction_id: AuctionId,
-			value: &(T::AccountId, Self::Balance),
-		) -> DispatchResult {
+		fn buy_now_handler(from: T::AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
 			let auction = Self::auctions(auction_id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			let auction_item = Self::get_auction_item(auction_id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 
@@ -1341,8 +1342,8 @@ pub mod pallet {
 						ItemId::Spot(spot_id, metaverse_id) => {
 							let continuum_spot = T::ContinuumHandler::transfer_spot(
 								spot_id,
-								&auction_item.recipient,
-								&(from.clone(), metaverse_id),
+								auction_item.recipient.clone(),
+								(from.clone(), metaverse_id),
 							);
 							match continuum_spot {
 								Err(_) => (),

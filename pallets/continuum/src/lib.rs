@@ -103,9 +103,12 @@ pub struct AuctionSlot<BlockNumber, AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
+	use std::convert::TryInto;
+
 	use frame_support::traits::ExistenceRequirement;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::OriginFor;
+	use sp_arithmetic::traits::UniqueSaturatedInto;
 
 	use core_primitives::TokenType;
 	use primitives::{AuctionId, MapSpotId};
@@ -132,7 +135,8 @@ pub mod pallet {
 		/// Emergency shutdown origin which allow cancellation in an emergency
 		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
+		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber, Balance = BalanceOf<Self>>
+			+ CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Auction duration
 		#[pallet::constant]
 		type AuctionDuration: Get<Self::BlockNumber>;
@@ -198,11 +202,11 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_map_spot)]
-	pub type MapSpots<T: Config> = StorageMap<_, Twox64Concat, MapSpotId, MapSpot<T::AccountId>, ValueQuery>;
+	pub type MapSpots<T: Config> = StorageMap<_, Twox64Concat, MapSpotId, MapSpot<T::AccountId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_map_spot_owner)]
-	pub type MapSpotOwner<T: Config> = StorageMap<_, Twox64Concat, MapSpotId, T::AccountId, ValueQuery>;
+	pub type MapSpotOwner<T: Config> = StorageMap<_, Twox64Concat, MapSpotId, T::AccountId>;
 
 	/// Continuum Spot Position
 	#[pallet::storage]
@@ -354,7 +358,7 @@ pub mod pallet {
 
 			let map_slot = MapSpot {
 				metaverse_id: None,
-				owner: beneficiary,
+				owner: Self::account_id(),
 				slot_type,
 			};
 
@@ -385,11 +389,11 @@ pub mod pallet {
 				Error::<T>::NoPermission
 			);
 
-			if matches!(auction_type == AuctionType::BuyNow) {
+			if matches!(auction_type, AuctionType::BuyNow) {
 				ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
 			}
 
-			let now = <system::Pallet<T>>::block_number();
+			let now = <frame_system::Pallet<T>>::block_number();
 			T::AuctionHandler::create_auction(
 				auction_type,
 				ItemId::Spot(spot_id, Default::default()),
@@ -419,12 +423,15 @@ pub mod pallet {
 				Error::<T>::NotMetaverseOwner
 			);
 
-			let auction_item = T::AuctionHandler::auction_item(auction_id)?;
+			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
 
 			ensure!(auction_item.item_id.is_map_spot(), Error::<T>::InvalidSpotAuction);
 
 			// Swap metaverse_id of the spot_id
-			let spot_detail = auction_item.item_id.get_map_spot_detail()?;
+			let spot_detail = auction_item
+				.item_id
+				.get_map_spot_detail()
+				.ok_or(Error::<T>::InvalidSpotAuction)?;
 			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
 
 			T::AuctionHandler::buy_now_handler(sender, auction_id, value)?;
@@ -448,61 +455,7 @@ pub mod pallet {
 			coordinate: (i32, i32),
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			ensure!(
-				T::MetaverseInfoSource::check_ownership(&sender, &metaverse_id),
-				Error::<T>::NoPermission
-			);
-			let mut maybe_spot_id = Option::None;
 
-			if ContinuumCoordinates::<T>::contains_key(coordinate) {
-				let spot_id_from_coordinate = ContinuumCoordinates::<T>::get(coordinate);
-				maybe_spot_id = Some(spot_id_from_coordinate);
-			}
-
-			let spot_id = Self::check_spot_ownership(maybe_spot_id, coordinate)?;
-
-			// Get current active session
-			let current_active_session_id = CurrentIndex::<T>::get();
-
-			if EOISlots::<T>::contains_key(current_active_session_id) {
-				// Mutate current active EOI Slot session
-				EOISlots::<T>::try_mutate(current_active_session_id, |spot_eoi| -> DispatchResult {
-					// Check if the interested Spot exists
-					let interested_spot_index: Option<usize> = spot_eoi.iter().position(|x| x.spot_id == spot_id);
-					match interested_spot_index {
-						// Already got participants
-						Some(index) => {
-							// Works on existing eoi index
-							let interested_spot = spot_eoi.get_mut(index).ok_or("No Spot EOI exist")?;
-
-							interested_spot.participants.push(sender.clone());
-						}
-						// No participants - add one
-						None => {
-							// No spot found - first one in EOI
-							let mut new_list: Vec<T::AccountId> = Vec::new();
-							new_list.push(sender.clone());
-
-							let _spot_eoi = SpotEOI {
-								spot_id,
-								participants: new_list,
-							};
-							spot_eoi.push(_spot_eoi);
-						}
-					}
-					Ok(())
-				})?;
-			} else {
-				// Never get to this logic but it's safe to handle it nicely.
-				let mut eoi_slots: Vec<SpotEOI<T::AccountId>> = Vec::new();
-				eoi_slots.push(SpotEOI {
-					spot_id,
-					participants: vec![sender.clone()],
-				});
-				EOISlots::<T>::insert(current_active_session_id, eoi_slots);
-			}
-
-			Self::deposit_event(Event::NewExpressOfInterestAdded(sender, spot_id));
 			Ok(().into())
 		}
 
@@ -558,8 +511,7 @@ impl<T: Config> Pallet<T> {
 		// Change status of all current active auction slots
 		// Move EOI to Auction Slots
 		Self::eoi_to_auction_slots(current_active_session_id, now)?;
-		// Finalise due vote
-		Self::finalize_vote(now);
+
 		let active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id);
 
 		match active_auction_slots {
@@ -576,8 +528,6 @@ impl<T: Config> Pallet<T> {
 						.collect();
 					// Move active auction slots to GNP
 					GNPSlots::<T>::insert(now, started_gnp_auction_slots.clone());
-					// Start referedum
-					Self::start_gnp_protocol(started_gnp_auction_slots, now)?;
 				}
 			}
 			None => {}
@@ -588,61 +538,6 @@ impl<T: Config> Pallet<T> {
 		CurrentIndex::<T>::set(now.clone());
 		Self::deposit_event(Event::NewAuctionSlotRotated(now));
 		Ok(().into())
-	}
-
-	fn finalize_vote(now: T::BlockNumber) -> DispatchResult {
-		let recent_slots = GNPSlots::<T>::get(now).ok_or(Error::<T>::NoActiveReferendum)?;
-
-		for mut recent_slot in recent_slots.into_iter() {
-			let referendum_info: ReferendumStatus<T::AccountId, T::BlockNumber> =
-				Self::referendum_status(recent_slot.spot_id)?;
-
-			if referendum_info.end == now {
-				let banned_list: Vec<T::AccountId> = referendum_info
-					.tallies
-					.into_iter()
-					.filter(|t| Self::check_approved(t) == true)
-					.map(|tally| tally.who)
-					.collect();
-
-				for banned_account in banned_list {
-					let account_index = recent_slot
-						.participants
-						.iter()
-						.position(|x| *x == banned_account)
-						.unwrap();
-					recent_slot.participants.remove(account_index);
-					recent_slot.status = ContinuumAuctionSlotStatus::GNPConfirmed;
-				}
-				let treasury = Self::account_id();
-				// From treasury spot
-				T::AuctionHandler::create_auction(
-					AuctionType::Auction,
-					ItemId::Spot(recent_slot.spot_id, Default::default()),
-					Some(now + T::AuctionDuration::get()),
-					treasury,
-					Default::default(),
-					now,
-					ListingLevel::NetworkSpot(recent_slot.participants),
-					Perbill::from_percent(0u32),
-				)?;
-				Self::deposit_event(Event::FinalizedVote(referendum_info.spot_id))
-			}
-		}
-
-		Ok(())
-	}
-
-	fn start_gnp_protocol(
-		slots: Vec<AuctionSlot<T::BlockNumber, T::AccountId>>,
-		end: T::BlockNumber,
-	) -> DispatchResult {
-		for slot in slots {
-			let end = end + T::SessionDuration::get();
-			Self::start_referendum(end, slot.spot_id.clone())?;
-			Self::deposit_event(Event::NewContinuumReferendumStarted(end, slot.spot_id));
-		}
-		Ok(())
 	}
 
 	fn start_referendum(end: T::BlockNumber, spot_id: SpotId) -> Result<SpotId, DispatchError> {
@@ -775,14 +670,6 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
-	fn do_transfer_spot(
-		spot_id: SpotId,
-		from: &T::AccountId,
-		to: &(T::AccountId, MetaverseId),
-	) -> Result<SpotId, DispatchError> {
-		Self::transfer_spot(spot_id, from, to)
-	}
-
 	fn check_approved(tally: &ContinuumSpotTally<T::AccountId>) -> bool {
 		let nay_ratio = tally.turnout.checked_div(tally.nays).unwrap_or(0);
 		let nay_percent = nay_ratio.checked_mul(100).unwrap_or(0);
@@ -790,27 +677,27 @@ impl<T: Config> Pallet<T> {
 		nay_percent > 51
 	}
 
-	fn check_spot_ownership(spot_id: &SpotId, owner: &T::AccountId) -> Result<bool, DispatchError> {
+	fn check_spot_ownership(spot_id: &MapSpotId, owner: &T::AccountId) -> Result<bool, DispatchError> {
 		let spot_owner = MapSpotOwner::<T>::get(spot_id).ok_or(Error::<T>::MapSpotNotFound)?;
 
-		Ok(spot_owner == owner)
+		Ok(spot_owner == *owner)
 	}
 }
 
 impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
-	fn transfer_spot(spot_id: MapSpotId, from: &T::AccountId, to: &T::AccountId) -> Result<MapSpotId, DispatchError> {
-		ensure!(
-			!T::AuctionHandler::check_item_in_auction(ItemId::Spot(spot_id)),
-			Error::<T>::SpotIsInAuction
-		);
-
+	fn transfer_spot(
+		spot_id: MapSpotId,
+		from: T::AccountId,
+		to: (T::AccountId, MetaverseId),
+	) -> Result<MapSpotId, DispatchError> {
 		MapSpots::<T>::try_mutate(spot_id, |maybe_spot| -> Result<MapSpotId, DispatchError> {
 			// Ensure only treasury can transferred
 			let treasury = Self::account_id();
 			ensure!(from == treasury, Error::<T>::NoPermission);
 
-			let mut spot = maybe_spot;
-			spot.owner = to;
+			let mut spot = maybe_spot.as_mut().ok_or(Error::<T>::MapSpotNotFound)?;
+			spot.owner = to.0;
+			spot.metaverse_id = Some(to.1);
 			Ok(spot_id)
 		})
 	}

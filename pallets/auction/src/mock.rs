@@ -93,7 +93,7 @@ impl pallet_balances::Config for Runtime {
 pub struct Continuumm;
 
 impl MapTrait<u128> for Continuumm {
-	fn transfer_spot(_spot_id: u64, _from: &AccountId, _to: &AccountId) -> Result<u64, DispatchError> {
+	fn transfer_spot(_spot_id: u64, _from: AccountId, _to: (AccountId, MetaverseId)) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
 }
