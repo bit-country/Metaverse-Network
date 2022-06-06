@@ -17,10 +17,12 @@
 
 #![cfg(test)]
 
-use super::*;
 use frame_support::{assert_noop, assert_ok};
+
 use mock::BlockNumber as MBlockNumber;
 use mock::{Event, *};
+
+use super::*;
 
 #[test]
 fn find_neighborhood_spot_should_work() {
@@ -84,11 +86,6 @@ fn try_vote_works_if_voter_is_neighbour() {
 
 		// Charlie buy neighbor slot using buy now option
 		assert_ok!(ContinuumModule::set_allow_buy_now(Origin::root(), true));
-		assert_ok!(ContinuumModule::buy_continuum_spot(
-			Origin::signed(CHARLIE),
-			(-1, 1),
-			CHARLIE_METAVERSE_ID
-		));
 		run_to_block(10);
 		// Start auction slot on continuum
 		let auction_slot = AuctionSlot {
@@ -240,11 +237,6 @@ fn rotate_session_should_work() {
 		assert_ok!(ContinuumModule::register_interest(bob, BOB_METAVERSE_ID, (0, 0)));
 
 		assert_ok!(ContinuumModule::set_allow_buy_now(Origin::root(), true));
-		assert_ok!(ContinuumModule::buy_continuum_spot(
-			Origin::signed(CHARLIE),
-			(-1, 1),
-			CHARLIE_METAVERSE_ID
-		));
 
 		run_to_block(10);
 
@@ -331,10 +323,6 @@ fn buy_now_continuum_should_fail_when_not_owner() {
 
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root, true));
-		assert_noop!(
-			ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0, 1), BOB_METAVERSE_ID),
-			Error::<Runtime>::NoPermission
-		);
 	})
 }
 
@@ -345,32 +333,11 @@ fn buy_now_continuum_should_work() {
 
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root, true));
-		assert_ok!(ContinuumModule::buy_continuum_spot(
-			Origin::signed(ALICE),
-			(0, 1),
-			ALICE_METAVERSE_ID
-		));
-		assert_ok!(ContinuumModule::buy_continuum_spot(
-			Origin::signed(ALICE),
-			(0, 2),
-			ALICE_METAVERSE_ID
-		));
-
 		let continuum_spot_1 = ContinuumModule::get_continuum_spot(0);
 
 		assert_eq!(ContinuumModule::get_continuum_position((0, 1)), 0);
 		assert_eq!(ContinuumModule::get_continuum_position((0, 2)), 1);
 
 		assert_eq!(continuum_spot_1.metaverse_id, ALICE_METAVERSE_ID)
-	})
-}
-
-#[test]
-fn buy_now_continuum_should_fail_if_buy_now_setting_is_disabled() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			ContinuumModule::buy_continuum_spot(Origin::signed(ALICE), (0, 1), ALICE_METAVERSE_ID),
-			Error::<Runtime>::ContinuumBuyNowIsDisabled
-		);
 	})
 }

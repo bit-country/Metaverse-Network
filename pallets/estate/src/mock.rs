@@ -7,10 +7,10 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{CollectionType, NftClassData, TokenType};
 use primitives::{
-	AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId, LAND_CLASS_ID,
+	AssetId, Attributes, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId, LAND_CLASS_ID,
 };
 
 use crate as estate;
@@ -196,7 +196,15 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
+	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+		None
+	}
+
 	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+		Ok(())
+	}
+
+	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -224,12 +232,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
-	fn auction_bid_handler(
-		_now: u64,
-		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
-	) -> DispatchResult {
+	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+		Ok(())
+	}
+
+	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 

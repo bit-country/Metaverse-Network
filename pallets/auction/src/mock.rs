@@ -93,8 +93,12 @@ impl pallet_balances::Config for Runtime {
 pub struct Continuumm;
 
 impl MapTrait<u128> for Continuumm {
-	fn transfer_spot(_spot_id: u64, _from: AccountId, _to: (AccountId, MetaverseId)) -> Result<u64, DispatchError> {
-		Ok(1)
+	fn transfer_spot(
+		_spot_id: MapSpotId,
+		_from: AccountId,
+		_to: (AccountId, MetaverseId),
+	) -> Result<MapSpotId, DispatchError> {
+		Ok((0, 0))
 	}
 }
 
@@ -441,7 +445,15 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
+	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+		None
+	}
+
 	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+		Ok(())
+	}
+
+	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
 
@@ -470,11 +482,18 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
-		_now: u64,
-		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
-	) -> DispatchResult {
+		from: AccountId,
+		id: AuctionId,
+		value: Self::Balance,
+	) -> frame_support::dispatch::DispatchResult {
+		Ok(())
+	}
+
+	fn buy_now_handler(
+		from: AccountId,
+		auction_id: AuctionId,
+		value: Self::Balance,
+	) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
 
