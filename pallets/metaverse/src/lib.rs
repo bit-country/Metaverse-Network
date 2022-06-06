@@ -592,7 +592,7 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Withdraws funds from metaverse fund
+		/// Withdraws funds from metaverse treasury fund
 		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only metaverse owner can withdraw funds.
