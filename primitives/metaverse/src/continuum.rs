@@ -1,7 +1,11 @@
-use crate::{MetaverseId, SpotId};
 use sp_runtime::DispatchError;
 
-pub trait Continuum<AccountId> {
-	fn transfer_spot(spot_id: SpotId, from: &AccountId, to: &(AccountId, MetaverseId))
-		-> Result<SpotId, DispatchError>;
+use crate::{MapSpotId, MetaverseId, SpotId};
+
+pub trait MapTrait<AccountId> {
+	fn transfer_spot(
+		spot_id: MapSpotId,
+		from: AccountId,
+		to: (AccountId, MetaverseId),
+	) -> Result<MapSpotId, DispatchError>;
 }
