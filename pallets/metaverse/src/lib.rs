@@ -27,7 +27,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::MultiCurrency;
-use sp_runtime::traits::Saturating;
+use sp_runtime::traits::{CheckedSub, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	DispatchError, Perbill,
@@ -199,6 +199,7 @@ pub mod pallet {
 		MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
 		MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>),
 		MetaverseListingFeeUpdated(MetaverseId, Perbill),
+		MetaverseTreasuryFundsWithdrawn(MetaverseId),	
 	}
 
 	#[pallet::error]
@@ -587,6 +588,39 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			Self::do_update_metaverse_listing_fee(&who, &metaverse_id, new_listing_fee)?;
 			Self::deposit_event(Event::<T>::MetaverseListingFeeUpdated(metaverse_id, new_listing_fee));
+
+			Ok(().into())
+		}
+
+		/// Withdraws funds from metaverse fund
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse owner can withdraw funds.
+		/// - `metaverse_id`: the class ID of the class which funds will be withdrawn
+		///
+		/// Emits `MetaverseTreasuryFundsWithdrawn` if successful.
+		#[pallet::weight(T::WeightInfo::update_metaverse_listing_fee())]
+		pub fn withdraw_funds_from_metaverse_fund(
+			origin: OriginFor<T>,
+			metaverse_id: MetaverseId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(Self::get_metaverse_owner(who.clone(), metaverse_id) == Some(()), Error::<T>::NoPermission);
+			let metaverse_fund_account = T::MetaverseTreasury::get().into_sub_account(metaverse_id);
+
+			// Balance minus existential deposit
+			let metaverse_fund_balance = <T as Config>::Currency::free_balance(&metaverse_fund_account)
+				.checked_sub(&<T as Config>::Currency::minimum_balance())
+				.ok_or(ArithmeticError::Underflow)?;
+			<T as Config>::Currency::transfer(
+				&metaverse_fund_account,
+				&who,
+				metaverse_fund_balance,
+				ExistenceRequirement::KeepAlive,
+			)?;
+
+			Self::deposit_event(Event::<T>::MetaverseTreasuryFundsWithdrawn(metaverse_id));
 
 			Ok(().into())
 		}
