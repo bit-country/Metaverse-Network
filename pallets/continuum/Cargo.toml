@@ -34,23 +34,13 @@ orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-li
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
 orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
 
-[dependencies.pallet_nft]
-default-features = false
-package = 'pallet-nft'
-path = '../nft'
-version = '2.0.0-rc6'
+# Other pallets
 
-[dependencies.auction-manager]
-default-features = false
-package = 'auction-manager'
-path = '../../traits/auction-manager'
-version = '2.0.0-rc6'
+pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft' }
+pallet-metaverse = { default-features = false, package = 'pallet-metaverse', path = '../metaverse' }
+auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
 
-[dependencies.core-primitives]
-default-features = false
-package = 'core-primitives'
-path = '../../traits/core-primitives'
-version = '2.0.0-rc6'
 
 [features]
 default = ['std']
@@ -65,7 +55,7 @@ std = [
     'sp-std/std',
     'orml-traits/std',
     'orml-tokens/std',
-    'pallet_nft/std',
+    'pallet-nft/std',
     'auction-manager/std',
     'primitives/std',
     'sp-arithmetic/std',
