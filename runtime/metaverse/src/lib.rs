@@ -1163,12 +1163,10 @@ pub type SignedExtra = (
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 
-//#[cfg(feature = "runtime-benchmarks")]
-//mod benches {
-//	define_benchmarks!(
-//		[estate, benchmarking::estate]
-//	);
-//s}
+#[cfg(feature = "runtime-benchmarks")]
+mod benches {
+	define_benchmarks!([metaverse, benchmarking::metaverse]);
+}
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = fp_self_contained::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
@@ -1553,7 +1551,7 @@ impl_runtime_apis! {
 			use nft::benchmarking::Pallet as NftBench;
 			//use estate::benchmarking::EstateModule as EstateBench;
 			use auction::benchmarking::AuctionModule as AuctionBench;
-			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
+			//use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
@@ -1567,12 +1565,12 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
 			//list_benchmark!(list, extra, estate, EstateBench::<Runtime>);
 			list_benchmark!(list, extra, auction, AuctionBench::<Runtime>);
-			list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
+			//list_benchmark!(list, extra, metaverse, MetaverseBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
-			//orml_list_benchmark!(list, extra, estate, benchmarking::estate);
+			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1590,7 +1588,7 @@ impl_runtime_apis! {
 			use nft::benchmarking::Pallet as NftBench;
 			//use estate::benchmarking::EstateModule as EstateBench;
 			use auction::benchmarking::AuctionModule as AuctionBench;
-			use metaverse::benchmarking::MetaverseModule as MetaverseBench;
+			//use metaverse::benchmarking::MetaverseModule as MetaverseBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
@@ -1619,12 +1617,12 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, nft, NftBench::<Runtime>);
 			//add_benchmark!(params, batches, estate, EstateBench::<Runtime>);
 			add_benchmark!(params, batches, auction, AuctionBench::<Runtime>);
-			add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
+			//add_benchmark!(params, batches, metaverse, MetaverseBench::<Runtime>);
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
-			//orml_add_benchmark!(params, batches, estate, benchmarking::estate);
+			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);
 			Ok(batches)
 		}
 	}

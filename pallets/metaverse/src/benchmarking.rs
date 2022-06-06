@@ -60,6 +60,10 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	caller
 }
 
+fn get_metaverse_fund<T: Config>(metaverse_id: MetaverseId) -> T::AccountId {
+	T::MetaverseTreasury::get().into_sub_account(metaverse_id)
+}
+
 benchmarks! {
 	// create_metaverse
 	create_metaverse{
@@ -215,6 +219,17 @@ benchmarks! {
 	}: _(RawOrigin::Signed(caller.clone()), 0, Perbill::from_percent(1u32))
 	verify {
 		assert_eq!(crate::Pallet::<T>::get_metaverse_marketplace_listing_fee(0), Ok(Perbill::from_percent(1u32)))
+	}
+
+	// withdraw funds from metaverse fund
+	withdraw_funds_from_metaverse_fund{
+		let caller = funded_account::<T>("caller", 0);
+		crate::Pallet::<T>::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
+		let metaverse_fund = get_metaverse_fund::<T>(0u32.into());
+		T::Currency::make_free_balance_be(&metaverse_fund, dollar(100).unique_saturated_into());
+	}: _(RawOrigin::Signed(caller), 0u32.into())
+	verify {
+		assert_eq!(T::Currency::free_balance(&metaverse_fund), 1u32.into());
 	}
 }
 

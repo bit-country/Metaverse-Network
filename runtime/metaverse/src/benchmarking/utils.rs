@@ -36,7 +36,6 @@ pub fn set_balance(currency_id: FungibleTokenId, who: &AccountId, balance: Balan
 }
 
 pub fn mint_NFT(caller: &AccountId) {
-	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
 	Nft::create_class(
 		RawOrigin::Signed(caller.clone()).into(),
 		vec![1],
@@ -56,8 +55,7 @@ pub fn mint_NFT(caller: &AccountId) {
 }
 
 pub fn create_land_and_estate_groups() {
-	Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-	Nft::create_group(RawOrigin::Root.into(), vec![2], vec![2]);
+	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
 }
 
 pub fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {

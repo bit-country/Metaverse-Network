@@ -41,8 +41,8 @@ use primitives::staking::MetaverseStakingTrait;
 use primitives::{ClassId, FungibleTokenId, MetaverseId, RoundIndex, TokenId};
 pub use weights::WeightInfo;
 
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmarking;
+// #[cfg(feature = "runtime-benchmarks")]
+// pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -599,7 +599,7 @@ pub mod pallet {
 		/// - `metaverse_id`: the class ID of the class which funds will be withdrawn
 		///
 		/// Emits `MetaverseTreasuryFundsWithdrawn` if successful.
-		#[pallet::weight(T::WeightInfo::update_metaverse_listing_fee())]
+		#[pallet::weight(T::WeightInfo::withdraw_funds_from_metaverse_fund())]
 		pub fn withdraw_funds_from_metaverse_fund(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
