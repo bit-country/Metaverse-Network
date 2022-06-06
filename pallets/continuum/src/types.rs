@@ -17,14 +17,17 @@
 
 //! Miscellaneous additional datatypes.
 
-use crate::{AccountVote, Vote};
 use codec::{Decode, Encode};
-use primitives::{MetaverseId, SpotId};
 use scale_info::TypeInfo;
 use sp_runtime::traits::{One, Zero};
 use sp_runtime::{DispatchError, RuntimeDebug};
 use sp_std::vec;
 use sp_std::vec::Vec;
+
+use core_primitives::TokenType;
+use primitives::{MetaverseId, SpotId};
+
+use crate::{AccountVote, Vote};
 
 pub type ReferendumIndex = u64;
 
@@ -34,6 +37,14 @@ pub struct ContinuumSpot {
 	pub(crate) x: i32,
 	pub(crate) y: i32,
 	pub(crate) metaverse_id: MetaverseId,
+}
+
+/// MapSpot Struct
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct MapSpot<AccountId> {
+	pub metaverse_id: Option<MetaverseId>,
+	pub owner: AccountId,
+	pub slot_type: TokenType,
 }
 
 impl ContinuumSpot {
