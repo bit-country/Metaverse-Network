@@ -92,6 +92,8 @@ pub type NftId = u64;
 pub type AuctionId = u64;
 /// SpotId
 pub type SpotId = u64;
+/// MapSpotId
+pub type MapSpotId = (i32, i32);
 /// ProposalId
 pub type ProposalId = u64;
 /// ReferendumId
@@ -131,13 +133,26 @@ pub const ESTATE_CLASS_ID: ClassId = 16;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId<Balance> {
 	NFT(ClassId, TokenId),
-	Spot(u64, MetaverseId),
+	Spot(MapSpotId, MetaverseId),
 	Metaverse(MetaverseId),
 	Block(u64),
 	Estate(EstateId),
 	LandUnit((i32, i32), MetaverseId),
 	Bundle(Vec<(ClassId, TokenId, Balance)>),
 	UndeployedLandBlock(UndeployedLandBlockId),
+}
+
+impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
+	pub fn is_map_spot(&self) -> bool {
+		matches!(self, ItemId::Spot(_, _))
+	}
+
+	pub fn get_map_spot_detail(&self) -> Option<(&MapSpotId, &MetaverseId)> {
+		match self {
+			ItemId::Spot(spot_id, metaverse_id) => Some((spot_id, metaverse_id)),
+			_ => None,
+		}
+	}
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]

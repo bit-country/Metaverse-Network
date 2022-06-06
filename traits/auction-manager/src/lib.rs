@@ -94,8 +94,16 @@ pub trait Auction<AccountId, BlockNumber> {
 
 	/// The auction info of `id`
 	fn auction_info(id: AuctionId) -> Option<AuctionInfo<AccountId, Self::Balance, BlockNumber>>;
+
+	/// The auction item of `id`
+	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>>;
+
 	/// Update the auction info of `id` with `info`
 	fn update_auction(id: AuctionId, info: AuctionInfo<AccountId, Self::Balance, BlockNumber>) -> DispatchResult;
+
+	/// Update auction item of `id` with new `item_id`
+	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult;
+
 	/// Create new auction with specific startblock and endblock, return the id
 	/// of the auction
 	fn new_auction(
@@ -119,12 +127,9 @@ pub trait Auction<AccountId, BlockNumber> {
 	/// Remove auction by `id`
 	fn remove_auction(id: AuctionId, item_id: ItemId<Self::Balance>);
 
-	fn auction_bid_handler(
-		_now: BlockNumber,
-		id: AuctionId,
-		new_bid: (AccountId, Self::Balance),
-		last_bid: Option<(AccountId, Self::Balance)>,
-	) -> DispatchResult;
+	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult;
+
+	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult;
 
 	fn local_auction_bid_handler(
 		_now: BlockNumber,
