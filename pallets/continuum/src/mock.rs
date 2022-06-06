@@ -25,6 +25,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait};
+use primitives::FungibleTokenId::FungibleToken;
 use primitives::{AuctionId, ClassId, FungibleTokenId};
 
 use crate as continuum;
@@ -54,6 +55,8 @@ pub const CHARLIE_METAVERSE_ID: MetaverseId = 3;
 pub const ALICE_METAVERSE_FUND: AccountId = 100;
 pub const BOB_METAVERSE_FUND: AccountId = 101;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
+
+pub const CONTINUUM_MAP_COORDINATE: MapSpotId = (0, 0);
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -107,15 +110,30 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: AuctionId) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
 		None
 	}
 
 	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
-		None
+		if id == 1 {
+			let auction_item = AuctionItem {
+				item_id: ItemId::Spot(CONTINUUM_MAP_COORDINATE, 0),
+				recipient: ALICE_METAVERSE_FUND,
+				initial_amount: 100,
+				amount: 100,
+				start_time: 0,
+				end_time: 1,
+				auction_type: AuctionType::BuyNow,
+				listing_level: ListingLevel::Global,
+				currency_id: FungibleTokenId::NativeToken(0),
+				listing_fee: Perbill::from_percent(0u32),
+			};
+			return Some(auction_item);
+		}
+		return None;
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(id: AuctionId, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
