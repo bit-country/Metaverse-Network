@@ -11,8 +11,6 @@ pub use pioneer::{
 	// Executor as pioneer_executor
 	ParachainRuntimeExecutor,
 };
-#[cfg(feature = "with-tewai-runtime")]
-pub use tewai::{new_full as tewai_full, new_light as tewai_light, new_partial as tewai_partial};
 
 pub const METAVERSE_RUNTIME_NOT_AVAILABLE: &str =
     "Metaverse runtime is not available. Please compile the node with `--features with-metaverse-runtime` to enable it.";
@@ -27,5 +25,3 @@ pub const PIONEER_RUNTIME_NOT_AVAILABLE: &str =
 mod metaverse;
 #[cfg(feature = "with-pioneer-runtime")]
 mod pioneer;
-#[cfg(feature = "with-tewai-runtime")]
-mod tewai;

@@ -594,10 +594,10 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_metaverse_info_v3();
-			0
-		}
+		//		fn on_runtime_upgrade() -> Weight {
+		//			Self::upgrade_metaverse_info_v3();
+		//			0
+		//		}
 	}
 }
 
@@ -651,6 +651,7 @@ impl<T: Config> Pallet<T> {
 			.checked_add(One::one())
 			.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 		AllMetaversesCount::<T>::put(new_total_metaverse_count);
+		//log::info!("Created Metaverse  with Id {:?}", metaverse_id);
 		Ok(metaverse_id)
 	}
 

@@ -60,6 +60,10 @@ pub fn create_nft_group() {
 	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
 }
 
+pub fn create_land_and_estate_group() {
+	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
+}
+
 pub fn create_land_and_estate_groups() {
 	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
 	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![2], vec![2]));
