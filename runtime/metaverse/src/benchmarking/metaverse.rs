@@ -29,9 +29,9 @@ runtime_benchmarks! {
 	{ Runtime, metaverse }
 
 	create_metaverse{
-        create_land_and_estate_group();
-        let caller: AccountId = account("caller", 0, SEED);
-        set_balance(CURRENCY_ID, &caller, dollar(10));
+		create_land_and_estate_group();
+		let caller: AccountId = account("caller", 0, SEED);
+		set_balance(CURRENCY_ID, &caller, dollar(10));
 	}: _(RawOrigin::Signed(caller.clone()), vec![1])
 	verify {
 		let metaverse = Metaverse::get_metaverse(0);
@@ -80,6 +80,18 @@ runtime_benchmarks! {
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
 	}: _(RawOrigin::Root, 0)
+	verify {
+		let metaverse = Metaverse::get_metaverse(0);
+		match metaverse {
+			Some(a) => {
+				assert_eq!(a.is_frozen, true);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	}
 
 	unfreeze_metaverse{
 		let caller: AccountId = account("caller", 0, SEED);
@@ -91,6 +103,19 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
 		Metaverse::freeze_metaverse(RawOrigin::Root.into(), 0);
 	}: _(RawOrigin::Root, 0)
+	verify {
+		let metaverse = Metaverse::get_metaverse(0);
+		match metaverse {
+			Some(a) => {
+				// Verify details of Metaverse
+				assert_eq!(a.is_frozen, false);
+			}
+			_ => {
+				// Should fail test
+				assert_eq!(0, 1);
+			}
+		}
+	}
 
 	destroy_metaverse{
 		let caller: AccountId = account("caller", 0, SEED);
@@ -165,6 +190,18 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
 		Metaverse::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
 	}: _(RawOrigin::Signed(caller.clone()), 0, Perbill::from_percent(1u32))
+	verify {
+		let metaverse_info = Metaverse::get_metaverse(0);
+		match metaverse_info {
+			Some(v) => {
+				assert_eq!(v.listing_fee, Perbill::from_percent(1u32));
+			}
+			_ => {
+				assert_eq!(0,1);
+			}
+		}
+	}
+
 
 	withdraw_funds_from_metaverse_fund{
 		let caller: AccountId = account("caller", 0, SEED);
