@@ -538,8 +538,6 @@ pub mod pallet {
 			);
 			// Transfer contribution to class fund pot
 			<T as Config>::Currency::transfer(&sender, &class_fund, contribution, ExistenceRequirement::KeepAlive)?;
-			// Reserve pot fund
-			<T as Config>::Currency::reserve(&class_fund, contribution)?;
 
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
