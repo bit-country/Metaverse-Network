@@ -274,7 +274,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let metaverse_id = Self::do_create_metaverse(&who, metadata)?;
 			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id, who));
-
+			log::info!("New metaverse id {:?}", metaverse_id);
 			Ok(().into())
 		}
 
@@ -777,6 +777,7 @@ impl<T: Config> Pallet<T> {
 			.checked_add(One::one())
 			.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 		AllMetaversesCount::<T>::put(new_total_metaverse_count);
+		//log::info!("Created Metaverse  with Id {:?}", metaverse_id);
 		Ok(metaverse_id)
 	}
 

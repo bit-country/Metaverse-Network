@@ -1,12 +1,8 @@
-use crate::{Auction, Balances, Currencies, Estate, Metaverse, Nft, Runtime};
-use core_primitives::{Attributes, CollectionType, TokenType};
 use frame_benchmarking::account;
 use frame_support::traits::tokens::fungibles;
 use frame_support::{assert_ok, traits::Contains};
 use frame_system::RawOrigin;
 use orml_traits::MultiCurrencyExtended;
-use primitives::estate::EstateInfo;
-use primitives::{AccountId, Balance, FungibleTokenId, UndeployedLandBlockType};
 use sp_runtime::Perbill;
 use sp_runtime::{
 	traits::{SaturatedConversion, StaticLookup},
@@ -14,6 +10,12 @@ use sp_runtime::{
 };
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
+
+use core_primitives::{Attributes, CollectionType, TokenType};
+use primitives::estate::EstateInfo;
+use primitives::{AccountId, Balance, FungibleTokenId, UndeployedLandBlockType};
+
+use crate::{Auction, Balances, Currencies, Estate, Metaverse, Nft, Runtime};
 
 const SEED: u32 = 0;
 const METAVERSE_ID: u64 = 1;
@@ -35,8 +37,8 @@ pub fn set_balance(currency_id: FungibleTokenId, who: &AccountId, balance: Balan
 	));
 }
 
-pub fn mint_NFT(caller: &AccountId) {
-	Nft::create_class(
+pub fn mint_NFT(caller: &AccountId, class_id: u32) {
+	assert_ok!(Nft::create_class(
 		RawOrigin::Signed(caller.clone()).into(),
 		vec![1],
 		test_attributes(1),
@@ -44,14 +46,18 @@ pub fn mint_NFT(caller: &AccountId) {
 		TokenType::Transferable,
 		CollectionType::Collectable,
 		Perbill::from_percent(0u32),
-	);
-	Nft::mint(
+	));
+	assert_ok!(Nft::mint(
 		RawOrigin::Signed(caller.clone()).into(),
-		0u32.into(),
-		vec![1],
-		test_attributes(1),
-		3,
-	);
+		class_id,
+		vec![3],
+		test_attributes(3),
+		1,
+	));
+}
+
+pub fn create_nft_group() {
+	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
 }
 
 pub fn create_land_and_estate_group() {
@@ -68,22 +74,26 @@ pub fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
 pub fn issue_new_undeployed_land_block(n: u32) -> Result<bool, &'static str> {
 	let caller: AccountId = account("caller", 0, SEED);
 	set_balance(FungibleTokenId::NativeToken(0), &caller, 10000);
-	Estate::issue_undeployed_land_blocks(
+	assert_ok!(Estate::issue_undeployed_land_blocks(
 		RawOrigin::Root.into(),
 		caller,
 		n,
 		100,
 		UndeployedLandBlockType::Transferable,
-	);
+	));
 
 	Ok(true)
 }
 
 pub fn create_metaverse_for_account(caller: &AccountId) {
-	Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
+	create_land_and_estate_group();
+	assert_ok!(Metaverse::create_metaverse(
+		RawOrigin::Signed(caller.clone()).into(),
+		vec![1u8]
+	));
 }
 
-fn test_attributes(x: u8) -> Attributes {
+pub fn test_attributes(x: u8) -> Attributes {
 	let mut attr: Attributes = BTreeMap::new();
 	attr.insert(vec![x, x + 5], vec![x, x + 10]);
 	attr
