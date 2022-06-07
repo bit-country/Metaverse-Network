@@ -28,8 +28,8 @@ fn get_metaverse_fund(metaverse_id: MetaverseId) -> AccountId {
 runtime_benchmarks! {
 	{ Runtime, metaverse }
 	create_metaverse{
-		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+	    let caller: AccountId = account("caller", 0, SEED);
+	    set_balance(CURRENCY_ID, &caller, dollar(10));
 	}: _(RawOrigin::Signed(caller.clone()), vec![1])
 	verify {
 		let metaverse = Metaverse::get_metaverse(0);

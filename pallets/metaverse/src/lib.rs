@@ -518,9 +518,9 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Unstake and withdraw balance of the origin account for a metaverse registered for staking.
-		/// If user unstake below minimum staking amount, the entire staking of that origin will be
-		/// removed. Unstake will on be kicked off from the begining of the next round.
+		/// Unstake and withdraw balance of the origin account for a metaverse registered for
+		/// staking. If user unstake below minimum staking amount, the entire staking of that origin
+		/// will be removed. Unstake will on be kicked off from the begining of the next round.
 		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// Only accounts which got staked funds for the given metaverse can perform this call.
