@@ -129,7 +129,7 @@ benchmarks! {
 	withdraw_funds_from_class_fund{
 		let caller = funded_account::<T>("caller", 0);
 		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
-		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32));
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32), None);
 		let class_fund = get_class_fund::<T>(0u32.into());
 		T::Currency::make_free_balance_be(&class_fund, dollar(100).unique_saturated_into());
 	}: _(RawOrigin::Signed(caller), 0u32.into())
