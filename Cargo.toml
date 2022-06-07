@@ -22,7 +22,6 @@ exclude = [
     'pallet/evm/*',
     'primitives/evm/',
     'modules/chainsafe',
-    'runtime/tewai',
 ]
 
 [patch.crates-io]

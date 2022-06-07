@@ -44,10 +44,6 @@ fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_servic
 		"" | "local" => Box::new(chain_spec::metaverse::local_testnet_config()?),
 		"metaverse" => Box::new(chain_spec::metaverse::development_config()?),
 		"metaverse-testnet" => Box::new(chain_spec::metaverse::metaverse_testnet_config()?),
-		#[cfg(feature = "with-tewai-runtime")]
-		"tewai" => Box::new(chain_spec::tewai::tewai_testnet_config()?),
-		#[cfg(feature = "with-tewai-runtime")]
-		"tewai-dev" => Box::new(chain_spec::tewai::development_config()),
 		#[cfg(feature = "with-pioneer-runtime")]
 		"pioneer-dev" => Box::new(chain_spec::pioneer::development_config(para_id)),
 		#[cfg(feature = "with-pioneer-runtime")]
@@ -95,11 +91,6 @@ impl SubstrateCli for Cli {
 			return &metaverse_runtime::VERSION;
 			#[cfg(not(feature = "with-metaverse-runtime"))]
 			panic!("{}", service::METAVERSE_RUNTIME_NOT_AVAILABLE);
-		} else if spec.id().starts_with("tewai") {
-			#[cfg(feature = "with-tewai-runtime")]
-			return &tewai_runtime::VERSION;
-			#[cfg(not(feature = "with-tewai-runtime"))]
-			panic!("{}", service::TEWAI_RUNTIME_NOT_AVAILABLE);
 		} else if spec.id().starts_with("pioneer") {
 			#[cfg(feature = "with-pioneer-runtime")]
 			return &pioneer_runtime::VERSION;
@@ -317,16 +308,6 @@ pub fn run() -> sc_cli::Result<()> {
 			let chain_spec = &runner.config().chain_spec;
 
 			info!("Metaverse Node - Chain_spec id: {}", chain_spec.id());
-			#[cfg(feature = "with-tewai-runtime")]
-			if chain_spec.id().starts_with("tewai") {
-				return runner.run_node_until_exit(|config| async move {
-					match config.role {
-						Role::Light => service::tewai_light(config),
-						_ => service::tewai_full(config),
-					}
-					.map_err(sc_cli::Error::Service)
-				});
-			}
 
 			#[cfg(feature = "with-pioneer-runtime")]
 			if chain_spec.id().starts_with("pioneer") {

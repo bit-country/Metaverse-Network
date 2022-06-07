@@ -6,17 +6,13 @@ init:
 check: githooks
 	SKIP_WASM_BUILD= cargo check --features with-metaverse-runtime
 
-.PHONY: check-tewai
-check-tewai: githooks
-	SKIP_WASM_BUILD= cargo check --features with-tewai-runtime
-
 .PHONY: check-pioneer
 check-pioneer: githooks
 	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime
 
 .PHONY: check-all
 check-all: githooks
-	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime with-metaverse-runtime with-tewai-runtime
+	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime with-metaverse-runtime
 
 .PHONY: check-debug
 check-debug:
@@ -38,10 +34,6 @@ run:
 build:
 	cargo build --release  --features with-metaverse-runtime
 
-.PHONY: build-tewai
-build-tewai:
-	cargo build --release  --features with-tewai-runtime
-
 .PHONY: build-pioneer
 build-pioneer:
 	cargo build --release  --features with-pioneer-runtime
@@ -53,10 +45,6 @@ build-benchmarking:
 .PHONY: build-docker
 build-docker:
 	./scripts/docker_run.sh
-
-.PHONY: build-docker-tewai
-build-docker-tewai:
-	./scripts/docker_build_tewai.sh
 
 .PHONY: build-docker-pioneer
 build-docker-pioneer:
