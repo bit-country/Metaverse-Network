@@ -1573,8 +1573,9 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
 			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
+			list_benchmark!(list, extra, pallet_utility, Utility);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
-			//orml_list_benchmark!(list, extra, estate, benchmarking::estate);
+			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1621,8 +1622,9 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
 			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
-			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
+			add_benchmark!(params, batches, pallet_utility, Utility);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
+			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			//orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			Ok(batches)
 		}
