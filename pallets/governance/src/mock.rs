@@ -6,12 +6,7 @@ use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
-use metaverse_primitive::{
-	Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseMetadata,
-	MetaverseTrait, NFTTrait, NftClassData, NftMetadata, TokenType,
-};
 use orml_traits::parameter_type_with_key;
-use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, TokenId};
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
@@ -20,6 +15,12 @@ use sp_runtime::{
 	Perbill,
 };
 use sp_std::collections::btree_map::BTreeMap;
+
+use metaverse_primitive::{
+	Attributes, CollectionType, MetaverseInfo as MetaversePrimitiveInfo, MetaverseLandTrait, MetaverseMetadata,
+	MetaverseTrait, NFTTrait, NftClassData, NftMetadata, TokenType,
+};
+use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, TokenId};
 
 use crate as governance;
 
@@ -179,6 +180,16 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 	fn get_network_treasury() -> AccountId {
 		GENERAL_METAVERSE_FUND
 	}
+
+	fn check_if_metaverse_estate(
+		metaverse_id: primitives::MetaverseId,
+		class_id: &ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == &15u32 || class_id == &16u32 {
+			return Ok(true);
+		}
+		return Ok(false);
+	}
 }
 
 pub struct MetaverseLandInfo {}
@@ -232,14 +243,6 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			|| (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
 			|| (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101))
 		{
-			return Ok(true);
-		}
-		Ok(false)
-	}
-
-	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		let nft_value = *nft;
-		if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
 			return Ok(true);
 		}
 		Ok(false)

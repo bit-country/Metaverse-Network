@@ -7,10 +7,10 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{CollectionType, NftClassData, TokenType};
 use primitives::{
-	AssetId, Attributes, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId, LAND_CLASS_ID,
+	AssetId, Attributes, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId, LAND_CLASS_ID,
 };
 
 use crate as estate;
@@ -33,8 +33,8 @@ pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
 pub const MAX_BOUND: (i32, i32) = (-100, 100);
 pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
-pub const COORDINATE_IN_1: (i32, i32) = (-10, 10);
-pub const COORDINATE_IN_2: (i32, i32) = (-5, 5);
+pub const COORDINATE_IN_1: (i32, i32) = (-4, 4);
+pub const COORDINATE_IN_2: (i32, i32) = (-4, 5);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 pub const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 pub const ESTATE_IN_AUCTION: EstateId = 99;
@@ -175,6 +175,16 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn get_network_treasury() -> AccountId {
 		GENERAL_METAVERSE_FUND
 	}
+
+	fn check_if_metaverse_estate(
+		metaverse_id: primitives::MetaverseId,
+		class_id: &ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == &METAVERSE_LAND_CLASS || class_id == &METAVERSE_ESTATE_CLASS {
+			return Ok(true);
+		}
+		return Ok(false);
+	}
 }
 
 pub struct MockAuctionManager;
@@ -186,7 +196,15 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
+	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+		None
+	}
+
 	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+		Ok(())
+	}
+
+	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -214,12 +232,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
-	fn auction_bid_handler(
-		_now: u64,
-		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
-	) -> DispatchResult {
+	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+		Ok(())
+	}
+
+	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 
@@ -280,17 +297,6 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			|| (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
 			|| (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101))
 		{
-			return Ok(true);
-		}
-		Ok(false)
-	}
-
-	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		let nft_value = *nft;
-		if *who == ALICE && nft_value.0 == ASSET_CLASS_ID && nft_value.1 == ASSET_TOKEN_ID {
-			return Ok(true);
-		}
-		if *who == BENEFICIARY_ID && nft_value.0 == LAND_CLASS_ID && nft_value.1 == ASSET_ID_1 {
 			return Ok(true);
 		}
 		Ok(false)

@@ -7,5 +7,3 @@ pub use rpc_pioneer::{create_full as pioneer_crate_full, FullDeps as pioneer_ful
 mod rpc_metaverse;
 #[cfg(feature = "with-pioneer-runtime")]
 mod rpc_pioneer;
-#[cfg(feature = "with-tewai-runtime")]
-pub mod rpc_tewai;

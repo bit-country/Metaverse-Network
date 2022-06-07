@@ -237,6 +237,8 @@ pub mod pallet {
 		MetaverseStakingAlreadyPaid,
 		/// Metaverse has no stake
 		MetaverseHasNoStake,
+		/// Listing fee exceed threshold
+		MetaverseListingFeeExceedThreshold,
 	}
 
 	#[pallet::call]
@@ -591,7 +593,12 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		//		fn on_runtime_upgrade() -> Weight {
+		//			Self::upgrade_metaverse_info_v3();
+		//			0
+		//		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -644,6 +651,7 @@ impl<T: Config> Pallet<T> {
 			.checked_add(One::one())
 			.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 		AllMetaversesCount::<T>::put(new_total_metaverse_count);
+		//log::info!("Created Metaverse  with Id {:?}", metaverse_id);
 		Ok(metaverse_id)
 	}
 
@@ -666,6 +674,7 @@ impl<T: Config> Pallet<T> {
 		}
 	}
 
+	/// Minting of a land class for the metaverse
 	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for lands
 		let mut land_class_attributes = Attributes::new();
@@ -685,6 +694,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
+	/// Minting of an estate class for the metaverse
 	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for estates
 		let mut estate_class_attributes = Attributes::new();
@@ -710,6 +720,10 @@ impl<T: Config> Pallet<T> {
 		new_listing_fee: Perbill,
 	) -> Result<(), DispatchError> {
 		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
+		ensure!(
+			new_listing_fee <= Perbill::from_percent(25u32),
+			Error::<T>::MetaverseListingFeeExceedThreshold
+		);
 
 		Metaverses::<T>::try_mutate(metaverse_id, |metaverse_info| -> DispatchResult {
 			let t = metaverse_info.as_mut().ok_or(Error::<T>::MetaverseInfoNotFound)?;
@@ -720,13 +734,14 @@ impl<T: Config> Pallet<T> {
 
 	pub fn upgrade_metaverse_info_v2() -> Weight {
 		log::info!("Start upgrade_metaverse_info_v2");
-		let mut num_metaverse_items = 0;
+		let mut upgraded_metaverse_items = 0;
 
 		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
 		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
 
-		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
-			num_metaverse_items += 1;
+		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
+			upgraded_metaverse_items += 1;
+
 			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
 				owner: metaverse_info_v1.owner,
 				metadata: metaverse_info_v1.metadata,
@@ -738,8 +753,36 @@ impl<T: Config> Pallet<T> {
 			};
 			Some(v2)
 		});
+		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
+		0
+	}
 
-		log::info!("{} metaverses upgraded:", num_metaverse_items);
+	pub fn upgrade_metaverse_info_v3() -> Weight {
+		log::info!("Start upgrade_metaverse_info_v3");
+		let mut upgraded_metaverse_items = 0;
+		let mut total_metaverse_items = 0;
+
+		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
+			total_metaverse_items += 1;
+			let new_land_class_id = Self::mint_metaverse_land_class(&metaverse_info_v1.owner, k).unwrap_or_default();
+			let new_estate_class_id =
+				Self::mint_metaverse_estate_class(&metaverse_info_v1.owner, k).unwrap_or_default();
+
+			upgraded_metaverse_items += 1;
+
+			let v3: MetaverseInfo<T::AccountId> = MetaverseInfo {
+				owner: metaverse_info_v1.owner,
+				metadata: metaverse_info_v1.metadata,
+				currency_id: metaverse_info_v1.currency_id,
+				is_frozen: false,
+				listing_fee: Perbill::from_percent(0u32),
+				land_class_id: new_land_class_id,
+				estate_class_id: new_estate_class_id,
+			};
+			Some(v3)
+		});
+		log::info!("{} metaverses in total:", total_metaverse_items);
+		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
 		0
 	}
 }
@@ -796,11 +839,17 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {
-		return T::MetaverseTreasury::get().into_account();
+		return T::MetaverseTreasury::get().into_sub_account(metaverse_id);
 	}
 
 	fn get_network_treasury() -> T::AccountId {
 		return T::MetaverseTreasury::get().into_account();
+	}
+
+	fn check_if_metaverse_estate(metaverse_id: MetaverseId, class_id: &ClassId) -> Result<bool, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+
+		Ok(class_id == &metaverse_info.land_class_id || class_id == &metaverse_info.estate_class_id)
 	}
 }
 

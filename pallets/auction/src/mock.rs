@@ -1,4 +1,5 @@
 #![cfg(test)]
+
 use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use frame_system::EnsureRoot;
@@ -10,7 +11,8 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
 use primitives::{
-	continuum::Continuum, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, UndeployedLandBlockId,
+	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId,
+	UndeployedLandBlockId,
 };
 
 use crate as auction;
@@ -90,9 +92,13 @@ impl pallet_balances::Config for Runtime {
 
 pub struct Continuumm;
 
-impl Continuum<u128> for Continuumm {
-	fn transfer_spot(_spot_id: u64, _from: &AccountId, _to: &(AccountId, u64)) -> Result<u64, DispatchError> {
-		Ok(1)
+impl MapTrait<u128> for Continuumm {
+	fn transfer_spot(
+		_spot_id: MapSpotId,
+		_from: AccountId,
+		_to: (AccountId, MetaverseId),
+	) -> Result<MapSpotId, DispatchError> {
+		Ok((0, 0))
 	}
 }
 
@@ -262,6 +268,16 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn get_network_treasury() -> AccountId {
 		GENERAL_METAVERSE_FUND
 	}
+
+	fn check_if_metaverse_estate(
+		metaverse_id: primitives::MetaverseId,
+		class_id: &ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == &15u32 || class_id == &16u32 {
+			return Ok(true);
+		}
+		return Ok(false);
+	}
 }
 
 impl Config for Runtime {
@@ -429,7 +445,15 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
+	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+		None
+	}
+
 	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+		Ok(())
+	}
+
+	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
 
@@ -458,11 +482,18 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
-		_now: u64,
-		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
-	) -> DispatchResult {
+		from: AccountId,
+		id: AuctionId,
+		value: Self::Balance,
+	) -> frame_support::dispatch::DispatchResult {
+		Ok(())
+	}
+
+	fn buy_now_handler(
+		from: AccountId,
+		auction_id: AuctionId,
+		value: Self::Balance,
+	) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
 

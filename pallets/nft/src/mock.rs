@@ -10,9 +10,9 @@ use sp_runtime::testing::Header;
 use sp_runtime::traits::IdentityLookup;
 use sp_runtime::Perbill;
 
-use auction_manager::{Auction, AuctionInfo, AuctionType, ListingLevel};
+use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 pub use primitive_traits::{CollectionType, NftAssetData, NftClassData};
-use primitives::{Amount, CurrencyId, FungibleTokenId, ItemId};
+use primitives::{Amount, AuctionId, CurrencyId, FungibleTokenId, ItemId};
 
 use crate as nft;
 
@@ -96,7 +96,15 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
+	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+		None
+	}
+
 	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+		Ok(())
+	}
+
+	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -124,12 +132,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
-	fn auction_bid_handler(
-		_now: u64,
-		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
-	) -> DispatchResult {
+	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+		Ok(())
+	}
+
+	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 

@@ -195,6 +195,8 @@ pub trait MetaverseTrait<AccountId> {
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId;
 	/// Get network treasury
 	fn get_network_treasury() -> AccountId;
+	/// Check if nft is estate or land belongs to metaverse
+	fn check_if_metaverse_estate(metaverse_id: MetaverseId, class_id: &ClassId) -> Result<bool, DispatchError>;
 }
 
 pub trait MetaverseLandTrait<AccountId> {
@@ -234,8 +236,6 @@ pub trait NFTTrait<AccountId, Balance> {
 	type ClassId;
 	/// Check the ownership of this nft asset
 	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
-	/// Check the ownership of this nft tuple
-	fn check_nft_ownership(who: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError>;
 	/// Get the detail of this nft
