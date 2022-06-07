@@ -418,6 +418,7 @@ pub mod pallet {
 		}
 
 		/// Lock up and stake balance of the origin account for a metaverse registered for staking.
+		/// New stake will be applied at the beginning of the next round.
 		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// - `metaverse_id`: the metaverse ID which will have funds staked to.

@@ -54,7 +54,7 @@ pub fn mint_NFT(caller: &AccountId) {
 	);
 }
 
-pub fn create_land_and_estate_groups() {
+pub fn create_land_and_estate_group() {
 	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
 }
 
