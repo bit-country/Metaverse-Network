@@ -1,15 +1,20 @@
-use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
 use super::utils::{create_land_and_estate_groups, dollar, set_balance};
 #[allow(unused)]
-use crate::{Balances, Call, Currencies, Event, Metaverse, MetaverseNetworkTreasuryPalletId, MinContribution, Runtime, System};
+use crate::{
+    Balances, Call, Currencies, Event, Metaverse, MetaverseNetworkTreasuryPalletId, MinContribution, Runtime, System,
+};
 use core_primitives::MetaverseInfo;
 use frame_benchmarking::{account, whitelisted_caller};
-use frame_support::{assert_ok, traits::{Currency, Get}};
+use frame_support::{
+    assert_ok,
+    traits::{Currency, Get},
+};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
 use primitives::{AccountId, Balance, ClassId, FungibleTokenId, GroupCollectionId, MetaverseId};
-use sp_runtime::Perbill;
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
+use sp_runtime::Perbill;
+use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
 
 const SEED: u32 = 0;
 const CURRENCY_ID: FungibleTokenId = FungibleTokenId::NativeToken(0);
@@ -28,7 +33,7 @@ runtime_benchmarks! {
 	{ Runtime, metaverse }
 
     // create_metaverse
-	create_metaverse{
+	create_metaverse { 
 		let caller: AccountId = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(10));
         create_land_and_estate_groups();
@@ -83,16 +88,16 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
 	}: _(RawOrigin::Root, 0)
 	verify {
-		let metaverse = Metaverse::get_metaverse(0);
-		match metaverse {
-			Some(a) => {
-				assert_eq!(a.is_frozen, true);
-			}
-			_ => {
-				// Should fail test
-				assert_eq!(0, 1);
-			}
-		}
+            let metaverse = Metaverse::get_metaverse(0);
+            match metaverse {
+                    Some(a) => {
+                            assert_eq!(a.is_frozen, true);
+                    }
+                    _ => {
+                            // Should fail test
+                            assert_eq!(0, 1);
+                    }
+            }
 	}
 
 	// unfreeze_metaverse
@@ -106,19 +111,19 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
 		Metaverse::freeze_metaverse(RawOrigin::Root.into(), 0);
 	}: _(RawOrigin::Root, 0)
-	verify {
-		let metaverse = Metaverse::get_metaverse(0);
-		match metaverse {
-			Some(a) => {
-				// Verify details of Metaverse
-				assert_eq!(a.is_frozen, false);
-			}
-			_ => {
-				// Should fail test
-				assert_eq!(0, 1);
-			}
-		}
-	}
+	verify {ww
+        let metaverse = Metaverse::get_metaverse(0);
+        match metaverse {
+            Some(a) => {
+                // Verify details of Metaverse
+                assert_eq!(a.is_frozen, false);
+            }
+            _ => {
+                // Should fail test
+                assert_eq!(0, 1);
+            }
+        }
+    }
 
 	// destroy_metaverse
 	destroy_metaverse{

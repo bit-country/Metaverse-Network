@@ -417,10 +417,17 @@ fn do_withdraw_funds_from_metaverse_fund_should_work() {
 		let origin = Origin::signed(ALICE);
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		let metaverse_fund: AccountId = <Runtime as Config>::MetaverseTreasury::get().into_sub_account(METAVERSE_ID);
-		assert_ok!(<Runtime as Config>::Currency::transfer(origin.clone(), metaverse_fund, 100));
+		assert_ok!(<Runtime as Config>::Currency::transfer(
+			origin.clone(),
+			metaverse_fund,
+			100
+		));
 		assert_eq!(free_native_balance(ALICE), 9999999999999999899);
 		assert_eq!(free_native_balance(metaverse_fund), 101);
-		assert_ok!(MetaverseModule::withdraw_funds_from_metaverse_fund(origin.clone(), METAVERSE_ID));
+		assert_ok!(MetaverseModule::withdraw_funds_from_metaverse_fund(
+			origin.clone(),
+			METAVERSE_ID
+		));
 		assert_eq!(free_native_balance(ALICE), 9999999999999999999);
 		assert_eq!(free_native_balance(metaverse_fund), 1);
 	})
