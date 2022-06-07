@@ -719,10 +719,10 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		/// Hooks that call when the runtime is upgraded
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_metaverse_info_v3();
-			0
-		}
+		//		fn on_runtime_upgrade() -> Weight {
+		//			Self::upgrade_metaverse_info_v3();
+		//			0
+		//		}
 	}
 }
 
