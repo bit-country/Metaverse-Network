@@ -19,7 +19,6 @@ on:
         options:
           - metaverse
           - pioneer
-          - tewai
       # Get the SR Tool image used to build
       srtool_image:
         description: Default to use the latest. You can use an alternate image, use with caution!
