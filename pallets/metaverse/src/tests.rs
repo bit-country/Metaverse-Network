@@ -24,7 +24,12 @@ use sp_runtime::Perbill;
 use mock::{Event, *};
 use primitives::staking::RoundInfo;
 
+#[cfg(test)]
 use super::*;
+
+fn free_native_balance(who: AccountId) -> Balance {
+	<Runtime as Config>::Currency::free_balance(who)
+}
 
 #[test]
 fn create_metaverse_should_work() {
@@ -388,5 +393,42 @@ fn update_metaverse_listing_fee_should_fail_if_not_metaverse_owner() {
 			),
 			Error::<Runtime>::NoPermission
 		);
+	})
+}
+
+#[test]
+fn do_withdraw_funds_from_metaverse_treasury_fund_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			MetaverseModule::withdraw_from_metaverse_fund(Origin::signed(ALICE), METAVERSE_ID),
+			Error::<Runtime>::NoPermission
+		);
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_noop!(
+			MetaverseModule::withdraw_from_metaverse_fund(Origin::signed(BOB), METAVERSE_ID),
+			Error::<Runtime>::NoPermission
+		);
+	})
+}
+
+#[test]
+fn do_withdraw_from_metaverse_fund_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		let metaverse_fund: AccountId = <Runtime as Config>::MetaverseTreasury::get().into_sub_account(METAVERSE_ID);
+		assert_ok!(<Runtime as Config>::Currency::transfer(
+			origin.clone(),
+			metaverse_fund,
+			100
+		));
+		assert_eq!(free_native_balance(ALICE), 9999999999999999899);
+		assert_eq!(free_native_balance(metaverse_fund), 101);
+		assert_ok!(MetaverseModule::withdraw_from_metaverse_fund(
+			origin.clone(),
+			METAVERSE_ID
+		));
+		assert_eq!(free_native_balance(ALICE), 9999999999999999999);
+		assert_eq!(free_native_balance(metaverse_fund), 1);
 	})
 }
