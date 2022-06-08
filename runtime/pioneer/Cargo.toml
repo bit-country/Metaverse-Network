@@ -10,10 +10,10 @@ edition = "2018"
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 
 [dependencies]
-codec = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
+codec = { package = 'parity-scale-codec', version = '3.0.0', default-features = false, features = ['derive'] }
 log = { version = "0.4.14", default-features = false }
 serde = { version = '1.0.137', optional = true, features = ['derive'] }
-scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 smallvec = "1.6.1"
 hex-literal = { version = "0.3.3" }
 #evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
