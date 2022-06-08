@@ -381,6 +381,8 @@ pub mod pallet {
 
 			AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
+			log::info!("NFT Group Id {:?}", next_group_collection_id);
+
 			Self::deposit_event(Event::<T>::NewNftCollectionCreated(next_group_collection_id));
 			Ok(().into())
 		}
@@ -418,7 +420,7 @@ pub mod pallet {
 				royalty_fee,
 				mint_limit,
 			)?;
-
+			log::info!("NFT Class Id {:?}", class_id);
 			Ok(().into())
 		}
 
@@ -893,7 +895,8 @@ impl<T: Config> Pallet<T> {
 			quantity,
 			last_token_id,
 		));
-
+		log::info!("Successfully minted NFT with token id {:?}", last_token_id);
+		log::info!("Successfully minted NFT with class id {:?}", class_id);
 		Ok((new_asset_ids, last_token_id))
 	}
 
@@ -979,7 +982,7 @@ impl<T: Config> Pallet<T> {
 	/// Find total amount of issued tokens for a class
 	fn get_class_token_amount(class_id: &ClassIdOf<T>) -> u32 {
 		let mut total_minted_tokens = 0u32;
-		for value in Tokens::<T>::iter_prefix_values(*class_id) {
+		for _value in Tokens::<T>::iter_prefix_values(*class_id) {
 			total_minted_tokens += 1;
 		}
 		total_minted_tokens
@@ -998,7 +1001,7 @@ impl<T: Config> Pallet<T> {
 			 class_info: ClassInfo<
 				T::TokenId,
 				T::AccountId,
-				NftClassDataV1<BalanceOf<T>>,
+				NftClassData<BalanceOf<T>>,
 				BoundedVec<u8, T::MaxClassMetadata>,
 			>| {
 				num_nft_classes += 1;
@@ -1012,8 +1015,8 @@ impl<T: Config> Pallet<T> {
 					attributes: class_info.data.attributes,
 					token_type: class_info.data.token_type,
 					collection_type: class_info.data.collection_type,
-					is_locked: false,
-					royalty_fee: Perbill::from_percent(0u32),
+					is_locked: class_info.data.is_locked,
+					royalty_fee: class_info.data.royalty_fee,
 					mint_limit: None,
 					total_minted_tokens: total_minted_tokens_for_a_class,
 				};
