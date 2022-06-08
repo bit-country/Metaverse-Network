@@ -22,10 +22,7 @@ pub enum TokenType {
 
 impl TokenType {
 	pub fn is_transferable(&self) -> bool {
-		match *self {
-			TokenType::Transferable => true,
-			_ => false,
-		}
+		matches!(*self, TokenType::Transferable)
 	}
 }
 
@@ -46,24 +43,15 @@ pub enum CollectionType {
 // Collection extension for fast retrieval
 impl CollectionType {
 	pub fn is_collectable(&self) -> bool {
-		match *self {
-			CollectionType::Collectable => true,
-			_ => false,
-		}
+		matches!(*self, CollectionType::Collectable)
 	}
 
 	pub fn is_executable(&self) -> bool {
-		match *self {
-			CollectionType::Executable(_) => true,
-			_ => false,
-		}
+		matches!(*self, CollectionType::Executable(_))
 	}
 
 	pub fn is_wearable(&self) -> bool {
-		match *self {
-			CollectionType::Wearable => true,
-			_ => false,
-		}
+		matches!(*self, CollectionType::Wearable)
 	}
 }
 
@@ -93,6 +81,8 @@ pub struct NftClassData<Balance> {
 	pub collection_type: CollectionType,
 	pub is_locked: bool,
 	pub royalty_fee: Perbill,
+	pub mint_limit: Option<u32>,
+	pub total_minted_tokens: u32,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
@@ -112,6 +102,7 @@ pub struct NftAssetData<Balance> {
 	pub deposit: Balance,
 	pub attributes: Attributes,
 	pub is_locked: bool,
+	// pub issue_no: u32,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
@@ -251,6 +242,7 @@ pub trait NFTTrait<AccountId, Balance> {
 		token_type: TokenType,
 		collection_type: CollectionType,
 		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
 	) -> Result<ClassId, DispatchError>;
 	/// Mint NFT token
 	fn mint_token(

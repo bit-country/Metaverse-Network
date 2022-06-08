@@ -29,6 +29,7 @@ pub type BlockNumber = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
+pub const CLASS_ID_1: <Runtime as orml_nft::Config>::ClassId = 1;
 pub const NON_EXISTING_CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 1000;
 pub const TOKEN_ID: <Runtime as orml_nft::Config>::TokenId = 0;
 pub const COLLECTION_ID: u64 = 0;
@@ -175,7 +176,7 @@ parameter_types! {
 	pub MetadataDataDepositPerByte: Balance = 1;
 	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
 	pub MaxBatchTransfer: u32 = 3;
-	pub MaxBatchMinting: u32 = 10;
+	pub MaxBatchMinting: u32 = 12;
 	pub MaxMetadata: u32 = 10;
 	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
@@ -294,7 +295,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000)],
+			balances: vec![(ALICE, 100000), (BOB, 1000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

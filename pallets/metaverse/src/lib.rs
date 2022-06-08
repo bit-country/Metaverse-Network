@@ -27,7 +27,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::MultiCurrency;
-use sp_runtime::traits::Saturating;
+use sp_runtime::traits::{CheckedSub, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	DispatchError, Perbill,
@@ -41,8 +41,8 @@ use primitives::staking::MetaverseStakingTrait;
 use primitives::{ClassId, FungibleTokenId, MetaverseId, RoundIndex, TokenId};
 pub use weights::WeightInfo;
 
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmarking;
+// #[cfg(feature = "runtime-benchmarks")]
+// pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -97,6 +97,7 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
+		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// The currency type
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
@@ -107,8 +108,10 @@ pub mod pallet {
 			CurrencyId = FungibleTokenId,
 			Balance = BalanceOf<Self>,
 		>;
+		/// The metaverse treasury pallet
 		#[pallet::constant]
 		type MetaverseTreasury: Get<PalletId>;
+		/// The  maximum metaverse metadata size
 		#[pallet::constant]
 		type MaxMetaverseMetadata: Get<u32>;
 		/// Minimum contribution
@@ -130,47 +133,51 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_metaverse_id)]
+	/// Track the next metaverse ID.
 	pub type NextMetaverseId<T: Config> = StorageValue<_, MetaverseId, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse)]
+	/// Stores metaverses' informaion.
 	pub type Metaverses<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, MetaverseInfo<T::AccountId>>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse_owner)]
+	/// Stores metaverses owned by each account.
 	pub type MetaverseOwner<T: Config> = StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, MetaverseId, ()>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_metaverse_count)]
+	/// Track the total amount of metaverses.
 	pub(super) type AllMetaversesCount<T: Config> = StorageValue<_, u64, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_freezing_metaverse)]
+	/// Stores frozen metaverses.
 	pub(super) type FreezedMetaverses<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, (), OptionQuery>;
 
 	/// Metaverse staking related storage
 
-	/// Staking round info
 	#[pallet::storage]
 	#[pallet::getter(fn staking_round)]
-	/// Current round index and next round scheduled transition
+	/// Tracks current staking round index and next round scheduled transition.
 	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
 
-	/// Registered metaverse for staking
 	#[pallet::storage]
 	#[pallet::getter(fn get_registered_metaverse)]
+	/// Stores metaverses registered for staking.
 	pub(crate) type RegisteredMetaverse<T: Config> =
 		StorageMap<_, Blake2_128Concat, MetaverseId, T::AccountId, OptionQuery>;
 
-	/// Metaverse Staking snapshot per staking round
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse_staking_snapshots)]
+	/// Stores metaverse staking snapshot for a staking round.
 	pub(crate) type MetaverseStakingSnapshots<T: Config> =
 		StorageMap<_, Blake2_128Concat, RoundIndex, MetaverseStakingSnapshot<BalanceOf<T>>>;
 
-	/// Stores amount staked and stakers for individual metaverse per staking round
 	#[pallet::storage]
 	#[pallet::getter(fn get_metaverse_stake_per_round)]
+	/// Stores amount staked and stakers for individual metaverse per staking round.
 	pub(crate) type MetaverseRoundStake<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
@@ -180,25 +187,38 @@ pub mod pallet {
 		MetaverseStakingPoints<T::AccountId, BalanceOf<T>>,
 	>;
 
-	/// Keep track of staking info of individual staker
 	#[pallet::storage]
 	#[pallet::getter(fn staking_info)]
+	/// Stores staking info of individual stakers.
 	pub(crate) type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
+		/// Successfully created a metaverse
 		NewMetaverseCreated(MetaverseId, T::AccountId),
+		/// Successfully transferred a metaverse
 		TransferredMetaverse(MetaverseId, T::AccountId, T::AccountId),
+		/// Successfully frozen a metaverse
 		MetaverseFreezed(MetaverseId),
+		/// Successfully destroyed a metaverse
 		MetaverseDestroyed(MetaverseId),
+		/// Successfully unfreezed a metaverse
 		MetaverseUnfreezed(MetaverseId),
+		/// Successfully minted new metaverse currency
 		MetaverseMintedNewCurrency(MetaverseId, FungibleTokenId),
+		/// Successfully registerred a metaverse for staking
 		NewMetaverseRegisteredForStaking(MetaverseId, T::AccountId),
+		/// Successfully staked funds to a metaverse
 		MetaverseStaked(T::AccountId, MetaverseId, BalanceOf<T>),
+		/// Successfully unstaked funds from a metaverse
 		MetaverseUnstaked(T::AccountId, MetaverseId, BalanceOf<T>),
+		/// Successfully payed rewards for a metaverse staking round
 		MetaverseStakingRewarded(T::AccountId, MetaverseId, RoundIndex, BalanceOf<T>),
+		/// Successfully updated the local marketplace listing fee for a metaverse
 		MetaverseListingFeeUpdated(MetaverseId, Perbill),
+		/// Successfully withdrawn funds from a metaverse treasury fund
+		MetaverseTreasuryFundsWithdrawn(MetaverseId),
 	}
 
 	#[pallet::error]
@@ -243,15 +263,28 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Create a metaverse.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `metadata': the metadata of the new metaverse
+		///
+		/// Emits `NewMetaverseCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_metaverse())]
 		pub fn create_metaverse(origin: OriginFor<T>, metadata: MetaverseMetadata) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			let metaverse_id = Self::do_create_metaverse(&who, metadata)?;
 			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id, who));
-			log::info!("New metaverse id {:?}", metaverse_id);
 			Ok(().into())
 		}
 
+		/// Transfer a metaverse.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse owner can perform this call.
+		/// - 'to': the account which will receive the transferred metaverse
+		/// - `metaverse_id': the metaverse ID which will be transferred
+		///
+		/// Emits `TransferredMetaverse` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_metaverse())]
 		pub fn transfer_metaverse(
 			origin: OriginFor<T>,
@@ -287,6 +320,13 @@ pub mod pallet {
 			)
 		}
 
+		/// Freeze an existing meataverse.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse council can perform this call.
+		/// - `metaverse_id`: the metaverse ID which will be freezed
+		///
+		/// Emits `MetaverseFreezed` if successful.
 		#[pallet::weight(T::WeightInfo::freeze_metaverse())]
 		pub fn freeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			// Only Council can freeze a metaverse
@@ -303,6 +343,13 @@ pub mod pallet {
 			})
 		}
 
+		/// Unfreeze existing frozen meataverse.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse council can perform this call.
+		/// - `metaverse_id`: the metaverse ID which will be unfreezed
+		///
+		/// Emits `MetaverseUnfreezed` if successful.
 		#[pallet::weight(T::WeightInfo::unfreeze_metaverse())]
 		pub fn unfreeze_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			// Only Council can freeze a metaverse
@@ -319,6 +366,13 @@ pub mod pallet {
 			})
 		}
 
+		/// Destroy a frozen meataverse.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse owner can perform this call
+		/// - `metaverse_id`: the metaverse ID which will be destroyed
+		///
+		/// Emits `MetaverseDestroyed` if successful.
 		#[pallet::weight(T::WeightInfo::destroy_metaverse())]
 		pub fn destroy_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			// Only Council can destroy a metaverse
@@ -334,8 +388,13 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Register metaverse for staking
-		/// only metaverse owner can register for staking
+		/// Registers an existing metaverse for staking.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse owner can perform this call.
+		/// - `metaverse_id`: the metaverse ID which will be registered for staking.
+		///
+		/// Emits `NewMetaverseRegisteredForStaking` if successful.
 		#[pallet::weight(T::WeightInfo::register_metaverse())]
 		pub fn register_metaverse(origin: OriginFor<T>, metaverse_id: MetaverseId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
@@ -357,8 +416,15 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Lock up and stake balance of the origin account.
+		/// Lock up and stake balance of the origin account for a metaverse registered for staking.
 		/// New stake will be applied at the beginning of the next round.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `metaverse_id`: the metaverse ID which will have funds staked to.
+		/// - 'value': the amount of funds that will be staked.
+		/// The value must be a positive number.
+		///
+		/// Emits `MetaverseStaked` if successful.
 		#[pallet::weight(T::WeightInfo::stake())]
 		pub fn stake(
 			origin: OriginFor<T>,
@@ -451,9 +517,17 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Unstake and withdraw balance of the origin account.
-		/// If user unstake below minimum staking amount, the entire staking of that origin will be
-		/// removed Unstake will on be kicked off from the begining of the next round.
+		/// Unstake and withdraw balance of the origin account for a metaverse registered for
+		/// staking. If user unstake below minimum staking amount, the entire staking of that origin
+		/// will be removed. Unstake will on be kicked off from the begining of the next round.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only accounts which got staked funds for the given metaverse can perform this call.
+		/// - `metaverse_id`: the metaverse ID which will have its funds unstaked.
+		/// This call can be performed for metaverses which are registered for staking.
+		/// - 'value': the amount of funds that will be unstaked.
+		///
+		/// Emits `MetaverseUnstaked` if successful.
 		#[pallet::weight(T::WeightInfo::unstake_and_withdraw())]
 		pub fn unstake_and_withdraw(
 			origin: OriginFor<T>,
@@ -522,8 +596,13 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Pay staker reward of the round per metaverse
-		/// Get all
+		/// Pays to meatverse's stakers for a given round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `metaverse_id`: the metaverse ID which will have its staking rewards paid
+		/// - 'round': the staking round for which the rewards will be paid
+		///
+		/// Emits `MetaverseStakingRewarded` if successful.
 		#[pallet::weight(T::WeightInfo::unstake_and_withdraw())]
 		pub fn pay_staker(
 			origin: OriginFor<T>,
@@ -578,6 +657,14 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Updates the meatverse's local marketplace listing fee
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse owner can withdraw funds.
+		/// - `metaverse_id`: the meatverse ID which fees will be updated
+		/// - 'new_listng_fee': the updated metaverse's local marketplace listing fee
+		///
+		/// Emits `MetaverseListingFeeUpdated` if successful.
 		#[pallet::weight(T::WeightInfo::update_metaverse_listing_fee())]
 		pub fn update_metaverse_listing_fee(
 			origin: OriginFor<T>,
@@ -587,6 +674,39 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			Self::do_update_metaverse_listing_fee(&who, &metaverse_id, new_listing_fee)?;
 			Self::deposit_event(Event::<T>::MetaverseListingFeeUpdated(metaverse_id, new_listing_fee));
+
+			Ok(().into())
+		}
+
+		/// Withdraws funds from metaverse treasury fund
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only metaverse owner can withdraw funds.
+		/// - `metaverse_id`: the meatverse ID of the local treasury which funds will be withdrawn
+		///
+		/// Emits `MetaverseTreasuryFundsWithdrawn` if successful.
+		#[pallet::weight(T::WeightInfo::withdraw_from_metaverse_fund())]
+		pub fn withdraw_from_metaverse_fund(
+			origin: OriginFor<T>,
+			metaverse_id: MetaverseId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(Self::check_ownership(&who, &metaverse_id), Error::<T>::NoPermission);
+			let metaverse_fund_account = T::MetaverseTreasury::get().into_sub_account(metaverse_id);
+
+			// Balance minus existential deposit
+			let metaverse_fund_balance = <T as Config>::Currency::free_balance(&metaverse_fund_account)
+				.checked_sub(&<T as Config>::Currency::minimum_balance())
+				.ok_or(ArithmeticError::Underflow)?;
+			<T as Config>::Currency::transfer(
+				&metaverse_fund_account,
+				&who,
+				metaverse_fund_balance,
+				ExistenceRequirement::KeepAlive,
+			)?;
+
+			Self::deposit_event(Event::<T>::MetaverseTreasuryFundsWithdrawn(metaverse_id));
 
 			Ok(().into())
 		}
@@ -602,6 +722,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
+	/// Internal new metaverse generation
 	fn new_metaverse(owner: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId, DispatchError> {
 		let metaverse_id = NextMetaverseId::<T>::try_mutate(|id| -> Result<MetaverseId, DispatchError> {
 			let current_id = *id;
@@ -625,6 +746,7 @@ impl<T: Config> Pallet<T> {
 		Ok(metaverse_id)
 	}
 
+	/// Internal new metaverse creation
 	fn do_create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId, DispatchError> {
 		ensure!(
 			metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
@@ -690,6 +812,7 @@ impl<T: Config> Pallet<T> {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(LAND_CLASS_ROYALTY_FEE),
+			None,
 		)
 	}
 
@@ -709,9 +832,11 @@ impl<T: Config> Pallet<T> {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(ESTATE_CLASS_ROYALTY_FEE),
+			None,
 		)
 	}
 
+	/// Internal update of a metaverse listing fee
 	fn do_update_metaverse_listing_fee(
 		who: &T::AccountId,
 		metaverse_id: &MetaverseId,
@@ -730,6 +855,7 @@ impl<T: Config> Pallet<T> {
 		})
 	}
 
+	/// Internal update of metaverse info to v2
 	pub fn upgrade_metaverse_info_v2() -> Weight {
 		log::info!("Start upgrade_metaverse_info_v2");
 		let mut upgraded_metaverse_items = 0;
@@ -755,6 +881,7 @@ impl<T: Config> Pallet<T> {
 		0
 	}
 
+	/// Internal update of metaverse info to v3
 	pub fn upgrade_metaverse_info_v3() -> Weight {
 		log::info!("Start upgrade_metaverse_info_v3");
 		let mut upgraded_metaverse_items = 0;

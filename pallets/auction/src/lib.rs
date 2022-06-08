@@ -809,12 +809,10 @@ pub mod pallet {
 				ItemId::NFT(class_id, token_id) => {
 					// Check ownership
 					let is_owner = T::NFTHandler::check_ownership(&recipient, &(class_id, token_id))?;
-
-					ensure!(is_owner == true, Error::<T>::NoPermissionToCreateAuction);
+					ensure!(is_owner, Error::<T>::NoPermissionToCreateAuction);
 
 					let is_transferable = T::NFTHandler::is_transferable(&(class_id, token_id))?;
-
-					ensure!(is_transferable == true, Error::<T>::NoPermissionToCreateAuction);
+					ensure!(is_transferable, Error::<T>::NoPermissionToCreateAuction);
 
 					// Ensure NFT authorised to sell
 					match listing_level {
@@ -997,11 +995,15 @@ pub mod pallet {
 					for item in tokens {
 						// Check ownership
 						let is_owner = T::NFTHandler::check_ownership(&recipient, &(item.0, item.1))?;
-						ensure!(is_owner == true, Error::<T>::NoPermissionToCreateAuction);
+						ensure!(is_owner, Error::<T>::NoPermissionToCreateAuction);
 
 						let is_transferable = T::NFTHandler::is_transferable(&(item.0, item.1))?;
-						ensure!(is_transferable == true, Error::<T>::NoPermissionToCreateAuction);
+						ensure!(is_transferable, Error::<T>::NoPermissionToCreateAuction);
 
+						ensure!(
+							Self::items_in_auction(ItemId::NFT(item.0, item.1)) == None,
+							Error::<T>::ItemAlreadyInAuction
+						);
 						// Lock NFT
 						T::NFTHandler::set_lock_nft((item.0, item.1), true)?
 					}
@@ -1301,14 +1303,14 @@ pub mod pallet {
 								FungibleTokenId::NativeToken(0),
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee.clone(),
-							);
+							)?;
 
 							Self::collect_royalty_fee(
 								&value,
 								&auction_item.recipient,
 								&(class_id, token_id),
 								FungibleTokenId::NativeToken(0),
-							);
+							)?;
 
 							T::NFTHandler::set_lock_nft((class_id, token_id), false);
 
@@ -1366,7 +1368,7 @@ pub mod pallet {
 								FungibleTokenId::NativeToken(0),
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee,
-							);
+							)?;
 
 							for token in tokens {
 								// Collect royalty fee of each nft sold in the bundle
@@ -1375,9 +1377,9 @@ pub mod pallet {
 									&auction_item.recipient,
 									&(token.0, token.1),
 									FungibleTokenId::NativeToken(0),
-								);
-								T::NFTHandler::set_lock_nft((token.0, token.1), false);
-								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1));
+								)?;
+								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
+								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1))?;
 							}
 
 							Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));

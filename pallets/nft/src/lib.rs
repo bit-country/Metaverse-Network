@@ -275,6 +275,8 @@ pub mod pallet {
 		CollectionLocked(ClassIdOf<T>),
 		/// Collection is unlocked
 		CollectionUnlocked(ClassIdOf<T>),
+		/// Hard limit is set
+		HardLimitSet(ClassIdOf<T>),
 		/// Class funds are withdrawn
 		ClassFundsWithdrawn(ClassIdOf<T>),
 	}
@@ -335,6 +337,12 @@ pub mod pallet {
 		RoyaltyFeeExceedLimit,
 		/// NFT Asset is locked e.g on marketplace, or other locks
 		AssetIsLocked,
+		/// NFT mint limit is exceeded
+		ExceededMintingLimit,
+		/// The total amount of minted NFTs is more than the proposed hard limit
+		TotalMintedAssetsForClassExceededProposedLimit,
+		/// Hard limit is already set
+		HardLimitIsAlreadySet,
 	}
 
 	#[pallet::call]
@@ -373,8 +381,6 @@ pub mod pallet {
 
 			AllNftGroupCollection::<T>::set(new_all_nft_collection_count);
 
-			log::info!("NFT Group Id {:?}", next_group_collection_id);
-
 			Self::deposit_event(Event::<T>::NewNftCollectionCreated(next_group_collection_id));
 			Ok(().into())
 		}
@@ -399,6 +405,7 @@ pub mod pallet {
 			token_type: TokenType,
 			collection_type: CollectionType,
 			royalty_fee: Perbill,
+			mint_limit: Option<u32>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			let class_id = Self::do_create_class(
@@ -409,8 +416,8 @@ pub mod pallet {
 				token_type,
 				collection_type,
 				royalty_fee,
+				mint_limit,
 			)?;
-			log::info!("NFT Class Id {:?}", class_id);
 			Ok(().into())
 		}
 
@@ -491,21 +498,18 @@ pub mod pallet {
 				let class_info = NftModule::<T>::classes((item.1).0).ok_or(Error::<T>::ClassIdNotFound)?;
 				let data = class_info.data;
 
-				match data.token_type {
-					TokenType::Transferable => {
-						let asset_info =
-							NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
-						ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
+				if data.token_type == TokenType::Transferable {
+					let asset_info =
+						NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
+					ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
 
-						NftModule::<T>::transfer(&owner, &item.0, item.1)?;
-						Self::deposit_event(Event::<T>::TransferedNft(
-							owner.clone(),
-							item.0.clone(),
-							(item.1).1.clone(),
-							item.1.clone(),
-						));
-					}
-					_ => (),
+					NftModule::<T>::transfer(&owner, &item.0, item.1)?;
+					Self::deposit_event(Event::<T>::TransferedNft(
+						owner.clone(),
+						item.0.clone(),
+						(item.1).1.clone(),
+						item.1.clone(),
+					));
 				};
 			}
 
@@ -652,6 +656,37 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::ForceTransferredNft(from, to, token_id, asset_id.clone()));
 
 			Ok(().into())
+		}
+
+		/// Set hard limit of minted tokens for a NFT class.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only class owner can make this call.
+		/// - `class_id`: the class ID of the collection
+		///
+		/// Emits `HardLimitSet` if successful.
+		#[pallet::weight(T::WeightInfo::set_hard_limit())]
+		pub fn set_hard_limit(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+			hard_limit: u32,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+			Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResultWithPostInfo {
+				let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+
+				ensure!(who.clone() == info.owner, Error::<T>::NoPermission);
+				ensure!(info.data.mint_limit == None, Error::<T>::HardLimitIsAlreadySet);
+				ensure!(
+					info.data.total_minted_tokens <= hard_limit,
+					Error::<T>::TotalMintedAssetsForClassExceededProposedLimit
+				);
+
+				info.data.mint_limit = Some(hard_limit);
+				Self::deposit_event(Event::<T>::HardLimitSet(class_id));
+
+				Ok(().into())
+			})
 		}
 
 		/// Withdraws funds from class fund
@@ -823,8 +858,9 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::ExceedMaximumMetadataLength
 		);
 
-		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
-		ensure!(sender.clone() == class_info.owner, Error::<T>::NoPermission);
+		// Update class total issuance
+		Self::update_class_total_issuance(&sender, &class_id, quantity)?;
+
 		let class_fund: T::AccountId = T::Treasury::get().into_account();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
@@ -853,8 +889,7 @@ impl<T: Config> Pallet<T> {
 			quantity,
 			last_token_id,
 		));
-		log::info!("Successfully minted NFT with token id {:?}", last_token_id);
-		log::info!("Successfully minted NFT with class id {:?}", class_id);
+
 		Ok((new_asset_ids, last_token_id))
 	}
 
@@ -867,6 +902,7 @@ impl<T: Config> Pallet<T> {
 		token_type: TokenType,
 		collection_type: CollectionType,
 		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
 	) -> Result<<T as orml_nft::Config>::ClassId, DispatchError> {
 		ensure!(
 			metadata.len() as u32 <= T::MaxMetadata::get(),
@@ -898,6 +934,8 @@ impl<T: Config> Pallet<T> {
 			attributes,
 			is_locked: false,
 			royalty_fee,
+			mint_limit,
+			total_minted_tokens: 0u32,
 		};
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
@@ -914,6 +952,35 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	/// Update total minted tokens for a class
+	fn update_class_total_issuance(sender: &T::AccountId, class_id: &ClassIdOf<T>, quantity: u32) -> DispatchResult {
+		// update class total issuance
+		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
+			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+			ensure!(sender.clone() == info.owner, Error::<T>::NoPermission);
+			match info.data.mint_limit {
+				Some(l) => {
+					ensure!(
+						l >= quantity + info.data.total_minted_tokens,
+						Error::<T>::ExceededMintingLimit
+					);
+				}
+				None => {}
+			}
+			info.data.total_minted_tokens += quantity;
+			Ok(())
+		})
+	}
+
+	/// Find total amount of issued tokens for a class
+	fn get_class_token_amount(class_id: &ClassIdOf<T>) -> u32 {
+		let mut total_minted_tokens = 0u32;
+		for _value in Tokens::<T>::iter_prefix_values(*class_id) {
+			total_minted_tokens += 1;
+		}
+		total_minted_tokens
+	}
+
 	/// Upgrading NFT class data
 	pub fn upgrade_class_data_v2() -> Weight {
 		log::info!("Start upgrading nft class data v2");
@@ -923,24 +990,28 @@ impl<T: Config> Pallet<T> {
 		let mut asset_by_owner_updates = 0;
 
 		Classes::<T>::translate(
-			|_k,
+			|k,
 			 class_info: ClassInfo<
 				T::TokenId,
 				T::AccountId,
-				NftClassDataV1<BalanceOf<T>>,
+				NftClassData<BalanceOf<T>>,
 				BoundedVec<u8, T::MaxClassMetadata>,
 			>| {
 				num_nft_classes += 1;
 				log::info!("Upgrading class data");
-				log::info!("Class id {:?}", _k);
+				log::info!("Class id {:?}", k);
+
+				let total_minted_tokens_for_a_class = Self::get_class_token_amount(&k);
 
 				let new_data = NftClassData {
 					deposit: class_info.data.deposit,
 					attributes: class_info.data.attributes,
 					token_type: class_info.data.token_type,
 					collection_type: class_info.data.collection_type,
-					is_locked: false,
-					royalty_fee: Perbill::from_percent(0u32),
+					is_locked: class_info.data.is_locked,
+					royalty_fee: class_info.data.royalty_fee,
+					mint_limit: None,
+					total_minted_tokens: total_minted_tokens_for_a_class,
 				};
 
 				let v: ClassInfoOf<T> = ClassInfo {
@@ -1022,6 +1093,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		token_type: TokenType,
 		collection_type: CollectionType,
 		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
 	) -> Result<ClassId, DispatchError> {
 		let class_id = Self::do_create_class(
 			sender,
@@ -1031,6 +1103,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			token_type,
 			collection_type,
 			royalty_fee,
+			mint_limit,
 		)?;
 		Ok(TryInto::<ClassId>::try_into(class_id).unwrap_or_default())
 	}
@@ -1097,7 +1170,11 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		let class_info = NftModule::<T>::classes(nft.0).ok_or(Error::<T>::ClassIdNotFound)?;
 		let data = class_info.data;
-		Ok(data.token_type.is_transferable())
+
+		let token = NftModule::<T>::tokens(nft.0, nft.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+		let token_data = token.data;
+
+		Ok(data.token_type.is_transferable() && !token_data.is_locked)
 	}
 
 	fn get_class_fund(class_id: &Self::ClassId) -> T::AccountId {
