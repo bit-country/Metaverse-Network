@@ -396,11 +396,8 @@ pub mod pallet {
 			);
 
 			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
-				}
-				_ => {}
+			if let ListingLevel::Local(metaverse_id) = listing_level {
+				listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
 			}
 
 			Self::create_auction(
@@ -815,16 +812,13 @@ pub mod pallet {
 					ensure!(is_transferable, Error::<T>::NoPermissionToCreateAuction);
 
 					// Ensure NFT authorised to sell
-					match listing_level {
-						ListingLevel::Local(metaverse_id) => {
-							ensure!(
-								MetaverseCollection::<T>::contains_key(metaverse_id, class_id)
-									|| T::MetaverseInfoSource::check_ownership(&recipient, &metaverse_id)
-									|| T::MetaverseInfoSource::check_if_metaverse_estate(metaverse_id, &class_id)?,
-								Error::<T>::NoPermissionToCreateAuction
-							);
-						}
-						_ => {}
+					if let ListingLevel::Local(metaverse_id) = listing_level {
+						ensure!(
+							MetaverseCollection::<T>::contains_key(metaverse_id, class_id)
+								|| T::MetaverseInfoSource::check_ownership(&recipient, &metaverse_id)
+								|| T::MetaverseInfoSource::check_if_metaverse_estate(metaverse_id, &class_id)?,
+							Error::<T>::NoPermissionToCreateAuction
+						);
 					}
 
 					// Ensure auction end time below limit
@@ -867,8 +861,6 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
-					let start_time = <system::Pallet<T>>::block_number();
-					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get();
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
 					// Reserve network deposit fee
