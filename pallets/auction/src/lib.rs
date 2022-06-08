@@ -451,11 +451,8 @@ pub mod pallet {
 			);
 
 			let mut listing_fee: Perbill = Perbill::from_percent(0u32);
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
-				}
-				_ => {}
+			if let ListingLevel::Local(metaverse_id) = listing_level {
+				listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
 			}
 
 			Self::create_auction(
@@ -1436,27 +1433,24 @@ pub mod pallet {
 			listing_level: ListingLevel<T::AccountId>,
 			listing_fee: Perbill,
 		) -> DispatchResult {
-			match listing_level {
-				ListingLevel::Local(metaverse_id) => {
-					let metaverse_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
-					let listing_fee_amount = listing_fee * *high_bid_price;
-					if social_currency_id == FungibleTokenId::NativeToken(0) {
-						<T as Config>::Currency::transfer(
-							&high_bidder,
-							&metaverse_fund,
-							listing_fee_amount,
-							ExistenceRequirement::KeepAlive,
-						)?;
-					} else {
-						T::FungibleTokenCurrency::transfer(
-							social_currency_id.clone(),
-							&high_bidder,
-							&metaverse_fund,
-							listing_fee_amount.saturated_into(),
-						)?;
-					}
+			if let ListingLevel::Local(metaverse_id) = listing_level {
+				let metaverse_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
+				let listing_fee_amount = listing_fee * *high_bid_price;
+				if social_currency_id == FungibleTokenId::NativeToken(0) {
+					<T as Config>::Currency::transfer(
+						&high_bidder,
+						&metaverse_fund,
+						listing_fee_amount,
+						ExistenceRequirement::KeepAlive,
+					)?;
+				} else {
+					T::FungibleTokenCurrency::transfer(
+						social_currency_id.clone(),
+						&high_bidder,
+						&metaverse_fund,
+						listing_fee_amount.saturated_into(),
+					)?;
 				}
-				_ => {}
 			}
 			Ok(())
 		}
@@ -1566,20 +1560,13 @@ pub mod pallet {
 			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
 				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
-				match auction_item.clone().listing_level {
-					ListingLevel::NetworkSpot(allowed_bidders) => {
-						ensure!(allowed_bidders.contains(&new_bidder), Error::<T>::BidIsNotAccepted);
-					}
-					_ => {}
-				}
-
 				let last_bid_price = last_bid.clone().map_or(Zero::zero(), |(_, price)| price); // get last bid price
 				let last_bidder = last_bid.as_ref().map(|(who, _)| who);
 
 				if let Some(last_bidder) = last_bidder {
 					//unlock reserve amount
 					if !last_bid_price.is_zero() {
-						//Unreserve balance of last bidder
+						// Unreserve balance of last bidder
 						<T as Config>::Currency::unreserve(&last_bidder, last_bid_price);
 					}
 				}
