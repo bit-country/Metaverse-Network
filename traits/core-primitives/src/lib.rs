@@ -93,6 +93,8 @@ pub struct NftClassData<Balance> {
 	pub collection_type: CollectionType,
 	pub is_locked: bool,
 	pub royalty_fee: Perbill,
+	pub mint_limit: Option<u32>,
+	pub total_minted_tokens: u32,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
@@ -112,6 +114,7 @@ pub struct NftAssetData<Balance> {
 	pub deposit: Balance,
 	pub attributes: Attributes,
 	pub is_locked: bool,
+	// pub issue_no: u32,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
@@ -251,6 +254,7 @@ pub trait NFTTrait<AccountId, Balance> {
 		token_type: TokenType,
 		collection_type: CollectionType,
 		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
 	) -> Result<ClassId, DispatchError>;
 	/// Mint NFT token
 	fn mint_token(

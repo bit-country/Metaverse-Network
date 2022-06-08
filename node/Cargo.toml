@@ -88,7 +88,6 @@ node-primitives = { git = "https://github.com/paritytech/substrate", branch = "p
 # Metaverse related dependencies
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
 metaverse-runtime = { version = "0.0.29", path = "../runtime/metaverse", optional = true }
-tewai-runtime = { version = "2.0.0-rc6", path = "../runtime/tewai", optional = true }
 pioneer-runtime = { version = "0.0.7", path = "../runtime/pioneer", optional = true }
 #pallet-evm = { path = "../pallets/evm" }
 
@@ -139,12 +138,6 @@ with-metaverse-runtime = [
     "fc-consensus",
     "pallet-ethereum",
     "pallet-contracts-rpc",
-]
-
-with-tewai-runtime = [
-    "tewai-runtime",
-    "pallet-im-online",
-    "sp-authority-discovery"
 ]
 
 with-pioneer-runtime = [

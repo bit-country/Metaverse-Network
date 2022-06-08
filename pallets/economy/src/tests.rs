@@ -40,7 +40,8 @@ fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, class_id: Clas
 		collection_id,
 		TokenType::Transferable,
 		CollectionType::Collectable,
-		Perbill::from_percent(0u32)
+		Perbill::from_percent(0u32),
+		None
 	));
 
 	assert_ok!(NFTModule::mint(owner.clone(), class_id, vec![1], test_attributes(1), 1));
