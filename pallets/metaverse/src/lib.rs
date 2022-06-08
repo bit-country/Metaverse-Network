@@ -248,7 +248,6 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let metaverse_id = Self::do_create_metaverse(&who, metadata)?;
 			Self::deposit_event(Event::<T>::NewMetaverseCreated(metaverse_id, who));
-			log::info!("New metaverse id {:?}", metaverse_id);
 			Ok(().into())
 		}
 
@@ -690,6 +689,7 @@ impl<T: Config> Pallet<T> {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(LAND_CLASS_ROYALTY_FEE),
+			None,
 		)
 	}
 
@@ -709,6 +709,7 @@ impl<T: Config> Pallet<T> {
 			TokenType::Transferable,
 			CollectionType::Collectable,
 			Perbill::from_percent(ESTATE_CLASS_ROYALTY_FEE),
+			None,
 		)
 	}
 

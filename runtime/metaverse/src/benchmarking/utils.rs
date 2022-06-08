@@ -46,6 +46,7 @@ pub fn mint_NFT(caller: &AccountId, class_id: u32) {
 		TokenType::Transferable,
 		CollectionType::Collectable,
 		Perbill::from_percent(0u32),
+		None,
 	));
 	assert_ok!(Nft::mint(
 		RawOrigin::Signed(caller.clone()).into(),
