@@ -1,19 +1,25 @@
 #![cfg(feature = "runtime-benchmarks")]
-use super::utils::{
-	create_land_and_estate_group, create_metaverse_for_account, dollar, get_estate_info,
-	issue_new_undeployed_land_block, mint_NFT, set_balance,
-};
-use crate::{Call, Currencies, Estate, Event, Metaverse, MinimumStake, Runtime, System};
-use estate::{MintingRateConfig, MintingRateInfo, Round};
+
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::traits::{Currency, Get, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
+use sp_runtime::traits::{AccountIdConversion, Lookup, StaticLookup, UniqueSaturatedInto};
+
+use estate::{MintingRateConfig, MintingRateInfo, Round};
 use primitives::estate::{EstateInfo, OwnerId};
 use primitives::staking::RoundInfo;
 use primitives::UndeployedLandBlockType;
 use primitives::{AccountId, Balance, FungibleTokenId, TokenId};
-use sp_runtime::traits::{AccountIdConversion, Lookup, StaticLookup, UniqueSaturatedInto};
+
+use crate::{
+	benchmarking::utils::create_land_and_estate_group, Call, Currencies, Estate, Event, Metaverse, MinimumStake,
+	Runtime, System,
+};
+
+use super::utils::{
+	create_metaverse_for_account, dollar, get_estate_info, issue_new_undeployed_land_block, mint_NFT, set_balance,
+};
 
 //pub type AccountId = u128;
 pub type LandId = u64;
@@ -75,7 +81,6 @@ runtime_benchmarks! {
 		Estate::mint_land(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, COORDINATE_IN_1);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), METAVERSE_ID, COORDINATE_IN_1)
 	verify {
-		// TODO: issue with blow line
 		// assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), target.clone())
 	}
 
@@ -383,9 +388,11 @@ runtime_benchmarks! {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
-	use crate::benchmarking::utils::tests::new_test_ext;
 	use orml_benchmarking::impl_benchmark_test_suite;
+
+	use crate::benchmarking::utils::tests::new_test_ext;
+
+	use super::*;
 
 	impl_benchmark_test_suite!(new_test_ext(),);
 }

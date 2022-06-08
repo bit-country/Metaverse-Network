@@ -42,8 +42,8 @@ use pallet_nft::Pallet as NFTModule;
 use primitives::{continuum::MapTrait, estate::Estate, AuctionId, ItemId};
 pub use weights::WeightInfo;
 
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmarking;
+//#[cfg(feature = "runtime-benchmarks")]
+//pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
