@@ -93,6 +93,8 @@ pub struct NftClassDataV1<Balance> {
 	pub attributes: Attributes,
 	pub token_type: TokenType,
 	pub collection_type: CollectionType,
+	pub is_locked: bool,
+	pub royalty_fee: Perbill,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
@@ -102,7 +104,6 @@ pub struct NftAssetData<Balance> {
 	pub deposit: Balance,
 	pub attributes: Attributes,
 	pub is_locked: bool,
-	// pub issue_no: u32,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
