@@ -283,7 +283,7 @@ pub mod pallet {
 		/// Start new good neighbourhood protocol round
 		NewContinuumNeighbourHoodProtocolStarted(T::BlockNumber, SpotId),
 		/// Spot transferred
-		ContinuumSpotTransferred(T::AccountId, T::AccountId, SpotId),
+		ContinuumSpotTransferred(T::AccountId, T::AccountId, MapSpotId),
 		/// New max auction slot set
 		NewMaxAuctionSlotSet(u8),
 		/// Rotated new auction slot
@@ -725,8 +725,11 @@ impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
 			ensure!(from == treasury, Error::<T>::NoPermission);
 
 			let mut spot = maybe_spot.as_mut().ok_or(Error::<T>::MapSpotNotFound)?;
-			spot.owner = to.0;
+			spot.owner = to.clone().0;
 			spot.metaverse_id = Some(to.1);
+
+			Self::deposit_event(Event::<T>::ContinuumSpotTransferred(from, to.0, spot_id));
+
 			Ok(spot_id)
 		})
 	}

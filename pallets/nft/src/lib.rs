@@ -994,7 +994,7 @@ impl<T: Config> Pallet<T> {
 			 class_info: ClassInfo<
 				T::TokenId,
 				T::AccountId,
-				NftClassData<BalanceOf<T>>,
+				NftClassDataV1<BalanceOf<T>>,
 				BoundedVec<u8, T::MaxClassMetadata>,
 			>| {
 				num_nft_classes += 1;
@@ -1023,29 +1023,8 @@ impl<T: Config> Pallet<T> {
 				Some(v)
 			},
 		);
-		Tokens::<T>::translate(
-			|_k, _k2, token_info: TokenInfo<T::AccountId, NftAssetDataV1<BalanceOf<T>>, TokenMetadataOf<T>>| {
-				num_nft_tokens += 1;
-				log::info!("Upgrading existing token data to set is_locked");
-				log::info!("Token id {:?}", _k);
-
-				let new_data = NftAssetData {
-					deposit: token_info.data.deposit,
-					attributes: token_info.data.attributes,
-					is_locked: false,
-				};
-
-				let v: TokenInfoOf<T> = TokenInfo {
-					metadata: token_info.metadata,
-					owner: token_info.owner,
-					data: new_data,
-				};
-				Some(v)
-			},
-		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
-		log::info!("Tokens upgraded: {}", num_nft_tokens);
 		0
 	}
 }
