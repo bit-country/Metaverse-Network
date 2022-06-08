@@ -498,21 +498,18 @@ pub mod pallet {
 				let class_info = NftModule::<T>::classes((item.1).0).ok_or(Error::<T>::ClassIdNotFound)?;
 				let data = class_info.data;
 
-				match data.token_type {
-					TokenType::Transferable => {
-						let asset_info =
-							NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
-						ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
+				if data.token_type == TokenType::Transferable {
+					let asset_info =
+						NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
+					ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
 
-						NftModule::<T>::transfer(&owner, &item.0, item.1)?;
-						Self::deposit_event(Event::<T>::TransferedNft(
-							owner.clone(),
-							item.0.clone(),
-							(item.1).1.clone(),
-							item.1.clone(),
-						));
-					}
-					_ => (),
+					NftModule::<T>::transfer(&owner, &item.0, item.1)?;
+					Self::deposit_event(Event::<T>::TransferedNft(
+						owner.clone(),
+						item.0.clone(),
+						(item.1).1.clone(),
+						item.1.clone(),
+					));
 				};
 			}
 
@@ -1173,7 +1170,11 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		let class_info = NftModule::<T>::classes(nft.0).ok_or(Error::<T>::ClassIdNotFound)?;
 		let data = class_info.data;
-		Ok(data.token_type.is_transferable())
+
+		let token = NftModule::<T>::tokens(nft.0, nft.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+		let token_data = token.data;
+
+		Ok(data.token_type.is_transferable() && !token_data.is_locked)
 	}
 
 	fn get_class_fund(class_id: &Self::ClassId) -> T::AccountId {

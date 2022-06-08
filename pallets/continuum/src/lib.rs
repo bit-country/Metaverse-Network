@@ -546,23 +546,20 @@ impl<T: Config> Pallet<T> {
 
 		let active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id);
 
-		match active_auction_slots {
-			Some(s) => {
-				// Move current auctions slot to start GN Protocol
-				if s.len() > 0 {
-					let started_gnp_auction_slots: Vec<_> = s
-						.iter()
-						.map(|x| {
-							let mut t = x.clone();
-							t.status = ContinuumAuctionSlotStatus::GNPStarted;
-							t
-						})
-						.collect();
-					// Move active auction slots to GNP
-					GNPSlots::<T>::insert(now, started_gnp_auction_slots.clone());
-				}
+		if let Some(s) = active_auction_slots {
+			// Move current auctions slot to start GN Protocol
+			if s.len() > 0 {
+				let started_gnp_auction_slots: Vec<_> = s
+					.iter()
+					.map(|x| {
+						let mut t = x.clone();
+						t.status = ContinuumAuctionSlotStatus::GNPStarted;
+						t
+					})
+					.collect();
+				// Move active auction slots to GNP
+				GNPSlots::<T>::insert(now, started_gnp_auction_slots.clone());
 			}
-			None => {}
 		}
 		// Remove the old active auction slots
 		ActiveAuctionSlots::<T>::remove(&current_active_session_id);
@@ -608,7 +605,7 @@ impl<T: Config> Pallet<T> {
 		let mut new_valid_auction_slot: Vec<AuctionSlot<T::BlockNumber, T::AccountId>> = Vec::new();
 		let highest_ranked_sorted: Vec<SpotEOI<T::AccountId>> = current_eoi_slots
 			.iter()
-			.map(|x| x.clone())
+			.cloned()
 			.take(desired_slots as usize)
 			.collect::<Vec<SpotEOI<T::AccountId>>>();
 		// Add highest ranked EOI to New Active Auction slot
