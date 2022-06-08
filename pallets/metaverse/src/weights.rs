@@ -43,7 +43,7 @@ use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for metaverse.
-pub trait WeightInfo {	fn create_metaverse() -> Weight;	fn transfer_metaverse() -> Weight;	fn freeze_metaverse() -> Weight;	fn unfreeze_metaverse() -> Weight;	fn destroy_metaverse() -> Weight;	fn register_metaverse() -> Weight;	fn stake() -> Weight;	fn unstake_and_withdraw() -> Weight;	fn update_metaverse_listing_fee() -> Weight;	fn withdraw_funds_from_metaverse_fund() -> Weight;}
+pub trait WeightInfo {	fn create_metaverse() -> Weight;	fn transfer_metaverse() -> Weight;	fn freeze_metaverse() -> Weight;	fn unfreeze_metaverse() -> Weight;	fn destroy_metaverse() -> Weight;	fn register_metaverse() -> Weight;	fn stake() -> Weight;	fn unstake_and_withdraw() -> Weight;	fn update_metaverse_listing_fee() -> Weight;	fn withdraw_from_metaverse_fund() -> Weight;}
 
 /// Weights for metaverse using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
@@ -93,7 +93,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn withdraw_funds_from_metaverse_fund() -> Weight {
+	fn withdraw_from_metaverse_fund() -> Weight {
 		(117_100_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
@@ -110,5 +110,5 @@ impl WeightInfo for () {	fn create_metaverse() -> Weight {
 		(80_200_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn stake() -> Weight {
 		(116_300_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(7 as Weight))			.saturating_add(RocksDbWeight::get().writes(5 as Weight))	}	fn unstake_and_withdraw() -> Weight {
 		(108_100_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(7 as Weight))			.saturating_add(RocksDbWeight::get().writes(5 as Weight))	}	fn update_metaverse_listing_fee() -> Weight {
-		(47_500_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn withdraw_funds_from_metaverse_fund() -> Weight {
+		(47_500_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn withdraw_from_metaverse_fund() -> Weight {
 		(117_100_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}}

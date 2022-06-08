@@ -685,17 +685,14 @@ pub mod pallet {
 		/// - `metaverse_id`: the meatverse ID of the local treasury which funds will be withdrawn
 		///
 		/// Emits `MetaverseTreasuryFundsWithdrawn` if successful.
-		#[pallet::weight(T::WeightInfo::withdraw_funds_from_metaverse_fund())]
-		pub fn withdraw_funds_from_metaverse_fund(
+		#[pallet::weight(T::WeightInfo::withdraw_from_metaverse_fund())]
+		pub fn withdraw_from_metaverse_fund(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			ensure!(
-				Self::get_metaverse_owner(who.clone(), metaverse_id) == Some(()),
-				Error::<T>::NoPermission
-			);
+			ensure!(Self::check_ownership(&who, &metaverse_id), Error::<T>::NoPermission);
 			let metaverse_fund_account = T::MetaverseTreasury::get().into_sub_account(metaverse_id);
 
 			// Balance minus existential deposit

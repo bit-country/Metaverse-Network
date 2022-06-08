@@ -202,7 +202,7 @@ runtime_benchmarks! {
 		}
 	}
 
-	withdraw_funds_from_metaverse_fund{
+	withdraw_from_metaverse_fund{
 		let caller: AccountId = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 		create_land_and_estate_group();

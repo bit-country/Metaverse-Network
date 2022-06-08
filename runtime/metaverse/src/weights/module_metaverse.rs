@@ -91,7 +91,7 @@ impl<T: frame_system::Config> metaverse::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
-	fn withdraw_funds_from_metaverse_fund() -> Weight {
+	fn withdraw_from_metaverse_fund() -> Weight {
 		(117_100_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))

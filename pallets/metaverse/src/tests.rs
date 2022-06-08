@@ -400,19 +400,19 @@ fn update_metaverse_listing_fee_should_fail_if_not_metaverse_owner() {
 fn do_withdraw_funds_from_metaverse_treasury_fund_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			MetaverseModule::withdraw_funds_from_metaverse_fund(Origin::signed(ALICE), METAVERSE_ID),
+			MetaverseModule::withdraw_from_metaverse_fund(Origin::signed(ALICE), METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
 		assert_noop!(
-			MetaverseModule::withdraw_funds_from_metaverse_fund(Origin::signed(BOB), METAVERSE_ID),
+			MetaverseModule::withdraw_from_metaverse_fund(Origin::signed(BOB), METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
 	})
 }
 
 #[test]
-fn do_withdraw_funds_from_metaverse_fund_should_work() {
+fn do_withdraw_from_metaverse_fund_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
@@ -424,7 +424,7 @@ fn do_withdraw_funds_from_metaverse_fund_should_work() {
 		));
 		assert_eq!(free_native_balance(ALICE), 9999999999999999899);
 		assert_eq!(free_native_balance(metaverse_fund), 101);
-		assert_ok!(MetaverseModule::withdraw_funds_from_metaverse_fund(
+		assert_ok!(MetaverseModule::withdraw_from_metaverse_fund(
 			origin.clone(),
 			METAVERSE_ID
 		));
