@@ -809,11 +809,9 @@ pub mod pallet {
 				ItemId::NFT(class_id, token_id) => {
 					// Check ownership
 					let is_owner = T::NFTHandler::check_ownership(&recipient, &(class_id, token_id))?;
-
 					ensure!(is_owner, Error::<T>::NoPermissionToCreateAuction);
 
 					let is_transferable = T::NFTHandler::is_transferable(&(class_id, token_id))?;
-
 					ensure!(is_transferable, Error::<T>::NoPermissionToCreateAuction);
 
 					// Ensure NFT authorised to sell
@@ -1000,9 +998,12 @@ pub mod pallet {
 						ensure!(is_owner, Error::<T>::NoPermissionToCreateAuction);
 
 						let is_transferable = T::NFTHandler::is_transferable(&(item.0, item.1))?;
-
 						ensure!(is_transferable, Error::<T>::NoPermissionToCreateAuction);
 
+						ensure!(
+							Self::items_in_auction(ItemId::NFT(item.0, item.1)) == None,
+							Error::<T>::ItemAlreadyInAuction
+						);
 						// Lock NFT
 						T::NFTHandler::set_lock_nft((item.0, item.1), true)?
 					}
