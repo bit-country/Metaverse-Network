@@ -576,7 +576,7 @@ pub mod pallet {
 										&high_bid_price,
 										&auction_item.recipient,
 										FungibleTokenId::NativeToken(0),
-									);
+									)?;
 
 									// Transfer asset from asset owner to high bidder
 									// Check asset type and handle internal logic
@@ -1301,14 +1301,14 @@ pub mod pallet {
 								FungibleTokenId::NativeToken(0),
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee.clone(),
-							);
+							)?;
 
 							Self::collect_royalty_fee(
 								&value,
 								&auction_item.recipient,
 								&(class_id, token_id),
 								FungibleTokenId::NativeToken(0),
-							);
+							)?;
 
 							T::NFTHandler::set_lock_nft((class_id, token_id), false);
 
@@ -1366,7 +1366,7 @@ pub mod pallet {
 								FungibleTokenId::NativeToken(0),
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee,
-							);
+							)?;
 
 							for token in tokens {
 								// Collect royalty fee of each nft sold in the bundle
@@ -1375,7 +1375,7 @@ pub mod pallet {
 									&auction_item.recipient,
 									&(token.0, token.1),
 									FungibleTokenId::NativeToken(0),
-								);
+								)?;
 								T::NFTHandler::set_lock_nft((token.0, token.1), false);
 								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1));
 							}
