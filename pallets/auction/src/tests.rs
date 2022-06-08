@@ -112,6 +112,51 @@ fn create_new_auction_bundle_work() {
 
 #[test]
 // Creating auction should work
+fn create_new_auction_bundle_from_listed_nft_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+
+		let tokens: Vec<(u32, u64, Balance)> = vec![(0, 0, 30), (0, 1, 30)];
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 1),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32)
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+
+		assert_ne!(
+			AuctionModule::create_auction(
+				AuctionType::Auction,
+				ItemId::Bundle(tokens.clone()),
+				None,
+				ALICE,
+				100,
+				0,
+				ListingLevel::Global,
+				Perbill::from_percent(0u32)
+			),
+			Ok((0))
+		);
+	});
+}
+
+#[test]
+// Creating auction should work
 fn create_new_buy_now_bundle_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
@@ -1028,6 +1073,7 @@ fn invalid_auction_type() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = Origin::signed(BOB);
 		init_test_nft(owner.clone());
+		init_test_nft(owner.clone());
 		let participant = Origin::signed(ALICE);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -1043,10 +1089,10 @@ fn invalid_auction_type() {
 			AuctionModule::bid(participant.clone(), 0, 200),
 			Error::<Runtime>::InvalidAuctionType
 		);
-		AuctionModule::remove_auction(0, ItemId::NFT(0, 0));
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			ItemId::NFT(0, 0),
+			ItemId::NFT(0, 1),
 			None,
 			BOB,
 			150,

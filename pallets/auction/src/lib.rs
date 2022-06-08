@@ -576,7 +576,7 @@ pub mod pallet {
 										&high_bid_price,
 										&auction_item.recipient,
 										FungibleTokenId::NativeToken(0),
-									)?;
+									);
 
 									// Transfer asset from asset owner to high bidder
 									// Check asset type and handle internal logic
@@ -810,11 +810,11 @@ pub mod pallet {
 					// Check ownership
 					let is_owner = T::NFTHandler::check_ownership(&recipient, &(class_id, token_id))?;
 
-					ensure!(is_owner == true, Error::<T>::NoPermissionToCreateAuction);
+					ensure!(is_owner, Error::<T>::NoPermissionToCreateAuction);
 
 					let is_transferable = T::NFTHandler::is_transferable(&(class_id, token_id))?;
 
-					ensure!(is_transferable == true, Error::<T>::NoPermissionToCreateAuction);
+					ensure!(is_transferable, Error::<T>::NoPermissionToCreateAuction);
 
 					// Ensure NFT authorised to sell
 					match listing_level {
@@ -997,10 +997,11 @@ pub mod pallet {
 					for item in tokens {
 						// Check ownership
 						let is_owner = T::NFTHandler::check_ownership(&recipient, &(item.0, item.1))?;
-						ensure!(is_owner == true, Error::<T>::NoPermissionToCreateAuction);
+						ensure!(is_owner, Error::<T>::NoPermissionToCreateAuction);
 
 						let is_transferable = T::NFTHandler::is_transferable(&(item.0, item.1))?;
-						ensure!(is_transferable == true, Error::<T>::NoPermissionToCreateAuction);
+
+						ensure!(is_transferable, Error::<T>::NoPermissionToCreateAuction);
 
 						// Lock NFT
 						T::NFTHandler::set_lock_nft((item.0, item.1), true)?
@@ -1376,8 +1377,8 @@ pub mod pallet {
 									&(token.0, token.1),
 									FungibleTokenId::NativeToken(0),
 								)?;
-								T::NFTHandler::set_lock_nft((token.0, token.1), false);
-								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1));
+								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
+								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1))?;
 							}
 
 							Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
