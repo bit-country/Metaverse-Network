@@ -1,4 +1,4 @@
-[package]
+[package]erde = { version = "1.0.136", optional = true, features = ["derive"] }
 name = "pioneer-runtime"
 description = "Pioneer Runtime"
 version = "0.0.7"
@@ -12,7 +12,7 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 [dependencies]
 codec = { package = 'parity-scale-codec', version = '2.0.0', default-features = false, features = ['derive'] }
 log = { version = "0.4.14", default-features = false }
-serde = { version = '1.0.136', optional = true, features = ['derive'] }
+serde = { version = '1.0.137', optional = true, features = ['derive'] }
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 smallvec = "1.6.1"
 hex-literal = { version = "0.3.3" }
