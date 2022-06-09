@@ -1584,7 +1584,8 @@ pub mod pallet {
 						let new_price: BalanceOf<T> = Perbill::from_rational(token.2, total_amount) * new_bid_price;
 						new_bundle.push((token.0, token.1, new_price))
 					}
-
+					ItemsInAuction::<T>::remove(ItemId::Bundle(tokens.clone()));
+					ItemsInAuction::<T>::insert(ItemId::Bundle(new_bundle.clone()), true);
 					auction_item.item_id = ItemId::Bundle(new_bundle);
 				}
 
