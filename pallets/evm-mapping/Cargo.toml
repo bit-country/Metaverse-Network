@@ -17,14 +17,14 @@ sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
 
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 [dev-dependencies]
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
 
 [features]
 default = ["std"]

@@ -64,19 +64,19 @@ frame-system-benchmarking = { default-features = false, git = "https://github.co
 
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 # EVM pallets
-pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.17", default-features = false }
-pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.17", default-features = false }
-pallet-base-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.17", default-features = false }
-fp-self-contained = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.17", default-features = false }
-fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.17", default-features = false }
+pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", default-features = false }
+pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", default-features = false }
+pallet-base-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", default-features = false }
+fp-self-contained = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", default-features = false }
+fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", default-features = false }
 
 # external crates - orml packages
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-benchmarking = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false, optional = true }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-benchmarking = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false, optional = true }
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }

@@ -1,4 +1,4 @@
-[package]erde = { version = "1.0.136", optional = true, features = ["derive"] }
+[package]
 name = "pioneer-runtime"
 description = "Pioneer Runtime"
 version = "0.0.7"
@@ -19,14 +19,14 @@ hex-literal = { version = "0.3.3" }
 #evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
 
 # external crates - orml packages
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-unknown-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-unknown-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
 
 # Metaverse Dependencies
 primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }

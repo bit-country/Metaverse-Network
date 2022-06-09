@@ -36,10 +36,10 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch =
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 
 # Orml packages
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 pallet-nft = { package = "pallet-nft", path = "../nft", default-features = false }
 pallet-mining = { package = "pallet-mining", path = "../mining", default-features = false }

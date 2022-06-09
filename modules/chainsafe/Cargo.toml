@@ -27,7 +27,7 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 
 chainbridge = { package = "chainbridge", git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse" }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
 
 [dev-dependencies]
 blake2-rfc = { version = "0.2.18", default-features = false }
