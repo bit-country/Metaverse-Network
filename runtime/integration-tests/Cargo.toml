@@ -31,14 +31,14 @@ cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branc
 parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
 
 # Orml pallets
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
 
 # Misc
-xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "24ccbce563d1f99019b4cdfa2f3af4e99bac0dfc" }
+xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "5a04d6286ee9082d4b7433541e48508f8b65616b" }
 
 # Local
 metaverse-runtime = { path = "../metaverse" }

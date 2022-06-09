@@ -18,7 +18,7 @@ codec = { package = "parity-scale-codec", version = "3.0.0", default-features = 
 serde = { version = "1.0.137", optional = true, features = ["derive"] }
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 #evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
-hex-literal = { version = "0.3.1" }
+hex-literal = { version = "0.3.4" }
 
 pallet-aura = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
@@ -105,7 +105,7 @@ pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate",
 pallet-contracts-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.22" }
 
 [build-dependencies]
-substrate-wasm-builder = { version = "5.0.0-dev", git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
+substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }
 
 [features]
 default = ["std"]

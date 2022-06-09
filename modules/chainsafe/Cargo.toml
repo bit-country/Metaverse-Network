@@ -12,7 +12,7 @@ version = '0.0.1'
 # third-party dependencies
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
 serde = { version = "1.0.137", optional = true }
-hex = { version = "0.4", default-features = false }
+hex = { version = "0.3.4", default-features = false }
 
 # primitives
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", default-features = false }

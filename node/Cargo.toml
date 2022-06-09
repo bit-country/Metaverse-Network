@@ -20,11 +20,11 @@ name = "metaverse-node"
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 serde = { version = "1.0.137", features = ["derive"] }
 futures = { version = "0.3.9", features = ["compat"] }
-hex-literal = "0.3.1"
+hex-literal = "0.3.4"
 log = "0.4.8"
 rand = "0.7.2"
 clap = { version = "3.0", features = ["derive"] }
-parking_lot = "0.12.0"
+parking_lot = "0.12.1"
 async-trait = "0.1"
 
 sc-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
@@ -122,7 +122,7 @@ pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "
 pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", optional = true }
 
 [build-dependencies]
-substrate-build-script-utils = { version = '3.0.0', git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
+substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 
 [features]
 default = ["with-metaverse-runtime"]
