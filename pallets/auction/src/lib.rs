@@ -1574,6 +1574,21 @@ pub mod pallet {
 				// Lock fund of new bidder
 				// Reserve balance
 				<T as Config>::Currency::reserve(&new_bidder, new_bid_price)?;
+
+				// Update new bid price for individual item on bundle
+				if let ItemId::Bundle(tokens) = &auction_item.item_id {
+					let mut new_bundle: Vec<(ClassId, TokenId, BalanceOf<T>)> = Vec::new();
+					let total_amount = auction_item.amount.clone();
+
+					for token in tokens {
+						let new_price: BalanceOf<T> = Perbill::from_rational(token.2, total_amount) * new_bid_price;
+						new_bundle.push((token.0, token.1, new_price))
+					}
+					ItemsInAuction::<T>::remove(ItemId::Bundle(tokens.clone()));
+					ItemsInAuction::<T>::insert(ItemId::Bundle(new_bundle.clone()), true);
+					auction_item.item_id = ItemId::Bundle(new_bundle);
+				}
+
 				auction_item.amount = new_bid_price.clone();
 
 				Ok(())
