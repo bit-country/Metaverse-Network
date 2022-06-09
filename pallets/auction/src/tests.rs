@@ -1256,6 +1256,16 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 			Some(true)
 		);
 		assert_ok!(AuctionModule::bid(bidder, 0, 400));
+		// asset is not longer in auction
+		assert_eq!(AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())), None);
+		// 400 will split to 2 nfts according to percentage
+		let updated_token_with_price = vec![(0, 0, 160), (0, 1, 240)];
+		// check latest updated item_id
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::Bundle(updated_token_with_price)),
+			Some(true)
+		);
+
 		// Free balance of Alice is 99994 - 1 (network reserve fee)
 		assert_eq!(Balances::free_balance(ALICE), 99993);
 		run_to_block(102);
@@ -1270,8 +1280,6 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 		// Cost breakdown 400 - 4 (royalty) - 4 (1% network fee) - 40 (listing fee) = 352
 		// Free balance of Alice is 99994 + 352 = 100346
 		assert_eq!(Balances::free_balance(ALICE), 100346);
-		// asset is not longer in auction
-		assert_eq!(AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())), None);
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 400));
 		assert_eq!(last_event(), event);
