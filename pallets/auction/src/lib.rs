@@ -34,6 +34,7 @@ use sp_runtime::{
 	traits::{CheckedDiv, One, Saturating, Zero},
 	DispatchError, DispatchResult, Perbill,
 };
+use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
 use core_primitives::UndeployedLandBlocksTrait;
