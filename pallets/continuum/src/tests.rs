@@ -95,7 +95,7 @@ fn create_buy_now_for_continuum_spot_should_fail_when_no_root() {
 			TokenType::Transferable
 		));
 		assert_noop!(
-			ContinuumModule::create_new_buy_now(
+			ContinuumModule::create_new_auction(
 				Origin::signed(ALICE),
 				CONTINUUM_MAP_COORDINATE,
 				AuctionType::BuyNow,
@@ -120,7 +120,7 @@ fn create_buy_now_continuum_should_work() {
 			TokenType::Transferable
 		));
 
-		assert_ok!(ContinuumModule::create_new_buy_now(
+		assert_ok!(ContinuumModule::create_new_auction(
 			root.clone(),
 			CONTINUUM_MAP_COORDINATE,
 			AuctionType::BuyNow,
@@ -143,7 +143,7 @@ fn create_auction_continuum_should_work() {
 			TokenType::Transferable
 		));
 
-		assert_ok!(ContinuumModule::create_new_buy_now(
+		assert_ok!(ContinuumModule::create_new_auction(
 			root.clone(),
 			CONTINUUM_MAP_COORDINATE,
 			AuctionType::Auction,
@@ -166,7 +166,7 @@ fn buy_now_continuum_should_work() {
 			TokenType::Transferable
 		));
 
-		assert_ok!(ContinuumModule::create_new_buy_now(
+		assert_ok!(ContinuumModule::create_new_auction(
 			root.clone(),
 			CONTINUUM_MAP_COORDINATE,
 			AuctionType::BuyNow,
@@ -180,5 +180,65 @@ fn buy_now_continuum_should_work() {
 			100,
 			ALICE_METAVERSE_ID
 		));
+	})
+}
+
+#[test]
+fn buy_now_continuum_should_fail_if_already_got_spot() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		MetaverseMap::<Runtime>::insert(ALICE_METAVERSE_ID, (0, 1));
+
+		// Enable Allow BuyNow
+		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::BuyNow,
+			100,
+			10
+		));
+
+		assert_noop!(
+			ContinuumModule::buy_map_spot(Origin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
+			Error::<Runtime>::MetaverseAlreadyGotSpot
+		);
+	})
+}
+
+#[test]
+fn bid_auction_continuum_should_fail_if_already_got_spot() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		MetaverseMap::<Runtime>::insert(ALICE_METAVERSE_ID, (0, 1));
+
+		// Enable Allow BuyNow
+		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::Auction,
+			100,
+			10
+		));
+
+		assert_noop!(
+			ContinuumModule::bid_map_spot(Origin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
+			Error::<Runtime>::MetaverseAlreadyGotSpot
+		);
 	})
 }
