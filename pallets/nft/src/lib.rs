@@ -498,21 +498,18 @@ pub mod pallet {
 				let class_info = NftModule::<T>::classes((item.1).0).ok_or(Error::<T>::ClassIdNotFound)?;
 				let data = class_info.data;
 
-				match data.token_type {
-					TokenType::Transferable => {
-						let asset_info =
-							NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
-						ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
+				if data.token_type == TokenType::Transferable {
+					let asset_info =
+						NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
+					ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
 
-						NftModule::<T>::transfer(&owner, &item.0, item.1)?;
-						Self::deposit_event(Event::<T>::TransferedNft(
-							owner.clone(),
-							item.0.clone(),
-							(item.1).1.clone(),
-							item.1.clone(),
-						));
-					}
-					_ => (),
+					NftModule::<T>::transfer(&owner, &item.0, item.1)?;
+					Self::deposit_event(Event::<T>::TransferedNft(
+						owner.clone(),
+						item.0.clone(),
+						(item.1).1.clone(),
+						item.1.clone(),
+					));
 				};
 			}
 
@@ -997,7 +994,7 @@ impl<T: Config> Pallet<T> {
 			 class_info: ClassInfo<
 				T::TokenId,
 				T::AccountId,
-				NftClassData<BalanceOf<T>>,
+				NftClassDataV1<BalanceOf<T>>,
 				BoundedVec<u8, T::MaxClassMetadata>,
 			>| {
 				num_nft_classes += 1;
@@ -1026,29 +1023,8 @@ impl<T: Config> Pallet<T> {
 				Some(v)
 			},
 		);
-		Tokens::<T>::translate(
-			|_k, _k2, token_info: TokenInfo<T::AccountId, NftAssetDataV1<BalanceOf<T>>, TokenMetadataOf<T>>| {
-				num_nft_tokens += 1;
-				log::info!("Upgrading existing token data to set is_locked");
-				log::info!("Token id {:?}", _k);
-
-				let new_data = NftAssetData {
-					deposit: token_info.data.deposit,
-					attributes: token_info.data.attributes,
-					is_locked: false,
-				};
-
-				let v: TokenInfoOf<T> = TokenInfo {
-					metadata: token_info.metadata,
-					owner: token_info.owner,
-					data: new_data,
-				};
-				Some(v)
-			},
-		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
-		log::info!("Tokens upgraded: {}", num_nft_tokens);
 		0
 	}
 }
@@ -1173,7 +1149,11 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		let class_info = NftModule::<T>::classes(nft.0).ok_or(Error::<T>::ClassIdNotFound)?;
 		let data = class_info.data;
-		Ok(data.token_type.is_transferable())
+
+		let token = NftModule::<T>::tokens(nft.0, nft.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+		let token_data = token.data;
+
+		Ok(data.token_type.is_transferable() && !token_data.is_locked)
 	}
 
 	fn get_class_fund(class_id: &Self::ClassId) -> T::AccountId {

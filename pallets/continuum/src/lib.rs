@@ -209,6 +209,10 @@ pub mod pallet {
 	#[pallet::getter(fn get_map_spot_owner)]
 	pub type MapSpotOwner<T: Config> = StorageMap<_, Twox64Concat, MapSpotId, T::AccountId>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn get_map_metaverse)]
+	pub type MetaverseMap<T: Config> = StorageMap<_, Twox64Concat, MetaverseId, MapSpotId>;
+
 	/// Continuum Spot Position
 	#[pallet::storage]
 	#[pallet::getter(fn get_continuum_position)]
@@ -283,7 +287,7 @@ pub mod pallet {
 		/// Start new good neighbourhood protocol round
 		NewContinuumNeighbourHoodProtocolStarted(T::BlockNumber, SpotId),
 		/// Spot transferred
-		ContinuumSpotTransferred(T::AccountId, T::AccountId, SpotId),
+		ContinuumSpotTransferred(T::AccountId, T::AccountId, MapSpotId),
 		/// New max auction slot set
 		NewMaxAuctionSlotSet(u8),
 		/// Rotated new auction slot
@@ -331,9 +335,11 @@ pub mod pallet {
 		/// Continuum Spot is in auction
 		SpotIsInAuction,
 		/// Map slot already exists
-		MapSlotAlreadyExits,
+		MapSpotAlreadyExits,
 		/// You are not the owner of the metaverse
 		NotMetaverseOwner,
+		/// Metaverse already secured the spot
+		MetaverseAlreadyGotSpot,
 		/// Auction is not for map spot or does not exists
 		InvalidSpotAuction,
 	}
@@ -347,7 +353,7 @@ pub mod pallet {
 
 			ensure!(
 				!MapSpots::<T>::contains_key(&coordinate),
-				Error::<T>::MapSlotAlreadyExits
+				Error::<T>::MapSpotAlreadyExits
 			);
 
 			let max_bound = MaxBound::<T>::get();
@@ -364,16 +370,15 @@ pub mod pallet {
 			};
 
 			MapSpots::<T>::insert(coordinate.clone(), map_slot);
-			MapSpotOwner::<T>::insert(coordinate.clone(), Self::account_id());
 
 			Self::deposit_event(Event::<T>::NewMapSpotIssued(coordinate, Self::account_id()));
 
 			Ok(())
 		}
 
-		/// Create new continuum slot with fixed price
+		/// Create new map auction
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn create_new_buy_now(
+		pub fn create_new_auction(
 			origin: OriginFor<T>,
 			spot_id: MapSpotId,
 			auction_type: AuctionType,
@@ -391,7 +396,7 @@ pub mod pallet {
 			);
 
 			if matches!(auction_type, AuctionType::BuyNow) {
-				ensure!(AllowBuyNow::<T>::get() == true, Error::<T>::ContinuumBuyNowIsDisabled);
+				ensure!(AllowBuyNow::<T>::get(), Error::<T>::ContinuumBuyNowIsDisabled);
 			}
 
 			let now = <frame_system::Pallet<T>>::block_number();
@@ -424,6 +429,11 @@ pub mod pallet {
 				Error::<T>::NotMetaverseOwner
 			);
 
+			ensure!(
+				!MetaverseMap::<T>::contains_key(&metaverse_id),
+				Error::<T>::MetaverseAlreadyGotSpot
+			);
+
 			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
 
 			ensure!(auction_item.item_id.is_map_spot(), Error::<T>::InvalidSpotAuction);
@@ -453,6 +463,11 @@ pub mod pallet {
 			ensure!(
 				T::MetaverseInfoSource::check_ownership(&sender, &metaverse_id),
 				Error::<T>::NotMetaverseOwner
+			);
+
+			ensure!(
+				!MetaverseMap::<T>::contains_key(&metaverse_id),
+				Error::<T>::MetaverseAlreadyGotSpot
 			);
 
 			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
@@ -546,23 +561,20 @@ impl<T: Config> Pallet<T> {
 
 		let active_auction_slots = <ActiveAuctionSlots<T>>::get(&current_active_session_id);
 
-		match active_auction_slots {
-			Some(s) => {
-				// Move current auctions slot to start GN Protocol
-				if s.len() > 0 {
-					let started_gnp_auction_slots: Vec<_> = s
-						.iter()
-						.map(|x| {
-							let mut t = x.clone();
-							t.status = ContinuumAuctionSlotStatus::GNPStarted;
-							t
-						})
-						.collect();
-					// Move active auction slots to GNP
-					GNPSlots::<T>::insert(now, started_gnp_auction_slots.clone());
-				}
+		if let Some(s) = active_auction_slots {
+			// Move current auctions slot to start GN Protocol
+			if s.len() > 0 {
+				let started_gnp_auction_slots: Vec<_> = s
+					.iter()
+					.map(|x| {
+						let mut t = x.clone();
+						t.status = ContinuumAuctionSlotStatus::GNPStarted;
+						t
+					})
+					.collect();
+				// Move active auction slots to GNP
+				GNPSlots::<T>::insert(now, started_gnp_auction_slots.clone());
 			}
-			None => {}
 		}
 		// Remove the old active auction slots
 		ActiveAuctionSlots::<T>::remove(&current_active_session_id);
@@ -608,7 +620,7 @@ impl<T: Config> Pallet<T> {
 		let mut new_valid_auction_slot: Vec<AuctionSlot<T::BlockNumber, T::AccountId>> = Vec::new();
 		let highest_ranked_sorted: Vec<SpotEOI<T::AccountId>> = current_eoi_slots
 			.iter()
-			.map(|x| x.clone())
+			.cloned()
 			.take(desired_slots as usize)
 			.collect::<Vec<SpotEOI<T::AccountId>>>();
 		// Add highest ranked EOI to New Active Auction slot
@@ -710,9 +722,8 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn check_spot_ownership(spot_id: &MapSpotId, owner: &T::AccountId) -> Result<bool, DispatchError> {
-		let spot_owner = MapSpotOwner::<T>::get(spot_id).ok_or(Error::<T>::MapSpotNotFound)?;
-
-		Ok(spot_owner == *owner)
+		let spot_info = MapSpots::<T>::get(spot_id).ok_or(Error::<T>::MapSpotNotFound)?;
+		Ok(spot_info.owner == *owner)
 	}
 }
 
@@ -728,8 +739,12 @@ impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
 			ensure!(from == treasury, Error::<T>::NoPermission);
 
 			let mut spot = maybe_spot.as_mut().ok_or(Error::<T>::MapSpotNotFound)?;
-			spot.owner = to.0;
+			spot.owner = to.clone().0;
 			spot.metaverse_id = Some(to.1);
+
+			Self::deposit_event(Event::<T>::ContinuumSpotTransferred(from, to.0, spot_id));
+			MetaverseMap::<T>::insert(to.1, spot_id);
+
 			Ok(spot_id)
 		})
 	}
