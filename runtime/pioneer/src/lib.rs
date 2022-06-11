@@ -31,7 +31,7 @@ use frame_support::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
 		DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
 	},
-	PalletId,
+	BoundedVec, PalletId,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -80,7 +80,7 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
-use primitives::{Amount, ClassId, FungibleTokenId, NftId, TokenSymbol};
+use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
 
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
@@ -222,7 +222,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 8,
+	spec_version: 7,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -264,10 +264,6 @@ impl Contains<Call> for BaseFilter {
 			| Call::Utility{..}
 			// Enable Crowdloan
 			| Call::Crowdloan{..}
-			// Enable Democracy
-			| Call::Democracy{..}
-			// Enable Council
-			| Call::Council{..}
 		);
 
 		if is_core {
@@ -1424,6 +1420,73 @@ impl crowdloan::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
+	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+	pub const PowerAmountPerBlock: u32 = 100;
+}
+
+impl economy::Config for Runtime {
+	type Currency = Balances;
+	type EconomyTreasury = EconomyTreasury;
+	type Event = Event;
+	type FungibleTokenCurrency = Currencies;
+	type MinimumStake = MinimumStake;
+	type MiningCurrencyId = MiningCurrencyId;
+	type NFTHandler = Nft;
+	type RoundHandler = Mining;
+	type PowerAmountPerBlock = PowerAmountPerBlock;
+	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
+}
+
+pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
+>;
+
+impl emergency::Config for Runtime {
+	type Event = Event;
+	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+}
+
+parameter_types! {
+	pub const MinimumCount: u32 = 5;
+	pub const ExpiresIn: Moment = 1000 * 60 * 60 * 24; // 24 hours
+	pub RootOperatorAccountId: AccountId = AccountId::from([0xffu8; 32]);
+	pub const MaxHasDispatchedSize: u32 = 20;
+	pub const OracleMaxMembers: u32 = 50;
+}
+
+pub type OracleMembershipInstance = pallet_membership::Instance1;
+
+impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
+	type Event = Event;
+	type AddOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type RemoveOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type SwapOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type ResetOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type PrimeOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type MembershipInitialized = ();
+	type MembershipChanged = RewardOracle;
+	type MaxMembers = OracleMaxMembers;
+	type WeightInfo = ();
+}
+
+type MiningRewardDataProvider = orml_oracle::Instance1;
+
+impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
+	type Event = Event;
+	type OnNewData = ();
+	type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, MiningRewardDataProvider>;
+	type Time = Timestamp;
+	type OracleKey = RoundIndex;
+	type OracleValue = BoundedVec<u8, MaxMetaverseMetadata>;
+	type RootOperatorAccountId = RootOperatorAccountId;
+	type Members = OracleMembership;
+	type MaxHasDispatchedSize = MaxHasDispatchedSize;
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1474,10 +1537,9 @@ construct_runtime!(
 		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin} = 31,
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
-
-		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 55,
-		UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 56,
-		OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 57,
+		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 34,
+		UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 35,
+		OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 36,
 
 		// Governance
 		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage ,Origin<T>, Event<T>} = 40,
@@ -1491,6 +1553,9 @@ construct_runtime!(
 		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
+		Emergency: emergency::{Pallet, Call, Storage, Event<T>} = 55,
+		RewardOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>} = 56,
+		OracleMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 57,
 
 		OrmlNFT: orml_nft::{Pallet, Storage} = 60,
 		Nft: nft::{Call, Pallet, Storage, Event<T>} = 61,
@@ -1498,7 +1563,7 @@ construct_runtime!(
 
 		Continuum: continuum::{Call, Pallet, Storage, Config<T>, Event<T>} = 63,
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
-
+		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}

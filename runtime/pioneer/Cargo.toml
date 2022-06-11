@@ -27,6 +27,7 @@ orml-unknown-tokens = { git = "https://github.com/bit-country/open-runtime-modul
 orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
 orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
 orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
+orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
 
 # Metaverse Dependencies
 primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
@@ -40,15 +41,9 @@ mining = { package = 'pallet-mining', path = '../../pallets/mining', version = '
 tokenization = { package = 'pallet-tokenization', path = '../../pallets/tokenization', default-features = false }
 estate = { package = 'pallet-estate', path = '../../pallets/estate', default-features = false }
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
+economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
+emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
-
-#pallet-ethereum = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-#pallet-evm = { path = "../../pallets/evm", default-features = false }
-#pallet-dynamic-fee = { git = "https://github.com/bit-country/frontier", default-features = false, branch = "master" }
-#pallet-evm-precompile-simple = { path = "../../pallets/evm/precompile/simple", default-features = false }
-#pallet-evm-precompile-sha3fips = { path = "../../pallets/evm/precompile/sha3fips", default-features = false }
-#pallet-evm-precompile-modexp = { path = "../../pallets/evm/precompile/modexp", default-features = false }
-#fp-rpc = { default-features = false, git = "https://github.com/bit-country/frontier", branch = "master" }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
@@ -80,6 +75,7 @@ pallet-democracy = { git = 'https://github.com/paritytech/substrate', branch = '
 pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-sudo = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-multisig = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
+pallet-membership = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
 pallet-timestamp = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-transaction-payment = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.17', default-features = false }
@@ -161,6 +157,7 @@ std = [
     "pallet-vesting/std",
     "pallet-authorship/std",
     "pallet-multisig/std",
+    "pallet-membership/std",
     "pallet-utility/std",
     "parachain-info/std",
     "cumulus-pallet-aura-ext/std",
@@ -177,6 +174,7 @@ std = [
     "sp-consensus-aura/std",
     'orml-tokens/std',
     'orml-nft/std',
+    "orml-oracle/std",
     'primitives/std',
     'metaverse/std',
     'currencies/std',
@@ -188,6 +186,8 @@ std = [
     'tokenization/std',
     'estate/std',
     'crowdloan/std',
+    "economy/std",
+    "emergency/std",
     'pallet-collator-selection/std',
     "pallet-preimage/std"
 ]
