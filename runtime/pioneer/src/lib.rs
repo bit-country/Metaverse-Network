@@ -264,6 +264,10 @@ impl Contains<Call> for BaseFilter {
 			| Call::Utility{..}
 			// Enable Crowdloan
 			| Call::Crowdloan{..}
+			// Polkadot XCM
+			| Call::PolkadotXcm{..}
+			// Orml XCM wrapper
+			| Call::OrmlXcm{..}
 		);
 
 		if is_core {
@@ -342,7 +346,7 @@ impl frame_system::Config for Runtime {
 	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = RocksDbWeight;
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = BaseFilter;
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = ();
 	/// Block & extrinsics weights: base values and limits.
