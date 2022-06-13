@@ -55,9 +55,6 @@ use pallet_evm::{
 	Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner,
 	SubstrateBlockHashMapping,
 };
-// pub use this so we can import it in the chain spec.
-#[cfg(feature = "std")]
-pub use pallet_evm::GenesisAccount;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use pallet_timestamp::Call as TimestampCall;
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
@@ -93,6 +90,9 @@ use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use estate::weights::WeightInfo as EstateWeightInfo;
+// pub use this so we can import it in the chain spec.
+#[cfg(feature = "std")]
+pub use fp_evm::GenesisAccount;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 // primitives imports

@@ -5016,6 +5016,7 @@ dependencies = [
  "bit-country-primitives",
  "core-primitives",
  "currencies",
+ "fp-evm",
  "fp-rpc",
  "fp-self-contained",
  "frame-benchmarking",
