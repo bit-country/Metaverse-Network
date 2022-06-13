@@ -1,7 +1,7 @@
 [package]
 name = "pioneer-integration-tests"
 authors = ["Bit.Country Developers <https://github.com/bit-country>"]
-edition = "2018"
+edition = '2021'
 homepage = "https://metaverse.network"
 license = "Unlicense"
 description = "Metaverse Network Runtime Integration Test"

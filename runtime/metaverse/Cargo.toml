@@ -1,7 +1,7 @@
 #Metaverse Parachain runtime - need to merge rococo branch back to this runtime
 [package]
 authors = ["Bit.Country Developers <https://github.com/bit-country>"]
-edition = "2018"
+edition = '2021'
 homepage = "https://metaverse.network"
 license = "Unlicense"
 name = "metaverse-runtime"

@@ -1,7 +1,7 @@
 [package]
 authors = ['Metaverse Network <https://github.com/bit-country>']
 description = 'Metaverse Network pallet for auction management.'
-edition = '2018'
+edition = '2021'
 homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'auction-manager'

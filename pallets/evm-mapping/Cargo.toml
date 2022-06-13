@@ -2,7 +2,7 @@
 name = "pallet-evm-mapping"
 version = "2.0.0-rc6"
 authors = ["Bit.Country Developer"]
-edition = "2018"
+edition = '2021'
 
 [dependencies]
 serde = { version = "1.0.137", optional = true }

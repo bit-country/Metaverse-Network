@@ -2,7 +2,7 @@
 authors = ['Metaverse Developers <https://metaverse.network>']
 build = 'build.rs'
 description = 'A decentralised world powered by economy.'
-edition = '2018'
+edition = '2021'
 homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'metaverse-node'
