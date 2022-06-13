@@ -24,6 +24,9 @@
 extern crate orml_benchmarking;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+// pub use this so we can import it in the chain spec.
+#[cfg(feature = "std")]
+pub use fp_evm::GenesisAccount;
 use fp_rpc::TransactionStatus;
 // use metaverse::weights::WeightInfo;
 #[cfg(feature = "runtime-benchmarks")]
@@ -64,7 +67,6 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{
 	crypto::{KeyTypeId, Public},
 	sp_std::marker::PhantomData,
-	u32_trait::{_1, _2, _3, _4},
 	OpaqueMetadata, H160, H256, U256,
 };
 #[cfg(any(feature = "std", test))]
@@ -90,9 +92,6 @@ use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use estate::weights::WeightInfo as EstateWeightInfo;
-// pub use this so we can import it in the chain spec.
-#[cfg(feature = "std")]
-pub use fp_evm::GenesisAccount;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 // primitives imports
@@ -547,7 +546,7 @@ impl estate::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
-	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
+	type CouncilOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
 	type AuctionHandler = Auction;
 	type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
 	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
@@ -590,7 +589,7 @@ impl continuum::Config for Runtime {
 	type Event = Event;
 	type SessionDuration = ContinuumSessionDuration;
 	type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
-	type EmergencyOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, { AccountId }, CouncilCollective>;
+	type EmergencyOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 3>;
 	type AuctionHandler = Auction;
 	type AuctionDuration = SpotAuctionChillingDuration;
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
@@ -648,10 +647,8 @@ impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
 	}
 }
 
-pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
-	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
->;
+pub type EnsureRootOrHalfMetaverseCouncil =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
 
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 10;
@@ -812,23 +809,23 @@ impl pallet_democracy::Config for Runtime {
 	// Same as EnactmentPeriod
 	type MinimumDeposit = MinimumDeposit;
 	/// A straight majority of the council can decide what their next motion is.
-	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<_1, _2, { AccountId }, CouncilCollective>;
+	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
 	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<_3, _4, { AccountId }, CouncilCollective>;
+	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>;
 	/// A unanimous council can have the next scheduled referendum be a straight default-carries
 	/// (NTB) vote.
-	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, { AccountId }, CouncilCollective>;
+	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>;
 	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
 	/// be tabled immediately and with a shorter voting/enactment period.
-	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, { AccountId }, CouncilCollective>;
-	type InstantOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, { AccountId }, CouncilCollective>;
+	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
+	type InstantOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>;
 	type InstantAllowed = InstantAllowed;
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
 	// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, { AccountId }, CouncilCollective>;
+	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
 	// To cancel a proposal before it has been passed, the technical committee must be unanimous or
 	// Root must agree.
-	type CancelProposalOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, { AccountId }, CouncilCollective>;
+	type CancelProposalOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
 	type BlacklistOrigin = EnsureRoot<AccountId>;
 	// Any single technical committee member may veto a coming council proposal, however they can
 	// only do it once and it lasts only for the cool-off period.
