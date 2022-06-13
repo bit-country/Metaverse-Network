@@ -4948,6 +4948,7 @@ dependencies = [
  "node-primitives",
  "pallet-contracts-rpc",
  "pallet-dynamic-fee",
+ "pallet-ethereum",
  "pallet-im-online",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",

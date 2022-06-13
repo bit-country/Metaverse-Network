@@ -109,16 +109,17 @@ polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch =
 polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.22" }
 
 # EVM dependencies
-fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22" }
-fc-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22" }
-fc-rpc-core = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22" }
-fc-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22" }
-fc-mapping-sync = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22" }
-fc-db = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22" }
-pallet-dynamic-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22" }
+fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+fc-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+fc-rpc-core = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+fc-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+fc-mapping-sync = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+fc-db = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+pallet-dynamic-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 
 # ink! Contracts specific packages
-pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
+pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22", optional = true }
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
@@ -128,6 +129,14 @@ default = ["with-metaverse-runtime"]
 
 with-metaverse-runtime = [
     "metaverse-runtime",
+    "fp-rpc",
+    "fc-mapping-sync",
+    "fc-db",
+    "pallet-dynamic-fee",
+    "fc-rpc-core",
+    "fc-consensus",
+    "pallet-ethereum",
+    "pallet-contracts-rpc",
 ]
 
 with-pioneer-runtime = [

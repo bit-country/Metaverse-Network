@@ -169,6 +169,7 @@ std = [
     "fp-self-contained/std",
     "fp-rpc/std",
     "pallet-ethereum/std",
+    "pallet-evm/std",
     "pallet-contracts/std",
     "pallet-contracts-primitives/std",
     "pallet-contracts-rpc-runtime-api/std",
