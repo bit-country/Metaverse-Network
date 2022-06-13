@@ -2473,7 +2473,7 @@ dependencies = [
 [[package]]
 name = "fc-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "async-trait",
  "fc-db",
@@ -2492,7 +2492,7 @@ dependencies = [
 [[package]]
 name = "fc-db"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "fp-storage",
  "kvdb-rocksdb",
@@ -2508,7 +2508,7 @@ dependencies = [
 [[package]]
 name = "fc-mapping-sync"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "fc-db",
  "fp-consensus",
@@ -2525,7 +2525,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2536,12 +2536,10 @@ dependencies = [
  "fp-storage",
  "futures 0.3.21",
  "hex",
- "hex-literal",
  "jsonrpsee",
  "libsecp256k1 0.7.0",
  "log",
  "lru 0.7.6",
- "pallet-ethereum",
  "parity-scale-codec 3.1.2",
  "prometheus",
  "rand 0.8.5",
@@ -2567,7 +2565,7 @@ dependencies = [
 [[package]]
 name = "fc-rpc-core"
 version = "1.1.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2681,7 +2679,7 @@ dependencies = [
 [[package]]
 name = "fp-consensus"
 version = "2.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "ethereum",
  "parity-scale-codec 3.1.2",
@@ -2693,7 +2691,7 @@ dependencies = [
 [[package]]
 name = "fp-dynamic-fee"
 version = "1.0.0"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "async-trait",
  "sp-core",
@@ -2703,7 +2701,7 @@ dependencies = [
 [[package]]
 name = "fp-evm"
 version = "3.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "evm",
  "frame-support",
@@ -2716,7 +2714,7 @@ dependencies = [
 [[package]]
 name = "fp-rpc"
 version = "3.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -2733,7 +2731,7 @@ dependencies = [
 [[package]]
 name = "fp-self-contained"
 version = "1.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "ethereum",
  "frame-support",
@@ -2749,7 +2747,7 @@ dependencies = [
 [[package]]
 name = "fp-storage"
 version = "2.0.0"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "parity-scale-codec 3.1.2",
  "serde",
@@ -4962,7 +4960,6 @@ dependencies = [
  "node-primitives",
  "pallet-contracts-rpc",
  "pallet-dynamic-fee",
- "pallet-ethereum",
  "pallet-im-online",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec 3.1.2",
@@ -5534,27 +5531,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "num_enum"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf5395665662ef45796a4ff5486c5d41d29e0c09640af4c5f17fd94ee2c119c9"
-dependencies = [
- "num_enum_derive",
-]
-
-[[package]]
-name = "num_enum_derive"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b0498641e53dd6ac1a4f22547548caa6864cc4933784319cd1775271c5a46ce"
-dependencies = [
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "object"
 version = "0.27.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5944,7 +5920,7 @@ dependencies = [
 [[package]]
 name = "pallet-base-fee"
 version = "1.0.0"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "fp-evm",
  "frame-support",
@@ -6281,7 +6257,7 @@ dependencies = [
 [[package]]
 name = "pallet-dynamic-fee"
 version = "4.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "async-trait",
  "fp-dynamic-fee",
@@ -6426,7 +6402,7 @@ dependencies = [
 [[package]]
 name = "pallet-ethereum"
 version = "4.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "ethereum",
  "ethereum-types",
@@ -6438,13 +6414,11 @@ dependencies = [
  "fp-storage",
  "frame-support",
  "frame-system",
- "num_enum",
  "pallet-evm",
  "pallet-timestamp",
  "parity-scale-codec 3.1.2",
  "rlp",
  "scale-info 2.1.2",
- "serde",
  "sha3 0.10.1",
  "sp-io",
  "sp-runtime",
@@ -6454,11 +6428,10 @@ dependencies = [
 [[package]]
 name = "pallet-evm"
 version = "6.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#df6a70556097956ee3e97a53e1b12c5a8cc1b378"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#fb1d3694bfc04f6d4f9e24c436888011bc23395e"
 dependencies = [
  "evm",
  "fp-evm",
- "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex",
@@ -6468,7 +6441,6 @@ dependencies = [
  "primitive-types",
  "rlp",
  "scale-info 2.1.2",
- "serde",
  "sha3 0.10.1",
  "sp-core",
  "sp-io",
