@@ -11972,7 +11972,7 @@ dependencies = [
 [[package]]
 name = "substrate-prometheus-endpoint"
 version = "0.10.0-dev"
-source = "git+https://github.com/paritytech/substrate?branch=master#26026d36a51c9f1c69b4f4e1503589b28e2019c6"
+source = "git+https://github.com/paritytech/substrate?branch=master#323eecd2de38b9631d9c162997261e43c886828c"
 dependencies = [
  "futures-util",
  "hyper",
