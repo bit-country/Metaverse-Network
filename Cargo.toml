@@ -25,7 +25,7 @@ exclude = [
 ]
 
 [patch.crates-io]
-ethereum = { git = "https://github.com/justinphamnz/ethereum", branch = "master" }
+ethereum = { git = "https://github.com/justinphamnz/ethereum", branch = "polkadot-v0.9.22" }
 evm = { git = "https://github.com/justinphamnz/evm", branch = "master" }
 evm-gasometer = { git = "https://github.com/justinphamnz/evm", branch = "master" }
 evm-runtime = { git = "https://github.com/justinphamnz/evm", branch = "master" }
