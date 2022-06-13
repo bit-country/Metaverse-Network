@@ -6,7 +6,7 @@ echo "*** Initializing WASM build environment"
 
 if [ -z $CI_PROJECT_NAME ]; then
   rustup default nightly && rustup update
-  rustup update nightly-2021-11-07
+  rustup update nightly-2022-02-19
   rustup update stable
 fi
 
