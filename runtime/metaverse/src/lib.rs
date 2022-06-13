@@ -590,7 +590,7 @@ impl continuum::Config for Runtime {
 	type Event = Event;
 	type SessionDuration = ContinuumSessionDuration;
 	type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
-	type EmergencyOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, {AccountId}, CouncilCollective>;
+	type EmergencyOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, { AccountId }, CouncilCollective>;
 	type AuctionHandler = Auction;
 	type AuctionDuration = SpotAuctionChillingDuration;
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
