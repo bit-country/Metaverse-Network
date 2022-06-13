@@ -6387,6 +6387,7 @@ dependencies = [
  "parity-scale-codec",
  "rlp",
  "scale-info",
+ "serde",
  "sha3 0.10.1",
  "sp-io",
  "sp-runtime",
@@ -6400,6 +6401,7 @@ source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.22#f
 dependencies = [
  "evm",
  "fp-evm",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "hex",
@@ -6409,6 +6411,7 @@ dependencies = [
  "primitive-types",
  "rlp",
  "scale-info",
+ "serde",
  "sha3 0.10.1",
  "sp-core",
  "sp-io",
