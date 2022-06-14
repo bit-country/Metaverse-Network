@@ -1053,7 +1053,7 @@ impl pallet_contracts::Config for Runtime {
 	type CallFilter = RPCCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
-	type ContractAccessWeight = pallet_contracts::weights::SubstrateWeight<Self>;
+	type ContractAccessWeight = pallet_contracts::DefaultContractAccessWeight::get();
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
@@ -1198,7 +1198,7 @@ impl fp_self_contained::SelfContainedCall for Call {
 	fn validate_self_contained(
 		&self,
 		origin: &H160,
-		dispatch_info: &Self::SignedInfo,
+		dispatch_info: &DispatchInfo,
 		len: usize,
 	) -> Option<TransactionValidity> {
 		match self {
