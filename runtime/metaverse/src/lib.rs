@@ -1196,7 +1196,7 @@ impl fp_self_contained::SelfContainedCall for Call {
 	}
 
 	fn validate_self_contained(
-		&self, 
+		&self,
 		origin: &H160,
 		dispatch_info: &Self::SignedInfo,
 		len: usize,
