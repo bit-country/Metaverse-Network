@@ -36,7 +36,7 @@ pub use frame_support::{
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-		DispatchClass, IdentityFee, Weight,
+		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeePolynomial,
 	},
 	PalletId, RuntimeDebug, StorageValue,
 };
@@ -396,7 +396,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LengthToFee: Balance = 1;
+	pub const TransactionByteFee: Balance = 1;
 	pub const OperationalFeeMultiplier: u8 = 5;
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
 	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
@@ -405,7 +405,7 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
-	type LengthToFee = LengthToFee;
+	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = IdentityFee<Balance>;
 	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
@@ -457,6 +457,8 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = MaxLocks;
+	type ReserveIdentifier = [u8; 8];
+	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
 }
 
@@ -1051,6 +1053,7 @@ impl pallet_contracts::Config for Runtime {
 	type CallFilter = RPCCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
+	type ContractAccessWeight = pallet_contracts::weights::SubstrateWeight<Self>;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
@@ -1192,9 +1195,14 @@ impl fp_self_contained::SelfContainedCall for Call {
 		}
 	}
 
-	fn validate_self_contained(&self, info: &Self::SignedInfo) -> Option<TransactionValidity> {
+	fn validate_self_contained(
+		&self, 
+		origin: &H160,
+		dispatch_info: &Self::SignedInfo,
+		len: usize,
+	) -> Option<TransactionValidity> {
 		match self {
-			Call::Ethereum(call) => call.validate_self_contained(info),
+			Call::Ethereum(call) => call.validate_self_contained(origin, dispatch_info, len),
 			_ => None,
 		}
 	}
@@ -1283,11 +1291,11 @@ impl_runtime_apis! {
 		}
 
 		fn account_basic(address: H160) -> EVMAccount {
-			EVM::account_basic(&address)
+			EVM::account_basic(&address).0
 		}
 
 		fn gas_price() -> U256 {
-			<Runtime as pallet_evm::Config>::FeeCalculator::min_gas_price()
+			<Runtime as pallet_evm::Config>::FeeCalculator::min_gas_price().0
 		}
 
 		fn account_code_at(address: H160) -> Vec<u8> {
@@ -1334,6 +1342,7 @@ impl_runtime_apis! {
 				max_priority_fee_per_gas,
 				nonce,
 				Vec::new(),
+				estimate,
 				config
 					.as_ref()
 					.unwrap_or_else(|| <Runtime as pallet_evm::Config>::config()),
@@ -1370,6 +1379,7 @@ impl_runtime_apis! {
 				max_priority_fee_per_gas,
 				nonce,
 				Vec::new(),
+				estimate,
 				config
 					.as_ref()
 					.unwrap_or(<Runtime as pallet_evm::Config>::config()),
