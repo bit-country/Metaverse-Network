@@ -1036,7 +1036,7 @@ parameter_types! {
 			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
 		)) / 5) as u32;
 	pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
-	pub ContractAccessWeight = pallet_contracts::DefaultContractAccessWeight<Self>::get();
+	pub ContractAccessWeight: Weight = pallet_contracts::DefaultContractAccessWeight<Self>::get();
 }
 
 impl pallet_contracts::Config for Runtime {
@@ -1054,7 +1054,7 @@ impl pallet_contracts::Config for Runtime {
 	type CallFilter = RPCCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
-	type ContractAccessWeight = Self::ContractAccessWeight;
+	type ContractAccessWeight = ContractAccessWeight;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
