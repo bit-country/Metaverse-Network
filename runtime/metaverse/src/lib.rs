@@ -1053,7 +1053,7 @@ impl pallet_contracts::Config for Runtime {
 	type CallFilter = RPCCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
-	type ContractAccessWeight = pallet_contracts::DefaultContractAccessWeight::get();
+	type ContractAccessWeight = pallet_contracts::DefaultContractAccessWeight<Self>::get();
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
