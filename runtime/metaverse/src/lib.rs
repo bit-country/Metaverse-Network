@@ -51,7 +51,7 @@ use frame_system::{
 };
 use orml_traits::parameter_type_with_key;
 pub use pallet_balances::Call as BalancesCall;
-use pallet_contracts::weights::WeightInfo;
+use pallet_contracts::{weights::WeightInfo, DefaultContractAccessWeight};
 use pallet_ethereum::{Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction};
 // EVM imports
 use pallet_evm::{
@@ -1036,7 +1036,6 @@ parameter_types! {
 			<Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
 		)) / 5) as u32;
 	pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
-	pub ContractAccessWeight: Weight = pallet_contracts::DefaultContractAccessWeight<Self>::get();
 }
 
 impl pallet_contracts::Config for Runtime {
@@ -1054,7 +1053,7 @@ impl pallet_contracts::Config for Runtime {
 	type CallFilter = RPCCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
-	type ContractAccessWeight = ContractAccessWeight;
+	type ContractAccessWeight = DefaultContractAccessWeight<RuntimeBlockWeights>;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
