@@ -546,14 +546,13 @@ pub mod pallet {
 				if let Some(auction) = <Auctions<T>>::get(&auction_id) {
 					if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id) {
 						Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
+						// Unreserve network deposit fee
+						<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 						// Transfer balance from high bidder to asset owner
 						if let Some(current_bid) = auction.bid {
 							let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
 							// Handle listing
 							<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
-
-							// Unreserve network deposit fee
-							<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 
 							// Handle balance transfer
 							let currency_transfer = <T as Config>::Currency::transfer(
