@@ -1379,6 +1379,7 @@ impl auction::Config for Runtime {
 	type NFTHandler = Nft;
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
+	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
 }
 
 impl continuum::Config for Runtime {

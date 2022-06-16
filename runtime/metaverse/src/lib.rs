@@ -92,7 +92,6 @@ use core_primitives::{NftAssetData, NftClassData};
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
-use estate::weights::WeightInfo as EstateWeightInfo;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 // primitives imports
@@ -584,6 +583,7 @@ impl auction::Config for Runtime {
 	type MaxBundleItem = MaxBundleItem;
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
+	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
 }
 
 impl continuum::Config for Runtime {
