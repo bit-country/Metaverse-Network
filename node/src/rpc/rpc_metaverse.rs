@@ -3,16 +3,16 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use fc_rpc::{
+use fp_rpc::{
 	EthApi, EthApiServer, EthBlockDataCacheTask, EthFilterApi, EthFilterApiServer, EthPubSubApi, EthPubSubApiServer,
 	HexEncodedIdProvider, NetApi, NetApiServer, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
 	SchemaV2Override, SchemaV3Override, StorageOverride, Web3Api, Web3ApiServer,
 };
-use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
+use fp_rpc_core::types::{FeeHistoryCache, FilterPool};
+use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
-use pallet_contracts_rpc::{Contracts, ContractsApi};
-use pallet_ethereum::EthereumStorageSchema;
-use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
+use pallet_contracts_rpc::{ContractsRpc, ContractsApi};
+use pallet_transaction_payment_rpc::{TransactionPaymentRpc, TransactionPaymentApi};
 use sc_cli::SubstrateCli;
 use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
 use sc_network::NetworkService;
@@ -100,7 +100,7 @@ pub fn create_full<C, P, BE, A>(
 	deps: FullDeps<C, P, A>,
 	subscription_task_executor: SubscriptionTaskExecutor,
 	overrides: Arc<OverrideHandle<Block>>,
-) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
+) -> jsonrpc_core::IoHandler<jsonrpc_core::Metadata>
 where
 	C: ProvideRuntimeApi<Block>
 		+ HeaderBackend<Block>
@@ -161,7 +161,7 @@ where
 		is_authority,
 		max_past_logs,
 		block_data_cache.clone(),
-		fc_rpc::format::Geth,
+		fp_rpc::format::Geth,
 		fee_history_limit,
 		fee_history_cache,
 	)));

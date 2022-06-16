@@ -16,7 +16,7 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use fc_consensus::FrontierBlockImport;
-use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
+use fp_rpc_core::types::{FeeHistoryCache, FilterPool};
 use futures::StreamExt;
 use sc_client_api::{BlockBackend, BlockchainEvents, ExecutorProvider};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
@@ -256,20 +256,20 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-filter-pool",
 		Some("frontier"),
-		fc_rpc::EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
+		fp_rpc::EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
 	);
 
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-schema-cache-task",
 		Some("frontier"),
-		fc_rpc::EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
+		fp_rpc::EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
 	);
 
 	const FEE_HISTORY_LIMIT: u64 = 2048;
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-fee-history",
 		Some("frontier"),
-		fc_rpc::EthTask::fee_history_task(
+		fp_rpc::EthTask::fee_history_task(
 			client.clone(),
 			overrides.clone(),
 			fee_history_cache.clone(),
