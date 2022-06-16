@@ -721,6 +721,13 @@ pub mod pallet {
 							if let ItemId::NFT(class_id, token_id) = auction_item.item_id.clone() {
 								T::NFTHandler::set_lock_nft((class_id, token_id), false);
 							}
+
+							if let ItemId::Bundle(tokens) = auction_item.item_id.clone() {
+								for token in tokens {
+									T::NFTHandler::set_lock_nft((token.0, token.1), false);
+								}
+							}
+
 							Self::deposit_event(Event::AuctionFinalizedNoBid(auction_id));
 						}
 					}
