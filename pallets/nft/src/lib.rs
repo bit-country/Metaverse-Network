@@ -279,6 +279,8 @@ pub mod pallet {
 		HardLimitSet(ClassIdOf<T>),
 		/// Class funds are withdrawn
 		ClassFundsWithdrawn(ClassIdOf<T>),
+		/// NFT is unlocked
+		NftUnlocked(ClassIdOf<T>, TokenIdOf<T>),
 	}
 
 	#[pallet::error]
@@ -721,6 +723,25 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::ClassFundsWithdrawn(class_id));
 
 			Ok(().into())
+		}
+
+		/// Unlock the provided NFT by governance if already locked
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `class_id`: the class ID of the collection
+		///
+		/// Emits `CollectionUnlocked` if successful.
+		#[pallet::weight(T::WeightInfo::sign_asset())]
+		pub fn force_unlock_nft(origin: OriginFor<T>, token_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
+			ensure_root(origin)?;
+
+			Tokens::<T>::try_mutate_exists(&token_id.0, &token_id.1, |maybe_token_info| -> DispatchResult {
+				let mut token_info_result = maybe_token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
+				token_info_result.data.is_locked = false;
+				Self::deposit_event(Event::<T>::NftUnlocked(token_id.0, token_id.1));
+
+				Ok(())
+			})
 		}
 	}
 
