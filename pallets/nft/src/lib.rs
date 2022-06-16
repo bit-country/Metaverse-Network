@@ -1048,6 +1048,41 @@ impl<T: Config> Pallet<T> {
 		log::info!("Classes upgraded: {}", num_nft_classes);
 		0
 	}
+
+	/// Upgrading lock of each nft
+	pub fn storage_migration_fix_locking_issue() -> Weight {
+		log::info!("Start storage migration of each nft due to locking issue");
+		let mut num_nft_tokens = 0;
+		Tokens::<T>::translate(
+			|class_id,
+			 token_id,
+			 token_info: TokenInfo<T::AccountId, NftAssetData<BalanceOf<T>>, TokenMetadataOf<T>>| {
+				num_nft_tokens += 1;
+				log::info!("Upgrading existing token data to set is_locked");
+				log::info!("Class id {:?}", class_id);
+				log::info!("Token id {:?}", token_id);
+				let mut new_data = NftAssetData {
+					deposit: token_info.data.deposit,
+					attributes: token_info.data.attributes,
+					is_locked: token_info.data.is_locked,
+				};
+
+				if Self::check_item_on_listing(class_id, token_id) == Ok(false) {
+					new_data.is_locked = false;
+				};
+
+				let v: TokenInfoOf<T> = TokenInfo {
+					metadata: token_info.metadata,
+					owner: token_info.owner,
+					data: new_data,
+				};
+
+				Some(v)
+			},
+		);
+		log::info!("Tokens upgraded: {}", num_nft_tokens);
+		0
+	}
 }
 
 impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
