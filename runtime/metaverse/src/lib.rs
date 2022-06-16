@@ -1347,7 +1347,7 @@ impl_runtime_apis! {
 					.as_ref()
 					.unwrap_or_else(|| <Runtime as pallet_evm::Config>::config()),
 			)
-			.map_err(|err| err.into())
+			.map_err(|err| err.error.into())
 		}
 
 		fn create(
@@ -1384,7 +1384,7 @@ impl_runtime_apis! {
 					.as_ref()
 					.unwrap_or(<Runtime as pallet_evm::Config>::config()),
 				)
-				.map_err(|err| err.into())
+				.map_err(|err| err.error.into())
 		}
 
 		fn current_transaction_statuses() -> Option<Vec<TransactionStatus>> {
