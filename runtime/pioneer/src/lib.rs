@@ -669,6 +669,8 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 pub struct MultiLocationsFilter;
 
+pub struct ReserveProvider;
+
 parameter_type_with_key! {
 	pub ParachainMinFee: |_location: MultiLocation| -> u128 {
 		u128::MAX
@@ -689,7 +691,7 @@ impl orml_xtokens::Config for Runtime {
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type MinXcmFee = ParachainMinFee;
 	type MultiLocationsFilter = MultiLocationsFilter;
-	type ReserveProvider = dyn Reserve;
+	type ReserveProvider = ReserveProvider;
 }
 
 impl orml_unknown_tokens::Config for Runtime {
@@ -1032,7 +1034,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = MultiNativeAsset<dyn Reserve>;
+	type IsReserve = MultiNativeAsset<ReserveProvider>;
 	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
 	type LocationInverter = LocationInverter<Ancestry>;
