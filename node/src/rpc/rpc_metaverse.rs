@@ -11,8 +11,8 @@ use fp_rpc::{
 use fp_rpc_core::types::{FeeHistoryCache, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
-use pallet_contracts_rpc::{ContractsRpc, ContractsApi};
-use pallet_transaction_payment_rpc::{TransactionPaymentRpc, TransactionPaymentApi};
+use pallet_contracts_rpc::{ContractsApi, ContractsRpc};
+use pallet_transaction_payment_rpc::{TransactionPaymentApi, TransactionPaymentRpc};
 use sc_cli::SubstrateCli;
 use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
 use sc_network::NetworkService;
