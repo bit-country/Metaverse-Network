@@ -28,7 +28,7 @@ use frame_support::{
 	construct_runtime, match_type, parameter_types,
 	traits::{Everything, Imbalance},
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
 	},
 	PalletId,
@@ -45,7 +45,7 @@ use orml_xcm_support::DepositToAlternative;
 // Polkadot Imports
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
 use polkadot_parachain::primitives::Sibling;
-use polkadot_runtime_common::{BlockHashCount, RocksDbWeight, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -429,7 +429,7 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
-	type TransactionByteFee = TransactionByteFee;
+	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type WeightToFee = WeightToFee;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
@@ -465,7 +465,9 @@ parameter_types! {
 	pub const TreasuryPalletId: PalletId = PalletId(*b"bc/trsry");
 	pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
-	pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
+	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
+	pub CuratorDepositMin: Balance = 1 * DOLLARS;
+	pub CuratorDepositMax: Balance = 100 * DOLLARS;
 	pub const BountyValueMinimum: Balance = 5 * DOLLARS;
 	pub const MaxApprovals: u32 = 100;
 }
@@ -523,7 +525,9 @@ impl pallet_bounties::Config for Runtime {
 	type BountyDepositBase = BountyDepositBase;
 	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
 	type BountyUpdatePeriod = BountyUpdatePeriod;
-	type BountyCuratorDeposit = BountyCuratorDeposit;
+	type CuratorDepositMultiplier = CuratorDepositMultiplier;
+	type CuratorDepositMin = CuratorDepositMin;
+	type CuratorDepositMax = CuratorDepositMax;
 	type BountyValueMinimum = BountyValueMinimum;
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
@@ -1021,7 +1025,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = MultiNativeAsset;
+	type IsReserve = MultiNativeAsset<ReserveProvider>;
 	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
 	type LocationInverter = LocationInverter<Ancestry>;
