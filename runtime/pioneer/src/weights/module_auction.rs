@@ -10,7 +10,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions for module_auction.
 pub struct WeightInfo<T>(PhantomData<T>);
 
-impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {	
+impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {
 	fn create_new_auction() -> Weight {
 		(306_300_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(9 as Weight))
