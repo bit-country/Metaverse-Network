@@ -718,6 +718,9 @@ pub mod pallet {
 								}
 							}
 						} else {
+							if let ItemId::NFT(class_id, token_id) = auction_item.item_id.clone() {
+								T::NFTHandler::set_lock_nft((class_id, token_id), false);
+							}
 							Self::deposit_event(Event::AuctionFinalizedNoBid(auction_id));
 						}
 					}
