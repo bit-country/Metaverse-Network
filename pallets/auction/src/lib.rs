@@ -1239,7 +1239,148 @@ pub mod pallet {
 			}
 		}
 
-		fn on_auction_ended(auction_id: AuctionId, winner: Option<(T::AccountId, BalanceOf<T>)>) {}
+		fn on_auction_ended(auction_id: AuctionId, winner: Option<(T::AccountId, BalanceOf<T>)>) {
+			if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id) {
+				Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
+				// Unreserve network deposit fee
+				<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
+				// Transfer balance from high bidder to asset owner
+				if let Some(current_bid) = winner {
+					let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
+					// Handle listing
+					<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+
+					// Handle balance transfer
+					let currency_transfer = <T as Config>::Currency::transfer(
+						&high_bidder,
+						&auction_item.recipient,
+						high_bid_price,
+						ExistenceRequirement::KeepAlive,
+					);
+
+					if let Ok(_transfer_succeeded) = currency_transfer {
+						// Collect network commission fee
+						Self::collect_network_fee(
+							&high_bid_price,
+							&auction_item.recipient,
+							FungibleTokenId::NativeToken(0),
+						);
+
+						// Transfer asset from asset owner to high bidder
+						// Check asset type and handle internal logic
+						match auction_item.item_id.clone() {
+							ItemId::NFT(class_id, token_id) => {
+								Self::collect_listing_fee(
+									&high_bid_price,
+									&auction_item.recipient,
+									FungibleTokenId::NativeToken(0),
+									auction_item.listing_level.clone(),
+									auction_item.listing_fee,
+								);
+
+								Self::collect_royalty_fee(
+									&high_bid_price,
+									&auction_item.recipient,
+									&(class_id, token_id),
+									FungibleTokenId::NativeToken(0),
+								);
+
+								T::NFTHandler::set_lock_nft((class_id, token_id), false);
+								let asset_transfer = T::NFTHandler::transfer_nft(
+									&auction_item.recipient,
+									&high_bidder,
+									&(class_id, token_id),
+								);
+								if let Ok(_transferred) = asset_transfer {
+									Self::deposit_event(Event::AuctionFinalized(
+										auction_id,
+										high_bidder,
+										high_bid_price,
+									));
+								}
+							}
+							ItemId::Spot(spot_id, metaverse_id) => {
+								let continuum_spot = T::ContinuumHandler::transfer_spot(
+									spot_id,
+									auction_item.recipient.clone(),
+									(high_bidder.clone(), metaverse_id),
+								);
+
+								if let Ok(_continuum_spot) = continuum_spot {
+									Self::deposit_event(Event::AuctionFinalized(
+										auction_id,
+										high_bidder,
+										high_bid_price,
+									));
+								}
+							}
+							ItemId::Bundle(tokens) => {
+								// Collect listing fee once
+								Self::collect_listing_fee(
+									&high_bid_price,
+									&auction_item.recipient,
+									FungibleTokenId::NativeToken(0),
+									auction_item.listing_level.clone(),
+									auction_item.listing_fee,
+								);
+
+								for token in tokens {
+									// Collect royalty fee of each nft sold in the bundle
+									Self::collect_royalty_fee(
+										&token.2,
+										&auction_item.recipient,
+										&(token.0, token.1),
+										FungibleTokenId::NativeToken(0),
+									);
+									T::NFTHandler::set_lock_nft((token.0, token.1), false);
+									T::NFTHandler::transfer_nft(
+										&auction_item.recipient,
+										&high_bidder,
+										&(token.0, token.1),
+									);
+								}
+
+								Self::deposit_event(Event::AuctionFinalized(
+									auction_id,
+									high_bidder.clone(),
+									high_bid_price,
+								));
+							}
+							ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
+								let undeployed_land_block = T::EstateHandler::transfer_undeployed_land_block(
+									&auction_item.recipient,
+									&high_bidder.clone(),
+									undeployed_land_block_id,
+								);
+
+								if let Ok(_) = undeployed_land_block {
+									Self::deposit_event(Event::AuctionFinalized(
+										auction_id,
+										high_bidder,
+										high_bid_price,
+									));
+								}
+							}
+							_ => {} // Future implementation for Metaverse
+						}
+						<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
+						<AuctionItems<T>>::remove(auction_id.clone());
+					}
+				} else {
+					if let ItemId::NFT(class_id, token_id) = auction_item.item_id.clone() {
+						T::NFTHandler::set_lock_nft((class_id, token_id), false);
+					}
+
+					if let ItemId::Bundle(tokens) = auction_item.item_id.clone() {
+						for token in tokens {
+							T::NFTHandler::set_lock_nft((token.0, token.1), false);
+						}
+					}
+
+					Self::deposit_event(Event::AuctionFinalizedNoBid(auction_id));
+				}
+			}
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
