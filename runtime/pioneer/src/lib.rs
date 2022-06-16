@@ -689,7 +689,7 @@ impl orml_xtokens::Config for Runtime {
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type MinXcmFee = ParachainMinFee;
 	type MultiLocationsFilter = MultiLocationsFilter;
-	type ReserveProvider = Reserve;
+	type ReserveProvider = dyn Reserve;
 }
 
 impl orml_unknown_tokens::Config for Runtime {
@@ -1032,7 +1032,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = MultiNativeAsset<Reserve>;
+	type IsReserve = MultiNativeAsset<dyn Reserve>;
 	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
 	type LocationInverter = LocationInverter<Ancestry>;

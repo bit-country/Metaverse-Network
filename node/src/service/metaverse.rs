@@ -16,7 +16,7 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use fc_consensus::FrontierBlockImport;
-use fp_rpc_core::types::{FeeHistoryCache, FilterPool};
+use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use futures::StreamExt;
 use sc_client_api::{BlockBackend, BlockchainEvents, ExecutorProvider};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};

@@ -3,12 +3,12 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use fp_rpc::{
+use fc_rpc::{
 	EthApi, EthApiServer, EthBlockDataCacheTask, EthFilterApi, EthFilterApiServer, EthPubSubApi, EthPubSubApiServer,
 	HexEncodedIdProvider, NetApi, NetApiServer, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
 	SchemaV2Override, SchemaV3Override, StorageOverride, Web3Api, Web3ApiServer,
 };
-use fp_rpc_core::types::{FeeHistoryCache, FilterPool};
+use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
 use pallet_contracts_rpc::{ContractsApi, ContractsRpc};
@@ -100,7 +100,7 @@ pub fn create_full<C, P, BE, A>(
 	deps: FullDeps<C, P, A>,
 	subscription_task_executor: SubscriptionTaskExecutor,
 	overrides: Arc<OverrideHandle<Block>>,
-) -> jsonrpc_core::IoHandler<jsonrpc_core::Metadata>
+) -> jsonrpc_core::IoHandler<dyn jsonrpc_core::Metadata>
 where
 	C: ProvideRuntimeApi<Block>
 		+ HeaderBackend<Block>
@@ -142,7 +142,7 @@ where
 		deny_unsafe,
 	)));
 
-	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
+	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPaymentRpc::new(
 		client.clone(),
 	)));
 
@@ -196,7 +196,7 @@ where
 	)));
 
 	// Contracts RPC API extension
-	//	io.extend_with(ContractsApi::to_delegate(Contracts::new(client.clone())));
+	//	io.extend_with(ContractsApi::to_delegate(ContractsRpc::new(client.clone())));
 
 	io
 }
