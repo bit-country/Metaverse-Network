@@ -25,7 +25,6 @@ use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 
 use metaverse_runtime::RuntimeApi;
@@ -256,20 +255,20 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-filter-pool",
 		Some("frontier"),
-		fc_rpc::EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
+		fp_rpc::EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
 	);
 
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-schema-cache-task",
 		Some("frontier"),
-		fc_rpc::EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
+		fp_rpc::EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
 	);
 
 	const FEE_HISTORY_LIMIT: u64 = 2048;
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-fee-history",
 		Some("frontier"),
-		fc_rpc::EthTask::fee_history_task(
+		fp_rpc::EthTask::fee_history_task(
 			client.clone(),
 			overrides.clone(),
 			fee_history_cache.clone(),

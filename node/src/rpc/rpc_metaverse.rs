@@ -8,11 +8,17 @@ use fc_rpc::{
 	HexEncodedIdProvider, NetApi, NetApiServer, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
 	SchemaV2Override, SchemaV3Override, StorageOverride, Web3Api, Web3ApiServer,
 };
+use fp_rpc::{
+	EthApi, EthApiServer, EthBlockDataCacheTask, EthFilterApi, EthFilterApiServer, EthPubSubApi, EthPubSubApiServer,
+	HexEncodedIdProvider, NetApi, NetApiServer, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
+	SchemaV2Override, SchemaV3Override, StorageOverride, Web3Api, Web3ApiServer,
+};
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
+use jsonrpsee::RpcModule;
 use pallet_contracts_rpc::ContractsRpc;
-use pallet_transaction_payment_rpc::{TransactionPaymentApi, TransactionPaymentRpc};
+use pallet_transaction_payment_rpc::TransactionPaymentRpc;
 use sc_cli::SubstrateCli;
 use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
 use sc_network::NetworkService;
@@ -23,7 +29,7 @@ use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Backend as BlockchainBackend, Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_runtime::traits::BlakeTwo256;
-use substrate_frame_rpc_system::{FullSystem, SystemRpc};
+use substrate_frame_rpc_system::SystemRpc;
 
 use primitives::*;
 
@@ -126,6 +132,7 @@ where
 	A: ChainApi<Block = Block> + 'static,
 {
 	let mut io = jsonrpc_core::IoHandler::default();
+	let mut module = RpcModule::new(());
 	let FullDeps {
 		client,
 		pool,
@@ -139,21 +146,14 @@ where
 		fee_history_cache,
 	} = deps;
 
-	io.extend_with(SystemRpc::to_delegate(FullSystem::new(
-		client.clone(),
-		pool.clone(),
-		deny_unsafe,
-	)));
-
-	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPaymentRpc::new(
-		client.clone(),
-	)));
+	module.merge(SystemRpc:new(client.clone(), pool.clone(), deny_unsafe));
+	module.merge(TransactionPaymentRpc::new(client.clone()));
 
 	let max_past_logs: u32 = 10_000;
 	let max_stored_filters: usize = 500;
 	let block_data_cache = Arc::new(EthBlockDataCacheTask::new(50, 50));
 
-	io.extend_with(EthApiServer::to_delegate(EthApi::new(
+	module.merge(EthApiServer::into_rpc(EthApi::new(
 		client.clone(),
 		pool.clone(),
 		graph,
@@ -169,7 +169,7 @@ where
 		fee_history_cache,
 	)));
 
-	io.extend_with(EthFilterApiServer::to_delegate(EthFilterApi::new(
+	module.merge(EthFilterApiServer::into_rpc(EthFilterApi::new(
 		client.clone(),
 		frontier_backend,
 		filter_pool,
@@ -179,15 +179,15 @@ where
 		block_data_cache.clone(),
 	)));
 
-	io.extend_with(NetApiServer::to_delegate(NetApi::new(
+	module.merge(NetApiServer::into_rpc(NetApi::new(
 		client.clone(),
 		network.clone(),
 		true,
 	)));
 
-	io.extend_with(Web3ApiServer::to_delegate(Web3Api::new(client.clone())));
+	module.merge(Web3ApiServer::into_rpc(Web3Api::new(client.clone())));
 
-	io.extend_with(EthPubSubApiServer::to_delegate(EthPubSubApi::new(
+	module.merge(EthPubSubApiServer::into_rpc(EthPubSubApi::new(
 		pool,
 		client.clone(),
 		network,
@@ -199,7 +199,7 @@ where
 	)));
 
 	// Contracts RPC API extension
-	//	io.extend_with(ContractsApi::to_delegate(ContractsRpc::new(client.clone())));
+	//	module.merge(ContractsRpc::new(client.clone()));
 
 	io
 }
