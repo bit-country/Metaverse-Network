@@ -256,20 +256,20 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-filter-pool",
 		Some("frontier"),
-		fp_rpc::EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
+		fc_rpc::EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
 	);
 
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-schema-cache-task",
 		Some("frontier"),
-		fp_rpc::EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
+		fc_rpc::EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
 	);
 
 	const FEE_HISTORY_LIMIT: u64 = 2048;
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-fee-history",
 		Some("frontier"),
-		fp_rpc::EthTask::fee_history_task(
+		fc_rpc::EthTask::fee_history_task(
 			client.clone(),
 			overrides.clone(),
 			fee_history_cache.clone(),

@@ -11,7 +11,7 @@ use fc_rpc::{
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
-use pallet_contracts_rpc::{ContractsApi, ContractsRpc};
+use pallet_contracts_rpc::ContractsRpc;
 use pallet_transaction_payment_rpc::{TransactionPaymentApi, TransactionPaymentRpc};
 use sc_cli::SubstrateCli;
 use sc_client_api::{AuxStore, Backend, BlockchainEvents, StateBackend, StorageProvider};
@@ -23,7 +23,7 @@ use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Backend as BlockchainBackend, Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_runtime::traits::BlakeTwo256;
-use substrate_frame_rpc_system::{FullSystem, SystemApi};
+use substrate_frame_rpc_system::{FullSystem, SystemRpc};
 
 use primitives::*;
 
@@ -71,6 +71,9 @@ where
 	})
 }
 
+/// A type representing all RPC extensions.
+pub type RpcExtension = jsonrpsee::RpcModule<()>;
+
 /// Full client dependencies
 pub struct FullDeps<C, P, A: ChainApi> {
 	/// The client instance to use.
@@ -100,7 +103,7 @@ pub fn create_full<C, P, BE, A>(
 	deps: FullDeps<C, P, A>,
 	subscription_task_executor: SubscriptionTaskExecutor,
 	overrides: Arc<OverrideHandle<Block>>,
-) -> jsonrpc_core::IoHandler<dyn jsonrpc_core::Metadata>
+) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
 	C: ProvideRuntimeApi<Block>
 		+ HeaderBackend<Block>
@@ -136,7 +139,7 @@ where
 		fee_history_cache,
 	} = deps;
 
-	io.extend_with(SystemApi::to_delegate(FullSystem::new(
+	io.extend_with(SystemRpc::to_delegate(FullSystem::new(
 		client.clone(),
 		pool.clone(),
 		deny_unsafe,
@@ -161,7 +164,7 @@ where
 		is_authority,
 		max_past_logs,
 		block_data_cache.clone(),
-		fp_rpc::format::Geth,
+		fc_rpc::format::Geth,
 		fee_history_limit,
 		fee_history_cache,
 	)));

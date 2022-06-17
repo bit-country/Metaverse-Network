@@ -38,7 +38,7 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, RawOrigin,
 };
-use orml_traits::location::Reserve;
+use orml_traits::location::{AbsoluteReserveProvider, RelativeReserveProvider, Reserve};
 use orml_traits::{arithmetic::Zero, parameter_type_with_key, MultiCurrency};
 pub use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 // XCM Imports
@@ -669,7 +669,11 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 
 pub struct MultiLocationsFilter;
 
-pub struct ReserveProvider;
+impl Contains<MultiLocation> for MultiLocationsFilter {
+	fn contains(m: &MultiLocation) -> bool {
+		true
+	}
+}
 
 parameter_type_with_key! {
 	pub ParachainMinFee: |_location: MultiLocation| -> u128 {
@@ -691,7 +695,7 @@ impl orml_xtokens::Config for Runtime {
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type MinXcmFee = ParachainMinFee;
 	type MultiLocationsFilter = MultiLocationsFilter;
-	type ReserveProvider = ReserveProvider;
+	type ReserveProvider = AbsoluteReserveProvider;
 }
 
 impl orml_unknown_tokens::Config for Runtime {
@@ -1034,7 +1038,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = MultiNativeAsset<ReserveProvider>;
+	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
 	type LocationInverter = LocationInverter<Ancestry>;
