@@ -105,6 +105,7 @@ pub mod pallet {
 	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
+	use frame_system::ensure_root;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_runtime::ArithmeticError;
@@ -243,6 +244,9 @@ pub mod pallet {
 		/// NFT Collection authorization removed for listing in marketplace. [class_id,
 		/// metaverse_id]
 		CollectionAuthorizationRemoveInMetaverse(ClassId, MetaverseId),
+		/// Cancel listing with auction id. [class_id,
+		/// metaverse_id]
+		AuctionCancelled(AuctionId),
 	}
 
 	/// Errors inform users that something went wrong.
@@ -268,6 +272,8 @@ pub mod pallet {
 		NoAvailableAuctionId,
 		/// Has no permission to create auction. Check listing authorization
 		NoPermissionToCreateAuction,
+		/// Has no permission to cancel auction.
+		NoPermissionToCancelAuction,
 		/// Self bidding is not accepted
 		CannotBidOnOwnAuction,
 		/// Buy now input price is not valid
@@ -298,6 +304,8 @@ pub mod pallet {
 		CollectionAlreadyAuthorised,
 		/// Collection is not authorised
 		CollectionIsNotAuthorised,
+		/// Auction already started or got bid
+		AuctionAlreadyStartedOrBid,
 	}
 
 	#[pallet::call]
@@ -535,6 +543,69 @@ pub mod pallet {
 				metaverse_id,
 			));
 			Ok(().into())
+		}
+
+		/// Cancel listing that has no bid or buy now.
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// this call
+		/// - `from`: the listing owner who created this listing
+		/// - `auction_id`: the auction id that wish to cancel
+		///
+		/// Emits `CollectionAuthorizationRemoveInMetaverse` if successful.
+		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		#[transactional]
+		pub fn cancel_listing(
+			origin: OriginFor<T>,
+			from: T::AccountId,
+			auction_id: AuctionId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			ensure!(Auctions::<T>::contains_key(auction_id), Error::<T>::AuctionDoesNotExist);
+			let auction_item = AuctionItems::<T>::get(auction_id).ok_or(Error::<T>::AuctionDoesNotExist)?;
+
+			match auction_item.clone().item_id {
+				ItemId::NFT(class_id, token_id) => {
+					ensure!(
+						T::NFTHandler::check_ownership(&from, &(class_id, token_id))?,
+						Error::<T>::NoPermissionToCancelAuction
+					);
+
+					ensure!(auction_item.recipient == from, Error::<T>::AuctionAlreadyStartedOrBid);
+
+					Self::remove_auction(auction_id, auction_item.item_id);
+					T::NFTHandler::set_lock_nft((class_id, token_id), false)?;
+					T::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
+
+					Self::deposit_event(Event::<T>::AuctionCancelled(auction_id));
+					Self::deposit_event(Event::<T>::AuctionFinalizedNoBid(auction_id));
+
+					Ok(().into())
+				}
+				ItemId::Bundle(tokens) => {
+					ensure!(auction_item.recipient == from, Error::<T>::AuctionAlreadyStartedOrBid);
+					for item in tokens {
+						// Check ownership
+						ensure!(
+							T::NFTHandler::check_ownership(&from, &(item.0, item.1))?,
+							Error::<T>::NoPermissionToCancelAuction
+						);
+
+						// Lock NFT
+						T::NFTHandler::set_lock_nft((item.0, item.1), false)?
+					}
+
+					Self::remove_auction(auction_id, auction_item.item_id);
+					T::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
+
+					Self::deposit_event(Event::<T>::AuctionCancelled(auction_id));
+					Self::deposit_event(Event::<T>::AuctionFinalizedNoBid(auction_id));
+
+					Ok(().into())
+				}
+				_ => Err(Error::<T>::NoPermissionToCancelAuction.into()),
+			}
 		}
 	}
 
