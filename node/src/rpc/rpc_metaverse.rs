@@ -7,7 +7,7 @@ use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
 use jsonrpsee::RpcModule;
-use metaverse_runtime::{opaque::Block, AccountId, Balance, Hash, Index};
+use metaverse_runtime::{opaque::Block, AccountId, Hash, Index};
 use pallet_contracts_rpc::ContractsRpc;
 use pallet_transaction_payment_rpc::TransactionPaymentRpc;
 use sc_cli::SubstrateCli;
@@ -29,7 +29,7 @@ use sp_runtime::traits::BlakeTwo256;
 use substrate_frame_rpc_system::SystemRpc;
 
 use primitives::*;
-
+/*
 pub fn open_frontier_backend(config: &sc_service::Configuration) -> Result<Arc<fc_db::Backend<Block>>, String> {
 	let config_dir = config
 		.base_path
@@ -44,13 +44,13 @@ pub fn open_frontier_backend(config: &sc_service::Configuration) -> Result<Arc<f
 		source: fc_db::DatabaseSettingsSrc::RocksDb { path, cache_size: 0 },
 	})?))
 }
-
+*/
 pub fn overrides_handle<C, BE>(client: Arc<C>) -> Arc<OverrideHandle<Block>>
 where
 	C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
 	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError>,
 	C: Send + Sync + 'static,
-	C::Api: fp_rpc::EthereumRuntimeRPCApi<Block>,
+	C::Api: sp_api::ApiExt<Block> + fp_rpc::EthereumRuntimeRPCApi<Block> + fp_rpc::ConvertTransactionRuntimeApi<Block>,
 	BE: Backend<Block> + 'static,
 	BE::State: StateBackend<BlakeTwo256>,
 {
