@@ -498,6 +498,11 @@ pub mod pallet {
 				let item = x.clone();
 				let owner = sender.clone();
 
+				ensure!(
+					Self::check_item_on_listing(item.1 .0, item.1 .1)? == false,
+					Error::<T>::AssetAlreadyInAuction
+				);
+
 				Self::do_transfer(owner, item.0, (item.1 .0, item.1 .1))?;
 			}
 
