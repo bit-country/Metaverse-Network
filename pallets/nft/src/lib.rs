@@ -36,7 +36,7 @@ use frame_support::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
 		Currency, ExistenceRequirement, Get, LockIdentifier, ReservableCurrency,
 	},
-	PalletId,
+	transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
 use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
@@ -482,6 +482,7 @@ pub mod pallet {
 		///
 		/// Emits `TransferedNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer_batch() * tos.len() as u64)]
+		#[transactional]
 		pub fn transfer_batch(
 			origin: OriginFor<T>,
 			tos: Vec<(T::AccountId, (ClassIdOf<T>, TokenIdOf<T>))>,
@@ -494,25 +495,10 @@ pub mod pallet {
 			);
 
 			for (_i, x) in tos.iter().enumerate() {
-				let item = &x;
-				let owner = &sender.clone();
+				let item = x.clone();
+				let owner = sender.clone();
 
-				let class_info = NftModule::<T>::classes((item.1).0).ok_or(Error::<T>::ClassIdNotFound)?;
-				let data = class_info.data;
-
-				if data.token_type == TokenType::Transferable {
-					let asset_info =
-						NftModule::<T>::tokens((item.1).0, (item.1).1).ok_or(Error::<T>::AssetInfoNotFound)?;
-					ensure!(owner.clone() == asset_info.owner, Error::<T>::NoPermission);
-
-					NftModule::<T>::transfer(&owner, &item.0, item.1)?;
-					Self::deposit_event(Event::<T>::TransferedNft(
-						owner.clone(),
-						item.0.clone(),
-						(item.1).1.clone(),
-						item.1.clone(),
-					));
-				};
+				Self::do_transfer(owner, item.0, (item.1 .0, item.1 .1))?;
 			}
 
 			Ok(().into())
@@ -526,6 +512,7 @@ pub mod pallet {
 		///
 		/// Emits no event if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[transactional]
 		pub fn sign_asset(
 			origin: OriginFor<T>,
 			asset_id: (ClassIdOf<T>, TokenIdOf<T>),
@@ -568,6 +555,7 @@ pub mod pallet {
 		///
 		/// Emits `PromotionEnabled` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[transactional]
 		pub fn enable_promotion(origin: OriginFor<T>, enable: bool) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -584,6 +572,7 @@ pub mod pallet {
 		///
 		/// Emits `CollectionLocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
+		#[transactional]
 		pub fn burn(origin: OriginFor<T>, asset_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 			Self::do_burn(&sender, &asset_id)?;
@@ -668,6 +657,7 @@ pub mod pallet {
 		///
 		/// Emits `HardLimitSet` if successful.
 		#[pallet::weight(T::WeightInfo::set_hard_limit())]
+		#[transactional]
 		pub fn set_hard_limit(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -699,6 +689,7 @@ pub mod pallet {
 		///
 		/// Emits `ClassFundsWithdrawn` if successful.
 		#[pallet::weight(T::WeightInfo::withdraw_funds_from_class_fund())]
+		#[transactional]
 		pub fn withdraw_funds_from_class_fund(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -747,10 +738,10 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		fn on_runtime_upgrade() -> Weight {
-			Self::storage_migration_fix_locking_issue();
-			0
-		}
+		//		fn on_runtime_upgrade() -> Weight {
+		//			Self::storage_migration_fix_locking_issue();
+		//			0
+		//		}
 	}
 }
 
