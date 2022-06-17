@@ -111,13 +111,15 @@ polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "r
 
 # EVM dependencies
 fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+fp-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+fp-storage =  { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+
 fc-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fc-rpc-core = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fc-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
-fp-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fc-mapping-sync = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fc-db = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
-fp-storage =  { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
+
 pallet-dynamic-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 
