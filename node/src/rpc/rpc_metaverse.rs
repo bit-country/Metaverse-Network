@@ -8,12 +8,12 @@ use fc_rpc::{
 	HexEncodedIdProvider, NetApi, NetApiServer, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
 	SchemaV2Override, SchemaV3Override, StorageOverride, Web3Api, Web3ApiServer,
 };
+use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use fp_rpc::{
 	EthApi, EthApiServer, EthBlockDataCacheTask, EthFilterApi, EthFilterApiServer, EthPubSubApi, EthPubSubApiServer,
 	HexEncodedIdProvider, NetApi, NetApiServer, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
 	SchemaV2Override, SchemaV3Override, StorageOverride, Web3Api, Web3ApiServer,
 };
-use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
 use jsonrpsee::RpcModule;
@@ -146,7 +146,7 @@ where
 		fee_history_cache,
 	} = deps;
 
-	module.merge(SystemRpc:new(client.clone(), pool.clone(), deny_unsafe));
+	module.merge(SystemRpc::new(client.clone(), pool.clone(), deny_unsafe));
 	module.merge(TransactionPaymentRpc::new(client.clone()));
 
 	let max_past_logs: u32 = 10_000;

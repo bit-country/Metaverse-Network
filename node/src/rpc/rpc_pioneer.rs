@@ -4,18 +4,15 @@
 //! capabilities that are specific to this project's runtime configuration.
 
 #![warn(missing_docs)]
-
-use std::sync::Arc;
-
+use jsonrpsee::RpcModule;
 use pioneer_runtime::{opaque::Block, AccountId, Index};
 use primitives::Balance;
-use jsonrpsee::RpcModule;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
-
+use std::sync::Arc;
 
 /// A type representing all RPC extensions.
 pub type RpcExtension = jsonrpsee::RpcModule<()>;
@@ -51,7 +48,7 @@ where
 		deny_unsafe,
 	} = deps;
 
-	module.merge(SystemRpc:new(client.clone(), pool.clone(), deny_unsafe));
+	module.merge(SystemRpc::new(client.clone(), pool.clone(), deny_unsafe));
 	module.merge(TransactionPaymentRpc::new(client.clone()));
 
 	// Extend this RPC with a custom API by using the following syntax.
