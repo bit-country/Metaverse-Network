@@ -129,6 +129,20 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 				listing_fee: Perbill::from_percent(0u32),
 			};
 			return Some(auction_item);
+		} else if id == 2 {
+			let auction_item = AuctionItem {
+				item_id: ItemId::Spot((0, 1), 0),
+				recipient: ALICE_METAVERSE_FUND,
+				initial_amount: 100,
+				amount: 100,
+				start_time: 0,
+				end_time: 1,
+				auction_type: AuctionType::BuyNow,
+				listing_level: ListingLevel::Global,
+				currency_id: FungibleTokenId::NativeToken(0),
+				listing_fee: Perbill::from_percent(0u32),
+			};
+			return Some(auction_item);
 		}
 		return None;
 	}
