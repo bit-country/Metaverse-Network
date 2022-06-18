@@ -29,7 +29,7 @@ use sp_runtime::traits::BlakeTwo256;
 use substrate_frame_rpc_system::SystemRpc;
 
 use primitives::*;
-/*
+
 pub fn open_frontier_backend(config: &sc_service::Configuration) -> Result<Arc<fc_db::Backend<Block>>, String> {
 	let config_dir = config
 		.base_path
@@ -44,7 +44,7 @@ pub fn open_frontier_backend(config: &sc_service::Configuration) -> Result<Arc<f
 		source: fc_db::DatabaseSettingsSrc::RocksDb { path, cache_size: 0 },
 	})?))
 }
-*/
+
 pub fn overrides_handle<C, BE>(client: Arc<C>) -> Arc<OverrideHandle<Block>>
 where
 	C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
