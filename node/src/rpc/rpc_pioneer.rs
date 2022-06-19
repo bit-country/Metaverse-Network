@@ -37,19 +37,19 @@ where
 	C::Api: BlockBuilder<Block>,
 	P: TransactionPool + 'static,
 {
-	use pallet_transaction_payment_rpc::TransactionPaymentRpc;
-	use substrate_frame_rpc_system::SystemRpc;
+	use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
+	use substrate_frame_rpc_system::{SystemApiServer, SystemRpc};
 
 	//let mut io = jsonrpc_core::IoHandler::default();
-	let mut module = RpcModule::new(());
+	let mut io = RpcModule::new(());
 	let FullDeps {
 		client,
 		pool,
 		deny_unsafe,
 	} = deps;
 
-	module.merge(SystemRpc::new(client.clone(), pool.clone(), deny_unsafe));
-	module.merge(TransactionPaymentRpc::new(client.clone()));
+	io.merge(SystemRpc::new(Arc::clone(&client), Arc::clone(&pool), deny_unsafe).into_rpc())?;
+	io.merge(TransactionPaymentRpc::new(Arc::clone(&client)).into_rpc())?;
 
 	// Extend this RPC with a custom API by using the following syntax.
 	// `YourRpcStruct` should have a reference to a client, which is needed
@@ -60,5 +60,5 @@ where
 	// `YourRpcStruct` should have a reference to a client, which is needed
 	// to call into the runtime.
 	// `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
-	Ok(module)
+	Ok(io)
 }

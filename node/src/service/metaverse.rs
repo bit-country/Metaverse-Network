@@ -131,7 +131,7 @@ pub fn new_partial(
 	let frontier_block_import =
 		FrontierBlockImport::new(grandpa_block_import.clone(), client.clone(), frontier_backend.clone());
 
-	let slot_duration = sc_consensus_aura::slot_duration(&*client)?.as_duration();
+	let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
 	let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(ImportQueueParams {
 		block_import: grandpa_block_import.clone(),
@@ -244,8 +244,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			client.clone(),
 			backend.clone(),
 			frontier_backend.clone(),
-			2u32.into(), // retry_times: usize,
-			// sync_from: <Block::Header as HeaderT>::Number,
+			3, // retry_times: usize,
+			0, // sync_from: <Block::Header as HeaderT>::Number,
 			fc_mapping_sync::SyncStrategy::Parachain,
 		)
 		.for_each(|()| futures::future::ready(())),
@@ -288,6 +288,41 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 
 	let rpc_extensions_builder = {
 		let client = client.clone();
+		let pool = transaction_pool.clone();
+		let is_authority = role.is_authority();
+		let enable_dev_signer = cli.run.enable_dev_signer;
+		let network = network.clone();
+		let filter_pool = filter_pool.clone();
+		let frontier_backend = frontier_backend.clone();
+		let overrides = overrides.clone();
+		let fee_history_cache = fee_history_cache.clone();
+		let max_past_logs = cli.run.max_past_logs;
+
+		Box::new(move |deny_unsafe, subscription_task_executor| {
+			let deps = crate::rpc::FullDeps {
+				client: client.clone(),
+				pool: pool.clone(),
+				graph: pool.pool().clone(),
+				deny_unsafe,
+				is_authority,
+				enable_dev_signer,
+				network: network.clone(),
+				filter_pool: filter_pool.clone(),
+				backend: frontier_backend.clone(),
+				max_past_logs,
+				fee_history_cache: fee_history_cache.clone(),
+				fee_history_cache_limit,
+				overrides: overrides.clone(),
+				block_data_cache: block_data_cache.clone(),
+			};
+
+			crate::rpc::create_full(deps, subscription_task_executor).map_err(Into::into)
+		})
+	};
+
+	/*
+	let rpc_builder = {
+		let client = client.clone();
 		let network = network.clone();
 		let pool = transaction_pool.clone();
 
@@ -296,13 +331,17 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 				client: client.clone(),
 				pool: pool.clone(),
 				graph: pool.pool().clone(),
-				network: network.clone(),
-				is_authority,
 				deny_unsafe,
-				frontier_backend: frontier_backend.clone(),
+				is_authority,
+				true,
+				network: network.clone(),
 				filter_pool: Some(filter_pool.clone()),
-				fee_history_limit: FEE_HISTORY_LIMIT,
+				backend: frontier_backend.clone(),
 				fee_history_cache: fee_history_cache.clone(),
+				fee_history_cache_limit: FEE_HISTORY_LIMIT,
+				// pub overrides: Arc<OverrideHandle<Block>>,
+				// pub block_data_cache: Arc<EthBlockDataCacheTask<Block>>,
+				// pub command_sink: Option<futures::channel::mpsc::Sender<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>>,
 			};
 
 			let mut io = crate::rpc::create_full(deps, subscription); //, overrides.clone());
@@ -313,17 +352,17 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			Ok(io)
 		})
 	};
-
+	*/
 	let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		network: network.clone(),
-		client: client.clone(),
-		keystore: keystore_container.sync_keystore(),
-		task_manager: &mut task_manager,
-		transaction_pool: transaction_pool.clone(),
-		rpc_extensions_builder,
-		backend,
-		system_rpc_tx,
 		config,
+		client: client.clone(),
+		backend,
+		task_manager: &mut task_manager,
+		keystore: keystore_container.sync_keystore(),
+		transaction_pool: transaction_pool.clone(),
+		rpc_builder: rpc_extension_builder,
+		network: network.clone(),
+		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
 	})?;
 
@@ -339,7 +378,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
 		let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
-		let raw_slot_duration = slot_duration.as_duration();
+		//let raw_slot_duration = slot_duration.as_duration();
 
 		let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _, _>(StartAuraParams {
 			slot_duration,
@@ -352,7 +391,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 
 				let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 					*timestamp,
-					raw_slot_duration,
+					slot_duration,
 				);
 
 				Ok((timestamp, slot))

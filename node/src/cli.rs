@@ -52,12 +52,11 @@ pub enum Subcommand {
 	Revert(sc_cli::RevertCmd),
 
 	/// The custom benchmark subcommmand benchmarking runtime pallets.
-	#[clap(name = "benchmark", about = "Benchmark runtime pallets.")]
+	#[clap(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 
-	/// The custom benchmark subcommmand benchmarking runtime pallets.
-	// #[clap(name = "benchmark", about = "Benchmark runtime pallets.")]
-	// BenchmarkParachain(frame_benchmarking_cli::BenchmarkCmd),
+	/// Db meta columns information.
+	FrontierDb(fc_cli::FrontierDbCmd),
 
 	/// Export the genesis state of the parachain.
 	#[clap(name = "export-genesis-state")]

@@ -114,7 +114,7 @@ polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "r
 fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fp-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fp-storage =  { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
-
+fc-cli = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fc-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fc-rpc-core = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
 fc-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
@@ -135,6 +135,7 @@ default = ["with-metaverse-runtime"]
 
 with-metaverse-runtime = [
     "metaverse-runtime",
+    "fc-cli",
     "fp-rpc",
     "fc-rpc",
     "fp-storage",
