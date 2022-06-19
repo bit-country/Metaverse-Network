@@ -131,7 +131,7 @@ pub fn new_partial(
 	let frontier_block_import =
 		FrontierBlockImport::new(grandpa_block_import.clone(), client.clone(), frontier_backend.clone());
 
-	let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
+	let slot_duration = sc_consensus_aura::slot_duration(&*client)?.as_duration();
 
 	let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(ImportQueueParams {
 		block_import: grandpa_block_import.clone(),
@@ -140,7 +140,7 @@ pub fn new_partial(
 		create_inherent_data_providers: move |_, ()| async move {
 			let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
-			let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+			let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 				*timestamp,
 				slot_duration,
 			);
@@ -244,6 +244,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			client.clone(),
 			backend.clone(),
 			frontier_backend.clone(),
+			2u32.into(), // retry_times: usize,
+			// sync_from: <Block::Header as HeaderT>::Number,
 			fc_mapping_sync::SyncStrategy::Parachain,
 		)
 		.for_each(|()| futures::future::ready(())),
@@ -298,16 +300,16 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 				is_authority,
 				deny_unsafe,
 				frontier_backend: frontier_backend.clone(),
-				filter_pool: filter_pool.clone(),
+				filter_pool: Some(filter_pool.clone()),
 				fee_history_limit: FEE_HISTORY_LIMIT,
 				fee_history_cache: fee_history_cache.clone(),
 			};
 
-			let mut io = crate::rpc::create_full(deps, subscription, overrides.clone());
-			// Local node support WASM contracts
-			//			io.extend_with(pallet_contracts_rpc::ContractsApi::to_delegate(
-			//				pallet_contracts_rpc::Contracts::new(client.clone()),
-			//			));
+			let mut io = crate::rpc::create_full(deps, subscription); //, overrides.clone());
+														  // Local node support WASM contracts
+														  //			io.extend_with(pallet_contracts_rpc::ContractsApi::to_delegate(
+														  //				pallet_contracts_rpc::Contracts::new(client.clone()),
+														  //			));
 			Ok(io)
 		})
 	};
@@ -337,7 +339,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
 		let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
-		let raw_slot_duration = slot_duration.slot_duration();
+		let raw_slot_duration = slot_duration.as_duration();
 
 		let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _, _>(StartAuraParams {
 			slot_duration,
@@ -348,7 +350,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			create_inherent_data_providers: move |_, ()| async move {
 				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
-				let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+				let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 					*timestamp,
 					raw_slot_duration,
 				);
