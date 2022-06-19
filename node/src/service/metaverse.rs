@@ -12,6 +12,9 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
+use crate::cli::Cli;
+#[cfg(feature = "manual-seal")]
+use crate::cli::Sealing;
 
 use fc_consensus::FrontierBlockImport;
 use fc_rpc::{EthTask, OverrideHandle};
@@ -282,9 +285,17 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	let force_authoring = config.force_authoring;
 	let backoff_authoring_blocks: Option<()> = None;
 	let name = config.network.node_name.clone();
-	let prometheus_registry = config.prometheus_registry().cloned();
 	let enable_grandpa = !config.disable_grandpa;
+	let prometheus_registry = config.prometheus_registry().cloned();
 	let is_authority = config.role.is_authority();
+	let overrides = crate::rpc::overrides_handle(client.clone());
+	let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
+		task_manager.spawn_handle(),
+		overrides.clone(),
+		50,
+		50,
+		prometheus_registry.clone(),
+	));
 
 	let rpc_extensions_builder = {
 		let client = client.clone();
@@ -307,11 +318,11 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 				is_authority,
 				enable_dev_signer,
 				network: network.clone(),
-				filter_pool: filter_pool.clone(),
+				filter_pool: Some(filter_pool.clone()),
 				backend: frontier_backend.clone(),
 				max_past_logs,
 				fee_history_cache: fee_history_cache.clone(),
-				fee_history_cache_limit,
+				fee_history_cache_limit: FEE_HISTORY_LIMIT,
 				overrides: overrides.clone(),
 				block_data_cache: block_data_cache.clone(),
 			};
@@ -360,7 +371,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		task_manager: &mut task_manager,
 		keystore: keystore_container.sync_keystore(),
 		transaction_pool: transaction_pool.clone(),
-		rpc_builder: rpc_extension_builder,
+		rpc_builder: rpc_extensions_builder,
 		network: network.clone(),
 		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
