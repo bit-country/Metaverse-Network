@@ -1,6 +1,6 @@
 //! RPCs implementation.
 use fc_rpc::{
-	EthBlockDataCacheTask, HexEncodedIdProvider, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
+	EthBlockDataCacheTask, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,
 	SchemaV2Override, SchemaV3Override, StorageOverride,
 };
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
@@ -41,7 +41,7 @@ pub fn open_frontier_backend(config: &sc_service::Configuration) -> Result<Arc<f
 	let path = config_dir.join("frontier").join("db");
 
 	Ok(Arc::new(fc_db::Backend::<Block>::new(&fc_db::DatabaseSettings {
-		source: fc_db::DatabaseSettingsSrc::RocksDb { path, cache_size: 0 },
+		source: sc_client_db::DatabaseSource::RocksDb { path, cache_size: 0 },
 	})?))
 }
 
