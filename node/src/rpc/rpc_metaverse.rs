@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 //! RPCs implementation.
 use fc_rpc::{
 	EthBlockDataCacheTask, HexEncodedIdProvider, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override,

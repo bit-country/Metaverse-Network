@@ -5,7 +5,7 @@
 
 #![warn(missing_docs)]
 use jsonrpsee::RpcModule;
-use pioneer_runtime::{opaque::Block, AccountId, Index};
+use pioneer_runtime::{opaque::Block, AccountId, Hash, Index};
 use primitives::Balance;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;

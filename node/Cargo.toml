@@ -135,6 +135,8 @@ default = ["with-metaverse-runtime"]
 with-metaverse-runtime = [
     "metaverse-runtime",
     "fp-rpc",
+    "fc-rpc",
+    "fp-storage",
     "fc-mapping-sync",
     "fc-db",
     "pallet-dynamic-fee",
