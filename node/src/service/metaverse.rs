@@ -13,8 +13,6 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 
-use std::{collections::BTreeMap, sync::Arc, time::Duration};
-#![cfg_attr(not(feature = "std"), no_std)]
 use fc_consensus::FrontierBlockImport;
 use fc_rpc::{EthTask, OverrideHandle};
 use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
@@ -27,6 +25,7 @@ use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
+use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use metaverse_runtime::RuntimeApi;
 use primitives::*;
