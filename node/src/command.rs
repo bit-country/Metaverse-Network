@@ -15,8 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::sync::Arc;
-use std::{io::Write, net::SocketAddr};
+use std::{io::Write, net::SocketAddr, sync::Arc};
 
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
