@@ -47,28 +47,43 @@ pub struct RunCmd {
 	#[clap(long, default_value = "1")]
 	pub target_gas_price: u64,
 
-	/// Id of the parachain this collator collates for.
-	#[structopt(long)]
-	pub parachain_id: Option<u32>,
-
 	/// Run node as collator.
 	///
 	/// Note that this is the same as running with `--validator`.
-	#[structopt(long, conflicts_with = "validator")]
+	#[clap(long, conflicts_with = "validator")]
 	pub collator: bool,
+
+	/// EXPERIMENTAL: Specify an URL to a relay chain full node to communicate with.
+	#[clap(
+		parse(try_from_str),
+		validator = validate_relay_chain_url,
+		conflicts_with = "collator",
+		conflicts_with = "validator",
+		conflicts_with = "alice",
+		conflicts_with = "bob",
+		conflicts_with = "charlie",
+		conflicts_with = "dave",
+		conflicts_with = "eve",
+		conflicts_with = "ferdie"
+	)]
+	pub relay_chain_rpc_url: Option<Url>,
 }
 
 impl RunCmd {
 	/// Create a [`NormalizedRunCmd`] which merges the `collator` cli argument into `validator` to
 	/// have only one.
-	pub fn normalize(&self) -> cumulus_client_cli::NormalizedRunCmd {
+	pub fn normalize(&self) -> NormalizedRunCmd {
 		let mut new_base = self.base.clone();
 
 		new_base.validator = self.base.validator || self.collator;
 
-		cumulus_client_cli::NormalizedRunCmd {
-			base: new_base,
-			parachain_id: self.parachain_id,
+		NormalizedRunCmd { base: new_base }
+	}
+
+	/// Create [`CollatorOptions`] representing options only relevant to parachain collator nodes
+	pub fn collator_options(&self) -> CollatorOptions {
+		CollatorOptions {
+			relay_chain_rpc_url: self.relay_chain_rpc_url.clone(),
 		}
 	}
 }
