@@ -111,6 +111,8 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = ();
 	type MaxLocks = ();
+	type ReserveIdentifier = [u8; 8];
+	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
 }
 
@@ -119,7 +121,6 @@ parameter_types! {
 }
 
 impl orml_currencies::Config for Runtime {
-	type Event = Event;
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
