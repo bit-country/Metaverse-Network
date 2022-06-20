@@ -55,6 +55,7 @@ pub struct RunCmd {
 
 	/// EXPERIMENTAL: Specify an URL to a relay chain full node to communicate with.
 	#[clap(
+		long,
 		parse(try_from_str),
 		validator = validate_relay_chain_url,
 		conflicts_with = "collator",
@@ -72,17 +73,17 @@ pub struct RunCmd {
 impl RunCmd {
 	/// Create a [`NormalizedRunCmd`] which merges the `collator` cli argument into `validator` to
 	/// have only one.
-	pub fn normalize(&self) -> NormalizedRunCmd {
+	pub fn normalize(&self) -> cumulus_client_cli::NormalizedRunCmd {
 		let mut new_base = self.base.clone();
 
 		new_base.validator = self.base.validator || self.collator;
 
-		NormalizedRunCmd { base: new_base }
+		cumulus_client_cli::NormalizedRunCmd { base: new_base }
 	}
 
 	/// Create [`CollatorOptions`] representing options only relevant to parachain collator nodes
-	pub fn collator_options(&self) -> CollatorOptions {
-		CollatorOptions {
+	pub fn collator_options(&self) -> cumulus_client_cli::CollatorOptions {
+		cumulus_client_cli::CollatorOptions {
 			relay_chain_rpc_url: self.relay_chain_rpc_url.clone(),
 		}
 	}
