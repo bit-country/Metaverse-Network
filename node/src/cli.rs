@@ -5,6 +5,19 @@ use cumulus_client_cli;
 use std::path::PathBuf;
 use url::Url;
 
+fn validate_relay_chain_url(arg: &str) -> Result<(), String> {
+	let url = Url::parse(arg).map_err(|e| e.to_string())?;
+
+	if url.scheme() == "ws" {
+		Ok(())
+	} else {
+		Err(format!(
+			"'{}' URL scheme not supported. Only websocket RPC is currently supported",
+			url.scheme()
+		))
+	}
+}
+
 #[cfg(feature = "manual-seal")]
 #[derive(Debug, Copy, Clone, clap::ArgEnum)]
 pub enum Sealing {
