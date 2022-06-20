@@ -250,7 +250,7 @@ pub fn run() -> sc_cli::Result<()> {
 								.into());
 						}
 
-						cmd.run::<Block, service::metaverse::ExecutorDispatch>(config)
+						cmd.run::<Block, service::ExecutorDispatch>(config)
 					}
 					BenchmarkCmd::Block(cmd) => cmd.run(client),
 					BenchmarkCmd::Storage(cmd) => {
