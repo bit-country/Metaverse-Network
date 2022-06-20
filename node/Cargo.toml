@@ -27,6 +27,7 @@ clap = { version = "3.0", features = ["derive"] }
 parking_lot = "0.12.1"
 async-trait = "0.1"
 jsonrpsee = { version = "0.13.0", features = ["server"] }
+url = "2.2.2"
 
 sc-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 sc-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }

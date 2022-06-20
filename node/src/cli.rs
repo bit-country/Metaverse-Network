@@ -3,6 +3,7 @@ use crate::chain_spec::Extensions;
 use clap::Parser;
 use cumulus_client_cli;
 use std::path::PathBuf;
+use url::Url;
 
 #[cfg(feature = "manual-seal")]
 #[derive(Debug, Copy, Clone, clap::ArgEnum)]
@@ -57,6 +58,7 @@ pub struct RunCmd {
 	#[clap(
 		long,
 		parse(try_from_str),
+		validator = validate_relay_chain_url,
 		conflicts_with = "collator",
 		conflicts_with = "validator",
 		conflicts_with = "alice",
@@ -66,7 +68,7 @@ pub struct RunCmd {
 		conflicts_with = "eve",
 		conflicts_with = "ferdie"
 	)]
-	pub relay_chain_rpc_url: Option<clap::ValueHint::Url>,
+	pub relay_chain_rpc_url: Option<Url>,
 }
 
 impl RunCmd {
