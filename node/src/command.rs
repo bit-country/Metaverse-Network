@@ -235,17 +235,42 @@ pub fn run() -> sc_cli::Result<()> {
 			})
 		}
 		Some(Subcommand::Benchmark(cmd)) => {
-			if cfg!(feature = "runtime-benchmarks") {
-				let runner = cli.create_runner(cmd)?;
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| {
+				let PartialComponents { client, backend, .. } = service::new_partial(&config, &cli)?;
 
-				runner.sync_run(|config| *cmd.run::<Block, service::Executor>(config))
-			} else {
-				Err(
-					"Benchmarking wasn't enabled when building the node. You can enable it with \
-				     `--features runtime-benchmarks`."
-						.into(),
-				)
-			}
+				// This switch needs to be in the client, since the client decides
+				// which sub-commands it wants to support.
+				match cmd {
+					BenchmarkCmd::Pallet(cmd) => {
+						if !cfg!(feature = "runtime-benchmarks") {
+							return Err("Runtime benchmarking wasn't enabled when building the node. \
+							You can enable it with `--features runtime-benchmarks`."
+								.into());
+						}
+
+						cmd.run::<Block, service::ExecutorDispatch>(config)
+					}
+					BenchmarkCmd::Block(cmd) => cmd.run(client),
+					BenchmarkCmd::Storage(cmd) => {
+						let db = backend.expose_db();
+						let storage = backend.expose_storage();
+
+						cmd.run(config, client, db, storage)
+					}
+					BenchmarkCmd::Machine(cmd) => {
+						cmd.run(&config, frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE.clone())
+					}
+				}
+			})
+		}
+		Some(Subcommand::FrontierDb(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| {
+				let PartialComponents { client, other, .. } = service::new_partial(&config, &cli)?;
+				let frontier_backend = other.2;
+				cmd.run::<_, metaverse_runtime::opaque::Block>(client, frontier_backend)
+			})
 		}
 		Some(Subcommand::ExportGenesisState(params)) => {
 			info!(
