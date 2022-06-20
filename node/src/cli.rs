@@ -46,6 +46,31 @@ pub struct RunCmd {
 	/// The dynamic-fee pallet target gas price set by block author
 	#[clap(long, default_value = "1")]
 	pub target_gas_price: u64,
+
+	/// Id of the parachain this collator collates for.
+	#[structopt(long)]
+	pub parachain_id: Option<u32>,
+
+	/// Run node as collator.
+	///
+	/// Note that this is the same as running with `--validator`.
+	#[structopt(long, conflicts_with = "validator")]
+	pub collator: bool,
+}
+
+impl RunCmd {
+	/// Create a [`NormalizedRunCmd`] which merges the `collator` cli argument into `validator` to
+	/// have only one.
+	pub fn normalize(&self) -> cumulus_client_cli::NormalizedRunCmd {
+		let mut new_base = self.base.clone();
+
+		new_base.validator = self.base.validator || self.collator;
+
+		cumulus_client_cli::NormalizedRunCmd {
+			base: new_base,
+			parachain_id: self.parachain_id,
+		}
+	}
 }
 
 #[derive(Debug, Parser)]
@@ -95,7 +120,7 @@ pub enum Subcommand {
 	/// Revert the chain to a previous state.
 	Revert(sc_cli::RevertCmd),
 
-	/// The custom benchmark subcommmand benchmarking runtime pallets.
+	/// The custom benchmark subcommand benchmarking runtime pallets.
 	#[clap(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 

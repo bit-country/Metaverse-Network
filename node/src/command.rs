@@ -166,7 +166,7 @@ pub fn run() -> sc_cli::Result<()> {
 					task_manager,
 					import_queue,
 					..
-				} = service::new_partial(&config)?;
+				} = service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
 		}
@@ -175,7 +175,7 @@ pub fn run() -> sc_cli::Result<()> {
 			runner.async_run(|config| {
 				let PartialComponents {
 					client, task_manager, ..
-				} = service::new_partial(&config)?;
+				} = service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, config.database), task_manager))
 			})
 		}
@@ -184,7 +184,7 @@ pub fn run() -> sc_cli::Result<()> {
 			runner.async_run(|config| {
 				let PartialComponents {
 					client, task_manager, ..
-				} = service::new_partial(&config)?;
+				} = service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, config.chain_spec), task_manager))
 			})
 		}
@@ -196,7 +196,7 @@ pub fn run() -> sc_cli::Result<()> {
 					task_manager,
 					import_queue,
 					..
-				} = service::new_partial(&config)?;
+				} = service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
 		}
@@ -230,15 +230,15 @@ pub fn run() -> sc_cli::Result<()> {
 					task_manager,
 					backend,
 					..
-				} = service::new_partial(&config)?;
-				Ok((cmd.run(client, backend), task_manager))
+				} = service::new_partial(&config, &cli)?;
+				Ok((cmd.run(client, backend, None), task_manager))
 			})
 		}
 		Some(Subcommand::Benchmark(cmd)) => {
 			if cfg!(feature = "runtime-benchmarks") {
 				let runner = cli.create_runner(cmd)?;
 
-				runner.sync_run(|config| cmd.run::<Block, service::Executor>(config))
+				runner.sync_run(|config| *cmd.run::<Block, service::Executor>(config))
 			} else {
 				Err(
 					"Benchmarking wasn't enabled when building the node. You can enable it with \
@@ -356,7 +356,7 @@ pub fn run() -> sc_cli::Result<()> {
 			info!("Chain spec: {}", chain_spec.id());
 			runner.run_node_until_exit(|config| async move {
 				match config.role {
-					_ => service::new_full(config),
+					_ => service::new_full(config, &cli),
 				}
 				.map_err(sc_cli::Error::Service)
 			})
