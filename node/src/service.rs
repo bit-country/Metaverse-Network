@@ -18,6 +18,6 @@ pub const PIONEER_RUNTIME_NOT_AVAILABLE: &str =
 	"Pioneer runtime is not available. Please compile the node with `--features with-pioneer-runtime` to enable it.";
 
 #[cfg(feature = "with-metaverse-runtime")]
-mod metaverse;
+pub mod metaverse;
 #[cfg(feature = "with-pioneer-runtime")]
-mod pioneer;
+pub mod pioneer;

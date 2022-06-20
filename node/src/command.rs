@@ -36,7 +36,9 @@ use metaverse_runtime::Block;
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
+	command_helper::{inherent_benchmark_data, BenchmarkExtrinsicBuilder},
 	service,
+	service::ExecutorDispatch,
 };
 
 fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -250,7 +252,7 @@ pub fn run() -> sc_cli::Result<()> {
 								.into());
 						}
 
-						cmd.run::<Block, service::metaverse::ExecutorDispatch>(config)
+						cmd.run::<Block, ExecutorDispatch>(config)
 					}
 					BenchmarkCmd::Block(cmd) => cmd.run(client),
 					BenchmarkCmd::Storage(cmd) => {
@@ -261,6 +263,12 @@ pub fn run() -> sc_cli::Result<()> {
 					}
 					BenchmarkCmd::Machine(cmd) => {
 						cmd.run(&config, frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE.clone())
+					}
+					BenchmarkCmd::Overhead(cmd) => {
+						let PartialComponents { client, .. } = service::new_partial(&config)?;
+						let ext_builder = BenchmarkExtrinsicBuilder::new(client.clone());
+
+						cmd.run(config, client, inherent_benchmark_data()?, Arc::new(ext_builder))
 					}
 				}
 			})

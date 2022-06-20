@@ -49,16 +49,21 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	Config, EnsureRoot, RawOrigin,
 };
+// EVM imports
+#[cfg(any(feature = "std", test))]
+pub use frame_system::Call as SystemCall;
 use orml_traits::parameter_type_with_key;
+#[cfg(any(feature = "std", test))]
 pub use pallet_balances::Call as BalancesCall;
 use pallet_contracts::{weights::WeightInfo, DefaultContractAccessWeight};
 use pallet_ethereum::{Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction};
-// EVM imports
 use pallet_evm::{
 	Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner,
 	SubstrateBlockHashMapping,
 };
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
+#[cfg(any(feature = "std", test))]
+pub use pallet_sudo::Call as SudoCall;
 pub use pallet_timestamp::Call as TimestampCall;
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use scale_info::TypeInfo;
@@ -1154,6 +1159,7 @@ pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
 pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// The SignedExtension to the basic transaction logic.
 pub type SignedExtra = (
+	frame_system::CheckNonZeroSender<Runtime>,
 	frame_system::CheckSpecVersion<Runtime>,
 	frame_system::CheckTxVersion<Runtime>,
 	frame_system::CheckGenesis<Runtime>,
