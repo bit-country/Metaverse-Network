@@ -57,7 +57,6 @@ pub struct RunCmd {
 	#[clap(
 		long,
 		parse(try_from_str),
-		validator = validate_relay_chain_url,
 		conflicts_with = "collator",
 		conflicts_with = "validator",
 		conflicts_with = "alice",
@@ -67,7 +66,7 @@ pub struct RunCmd {
 		conflicts_with = "eve",
 		conflicts_with = "ferdie"
 	)]
-	pub relay_chain_rpc_url: Option<Url>,
+	pub relay_chain_rpc_url: Option<clap::ValueHint::Url>,
 }
 
 impl RunCmd {
