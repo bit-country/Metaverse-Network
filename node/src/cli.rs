@@ -59,7 +59,7 @@ pub struct Cli {
 	pub subcommand: Option<Subcommand>,
 
 	#[clap(flatten)]
-	pub run: cumulus_client_cli::RunCmd,
+	pub run: RunCmd,
 
 	/// Relaychain arguments
 	#[clap(raw = true)]
