@@ -29,3 +29,5 @@ ethereum = { git = "https://github.com/justinphamnz/ethereum", branch = "polkado
 evm = { git = "https://github.com/justinphamnz/evm", branch = "master" }
 evm-gasometer = { git = "https://github.com/justinphamnz/evm", branch = "master" }
 evm-runtime = { git = "https://github.com/justinphamnz/evm", branch = "master" }
+# TODO: https://github.com/paritytech/substrate/pull/11707
+syn = { git = "https://github.com/dtolnay/syn", rev = "19b3f0b53525ac7ab0882882a822adbd874dbe8c" }
