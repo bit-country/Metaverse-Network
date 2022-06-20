@@ -250,7 +250,7 @@ pub fn run() -> sc_cli::Result<()> {
 								.into());
 						}
 
-						cmd.run::<Block, service::ExecutorDispatch>(config)
+						cmd.run::<Block, service::metaverse::ExecutorDispatch>(config)
 					}
 					BenchmarkCmd::Block(cmd) => cmd.run(client),
 					BenchmarkCmd::Storage(cmd) => {
@@ -265,14 +265,16 @@ pub fn run() -> sc_cli::Result<()> {
 				}
 			})
 		}
+		/*
 		Some(Subcommand::FrontierDb(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| {
 				let PartialComponents { client, other, .. } = service::new_partial(&config, &cli)?;
 				let frontier_backend = other.2;
-				cmd.run::<_, metaverse_runtime::opaque::Block>(client, frontier_backend)
+				cmd.run::<_, metaverse_runtime::opaque::Block>(client, Some(frontier_backend))
 			})
 		}
+		*/
 		Some(Subcommand::ExportGenesisState(params)) => {
 			info!(
 				"ExportGenesisState load_spec: {}",

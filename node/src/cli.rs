@@ -155,7 +155,7 @@ pub enum Subcommand {
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 
 	/// Db meta columns information.
-	FrontierDb(fc_cli::FrontierDbCmd),
+	// FrontierDb(fc_cli::FrontierDbCmd),
 
 	/// Export the genesis state of the parachain.
 	#[clap(name = "export-genesis-state")]
