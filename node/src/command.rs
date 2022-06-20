@@ -15,6 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::sync::Arc;
 use std::{io::Write, net::SocketAddr};
 
 use codec::Encode;
@@ -265,7 +266,7 @@ pub fn run() -> sc_cli::Result<()> {
 						cmd.run(&config, frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE.clone())
 					}
 					BenchmarkCmd::Overhead(cmd) => {
-						let PartialComponents { client, .. } = service::new_partial(&config)?;
+						let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
 						let ext_builder = BenchmarkExtrinsicBuilder::new(client.clone());
 
 						cmd.run(config, client, inherent_benchmark_data()?, Arc::new(ext_builder))
