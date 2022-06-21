@@ -96,7 +96,6 @@ use core_primitives::{NftAssetData, NftClassData};
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
-use estate::weights::WeightInfo as EstateWeightInfo;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 // primitives imports
@@ -176,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 51,
+	spec_version: 38,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -590,6 +589,7 @@ impl auction::Config for Runtime {
 	type MaxBundleItem = MaxBundleItem;
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
+	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
 }
 
 impl continuum::Config for Runtime {

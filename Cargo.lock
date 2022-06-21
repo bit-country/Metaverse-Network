@@ -4982,7 +4982,6 @@ dependencies = [
  "polkadot-parachain",
  "polkadot-primitives",
  "polkadot-service",
- "rand 0.7.3",
  "sc-authority-discovery",
  "sc-basic-authorship",
  "sc-chain-spec",
@@ -5037,7 +5036,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-runtime"
-version = "0.0.29"
+version = "0.0.38"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
