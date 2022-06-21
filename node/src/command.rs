@@ -15,11 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{io::Write, net::SocketAddr};
+use std::{io::Write, net::SocketAddr, sync::Arc};
 
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
+use frame_benchmarking_cli::BenchmarkCmd;
 use log::info;
 use sc_cli::{
 	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result, Role,
@@ -35,7 +36,9 @@ use metaverse_runtime::Block;
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
+	command_helper::{inherent_benchmark_data, BenchmarkExtrinsicBuilder},
 	service,
+	service::ExecutorDispatch,
 };
 
 fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -166,7 +169,7 @@ pub fn run() -> sc_cli::Result<()> {
 					task_manager,
 					import_queue,
 					..
-				} = service::new_partial(&config)?;
+				} = service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
 		}
@@ -175,7 +178,7 @@ pub fn run() -> sc_cli::Result<()> {
 			runner.async_run(|config| {
 				let PartialComponents {
 					client, task_manager, ..
-				} = service::new_partial(&config)?;
+				} = service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, config.database), task_manager))
 			})
 		}
@@ -184,7 +187,7 @@ pub fn run() -> sc_cli::Result<()> {
 			runner.async_run(|config| {
 				let PartialComponents {
 					client, task_manager, ..
-				} = service::new_partial(&config)?;
+				} = service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, config.chain_spec), task_manager))
 			})
 		}
@@ -196,7 +199,7 @@ pub fn run() -> sc_cli::Result<()> {
 					task_manager,
 					import_queue,
 					..
-				} = service::new_partial(&config)?;
+				} = service::new_partial(&config, &cli)?;
 				Ok((cmd.run(client, import_queue), task_manager))
 			})
 		}
@@ -230,23 +233,56 @@ pub fn run() -> sc_cli::Result<()> {
 					task_manager,
 					backend,
 					..
-				} = service::new_partial(&config)?;
-				Ok((cmd.run(client, backend), task_manager))
+				} = service::new_partial(&config, &cli)?;
+				Ok((cmd.run(client, backend, None), task_manager))
 			})
 		}
 		Some(Subcommand::Benchmark(cmd)) => {
-			if cfg!(feature = "runtime-benchmarks") {
-				let runner = cli.create_runner(cmd)?;
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| {
+				let PartialComponents { client, backend, .. } = service::new_partial(&config, &cli)?;
 
-				runner.sync_run(|config| cmd.run::<Block, service::Executor>(config))
-			} else {
-				Err(
-					"Benchmarking wasn't enabled when building the node. You can enable it with \
-				     `--features runtime-benchmarks`."
-						.into(),
-				)
-			}
+				// This switch needs to be in the client, since the client decides
+				// which sub-commands it wants to support.
+				match cmd {
+					BenchmarkCmd::Pallet(cmd) => {
+						if !cfg!(feature = "runtime-benchmarks") {
+							return Err("Runtime benchmarking wasn't enabled when building the node. \
+							You can enable it with `--features runtime-benchmarks`."
+								.into());
+						}
+
+						cmd.run::<Block, ExecutorDispatch>(config)
+					}
+					BenchmarkCmd::Block(cmd) => cmd.run(client),
+					BenchmarkCmd::Storage(cmd) => {
+						let db = backend.expose_db();
+						let storage = backend.expose_storage();
+
+						cmd.run(config, client, db, storage)
+					}
+					BenchmarkCmd::Machine(cmd) => {
+						cmd.run(&config, frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE.clone())
+					}
+					BenchmarkCmd::Overhead(cmd) => {
+						let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
+						let ext_builder = BenchmarkExtrinsicBuilder::new(client.clone());
+
+						cmd.run(config, client, inherent_benchmark_data()?, Arc::new(ext_builder))
+					}
+				}
+			})
 		}
+		/*
+		Some(Subcommand::FrontierDb(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			runner.sync_run(|config| {
+				let PartialComponents { client, other, .. } = service::new_partial(&config, &cli)?;
+				let frontier_backend = other.2;
+				cmd.run::<_, metaverse_runtime::opaque::Block>(client, Some(frontier_backend))
+			})
+		}
+		*/
 		Some(Subcommand::ExportGenesisState(params)) => {
 			info!(
 				"ExportGenesisState load_spec: {}",
@@ -356,7 +392,7 @@ pub fn run() -> sc_cli::Result<()> {
 			info!("Chain spec: {}", chain_spec.id());
 			runner.run_node_until_exit(|config| async move {
 				match config.role {
-					_ => service::new_full(config),
+					_ => service::new_full(config, &cli),
 				}
 				.map_err(sc_cli::Error::Service)
 			})
