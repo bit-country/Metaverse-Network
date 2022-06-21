@@ -51,8 +51,8 @@ pallet-utility = { default-features = false, git = "https://github.com/paritytec
 pallet-preimage = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 pallet-membership = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
-frame-try-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22", optional = true }
-try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22", optional = true }
+frame-try-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22", optional = true, default-features = false }
+try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.22", optional = true, default-features = false }
 
 # Used for the node template"s RPCs
 frame-system-rpc-runtime-api = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
