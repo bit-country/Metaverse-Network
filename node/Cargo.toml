@@ -22,7 +22,6 @@ serde = { version = "1.0.136", features = ["derive"] }
 futures = { version = "0.3.9", features = ["compat"] }
 hex-literal = "0.3.1"
 log = "0.4.8"
-rand = "0.7.2"
 clap = { version = "3.0", features = ["derive"] }
 parking_lot = "0.12.0"
 async-trait = "0.1"
@@ -87,7 +86,7 @@ node-primitives = { git = "https://github.com/paritytech/substrate", branch = "p
 
 # Metaverse related dependencies
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
-metaverse-runtime = { version = "0.0.29", path = "../runtime/metaverse", optional = true }
+metaverse-runtime = { version = "0.0.38", path = "../runtime/metaverse", optional = true }
 pioneer-runtime = { version = "0.0.7", path = "../runtime/pioneer", optional = true }
 #pallet-evm = { path = "../pallets/evm" }
 
@@ -123,6 +122,7 @@ pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch
 
 [build-dependencies]
 substrate-build-script-utils = { version = '3.0.0', git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
+
 
 [features]
 default = ["with-metaverse-runtime"]
