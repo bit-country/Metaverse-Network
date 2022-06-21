@@ -6,7 +6,8 @@ pub use pioneer_runtime::{AccountId, Origin, Runtime, System};
 /// Accounts
 pub const ALICE: [u8; 32] = [4u8; 32];
 pub const BOB: [u8; 32] = [5u8; 32];
-
+#[cfg(feature = "with-metaverse-runtime")]
+#[cfg(feature = "with-pioneer-runtime")]
 /// Parachain Ids
 pub const PARA_ID_DEVELOPMENT: u32 = 2096;
 pub const PARA_ID_SIBLING: u32 = 3096;
