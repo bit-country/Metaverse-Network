@@ -7,6 +7,7 @@
 use jsonrpsee::RpcModule;
 use pioneer_runtime::{opaque::Block, AccountId, Hash, Index};
 use primitives::Balance;
+use sc_client_api::{AuxStore, BlockchainEvents, StorageProvider};
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
