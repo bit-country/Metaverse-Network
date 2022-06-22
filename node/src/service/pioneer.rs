@@ -12,6 +12,8 @@ use cumulus_client_service::{
 use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
+use cumulus_relay_chain_rpc_interface::RelayChainRPCInterface;
+use jsonrpsee::RpcModule;
 use polkadot_service::CollatorPair;
 // Substrate Imports
 use sc_client_api::ExecutorProvider;
@@ -24,7 +26,6 @@ use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
 use substrate_prometheus_endpoint::Registry;
 
-use cumulus_relay_chain_rpc_interface::RelayChainRPCInterface;
 // Local Runtime Types
 use pioneer_runtime::{AccountId, Balance, Index as Nonce, RuntimeApi};
 
@@ -183,11 +184,7 @@ where
 		+ substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>,
 	sc_client_api::StateBackendFor<TFullBackend<Block>, Block>: sp_api::StateBackend<BlakeTwo256>,
 	Executor: sc_executor::NativeExecutionDispatch + 'static,
-	RB: Fn(
-			Arc<TFullClient<Block, RuntimeApi, Executor>>,
-		) -> Result<jsonrpc_core::IoHandler<sc_rpc::Metadata>, sc_service::Error>
-		+ Send
-		+ 'static,
+	RB: Fn(Arc<TFullClient<Block, RuntimeApi, Executor>>) -> Result<RpcModule<()>, sc_service::Error> + Send + 'static,
 	BIQ: FnOnce(
 			Arc<TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
 			&Configuration,
@@ -269,7 +266,7 @@ where
 	};
 
 	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		rpc_builder: Box::new(rpc_extensions_builder),
+		rpc_builder: rpc_extensions_builder,
 		client: client.clone(),
 		transaction_pool: transaction_pool.clone(),
 		task_manager: &mut task_manager,
@@ -361,9 +358,9 @@ pub fn parachain_build_import_queue(
 			create_inherent_data_providers: move |_, _| async move {
 				let time = sp_timestamp::InherentDataProvider::from_system_time();
 
-				let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+				let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 					*time,
-					slot_duration.slot_duration(),
+					slot_duration,
 				);
 
 				Ok((time, slot))
@@ -381,6 +378,7 @@ pub fn parachain_build_import_queue(
 pub async fn start_parachain_node(
 	parachain_config: Configuration,
 	polkadot_config: Configuration,
+	collator_options: CollatorOptions,
 	id: ParaId,
 ) -> sc_service::error::Result<(
 	TaskManager,
@@ -389,8 +387,9 @@ pub async fn start_parachain_node(
 	start_node_impl::<RuntimeApi, ParachainRuntimeExecutor, _, _, _>(
 		parachain_config,
 		polkadot_config,
+		collator_options,
 		id,
-		|_| Ok(Default::default()),
+		|_| Ok(RpcModule::new(())),
 		parachain_build_import_queue,
 		|client,
 		 prometheus_registry,
@@ -434,9 +433,9 @@ pub async fn start_parachain_node(
 							.await;
 						let time = sp_timestamp::InherentDataProvider::from_system_time();
 
-						let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+						let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 							*time,
-							slot_duration.slot_duration(),
+							slot_duration,
 						);
 
 						let parachain_inherent = parachain_inherent.ok_or_else(|| {

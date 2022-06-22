@@ -5047,6 +5047,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
+ "parity-util-mem",
  "parking_lot 0.12.1",
  "pioneer-runtime",
  "polkadot-cli",
@@ -7380,6 +7381,8 @@ dependencies = [
  "parking_lot 0.12.1",
  "primitive-types",
  "smallvec",
+ "tikv-jemalloc-ctl",
+ "tikv-jemallocator",
  "winapi",
 ]
 
@@ -12314,6 +12317,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tikv-jemalloc-ctl"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb833c46ecbf8b6daeccb347cefcabf9c1beb5c9b0f853e1cec45632d9963e69"
+dependencies = [
+ "libc",
+ "paste",
+ "tikv-jemalloc-sys",
+]
+
+[[package]]
 name = "tikv-jemalloc-sys"
 version = "0.4.3+5.2.1-patched.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12322,6 +12336,16 @@ dependencies = [
  "cc",
  "fs_extra",
  "libc",
+]
+
+[[package]]
+name = "tikv-jemallocator"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5b7bcecfafe4998587d636f9ae9d55eb9d0499877b88757767c346875067098"
+dependencies = [
+ "libc",
+ "tikv-jemalloc-sys",
 ]
 
 [[package]]
