@@ -1455,10 +1455,8 @@ impl economy::Config for Runtime {
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
 }
 
-pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
-	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
->;
+pub type EnsureRootOrHalfMetaverseCouncil =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
 
 impl emergency::Config for Runtime {
 	type Event = Event;
