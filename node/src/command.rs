@@ -326,13 +326,16 @@ pub fn run() -> sc_cli::Result<()> {
 		None => {
 			let runner = cli.create_runner(&cli.run.normalize())?;
 			let chain_spec = &runner.config().chain_spec;
+			let collator_options = cli.run.collator_options();
 
 			info!("Metaverse Node - Chain_spec id: {}", chain_spec.id());
 
 			#[cfg(feature = "with-pioneer-runtime")]
 			if chain_spec.id().starts_with("pioneer") {
 				return runner.run_node_until_exit(|config| async move {
-					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec).map(|e| e.para_id);
+					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
+						.map(|e| e.para_id)
+						.ok_or_else(|| "Could not find parachain ID in chain-spec.")?;
 
 					let polkadot_cli = RelayChainCli::new(
 						&config,
@@ -341,10 +344,10 @@ pub fn run() -> sc_cli::Result<()> {
 							.chain(cli.relaychain_args.iter()),
 					);
 
-					let id = ParaId::from(para_id.unwrap_or(2096));
+					let id = ParaId::from(para_id);
 
 					let parachain_account =
-						AccountIdConversion::<polkadot_primitives::v0::AccountId>::into_account(&id);
+						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account(&id);
 
 					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
 					let block: Block =
@@ -364,7 +367,7 @@ pub fn run() -> sc_cli::Result<()> {
 						if config.role.is_authority() { "yes" } else { "no" }
 					);
 
-					crate::service::start_parachain_node(config, polkadot_config, id)
+					crate::service::start_parachain_node(config, polkadot_config, collator_options, id)
 						.await
 						.map(|r| r.0)
 						.map_err(Into::into)
