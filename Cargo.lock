@@ -379,6 +379,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "backoff"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b62ddb9cb1ec0a098ad4bbf9344d0713fa193ae1a80af55febcff2627b6a00c1"
+dependencies = [
+ "futures-core",
+ "getrandom 0.2.7",
+ "instant",
+ "pin-project-lite 0.2.9",
+ "rand 0.8.5",
+ "tokio",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1838,6 +1852,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "cumulus-relay-chain-inprocess-interface"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.22#ebdfbea0029dd3349ce0e9c758acc73acce04d18"
+dependencies = [
+ "async-trait",
+ "cumulus-primitives-core",
+ "cumulus-relay-chain-interface",
+ "futures 0.3.21",
+ "futures-timer",
+ "parking_lot 0.12.1",
+ "polkadot-client",
+ "polkadot-service",
+ "sc-client-api",
+ "sc-consensus-babe",
+ "sc-network",
+ "sc-service",
+ "sc-sysinfo",
+ "sc-telemetry",
+ "sc-tracing",
+ "sp-api",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-core",
+ "sp-runtime",
+ "sp-state-machine",
+ "tracing",
+]
+
+[[package]]
 name = "cumulus-relay-chain-interface"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.22#ebdfbea0029dd3349ce0e9c758acc73acce04d18"
@@ -1859,6 +1902,32 @@ dependencies = [
  "sp-runtime",
  "sp-state-machine",
  "thiserror",
+]
+
+[[package]]
+name = "cumulus-relay-chain-rpc-interface"
+version = "0.1.0"
+source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.22#ebdfbea0029dd3349ce0e9c758acc73acce04d18"
+dependencies = [
+ "async-trait",
+ "backoff",
+ "cumulus-primitives-core",
+ "cumulus-relay-chain-interface",
+ "futures 0.3.21",
+ "futures-timer",
+ "jsonrpsee",
+ "parity-scale-codec",
+ "parking_lot 0.12.1",
+ "polkadot-service",
+ "sc-client-api",
+ "sc-rpc-api",
+ "sp-api",
+ "sp-core",
+ "sp-runtime",
+ "sp-state-machine",
+ "sp-storage",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -4948,7 +5017,9 @@ dependencies = [
  "cumulus-client-service",
  "cumulus-primitives-core",
  "cumulus-primitives-parachain-inherent",
+ "cumulus-relay-chain-inprocess-interface",
  "cumulus-relay-chain-interface",
+ "cumulus-relay-chain-rpc-interface",
  "fc-cli",
  "fc-consensus",
  "fc-db",
@@ -4993,6 +5064,7 @@ dependencies = [
  "sc-consensus-babe",
  "sc-consensus-babe-rpc",
  "sc-consensus-epochs",
+ "sc-consensus-manual-seal",
  "sc-consensus-slots",
  "sc-consensus-uncles",
  "sc-executor",
@@ -10011,6 +10083,40 @@ dependencies = [
  "sc-consensus",
  "sp-blockchain",
  "sp-runtime",
+]
+
+[[package]]
+name = "sc-consensus-manual-seal"
+version = "0.10.0-dev"
+source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.22#616d33ea23bab86cafffaf116fc607b6790fb4eb"
+dependencies = [
+ "assert_matches",
+ "async-trait",
+ "futures 0.3.21",
+ "jsonrpsee",
+ "log",
+ "parity-scale-codec",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-consensus-aura",
+ "sc-consensus-babe",
+ "sc-consensus-epochs",
+ "sc-transaction-pool",
+ "sc-transaction-pool-api",
+ "serde",
+ "sp-api",
+ "sp-blockchain",
+ "sp-consensus",
+ "sp-consensus-aura",
+ "sp-consensus-babe",
+ "sp-consensus-slots",
+ "sp-core",
+ "sp-inherents",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-timestamp",
+ "substrate-prometheus-endpoint",
+ "thiserror",
 ]
 
 [[package]]

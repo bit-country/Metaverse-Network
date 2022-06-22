@@ -10,7 +10,8 @@ use cumulus_client_service::{
 	prepare_node_config, start_collator, start_full_node, StartCollatorParams, StartFullNodeParams,
 };
 use cumulus_primitives_core::ParaId;
-use cumulus_relay_chain_interface::{RelayChainInterface, RelayChainResult};
+use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
+use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
 use polkadot_service::CollatorPair;
 // Substrate Imports
 use sc_client_api::ExecutorProvider;
@@ -255,19 +256,20 @@ where
 		let client = client.clone();
 		let transaction_pool = transaction_pool.clone();
 
-		Box::new(move |deny_unsafe, _| {
+		move |deny_unsafe, _| {
 			let deps = crate::rpc::pioneer_fulldeps {
 				client: client.clone(),
 				pool: transaction_pool.clone(),
 				deny_unsafe,
+				command_sink: None,
 			};
 
-			Ok(crate::rpc::pioneer_crate_full(deps))
-		})
+			crate::rpc::pioneer_crate_full(deps)
+		}
 	};
 
 	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		rpc_extensions_builder,
+		rpc_builder: Box::new(rpc_extensions_builder),
 		client: client.clone(),
 		transaction_pool: transaction_pool.clone(),
 		task_manager: &mut task_manager,
@@ -311,7 +313,7 @@ where
 			spawner,
 			parachain_consensus,
 			import_queue,
-			collator_key,
+			collator_key: collator_key.expect("Command line arguments do not allow this. qed"),
 			relay_chain_slot_duration,
 		};
 
@@ -323,8 +325,9 @@ where
 			task_manager: &mut task_manager,
 			para_id: id,
 			relay_chain_interface,
-			relay_chain_slot_duration,
 			import_queue,
+			relay_chain_slot_duration,
+			collator_options,
 		};
 
 		start_full_node(params)?;
