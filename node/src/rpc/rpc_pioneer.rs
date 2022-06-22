@@ -50,13 +50,12 @@ where
 	use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
 	use substrate_frame_rpc_system::{SystemApiServer, SystemRpc};
 
-	//let mut io = jsonrpc_core::IoHandler::default();
 	let mut io = RpcModule::new(());
 	let FullDeps {
 		client,
 		pool,
 		deny_unsafe,
-		command_sink: None,
+		command_sink,
 	} = deps;
 
 	io.merge(SystemRpc::new(Arc::clone(&client), Arc::clone(&pool), deny_unsafe).into_rpc())?;

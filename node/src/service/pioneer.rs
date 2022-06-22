@@ -253,7 +253,7 @@ where
 		let client = client.clone();
 		let transaction_pool = transaction_pool.clone();
 
-		move |deny_unsafe, _| {
+		Box::new(move |deny_unsafe, _| {
 			let deps = crate::rpc::pioneer_fulldeps {
 				client: client.clone(),
 				pool: transaction_pool.clone(),
@@ -261,8 +261,8 @@ where
 				command_sink: None,
 			};
 
-			crate::rpc::pioneer_crate_full(deps)
-		}
+			crate::rpc::pioneer_crate_full(deps).map_err(Into::into)
+		})
 	};
 
 	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
