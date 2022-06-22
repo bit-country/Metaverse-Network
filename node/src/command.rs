@@ -36,7 +36,6 @@ use metaverse_runtime::Block;
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
-	command_helper::{inherent_benchmark_data, BenchmarkExtrinsicBuilder},
 	service,
 	service::ExecutorDispatch,
 };
@@ -264,25 +263,10 @@ pub fn run() -> sc_cli::Result<()> {
 					BenchmarkCmd::Machine(cmd) => {
 						cmd.run(&config, frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE.clone())
 					}
-					BenchmarkCmd::Overhead(cmd) => {
-						let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
-						let ext_builder = BenchmarkExtrinsicBuilder::new(client.clone());
-
-						cmd.run(config, client, inherent_benchmark_data()?, Arc::new(ext_builder))
-					}
+					BenchmarkCmd::Overhead(_) => Err("Benchmark overhead not supported.".into()),
 				}
 			})
 		}
-		/*
-		Some(Subcommand::FrontierDb(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.sync_run(|config| {
-				let PartialComponents { client, other, .. } = service::new_partial(&config, &cli)?;
-				let frontier_backend = other.2;
-				cmd.run::<_, metaverse_runtime::opaque::Block>(client, Some(frontier_backend))
-			})
-		}
-		*/
 		Some(Subcommand::ExportGenesisState(params)) => {
 			info!(
 				"ExportGenesisState load_spec: {}",
