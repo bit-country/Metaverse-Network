@@ -208,6 +208,8 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = ();
+	type ReserveIdentifier = [u8; 8];
+	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
 }
 
@@ -283,7 +285,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 impl Config for Runtime {
 	type Event = Event;
 	type AuctionTimeToClose = AuctionTimeToClose;
-	type Handler = Handler;
+	type Handler = AuctionModule;
 	type Currency = Balances;
 	type ContinuumHandler = Continuumm;
 	type FungibleTokenCurrency = Tokens;
@@ -295,6 +297,7 @@ impl Config for Runtime {
 	type MaxBundleItem = MaxBundleItem;
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
+	type WeightInfo = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -342,7 +345,7 @@ impl pallet_nft::Config for Runtime {
 	type Currency = Balances;
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
-	type AuctionHandler = MockAuctionManager;
+	type AuctionHandler = AuctionModule;
 	type WeightInfo = ();
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
