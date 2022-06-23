@@ -14,6 +14,12 @@ mod xcm_transfers;
 	feature = "with-metaverse-runtime",
 	feature = "with-pioneer-runtime"
 ))]
+mod purchase_nft_from_buy_now_listing;
+
+#[cfg(any(
+	feature = "with-metaverse-runtime",
+	feature = "with-pioneer-runtime"
+))]
 mod win_and_deploy_land_block;
 
 #[cfg(any(
@@ -21,18 +27,6 @@ mod win_and_deploy_land_block;
 	feature = "with-pioneer-runtime"
 ))]
 mod create_an_estate;
-
-#[cfg(any(
-	feature = "with-metaverse-runtime",
-	feature = "with-pioneer-runtime"
-))]
-mod list_nft_on_local_marketplace;
-
-#[cfg(any(
-	feature = "with-metaverse-runtime",
-	feature = "with-pioneer-runtime"
-))]
-mod purchase_nft_from_buy_now_listing;
 
 #[cfg(any(
 	feature = "with-metaverse-runtime",

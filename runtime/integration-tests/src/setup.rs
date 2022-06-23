@@ -17,17 +17,6 @@ pub use sp_runtime::{
 
 use core_traits::{Balance, FungibleTokenId};
 
-/// Accounts
-pub const ALICE: [u8; 32] = [4u8; 32];
-pub const BOB: [u8; 32] = [5u8; 32];
-pub const FRED: [u8; 32] = [6u8; 32];
-
-/// Parachain Ids
-pub const PARA_ID_DEVELOPMENT: u32 = 2096;
-pub const PARA_ID_SIBLING: u32 = 3096;
-pub const PARA_ID_KARURA: u32 = 2000;
-pub const PARA_ID_STATEMINE: u32 = 1000;
-
 #[cfg(feature = "with-metaverse-runtime")]
 pub use mod metaverse_imports::*;
 #[cfg(feature = "with-metaverse-runtime")]
@@ -47,6 +36,55 @@ mod pioneer_imports {
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;
 	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::NEER;
+}
+
+/// Accounts
+pub const ALICE: [u8; 32] = [4u8; 32];
+pub const BOB: [u8; 32] = [5u8; 32];
+pub const CHARLIE: [u8; 32] = [6u8; 32];
+
+/// Parachain Ids
+pub const PARA_ID_DEVELOPMENT: u32 = 2096;
+pub const PARA_ID_SIBLING: u32 = 3096;
+pub const PARA_ID_KARURA: u32 = 2000;
+pub const PARA_ID_STATEMINE: u32 = 1000;
+
+pub const INIT_TIMESTAMP: u64 = 30_000;
+pub const BLOCK_TIME: u64 = 1000;
+
+pub fn run_to_block(n: u32) {
+	while System::block_number() < n {
+		Scheduler::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		Timestamp::set_timestamp((System::block_number() as u64 * BLOCK_TIME) + INIT_TIMESTAMP);
+		CdpEngine::on_initialize(System::block_number());
+		Scheduler::on_initialize(System::block_number());
+		Scheduler::on_initialize(System::block_number());
+		Session::on_initialize(System::block_number());
+		SessionManager::on_initialize(System::block_number());
+		IdleScheduler::on_idle(System::block_number(), u64::MAX);
+	}
+}
+
+pub fn set_relaychain_block_number(number: BlockNumber) {
+	ParachainSystem::on_initialize(number);
+
+	let (relay_storage_root, proof) = RelayStateSproofBuilder::default().into_state_root_and_proof();
+
+	assert_ok!(ParachainSystem::set_validation_data(
+		Origin::none(),
+		cumulus_primitives_parachain_inherent::ParachainInherentData {
+			validation_data: cumulus_primitives_core::PersistedValidationData {
+				parent_head: Default::default(),
+				relay_parent_number: number,
+				relay_parent_storage_root: relay_storage_root,
+				max_pov_size: Default::default(),
+			},
+			relay_chain_state: proof,
+			downward_messages: Default::default(),
+			horizontal_messages: Default::default(),
+		}
+	));
 }
 
 pub struct ExtBuilder {
