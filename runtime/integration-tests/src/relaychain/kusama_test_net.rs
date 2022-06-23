@@ -69,16 +69,28 @@ decl_test_parachain! {
 	}
 }
 
+decl_test_parachain! {
+	pub struct Statemine {
+		Runtime = statemine_runtime::Runtime,
+		Origin = statemine_runtime::Origin,
+		XcmpMessageHandler = statemine_runtime::XcmpQueue,
+		DmpMessageHandler = statemine_runtime::DmpQueue,
+		new_ext = para_ext(1000),
+	}
+}
+
 decl_test_network! {
 	pub struct TestNet {
 		relay_chain = KusamaNet,
 		parachains = vec![
+			// Be sure to use `PARA_ID_STATEMINE`
+			//(1000, Statemine),
+			// Be sure to use `PARA_ID_KARURA`
+			(2000, Karura),
 			// Be sure to use `PARA_ID_DEVELOPMENT`
 			(2096, Development),
 			// Be sure to use `PARA_ID_SIBLING`
 			(3096, Sibling),
-			// Be sure to use `PARA_ID_KARURA`
-			(2000, Karura),
 		],
 	}
 }

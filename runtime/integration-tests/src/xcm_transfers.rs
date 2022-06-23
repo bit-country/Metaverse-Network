@@ -7,7 +7,7 @@ use xcm_emulator::TestExt;
 use core_traits::{Balance, FungibleTokenId};
 use pioneer_runtime::{Balances, KUsdPerSecond, KarPerSecond, KsmPerSecond, NeerPerSecond, Origin, Tokens, XTokens};
 
-use crate::kusama_test::{Development, Karura, KusamaNet, Sibling, TestNet};
+use crate::relaychain::kusama_test_net::{Development, Karura, KusamaNet, Sibling, TestNet};
 use crate::setup::{
 	bit_amount, development_account, kar_amount, karura_account, ksm_amount, kusd_amount, native_amount,
 	sibling_account, ALICE, BOB, PARA_ID_DEVELOPMENT, PARA_ID_KARURA, PARA_ID_SIBLING,

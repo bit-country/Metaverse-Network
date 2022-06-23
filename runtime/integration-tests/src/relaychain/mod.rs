@@ -21,6 +21,6 @@
 	feature = "with-metaverse-runtime",
 	feature = "with-pioneer-runtime"
 ))]
-mod kusama_test;
-#[cfg(feature = "with-metaverse-runtime")]
-mod xcm_transfers;
+mod kusama_test_net;
+// #[cfg(feature = "with-pioneer-runtime")]
+// mod statemine;
