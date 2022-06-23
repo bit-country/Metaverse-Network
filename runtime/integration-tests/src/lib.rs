@@ -1,5 +1,8 @@
 #![cfg(test)]
 
-mod kusama_test;
+#[cfg(any(
+	feature = "with-metaverse-runtime",
+	feature = "with-pioneer-runtime"
+))]
 mod setup;
-mod xcm_transfers;
+
