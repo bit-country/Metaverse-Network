@@ -3,6 +3,105 @@ use crate::chain_spec::Extensions;
 use clap::Parser;
 use cumulus_client_cli;
 use std::path::PathBuf;
+use url::Url;
+
+fn validate_relay_chain_url(arg: &str) -> Result<(), String> {
+	let url = Url::parse(arg).map_err(|e| e.to_string())?;
+
+	if url.scheme() == "ws" {
+		Ok(())
+	} else {
+		Err(format!(
+			"'{}' URL scheme not supported. Only websocket RPC is currently supported",
+			url.scheme()
+		))
+	}
+}
+
+#[cfg(feature = "manual-seal")]
+#[derive(Debug, Copy, Clone, clap::ArgEnum)]
+pub enum Sealing {
+	// Seal using rpc method.
+	Manual,
+	// Seal when transaction is executed.
+	Instant,
+}
+
+#[cfg(feature = "manual-seal")]
+impl Default for Sealing {
+	fn default() -> Sealing {
+		Sealing::Manual
+	}
+}
+
+#[allow(missing_docs)]
+#[derive(Debug, clap::Parser)]
+pub struct RunCmd {
+	#[allow(missing_docs)]
+	#[clap(flatten)]
+	pub base: sc_cli::RunCmd,
+
+	/// Choose sealing method.
+	#[cfg(feature = "manual-seal")]
+	#[clap(long, arg_enum, ignore_case = true)]
+	pub sealing: Sealing,
+
+	#[clap(long)]
+	pub enable_dev_signer: bool,
+
+	/// Maximum number of logs in a query.
+	#[clap(long, default_value = "10000")]
+	pub max_past_logs: u32,
+
+	/// Maximum fee history cache size.
+	#[clap(long, default_value = "2048")]
+	pub fee_history_limit: u64,
+
+	/// The dynamic-fee pallet target gas price set by block author
+	#[clap(long, default_value = "1")]
+	pub target_gas_price: u64,
+
+	/// Run node as collator.
+	///
+	/// Note that this is the same as running with `--validator`.
+	#[clap(long, conflicts_with = "validator")]
+	pub collator: bool,
+
+	/// EXPERIMENTAL: Specify an URL to a relay chain full node to communicate with.
+	#[clap(
+		long,
+		parse(try_from_str),
+		validator = validate_relay_chain_url,
+		conflicts_with = "collator",
+		conflicts_with = "validator",
+		conflicts_with = "alice",
+		conflicts_with = "bob",
+		conflicts_with = "charlie",
+		conflicts_with = "dave",
+		conflicts_with = "eve",
+		conflicts_with = "ferdie"
+	)]
+	pub relay_chain_rpc_url: Option<Url>,
+}
+
+impl RunCmd {
+	/// Create a [`NormalizedRunCmd`] which merges the `collator` cli argument into `validator` to
+	/// have only one.
+	pub fn normalize(&self) -> cumulus_client_cli::NormalizedRunCmd {
+		let mut new_base = self.base.clone();
+
+		new_base.validator = self.base.validator || self.collator;
+
+		cumulus_client_cli::NormalizedRunCmd { base: new_base }
+	}
+
+	/// Create [`CollatorOptions`] representing options only relevant to parachain collator nodes
+	pub fn collator_options(&self) -> cumulus_client_cli::CollatorOptions {
+		cumulus_client_cli::CollatorOptions {
+			relay_chain_rpc_url: self.relay_chain_rpc_url.clone(),
+		}
+	}
+}
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -15,7 +114,7 @@ pub struct Cli {
 	pub subcommand: Option<Subcommand>,
 
 	#[clap(flatten)]
-	pub run: cumulus_client_cli::RunCmd,
+	pub run: RunCmd,
 
 	/// Relaychain arguments
 	#[clap(raw = true)]
@@ -51,13 +150,12 @@ pub enum Subcommand {
 	/// Revert the chain to a previous state.
 	Revert(sc_cli::RevertCmd),
 
-	/// The custom benchmark subcommmand benchmarking runtime pallets.
-	#[clap(name = "benchmark", about = "Benchmark runtime pallets.")]
+	/// The custom benchmark subcommand benchmarking runtime pallets.
+	#[clap(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 
-	/// The custom benchmark subcommmand benchmarking runtime pallets.
-	// #[clap(name = "benchmark", about = "Benchmark runtime pallets.")]
-	// BenchmarkParachain(frame_benchmarking_cli::BenchmarkCmd),
+	/// Db meta columns information.
+	// FrontierDb(fc_cli::FrontierDbCmd),
 
 	/// Export the genesis state of the parachain.
 	#[clap(name = "export-genesis-state")]

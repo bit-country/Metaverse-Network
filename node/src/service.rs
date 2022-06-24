@@ -1,7 +1,7 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 #[cfg(feature = "with-metaverse-runtime")]
-pub use metaverse::{new_full, new_partial, ExecutorDispatch as Executor};
+pub use metaverse::{new_full, new_partial, ExecutorDispatch};
 #[cfg(feature = "with-pioneer-runtime")]
 pub use pioneer::{
 	// new_full as pioneer_full, new_light as pioneer_light,
@@ -14,14 +14,10 @@ pub use pioneer::{
 
 pub const METAVERSE_RUNTIME_NOT_AVAILABLE: &str =
     "Metaverse runtime is not available. Please compile the node with `--features with-metaverse-runtime` to enable it.";
-pub const TEWAI_RUNTIME_NOT_AVAILABLE: &str =
-	"Tewai runtime is not available. Please compile the node with `--features with-tewai-runtime` to enable it.";
 pub const PIONEER_RUNTIME_NOT_AVAILABLE: &str =
 	"Pioneer runtime is not available. Please compile the node with `--features with-pioneer-runtime` to enable it.";
 
-//#[cfg(feature = "with-parachain-runtime")]
-//mod service_parachain;
 #[cfg(feature = "with-metaverse-runtime")]
-mod metaverse;
+pub mod metaverse;
 #[cfg(feature = "with-pioneer-runtime")]
-mod pioneer;
+pub mod pioneer;
