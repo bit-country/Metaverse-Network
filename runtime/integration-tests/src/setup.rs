@@ -22,7 +22,7 @@ pub use mod metaverse_imports::*;
 #[cfg(feature = "with-metaverse-runtime")]
 mod metaverse_imports {
 	pub use metaverse_runtime::xcm_config::*;
-	pub use metaverse_runtime::{AccountId, Origin, Runtime, System};
+	pub use metaverse_runtime::{AccountId, Auction, AuctionManager, Balance, Balances, Continuum, Currencies, Economy, Estate, Governance, Metaverse, Mining, Nft, Origin, Runtime, Swap, System, Tokenization};
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;
 	pub use xcm_executor::XcmExecutor;
@@ -32,7 +32,7 @@ mod metaverse_imports {
 pub use mod pioneer_imports::*;
 #[cfg(feature = "with-pioneer-runtime")]
 mod pioneer_imports {
-	pub use pioneer_runtime::{AccountId, Origin, Runtime, System};
+	pub use pioneer_runtime::{AccountId, Auction, AuctionManager, Balance, Balances, Continuum, Currencies, Economy, Estate, Governance, Metaverse, Mining, Nft, Origin, Runtime, Swap, System, Tokenization};
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;
 	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::NEER;
