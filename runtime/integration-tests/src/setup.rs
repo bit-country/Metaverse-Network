@@ -18,21 +18,27 @@ pub use sp_runtime::{
 use core_traits::{Balance, FungibleTokenId};
 
 #[cfg(feature = "with-metaverse-runtime")]
-pub use mod metaverse_imports::*;
+pub use metaverse_imports::*;
 #[cfg(feature = "with-metaverse-runtime")]
 mod metaverse_imports {
 	pub use metaverse_runtime::xcm_config::*;
-	pub use metaverse_runtime::{AccountId, Auction, AuctionManager, Balance, Balances, Continuum, Currencies, Economy, Estate, Governance, Metaverse, Mining, Nft, Origin, Runtime, Swap, System, Tokenization};
+	pub use metaverse_runtime::{
+		AccountId, Auction, AuctionManager, Balance, Balances, Continuum, Currencies, Economy, Estate, Governance,
+		Metaverse, Mining, Nft, Origin, Runtime, Swap, System, Tokenization,
+	};
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;
 	pub use xcm_executor::XcmExecutor;
 	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::AlphaNEER;
 }
 #[cfg(feature = "with-pioneer-runtime")]
-pub use mod pioneer_imports::*;
+pub use pioneer_imports::*;
 #[cfg(feature = "with-pioneer-runtime")]
 mod pioneer_imports {
-	pub use pioneer_runtime::{AccountId, Auction, AuctionManager, Balance, Balances, Continuum, Currencies, Economy, Estate, Governance, Metaverse, Mining, Nft, Origin, Runtime, Swap, System, Tokenization};
+	pub use pioneer_runtime::{
+		AccountId, Auction, AuctionManager, Balance, Balances, Continuum, Currencies, Economy, Estate, Governance,
+		Metaverse, Mining, Nft, Origin, Runtime, Swap, System, Tokenization,
+	};
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;
 	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::NEER;
