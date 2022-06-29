@@ -297,7 +297,7 @@ pub mod pallet {
 		InsufficientBalanceForStaking,
 		// Unstake amount greater than staked amount
 		UnstakeAmountExceedStakedAmount,
-		// Has scheduled exit staking, only stake after queue exit
+		// Has scheduled exit staking of current round, only stake/unstake after queue exit
 		ExitQueueAlreadyScheduled,
 		// Stake amount below minimum staking required
 		StakeBelowMinimum,
@@ -863,6 +863,13 @@ pub mod pallet {
 			};
 
 			let current_round = T::RoundHandler::get_current_round_info();
+
+			// Check if user already in exit queue of the current
+			ensure!(
+				!ExitQueue::<T>::contains_key(&who, current_round.current),
+				Error::<T>::ExitQueueAlreadyScheduled
+			);
+
 			let next_round = current_round.current.saturating_add(One::one());
 
 			// This exit queue will be executed by exit_staking extrinsics to unreserved token
