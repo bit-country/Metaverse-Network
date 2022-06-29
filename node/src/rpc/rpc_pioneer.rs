@@ -7,14 +7,20 @@
 
 use std::sync::Arc;
 
-use pioneer_runtime::{opaque::Block, AccountId, Index};
-use primitives::Balance;
+use jsonrpsee::RpcModule;
+use sc_client_api::{AuxStore, BlockchainEvents, StorageProvider};
+use sc_consensus_manual_seal::rpc::{EngineCommand, ManualSeal, ManualSealApiServer};
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
+use pioneer_runtime::{opaque::Block, AccountId, Hash, Index};
+use primitives::Balance;
+
+/// A type representing all RPC extensions.
+pub type RpcExtension = jsonrpsee::RpcModule<()>;
 /// Full client dependencies.
 pub struct FullDeps<C, P> {
 	/// The client instance to use.
@@ -23,43 +29,37 @@ pub struct FullDeps<C, P> {
 	pub pool: Arc<P>,
 	/// Whether to deny unsafe calls
 	pub deny_unsafe: DenyUnsafe,
+	/// Manual seal command sink
+	pub command_sink: Option<futures::channel::mpsc::Sender<EngineCommand<Hash>>>,
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, P>(deps: FullDeps<C, P>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
+pub fn create_full<C, P>(deps: FullDeps<C, P>) -> Result<RpcExtension, Box<dyn std::error::Error + Send + Sync>>
 where
-	C: ProvideRuntimeApi<Block>,
-	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
+	C: ProvideRuntimeApi<Block> + AuxStore,
+	C: BlockchainEvents<Block>,
+	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError>,
 	C: Send + Sync + 'static,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
-	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BlockBuilder<Block>,
-	P: TransactionPool + 'static,
+	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+	// C::Api: fp_rpc::ConvertTransactionRuntimeApi<Block>,
+	// C::Api: fp_rpc::EthereumRuntimeRPCApi<Block>,
+	P: TransactionPool<Block = Block> + 'static,
 {
-	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
-	use substrate_frame_rpc_system::{FullSystem, SystemApi};
+	use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
+	use substrate_frame_rpc_system::{SystemApiServer, SystemRpc};
 
-	let mut io = jsonrpc_core::IoHandler::default();
+	let mut io = RpcModule::new(());
 	let FullDeps {
 		client,
 		pool,
 		deny_unsafe,
+		command_sink,
 	} = deps;
 
-	io.extend_with(SystemApi::to_delegate(FullSystem::new(
-		client.clone(),
-		pool,
-		deny_unsafe,
-	)));
+	io.merge(SystemRpc::new(Arc::clone(&client), Arc::clone(&pool), deny_unsafe).into_rpc())?;
+	io.merge(TransactionPaymentRpc::new(Arc::clone(&client)).into_rpc())?;
 
-	io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
-		client.clone(),
-	)));
-
-	// Extend this RPC with a custom API by using the following syntax.
-	// `YourRpcStruct` should have a reference to a client, which is needed
-	// to call into the runtime.
-	// `io.extend_with(YourRpcTrait::to_delegate(YourRpcStruct::new(ReferenceToClient, ...)));`
-
-	io
+	Ok(io)
 }

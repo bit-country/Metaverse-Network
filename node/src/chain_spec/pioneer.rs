@@ -17,7 +17,7 @@ use sp_runtime::{
 use metaverse_runtime::MintingRateInfo;
 use pioneer_runtime::{
 	constants::currency::*, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, EstateConfig, GenesisConfig,
-	SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
+	OracleMembershipConfig, SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
 use primitives::Balance;
 
@@ -190,6 +190,10 @@ fn pioneer_genesis(
 		estate: EstateConfig {
 			minting_rate_config: metaverse_land_minting_config(),
 		},
+		oracle_membership: OracleMembershipConfig {
+			members: vec![],
+			phantom: Default::default(),
+		},
 	}
 }
 
@@ -245,6 +249,10 @@ fn testnet_genesis(
 		},
 		estate: EstateConfig {
 			minting_rate_config: metaverse_land_minting_config(),
+		},
+		oracle_membership: OracleMembershipConfig {
+			members: vec![],
+			phantom: Default::default(),
 		},
 	}
 }

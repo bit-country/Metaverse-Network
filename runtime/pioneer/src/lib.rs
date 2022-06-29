@@ -28,16 +28,17 @@ use frame_support::{
 	construct_runtime, match_type, parameter_types,
 	traits::{Everything, Imbalance},
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
-		DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients, WeightToFeePolynomial,
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
+		WeightToFeePolynomial,
 	},
-	PalletId,
+	BoundedVec, PalletId,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	EnsureRoot, RawOrigin,
 };
-use orml_traits::location::Reserve;
+use orml_traits::location::{AbsoluteReserveProvider, RelativeReserveProvider, Reserve};
 use orml_traits::{arithmetic::Zero, parameter_type_with_key, MultiCurrency};
 pub use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
 // XCM Imports
@@ -45,11 +46,10 @@ use orml_xcm_support::DepositToAlternative;
 // Polkadot Imports
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
 use polkadot_parachain::primitives::Sibling;
-use polkadot_runtime_common::{BlockHashCount, RocksDbWeight, SlowAdjustingFeeUpdate};
+use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::u32_trait::{_1, _2, _3, _5};
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::traits::{AccountIdConversion, Convert, ConvertInto};
 #[cfg(any(feature = "std", test))]
@@ -80,7 +80,7 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
-use primitives::{Amount, ClassId, FungibleTokenId, NftId, TokenSymbol};
+use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
 
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
@@ -222,7 +222,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 8,
+	spec_version: 7,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -264,10 +264,10 @@ impl Contains<Call> for BaseFilter {
 			| Call::Utility{..}
 			// Enable Crowdloan
 			| Call::Crowdloan{..}
-			// Enable Democracy
-			| Call::Democracy{..}
-			// Enable Council
-			| Call::Council{..}
+			// Polkadot XCM
+			| Call::PolkadotXcm{..}
+			// Orml XCM wrapper
+			| Call::OrmlXcm{..}
 		);
 
 		if is_core {
@@ -346,7 +346,7 @@ impl frame_system::Config for Runtime {
 	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = RocksDbWeight;
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = Everything;
+	type BaseCallFilter = BaseFilter;
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = ();
 	/// Block & extrinsics weights: base values and limits.
@@ -430,7 +430,7 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
-	type TransactionByteFee = TransactionByteFee;
+	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type WeightToFee = WeightToFee;
 	type FeeMultiplierUpdate = SlowAdjustingFeeUpdate<Self>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
@@ -466,7 +466,9 @@ parameter_types! {
 	pub const TreasuryPalletId: PalletId = PalletId(*b"bc/trsry");
 	pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
-	pub const BountyCuratorDeposit: Permill = Permill::from_percent(50);
+	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
+	pub CuratorDepositMin: Balance = 1 * DOLLARS;
+	pub CuratorDepositMax: Balance = 100 * DOLLARS;
 	pub const BountyValueMinimum: Balance = 5 * DOLLARS;
 	pub const MaxApprovals: u32 = 100;
 }
@@ -475,36 +477,30 @@ type CouncilCollective = pallet_collective::Instance1;
 type TechnicalCommitteeCollective = pallet_collective::Instance2;
 
 // Council
-pub type EnsureRootOrAllCouncilCollective = EnsureOneOf<
-	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>,
->;
+pub type EnsureRootOrAllCouncilCollective =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>>;
 
-type EnsureRootOrHalfCouncilCollective = EnsureOneOf<
-	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
->;
+type EnsureRootOrHalfCouncilCollective =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
 
-type EnsureRootOrTwoThirdsCouncilCollective = EnsureOneOf<
-	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>,
->;
+type EnsureRootOrTwoThirdsCouncilCollective =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>>;
 
 // Technical Committee
 
 pub type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
 	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, TechnicalCommitteeCollective>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 1, 1>,
 >;
 
 type EnsureRootOrHalfTechnicalCommittee = EnsureOneOf<
 	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, TechnicalCommitteeCollective>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 1, 2>,
 >;
 
 type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
 	EnsureRoot<AccountId>,
-	pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, TechnicalCommitteeCollective>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 2, 3>,
 >;
 
 impl pallet_treasury::Config for Runtime {
@@ -530,7 +526,9 @@ impl pallet_bounties::Config for Runtime {
 	type BountyDepositBase = BountyDepositBase;
 	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
 	type BountyUpdatePeriod = BountyUpdatePeriod;
-	type BountyCuratorDeposit = BountyCuratorDeposit;
+	type CuratorDepositMultiplier = CuratorDepositMultiplier;
+	type CuratorDepositMin = CuratorDepositMin;
+	type CuratorDepositMax = CuratorDepositMax;
 	type BountyValueMinimum = BountyValueMinimum;
 	type DataDepositPerByte = DataDepositPerByte;
 	type MaximumReasonLength = MaximumReasonLength;
@@ -646,6 +644,8 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = MaxLocks;
+	type MaxReserves = ();
+	type ReserveIdentifier = [u8; 8];
 	type DustRemovalWhitelist = Nothing;
 }
 
@@ -664,6 +664,14 @@ impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 			id: account.into(),
 		})
 		.into()
+	}
+}
+
+pub struct MultiLocationsFilter;
+
+impl Contains<MultiLocation> for MultiLocationsFilter {
+	fn contains(m: &MultiLocation) -> bool {
+		true
 	}
 }
 
@@ -686,6 +694,8 @@ impl orml_xtokens::Config for Runtime {
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type MinXcmFee = ParachainMinFee;
+	type MultiLocationsFilter = MultiLocationsFilter;
+	type ReserveProvider = AbsoluteReserveProvider;
 }
 
 impl orml_unknown_tokens::Config for Runtime {
@@ -1028,7 +1038,7 @@ impl xcm_executor::Config for XcmConfig {
 	type Call = Call;
 	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = MultiNativeAsset;
+	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
 	type LocationInverter = LocationInverter<Ancestry>;
@@ -1086,6 +1096,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 	type ControllerOrigin = EnsureRoot<AccountId>;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
+	type WeightInfo = ();
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
@@ -1425,6 +1436,71 @@ impl crowdloan::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
+	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+	pub const PowerAmountPerBlock: u32 = 100;
+}
+
+impl economy::Config for Runtime {
+	type Currency = Balances;
+	type EconomyTreasury = EconomyTreasury;
+	type Event = Event;
+	type FungibleTokenCurrency = Currencies;
+	type MinimumStake = MinimumStake;
+	type MiningCurrencyId = MiningCurrencyId;
+	type NFTHandler = Nft;
+	type RoundHandler = Mining;
+	type PowerAmountPerBlock = PowerAmountPerBlock;
+	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
+}
+
+pub type EnsureRootOrHalfMetaverseCouncil =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
+
+impl emergency::Config for Runtime {
+	type Event = Event;
+	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+}
+
+parameter_types! {
+	pub const MinimumCount: u32 = 5;
+	pub const ExpiresIn: Moment = 1000 * 60 * 60 * 24; // 24 hours
+	pub RootOperatorAccountId: AccountId = AccountId::from([0xffu8; 32]);
+	pub const MaxHasDispatchedSize: u32 = 20;
+	pub const OracleMaxMembers: u32 = 50;
+}
+
+pub type OracleMembershipInstance = pallet_membership::Instance1;
+
+impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
+	type Event = Event;
+	type AddOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type RemoveOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type SwapOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type ResetOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type PrimeOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type MembershipInitialized = ();
+	type MembershipChanged = RewardOracle;
+	type MaxMembers = OracleMaxMembers;
+	type WeightInfo = ();
+}
+
+type MiningRewardDataProvider = orml_oracle::Instance1;
+
+impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
+	type Event = Event;
+	type OnNewData = ();
+	type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, MiningRewardDataProvider>;
+	type Time = Timestamp;
+	type OracleKey = RoundIndex;
+	type OracleValue = BoundedVec<u8, MaxMetaverseMetadata>;
+	type RootOperatorAccountId = RootOperatorAccountId;
+	type Members = OracleMembership;
+	type MaxHasDispatchedSize = MaxHasDispatchedSize;
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1475,10 +1551,9 @@ construct_runtime!(
 		PolkadotXcm: pallet_xcm::{Pallet, Call, Event<T>, Origin} = 31,
 		CumulusXcm: cumulus_pallet_xcm::{Pallet, Event<T>, Origin} = 32,
 		DmpQueue: cumulus_pallet_dmp_queue::{Pallet, Call, Storage, Event<T>} = 33,
-
-		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 55,
-		UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 56,
-		OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 57,
+		XTokens: orml_xtokens::{Pallet, Storage, Call, Event<T>} = 34,
+		UnknownTokens: orml_unknown_tokens::{Pallet, Storage, Event} = 35,
+		OrmlXcm: orml_xcm::{Pallet, Call, Event<T>} = 36,
 
 		// Governance
 		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage ,Origin<T>, Event<T>} = 40,
@@ -1492,6 +1567,9 @@ construct_runtime!(
 		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
+		Emergency: emergency::{Pallet, Call, Storage, Event<T>} = 55,
+		RewardOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>} = 56,
+		OracleMembership: pallet_membership::<Instance1>::{Pallet, Call, Storage, Event<T>, Config<T>} = 57,
 
 		OrmlNFT: orml_nft::{Pallet, Storage} = 60,
 		Nft: nft::{Call, Pallet, Storage, Event<T>} = 61,
@@ -1499,7 +1577,7 @@ construct_runtime!(
 
 		Continuum: continuum::{Call, Pallet, Storage, Config<T>, Event<T>} = 63,
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
-
+		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}
