@@ -1129,6 +1129,59 @@ pub mod pallet {
 
 			Ok(().into())
 		}
+
+		/// Force unstake native token from staking ledger. The unstaked amount able to redeem
+		/// immediately
+		///
+		///
+		/// The dispatch origin for this call must be _Root_.
+		///
+		/// `amount`: the stake amount
+		/// `who`: the address of staker
+		///
+		/// Emit `SelfStakingRemovedFromEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::unstake())]
+		pub fn force_unstake(
+			origin: OriginFor<T>,
+			amount: BalanceOf<T>,
+			who: T::AccountId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			// Ensure amount is greater than zero
+			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountIsZero);
+
+			// Update staking info
+			let mut staked_balance = StakingInfo::<T>::get(&who);
+			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+
+			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+
+			let amount_to_unstake = if remaining < T::MinimumStake::get() {
+				// Remaining amount below minimum, remove all staked amount
+				staked_balance
+			} else {
+				amount
+			};
+
+			// Update staking info of user immediately
+			// Remove staking info
+			if amount_to_unstake == staked_balance {
+				StakingInfo::<T>::remove(&who);
+			} else {
+				StakingInfo::<T>::insert(&who, remaining);
+			}
+
+			let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
+			<TotalStake<T>>::put(new_total_staked);
+
+			T::Currency::unreserve(&who, amount_to_unstake);
+
+			Self::deposit_event(Event::UnstakedAmountWithdrew(who.clone(), amount_to_unstake));
+			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
+
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
