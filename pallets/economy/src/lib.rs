@@ -863,14 +863,13 @@ pub mod pallet {
 			};
 
 			let current_round = T::RoundHandler::get_current_round_info();
+			let next_round = current_round.current.saturating_add(One::one());
 
 			// Check if user already in exit queue of the current
 			ensure!(
-				!ExitQueue::<T>::contains_key(&who, current_round.current),
+				!ExitQueue::<T>::contains_key(&who, next_round),
 				Error::<T>::ExitQueueAlreadyScheduled
 			);
-
-			let next_round = current_round.current.saturating_add(One::one());
 
 			// This exit queue will be executed by exit_staking extrinsics to unreserved token
 			ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
@@ -1179,6 +1178,39 @@ pub mod pallet {
 
 			Self::deposit_event(Event::UnstakedAmountWithdrew(who.clone(), amount_to_unstake));
 			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
+
+			Ok(().into())
+		}
+
+		/// Force unreserved unstake native token from staking ledger. The unstaked amount able to
+		/// unreserve immediately
+		///
+		///
+		/// The dispatch origin for this call must be _Root_.
+		///
+		/// `amount`: the stake amount
+		/// `who`: the address of staker
+		///
+		/// Emit `SelfStakingRemovedFromEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::unstake())]
+		pub fn force_unreserved_staking(
+			origin: OriginFor<T>,
+			amount: BalanceOf<T>,
+			who: T::AccountId,
+		) -> DispatchResultWithPostInfo {
+			ensure_root(origin)?;
+
+			// Ensure amount is greater than zero
+			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountIsZero);
+
+			// Update staking info
+			let mut staked_reserved_balance = T::Currency::reserved_balance(&who);
+			ensure!(
+				amount <= staked_reserved_balance,
+				Error::<T>::UnstakeAmountExceedStakedAmount
+			);
+
+			T::Currency::unreserve(&who, amount);
 
 			Ok(().into())
 		}
