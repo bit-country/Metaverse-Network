@@ -1,46 +1,50 @@
 pub use codec::{Decode, Encode};
+pub use cumulus_pallet_parachain_system::RelaychainBlockNumberProvider;
 use cumulus_test_relay_sproof_builder::RelayStateSproofBuilder;
 use frame_support::traits::{GenesisBuild, OnFinalize, OnIdle, OnInitialize};
 pub use frame_support::{assert_noop, assert_ok, traits::Currency};
 pub use frame_system::RawOrigin;
 
-pub use cumulus_pallet_parachain_system::RelaychainBlockNumberProvider;
 pub use orml_traits::{location::RelativeLocations, Change, GetByKey, MultiCurrency};
 
-pub use primitives::currency::*;
+use core_primitives::Attributes;
+use core_traits::{Balance, FungibleTokenId};
+use polkadot_parachain::primitives::Sibling;
 pub use sp_core::H160;
 use sp_io::hashing::keccak_256;
 pub use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin, BlakeTwo256, Convert, Hash, Zero},
 	DispatchError, DispatchResult, FixedPointNumber, MultiAddress, Perbill, Permill,
 };
-
-use core_traits::{Balance, FungibleTokenId};
+use std::collections::BTreeMap;
 
 #[cfg(feature = "with-metaverse-runtime")]
 pub use metaverse_imports::*;
 #[cfg(feature = "with-metaverse-runtime")]
-mod metaverse_imports {
-	pub use metaverse_runtime::xcm_config::*;
+pub mod metaverse_imports {
+	pub use core_traits::TokenSymbol;
 	pub use metaverse_runtime::{
-		AccountId, Auction, AuctionManager, Balance, Balances, Continuum, Currencies, Economy, Estate, Governance,
-		Metaverse, Mining, Nft, Origin, Runtime, Swap, System, Tokenization,
+		AccountId, Auction, Balances, Continuum, Currencies, Economy, Estate, Governance, Metaverse, Mining, Nft,
+		Origin, ParachainSystem, Runtime, Swap, System, Tokenization,
 	};
+	//pub use metaverse_runtime::xcm_config::*;
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;
 	pub use xcm_executor::XcmExecutor;
-	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::AlphaNEER;
+	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::NEER;
 }
 #[cfg(feature = "with-pioneer-runtime")]
 pub use pioneer_imports::*;
 #[cfg(feature = "with-pioneer-runtime")]
-mod pioneer_imports {
+pub mod pioneer_imports {
+	pub use core_traits::TokenSymbol;
 	pub use pioneer_runtime::{
-		AccountId, Auction, AuctionManager, Balance, Balances, Continuum, Currencies, Economy, Estate, Governance,
-		Metaverse, Mining, Nft, Origin, Runtime, Swap, System, Tokenization,
+		AccountId, Auction, Balances, BlockNumber, Continuum, Currencies, Estate, Metaverse, Mining, Nft, Origin,
+		ParachainSystem, Runtime, Scheduler, Session, SocialToken, Swap, System, Timestamp, Vesting,
 	};
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;
+	pub use xcm_executor::XcmExecutor;
 	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::NEER;
 }
 
@@ -58,17 +62,20 @@ pub const PARA_ID_STATEMINE: u32 = 1000;
 pub const INIT_TIMESTAMP: u64 = 30_000;
 pub const BLOCK_TIME: u64 = 1000;
 
+pub fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
+}
+
 pub fn run_to_block(n: u32) {
 	while System::block_number() < n {
 		Scheduler::on_finalize(System::block_number());
 		System::set_block_number(System::block_number() + 1);
 		Timestamp::set_timestamp((System::block_number() as u64 * BLOCK_TIME) + INIT_TIMESTAMP);
-		CdpEngine::on_initialize(System::block_number());
 		Scheduler::on_initialize(System::block_number());
 		Scheduler::on_initialize(System::block_number());
 		Session::on_initialize(System::block_number());
-		SessionManager::on_initialize(System::block_number());
-		IdleScheduler::on_idle(System::block_number(), u64::MAX);
 	}
 }
 

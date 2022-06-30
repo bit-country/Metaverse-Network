@@ -16,7 +16,7 @@
 // limitations under the License.
 
 //! Relay chain and parachains emulation.
-
+use crate::setup::*;
 use cumulus_primitives_core::ParaId;
 use frame_support::traits::GenesisBuild;
 use polkadot_primitives::v1::{BlockNumber, MAX_CODE_SIZE, MAX_POV_SIZE};
@@ -26,10 +26,6 @@ use xcm_emulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain
 
 use core_traits::FungibleTokenId;
 use pioneer_runtime::AccountId;
-
-use crate::setup::{
-	ksm_amount, native_amount, ExtBuilder, ALICE, BOB, PARA_ID_DEVELOPMENT, PARA_ID_KARURA, PARA_ID_SIBLING,
-};
 
 decl_test_relay_chain! {
 	pub struct KusamaNet {
@@ -68,23 +64,23 @@ decl_test_parachain! {
 		new_ext = para_ext(PARA_ID_KARURA),
 	}
 }
-
+/*
 decl_test_parachain! {
 	pub struct Statemine {
 		Runtime = statemine_runtime::Runtime,
 		Origin = statemine_runtime::Origin,
 		XcmpMessageHandler = statemine_runtime::XcmpQueue,
 		DmpMessageHandler = statemine_runtime::DmpQueue,
-		new_ext = para_ext(1000),
+		new_ext = para_ext(PARA_ID_STATEMINE),
 	}
 }
-
+*/
 decl_test_network! {
 	pub struct TestNet {
 		relay_chain = KusamaNet,
 		parachains = vec![
 			// Be sure to use `PARA_ID_STATEMINE`
-			//(1000, Statemine),
+			// (PARA_ID_STATEMINE, Statemine),
 			// Be sure to use `PARA_ID_KARURA`
 			(2000, Karura),
 			// Be sure to use `PARA_ID_DEVELOPMENT`
@@ -196,4 +192,3 @@ pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
 		.parachain_id(parachain_id)
 		.build()
 }
-

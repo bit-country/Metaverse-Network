@@ -17,10 +17,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#[cfg(any(
-	feature = "with-metaverse-runtime",
-	feature = "with-pioneer-runtime"
-))]
+#[cfg(feature = "with-pioneer-runtime")]
 mod kusama_test_net;
-// #[cfg(feature = "with-pioneer-runtime")]
-// mod statemine;
+//#[cfg(feature = "with-pioneer-runtime")]
+//mod statemine;
