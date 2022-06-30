@@ -39,8 +39,9 @@ pub use pioneer_imports::*;
 pub mod pioneer_imports {
 	pub use core_traits::TokenSymbol;
 	pub use pioneer_runtime::{
-		AccountId, Auction, Balances, BlockNumber, Continuum, Currencies, Estate, Metaverse, Mining, Nft, Origin,
-		ParachainSystem, Runtime, Scheduler, Session, SocialToken, Swap, System, Timestamp, Vesting,
+		AccountId, Auction, Balances, BlockNumber, Continuum, CumulusXcm, Currencies, DmpQueue, Estate, Metaverse,
+		Mining, Nft, Origin, OrmlXcm, ParachainSystem, PolkadotXcm, Runtime, Scheduler, Session, SocialToken, Swap,
+		System, Timestamp, TransactionPayment, Vesting, XTokens, XcmpQueue,
 	};
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;

@@ -3,7 +3,7 @@
 #[cfg(any(feature = "with-metaverse-runtime", feature = "with-pioneer-runtime"))]
 mod setup;
 
-#[cfg(feature = "with-metaverse-runtime")]
+#[cfg(feature = "with-pioneer-runtime")]
 mod xcm_transfers;
 
 #[cfg(any(feature = "with-metaverse-runtime", feature = "with-pioneer-runtime"))]

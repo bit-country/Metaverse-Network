@@ -1,7 +1,7 @@
-#[cfg(feature = "with-metaverse-runtime")]
-use crate::setup::metaverse_imports::NATIVE_TOKEN;
 #[cfg(feature = "with-pioneer-runtime")]
 use crate::setup::pioneer_imports::NATIVE_TOKEN;
+#[cfg(feature = "with-pioneer-runtime")]
+use crate::relaychain::kusama_test_net::*;
 use crate::setup::*;
 use core_primitives::NFTTrait;
 use core_primitives::{Attributes, CollectionType, TokenType};

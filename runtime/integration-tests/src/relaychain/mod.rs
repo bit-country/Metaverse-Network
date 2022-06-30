@@ -18,6 +18,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #[cfg(feature = "with-pioneer-runtime")]
-mod kusama_test_net;
+pub mod kusama_test_net;
 //#[cfg(feature = "with-pioneer-runtime")]
 //mod statemine;
