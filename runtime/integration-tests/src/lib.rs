@@ -9,10 +9,10 @@ mod xcm_transfers;
 #[cfg(any(feature = "with-metaverse-runtime", feature = "with-pioneer-runtime"))]
 mod weights;
 
-#[cfg(any(feature = "with-metaverse-runtime", feature = "with-pioneer-runtime"))]
+#[cfg(feature = "with-pioneer-runtime")]
 mod relaychain;
 
-#[cfg(any(feature = "with-metaverse-runtime"))]
+#[cfg(feature = "with-pioneer-runtime")]
 mod purchase_nft_from_buy_now_listing;
 
 /*

@@ -40,7 +40,7 @@ pub mod pioneer_imports {
 	pub use core_traits::TokenSymbol;
 	pub use pioneer_runtime::{
 		AccountId, Auction, Balances, BlockNumber, Continuum, CumulusXcm, Currencies, DmpQueue, Estate, Metaverse,
-		Mining, Nft, Origin, OrmlXcm, ParachainSystem, PolkadotXcm, Runtime, Scheduler, Session, SocialToken, Swap,
+		Mining, Nft, Origin, OrmlNFT, OrmlXcm, ParachainSystem, PolkadotXcm, Runtime, Scheduler, Session, SocialToken, Swap,
 		System, Timestamp, TransactionPayment, Vesting, XTokens, XcmpQueue,
 	};
 	pub use sp_runtime::traits::AccountIdConversion;

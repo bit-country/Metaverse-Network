@@ -56,6 +56,7 @@ xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "24ccbc
 metaverse-runtime = { path = "../metaverse", optional = true  }
 pioneer-runtime = { path = "../pioneer", optional = true }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
+auction-manager = { path = "../../traits/auction-manager", default-features = false }
 core-traits = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
 
 [dev-dependencies]
