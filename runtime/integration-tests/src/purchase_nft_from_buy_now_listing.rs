@@ -16,7 +16,6 @@ fn test_list_nft() {
 		.balances(vec![
 			(AccountId::from(ALICE), NATIVE_TOKEN, 1_000 * dollar(NATIVE_TOKEN)),
 			(AccountId::from(BOB), NATIVE_TOKEN, 1_000 * dollar(NATIVE_TOKEN)),
-			(AccountId::from(CHARLIE), NATIVE_TOKEN, 1_000 * dollar(NATIVE_TOKEN)),
 		])
 		.build()
 		.execute_with(|| {
@@ -27,10 +26,6 @@ fn test_list_nft() {
 			);
 			assert_eq!(
 				Balances::free_balance(AccountId::from(BOB)),
-				1_000 * dollar(NATIVE_TOKEN)
-			);
-			assert_eq!(
-				Balances::free_balance(AccountId::from(CHARLIE)),
 				1_000 * dollar(NATIVE_TOKEN)
 			);
 			// Create metaverse land/estate group
@@ -65,7 +60,10 @@ fn test_list_nft() {
 			));
 			run_to_block(1);
 			// Check NFT ownership
-			assert_ok!(Nft::check_ownership(&AccountId::from(ALICE), &(2u32.into(), 0u32.into())));
+			assert_ok!(Nft::check_ownership(
+				&AccountId::from(ALICE),
+				&(2u32.into(), 0u32.into())
+			));
 			// List NFT as a buy now on a metaverse
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
@@ -83,10 +81,7 @@ fn test_list_nft() {
 			));
 			// Check NFT ownership and balances
 			assert_ok!(Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 0u32.into())));
-			assert_eq!(
-				Balances::free_balance(AccountId::from(BOB)),
-				900 * dollar(NATIVE_TOKEN)
-			);
+			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 900 * dollar(NATIVE_TOKEN));
 			assert_eq!(
 				Balances::free_balance(AccountId::from(ALICE)),
 				1_095 * dollar(NATIVE_TOKEN)

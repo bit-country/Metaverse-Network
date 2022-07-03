@@ -40,8 +40,8 @@ pub mod pioneer_imports {
 	pub use core_traits::TokenSymbol;
 	pub use pioneer_runtime::{
 		AccountId, Auction, Balances, BlockNumber, Continuum, CumulusXcm, Currencies, DmpQueue, Estate, Metaverse,
-		Mining, Nft, Origin, OrmlNFT, OrmlXcm, ParachainSystem, PolkadotXcm, Runtime, Scheduler, Session, SocialToken, Swap,
-		System, Timestamp, TransactionPayment, Vesting, XTokens, XcmpQueue,
+		Mining, Nft, Origin, OrmlNFT, OrmlXcm, ParachainSystem, PolkadotXcm, Runtime, Scheduler, Session, SocialToken,
+		Swap, System, Timestamp, TransactionPayment, Vesting, XTokens, XcmpQueue,
 	};
 	pub use sp_runtime::traits::AccountIdConversion;
 	use sp_runtime::Percent;
@@ -71,12 +71,15 @@ pub fn test_attributes(x: u8) -> Attributes {
 
 pub fn run_to_block(n: u32) {
 	while System::block_number() < n {
+		Auction::on_finalize(System::block_number());
 		Scheduler::on_finalize(System::block_number());
+		System::on_finalize(System::block_number());
 		System::set_block_number(System::block_number() + 1);
 		Timestamp::set_timestamp((System::block_number() as u64 * BLOCK_TIME) + INIT_TIMESTAMP);
-		Scheduler::on_initialize(System::block_number());
+		System::on_initialize(System::block_number());
 		Scheduler::on_initialize(System::block_number());
 		Session::on_initialize(System::block_number());
+		Auction::on_initialize(System::block_number());
 	}
 }
 

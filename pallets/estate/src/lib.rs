@@ -1690,6 +1690,10 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 	fn is_user_own_metaverse_land(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
 		Self::get_user_land_units(&who, metaverse_id).len() > 0
 	}
+
+	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+		Ok(LandUnits::<T>::contains_key(metaverse_id, coordinate))
+	}
 }
 
 impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
@@ -1733,6 +1737,22 @@ impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 		let undeployed_land_block_id = Self::do_freeze_undeployed_land_block(undeployed_land_block_id)?;
 
 		Ok(undeployed_land_block_id)
+	}
+
+	fn check_undeployed_land_block(
+		owner: &T::AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError> {
+		let undeployed_land_block =
+			Self::get_undeployed_land_block(undeployed_land_block_id).ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
+
+		if undeployed_land_block.is_locked
+			|| undeployed_land_block.undeployed_land_block_type == UndeployedLandBlockType::BoundToAddress
+			|| undeployed_land_block.owner != *owner
+		{
+			return Ok(false);
+		}
+		return Ok(true);
 	}
 }
 
