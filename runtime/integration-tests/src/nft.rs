@@ -60,10 +60,10 @@ fn purchase_nft_from_buy_now_listing() {
 			));
 			run_to_block(1);
 			// Check NFT ownership
-			assert_eq!(Nft::check_ownership(
-				&AccountId::from(ALICE),
-				&(2u32.into(), 0u32.into())
-			), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(2u32.into(), 0u32.into())),
+				Ok(true)
+			);
 			// List NFT as a buy now on a metaverse
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
@@ -80,7 +80,10 @@ fn purchase_nft_from_buy_now_listing() {
 				100 * dollar(NATIVE_TOKEN),
 			));
 			// Check NFT ownership and balances
-			assert_eq!(Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 0u32.into())), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 0u32.into())),
+				Ok(true)
+			);
 			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 900 * dollar(NATIVE_TOKEN));
 			assert_eq!(
 				Balances::free_balance(AccountId::from(ALICE)),
@@ -147,16 +150,19 @@ fn win_nft_bundle_auction() {
 			));
 			run_to_block(1);
 			// Check NFTs ownership
-			assert_eq!(Nft::check_ownership(
-				&AccountId::from(ALICE),
-				&(2u32.into(), 0u32.into())
-			), Ok(true) );
-			assert_eq!(Nft::check_ownership(
-				&AccountId::from(ALICE),
-				&(2u32.into(), 1u32.into())
-			), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(2u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(2u32.into(), 1u32.into())),
+				Ok(true)
+			);
 			// List NFT Bundle on an auction#
-			let tokens: Vec<(ClassId, TokenId, Balance)> = vec![(2u32.into(), 0u64.into(), 10u128.into()), (2u32.into(), 1u64.into(), 10u128.into())];
+			let tokens: Vec<(ClassId, TokenId, Balance)> = vec![
+				(2u32.into(), 0u64.into(), 10u128.into()),
+				(2u32.into(), 1u64.into(), 10u128.into()),
+			];
 			assert_ok!(Auction::create_new_auction(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::Bundle(tokens.clone()),
@@ -180,22 +186,19 @@ fn win_nft_bundle_auction() {
 			));
 			run_to_block(35);
 			// Check NFT Bundle ownership and balances
-			assert_eq!(Nft::check_ownership(
-				&AccountId::from(BOB),
-				&(2u32.into(), 0u32.into())
-			), Ok(true) );
-			assert_eq!(Nft::check_ownership(
-				&AccountId::from(BOB),
-				&(2u32.into(), 1u32.into())
-			), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 1u32.into())),
+				Ok(true)
+			);
 			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 895 * dollar(NATIVE_TOKEN));
 			assert_eq!(
 				Balances::free_balance(AccountId::from(CHARLIE)),
 				1000 * dollar(NATIVE_TOKEN)
 			);
-			assert_eq!(
-				Balances::free_balance(AccountId::from(ALICE)),
-				1098950000000000000000
-			);
+			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1098950000000000000000);
 		});
 }
