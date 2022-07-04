@@ -40,16 +40,20 @@ use crate::{
 	service::ExecutorDispatch,
 };
 
-fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
+fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 	Ok(match id {
+		#[cfg(feature = "with-metaverse-runtime")]
 		"dev" => Box::new(chain_spec::metaverse::development_config()?),
+		#[cfg(feature = "with-metaverse-runtime")]
 		"" | "local" => Box::new(chain_spec::metaverse::local_testnet_config()?),
+		#[cfg(feature = "with-metaverse-runtime")]
 		"metaverse" => Box::new(chain_spec::metaverse::development_config()?),
+		#[cfg(feature = "with-metaverse-runtime")]
 		"metaverse-testnet" => Box::new(chain_spec::metaverse::metaverse_testnet_config()?),
 		#[cfg(feature = "with-pioneer-runtime")]
-		"pioneer-dev" => Box::new(chain_spec::pioneer::development_config(para_id)),
+		"pioneer-dev" => Box::new(chain_spec::pioneer::development_config()),
 		#[cfg(feature = "with-pioneer-runtime")]
-		"pioneer-local" => Box::new(chain_spec::pioneer::local_testnet_config(para_id)),
+		"pioneer-local" => Box::new(chain_spec::pioneer::local_testnet_config()),
 		#[cfg(feature = "with-pioneer-runtime")]
 		"pioneer" => Box::new(chain_spec::pioneer::pioneer_network_config_json()?),
 		path => Box::new(chain_spec::metaverse::ChainSpec::from_json_file(
@@ -80,11 +84,11 @@ impl SubstrateCli for Cli {
 	}
 
 	fn copyright_start_year() -> i32 {
-		2017
+		2020
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-		load_spec(id, 2096.into())
+		load_spec(id)
 	}
 
 	fn native_runtime_version(spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -141,7 +145,8 @@ impl SubstrateCli for RelayChainCli {
 	}
 }
 
-fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> sc_cli::Result<Vec<u8>> {
+#[allow(clippy::borrowed_box)]
+fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<Vec<u8>> {
 	let mut storage = chain_spec.build_storage()?;
 
 	storage
@@ -150,63 +155,50 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> sc_cli::
 		.ok_or_else(|| "Could not find wasm file in genesis state!".into())
 }
 
+macro_rules! construct_async_run {
+	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
+		let runner = $cli.create_runner($cmd)?;
+		runner.async_run(|$config| {
+			let $components = new_partial::<
+				RuntimeApi,
+				ParachainRuntimeExecutor,
+				_
+			>(
+				&$config,
+				crate::service::parachain_build_import_queue,
+			)?;
+			let task_manager = $components.task_manager;
+			{ $( $code )* }.map(|v| (v, task_manager))
+		})
+	}}
+}
+
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
 	let cli = Cli::from_args();
 
 	match &cli.subcommand {
-		Some(Subcommand::Key(cmd)) => cmd.run(&cli),
 		Some(Subcommand::BuildSpec(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
 		}
 		Some(Subcommand::CheckBlock(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					import_queue,
-					..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, import_queue), task_manager))
+			construct_async_run!(|components, cli, cmd, config| {
+				Ok(cmd.run(components.client, components.import_queue))
 			})
 		}
 		Some(Subcommand::ExportBlocks(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client, task_manager, ..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, config.database), task_manager))
-			})
+			construct_async_run!(|components, cli, cmd, config| { Ok(cmd.run(components.client, config.database)) })
 		}
 		Some(Subcommand::ExportState(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client, task_manager, ..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, config.chain_spec), task_manager))
-			})
+			construct_async_run!(|components, cli, cmd, config| { Ok(cmd.run(components.client, config.chain_spec)) })
 		}
 		Some(Subcommand::ImportBlocks(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					import_queue,
-					..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, import_queue), task_manager))
+			construct_async_run!(|components, cli, cmd, config| {
+				Ok(cmd.run(components.client, components.import_queue))
 			})
 		}
 		Some(Subcommand::PurgeChain(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.sync_run(|config| cmd.run(config.database))
-		}
-		Some(Subcommand::PurgeChainParachain(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 
 			runner.sync_run(|config| {
@@ -214,7 +206,7 @@ pub fn run() -> sc_cli::Result<()> {
 					&config,
 					[RelayChainCli::executable_name()]
 						.iter()
-						.chain(cli.relaychain_args.iter()),
+						.chain(cli.relay_chain_args.iter()),
 				);
 
 				let polkadot_config =
@@ -225,61 +217,16 @@ pub fn run() -> sc_cli::Result<()> {
 			})
 		}
 		Some(Subcommand::Revert(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					backend,
-					..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, backend, None), task_manager))
-			})
-		}
-		Some(Subcommand::Benchmark(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.sync_run(|config| {
-				let PartialComponents { client, backend, .. } = service::new_partial(&config, &cli)?;
-
-				// This switch needs to be in the client, since the client decides
-				// which sub-commands it wants to support.
-				match cmd {
-					BenchmarkCmd::Pallet(cmd) => {
-						if !cfg!(feature = "runtime-benchmarks") {
-							return Err("Runtime benchmarking wasn't enabled when building the node. \
-							You can enable it with `--features runtime-benchmarks`."
-								.into());
-						}
-
-						cmd.run::<Block, ExecutorDispatch>(config)
-					}
-					BenchmarkCmd::Block(cmd) => cmd.run(client),
-					BenchmarkCmd::Storage(cmd) => {
-						let db = backend.expose_db();
-						let storage = backend.expose_storage();
-
-						cmd.run(config, client, db, storage)
-					}
-					BenchmarkCmd::Machine(cmd) => {
-						cmd.run(&config, frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE.clone())
-					}
-					BenchmarkCmd::Overhead(_) => Err("Benchmark overhead not supported.".into()),
-				}
+			construct_async_run!(|components, cli, cmd, config| {
+				Ok(cmd.run(components.client, components.backend, None))
 			})
 		}
 		Some(Subcommand::ExportGenesisState(params)) => {
-			info!(
-				"ExportGenesisState load_spec: {}",
-				&params.chain.clone().unwrap_or_default()
-			);
-
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
-			let spec = load_spec(
-				&params.chain.clone().unwrap_or("pioneer".into()),
-				params.parachain_id.unwrap_or(2096).into(),
-			)?;
+
+			let spec = load_spec(&params.chain.clone().unwrap_or_default())?;
 			let state_version = Cli::native_runtime_version(&spec).state_version();
 			let block: Block = generate_genesis_block(&spec, state_version)?;
 			let raw_header = block.header().encode();
@@ -298,17 +245,11 @@ pub fn run() -> sc_cli::Result<()> {
 			Ok(())
 		}
 		Some(Subcommand::ExportGenesisWasm(params)) => {
-			info!(
-				"ExportGenesisWasm load_spec: {}",
-				&params.chain.clone().unwrap_or_default()
-			);
-
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let raw_wasm_blob =
-				extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or("pioneer-live".into()))?)?;
+			let raw_wasm_blob = extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
 			let output_buf = if params.raw {
 				raw_wasm_blob
 			} else {
@@ -323,6 +264,56 @@ pub fn run() -> sc_cli::Result<()> {
 
 			Ok(())
 		}
+		Some(Subcommand::Benchmark(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+			// Switch on the concrete benchmark sub-command-
+			match cmd {
+				BenchmarkCmd::Pallet(cmd) => {
+					if cfg!(feature = "runtime-benchmarks") {
+						runner.sync_run(|config| cmd.run::<Block, ParachainRuntimeExecutor>(config))
+					} else {
+						Err("Benchmarking wasn't enabled when building the node. \
+					You can enable it with `--features runtime-benchmarks`."
+							.into())
+					}
+				}
+				BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
+					let partials = new_partial::<RuntimeApi, ParachainRuntimeExecutor, _>(
+						&config,
+						crate::service::parachain_build_import_queue,
+					)?;
+					cmd.run(partials.client)
+				}),
+				BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
+					let partials = new_partial::<RuntimeApi, ParachainRuntimeExecutor, _>(
+						&config,
+						crate::service::parachain_build_import_queue,
+					)?;
+					let db = partials.backend.expose_db();
+					let storage = partials.backend.expose_storage();
+
+					cmd.run(config, partials.client.clone(), db, storage)
+				}),
+				BenchmarkCmd::Overhead(_) => Err("Unsupported benchmarking command".into()),
+				BenchmarkCmd::Machine(cmd) => {
+					runner.sync_run(|config| cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()))
+				}
+			}
+		}
+		Some(Subcommand::TryRuntime(cmd)) => {
+			if cfg!(feature = "try-runtime") {
+				let runner = cli.create_runner(cmd)?;
+
+				// grab the task manager.
+				let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
+				let task_manager = TaskManager::new(runner.config().tokio_handle.clone(), *registry)
+					.map_err(|e| format!("Error: {:?}", e))?;
+
+				runner.async_run(|config| Ok((cmd.run::<Block, ParachainRuntimeExecutor>(config), task_manager)))
+			} else {
+				Err("Try-runtime must be enabled by `--features try-runtime`.".into())
+			}
+		}
 		None => {
 			let runner = cli.create_runner(&cli.run.normalize())?;
 			let chain_spec = &runner.config().chain_spec;
@@ -332,6 +323,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 			#[cfg(feature = "with-pioneer-runtime")]
 			if chain_spec.id().starts_with("pioneer") {
+				info!("Runtime {}:", chain_spec.id());
 				return runner.run_node_until_exit(|config| async move {
 					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
 						.map(|e| e.para_id)
