@@ -114,6 +114,7 @@ polkadot-cli = { git = 'https://github.com/paritytech/polkadot', branch = "relea
 polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.22" }
 polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.22" }
 polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.22" }
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.22" }
 
 # EVM dependencies
 fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }

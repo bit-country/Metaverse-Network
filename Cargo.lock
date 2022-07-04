@@ -5105,6 +5105,7 @@ dependencies = [
  "substrate-frame-rpc-system",
  "substrate-prometheus-endpoint",
  "url",
+ "xcm",
 ]
 
 [[package]]
