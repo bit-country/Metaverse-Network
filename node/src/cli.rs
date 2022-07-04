@@ -1,9 +1,11 @@
-use crate::chain_spec;
-use crate::chain_spec::Extensions;
+use std::path::PathBuf;
+
 use clap::Parser;
 use cumulus_client_cli;
-use std::path::PathBuf;
 use url::Url;
+
+use crate::chain_spec;
+use crate::chain_spec::Extensions;
 
 fn validate_relay_chain_url(arg: &str) -> Result<(), String> {
 	let url = Url::parse(arg).map_err(|e| e.to_string())?;
@@ -172,12 +174,6 @@ pub struct ExportGenesisStateCommand {
 	/// Output file name or stdout if unspecified.
 	#[clap(parse(from_os_str))]
 	pub output: Option<PathBuf>,
-
-	/// Id of the parachain this state is for.
-	///
-	/// Default: 100
-	#[clap(long)]
-	pub parachain_id: Option<u32>,
 
 	/// Write output in binary. Default is to write in hex.
 	#[clap(short, long)]
