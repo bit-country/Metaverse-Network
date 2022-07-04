@@ -10,7 +10,7 @@ use frame_system::RawOrigin;
 use sp_runtime::Perbill;
 
 #[test]
-fn test_deploy_land_block() {
+fn deploy_land_blocks_won_in_an_auction() {
 	#[cfg(feature = "with-pioneer-runtime")]
 	const NATIVE_TOKEN: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -37,13 +37,18 @@ fn test_deploy_land_block() {
 			);
 			// Create metaverse land/estate group
 			assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
-			// Create metaverse
+			// Create metaverses
 			assert_ok!(Metaverse::create_metaverse(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				vec![1u8]
 			));
-			// Check metaverse ownership
+			assert_ok!(Metaverse::create_metaverse(
+				RawOrigin::Signed(AccountId::from(BOB)).into(),
+				vec![1u8]
+			));
+			// Check metaverses ownership
 			assert_eq!(Metaverse::check_ownership(&AccountId::from(ALICE), &0u32.into()), true);
+			assert_eq!(Metaverse::check_ownership(&AccountId::from(BOB), &1u32.into()), true);
 			// Create undeployed land block
 			assert_ok!(Estate::issue_undeployed_land_blocks(
 				RawOrigin::Root.into(),
@@ -52,7 +57,7 @@ fn test_deploy_land_block() {
 				1u32,
 				UndeployedLandBlockType::Transferable
 			));
-			// Check undeployed land block
+			// Check undeployed land block ownership
 			assert_eq!(
 				Estate::check_undeployed_land_block(
 					&AccountId::from(ALICE),
@@ -85,7 +90,14 @@ fn test_deploy_land_block() {
 			));
 			run_to_block(35);
 			// Check land block ownership and balances
-			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 895 * dollar(NATIVE_TOKEN));
+			assert_eq!(
+				Estate::check_undeployed_land_block(
+					&AccountId::from(BOB),
+					0u32.into()
+				),
+				Ok(true)
+			);
+			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 894 * dollar(NATIVE_TOKEN));
 			assert_eq!(
 				Balances::free_balance(AccountId::from(CHARLIE)),
 				1000 * dollar(NATIVE_TOKEN)
@@ -98,11 +110,22 @@ fn test_deploy_land_block() {
 			assert_ok!(Estate::deploy_land_block(
 				RawOrigin::Signed(AccountId::from(BOB)).into(),
 				0u32.into(),
-				0u32.into(),
+				1u32.into(),
 				(0i32, 0i32),
 				vec![(0i32, 0i32)]
 			));
 			// Check if land unit was deployed
-			assert_eq!(Estate::check_landunit(0u32.into(), (0i32, 0i32)), Ok(true));
+			assert_eq!(Estate::check_landunit(1u32.into(), (0i32, 0i32)), Ok(true));
 		});
 }
+
+/* 
+#[test]
+fn create_estate_from_purchased_land_blocks() {
+}
+
+#[test]
+fn buy_estate_from_marketplace_and_modify_its_structure() {
+}
+*/
+

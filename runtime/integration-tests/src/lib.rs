@@ -13,14 +13,7 @@ mod weights;
 mod relaychain;
 
 #[cfg(feature = "with-pioneer-runtime")]
-mod purchase_nft_from_buy_now_listing;
+mod nft;
 
 #[cfg(feature = "with-pioneer-runtime")]
-mod deploy_land_block_won_from_an_auction;
-/*
-#[cfg(feature = "with-pioneer-runtime")]
-mod create_an_estate_and_add_or_remove_land_units_from_it;
-
-#[cfg(feature = "with-pioneer-runtime")]
-mod win_bundle_from_an_auction;
-*/
+mod estate;
