@@ -107,12 +107,15 @@ fn deploy_land_blocks_won_in_an_auction() {
 			));
 			// Check if land unit was deployed and its owner is correct
 			assert_eq!(Estate::check_landunit(1u32.into(), (0i32, 0i32)), Ok(true));
-			assert_eq!(Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 0u32.into())), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 0u32.into())),
+				Ok(true)
+			);
 		});
 }
 
 #[test]
-fn create_estate_from_transferred_land_blocks() {
+fn create_estate_from_purhcased_land_blocks() {
 	#[cfg(feature = "with-pioneer-runtime")]
 	const NATIVE_TOKEN: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -165,31 +168,30 @@ fn create_estate_from_transferred_land_blocks() {
 			assert_eq!(Estate::check_landunit(0u32.into(), (0i32, 0i32)), Ok(true));
 			assert_eq!(Estate::check_landunit(0u32.into(), (0i32, 1i32)), Ok(true));
 			// Check land units ownership
-			assert_eq!(Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 0u32.into())), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 0u32.into())),
+				Ok(true)
+			);
 			assert_eq!(
 				Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 1u32.into())),
 				Ok(true)
 			);
-			// Authorise land collection
-			assert_ok!(Auction::authorise_metaverse_collection(RawOrigin::Signed(AccountId::from(ALICE)).into(), 0u32.into(), 0u32.into()));
-			/*
 			run_to_block(1);
 			// Create buy now for each land unit
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
-				ItemId::LandUnit((0i32, 0i32), 0u32.into()),
+				ItemId::NFT(0u32.into(), 0u64.into()),
 				100 * dollar(NATIVE_TOKEN),
 				100u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
-				ItemId::LandUnit((0i32, 1i32), 0u32.into()),
+				ItemId::NFT(0u32.into(), 1u64.into()),
 				100 * dollar(NATIVE_TOKEN),
 				100u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
-
 			run_to_block(2);
 			// Buy land units
 			assert_ok!(Auction::buy_now(
@@ -202,28 +204,17 @@ fn create_estate_from_transferred_land_blocks() {
 				1u32.into(),
 				100 * dollar(NATIVE_TOKEN),
 			));
-			*/
-			// Transfer land units
-			assert_ok!(Estate::transfer_land(
-				RawOrigin::Signed(AccountId::from(ALICE)).into(),
-				AccountId::from(BOB),
-				0u32.into(),
-				(0i32, 0i32)
-			));
-			assert_ok!(Estate::transfer_land(
-				RawOrigin::Signed(AccountId::from(ALICE)).into(),
-				AccountId::from(BOB),
-				0u32.into(),
-				(0i32, 1i32)
-			));
 			// Check updated balances and land units ownership
-			assert_eq!(Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 0u32.into())), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 0u32.into())),
+				Ok(true)
+			);
 			assert_eq!(
 				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 1u32.into())),
 				Ok(true)
 			);
-			//assert_eq!(Balances::free_balance(AccountId::from(BOB)), 800 * dollar(NATIVE_TOKEN));
-			//assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1002950000000000000000);
+			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 799 * dollar(NATIVE_TOKEN));
+			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1174000000000000000000);
 			// Create estate using the purchased land blocks
 			assert_ok!(Estate::create_estate(
 				RawOrigin::Signed(AccountId::from(BOB)).into(),
@@ -231,15 +222,23 @@ fn create_estate_from_transferred_land_blocks() {
 				vec![(0i32, 0i32), (0i32, 1i32)]
 			));
 			// Check estate and land units ownership
-			assert_eq!(Nft::check_ownership(&AccountId::from(BOB), &(1u32.into(), 0u32.into())), Ok(true));
-			assert_ne!(Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 0u32.into())), Ok(true));
-			assert_ne!(Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 1u32.into())), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(1u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			assert_ne!(
+				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			assert_ne!(
+				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 1u32.into())),
+				Ok(true)
+			);
 		});
 }
 
-/*
 #[test]
-fn buy_estate_from_marketplace_and_modify_its_structure() {
+fn purchase_estate_and_modify_its_structure() {
 	#[cfg(feature = "with-pioneer-runtime")]
 	const NATIVE_TOKEN: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -293,13 +292,16 @@ fn buy_estate_from_marketplace_and_modify_its_structure() {
 			assert_eq!(Estate::check_landunit(0u32.into(), (0i32, 1i32)), Ok(true));
 			assert_eq!(Estate::check_landunit(0u32.into(), (1i32, 0i32)), Ok(true));
 			// Check land units ownership
-			assert_eq!(Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 0u32.into())), Ok(true));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 0u32.into())),
+				Ok(true)
+			);
 			assert_eq!(
 				Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 1u32.into())),
 				Ok(true)
 			);
 			assert_eq!(
-				Nft::check_ownership(&AccountId::from(ALICE), &(1u32.into(), 0u32.into())),
+				Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 2u32.into())),
 				Ok(true)
 			);
 			// Create estate using 2 land blocks
@@ -309,26 +311,37 @@ fn buy_estate_from_marketplace_and_modify_its_structure() {
 				vec![(0i32, 0i32), (0i32, 1i32)]
 			));
 			// Check estate and left land unit ownership
-			assert_eq!(Auction::check_ownership(&AccountId::from(ALICE), &(1u32.into(), 0u32.into())), Ok(true));
-			assert_eq!(Auction::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 2u32.into())), Ok(true));
-			// Authorise land and estate collections
-			assert_ok!(Nft::authorise_metaverse_collection(RawOrigin::Signed(AccountId::from(ALICE)).into(), 0u32.into(), 0u32.into()));
-			assert_ok!(Nft::authorise_metaverse_collection(RawOrigin::Signed(AccountId::from(ALICE)).into(), 1u32.into(), 0u32.into()));
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(1u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 2u32.into())),
+				Ok(true)
+			);
+			assert_ne!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			assert_ne!(
+				Nft::check_ownership(&AccountId::from(ALICE), &(0u32.into(), 1u32.into())),
+				Ok(true)
+			);
 			// Create buy now for a land unit and an estate
 			run_to_block(1);
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
-				ItemId::Estate(0u64.into())),
+				ItemId::NFT(1u32.into(), 0u64.into()),
 				100 * dollar(NATIVE_TOKEN),
 				100u32.into(),
-				ListingLevel::Global
+				ListingLevel::Local(0u32.into())
 			));
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
-				ItemId::LandUnit((1i32, 1i32), 0u32.into()),
+				ItemId::NFT(0u32.into(), 2u64.into()),
 				100 * dollar(NATIVE_TOKEN),
 				100u32.into(),
-				ListingLevel::Global
+				ListingLevel::Local(0u32.into())
 			));
 			run_to_block(2);
 			// Buy land units
@@ -342,15 +355,46 @@ fn buy_estate_from_marketplace_and_modify_its_structure() {
 				1u32.into(),
 				100 * dollar(NATIVE_TOKEN),
 			));
-
 			// Check estate, left land unit ownership, and updated balances
-			assert_eq!(Nft::check_ownership(&AccountId::from(BOB), &(1u32.into(), 0u32.into())), Ok(true));
-			assert_eq!(Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 2u32.into())), Ok(true));
-			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 800 * dollar(NATIVE_TOKEN));
-			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1002950000000000000000);
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(1u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 2u32.into())),
+				Ok(true)
+			);
+			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 799 * dollar(NATIVE_TOKEN));
+			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1176000000000000000000);
 			// Add land unit to estate
+			assert_ok!(Estate::add_land_unit_to_estate(
+				RawOrigin::Signed(AccountId::from(BOB)).into(),
+				0u32.into(),
+				vec![(1i32, 0i32)]
+			));
 			// Check estate and land units ownership
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(1u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			//assert_ne!(
+			//	Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 2u32.into())),
+			//	Ok(true)
+			//);
 			// Remove land unit from estate
+			assert_ok!(Estate::remove_land_unit_from_estate(
+				RawOrigin::Signed(AccountId::from(BOB)).into(),
+				0u32.into(),
+				vec![(0i32, 1i32)]
+			));
 			// Check estate and land units ownership
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(1u32.into(), 0u32.into())),
+				Ok(true)
+			);
+			assert_eq!(
+				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 1u32.into())),
+				Ok(true)
+			);
+		});
 }
-*/
