@@ -19,13 +19,13 @@ RUN apt-get update && \
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
 	export PATH="$PATH:$HOME/.cargo/bin" && \
-	rustup default nightly-2021-11-07 && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly-2021-11-07 && \
+	rustup default nightly-2022-02-19 && \
+	rustup target add wasm32-unknown-unknown --toolchain ightly-2022-02-19 && \
 	cargo build "--$PROFILE" --features=with-metaverse-runtime
 
 # ===== SECOND STAGE ======
 
-FROM phusion/baseimage:bionic-1.0.0
+FROM phusion/baseimage:focal-1.2.0
 LABEL maintainer="justin@bit.country"
 LABEL description="This is the 2nd stage: a very small image where we copy the Bit.Country Node binary."
 ARG PROFILE=release
