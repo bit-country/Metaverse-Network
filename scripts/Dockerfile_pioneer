@@ -25,7 +25,7 @@ RUN cargo build "--$PROFILE" --features=with-pioneer-runtime
 
 # ===== SECOND STAGE ======
 
-FROM phusion/baseimage:bionic-1.0.0
+FROM phusion/baseimage:focal-1.2.0
 LABEL maintainer="justin@bit.country"
 LABEL description="This is the 2nd stage: a very small image where we copy the Metaverse Network Node binary."
 ARG PROFILE=release
