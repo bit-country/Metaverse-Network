@@ -20,24 +20,28 @@ use std::{io::Write, net::SocketAddr, sync::Arc};
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
-use frame_benchmarking_cli::BenchmarkCmd;
+use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::info;
 use sc_cli::{
 	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result, Role,
 	RuntimeVersion, SharedParams, SubstrateCli,
 };
 use sc_service::config::{BasePath, PrometheusConfig};
-use sc_service::PartialComponents;
+use sc_service::{PartialComponents, TaskManager};
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 
 use metaverse_runtime::Block;
+#[cfg(feature = "with-pioneer-runtime")]
+use pioneer_runtime::{Block as PioneerBlock, RuntimeApi};
 
+#[cfg(feature = "with-pioneer-runtime")]
+use crate::service::pioneer_partial;
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
 	service,
-	service::ExecutorDispatch,
+	service::{ExecutorDispatch, ParachainRuntimeExecutor},
 };
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
@@ -157,9 +161,11 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<V
 
 macro_rules! construct_async_run {
 	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
+		#[cfg(feature = "with-pioneer-runtime")]
+		#[allow(unused_imports)]
 		let runner = $cli.create_runner($cmd)?;
 		runner.async_run(|$config| {
-			let $components = new_partial::<
+			let $components = pioneer_partial::<
 				RuntimeApi,
 				ParachainRuntimeExecutor,
 				_
@@ -183,22 +189,18 @@ pub fn run() -> sc_cli::Result<()> {
 			runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
 		}
 		Some(Subcommand::CheckBlock(cmd)) => {
-			construct_async_run!(|components, cli, cmd, config| {
-				Ok(cmd.run(components.client, components.import_queue))
-			})
+			construct_async_run!(|components, cli, cmd, config| Ok(cmd.run(components.client, components.import_queue)))
 		}
 		Some(Subcommand::ExportBlocks(cmd)) => {
-			construct_async_run!(|components, cli, cmd, config| { Ok(cmd.run(components.client, config.database)) })
+			construct_async_run!(|components, cli, cmd, config| Ok(cmd.run(components.client, config.database)))
 		}
 		Some(Subcommand::ExportState(cmd)) => {
-			construct_async_run!(|components, cli, cmd, config| { Ok(cmd.run(components.client, config.chain_spec)) })
+			construct_async_run!(|components, cli, cmd, config| Ok(cmd.run(components.client, config.chain_spec)))
 		}
 		Some(Subcommand::ImportBlocks(cmd)) => {
-			construct_async_run!(|components, cli, cmd, config| {
-				Ok(cmd.run(components.client, components.import_queue))
-			})
+			construct_async_run!(|components, cli, cmd, config| Ok(cmd.run(components.client, components.import_queue)))
 		}
-		Some(Subcommand::PurgeChain(cmd)) => {
+		Some(Subcommand::PurgeChainParachain(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 
 			runner.sync_run(|config| {
@@ -206,7 +208,7 @@ pub fn run() -> sc_cli::Result<()> {
 					&config,
 					[RelayChainCli::executable_name()]
 						.iter()
-						.chain(cli.relay_chain_args.iter()),
+						.chain(cli.relaychain_args.iter()),
 				);
 
 				let polkadot_config =
@@ -214,6 +216,13 @@ pub fn run() -> sc_cli::Result<()> {
 						.map_err(|err| format!("Relay chain argument error: {}", err))?;
 
 				cmd.run(config, polkadot_config)
+			})
+		}
+		Some(Subcommand::PurgeChain(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+
+			runner.sync_run(|config| {
+				return cmd.run(config.database);
 			})
 		}
 		Some(Subcommand::Revert(cmd)) => {
@@ -278,14 +287,14 @@ pub fn run() -> sc_cli::Result<()> {
 					}
 				}
 				BenchmarkCmd::Block(cmd) => runner.sync_run(|config| {
-					let partials = new_partial::<RuntimeApi, ParachainRuntimeExecutor, _>(
+					let partials = pioneer_partial::<RuntimeApi, ParachainRuntimeExecutor, _>(
 						&config,
 						crate::service::parachain_build_import_queue,
 					)?;
 					cmd.run(partials.client)
 				}),
 				BenchmarkCmd::Storage(cmd) => runner.sync_run(|config| {
-					let partials = new_partial::<RuntimeApi, ParachainRuntimeExecutor, _>(
+					let partials = pioneer_partial::<RuntimeApi, ParachainRuntimeExecutor, _>(
 						&config,
 						crate::service::parachain_build_import_queue,
 					)?;
@@ -298,20 +307,6 @@ pub fn run() -> sc_cli::Result<()> {
 				BenchmarkCmd::Machine(cmd) => {
 					runner.sync_run(|config| cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()))
 				}
-			}
-		}
-		Some(Subcommand::TryRuntime(cmd)) => {
-			if cfg!(feature = "try-runtime") {
-				let runner = cli.create_runner(cmd)?;
-
-				// grab the task manager.
-				let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
-				let task_manager = TaskManager::new(runner.config().tokio_handle.clone(), *registry)
-					.map_err(|e| format!("Error: {:?}", e))?;
-
-				runner.async_run(|config| Ok((cmd.run::<Block, ParachainRuntimeExecutor>(config), task_manager)))
-			} else {
-				Err("Try-runtime must be enabled by `--features try-runtime`.".into())
 			}
 		}
 		None => {
@@ -376,6 +371,7 @@ pub fn run() -> sc_cli::Result<()> {
 				.map_err(sc_cli::Error::Service)
 			})
 		}
+		_ => Err("Unsupported benchmarking command".into()),
 	}
 }
 
