@@ -545,11 +545,6 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			ensure!(
-				!T::AuctionHandler::check_item_in_auction(ItemId::LandUnit(coordinate, metaverse_id)),
-				Error::<T>::LandUnitAlreadyInAuction
-			);
-
 			Self::do_transfer_landunit(coordinate, &who, &to, metaverse_id)?;
 			Ok(().into())
 		}
@@ -621,13 +616,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			ensure!(
-				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
-				Error::<T>::EstateAlreadyInAuction
-			);
-
 			Self::do_transfer_estate(estate_id, &who, &to)?;
-
 			Ok(().into())
 		}
 
@@ -985,48 +974,59 @@ pub mod pallet {
 		pub fn dissolve_estate(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			ensure!(
-				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
-				Error::<T>::EstateAlreadyInAuction
-			);
-			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+			match estate_owner_value {
+				OwnerId::Token(c, t) => {
+					ensure!(
+						!T::AuctionHandler::check_item_in_auction(ItemId::NFT(c, t)),
+						Error::<T>::EstateAlreadyInAuction
+					);
+					//ensure there is record of the estate owner with estate id and account id
+					ensure!(
+						Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
+						Error::<T>::NoPermission
+					);
+					let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+					EstateOwner::<T>::try_mutate_exists(&estate_id, |estate_owner| {
+						
 
-			EstateOwner::<T>::try_mutate_exists(&estate_id, |estate_owner| {
-				//ensure there is record of the estate owner with estate id and account id
+						// Reset estate ownership
+						match estate_owner_value {
+							OwnerId::Token(class_id, token_id) => {
+								T::NFTTokenizationSource::burn_nft(&who, &(class_id, token_id));
+								*estate_owner = None;
+							}
+							OwnerId::Account(ref a) => {
+								*estate_owner = None;
+							}
+						}
 
-				let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
-				ensure!(
-					Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
-					Error::<T>::NoPermission
-				);
-				// Reset estate ownership
-				match estate_owner_value {
-					OwnerId::Token(class_id, token_id) => {
-						T::NFTTokenizationSource::burn_nft(&who, &(class_id, token_id));
-						*estate_owner = None;
-					}
-					OwnerId::Account(ref a) => {
-						*estate_owner = None;
-					}
+						// Remove estate
+						Estates::<T>::remove(&estate_id);
+
+						// Update total estates
+						let total_estates_count = Self::all_estates_count();
+						let new_total_estates_count = total_estates_count
+							.checked_sub(One::one())
+							.ok_or("Overflow adding new count to total estates")?;
+						AllEstatesCount::<T>::put(new_total_estates_count);
+						// TO DO: transfer land units from treasury to estate owner
+						let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
+						for land_unit in estate_info.land_units {
+
+						}
+						Self::deposit_event(Event::<T>::EstateDestroyed(
+							estate_id.clone(),
+							estate_owner_value.clone(),
+						));
+
+						Ok(().into())
+					})
 				}
+				_ => Err(Error::<T>::InvalidOwnerValue.into()),
+			}
 
-				// Remove estate
-				Estates::<T>::remove(&estate_id);
-
-				// Update total estates
-				let total_estates_count = Self::all_estates_count();
-				let new_total_estates_count = total_estates_count
-					.checked_sub(One::one())
-					.ok_or("Overflow adding new count to total estates")?;
-				AllEstatesCount::<T>::put(new_total_estates_count);
-
-				Self::deposit_event(Event::<T>::EstateDestroyed(
-					estate_id.clone(),
-					estate_owner_value.clone(),
-				));
-
-				Ok(().into())
-			})
+			
 		}
 
 		/// Add more land units to existing estate that is not in auction
@@ -1047,45 +1047,57 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			ensure!(
-				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
-				Error::<T>::EstateAlreadyInAuction
-			);
-
-			let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-
-			// Check estate ownership
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
-			ensure!(
-				Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
-				Error::<T>::NoPermission
-			);
-
-			// Check land unit ownership
-			for land_unit in land_units.clone() {
-				ensure!(
-					Self::check_if_land_or_estate_owner(
-						&who,
-						&Self::get_land_units(estate_info.metaverse_id, land_unit).unwrap(),
-					),
-					Error::<T>::LandUnitDoesNotExist
-				);
+			match estate_owner_value {
+				OwnerId::Token(c, t) => {
+					ensure!(
+						!T::AuctionHandler::check_item_in_auction(ItemId::NFT(c,t)),
+						Error::<T>::EstateAlreadyInAuction
+					);
+					ensure!(
+						Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
+						Error::<T>::NoPermission
+					);
+		
+					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
+					// Check land unit ownership
+					for land_unit in land_units.clone() {
+						ensure!(
+							Self::check_if_land_or_estate_owner(
+								&who,
+								&Self::get_land_units(estate_info.metaverse_id, land_unit).unwrap(),
+							),
+							Error::<T>::LandUnitDoesNotExist
+						);
+						// Mint land unit
+						Self::mint_land_unit(
+							estate_info.metaverse_id,
+							estate_owner_value.clone(),
+							estate_account_id.clone(),
+							land_unit,
+							LandUnitStatus::Existing(who.clone()),
+						)?;
+					}
+		
+					// Mutate estates
+					Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
+						// Append new coordinates to estate
+						let mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+						mut_estate_info.land_units.append(&mut land_units.clone());
+		
+						Self::deposit_event(Event::<T>::LandUnitAdded(
+							estate_id.clone(),
+							estate_owner_value.clone(),
+							land_units.clone(),
+						));
+		
+						Ok(().into())
+					})
+				}
+				_ => Err(Error::<T>::InvalidOwnerValue.into()),
 			}
-
-			// Mutate estates
-			Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
-				// Append new coordinates to estate
-				let mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
-				mut_estate_info.land_units.append(&mut land_units.clone());
-
-				Self::deposit_event(Event::<T>::LandUnitAdded(
-					estate_id.clone(),
-					estate_owner_value.clone(),
-					land_units.clone(),
-				));
-
-				Ok(().into())
-			})
+			
 		}
 
 		/// Remove land units from existing estate if it is not in auction.
@@ -1105,39 +1117,43 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			ensure!(
-				!T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
-				Error::<T>::EstateAlreadyInAuction
-			);
-
-			let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-
-			// Check estate ownership
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
-			ensure!(
-				Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
-				Error::<T>::NoPermission
-			);
+			match estate_owner_value {
+				OwnerId::Token(c, t) => {
+					ensure!(
+						!T::AuctionHandler::check_item_in_auction(ItemId::NFT(c,t)),
+						Error::<T>::EstateAlreadyInAuction
+					);
+					ensure!(
+						Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
+						Error::<T>::NoPermission
+					);
+					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
+					// Mutate estates
+					Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
+						let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
 
-			// Mutate estates
-			Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
-				let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+						// Mutate land unit ownership
+						for land_unit in land_units.clone() {
+							//Transfer land unit from treasury to estate owner
+							// Self::do_transfer_landunit(land_unit, &estate_account_id, &who, estate_info.metaverse_id)?;
+							// Remove coordinates from estate
+							let index = mut_estate_info.land_units.iter().position(|x| *x == land_unit).unwrap();
+							mut_estate_info.land_units.remove(index);
+						}
 
-				// Mutate land unit ownership
-				for land_unit in land_units.clone() {
-					// Remove coordinates from estate
-					let index = mut_estate_info.land_units.iter().position(|x| *x == land_unit).unwrap();
-					mut_estate_info.land_units.remove(index);
+						Self::deposit_event(Event::<T>::LandUnitsRemoved(
+							estate_id.clone(),
+							estate_owner_value.clone(),
+							land_units.clone(),
+						));
+
+						Ok(().into())
+					})
 				}
-
-				Self::deposit_event(Event::<T>::LandUnitsRemoved(
-					estate_id.clone(),
-					estate_owner_value.clone(),
-					land_units.clone(),
-				));
-
-				Ok(().into())
-			})
+				_ => Err(Error::<T>::InvalidOwnerValue.into()),
+			}
 		}
 	}
 }
@@ -1415,13 +1431,17 @@ impl<T: Config> Pallet<T> {
 			ensure!(from != to, Error::<T>::AlreadyOwnTheEstate);
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-			ensure!(
-				Self::check_if_land_or_estate_owner(from, &estate_owner_value),
-				Error::<T>::NoPermission
-			);
 
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
+					ensure!(
+						!T::AuctionHandler::check_item_in_auction(ItemId::NFT(class_id, token_id)),
+						Error::<T>::EstateAlreadyInAuction
+					);
+					ensure!(
+						Self::check_if_land_or_estate_owner(from, &estate_owner_value),
+						Error::<T>::NoPermission
+					);
 					T::NFTTokenizationSource::transfer_nft(from, to, &(class_id, token_id));
 
 					Self::deposit_event(Event::<T>::TransferredEstate(
@@ -1459,6 +1479,12 @@ impl<T: Config> Pallet<T> {
 						);
 						match owner {
 							OwnerId::Token(class_id, token_id) => {
+								ensure!(
+									!T::AuctionHandler::check_item_in_auction(ItemId::NFT(*class_id, *token_id)),
+									Error::<T>::LandUnitAlreadyInAuction
+								);
+								
+
 								T::NFTTokenizationSource::transfer_nft(from, to, &(*class_id, *token_id));
 								// Update
 								Self::deposit_event(Event::<T>::TransferredLandUnit(
@@ -1758,11 +1784,6 @@ impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 
 impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 	fn transfer_estate(estate_id: EstateId, from: &T::AccountId, to: &T::AccountId) -> Result<EstateId, DispatchError> {
-		ensure!(
-			T::AuctionHandler::check_item_in_auction(ItemId::Estate(estate_id)),
-			Error::<T>::EstateNotInAuction
-		);
-
 		let estate_id = Self::do_transfer_estate(estate_id, from, to)?;
 		Ok(estate_id)
 	}
@@ -1772,11 +1793,6 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 		from: &T::AccountId,
 		to: &(T::AccountId, MetaverseId),
 	) -> Result<(i32, i32), DispatchError> {
-		ensure!(
-			T::AuctionHandler::check_item_in_auction(ItemId::LandUnit(coordinate, to.1)),
-			Error::<T>::LandUnitNotInAuction
-		);
-
 		let coordinate = Self::do_transfer_landunit(coordinate, from, &(to).0, to.1)?;
 		Ok(coordinate)
 	}

@@ -221,7 +221,7 @@ fn create_estate_from_purhcased_land_blocks() {
 				0u32.into(),
 				vec![(0i32, 0i32), (0i32, 1i32)]
 			));
-			// Check estate and land units ownership
+			// Check estate ownership
 			assert_eq!(
 				Nft::check_ownership(&AccountId::from(BOB), &(1u32.into(), 0u32.into())),
 				Ok(true)
@@ -377,10 +377,10 @@ fn purchase_estate_and_modify_its_structure() {
 				Nft::check_ownership(&AccountId::from(BOB), &(1u32.into(), 0u32.into())),
 				Ok(true)
 			);
-			//assert_ne!(
-			//	Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 2u32.into())),
-			//	Ok(true)
-			//);
+			assert_ne!(
+				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 2u32.into())),
+				Ok(true)
+			);
 			// Remove land unit from estate
 			assert_ok!(Estate::remove_land_unit_from_estate(
 				RawOrigin::Signed(AccountId::from(BOB)).into(),

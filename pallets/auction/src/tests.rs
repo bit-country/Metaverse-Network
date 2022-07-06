@@ -150,7 +150,7 @@ fn create_new_auction_bundle_from_listed_nft_should_fail() {
 				ListingLevel::Global,
 				Perbill::from_percent(0u32)
 			),
-			Ok((0))
+			Ok(0)
 		);
 	});
 }
@@ -193,6 +193,7 @@ fn create_new_buy_now_bundle_work() {
 	});
 }
 
+/* 
 #[test]
 // Creating auction should work
 fn create_new_auction_should_work_for_valid_estate() {
@@ -242,6 +243,7 @@ fn create_new_auction_should_fail_for_non_exist_estate() {
 	});
 }
 
+
 #[test]
 // Creating auction should work
 fn create_new_auction_should_work_for_valid_landunit() {
@@ -290,7 +292,7 @@ fn create_new_auction_should_fail_for_non_exist_landunit() {
 		);
 	});
 }
-
+*/
 #[test]
 // Private create_auction should work
 fn create_auction_fail() {
@@ -533,7 +535,7 @@ fn bid_works() {
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
 	});
 }
-
+/* 
 #[test]
 // Walk the happy path
 fn bid_works_for_valid_estate() {
@@ -581,7 +583,7 @@ fn bid_works_for_valid_land_unit() {
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
 	});
 }
-
+*/
 #[test]
 fn cannot_bid_on_non_existent_auction() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -794,7 +796,7 @@ fn buy_now_work() {
 		);
 	});
 }
-
+/*
 #[test]
 // Private bid_auction should work
 fn buy_now_works_for_valid_estate() {
@@ -924,7 +926,7 @@ fn buy_now_works_for_valid_landunit() {
 		);
 	});
 }
-
+*/
 #[test]
 // Test if buying now bundle should work
 fn buy_now_with_bundle_should_work() {
