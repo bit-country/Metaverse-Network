@@ -12,6 +12,9 @@ pub mod metaverse;
 #[cfg(feature = "with-pioneer-runtime")]
 pub mod pioneer;
 
+#[cfg(feature = "with-continuum-runtime")]
+pub mod continuum;
+
 /// The extensions for the [`ChainSpec`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ChainSpecGroup, ChainSpecExtension)]
 #[serde(deny_unknown_fields)]
