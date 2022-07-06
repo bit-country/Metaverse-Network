@@ -32,7 +32,11 @@ use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 
 use metaverse_runtime::Block;
+#[cfg(feature = "with-pioneer-runtime")]
+use pioneer_runtime::RuntimeApi;
 
+#[cfg(feature = "with-pioneer-runtime")]
+use crate::service::{pioneer_partial, ParachainRuntimeExecutor};
 use crate::service::{METAVERSE_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
 use crate::{
 	chain_spec,
