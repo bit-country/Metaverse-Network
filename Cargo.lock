@@ -5100,6 +5100,7 @@ dependencies = [
  "async-trait",
  "bit-country-primitives",
  "clap",
+ "continuum-runtime",
  "cumulus-client-cli",
  "cumulus-client-collator",
  "cumulus-client-consensus-aura",
