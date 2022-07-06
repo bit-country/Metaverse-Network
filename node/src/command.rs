@@ -31,10 +31,14 @@ use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 
+#[cfg(feature = "with-continuum-runtime")]
+use continuum_runtime::RuntimeApi;
 use metaverse_runtime::Block;
 #[cfg(feature = "with-pioneer-runtime")]
 use pioneer_runtime::RuntimeApi;
 
+#[cfg(feature = "with-continuum-runtime")]
+use crate::service::{continuum_partial, ContinuumParachainRuntimeExecutor};
 #[cfg(feature = "with-pioneer-runtime")]
 use crate::service::{pioneer_partial, ParachainRuntimeExecutor};
 use crate::service::{METAVERSE_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
@@ -61,6 +65,10 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 		"pioneer-local" => Box::new(chain_spec::pioneer::local_testnet_config()),
 		#[cfg(feature = "with-pioneer-runtime")]
 		"pioneer" => Box::new(chain_spec::pioneer::pioneer_network_config_json()?),
+		#[cfg(feature = "with-continuum-runtime")]
+		"continuum-dev" => Box::new(chain_spec::continuum::development_config()),
+		#[cfg(feature = "with-continuum-runtime")]
+		"continuum" => Box::new(chain_spec::continuum::continuum_genesis_config()),
 		path => Box::new(chain_spec::metaverse::ChainSpec::from_json_file(
 			std::path::PathBuf::from(path),
 		)?),
@@ -107,6 +115,11 @@ impl SubstrateCli for Cli {
 			return &pioneer_runtime::VERSION;
 			#[cfg(not(feature = "with-pioneer-runtime"))]
 			panic!("{}", service::PIONEER_RUNTIME_NOT_AVAILABLE);
+		} else if spec.id().starts_with("continuum") {
+			#[cfg(feature = "with-continuum-runtime")]
+			return &continuum_runtime::VERSION;
+			#[cfg(not(feature = "with-continuum-runtime"))]
+			panic!("{}", service::CONTINUUM_RUNTIME_NOT_AVAILABLE);
 		} else {
 			#[cfg(feature = "with-metaverse-runtime")]
 			return &metaverse_runtime::VERSION;
@@ -178,6 +191,24 @@ macro_rules! construct_async_run {
 	}}
 }
 
+macro_rules! continuum_construct_async_run {
+	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
+		let runner = $cli.create_runner($cmd)?;
+		runner.async_run(|$config| {
+			let $components = continuum_partial::<
+				RuntimeApi,
+				ContinuumParachainRuntimeExecutor,
+				_
+			>(
+				&$config,
+				crate::service::continuum_build_import_queue,
+			)?;
+			let task_manager = $components.task_manager;
+			{ $( $code )* }.map(|v| (v, task_manager))
+		})
+	}}
+}
+
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
 	let cli = Cli::from_args();
@@ -200,6 +231,15 @@ pub fn run() -> sc_cli::Result<()> {
 				}
 				#[cfg(not(feature = "with-pioneer-runtime"))]
 				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.import_queue))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
 			} else {
 				#[cfg(feature = "with-metaverse-runtime")]
 				{
@@ -230,6 +270,15 @@ pub fn run() -> sc_cli::Result<()> {
 				}
 				#[cfg(not(feature = "with-pioneer-runtime"))]
 				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, config.database))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
 			} else {
 				#[cfg(feature = "with-metaverse-runtime")]
 				{
@@ -260,6 +309,15 @@ pub fn run() -> sc_cli::Result<()> {
 				}
 				#[cfg(not(feature = "with-pioneer-runtime"))]
 				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, config.chain_spec))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
 			} else {
 				#[cfg(feature = "with-metaverse-runtime")]
 				{
@@ -290,6 +348,15 @@ pub fn run() -> sc_cli::Result<()> {
 				}
 				#[cfg(not(feature = "with-pioneer-runtime"))]
 				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.import_queue))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
 			} else {
 				#[cfg(feature = "with-metaverse-runtime")]
 				{
@@ -334,6 +401,29 @@ pub fn run() -> sc_cli::Result<()> {
 				}
 				#[cfg(not(feature = "with-pioneer-runtime"))]
 				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					runner.sync_run(|config| {
+						let polkadot_cli = RelayChainCli::new(
+							&config,
+							[RelayChainCli::executable_name()]
+								.iter()
+								.chain(cli.relaychain_args.iter()),
+						);
+
+						let polkadot_config = SubstrateCli::create_configuration(
+							&polkadot_cli,
+							&polkadot_cli,
+							config.tokio_handle.clone(),
+						)
+						.map_err(|err| format!("Relay chain argument error: {}", err))?;
+
+						cmd.run(config.database)
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
 			} else {
 				#[cfg(feature = "with-metaverse-runtime")]
 				{
@@ -374,6 +464,15 @@ pub fn run() -> sc_cli::Result<()> {
 				}
 				#[cfg(not(feature = "with-pioneer-runtime"))]
 				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.backend, None))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
 			} else {
 				#[cfg(feature = "with-metaverse-runtime")]
 				{
@@ -539,7 +638,50 @@ pub fn run() -> sc_cli::Result<()> {
 						.map_err(Into::into)
 				});
 			}
+			#[cfg(feature = "with-continuum-runtime")]
+			if chain_spec.id().starts_with("continuum") {
+				info!("Runtime {}:", chain_spec.id());
+				return runner.run_node_until_exit(|config| async move {
+					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
+						.map(|e| e.para_id)
+						.ok_or_else(|| "Could not find parachain ID in chain-spec.")?;
 
+					let polkadot_cli = RelayChainCli::new(
+						&config,
+						[RelayChainCli::executable_name()]
+							.iter()
+							.chain(cli.relaychain_args.iter()),
+					);
+
+					let id = ParaId::from(para_id);
+
+					let parachain_account =
+						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account(&id);
+
+					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
+					let block: Block =
+						generate_genesis_block(&config.chain_spec, state_version).map_err(|e| format!("{:?}", e))?;
+					let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
+
+					let tokio_handle = config.tokio_handle.clone();
+					let polkadot_config =
+						SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, tokio_handle)
+							.map_err(|err| format!("Relay chain argument error: {}", err))?;
+
+					info!("Parachain id: {:?}", id);
+					info!("Parachain Account: {}", parachain_account);
+					info!("Parachain genesis state: {}", genesis_state);
+					info!(
+						"Is collating: {}",
+						if config.role.is_authority() { "yes" } else { "no" }
+					);
+
+					crate::service::continuum_start_parachain_node(config, polkadot_config, collator_options, id)
+						.await
+						.map(|r| r.0)
+						.map_err(Into::into)
+				});
+			}
 			#[cfg(feature = "with-metaverse-runtime")]
 			info!("Hit metaverse runtime");
 			info!("Chain spec: {}", chain_spec.id());
