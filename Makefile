@@ -10,6 +10,10 @@ check: githooks
 check-pioneer: githooks
 	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime
 
+.PHONY: check-continuum
+check-continuum: githooks
+	SKIP_WASM_BUILD= cargo check --features with-continuum-runtime
+
 .PHONY: check-all
 check-all: githooks
 	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime with-metaverse-runtime
@@ -37,6 +41,10 @@ build:
 .PHONY: build-pioneer
 build-pioneer:
 	cargo build --release  --features with-pioneer-runtime
+
+.PHONY: build-continuum
+build-continuum:
+	cargo build --release  --features with-continuum-runtime
 
 .PHONY: build-benchmarking
 build-benchmarking:

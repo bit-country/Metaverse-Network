@@ -96,7 +96,7 @@ node-primitives = { git = "https://github.com/paritytech/substrate", branch = "p
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
 metaverse-runtime = { version = "0.0.38", path = "../runtime/metaverse", optional = true }
 pioneer-runtime = { version = "0.0.7", path = "../runtime/pioneer", optional = true }
-#pallet-evm = { path = "../pallets/evm" }
+continuum-runtime = { version = "0.0.7", path = "../runtime/continuum", optional = true }
 
 # Cumulus dependencies
 cumulus-client-consensus-aura = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.22' }
@@ -159,6 +159,10 @@ with-metaverse-runtime = [
 
 with-pioneer-runtime = [
     "pioneer-runtime",
+]
+
+with-continuum-runtime = [
+    "continuum-runtime",
 ]
 
 runtime-benchmarks = [
