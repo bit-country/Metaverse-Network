@@ -6,6 +6,7 @@ members = [
     'pallets/*',
     'traits/*',
     'node',
+    'runtime/continuum',
     'runtime/pioneer',
     'runtime/metaverse',
     'runtime/integration-tests',
