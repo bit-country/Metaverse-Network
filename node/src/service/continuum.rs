@@ -1,5 +1,5 @@
-// Local Runtime Types
-use continuum_runtime::{AccountId, Balance, Index as Nonce, RuntimeApi};
+use std::{sync::Arc, time::Duration};
+
 // std
 use cumulus_client_cli::CollatorOptions;
 // Cumulus Imports
@@ -24,8 +24,10 @@ use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerH
 use sp_api::ConstructRuntimeApi;
 use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::BlakeTwo256;
-use std::{sync::Arc, time::Duration};
 use substrate_prometheus_endpoint::Registry;
+
+// Local Runtime Types
+use continuum_runtime::{AccountId, Balance, Index as Nonce, RuntimeApi};
 
 // Runtime type overrides
 type BlockNumber = u32;
@@ -274,13 +276,13 @@ where
 		let transaction_pool = transaction_pool.clone();
 
 		Box::new(move |deny_unsafe, _| {
-			let deps = crate::rpc::pioneer_fulldeps {
+			let deps = crate::rpc::continuum_fulldeps {
 				client: client.clone(),
 				pool: transaction_pool.clone(),
 				deny_unsafe,
 			};
 
-			crate::rpc::pioneer_create_full(deps).map_err(Into::into)
+			crate::rpc::continuum_create_full(deps).map_err(Into::into)
 		})
 	};
 
