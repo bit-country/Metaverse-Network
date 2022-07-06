@@ -41,7 +41,7 @@ use pioneer_runtime::RuntimeApi;
 use crate::service::{continuum_partial, ContinuumParachainRuntimeExecutor};
 #[cfg(feature = "with-pioneer-runtime")]
 use crate::service::{pioneer_partial, ParachainRuntimeExecutor};
-use crate::service::{METAVERSE_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
+use crate::service::{CONTINUUM_RUNTIME_NOT_AVAILABLE, METAVERSE_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
