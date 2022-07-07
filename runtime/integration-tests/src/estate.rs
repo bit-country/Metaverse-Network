@@ -393,7 +393,7 @@ fn purchase_estate_and_modify_its_structure() {
 				Ok(true)
 			);
 			assert_eq!(
-				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 1u32.into())),
+				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 3u32.into())),
 				Ok(true)
 			);
 		});

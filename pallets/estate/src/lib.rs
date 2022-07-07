@@ -1010,11 +1010,21 @@ pub mod pallet {
 							.checked_sub(One::one())
 							.ok_or("Overflow adding new count to total estates")?;
 						AllEstatesCount::<T>::put(new_total_estates_count);
-						// TO DO: transfer land units from treasury to estate owner
+
+						// Mint new land tokens to replace the lands in the dissolved estate
 						let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
 						for land_unit in estate_info.land_units {
-
+							// Transfer land unit from treasury to estate owner
+							Self::mint_land_unit(
+								estate_info.metaverse_id,
+								estate_owner_value.clone(),
+								who.clone(),
+								land_unit,
+								LandUnitStatus::RemovedFromEstate,
+							)?;
 						}
+						
+
 						Self::deposit_event(Event::<T>::EstateDestroyed(
 							estate_id.clone(),
 							estate_owner_value.clone(),
@@ -1136,8 +1146,14 @@ pub mod pallet {
 
 						// Mutate land unit ownership
 						for land_unit in land_units.clone() {
-							//Transfer land unit from treasury to estate owner
-							// Self::do_transfer_landunit(land_unit, &estate_account_id, &who, estate_info.metaverse_id)?;
+							// Transfer land unit from treasury to estate owner
+							Self::mint_land_unit(
+								estate_info.metaverse_id,
+								estate_owner_value.clone(),
+								who.clone(),
+								land_unit,
+								LandUnitStatus::RemovedFromEstate,
+							)?;
 							// Remove coordinates from estate
 							let index = mut_estate_info.land_units.iter().position(|x| *x == land_unit).unwrap();
 							mut_estate_info.land_units.remove(index);
@@ -1203,7 +1219,7 @@ impl<T: Config> Pallet<T> {
 
 							// Ensure not locked
 							T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
-							T::NFTTokenizationSource::transfer_nft(&a, &to.clone(), &(class_id, token_id))?;
+							T::NFTTokenizationSource::burn_nft(&a, &(class_id, token_id));
 							LandUnits::<T>::insert(metaverse_id, coordinate, token_owner.clone());
 						}
 						_ => (),
@@ -1233,6 +1249,20 @@ impl<T: Config> Pallet<T> {
 
 				owner = token_owner.clone();
 				LandUnits::<T>::insert(metaverse_id, coordinate, token_owner.clone());
+			}
+			LandUnitStatus::RemovedFromEstate => {
+				ensure!(
+					LandUnits::<T>::contains_key(metaverse_id, coordinate),
+					Error::<T>::LandUnitIsNotAvailable
+				);
+				
+				let token_properties = Self::get_land_token_properties(metaverse_id, coordinate);
+				let class_id = T::MetaverseInfoSource::get_metaverse_land_class(metaverse_id)?;
+				let token_id =
+					T::NFTTokenizationSource::mint_token(&to, class_id, token_properties.0, token_properties.1)?;
+				owner = OwnerId::Token(class_id, token_id);
+				LandUnits::<T>::remove(metaverse_id, coordinate);
+				LandUnits::<T>::insert(metaverse_id, coordinate, OwnerId::Token(class_id, token_id));
 			}
 		}
 		Ok(owner)
