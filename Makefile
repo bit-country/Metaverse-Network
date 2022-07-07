@@ -26,10 +26,6 @@ check-formatting:
 test:
 	SKIP_WASM_BUILD= cargo test --all
 
-.PHONY: test-metaverse
-test-metaverse:
-	SKIP_WASM_BUILD= cargo test --all --features with-metaverse-runtime
-
 .PHONY: test-pioneer
 test-pioneer:
 	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime

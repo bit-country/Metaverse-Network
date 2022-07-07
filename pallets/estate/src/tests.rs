@@ -341,7 +341,7 @@ fn transfer_land_should_do_fail_for_same_account() {
 		);
 	});
 }
-/* 
+
 #[test]
 fn transfer_land_should_do_fail_for_already_in_auction() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -350,6 +350,10 @@ fn transfer_land_should_do_fail_for_already_in_auction() {
 			AUCTION_BENEFICIARY_ID,
 			METAVERSE_ID,
 			COORDINATE_IN_AUCTION
+		));
+		assert_eq!(
+			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_AUCTION),
+			Some(OwnerId::Token(METAVERSE_LAND_CLASS, METAVERSE_LAND_IN_AUCTION_TOKEN)
 		));
 
 		assert_noop!(
@@ -363,7 +367,7 @@ fn transfer_land_should_do_fail_for_already_in_auction() {
 		);
 	});
 }
-*/
+
 
 #[test]
 fn mint_estate_should_reject_non_root() {
@@ -716,7 +720,7 @@ fn transfer_estate_should_reject_no_permission() {
 		);
 	});
 }
-/* 
+
 #[test]
 fn transfer_estate_should_reject_already_in_auction() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -750,7 +754,7 @@ fn transfer_estate_should_reject_already_in_auction() {
 		);
 	});
 }
-*/
+
 #[test]
 fn transfer_estate_should_fail_with_same_account() {
 	ExtBuilder::default().build().execute_with(|| {

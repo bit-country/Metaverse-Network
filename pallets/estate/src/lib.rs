@@ -544,9 +544,10 @@ pub mod pallet {
 			coordinate: (i32, i32),
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-
+					
 			Self::do_transfer_landunit(coordinate, &who, &to, metaverse_id)?;
 			Ok(().into())
+
 		}
 
 		/// Create new estate from existing land units
