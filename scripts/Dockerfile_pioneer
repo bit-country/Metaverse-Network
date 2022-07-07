@@ -4,8 +4,6 @@ FROM rust:buster as builder
 LABEL maintainer="justin@bit.country"
 LABEL description="This is the build stage for Metaverse Network Node. Here we create the binary."
 
-ENV DEBIAN_FRONTEND=noninteractive
-
 ARG PROFILE=release
 ARG GIT_COMMIT=
 ENV GIT_COMMIT=$GIT_COMMIT
@@ -30,13 +28,7 @@ LABEL maintainer="justin@bit.country"
 LABEL description="This is the 2nd stage: a very small image where we copy the Metaverse Network Node binary."
 ARG PROFILE=release
 
-RUN mv /usr/share/ca* /tmp && \
-	rm -rf /usr/share/*  && \
-	mv /tmp/ca-certificates /usr/share/ && \
-	useradd -m -u 1000 -U -s /bin/sh -d /metaverse metaverse && \
-	mkdir -p /metaverse/.local/share/metaverse && \
-	chown -R metaverse:metaverse /metaverse/.local && \
-	ln -s /metaverse/.local/share/metaverse /data
+RUN useradd -m -u 1000 -U -s /bin/sh -d /metaverse metaverse
 
 # Add the binary file generated in the `builder` container above
 COPY --from=builder /metaverse/target/$PROFILE/metaverse-node /usr/local/bin
