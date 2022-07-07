@@ -1372,22 +1372,16 @@ fn withdraw_unstake_should_work() {
 }
 
 #[test]
-fn unstake_should_work_with_more_operation() {
+fn unstake_should_fail_with_existing_unstaking_queue() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE));
 
 		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT));
 
-		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT));
-
-		assert_ok!(EconomyModule::stake(Origin::signed(BOB), 200));
-
-		let alice_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT - UNSTAKE_AMOUNT;
-
-		assert_eq!(EconomyModule::get_staking_info(ALICE), alice_staked_balance);
-
-		let total_staked_balance = alice_staked_balance + 200;
-		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+		assert_noop!(
+			EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT),
+			Error::<Runtime>::ExitQueueAlreadyScheduled
+		);
 	});
 }
 

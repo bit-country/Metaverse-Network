@@ -1,7 +1,7 @@
 [package]
 name = "pioneer-integration-tests"
 authors = ["Bit.Country Developers <https://github.com/bit-country>"]
-edition = "2018"
+edition = '2021'
 homepage = "https://metaverse.network"
 license = "Unlicense"
 description = "Metaverse Network Runtime Integration Test"
@@ -43,14 +43,14 @@ parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polk
 statemine-runtime = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.17" }
 
 # Orml pallets
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
-orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.17", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
+orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
 
 # Misc
-xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "24ccbce563d1f99019b4cdfa2f3af4e99bac0dfc" }
+xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "5a04d6286ee9082d4b7433541e48508f8b65616b" }
 
 # Local
 metaverse-runtime = { path = "../metaverse", optional = true  }
@@ -65,9 +65,6 @@ sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0
 [features]
 default = ["std"]
 no_std = []
-with-metaverse-runtime = [
-    "metaverse-runtime"
-]
 with-pioneer-runtime = [
     "pioneer-runtime"
 ]

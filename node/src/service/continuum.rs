@@ -27,7 +27,7 @@ use sp_runtime::traits::BlakeTwo256;
 use substrate_prometheus_endpoint::Registry;
 
 // Local Runtime Types
-use pioneer_runtime::{AccountId, Balance, Index as Nonce, RuntimeApi};
+use continuum_runtime::{AccountId, Balance, Index as Nonce, RuntimeApi};
 
 // Runtime type overrides
 type BlockNumber = u32;
@@ -41,11 +41,11 @@ impl sc_executor::NativeExecutionDispatch for ParachainRuntimeExecutor {
 	type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
 
 	fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
-		pioneer_runtime::api::dispatch(method, data)
+		continuum_runtime::api::dispatch(method, data)
 	}
 
 	fn native_version() -> sc_executor::NativeVersion {
-		pioneer_runtime::native_version()
+		continuum_runtime::native_version()
 	}
 }
 
@@ -276,13 +276,13 @@ where
 		let transaction_pool = transaction_pool.clone();
 
 		Box::new(move |deny_unsafe, _| {
-			let deps = crate::rpc::pioneer_fulldeps {
+			let deps = crate::rpc::continuum_fulldeps {
 				client: client.clone(),
 				pool: transaction_pool.clone(),
 				deny_unsafe,
 			};
 
-			crate::rpc::pioneer_create_full(deps).map_err(Into::into)
+			crate::rpc::continuum_create_full(deps).map_err(Into::into)
 		})
 	};
 

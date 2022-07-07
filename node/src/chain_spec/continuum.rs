@@ -14,28 +14,28 @@ use sp_runtime::{
 	Perbill,
 };
 
-use metaverse_runtime::MintingRateInfo;
-use pioneer_runtime::{
+use continuum_runtime::{
 	constants::currency::*, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, EstateConfig, GenesisConfig,
 	OracleMembershipConfig, SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
+use metaverse_runtime::MintingRateInfo;
 use primitives::Balance;
 
 use crate::chain_spec::Extensions;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
-pub type ChainSpec = sc_service::GenericChainSpec<pioneer_runtime::GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<continuum_runtime::GenesisConfig, Extensions>;
 
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
-pub const PARA_ID: u32 = 2096;
+pub const PARA_ID: u32 = 2050;
 
 /// Generate the session keys from individual elements.
 ///
 /// The input must be a tuple of individual keys (a single arg for now since we have just one key).
-pub fn parachain_session_keys(keys: AuraId) -> pioneer_runtime::SessionKeys {
-	pioneer_runtime::SessionKeys { aura: keys }
+pub fn parachain_session_keys(keys: AuraId) -> continuum_runtime::SessionKeys {
+	continuum_runtime::SessionKeys { aura: keys }
 }
 
 /// Helper function to generate a crypto pair from seed
@@ -60,7 +60,7 @@ pub fn development_config() -> ChainSpec {
 		// Name
 		"Development",
 		// ID
-		"pioneer-dev",
+		"continuum-dev",
 		ChainType::Local,
 		move || {
 			testnet_genesis(
@@ -79,7 +79,7 @@ pub fn development_config() -> ChainSpec {
 		None,
 		None,
 		None,
-		Some(pioneer_properties()),
+		Some(continuum_properties()),
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
 			para_id: PARA_ID,
@@ -90,14 +90,14 @@ pub fn development_config() -> ChainSpec {
 pub fn local_testnet_config() -> ChainSpec {
 	// Give your base currency a unit name and decimal places
 	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("tokenSymbol".into(), "NEER".into());
+	properties.insert("tokenSymbol".into(), "NUUM".into());
 	properties.insert("tokenDecimals".into(), 18.into());
 
 	ChainSpec::from_genesis(
 		// Name
 		"Local Testnet",
 		// ID
-		"pioneer_local_testnet",
+		"continuum_local_testnet",
 		ChainType::Local,
 		move || {
 			testnet_genesis(
@@ -124,7 +124,7 @@ pub fn local_testnet_config() -> ChainSpec {
 		None,
 		None,
 		None,
-		Some(pioneer_properties()),
+		Some(continuum_properties()),
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
 			para_id: PARA_ID,
@@ -134,6 +134,53 @@ pub fn local_testnet_config() -> ChainSpec {
 
 pub fn pioneer_network_config_json() -> Result<ChainSpec, String> {
 	ChainSpec::from_json_bytes(&include_bytes!("../../../node/res/pioneer-live-raw-spec.json")[..])
+}
+
+pub fn continuum_genesis_config() -> ChainSpec {
+	ChainSpec::from_genesis(
+		// Name
+		"Pioneer Network",
+		// ID
+		"pioneer-live",
+		ChainType::Live,
+		move || {
+			continuum_genesis(
+				hex!["886286c58d67217bdd854832d5e9f1b218dec6a0ff7e0b7573147ca94a233a0a"].into(),
+				vec![
+					(
+						// 5Fh7g4pSqUYWKENqhjgWvMv44KFYbk2cdktfaCuSFuACvUFz
+						hex!["a079b5f55ba3f64990f8af5edf1fc57712f3ee97f51a74a8143c360a2739ff02"].into(),
+						hex!["a079b5f55ba3f64990f8af5edf1fc57712f3ee97f51a74a8143c360a2739ff02"].unchecked_into(),
+					),
+					(
+						// 5CPYv4r2kMwC8cac7psqex6Ajh2xw22MrCJPm7kdjfvEbbt1
+						hex!["0e5f902f5273b54271f9e57b35d7872e42b60fa7d770870c313473db5903597b"].into(),
+						hex!["0e5f902f5273b54271f9e57b35d7872e42b60fa7d770870c313473db5903597b"].unchecked_into(),
+					),
+				],
+				vec![
+					(
+						hex!["886286c58d67217bdd854832d5e9f1b218dec6a0ff7e0b7573147ca94a233a0a"].into(),
+						500 * 1000 * KILODOLLARS,
+					),
+					(
+						hex!["641625840fd1b0e315b178e360fa6a6b200f514bd51d348a0564525c27ec7b25"].into(),
+						500 * 1000 * KILODOLLARS,
+					),
+				],
+				PARA_ID.into(),
+			)
+		},
+		vec![],
+		None,
+		None,
+		None,
+		Some(continuum_properties()),
+		Extensions {
+			relay_chain: "polkadot".into(),
+			para_id: PARA_ID.into(),
+		},
+	)
 }
 
 pub fn metaverse_land_minting_config() -> MintingRateInfo {
@@ -146,33 +193,33 @@ pub fn metaverse_land_minting_config() -> MintingRateInfo {
 	}
 }
 
-fn pioneer_genesis(
+fn continuum_genesis(
 	root_key: AccountId,
 	initial_authorities: Vec<(AccountId, AuraId)>,
 	initial_allocation: Vec<(AccountId, Balance)>,
 	id: ParaId,
-) -> pioneer_runtime::GenesisConfig {
-	pioneer_runtime::GenesisConfig {
-		system: pioneer_runtime::SystemConfig {
-			code: pioneer_runtime::WASM_BINARY
+) -> continuum_runtime::GenesisConfig {
+	continuum_runtime::GenesisConfig {
+		system: continuum_runtime::SystemConfig {
+			code: continuum_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
 		},
-		balances: pioneer_runtime::BalancesConfig {
+		balances: continuum_runtime::BalancesConfig {
 			balances: initial_allocation,
 		},
-		sudo: pioneer_runtime::SudoConfig {
+		sudo: continuum_runtime::SudoConfig {
 			key: Some(root_key.clone()),
 		},
-		parachain_info: pioneer_runtime::ParachainInfoConfig {
+		parachain_info: continuum_runtime::ParachainInfoConfig {
 			parachain_id: PARA_ID.into(),
 		},
-		collator_selection: pioneer_runtime::CollatorSelectionConfig {
+		collator_selection: continuum_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
 			..Default::default()
 		},
-		session: pioneer_runtime::SessionConfig {
+		session: continuum_runtime::SessionConfig {
 			keys: initial_authorities
 				.iter()
 				.cloned()
@@ -209,30 +256,30 @@ fn testnet_genesis(
 	initial_authorities: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
 	id: ParaId,
-) -> pioneer_runtime::GenesisConfig {
-	pioneer_runtime::GenesisConfig {
-		system: pioneer_runtime::SystemConfig {
-			code: pioneer_runtime::WASM_BINARY
+) -> continuum_runtime::GenesisConfig {
+	continuum_runtime::GenesisConfig {
+		system: continuum_runtime::SystemConfig {
+			code: continuum_runtime::WASM_BINARY
 				.expect("WASM binary was not build, please build it!")
 				.to_vec(),
 		},
-		balances: pioneer_runtime::BalancesConfig {
+		balances: continuum_runtime::BalancesConfig {
 			balances: endowed_accounts
 				.iter()
 				.cloned()
 				.map(|k| (k, 250 * KILODOLLARS))
 				.collect(),
 		},
-		sudo: pioneer_runtime::SudoConfig {
+		sudo: continuum_runtime::SudoConfig {
 			key: Some(root_key.clone()),
 		},
-		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
-		collator_selection: pioneer_runtime::CollatorSelectionConfig {
+		parachain_info: continuum_runtime::ParachainInfoConfig { parachain_id: id },
+		collator_selection: continuum_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
 			..Default::default()
 		},
-		session: pioneer_runtime::SessionConfig {
+		session: continuum_runtime::SessionConfig {
 			keys: initial_authorities
 				.iter()
 				.cloned()
@@ -272,12 +319,12 @@ pub fn authority_keys_from_seed(s: &str) -> (AccountId, AuraId) {
 	)
 }
 
-pub fn pioneer_properties() -> Properties {
+pub fn continuum_properties() -> Properties {
 	let mut properties = Properties::new();
 
 	properties.insert("ss58Format".into(), 268.into());
 	properties.insert("tokenDecimals".into(), 18.into());
-	properties.insert("tokenSymbol".into(), "NEER".into());
+	properties.insert("tokenSymbol".into(), "NUUM".into());
 
 	properties
 }
