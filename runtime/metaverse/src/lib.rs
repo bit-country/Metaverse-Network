@@ -1095,7 +1095,7 @@ construct_runtime!(
 		Nft: nft::{Pallet, Call, Storage, Event<T>},
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
 		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
-		Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Continuum: continuum::{Pallet, Call, Storage, Event<T>},
 		Tokenization: tokenization:: {Pallet, Call, Storage, Event<T>},
 		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
