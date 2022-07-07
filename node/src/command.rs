@@ -20,7 +20,7 @@ use std::{io::Write, net::SocketAddr, sync::Arc};
 use codec::Encode;
 use cumulus_client_service::genesis::generate_genesis_block;
 use cumulus_primitives_core::ParaId;
-use frame_benchmarking_cli::BenchmarkCmd;
+use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::info;
 use sc_cli::{
 	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result, Role,
@@ -31,8 +31,17 @@ use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
 use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
 
+#[cfg(feature = "with-continuum-runtime")]
+use continuum_runtime::RuntimeApi;
 use metaverse_runtime::Block;
+#[cfg(feature = "with-pioneer-runtime")]
+use pioneer_runtime::RuntimeApi;
 
+#[cfg(feature = "with-continuum-runtime")]
+use crate::service::{continuum_partial, ContinuumParachainRuntimeExecutor};
+#[cfg(feature = "with-pioneer-runtime")]
+use crate::service::{pioneer_partial, ParachainRuntimeExecutor};
+use crate::service::{CONTINUUM_RUNTIME_NOT_AVAILABLE, METAVERSE_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
@@ -40,18 +49,26 @@ use crate::{
 	service::ExecutorDispatch,
 };
 
-fn load_spec(id: &str, para_id: ParaId) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
+fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
 	Ok(match id {
+		#[cfg(feature = "with-metaverse-runtime")]
 		"dev" => Box::new(chain_spec::metaverse::development_config()?),
+		#[cfg(feature = "with-metaverse-runtime")]
 		"" | "local" => Box::new(chain_spec::metaverse::local_testnet_config()?),
+		#[cfg(feature = "with-metaverse-runtime")]
 		"metaverse" => Box::new(chain_spec::metaverse::development_config()?),
+		#[cfg(feature = "with-metaverse-runtime")]
 		"metaverse-testnet" => Box::new(chain_spec::metaverse::metaverse_testnet_config()?),
 		#[cfg(feature = "with-pioneer-runtime")]
-		"pioneer-dev" => Box::new(chain_spec::pioneer::development_config(para_id)),
+		"pioneer-dev" => Box::new(chain_spec::pioneer::development_config()),
 		#[cfg(feature = "with-pioneer-runtime")]
-		"pioneer-local" => Box::new(chain_spec::pioneer::local_testnet_config(para_id)),
+		"pioneer-local" => Box::new(chain_spec::pioneer::local_testnet_config()),
 		#[cfg(feature = "with-pioneer-runtime")]
 		"pioneer" => Box::new(chain_spec::pioneer::pioneer_network_config_json()?),
+		#[cfg(feature = "with-continuum-runtime")]
+		"continuum-dev" => Box::new(chain_spec::continuum::development_config()),
+		#[cfg(feature = "with-continuum-runtime")]
+		"continuum" => Box::new(chain_spec::continuum::continuum_genesis_config()),
 		path => Box::new(chain_spec::metaverse::ChainSpec::from_json_file(
 			std::path::PathBuf::from(path),
 		)?),
@@ -80,11 +97,11 @@ impl SubstrateCli for Cli {
 	}
 
 	fn copyright_start_year() -> i32 {
-		2017
+		2020
 	}
 
 	fn load_spec(&self, id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
-		load_spec(id, 2096.into())
+		load_spec(id)
 	}
 
 	fn native_runtime_version(spec: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
@@ -98,6 +115,11 @@ impl SubstrateCli for Cli {
 			return &pioneer_runtime::VERSION;
 			#[cfg(not(feature = "with-pioneer-runtime"))]
 			panic!("{}", service::PIONEER_RUNTIME_NOT_AVAILABLE);
+		} else if spec.id().starts_with("continuum") {
+			#[cfg(feature = "with-continuum-runtime")]
+			return &continuum_runtime::VERSION;
+			#[cfg(not(feature = "with-continuum-runtime"))]
+			panic!("{}", service::CONTINUUM_RUNTIME_NOT_AVAILABLE);
 		} else {
 			#[cfg(feature = "with-metaverse-runtime")]
 			return &metaverse_runtime::VERSION;
@@ -141,7 +163,8 @@ impl SubstrateCli for RelayChainCli {
 	}
 }
 
-fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> sc_cli::Result<Vec<u8>> {
+#[allow(clippy::borrowed_box)]
+fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> Result<Vec<u8>> {
 	let mut storage = chain_spec.build_storage()?;
 
 	storage
@@ -150,61 +173,265 @@ fn extract_genesis_wasm(chain_spec: &Box<dyn sc_service::ChainSpec>) -> sc_cli::
 		.ok_or_else(|| "Could not find wasm file in genesis state!".into())
 }
 
+macro_rules! construct_async_run {
+	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
+		let runner = $cli.create_runner($cmd)?;
+		runner.async_run(|$config| {
+			let $components = pioneer_partial::<
+				RuntimeApi,
+				ParachainRuntimeExecutor,
+				_
+			>(
+				&$config,
+				crate::service::parachain_build_import_queue,
+			)?;
+			let task_manager = $components.task_manager;
+			{ $( $code )* }.map(|v| (v, task_manager))
+		})
+	}}
+}
+
+macro_rules! continuum_construct_async_run {
+	(|$components:ident, $cli:ident, $cmd:ident, $config:ident| $( $code:tt )* ) => {{
+		let runner = $cli.create_runner($cmd)?;
+		runner.async_run(|$config| {
+			let $components = continuum_partial::<
+				RuntimeApi,
+				ContinuumParachainRuntimeExecutor,
+				_
+			>(
+				&$config,
+				crate::service::continuum_build_import_queue,
+			)?;
+			let task_manager = $components.task_manager;
+			{ $( $code )* }.map(|v| (v, task_manager))
+		})
+	}}
+}
+
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
 	let cli = Cli::from_args();
 
 	match &cli.subcommand {
-		Some(Subcommand::Key(cmd)) => cmd.run(&cli),
 		Some(Subcommand::BuildSpec(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
 			runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
 		}
 		Some(Subcommand::CheckBlock(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					import_queue,
-					..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, import_queue), task_manager))
-			})
+			let chain_spec = &runner.config().chain_spec;
+
+			if chain_spec.id().starts_with("pioneer") {
+				#[cfg(feature = "with-pioneer-runtime")]
+				{
+					construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.import_queue))
+					})
+				}
+				#[cfg(not(feature = "with-pioneer-runtime"))]
+				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.import_queue))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
+			} else {
+				#[cfg(feature = "with-metaverse-runtime")]
+				{
+					runner.async_run(|config| {
+						let PartialComponents {
+							client,
+							task_manager,
+							import_queue,
+							..
+						} = service::new_partial(&config, &cli)?;
+						Ok((cmd.run(client, import_queue), task_manager))
+					})
+				}
+				#[cfg(not(feature = "with-metaverse-runtime"))]
+				Err(METAVERSE_RUNTIME_NOT_AVAILABLE.into())
+			}
 		}
 		Some(Subcommand::ExportBlocks(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client, task_manager, ..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, config.database), task_manager))
-			})
+			let chain_spec = &runner.config().chain_spec;
+
+			if chain_spec.id().starts_with("pioneer") {
+				#[cfg(feature = "with-pioneer-runtime")]
+				{
+					construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, config.database))
+					})
+				}
+				#[cfg(not(feature = "with-pioneer-runtime"))]
+				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, config.database))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
+			} else {
+				#[cfg(feature = "with-metaverse-runtime")]
+				{
+					runner.async_run(|config| {
+						let PartialComponents {
+							client,
+							task_manager,
+							import_queue,
+							..
+						} = service::new_partial(&config, &cli)?;
+						Ok((cmd.run(client, config.database), task_manager))
+					})
+				}
+				#[cfg(not(feature = "with-metaverse-runtime"))]
+				Err(METAVERSE_RUNTIME_NOT_AVAILABLE.into())
+			}
 		}
 		Some(Subcommand::ExportState(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client, task_manager, ..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, config.chain_spec), task_manager))
-			})
+			let chain_spec = &runner.config().chain_spec;
+
+			if chain_spec.id().starts_with("pioneer") {
+				#[cfg(feature = "with-pioneer-runtime")]
+				{
+					construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, config.chain_spec))
+					})
+				}
+				#[cfg(not(feature = "with-pioneer-runtime"))]
+				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, config.chain_spec))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
+			} else {
+				#[cfg(feature = "with-metaverse-runtime")]
+				{
+					runner.async_run(|config| {
+						let PartialComponents {
+							client,
+							task_manager,
+							import_queue,
+							..
+						} = service::new_partial(&config, &cli)?;
+						Ok((cmd.run(client, config.chain_spec), task_manager))
+					})
+				}
+				#[cfg(not(feature = "with-metaverse-runtime"))]
+				Err(METAVERSE_RUNTIME_NOT_AVAILABLE.into())
+			}
 		}
 		Some(Subcommand::ImportBlocks(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					import_queue,
-					..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, import_queue), task_manager))
-			})
+			let chain_spec = &runner.config().chain_spec;
+
+			if chain_spec.id().starts_with("pioneer") {
+				#[cfg(feature = "with-pioneer-runtime")]
+				{
+					construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.import_queue))
+					})
+				}
+				#[cfg(not(feature = "with-pioneer-runtime"))]
+				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.import_queue))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
+			} else {
+				#[cfg(feature = "with-metaverse-runtime")]
+				{
+					runner.async_run(|config| {
+						let PartialComponents {
+							client,
+							task_manager,
+							import_queue,
+							..
+						} = service::new_partial(&config, &cli)?;
+						Ok((cmd.run(client, import_queue), task_manager))
+					})
+				}
+				#[cfg(not(feature = "with-metaverse-runtime"))]
+				Err(METAVERSE_RUNTIME_NOT_AVAILABLE.into())
+			}
 		}
 		Some(Subcommand::PurgeChain(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
-			runner.sync_run(|config| cmd.run(config.database))
+			let chain_spec = &runner.config().chain_spec;
+
+			if chain_spec.id().starts_with("pioneer") {
+				#[cfg(feature = "with-pioneer-runtime")]
+				{
+					runner.sync_run(|config| {
+						let polkadot_cli = RelayChainCli::new(
+							&config,
+							[RelayChainCli::executable_name()]
+								.iter()
+								.chain(cli.relaychain_args.iter()),
+						);
+
+						let polkadot_config = SubstrateCli::create_configuration(
+							&polkadot_cli,
+							&polkadot_cli,
+							config.tokio_handle.clone(),
+						)
+						.map_err(|err| format!("Relay chain argument error: {}", err))?;
+
+						cmd.run(config.database)
+					})
+				}
+				#[cfg(not(feature = "with-pioneer-runtime"))]
+				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					runner.sync_run(|config| {
+						let polkadot_cli = RelayChainCli::new(
+							&config,
+							[RelayChainCli::executable_name()]
+								.iter()
+								.chain(cli.relaychain_args.iter()),
+						);
+
+						let polkadot_config = SubstrateCli::create_configuration(
+							&polkadot_cli,
+							&polkadot_cli,
+							config.tokio_handle.clone(),
+						)
+						.map_err(|err| format!("Relay chain argument error: {}", err))?;
+
+						cmd.run(config.database)
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
+			} else {
+				#[cfg(feature = "with-metaverse-runtime")]
+				{
+					runner.sync_run(|config| cmd.run(config.database))
+				}
+				#[cfg(not(feature = "with-metaverse-runtime"))]
+				Err(METAVERSE_RUNTIME_NOT_AVAILABLE.into())
+			}
 		}
 		Some(Subcommand::PurgeChainParachain(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
@@ -226,60 +453,53 @@ pub fn run() -> sc_cli::Result<()> {
 		}
 		Some(Subcommand::Revert(cmd)) => {
 			let runner = cli.create_runner(cmd)?;
-			runner.async_run(|config| {
-				let PartialComponents {
-					client,
-					task_manager,
-					backend,
-					..
-				} = service::new_partial(&config, &cli)?;
-				Ok((cmd.run(client, backend, None), task_manager))
-			})
-		}
-		Some(Subcommand::Benchmark(cmd)) => {
-			let runner = cli.create_runner(cmd)?;
-			runner.sync_run(|config| {
-				let PartialComponents { client, backend, .. } = service::new_partial(&config, &cli)?;
+			let chain_spec = &runner.config().chain_spec;
 
-				// This switch needs to be in the client, since the client decides
-				// which sub-commands it wants to support.
-				match cmd {
-					BenchmarkCmd::Pallet(cmd) => {
-						if !cfg!(feature = "runtime-benchmarks") {
-							return Err("Runtime benchmarking wasn't enabled when building the node. \
-							You can enable it with `--features runtime-benchmarks`."
-								.into());
-						}
-
-						cmd.run::<Block, ExecutorDispatch>(config)
-					}
-					BenchmarkCmd::Block(cmd) => cmd.run(client),
-					BenchmarkCmd::Storage(cmd) => {
-						let db = backend.expose_db();
-						let storage = backend.expose_storage();
-
-						cmd.run(config, client, db, storage)
-					}
-					BenchmarkCmd::Machine(cmd) => {
-						cmd.run(&config, frame_benchmarking_cli::SUBSTRATE_REFERENCE_HARDWARE.clone())
-					}
-					BenchmarkCmd::Overhead(_) => Err("Benchmark overhead not supported.".into()),
+			if chain_spec.id().starts_with("pioneer") {
+				#[cfg(feature = "with-pioneer-runtime")]
+				{
+					construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.backend, None))
+					})
 				}
-			})
+				#[cfg(not(feature = "with-pioneer-runtime"))]
+				Err(PIONEER_RUNTIME_NOT_AVAILABLE.into())
+			} else if chain_spec.id().starts_with("continuum") {
+				#[cfg(feature = "with-continuum-runtime")]
+				{
+					continuum_construct_async_run!(|components, cli, cmd, config| {
+						Ok(cmd.run(components.client, components.backend, None))
+					})
+				}
+				#[cfg(not(feature = "with-continuum-runtime"))]
+				Err(CONTINUUM_RUNTIME_NOT_AVAILABLE.into())
+			} else {
+				#[cfg(feature = "with-metaverse-runtime")]
+				{
+					runner.async_run(|config| {
+						let PartialComponents {
+							client,
+							task_manager,
+							backend,
+							..
+						} = service::new_partial(&config, &cli)?;
+						let aux_revert = Box::new(|client, _, blocks| {
+							sc_finality_grandpa::revert(client, blocks)?;
+							Ok(())
+						});
+						Ok((cmd.run(client, backend, Some(aux_revert)), task_manager))
+					})
+				}
+				#[cfg(not(feature = "with-metaverse-runtime"))]
+				Err(METAVERSE_RUNTIME_NOT_AVAILABLE.into())
+			}
 		}
 		Some(Subcommand::ExportGenesisState(params)) => {
-			info!(
-				"ExportGenesisState load_spec: {}",
-				&params.chain.clone().unwrap_or_default()
-			);
-
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
-			let spec = load_spec(
-				&params.chain.clone().unwrap_or("pioneer".into()),
-				params.parachain_id.unwrap_or(2096).into(),
-			)?;
+
+			let spec = load_spec(&params.chain.clone().unwrap_or_default())?;
 			let state_version = Cli::native_runtime_version(&spec).state_version();
 			let block: Block = generate_genesis_block(&spec, state_version)?;
 			let raw_header = block.header().encode();
@@ -298,17 +518,11 @@ pub fn run() -> sc_cli::Result<()> {
 			Ok(())
 		}
 		Some(Subcommand::ExportGenesisWasm(params)) => {
-			info!(
-				"ExportGenesisWasm load_spec: {}",
-				&params.chain.clone().unwrap_or_default()
-			);
-
 			let mut builder = sc_cli::LoggerBuilder::new("");
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let raw_wasm_blob =
-				extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or("pioneer-live".into()))?)?;
+			let raw_wasm_blob = extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
 			let output_buf = if params.raw {
 				raw_wasm_blob
 			} else {
@@ -323,6 +537,56 @@ pub fn run() -> sc_cli::Result<()> {
 
 			Ok(())
 		}
+		Some(Subcommand::Benchmark(cmd)) => {
+			let runner = cli.create_runner(cmd)?;
+
+			runner.sync_run(|config| {
+				// This switch needs to be in the client, since the client decides
+				// which sub-commands it wants to support.
+				match cmd {
+					BenchmarkCmd::Pallet(cmd) => {
+						if !cfg!(feature = "runtime-benchmarks") {
+							return Err("Runtime benchmarking wasn't enabled when building the node. \
+							You can enable it with `--features runtime-benchmarks`."
+								.into());
+						}
+
+						cmd.run::<Block, service::ExecutorDispatch>(config)
+					}
+					BenchmarkCmd::Block(cmd) => {
+						let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
+						cmd.run(client)
+					}
+					BenchmarkCmd::Storage(cmd) => {
+						let PartialComponents { client, backend, .. } = service::new_partial(&config, &cli)?;
+						let db = backend.expose_db();
+						let storage = backend.expose_storage();
+
+						cmd.run(config, client, db, storage)
+					}
+					BenchmarkCmd::Overhead(cmd) => Err("Unsupported benchmarking command".into()),
+					BenchmarkCmd::Machine(cmd) => cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
+				}
+			})
+		}
+
+		Some(Subcommand::Key(cmd)) => cmd.run(&cli),
+
+		#[cfg(feature = "try-runtime")]
+		Some(Subcommand::TryRuntime(cmd)) => {
+			if cfg!(feature = "try-runtime") {
+				let runner = cli.create_runner(cmd)?;
+
+				// grab the task manager.
+				let registry = &runner.config().prometheus_config.as_ref().map(|cfg| &cfg.registry);
+				let task_manager = sc_service::TaskManager::new(runner.config().tokio_handle.clone(), *registry)
+					.map_err(|e| format!("Error: {:?}", e))?;
+
+				runner.async_run(|config| Ok((cmd.run::<Block, service::ExecutorDispatch>(config), task_manager)))
+			} else {
+				Err("Try-runtime must be enabled by `--features try-runtime`.".into())
+			}
+		}
 		None => {
 			let runner = cli.create_runner(&cli.run.normalize())?;
 			let chain_spec = &runner.config().chain_spec;
@@ -332,6 +596,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 			#[cfg(feature = "with-pioneer-runtime")]
 			if chain_spec.id().starts_with("pioneer") {
+				info!("Runtime {}:", chain_spec.id());
 				return runner.run_node_until_exit(|config| async move {
 					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
 						.map(|e| e.para_id)
@@ -373,7 +638,50 @@ pub fn run() -> sc_cli::Result<()> {
 						.map_err(Into::into)
 				});
 			}
+			#[cfg(feature = "with-continuum-runtime")]
+			if chain_spec.id().starts_with("continuum") {
+				info!("Runtime {}:", chain_spec.id());
+				return runner.run_node_until_exit(|config| async move {
+					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
+						.map(|e| e.para_id)
+						.ok_or_else(|| "Could not find parachain ID in chain-spec.")?;
 
+					let polkadot_cli = RelayChainCli::new(
+						&config,
+						[RelayChainCli::executable_name()]
+							.iter()
+							.chain(cli.relaychain_args.iter()),
+					);
+
+					let id = ParaId::from(para_id);
+
+					let parachain_account =
+						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account(&id);
+
+					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
+					let block: Block =
+						generate_genesis_block(&config.chain_spec, state_version).map_err(|e| format!("{:?}", e))?;
+					let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
+
+					let tokio_handle = config.tokio_handle.clone();
+					let polkadot_config =
+						SubstrateCli::create_configuration(&polkadot_cli, &polkadot_cli, tokio_handle)
+							.map_err(|err| format!("Relay chain argument error: {}", err))?;
+
+					info!("Parachain id: {:?}", id);
+					info!("Parachain Account: {}", parachain_account);
+					info!("Parachain genesis state: {}", genesis_state);
+					info!(
+						"Is collating: {}",
+						if config.role.is_authority() { "yes" } else { "no" }
+					);
+
+					crate::service::continuum_start_parachain_node(config, polkadot_config, collator_options, id)
+						.await
+						.map(|r| r.0)
+						.map_err(Into::into)
+				});
+			}
 			#[cfg(feature = "with-metaverse-runtime")]
 			info!("Hit metaverse runtime");
 			info!("Chain spec: {}", chain_spec.id());

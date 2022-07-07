@@ -28,6 +28,7 @@ async-trait = "0.1"
 jsonrpsee = { version = "0.13.0", features = ["server"] }
 parity-util-mem = { version = "0.11", default-features = false, features = ["jemalloc-global"] }
 url = "2.2.2"
+tracing-core = "0.1.26"
 
 sc-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 sc-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
@@ -95,7 +96,7 @@ node-primitives = { git = "https://github.com/paritytech/substrate", branch = "p
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
 metaverse-runtime = { version = "0.0.38", path = "../runtime/metaverse", optional = true }
 pioneer-runtime = { version = "0.0.7", path = "../runtime/pioneer", optional = true }
-#pallet-evm = { path = "../pallets/evm" }
+continuum-runtime = { version = "0.0.7", path = "../runtime/continuum", optional = true }
 
 # Cumulus dependencies
 cumulus-client-consensus-aura = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.22' }
@@ -114,6 +115,7 @@ polkadot-cli = { git = 'https://github.com/paritytech/polkadot', branch = "relea
 polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.22" }
 polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.22" }
 polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.22" }
+xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.22" }
 
 # EVM dependencies
 fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.22", optional = true }
@@ -157,6 +159,10 @@ with-metaverse-runtime = [
 
 with-pioneer-runtime = [
     "pioneer-runtime",
+]
+
+with-continuum-runtime = [
+    "continuum-runtime",
 ]
 
 runtime-benchmarks = [
