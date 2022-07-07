@@ -353,8 +353,8 @@ fn transfer_land_should_do_fail_for_already_in_auction() {
 		));
 		assert_eq!(
 			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_AUCTION),
-			Some(OwnerId::Token(METAVERSE_LAND_CLASS, METAVERSE_LAND_IN_AUCTION_TOKEN)
-		));
+			Some(OwnerId::Token(METAVERSE_LAND_CLASS, METAVERSE_LAND_IN_AUCTION_TOKEN))
+		);
 
 		assert_noop!(
 			EstateModule::transfer_land(
@@ -367,7 +367,6 @@ fn transfer_land_should_do_fail_for_already_in_auction() {
 		);
 	});
 }
-
 
 #[test]
 fn mint_estate_should_reject_non_root() {
