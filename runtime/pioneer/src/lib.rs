@@ -1575,7 +1575,7 @@ construct_runtime!(
 		Nft: nft::{Call, Pallet, Storage, Event<T>} = 61,
 		Auction: auction::{Call, Pallet ,Storage, Event<T>} = 62,
 
-		Continuum: continuum::{Call, Pallet, Storage, Config<T>, Event<T>} = 63,
+		Continuum: continuum::{Call, Pallet, Storage, Event<T>} = 63,
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
 		// Crowdloan
