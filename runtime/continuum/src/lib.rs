@@ -1405,17 +1405,6 @@ impl continuum::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 }
 
-impl tokenization::Config for Runtime {
-	type Event = Event;
-	type TokenId = u64;
-	type MetaverseMultiCurrency = Currencies;
-	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
-	type MetaverseInfoSource = Metaverse;
-	type LiquidityPoolManager = Swap;
-	type MinVestedTransfer = MinVestedTransfer;
-	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
-}
-
 impl crowdloan::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;

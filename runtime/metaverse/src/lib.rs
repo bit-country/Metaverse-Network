@@ -598,17 +598,6 @@ impl continuum::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 }
 
-impl tokenization::Config for Runtime {
-	type Event = Event;
-	type TokenId = u64;
-	type MetaverseMultiCurrency = Currencies;
-	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
-	type MetaverseInfoSource = Metaverse;
-	type LiquidityPoolManager = Swap;
-	type MinVestedTransfer = MinVestedTransfer;
-	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
-}
-
 pub struct EnsureRootOrMetaverseTreasury;
 
 impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
@@ -1084,7 +1073,6 @@ construct_runtime!(
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
 		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Event<T>},
-		Tokenization: tokenization:: {Pallet, Call, Storage, Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
