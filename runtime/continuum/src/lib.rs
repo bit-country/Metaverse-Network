@@ -1416,18 +1416,6 @@ impl tokenization::Config for Runtime {
 	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
 }
 
-parameter_types! {
-	pub const SwapFee: (u32, u32) = (1, 20); //0.05%
-}
-
-impl swap::Config for Runtime {
-	type Event = Event;
-	type PalletId = SwapPalletId;
-	type FungibleTokenCurrency = Tokens;
-	type NativeCurrency = Balances;
-	type GetSwapFee = SwapFee;
-}
-
 impl crowdloan::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -1563,7 +1551,7 @@ construct_runtime!(
 		// Pioneer pallets
 		// Metaverse & Related
 		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>} = 50,
-		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
+
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
 		Emergency: emergency::{Pallet, Call, Storage, Event<T>} = 55,

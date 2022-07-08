@@ -609,18 +609,6 @@ impl tokenization::Config for Runtime {
 	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
 }
 
-parameter_types! {
-	pub const SwapFee: (u32, u32) = (1, 20); //0.05%
-}
-
-impl swap::Config for Runtime {
-	type Event = Event;
-	type PalletId = SwapPalletId;
-	type FungibleTokenCurrency = Tokens;
-	type NativeCurrency = Balances;
-	type GetSwapFee = SwapFee;
-}
-
 pub struct EnsureRootOrMetaverseTreasury;
 
 impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
@@ -1097,7 +1085,6 @@ construct_runtime!(
 		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Event<T>},
 		Tokenization: tokenization:: {Pallet, Call, Storage, Event<T>},
-		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
