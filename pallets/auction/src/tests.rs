@@ -193,7 +193,7 @@ fn create_new_buy_now_bundle_work() {
 	});
 }
 
-/* 
+/*
 #[test]
 // Creating auction should work
 fn create_new_auction_should_work_for_valid_estate() {
@@ -535,7 +535,7 @@ fn bid_works() {
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
 	});
 }
-/* 
+/*
 #[test]
 // Walk the happy path
 fn bid_works_for_valid_estate() {

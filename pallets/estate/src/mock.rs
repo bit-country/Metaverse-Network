@@ -268,10 +268,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
 	fn check_item_in_auction(item_id: ItemId<Balance>) -> bool {
 		match item_id {
-			ItemId::NFT(METAVERSE_LAND_CLASS, METAVERSE_LAND_IN_AUCTION_TOKEN ) => {
+			ItemId::NFT(METAVERSE_LAND_CLASS, METAVERSE_LAND_IN_AUCTION_TOKEN) => {
 				return true;
 			}
-			ItemId::NFT(METAVERSE_ESTATE_CLASS, METAVERSE_ESTATE_IN_AUCTION_TOKEN ) => {
+			ItemId::NFT(METAVERSE_ESTATE_CLASS, METAVERSE_ESTATE_IN_AUCTION_TOKEN) => {
 				return true;
 			}
 			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_IN_AUCTION) => {
@@ -301,7 +301,9 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		if (*who == ALICE && (nft_value.1 == 1 || nft_value.1 == 3))
 			|| (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
 			|| (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101))
-			| (*who == AUCTION_BENEFICIARY_ID && (nft_value.1 == METAVERSE_ESTATE_IN_AUCTION_TOKEN || nft_value.1 == METAVERSE_LAND_IN_AUCTION_TOKEN))
+				| (*who == AUCTION_BENEFICIARY_ID
+					&& (nft_value.1 == METAVERSE_ESTATE_IN_AUCTION_TOKEN
+						|| nft_value.1 == METAVERSE_LAND_IN_AUCTION_TOKEN))
 		{
 			return Ok(true);
 		}
