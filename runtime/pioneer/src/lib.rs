@@ -1405,17 +1405,6 @@ impl continuum::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 }
 
-impl tokenization::Config for Runtime {
-	type Event = Event;
-	type TokenId = u64;
-	type MetaverseMultiCurrency = Currencies;
-	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
-	type MetaverseInfoSource = Metaverse;
-	type LiquidityPoolManager = Swap;
-	type MinVestedTransfer = MinVestedTransfer;
-	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
-}
-
 parameter_types! {
 	pub const SwapFee: (u32, u32) = (1, 20); //0.05%
 }
@@ -1563,7 +1552,7 @@ construct_runtime!(
 		// Pioneer pallets
 		// Metaverse & Related
 		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>} = 50,
-		SocialToken: tokenization:: {Pallet, Call ,Storage, Event<T>} = 51,
+
 		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,

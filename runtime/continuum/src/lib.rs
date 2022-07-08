@@ -1563,7 +1563,6 @@ construct_runtime!(
 		// Pioneer pallets
 		// Metaverse & Related
 		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>} = 50,
-		SocialToken: tokenization:: {Pallet, Call ,Storage, Event<T>} = 51,
 		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
