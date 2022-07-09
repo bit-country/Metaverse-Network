@@ -154,6 +154,8 @@ pub mod pallet {
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 		/// Source of Metaverse Network Info
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
+		/// Weight implementation for estate extrinsics
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::genesis_config]

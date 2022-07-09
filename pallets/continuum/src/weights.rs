@@ -43,7 +43,14 @@ use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for continuum.
-pub trait WeightInfo {	fn set_allow_buy_now() -> Weight;	fn set_max_bounds() -> Weight;	fn issue_map_slot() -> Weight;	fn create_new_auction() -> Weight;	fn buy_map_spot() -> Weight;	fn bid_map_spot() -> Weight;}
+pub trait WeightInfo {	
+	fn set_allow_buy_now() -> Weight;
+	fn set_max_bounds() -> Weight;
+	fn issue_map_slot() -> Weight;
+	fn create_new_auction() -> Weight;
+	fn buy_map_spot() -> Weight;
+	fn bid_map_spot() -> Weight;
+}
 
 /// Weights for continuum using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);

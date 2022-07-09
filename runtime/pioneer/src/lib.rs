@@ -1392,6 +1392,7 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
+	type WeightInfo = ();
 }
 
 impl tokenization::Config for Runtime {
