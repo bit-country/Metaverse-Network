@@ -26,34 +26,37 @@ runtime_benchmarks! {
 	}: _(RawOrigin::Root, (10i32, 10i32))
 
 	issue_map_slot{
-		Continuum::set_max_bounds(RawOrigin::Root.into(), (10i32, 10i32));
+		Continuum::set_max_bounds(RawOrigin::Root.into(), (0i32, 0i32));
 	}: _(RawOrigin::Root, (0i32, 0i32), TokenType::Transferable)
 
 	create_new_auction{
-		Continuum::set_max_bounds(RawOrigin::Root.into(), (10i32, 10i32));
+		Continuum::set_max_bounds(RawOrigin::Root.into(), (0i32, 0i32));
 		Continuum::issue_map_slot(RawOrigin::Root.into(), (0i32, 0i32), TokenType::Transferable);
-	}: _(RawOrigin::Root, (0i32, 0i32), AuctionType::Auction,  50u32.into(), 200u32.into())
+		set_balance(CURRENCY_ID, &Continuum::account_id(), dollar(10));
+	}: _(RawOrigin::Root, (0i32, 0i32), AuctionType::Auction,  1u32.into(), 200u32.into())
 
 	buy_map_spot{
 		let buyer: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &buyer, dollar(10));
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(buyer.clone()).into(), vec![1u8]);
-		Continuum::set_max_bounds(RawOrigin::Root.into(), (10i32, 10i32));
+		Continuum::set_max_bounds(RawOrigin::Root.into(), (0i32, 0i32));
 		Continuum::set_allow_buy_now(RawOrigin::Root.into(), true);
 		Continuum::issue_map_slot(RawOrigin::Root.into(), (0i32, 0i32), TokenType::Transferable);
-		Continuum::create_new_auction(RawOrigin::Root.into(), (0i32, 0i32), AuctionType::BuyNow,  50u32.into(), 200u32.into());
-	}: _(RawOrigin::Signed(buyer.clone()), 0u32.into(), 50u32.into(), 0u32.into())
+		set_balance(CURRENCY_ID, &Continuum::account_id(), dollar(10));
+		Continuum::create_new_auction(RawOrigin::Root.into(), (0i32, 0i32), AuctionType::BuyNow,  1u32.into(), 200u32.into());
+	}: _(RawOrigin::Signed(buyer.clone()), 0u32.into(), 1u32.into(), 0u32.into())
 
 	bid_map_spot{
 		let bidder: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &bidder, dollar(10));
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(bidder.clone()).into(), vec![1u8]);
-		Continuum::set_max_bounds(RawOrigin::Root.into(), (10i32, 10i32));
+		Continuum::set_max_bounds(RawOrigin::Root.into(), (0i32, 0i32));
 		Continuum::issue_map_slot(RawOrigin::Root.into(), (0i32, 0i32), TokenType::Transferable);
-		Continuum::create_new_auction(RawOrigin::Root.into(), (0i32, 0i32), AuctionType::Auction,  50u32.into(), 200u32.into());
-	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 51u32.into(), 0u32.into())
+		set_balance(CURRENCY_ID, &Continuum::account_id(), dollar(10));
+		Continuum::create_new_auction(RawOrigin::Root.into(), (0i32, 0i32), AuctionType::Auction,  1u32.into(), 200u32.into());
+	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 2u32.into(), 0u32.into())
 }
 
 #[cfg(test)]
