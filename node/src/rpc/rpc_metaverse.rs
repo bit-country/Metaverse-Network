@@ -1,4 +1,7 @@
 //! RPCs implementation.
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
 use fc_rpc::{
 	EthBlockDataCacheTask, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override, SchemaV2Override,
 	SchemaV3Override, StorageOverride,
@@ -7,12 +10,9 @@ use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
 use jsonrpsee::RpcModule;
-use metaverse_runtime::{opaque::Block, AccountId, Hash, Index};
 use pallet_contracts_rpc::ContractsRpc;
 use pallet_transaction_payment_rpc::TransactionPaymentRpc;
 use sc_cli::SubstrateCli;
-use std::collections::BTreeMap;
-use std::sync::Arc;
 // Substrate
 use sc_client_api::{
 	backend::{AuxStore, Backend, StateBackend, StorageProvider},
@@ -28,6 +28,7 @@ use sp_blockchain::{Backend as BlockchainBackend, Error as BlockChainError, Head
 use sp_runtime::traits::BlakeTwo256;
 use substrate_frame_rpc_system::SystemRpc;
 
+use metaverse_runtime::{opaque::Block, AccountId, Hash, Index};
 use primitives::*;
 
 pub fn open_frontier_backend(config: &sc_service::Configuration) -> Result<Arc<fc_db::Backend<Block>>, String> {
@@ -73,9 +74,6 @@ where
 		fallback: Box::new(RuntimeApiStorageOverride::new(client.clone())),
 	})
 }
-
-/// A type representing all RPC extensions.
-pub type RpcExtension = jsonrpsee::RpcModule<()>;
 
 /// Full client dependencies.
 pub struct FullDeps<C, P, A: ChainApi> {
