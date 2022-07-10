@@ -1225,9 +1225,7 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
- "pallet-swap",
  "pallet-timestamp",
- "pallet-tokenization",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
@@ -5272,9 +5270,7 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
- "pallet-swap",
  "pallet-timestamp",
- "pallet-tokenization",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
@@ -6865,7 +6861,6 @@ dependencies = [
  "orml-traits",
  "pallet-balances",
  "pallet-metaverse",
- "pallet-swap",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -7224,38 +7219,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-swap"
-version = "2.0.0-rc6"
-dependencies = [
- "auction-manager",
- "bit-country-primitives",
- "core-primitives",
- "currencies",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "orml-currencies",
- "orml-tokens",
- "orml-traits",
- "pallet-balances",
- "pallet-nft",
- "pallet-randomness-collective-flip",
- "pallet-sudo",
- "pallet-timestamp",
- "pallet-transaction-payment",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-api",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-session",
- "sp-std",
- "sp-version",
-]
-
-[[package]]
 name = "pallet-timestamp"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.22#616d33ea23bab86cafffaf116fc607b6790fb4eb"
@@ -7286,32 +7249,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
-name = "pallet-tokenization"
-version = "2.0.0-rc6"
-dependencies = [
- "auction-manager",
- "bit-country-primitives",
- "core-primitives",
- "currencies",
- "frame-support",
- "frame-system",
- "orml-currencies",
- "orml-tokens",
- "orml-traits",
- "pallet-balances",
- "pallet-metaverse",
- "pallet-swap",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-api",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -7893,9 +7830,7 @@ dependencies = [
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
- "pallet-swap",
  "pallet-timestamp",
- "pallet-tokenization",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
@@ -13937,23 +13872,3 @@ dependencies = [
  "cc",
  "libc",
 ]
-
-[[patch.unused]]
-name = "ethereum"
-version = "0.11.1"
-source = "git+https://github.com/justinphamnz/ethereum?branch=polkadot-v0.9.22#36bcbbe6d182456aa228be55ee2c56937e0cef15"
-
-[[patch.unused]]
-name = "evm"
-version = "0.33.1"
-source = "git+https://github.com/justinphamnz/evm?branch=master#18e5b1f722a980975cf205657d38c459cf12f4c8"
-
-[[patch.unused]]
-name = "evm-gasometer"
-version = "0.33.0"
-source = "git+https://github.com/justinphamnz/evm?branch=master#18e5b1f722a980975cf205657d38c459cf12f4c8"
-
-[[patch.unused]]
-name = "evm-runtime"
-version = "0.33.0"
-source = "git+https://github.com/justinphamnz/evm?branch=master#18e5b1f722a980975cf205657d38c459cf12f4c8"

@@ -340,15 +340,6 @@ impl ExtBuilder {
 		.assimilate_storage(&mut t)
 		.unwrap();
 
-		continuum::GenesisConfig::<Runtime> {
-			initial_active_session: 0,
-			initial_auction_rate: 5,
-			initial_max_bound: (-100, 100),
-			spot_price: 100,
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
-
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(block_number));
 		ext

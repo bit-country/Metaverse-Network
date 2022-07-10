@@ -5,8 +5,8 @@ pub use continuum::{
 	// new_full as pioneer_full, new_light as pioneer_light,
 	new_partial as continuum_partial,
 	parachain_build_import_queue as continuum_build_import_queue,
-	// Executor as pioneer_executor
 	start_parachain_node as continuum_start_parachain_node,
+	// Executor as pioneer_executor
 	ParachainRuntimeExecutor as ContinuumParachainRuntimeExecutor,
 };
 #[cfg(feature = "with-metaverse-runtime")]
@@ -16,8 +16,8 @@ pub use pioneer::{
 	// new_full as pioneer_full, new_light as pioneer_light,
 	new_partial as pioneer_partial,
 	parachain_build_import_queue,
-	// Executor as pioneer_executor
 	start_parachain_node,
+	// Executor as pioneer_executor
 	ParachainRuntimeExecutor,
 };
 

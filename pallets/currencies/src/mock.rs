@@ -195,7 +195,6 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		Currencies: orml_currencies::{ Module, Storage, Call},
 		Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
-		TokenizationModule: tokenization:: {Module, Call, Storage, Event<T>},
 	}
 );
 

@@ -62,7 +62,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 		#[cfg(feature = "with-pioneer-runtime")]
 		"pioneer-dev" => Box::new(chain_spec::pioneer::development_config()),
 		#[cfg(feature = "with-pioneer-runtime")]
-		"pioneer-local" => Box::new(chain_spec::pioneer::local_testnet_config()),
+		"pioneer-roc" => Box::new(chain_spec::pioneer::roc_pioneer_testnet_config()),
 		#[cfg(feature = "with-pioneer-runtime")]
 		"pioneer" => Box::new(chain_spec::pioneer::pioneer_network_config_json()?),
 		#[cfg(feature = "with-continuum-runtime")]
@@ -286,7 +286,7 @@ pub fn run() -> sc_cli::Result<()> {
 						let PartialComponents {
 							client,
 							task_manager,
-							import_queue,
+							import_queue: _,
 							..
 						} = service::new_partial(&config, &cli)?;
 						Ok((cmd.run(client, config.database), task_manager))
@@ -325,7 +325,7 @@ pub fn run() -> sc_cli::Result<()> {
 						let PartialComponents {
 							client,
 							task_manager,
-							import_queue,
+							import_queue: _,
 							..
 						} = service::new_partial(&config, &cli)?;
 						Ok((cmd.run(client, config.chain_spec), task_manager))
@@ -564,7 +564,7 @@ pub fn run() -> sc_cli::Result<()> {
 
 						cmd.run(config, client, db, storage)
 					}
-					BenchmarkCmd::Overhead(cmd) => Err("Unsupported benchmarking command".into()),
+					BenchmarkCmd::Overhead(_cmd) => Err("Unsupported benchmarking command".into()),
 					BenchmarkCmd::Machine(cmd) => cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
 				}
 			})
@@ -590,13 +590,13 @@ pub fn run() -> sc_cli::Result<()> {
 		None => {
 			let runner = cli.create_runner(&cli.run.normalize())?;
 			let chain_spec = &runner.config().chain_spec;
-			let collator_options = cli.run.collator_options();
 
 			info!("Metaverse Node - Chain_spec id: {}", chain_spec.id());
 
 			#[cfg(feature = "with-pioneer-runtime")]
 			if chain_spec.id().starts_with("pioneer") {
 				info!("Runtime {}:", chain_spec.id());
+				let collator_options = cli.run.collator_options();
 				return runner.run_node_until_exit(|config| async move {
 					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
 						.map(|e| e.para_id)
@@ -641,6 +641,7 @@ pub fn run() -> sc_cli::Result<()> {
 			#[cfg(feature = "with-continuum-runtime")]
 			if chain_spec.id().starts_with("continuum") {
 				info!("Runtime {}:", chain_spec.id());
+				let collator_options = cli.run.collator_options();
 				return runner.run_node_until_exit(|config| async move {
 					let para_id = chain_spec::Extensions::try_get(&*config.chain_spec)
 						.map(|e| e.para_id)
