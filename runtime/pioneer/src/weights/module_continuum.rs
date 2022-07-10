@@ -9,12 +9,10 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {
 	fn set_allow_buy_now() -> Weight {
-		(3_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		(3_000_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn set_max_bounds() -> Weight {
-		(20_600_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		(20_600_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn issue_map_slot() -> Weight {
 		(49_500_000 as Weight)
