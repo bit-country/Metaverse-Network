@@ -16,7 +16,7 @@
 // limitations under the License.
 
 //! Relay chain and parachains emulation.
-
+use crate::setup::*;
 use cumulus_primitives_core::ParaId;
 use frame_support::traits::GenesisBuild;
 use polkadot_primitives::v2::{BlockNumber, MAX_CODE_SIZE, MAX_POV_SIZE};
@@ -26,10 +26,6 @@ use xcm_emulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain
 
 use core_traits::FungibleTokenId;
 use pioneer_runtime::AccountId;
-
-use crate::setup::{
-	ksm_amount, native_amount, ExtBuilder, ALICE, BOB, PARA_ID_DEVELOPMENT, PARA_ID_KARURA, PARA_ID_SIBLING,
-};
 
 decl_test_relay_chain! {
 	pub struct KusamaNet {
@@ -68,18 +64,68 @@ decl_test_parachain! {
 		new_ext = para_ext(PARA_ID_KARURA),
 	}
 }
-
+/*
+decl_test_parachain! {
+	pub struct Statemine {
+		Runtime = statemine_runtime::Runtime,
+		Origin = statemine_runtime::Origin,
+		XcmpMessageHandler = statemine_runtime::XcmpQueue,
+		DmpMessageHandler = statemine_runtime::DmpQueue,
+		new_ext = para_ext(PARA_ID_STATEMINE),
+	}
+}
+*/
 decl_test_network! {
 	pub struct TestNet {
 		relay_chain = KusamaNet,
 		parachains = vec![
+			// Be sure to use `PARA_ID_STATEMINE`
+			// (PARA_ID_STATEMINE, Statemine),
+			// Be sure to use `PARA_ID_KARURA`
+			(2000, Karura),
 			// Be sure to use `PARA_ID_DEVELOPMENT`
 			(2096, Development),
 			// Be sure to use `PARA_ID_SIBLING`
 			(3096, Sibling),
-			// Be sure to use `PARA_ID_KARURA`
-			(2000, Karura),
 		],
+	}
+}
+
+fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
+	HostConfiguration {
+		minimum_validation_upgrade_delay: 5,
+		validation_upgrade_cooldown: 5u32,
+		validation_upgrade_delay: 5,
+		code_retention_period: 1200,
+		max_code_size: MAX_CODE_SIZE,
+		max_pov_size: MAX_POV_SIZE,
+		max_head_data_size: 32 * 1024,
+		group_rotation_frequency: 20,
+		chain_availability_period: 4,
+		thread_availability_period: 4,
+		max_upward_queue_count: 8,
+		max_upward_queue_size: 50 * 1024,
+		max_downward_message_size: 1024,
+		ump_service_total_weight: 4 * 1_000_000_000,
+		max_upward_message_size: 1024 * 1024,
+		max_upward_message_num_per_candidate: 5,
+		hrmp_sender_deposit: 0,
+		hrmp_recipient_deposit: 0,
+		hrmp_channel_max_capacity: 8,
+		hrmp_channel_max_total_size: 8 * 1024,
+		hrmp_max_parachain_inbound_channels: 4,
+		hrmp_max_parathread_inbound_channels: 4,
+		hrmp_channel_max_message_size: 1024 * 1024,
+		hrmp_max_parachain_outbound_channels: 4,
+		hrmp_max_parathread_outbound_channels: 4,
+		hrmp_max_message_num_per_candidate: 5,
+		dispute_period: 6,
+		no_show_slots: 2,
+		n_delay_tranches: 25,
+		needed_approvals: 2,
+		relay_vrf_modulo_samples: 2,
+		zeroth_delay_tranche_width: 0,
+		..Default::default()
 	}
 }
 
@@ -145,42 +191,4 @@ pub fn para_ext(parachain_id: u32) -> sp_io::TestExternalities {
 		])
 		.parachain_id(parachain_id)
 		.build()
-}
-
-fn default_parachains_host_configuration() -> HostConfiguration<BlockNumber> {
-	HostConfiguration {
-		minimum_validation_upgrade_delay: 5,
-		validation_upgrade_cooldown: 5u32,
-		validation_upgrade_delay: 5,
-		code_retention_period: 1200,
-		max_code_size: MAX_CODE_SIZE,
-		max_pov_size: MAX_POV_SIZE,
-		max_head_data_size: 32 * 1024,
-		group_rotation_frequency: 20,
-		chain_availability_period: 4,
-		thread_availability_period: 4,
-		max_upward_queue_count: 8,
-		max_upward_queue_size: 1024 * 1024,
-		max_downward_message_size: 1024,
-		ump_service_total_weight: 4 * 1_000_000_000,
-		max_upward_message_size: 50 * 1024,
-		max_upward_message_num_per_candidate: 5,
-		hrmp_sender_deposit: 0,
-		hrmp_recipient_deposit: 0,
-		hrmp_channel_max_capacity: 8,
-		hrmp_channel_max_total_size: 8 * 1024,
-		hrmp_max_parachain_inbound_channels: 4,
-		hrmp_max_parathread_inbound_channels: 4,
-		hrmp_channel_max_message_size: 1024 * 1024,
-		hrmp_max_parachain_outbound_channels: 4,
-		hrmp_max_parathread_outbound_channels: 4,
-		hrmp_max_message_num_per_candidate: 5,
-		dispute_period: 6,
-		no_show_slots: 2,
-		n_delay_tranches: 25,
-		needed_approvals: 2,
-		relay_vrf_modulo_samples: 2,
-		zeroth_delay_tranche_width: 0,
-		..Default::default()
-	}
 }

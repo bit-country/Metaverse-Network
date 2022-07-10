@@ -193,6 +193,8 @@ pub trait MetaverseLandTrait<AccountId> {
 	fn get_user_land_units(who: &AccountId, metaverse_id: &MetaverseId) -> Vec<(i32, i32)>;
 	/// Check if this user own the metaverse
 	fn is_user_own_metaverse_land(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
+	/// Check if land unit belongs to a metaverse
+	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError>;
 }
 
 pub trait UndeployedLandBlocksTrait<AccountId> {
@@ -216,6 +218,11 @@ pub trait UndeployedLandBlocksTrait<AccountId> {
 	fn freeze_undeployed_land_block(
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError>;
+
+	fn check_undeployed_land_block(
+		owner: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError>;
 }
 
 pub trait NFTTrait<AccountId, Balance> {

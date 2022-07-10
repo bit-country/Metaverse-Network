@@ -785,86 +785,6 @@ pub mod pallet {
 					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
-				ItemId::Estate(_estate_id_) => {
-					// Ensure the _estate_id_ exist/minted
-					ensure!(
-						T::EstateHandler::check_estate(_estate_id_)?,
-						Error::<T>::EstateDoesNotExist
-					);
-
-					let start_time = <system::Pallet<T>>::block_number();
-					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
-					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
-
-					// Reserve network deposit fee
-					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
-
-					let new_auction_item = AuctionItem {
-						item_id: item_id.clone(),
-						recipient: recipient.clone(),
-						initial_amount,
-						amount: initial_amount,
-						start_time,
-						end_time,
-						auction_type,
-						listing_level: ListingLevel::Global,
-						currency_id: FungibleTokenId::NativeToken(0),
-						listing_fee,
-					};
-
-					<AuctionItems<T>>::insert(auction_id, new_auction_item);
-
-					Self::deposit_event(Event::NewAuctionItem(
-						auction_id,
-						recipient,
-						listing_level,
-						initial_amount,
-						initial_amount,
-						end_time,
-					));
-					<ItemsInAuction<T>>::insert(item_id, true);
-					Ok(auction_id)
-				}
-				ItemId::LandUnit(_coordinate_, _metaverse_id_) => {
-					// Ensure the _coordinate_ exist/minted
-					ensure!(
-						T::EstateHandler::check_landunit(_metaverse_id_, _coordinate_)?,
-						Error::<T>::LandUnitDoesNotExist
-					);
-
-					let start_time = <system::Pallet<T>>::block_number();
-					let end_time: T::BlockNumber = start_time + T::AuctionTimeToClose::get(); // add 7 days block for default auction
-					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
-
-					// Reserve network deposit fee
-					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
-
-					let new_auction_item = AuctionItem {
-						item_id: item_id.clone(),
-						recipient: recipient.clone(),
-						initial_amount,
-						amount: initial_amount,
-						start_time,
-						end_time,
-						auction_type,
-						listing_level: ListingLevel::Global,
-						currency_id: FungibleTokenId::NativeToken(0),
-						listing_fee,
-					};
-
-					<AuctionItems<T>>::insert(auction_id, new_auction_item);
-
-					Self::deposit_event(Event::NewAuctionItem(
-						auction_id,
-						recipient,
-						listing_level,
-						initial_amount,
-						initial_amount,
-						end_time,
-					));
-					<ItemsInAuction<T>>::insert(item_id, true);
-					Ok(auction_id)
-				}
 				ItemId::Bundle(tokens) => {
 					ensure!(
 						(tokens.len() as u32) < T::MaxBundleItem::get(),
@@ -1216,29 +1136,6 @@ pub mod pallet {
 								(from.clone(), metaverse_id),
 							);
 							match continuum_spot {
-								Err(_) => (),
-								Ok(_) => {
-									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
-								}
-							}
-						}
-						ItemId::Estate(estate_id) => {
-							let estate =
-								T::EstateHandler::transfer_estate(estate_id, &auction_item.recipient, &from.clone());
-							match estate {
-								Err(_) => (),
-								Ok(_) => {
-									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
-								}
-							}
-						}
-						ItemId::LandUnit(coordinate, metaverse_id) => {
-							let land_unit = T::EstateHandler::transfer_landunit(
-								coordinate,
-								&auction_item.recipient,
-								&(from.clone(), metaverse_id),
-							);
-							match land_unit {
 								Err(_) => (),
 								Ok(_) => {
 									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));

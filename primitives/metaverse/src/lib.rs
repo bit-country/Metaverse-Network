@@ -136,8 +136,6 @@ pub enum ItemId<Balance> {
 	Spot(MapSpotId, MetaverseId),
 	Metaverse(MetaverseId),
 	Block(u64),
-	Estate(EstateId),
-	LandUnit((i32, i32), MetaverseId),
 	Bundle(Vec<(ClassId, TokenId, Balance)>),
 	UndeployedLandBlock(UndeployedLandBlockId),
 }

@@ -6,6 +6,7 @@ use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
+use sp_std::vec::Vec;
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{CollectionType, NftClassData, TokenType};
@@ -26,6 +27,7 @@ pub type EstateId = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
 pub const BENEFICIARY_ID: AccountId = 99;
+pub const AUCTION_BENEFICIARY_ID: AccountId = 100;
 pub const CLASS_FUND_ID: AccountId = 123;
 pub const METAVERSE_ID: MetaverseId = 0;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
@@ -35,9 +37,10 @@ pub const MAX_BOUND: (i32, i32) = (-100, 100);
 pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
 pub const COORDINATE_IN_1: (i32, i32) = (-4, 4);
 pub const COORDINATE_IN_2: (i32, i32) = (-4, 5);
+pub const COORDINATE_IN_3: (i32, i32) = (-4, 6);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
-pub const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
-pub const ESTATE_IN_AUCTION: EstateId = 99;
+pub const COORDINATE_IN_AUCTION: (i32, i32) = (-4, 7);
+pub const ESTATE_IN_AUCTION: EstateId = 3;
 pub const UNDEPLOYED_LAND_BLOCK_IN_AUCTION: UndeployedLandBlockId = 1;
 
 pub const BOND_AMOUNT_1: Balance = 1000;
@@ -53,7 +56,9 @@ pub const ASSET_CLASS_ID: ClassId = 5;
 pub const ASSET_TOKEN_ID: TokenId = 6;
 pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
 pub const METAVERSE_LAND_CLASS: ClassId = 15;
+pub const METAVERSE_LAND_IN_AUCTION_TOKEN: TokenId = 4;
 pub const METAVERSE_ESTATE_CLASS: ClassId = 16;
+pub const METAVERSE_ESTATE_IN_AUCTION_TOKEN: TokenId = 3;
 
 pub const OWNER_ACCOUNT_ID: OwnerId<AccountId, ClassId, TokenId> = OwnerId::Account(BENEFICIARY_ID);
 pub const OWNER_ID_ALICE: OwnerId<AccountId, ClassId, TokenId> = OwnerId::Account(ALICE);
@@ -263,13 +268,13 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
 	fn check_item_in_auction(item_id: ItemId<Balance>) -> bool {
 		match item_id {
-			ItemId::Estate(ESTATE_IN_AUCTION) => {
+			ItemId::NFT(METAVERSE_LAND_CLASS, METAVERSE_LAND_IN_AUCTION_TOKEN) => {
+				return true;
+			}
+			ItemId::NFT(METAVERSE_ESTATE_CLASS, METAVERSE_ESTATE_IN_AUCTION_TOKEN) => {
 				return true;
 			}
 			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_IN_AUCTION) => {
-				return true;
-			}
-			ItemId::LandUnit(COORDINATE_IN_AUCTION, METAVERSE_ID) => {
 				return true;
 			}
 			_ => {
@@ -296,6 +301,9 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		if (*who == ALICE && (nft_value.1 == 1 || nft_value.1 == 3))
 			|| (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
 			|| (*who == BENEFICIARY_ID && (nft_value.1 == 100 || nft_value.1 == 101))
+				| (*who == AUCTION_BENEFICIARY_ID
+					&& (nft_value.1 == METAVERSE_ESTATE_IN_AUCTION_TOKEN
+						|| nft_value.1 == METAVERSE_LAND_IN_AUCTION_TOKEN))
 		{
 			return Ok(true);
 		}
@@ -351,12 +359,21 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			ALICE => Ok(1),
 			BOB => Ok(2),
 			BENEFICIARY_ID => {
-				if class_id == 15 {
+				if class_id == METAVERSE_LAND_CLASS {
 					return Ok(ASSET_ID_1);
-				} else if class_id == 16 {
+				} else if class_id == METAVERSE_ESTATE_CLASS {
 					return Ok(ASSET_ID_2);
 				} else {
 					return Ok(200);
+				}
+			}
+			AUCTION_BENEFICIARY_ID => {
+				if class_id == METAVERSE_LAND_CLASS {
+					return Ok(METAVERSE_LAND_IN_AUCTION_TOKEN);
+				} else if class_id == METAVERSE_ESTATE_CLASS {
+					return Ok(METAVERSE_ESTATE_IN_AUCTION_TOKEN);
+				} else {
+					return Ok(201);
 				}
 			}
 			_ => {
