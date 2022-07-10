@@ -2,11 +2,11 @@ FROM rust:buster as builder
 WORKDIR /app
 
 RUN rustup default nightly-2022-02-19 && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly-2022-02-19
+        rustup target add wasm32-unknown-unknown --toolchain nightly-2022-02-19
 
 RUN apt-get update && \
-	apt-get dist-upgrade -y -o Dpkg::Options::="--force-confold" && \
-	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
+        apt-get dist-upgrade -y -o Dpkg::Options::="--force-confold" && \
+        apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
 
 ARG GIT_COMMIT=
 ENV GIT_COMMIT=$GIT_COMMIT
@@ -15,7 +15,7 @@ ARG PROFILE=release
 
 COPY . .
 
-RUN make $BUILD_ARGS
+RUN cargo build --release --features=with-pioneer-runtime
 
 # =============
 
@@ -26,15 +26,15 @@ ARG PROFILE
 
 RUN useradd -m -u 1000 -U -s /bin/sh -d /metaverse metaverse
 
-COPY --from=builder /app/target/$PROFILE/metaverse-node /usr/local/bin
+COPY --from=builder /app/target/release/metaverse-node /usr/local/bin
 
 # checks
 RUN ldd /usr/local/bin/metaverse-node && \
-	/usr/local/bin/metaverse-node --version
+        /usr/local/bin/metaverse-node --version
 
 # Shrinking
 RUN rm -rf /usr/lib/python* && \
-	rm -rf /usr/sbin /usr/share/man
+        rm -rf /usr/sbin /usr/share/man
 
 USER metaverse
 EXPOSE 30333 9933 9944

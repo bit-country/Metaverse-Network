@@ -262,6 +262,8 @@ impl Contains<Call> for BaseFilter {
 			| Call::Vesting(..)
 			// Enable ultility
 			| Call::Utility{..}
+			// Enable multisign
+			| Call::Multisig(..)
 			// Enable Crowdloan
 			| Call::Crowdloan{..}
 			// Polkadot XCM
@@ -1405,29 +1407,6 @@ impl continuum::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 }
 
-impl tokenization::Config for Runtime {
-	type Event = Event;
-	type TokenId = u64;
-	type MetaverseMultiCurrency = Currencies;
-	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
-	type MetaverseInfoSource = Metaverse;
-	type LiquidityPoolManager = Swap;
-	type MinVestedTransfer = MinVestedTransfer;
-	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
-}
-
-parameter_types! {
-	pub const SwapFee: (u32, u32) = (1, 20); //0.05%
-}
-
-impl swap::Config for Runtime {
-	type Event = Event;
-	type PalletId = SwapPalletId;
-	type FungibleTokenCurrency = Tokens;
-	type NativeCurrency = Balances;
-	type GetSwapFee = SwapFee;
-}
-
 impl crowdloan::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -1563,8 +1542,7 @@ construct_runtime!(
 		// Pioneer pallets
 		// Metaverse & Related
 		Metaverse: metaverse::{Pallet, Call ,Storage, Event<T>} = 50,
-		SocialToken: tokenization:: {Pallet, Call ,Storage, Event<T>} = 51,
-		Swap: swap:: {Pallet, Storage ,Event<T>} = 52,
+
 		Vesting: pallet_vesting::{Pallet, Call ,Storage, Event<T>} = 53,
 		Mining: mining:: {Pallet, Call ,Storage ,Event<T>} = 54,
 		Emergency: emergency::{Pallet, Call, Storage, Event<T>} = 55,
@@ -1575,7 +1553,7 @@ construct_runtime!(
 		Nft: nft::{Call, Pallet, Storage, Event<T>} = 61,
 		Auction: auction::{Call, Pallet ,Storage, Event<T>} = 62,
 
-		Continuum: continuum::{Call, Pallet, Storage, Config<T>, Event<T>} = 63,
+		Continuum: continuum::{Call, Pallet, Storage, Event<T>} = 63,
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
 		// Crowdloan

@@ -11,8 +11,8 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use fc_consensus::FrontierBlockImport;
-use fc_rpc::{EthTask, OverrideHandle};
-use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
+use fc_rpc::EthTask;
+use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use futures::StreamExt;
 use sc_client_api::{BlockBackend, BlockchainEvents, ExecutorProvider};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
@@ -60,7 +60,7 @@ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
 pub fn new_partial(
 	config: &Configuration,
-	cli: &Cli,
+	_cli: &Cli,
 ) -> Result<
 	sc_service::PartialComponents<
 		FullClient,
@@ -289,7 +289,6 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 	let name = config.network.node_name.clone();
 	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
-	let is_authority = config.role.is_authority();
 	let overrides = crate::rpc::overrides_handle(client.clone());
 	let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
 		task_manager.spawn_handle(),
@@ -333,39 +332,6 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		})
 	};
 
-	/*
-	let rpc_builder = {
-		let client = client.clone();
-		let network = network.clone();
-		let pool = transaction_pool.clone();
-
-		Box::new(move |deny_unsafe, subscription| {
-			let deps = crate::rpc::FullDeps {
-				client: client.clone(),
-				pool: pool.clone(),
-				graph: pool.pool().clone(),
-				deny_unsafe,
-				is_authority,
-				true,
-				network: network.clone(),
-				filter_pool: Some(filter_pool.clone()),
-				backend: frontier_backend.clone(),
-				fee_history_cache: fee_history_cache.clone(),
-				fee_history_cache_limit: FEE_HISTORY_LIMIT,
-				// pub overrides: Arc<OverrideHandle<Block>>,
-				// pub block_data_cache: Arc<EthBlockDataCacheTask<Block>>,
-				// pub command_sink: Option<futures::channel::mpsc::Sender<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>>,
-			};
-
-			let mut io = crate::rpc::create_full(deps, subscription); //, overrides.clone());
-														  // Local node support WASM contracts
-														  //			io.extend_with(pallet_contracts_rpc::ContractsApi::to_delegate(
-														  //				pallet_contracts_rpc::Contracts::new(client.clone()),
-														  //			));
-			Ok(io)
-		})
-	};
-	*/
 	let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
 		config,
 		client: client.clone(),
