@@ -554,7 +554,7 @@ impl<T: Config> Pallet<T> {
 	pub fn account_id() -> T::AccountId {
 		T::ContinuumTreasury::get().into_account()
 	}
-	//noinspection ALL
+	// noinspection ALL
 	// Started auction slot and referendum
 	fn rotate_auction_slots(now: T::BlockNumber) -> DispatchResult {
 		// Get current active session

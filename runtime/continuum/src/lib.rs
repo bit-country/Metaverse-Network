@@ -20,7 +20,11 @@
 #![recursion_limit = "256"]
 
 use codec::{Decode, Encode};
+pub use constants::{currency::*, time::*};
+use core_primitives::{NftAssetData, NftClassData};
 use cumulus_primitives_core::ParaId;
+// External imports
+use currencies::BasicCurrencyAdapter;
 use frame_support::traits::{
 	Contains, Currency, EnsureOneOf, EnsureOrigin, EqualPrivilegeOnly, Get, Nothing, OnUnbalanced,
 };
@@ -47,6 +51,8 @@ use orml_xcm_support::DepositToAlternative;
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+// XCM Imports
+use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -74,13 +80,6 @@ use xcm_builder::{
 	TakeRevenue, TakeWeightCredit, UsingComponents,
 };
 use xcm_executor::{Config, XcmExecutor};
-
-pub use constants::{currency::*, time::*};
-use core_primitives::{NftAssetData, NftClassData};
-// External imports
-use currencies::BasicCurrencyAdapter;
-// XCM Imports
-use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
 
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
@@ -1403,7 +1402,6 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
-	type WeightInfo = ();
 }
 
 impl tokenization::Config for Runtime {

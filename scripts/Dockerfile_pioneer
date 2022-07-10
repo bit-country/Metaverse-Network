@@ -1,45 +1,32 @@
-# Based from https://github.com/paritytech/substrate/blob/master/.maintain/Dockerfile
-
 FROM rust:buster as builder
-LABEL maintainer="justin@bit.country"
-LABEL description="This is the build stage for Metaverse Network Node. Here we create the binary."
+WORKDIR /app
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-ARG PROFILE=release
-ARG GIT_COMMIT=
-ENV GIT_COMMIT=$GIT_COMMIT
-
-WORKDIR /metaverse
-
-RUN rustup default nightly-2021-11-07 && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly-2021-11-07
+RUN rustup default nightly-2022-02-19 && \
+	rustup target add wasm32-unknown-unknown --toolchain nightly-2022-02-19
 
 RUN apt-get update && \
 	apt-get dist-upgrade -y -o Dpkg::Options::="--force-confold" && \
 	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
 
-COPY . /metaverse
-
-RUN cargo build "--$PROFILE" --features=with-pioneer-runtime
-
-# ===== SECOND STAGE ======
-
-FROM phusion/baseimage:bionic-1.0.0
-LABEL maintainer="justin@bit.country"
-LABEL description="This is the 2nd stage: a very small image where we copy the Metaverse Network Node binary."
+ARG GIT_COMMIT=
+ENV GIT_COMMIT=$GIT_COMMIT
+ARG BUILD_ARGS
 ARG PROFILE=release
 
-RUN mv /usr/share/ca* /tmp && \
-	rm -rf /usr/share/*  && \
-	mv /tmp/ca-certificates /usr/share/ && \
-	useradd -m -u 1000 -U -s /bin/sh -d /metaverse metaverse && \
-	mkdir -p /metaverse/.local/share/metaverse && \
-	chown -R metaverse:metaverse /metaverse/.local && \
-	ln -s /metaverse/.local/share/metaverse /data
+COPY . .
 
-# Add the binary file generated in the `builder` container above
-COPY --from=builder /metaverse/target/$PROFILE/metaverse-node /usr/local/bin
+RUN make $BUILD_ARGS
+
+# =============
+
+FROM phusion/baseimage:focal-1.2.0
+LABEL maintainer="justin@bit.country"
+
+ARG PROFILE
+
+RUN useradd -m -u 1000 -U -s /bin/sh -d /metaverse metaverse
+
+COPY --from=builder /app/target/$PROFILE/metaverse-node /usr/local/bin
 
 # checks
 RUN ldd /usr/local/bin/metaverse-node && \
@@ -47,10 +34,10 @@ RUN ldd /usr/local/bin/metaverse-node && \
 
 # Shrinking
 RUN rm -rf /usr/lib/python* && \
-	rm -rf /usr/bin /usr/sbin /usr/share/man
+	rm -rf /usr/sbin /usr/share/man
 
 USER metaverse
-EXPOSE 30333 9933 9944 9615
+EXPOSE 30333 9933 9944
 
 RUN mkdir /metaverse/data
 

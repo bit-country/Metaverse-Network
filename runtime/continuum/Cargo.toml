@@ -1,6 +1,6 @@
 [package]
-name = "pioneer-runtime"
-description = "Pioneer Runtime"
+name = "continuum-runtime"
+description = "Continuum Runtime"
 version = "0.0.7"
 edition = '2021'
 

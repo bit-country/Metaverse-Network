@@ -8,15 +8,11 @@
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use fc_consensus::FrontierBlockImport;
-use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
+use fc_rpc::{EthTask, OverrideHandle};
+use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use futures::StreamExt;
 use sc_client_api::{BlockBackend, BlockchainEvents, ExecutorProvider};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
@@ -25,11 +21,18 @@ use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
-use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 
 use metaverse_runtime::RuntimeApi;
 use primitives::*;
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+use crate::cli::Cli;
+#[cfg(feature = "manual-seal")]
+use crate::cli::Sealing;
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -51,12 +54,13 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
 	}
 }
 
-type FullClient = sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
+pub type FullClient = sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
 pub fn new_partial(
 	config: &Configuration,
+	cli: &Cli,
 ) -> Result<
 	sc_service::PartialComponents<
 		FullClient,
@@ -132,7 +136,7 @@ pub fn new_partial(
 	let frontier_block_import =
 		FrontierBlockImport::new(grandpa_block_import.clone(), client.clone(), frontier_backend.clone());
 
-	let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
+	let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
 	let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(ImportQueueParams {
 		block_import: grandpa_block_import.clone(),
@@ -141,7 +145,7 @@ pub fn new_partial(
 		create_inherent_data_providers: move |_, ()| async move {
 			let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
-			let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+			let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 				*timestamp,
 				slot_duration,
 			);
@@ -175,7 +179,7 @@ fn remote_keystore(_url: &String) -> Result<Arc<LocalKeystore>, &'static str> {
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, ServiceError> {
 	let sc_service::PartialComponents {
 		client,
 		backend,
@@ -185,7 +189,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		select_chain,
 		transaction_pool,
 		other: (block_import, grandpa_link, mut telemetry, frontier_backend),
-	} = new_partial(&config)?;
+	} = new_partial(&config, cli)?;
 
 	if let Some(url) = &config.keystore_remote {
 		match remote_keystore(url) {
@@ -245,6 +249,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			client.clone(),
 			backend.clone(),
 			frontier_backend.clone(),
+			3, // retry_times: usize,
+			0, // sync_from: <Block::Header as HeaderT>::Number,
 			fc_mapping_sync::SyncStrategy::Parachain,
 		)
 		.for_each(|()| futures::future::ready(())),
@@ -256,20 +262,20 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-filter-pool",
 		Some("frontier"),
-		fc_rpc::EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
+		EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
 	);
 
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-schema-cache-task",
 		Some("frontier"),
-		fc_rpc::EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
+		EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
 	);
 
 	const FEE_HISTORY_LIMIT: u64 = 2048;
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-fee-history",
 		Some("frontier"),
-		fc_rpc::EthTask::fee_history_task(
+		EthTask::fee_history_task(
 			client.clone(),
 			overrides.clone(),
 			fee_history_cache.clone(),
@@ -281,11 +287,54 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 	let force_authoring = config.force_authoring;
 	let backoff_authoring_blocks: Option<()> = None;
 	let name = config.network.node_name.clone();
-	let prometheus_registry = config.prometheus_registry().cloned();
 	let enable_grandpa = !config.disable_grandpa;
+	let prometheus_registry = config.prometheus_registry().cloned();
 	let is_authority = config.role.is_authority();
+	let overrides = crate::rpc::overrides_handle(client.clone());
+	let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
+		task_manager.spawn_handle(),
+		overrides.clone(),
+		50,
+		50,
+		prometheus_registry.clone(),
+	));
 
 	let rpc_extensions_builder = {
+		let client = client.clone();
+		let pool = transaction_pool.clone();
+		let is_authority = role.is_authority();
+		let enable_dev_signer = cli.run.enable_dev_signer;
+		let network = network.clone();
+		let filter_pool = filter_pool.clone();
+		let frontier_backend = frontier_backend.clone();
+		let overrides = overrides.clone();
+		let fee_history_cache = fee_history_cache.clone();
+		let max_past_logs = cli.run.max_past_logs;
+
+		Box::new(move |deny_unsafe, subscription_task_executor| {
+			let deps = crate::rpc::FullDeps {
+				client: client.clone(),
+				pool: pool.clone(),
+				graph: pool.pool().clone(),
+				deny_unsafe,
+				is_authority,
+				enable_dev_signer,
+				network: network.clone(),
+				filter_pool: Some(filter_pool.clone()),
+				backend: frontier_backend.clone(),
+				max_past_logs,
+				fee_history_cache: fee_history_cache.clone(),
+				fee_history_cache_limit: FEE_HISTORY_LIMIT,
+				overrides: overrides.clone(),
+				block_data_cache: block_data_cache.clone(),
+			};
+
+			crate::rpc::create_full(deps, subscription_task_executor).map_err(Into::into)
+		})
+	};
+
+	/*
+	let rpc_builder = {
 		let client = client.clone();
 		let network = network.clone();
 		let pool = transaction_pool.clone();
@@ -295,34 +344,38 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 				client: client.clone(),
 				pool: pool.clone(),
 				graph: pool.pool().clone(),
-				network: network.clone(),
-				is_authority,
 				deny_unsafe,
-				frontier_backend: frontier_backend.clone(),
-				filter_pool: filter_pool.clone(),
-				fee_history_limit: FEE_HISTORY_LIMIT,
+				is_authority,
+				true,
+				network: network.clone(),
+				filter_pool: Some(filter_pool.clone()),
+				backend: frontier_backend.clone(),
 				fee_history_cache: fee_history_cache.clone(),
+				fee_history_cache_limit: FEE_HISTORY_LIMIT,
+				// pub overrides: Arc<OverrideHandle<Block>>,
+				// pub block_data_cache: Arc<EthBlockDataCacheTask<Block>>,
+				// pub command_sink: Option<futures::channel::mpsc::Sender<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>>,
 			};
 
-			let mut io = crate::rpc::create_full(deps, subscription, overrides.clone());
-			// Local node support WASM contracts
-			//			io.extend_with(pallet_contracts_rpc::ContractsApi::to_delegate(
-			//				pallet_contracts_rpc::Contracts::new(client.clone()),
-			//			));
+			let mut io = crate::rpc::create_full(deps, subscription); //, overrides.clone());
+														  // Local node support WASM contracts
+														  //			io.extend_with(pallet_contracts_rpc::ContractsApi::to_delegate(
+														  //				pallet_contracts_rpc::Contracts::new(client.clone()),
+														  //			));
 			Ok(io)
 		})
 	};
-
+	*/
 	let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		network: network.clone(),
-		client: client.clone(),
-		keystore: keystore_container.sync_keystore(),
-		task_manager: &mut task_manager,
-		transaction_pool: transaction_pool.clone(),
-		rpc_extensions_builder,
-		backend,
-		system_rpc_tx,
 		config,
+		client: client.clone(),
+		backend,
+		task_manager: &mut task_manager,
+		keystore: keystore_container.sync_keystore(),
+		transaction_pool: transaction_pool.clone(),
+		rpc_builder: rpc_extensions_builder,
+		network: network.clone(),
+		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
 	})?;
 
@@ -338,7 +391,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 		let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
 		let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
-		let raw_slot_duration = slot_duration.slot_duration();
+		//let raw_slot_duration = slot_duration.as_duration();
 
 		let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _, _>(StartAuraParams {
 			slot_duration,
@@ -349,9 +402,9 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			create_inherent_data_providers: move |_, ()| async move {
 				let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
-				let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+				let slot = sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 					*timestamp,
-					raw_slot_duration,
+					slot_duration,
 				);
 
 				Ok((timestamp, slot))
