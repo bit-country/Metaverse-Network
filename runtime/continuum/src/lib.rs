@@ -1403,6 +1403,7 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
+	type WeightInfo = (); //weights::module_continuum::WeightInfo<Runtime>;
 }
 
 impl crowdloan::Config for Runtime {
