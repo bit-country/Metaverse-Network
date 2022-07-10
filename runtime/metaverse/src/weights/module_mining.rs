@@ -4,10 +4,10 @@
 use frame_support::{traits::Get, weights::Weight};
 use sp_std::marker::PhantomData;
 
-/// Weight functions for module_auction.
+/// Weight functions for module_mining.
 pub struct WeightInfo<T>(PhantomData<T>);
 
-impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> mining::WeightInfo for WeightInfo<T> {
 	fn add_minting_origin() -> Weight {
 		(24_400_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))

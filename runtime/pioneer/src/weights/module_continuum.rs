@@ -4,10 +4,10 @@
 use frame_support::{traits::Get, weights::Weight};
 use sp_std::marker::PhantomData;
 
-/// Weight functions for module_auction.
+/// Weight functions for module_continuum.
 pub struct WeightInfo<T>(PhantomData<T>);
 
-impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> continuum::WeightInfo for WeightInfo<T> {
 	fn set_allow_buy_now() -> Weight {
 		(3_000_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
