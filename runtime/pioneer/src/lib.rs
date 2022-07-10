@@ -262,6 +262,8 @@ impl Contains<Call> for BaseFilter {
 			| Call::Vesting(..)
 			// Enable ultility
 			| Call::Utility{..}
+			// Enable multisign
+			| Call::Multisig(..)
 			// Enable Crowdloan
 			| Call::Crowdloan{..}
 			// Polkadot XCM
