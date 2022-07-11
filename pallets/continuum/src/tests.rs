@@ -242,3 +242,57 @@ fn bid_auction_continuum_should_fail_if_already_got_spot() {
 		);
 	})
 }
+
+#[test]
+fn buy_now_continuum_should_fail_if_has_not_deploy_land() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		// Enable Allow BuyNow
+		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::BuyNow,
+			100,
+			10
+		));
+
+		assert_noop!(
+			ContinuumModule::buy_map_spot(Origin::signed(CHARLIE), 1, 100, CHARLIE_METAVERSE_ID),
+			Error::<Runtime>::MetaverseHasNotDeployedAnyLand
+		);
+	})
+}
+
+#[test]
+fn bid_auction_continuum_should_fail_if_has_not_deployed_land() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::Auction,
+			100,
+			10
+		));
+
+		assert_noop!(
+			ContinuumModule::bid_map_spot(Origin::signed(CHARLIE), 1, 100, CHARLIE_METAVERSE_ID),
+			Error::<Runtime>::MetaverseHasNotDeployedAnyLand
+		);
+	})
+}
