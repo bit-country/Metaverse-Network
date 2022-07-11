@@ -9,6 +9,7 @@ repository = "https://github.com/bit-country/Metaverse-Network"
 version = "0.0.29"
 
 [dependencies]
+codec = { package = 'parity-scale-codec', version = '3.0.0', default-features = false, features = ['derive'] }
 
 # Substrate
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
@@ -16,19 +17,30 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
 
 # Polkadot
-kusama-runtime = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
-pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
 polkadot-parachain = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
+kusama-runtime = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
+
+# XCM
+pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
 xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.22" }
+xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.22" }
 
 # Cumulus
+cumulus-pallet-parachain-system = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
+cumulus-primitives-parachain-inherent = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
 cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
+cumulus-test-relay-sproof-builder = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
+cumulus-pallet-dmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
+cumulus-pallet-xcmp-queue = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
+cumulus-pallet-xcm = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
 parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
+statemine-runtime = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.22" }
 
 # Orml pallets
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.22", default-features = false }
@@ -41,11 +53,19 @@ orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-l
 xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "5a04d6286ee9082d4b7433541e48508f8b65616b" }
 
 # Local
-metaverse-runtime = { path = "../metaverse" }
-pioneer-runtime = { path = "../pioneer" }
+metaverse-runtime = { path = "../metaverse", optional = true  }
+pioneer-runtime = { path = "../pioneer", optional = true }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
+auction-manager = { path = "../../traits/auction-manager", default-features = false }
 core-traits = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
 
 [dev-dependencies]
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.22" }
-xcm-executor = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.22" }
+
+[features]
+default = ["std"]
+no_std = []
+with-pioneer-runtime = [
+    "pioneer-runtime"
+]
+std = []

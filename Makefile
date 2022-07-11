@@ -16,7 +16,7 @@ check-continuum: githooks
 
 .PHONY: check-all
 check-all: githooks
-	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime with-metaverse-runtime
+	SKIP_WASM_BUILD= cargo check --features with-pioneer-runtime,with-metaverse-runtime
 
 .PHONY: check-debug
 check-debug:
@@ -29,6 +29,10 @@ check-formatting:
 .PHONY: test
 test:
 	SKIP_WASM_BUILD= cargo test --all
+
+.PHONY: test-pioneer
+test-pioneer:
+	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime
 
 .PHONY: run
 run:

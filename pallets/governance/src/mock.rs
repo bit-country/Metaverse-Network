@@ -206,6 +206,9 @@ impl MetaverseLandTrait<AccountId> for MetaverseLandInfo {
 			_ => false,
 		}
 	}
+	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
 }
 
 parameter_types! {

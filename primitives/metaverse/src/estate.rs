@@ -57,4 +57,5 @@ pub enum LandUnitStatus<AccountId> {
 	NonExisting,
 	Existing(AccountId),
 	NonExistingWithEstate,
+	RemovedFromEstate,
 }

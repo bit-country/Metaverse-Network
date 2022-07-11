@@ -345,10 +345,21 @@ fn transfer_land_should_do_fail_for_same_account() {
 #[test]
 fn transfer_land_should_do_fail_for_already_in_auction() {
 	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_land(
+			Origin::root(),
+			AUCTION_BENEFICIARY_ID,
+			METAVERSE_ID,
+			COORDINATE_IN_AUCTION
+		));
+		assert_eq!(
+			EstateModule::get_land_units(METAVERSE_ID, COORDINATE_IN_AUCTION),
+			Some(OwnerId::Token(METAVERSE_LAND_CLASS, METAVERSE_LAND_IN_AUCTION_TOKEN))
+		);
+
 		assert_noop!(
 			EstateModule::transfer_land(
-				Origin::signed(BENEFICIARY_ID),
-				BENEFICIARY_ID,
+				Origin::signed(AUCTION_BENEFICIARY_ID),
+				BOB,
 				METAVERSE_ID,
 				COORDINATE_IN_AUCTION
 			),
@@ -712,8 +723,32 @@ fn transfer_estate_should_reject_no_permission() {
 #[test]
 fn transfer_estate_should_reject_already_in_auction() {
 	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1]
+		));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_2]
+		));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_3]
+		));
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			AUCTION_BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_AUCTION]
+		));
 		assert_noop!(
-			EstateModule::transfer_estate(Origin::signed(BOB), ALICE, ESTATE_IN_AUCTION),
+			EstateModule::transfer_estate(Origin::signed(AUCTION_BENEFICIARY_ID), ALICE, ESTATE_IN_AUCTION),
 			Error::<Runtime>::EstateAlreadyInAuction
 		);
 	});
