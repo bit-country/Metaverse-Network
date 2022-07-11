@@ -65,13 +65,6 @@ pub fn create_land_and_estate_group() {
 	assert_ok!(Nft::create_group(RawOrigin::Root.into(), vec![1], vec![1]));
 }
 
-pub fn get_estate_info(lands: Vec<(i32, i32)>) -> EstateInfo {
-	return EstateInfo {
-		metaverse_id: METAVERSE_ID,
-		land_units: lands,
-	};
-}
-
 pub fn issue_new_undeployed_land_block(n: u32) -> Result<bool, &'static str> {
 	let caller: AccountId = account("caller", 0, SEED);
 	set_balance(FungibleTokenId::NativeToken(0), &caller, 10000);
@@ -84,14 +77,6 @@ pub fn issue_new_undeployed_land_block(n: u32) -> Result<bool, &'static str> {
 	));
 
 	Ok(true)
-}
-
-pub fn create_metaverse_for_account(caller: &AccountId) {
-	create_land_and_estate_group();
-	assert_ok!(Metaverse::create_metaverse(
-		RawOrigin::Signed(caller.clone()).into(),
-		vec![1u8]
-	));
 }
 
 pub fn test_attributes(x: u8) -> Attributes {
