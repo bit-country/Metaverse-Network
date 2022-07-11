@@ -1227,4 +1227,10 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			Ok(())
 		})
 	}
+
+	fn get_nft_class_detail(class_id: Self::ClassId) -> Result<NftClassData<BalanceOf<T>>, DispatchError> {
+		let asset_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::AssetInfoNotFound)?;
+
+		Ok(asset_info.data)
+	}
 }
