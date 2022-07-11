@@ -51,7 +51,6 @@ use frame_support::{
 	traits::{Currency, Get, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
-
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
 use sp_runtime::traits::CheckedAdd;
@@ -68,7 +67,6 @@ pub use pallet::*;
 use primitives::{continuum::MapTrait, ItemId, MapSpotId, MetaverseId, SpotId};
 pub use types::*;
 pub use vote::*;
-
 pub use weights::WeightInfo;
 
 mod types;
@@ -266,6 +264,8 @@ pub mod pallet {
 		MetaverseAlreadyGotSpot,
 		/// Auction is not for map spot or does not exists
 		InvalidSpotAuction,
+		/// Metaverse has no deployed land.
+		MetaverseHasNotDeployedAnyLand,
 	}
 
 	#[pallet::call]
@@ -356,6 +356,11 @@ pub mod pallet {
 				Error::<T>::MetaverseAlreadyGotSpot
 			);
 
+			ensure!(
+				T::MetaverseInfoSource::check_if_metaverse_has_any_land(metaverse_id.clone())?,
+				Error::<T>::MetaverseHasNotDeployedAnyLand
+			);
+
 			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
 
 			ensure!(auction_item.item_id.is_map_spot(), Error::<T>::InvalidSpotAuction);
@@ -389,6 +394,11 @@ pub mod pallet {
 			ensure!(
 				!MetaverseMap::<T>::contains_key(&metaverse_id),
 				Error::<T>::MetaverseAlreadyGotSpot
+			);
+
+			ensure!(
+				T::MetaverseInfoSource::check_if_metaverse_has_any_land(metaverse_id.clone())?,
+				Error::<T>::MetaverseHasNotDeployedAnyLand
 			);
 
 			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
