@@ -47,6 +47,12 @@ use sp_std::{
 	fmt::Debug,
 	marker, result,
 };
+pub use weights::WeightInfo;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
+pub mod weights;
 
 pub use pallet::*;
 use primitives::FungibleTokenId;
@@ -80,6 +86,7 @@ pub mod pallet {
 		#[pallet::constant]
 		/// The native currency id
 		type GetNativeCurrencyId: Get<FungibleTokenId>;
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::error]
@@ -108,7 +115,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer())]
 		pub fn transfer(
 			origin: OriginFor<T>,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -125,7 +132,7 @@ pub mod pallet {
 		///
 		/// The dispatch origin for this call must be `Signed` by the
 		/// transactor.
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::transfer_native_currency())]
 		pub fn transfer_native_currency(
 			origin: OriginFor<T>,
 			dest: <T::Lookup as StaticLookup>::Source,
@@ -142,7 +149,7 @@ pub mod pallet {
 		/// update amount of account `who` under `currency_id`.
 		///
 		/// The dispatch origin of this call must be _Root_.
-		#[pallet::weight(10_000)]
+		#[pallet::weight(T::WeightInfo::update_balance())]
 		pub fn update_balance(
 			origin: OriginFor<T>,
 			who: <T::Lookup as StaticLookup>::Source,
