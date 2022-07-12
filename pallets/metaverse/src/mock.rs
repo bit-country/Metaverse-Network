@@ -297,6 +297,7 @@ impl currencies::Config for Runtime {
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
+	type WeightInfo = ();
 }
 
 pub type MetaverseModule = Pallet<Runtime>;
