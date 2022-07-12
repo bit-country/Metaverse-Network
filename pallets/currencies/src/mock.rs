@@ -95,13 +95,16 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type ReserveIdentifier = [u8; 8];
+	type MaxReserves = ();
+	type DustRemovalWhitelist = Nothing;
 }
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -194,7 +197,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		Currencies: orml_currencies::{ Module, Storage, Call, Event<T>},
+		Currencies: orml_currencies::{ Module, Storage, Call},
 		Tokens: orml_tokens::{ Module, Storage, Call, Event<T>},
 	}
 );
