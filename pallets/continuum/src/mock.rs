@@ -284,6 +284,14 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 		return Ok(false);
 	}
+
+	fn check_if_metaverse_has_any_land(metaverse_id: primitives::MetaverseId) -> Result<bool, DispatchError> {
+		match metaverse_id {
+			ALICE_METAVERSE_ID => return Ok(true),
+			BOB_METAVERSE_ID => return Ok(true),
+			_ => Ok(false),
+		}
+	}
 }
 
 impl Config for Runtime {
@@ -296,6 +304,7 @@ impl Config for Runtime {
 	type ContinuumTreasury = ContinuumTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = MetaverseInfoSource;
+	type WeightInfo = ();
 }
 
 pub type ContinuumModule = Pallet<Runtime>;

@@ -702,6 +702,16 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 
 		Ok(class_id == &metaverse_info.land_class_id || class_id == &metaverse_info.estate_class_id)
 	}
+
+	fn check_if_metaverse_has_any_land(metaverse_id: MetaverseId) -> Result<bool, DispatchError> {
+		let metaverse_info = Self::get_metaverse(metaverse_id).ok_or(Error::<T>::MetaverseInfoNotFound)?;
+
+		let land_unit_class_info = T::NFTHandler::get_nft_class_detail(metaverse_info.land_class_id)?;
+
+		let estate_class_info = T::NFTHandler::get_nft_class_detail(metaverse_info.estate_class_id)?;
+
+		Ok(land_unit_class_info.total_minted_tokens > 0 || estate_class_info.total_minted_tokens > 0)
+	}
 }
 
 impl<T: Config> MetaverseStakingTrait<BalanceOf<T>> for Pallet<T> {

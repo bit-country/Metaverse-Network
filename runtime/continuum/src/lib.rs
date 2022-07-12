@@ -1275,7 +1275,7 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
-	type WeightInfo = (); //weights::module_mining::WeightInfo<Runtime>;
+	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1403,6 +1403,7 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
+	type WeightInfo = weights::module_continuum::WeightInfo<Runtime>;
 }
 
 impl crowdloan::Config for Runtime {

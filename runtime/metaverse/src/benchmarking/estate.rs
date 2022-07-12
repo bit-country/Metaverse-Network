@@ -17,9 +17,7 @@ use crate::{
 	Runtime, System,
 };
 
-use super::utils::{
-	create_metaverse_for_account, dollar, get_estate_info, issue_new_undeployed_land_block, mint_NFT, set_balance,
-};
+use super::utils::{dollar, issue_new_undeployed_land_block, mint_NFT, set_balance};
 
 //pub type AccountId = u128;
 pub type LandId = u64;
@@ -94,7 +92,10 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1])
 	verify {
-		assert_eq!(Estate::get_estates(0), Some(get_estate_info(vec![COORDINATE_IN_1])));
+		assert_eq!(Estate::get_estates(0), Some(EstateInfo {
+			metaverse_id: METAVERSE_ID,
+			land_units: vec![COORDINATE_IN_1],
+		}));
 		assert_eq!(Estate::get_estate_owner(0), Some(OwnerId::Token(1,0)));
 	}
 
@@ -124,7 +125,10 @@ runtime_benchmarks! {
 		Estate::mint_land(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, COORDINATE_IN_2);
 	}: _(RawOrigin::Signed(caller.clone()), 0, vec![COORDINATE_IN_2])
 	verify {
-		assert_eq!(Estate::get_estates(0), Some(get_estate_info(vec![COORDINATE_IN_1, COORDINATE_IN_2])))
+		assert_eq!(Estate::get_estates(0), Some(EstateInfo {
+			metaverse_id: METAVERSE_ID,
+			land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2],
+		}));
 	}
 
 	// remove_land_unit_from_estate
@@ -138,7 +142,10 @@ runtime_benchmarks! {
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2]);
 	}: _(RawOrigin::Signed(caller.clone()), 0, vec![COORDINATE_IN_2])
 	verify {
-		assert_eq!(Estate::get_estates(0), Some(get_estate_info(vec![COORDINATE_IN_1])))
+		assert_eq!(Estate::get_estates(0), Some(EstateInfo {
+			metaverse_id: METAVERSE_ID,
+			land_units: vec![COORDINATE_IN_1],
+		}));
 	}
 
 	// create_estate as token
@@ -152,10 +159,11 @@ runtime_benchmarks! {
 		Estate::mint_lands(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2]);
 	}: _(RawOrigin::Signed(caller.clone()), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
 	verify {
-		assert_eq!(Estate::get_estates(0), Some(get_estate_info(vec![COORDINATE_IN_1, COORDINATE_IN_2])));
+		assert_eq!(Estate::get_estates(0), Some(EstateInfo {
+			metaverse_id: METAVERSE_ID,
+			land_units: vec![COORDINATE_IN_1, COORDINATE_IN_2],
+		}));
 		assert_eq!(Estate::get_estate_owner(0), Some(OwnerId::Token(1,0)));
-		//assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Account(caller.clone())));
-		//assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_2), Some(OwnerId::Account(caller)))
 	}
 
 	// transfer_estate

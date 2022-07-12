@@ -190,6 +190,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 		}
 		return Ok(false);
 	}
+
+	fn check_if_metaverse_has_any_land(_metaverse_id: MetaverseId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
 }
 
 pub struct MetaverseLandInfo {}
@@ -357,6 +361,20 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 
 	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
 		todo!()
+	}
+
+	fn get_nft_class_detail(_class_id: Self::ClassId) -> Result<NftClassData<Balance>, DispatchError> {
+		let new_data = NftClassData {
+			deposit: 0,
+			attributes: test_attributes(1),
+			token_type: TokenType::Transferable,
+			collection_type: CollectionType::Collectable,
+			is_locked: false,
+			royalty_fee: Perbill::from_percent(0u32),
+			mint_limit: None,
+			total_minted_tokens: 0u32,
+		};
+		Ok(new_data)
 	}
 }
 

@@ -161,6 +161,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 		return Ok(false);
 	}
+
+	fn check_if_metaverse_has_any_land(_metaverse_id: primitives::MetaverseId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
 }
 
 impl Config for Runtime {

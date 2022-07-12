@@ -1,13 +1,16 @@
 #![cfg(test)]
-use crate as metaverse;
+
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
-use primitives::staking::RoundInfo;
-use primitives::{Amount, ClassId, GroupCollectionId, TokenId};
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+
+use primitives::staking::RoundInfo;
+use primitives::{Amount, ClassId, GroupCollectionId, TokenId};
+
+use crate as metaverse;
 
 use super::*;
 
@@ -220,6 +223,20 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 
 	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
 		todo!()
+	}
+
+	fn get_nft_class_detail(_class_id: Self::ClassId) -> Result<NftClassData<Balance>, DispatchError> {
+		let new_data = NftClassData {
+			deposit: 0,
+			attributes: test_attributes(1),
+			token_type: TokenType::Transferable,
+			collection_type: CollectionType::Collectable,
+			is_locked: false,
+			royalty_fee: Perbill::from_percent(0u32),
+			mint_limit: None,
+			total_minted_tokens: 0u32,
+		};
+		Ok(new_data)
 	}
 }
 

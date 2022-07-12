@@ -596,6 +596,7 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
+	type WeightInfo = weights::module_continuum::WeightInfo<Runtime>;
 }
 
 pub struct EnsureRootOrMetaverseTreasury;
@@ -654,7 +655,7 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
-	type WeightInfo = (); //weights::module_mining::WeightInfo<Runtime>;
+	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1141,6 +1142,7 @@ pub type SignedExtra = (
 mod benches {
 	define_benchmarks!(
 		[auction, benchmarking::auction]
+		[continuum, benchmarking::continuum]
 		[estate, benchmarking::estate]
 		[metaverse, benchmarking::metaverse]
 	);
@@ -1555,6 +1557,7 @@ impl_runtime_apis! {
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
 			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
+			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1602,6 +1605,7 @@ impl_runtime_apis! {
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
 			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);
+			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			Ok(batches)
 		}
 	}

@@ -47,7 +47,7 @@
 use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::DispatchResult,
-	ensure,
+	ensure, log,
 	traits::{Currency, Get, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
@@ -67,6 +67,7 @@ pub use pallet::*;
 use primitives::{continuum::MapTrait, ItemId, MapSpotId, MetaverseId, SpotId};
 pub use types::*;
 pub use vote::*;
+pub use weights::WeightInfo;
 
 mod types;
 mod vote;
@@ -75,6 +76,8 @@ mod vote;
 mod mock;
 #[cfg(test)]
 mod tests;
+
+pub mod weights;
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub enum ContinuumAuctionSlotStatus {
@@ -149,6 +152,8 @@ pub mod pallet {
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 		/// Source of Metaverse Network Info
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
+		/// Weight implementation for estate extrinsics
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::pallet]
@@ -259,12 +264,14 @@ pub mod pallet {
 		MetaverseAlreadyGotSpot,
 		/// Auction is not for map spot or does not exists
 		InvalidSpotAuction,
+		/// Metaverse has no deployed land.
+		MetaverseHasNotDeployedAnyLand,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Issue new map slot
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::issue_map_slot())]
 		pub fn issue_map_slot(origin: OriginFor<T>, coordinate: (i32, i32), slot_type: TokenType) -> DispatchResult {
 			ensure_root(origin)?;
 
@@ -289,12 +296,11 @@ pub mod pallet {
 			MapSpots::<T>::insert(coordinate.clone(), map_slot);
 
 			Self::deposit_event(Event::<T>::NewMapSpotIssued(coordinate, Self::account_id()));
-
 			Ok(())
 		}
 
 		/// Create new map auction
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::create_new_auction())]
 		pub fn create_new_auction(
 			origin: OriginFor<T>,
 			spot_id: MapSpotId,
@@ -327,12 +333,11 @@ pub mod pallet {
 				ListingLevel::Global,
 				Perbill::from_percent(0u32),
 			)?;
-
 			Ok(())
 		}
 
 		/// Buy continuum slot with fixed price
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::buy_map_spot())]
 		#[transactional]
 		pub fn buy_map_spot(
 			origin: OriginFor<T>,
@@ -351,6 +356,11 @@ pub mod pallet {
 				Error::<T>::MetaverseAlreadyGotSpot
 			);
 
+			ensure!(
+				T::MetaverseInfoSource::check_if_metaverse_has_any_land(metaverse_id.clone())?,
+				Error::<T>::MetaverseHasNotDeployedAnyLand
+			);
+
 			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
 
 			ensure!(auction_item.item_id.is_map_spot(), Error::<T>::InvalidSpotAuction);
@@ -363,12 +373,11 @@ pub mod pallet {
 			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
 
 			T::AuctionHandler::buy_now_handler(sender, auction_id, value)?;
-
 			Ok(())
 		}
 
 		/// Buy continuum slot with fixed price
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::bid_map_spot())]
 		#[transactional]
 		pub fn bid_map_spot(
 			origin: OriginFor<T>,
@@ -387,6 +396,11 @@ pub mod pallet {
 				Error::<T>::MetaverseAlreadyGotSpot
 			);
 
+			ensure!(
+				T::MetaverseInfoSource::check_if_metaverse_has_any_land(metaverse_id.clone())?,
+				Error::<T>::MetaverseHasNotDeployedAnyLand
+			);
+
 			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
 
 			ensure!(auction_item.item_id.is_map_spot(), Error::<T>::InvalidSpotAuction);
@@ -403,7 +417,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::set_allow_buy_now())]
 		/// Whether council enable buy now option
 		pub fn set_allow_buy_now(origin: OriginFor<T>, enable: bool) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
@@ -424,7 +438,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	fn account_id() -> T::AccountId {
+	pub fn account_id() -> T::AccountId {
 		T::ContinuumTreasury::get().into_account()
 	}
 	// noinspection ALL
