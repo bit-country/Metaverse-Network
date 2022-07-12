@@ -918,6 +918,7 @@ impl economy::Config for Runtime {
 impl emergency::Config for Runtime {
 	type Event = Event;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1560,6 +1561,7 @@ impl_runtime_apis! {
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
+			use emergency::benchmarking::EmergencyModule as EmergencyBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1572,6 +1574,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, currencies, CurrenciesBench::<Runtime>);
+			list_benchmark!(list, extra, emergency, EmergencyBench::<Runtime>);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
 			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
@@ -1595,6 +1598,7 @@ impl_runtime_apis! {
 			use economy::benchmarking::EconomyModule as EconomyBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
+			use emergency::benchmarking::EmergencyModule as EmergencyBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1621,6 +1625,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
+			add_benchmark!(params, batches, emergency, EmergencyBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
 			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);

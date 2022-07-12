@@ -192,6 +192,7 @@ runtime-benchmarks = [
     "economy/runtime-benchmarks",
     "mining/runtime-benchmarks",
     "currencies/runtime-benchmarks",
+    "emergency/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks"
 ]
