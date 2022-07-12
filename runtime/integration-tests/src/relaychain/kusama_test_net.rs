@@ -16,7 +16,6 @@
 // limitations under the License.
 
 //! Relay chain and parachains emulation.
-use crate::setup::*;
 use cumulus_primitives_core::ParaId;
 use frame_support::traits::GenesisBuild;
 use polkadot_primitives::v1::{BlockNumber, MAX_CODE_SIZE, MAX_POV_SIZE};
@@ -26,6 +25,8 @@ use xcm_emulator::{decl_test_network, decl_test_parachain, decl_test_relay_chain
 
 use core_traits::FungibleTokenId;
 use pioneer_runtime::AccountId;
+
+use crate::setup::*;
 
 decl_test_relay_chain! {
 	pub struct KusamaNet {

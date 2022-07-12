@@ -284,6 +284,14 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 		return Ok(false);
 	}
+
+	fn check_if_metaverse_has_any_land(metaverse_id: primitives::MetaverseId) -> Result<bool, DispatchError> {
+		match metaverse_id {
+			ALICE_METAVERSE_ID => return Ok(true),
+			BOB_METAVERSE_ID => return Ok(true),
+			_ => Ok(false),
+		}
+	}
 }
 
 impl Config for Runtime {
@@ -335,15 +343,6 @@ impl ExtBuilder {
 
 		pallet_balances::GenesisConfig::<Runtime> {
 			balances: vec![(ALICE, 100000), (BOB, 500), (CHARLIE, 100000)],
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
-
-		continuum::GenesisConfig::<Runtime> {
-			initial_active_session: 0,
-			initial_auction_rate: 5,
-			initial_max_bound: (-100, 100),
-			spot_price: 100,
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

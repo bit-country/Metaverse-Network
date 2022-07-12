@@ -16,7 +16,7 @@ use sp_runtime::{
 
 use metaverse_runtime::MintingRateInfo;
 use pioneer_runtime::{
-	constants::currency::*, AccountId, AuraConfig, BalancesConfig, ContinuumConfig, EstateConfig, GenesisConfig,
+	constants::currency::*, AccountId, AuraConfig, BalancesConfig, EstateConfig, GenesisConfig, OracleMembershipConfig,
 	SessionKeys, Signature, SudoConfig, SystemConfig, EXISTENTIAL_DEPOSIT, WASM_BINARY,
 };
 use primitives::Balance;
@@ -25,6 +25,12 @@ use crate::chain_spec::Extensions;
 
 /// Specialized `ChainSpec` for the normal parachain runtime.
 pub type ChainSpec = sc_service::GenericChainSpec<pioneer_runtime::GenesisConfig, Extensions>;
+
+/// The default XCM version to set in genesis config.
+const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
+
+pub const PARA_ID: u32 = 2096;
+pub const ROC_PARA_ID: u32 = 4017;
 
 /// Generate the session keys from individual elements.
 ///
@@ -50,7 +56,7 @@ where
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-pub fn development_config(id: ParaId) -> ChainSpec {
+pub fn development_config() -> ChainSpec {
 	ChainSpec::from_genesis(
 		// Name
 		"Development",
@@ -67,7 +73,6 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
 					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
 				],
-				id,
 			)
 		},
 		vec![],
@@ -77,16 +82,16 @@ pub fn development_config(id: ParaId) -> ChainSpec {
 		Some(pioneer_properties()),
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-			para_id: id.into(),
+			para_id: PARA_ID,
 		},
 	)
 }
 
-pub fn local_testnet_config(id: ParaId) -> ChainSpec {
+pub fn local_testnet_config() -> ChainSpec {
 	// Give your base currency a unit name and decimal places
 	let mut properties = sc_chain_spec::Properties::new();
-	properties.insert("tokenSymbol".into(), "UNIT".into());
-	properties.insert("tokenDecimals".into(), 12.into());
+	properties.insert("tokenSymbol".into(), "NEER".into());
+	properties.insert("tokenDecimals".into(), 18.into());
 
 	ChainSpec::from_genesis(
 		// Name
@@ -112,7 +117,6 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
 					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
 				],
-				id,
 			)
 		},
 		Vec::new(),
@@ -122,13 +126,63 @@ pub fn local_testnet_config(id: ParaId) -> ChainSpec {
 		Some(pioneer_properties()),
 		Extensions {
 			relay_chain: "rococo-local".into(), // You MUST set this to the correct network!
-			para_id: id.into(),
+			para_id: PARA_ID,
 		},
 	)
 }
 
 pub fn pioneer_network_config_json() -> Result<ChainSpec, String> {
 	ChainSpec::from_json_bytes(&include_bytes!("../../../node/res/pioneer-live-raw-spec.json")[..])
+}
+
+pub fn roc_pioneer_testnet_config() -> ChainSpec {
+	// Give your base currency a unit name and decimal places
+	let mut properties = sc_chain_spec::Properties::new();
+	properties.insert("tokenSymbol".into(), "NEER".into());
+	properties.insert("tokenDecimals".into(), 18.into());
+
+	ChainSpec::from_genesis(
+		// Name
+		"Pioneer Testnet",
+		// ID
+		"pioneer_roc_testnet",
+		ChainType::Live,
+		move || {
+			testnet_genesis(
+				hex![
+					// 5Dqy8KtwmGJd6Tkar8Va3Uw7xvX4RQAhrygUk3T8vUxDXf2a
+					"4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"
+				]
+				.into(),
+				vec![
+					(
+						// 5FpqLqqbFyYWgYtgQS11HvTkaripk1nPFFti6CwDaMj8cSvu
+						hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].into(),
+						hex!["a65cb28d2524996ee0e02aa1ebfa5c1b4ff3db7edad9b11f7033960cc5aa3c3e"].unchecked_into(),
+					),
+					(
+						// 5EUXjqNx3Rsh3wtDJAPBzEvJdGVD3QmxmMUjrfARNr4uh7pq
+						hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].into(),
+						hex!["6aa44c06b0a479f95757137a1b08fd00971823430147094dc66e7aa2b381f146"].unchecked_into(),
+					),
+				],
+				vec![hex![
+					// 5Dqy8KtwmGJd6Tkar8Va3Uw7xvX4RQAhrygUk3T8vUxDXf2a
+					"4ec1ae0facb941380f72f314a5ef6c3ee012a3e105e34806537e3f3c4a3ff167"
+				]
+				.into()],
+			)
+		},
+		Vec::new(),
+		None,
+		None,
+		None,
+		Some(pioneer_properties()),
+		Extensions {
+			relay_chain: "rococo".into(),
+			para_id: ROC_PARA_ID,
+		},
+	)
 }
 
 pub fn metaverse_land_minting_config() -> MintingRateInfo {
@@ -159,7 +213,9 @@ fn pioneer_genesis(
 		sudo: pioneer_runtime::SudoConfig {
 			key: Some(root_key.clone()),
 		},
-		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
+		parachain_info: pioneer_runtime::ParachainInfoConfig {
+			parachain_id: PARA_ID.into(),
+		},
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
@@ -181,14 +237,12 @@ fn pioneer_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-		continuum: ContinuumConfig {
-			initial_active_session: Default::default(),
-			initial_auction_rate: 5,
-			initial_max_bound: (-100, 100),
-			spot_price: 5 * DOLLARS,
-		},
 		estate: EstateConfig {
 			minting_rate_config: metaverse_land_minting_config(),
+		},
+		oracle_membership: OracleMembershipConfig {
+			members: vec![],
+			phantom: Default::default(),
 		},
 	}
 }
@@ -197,7 +251,6 @@ fn testnet_genesis(
 	root_key: AccountId,
 	initial_authorities: Vec<(AccountId, AuraId)>,
 	endowed_accounts: Vec<AccountId>,
-	id: ParaId,
 ) -> pioneer_runtime::GenesisConfig {
 	pioneer_runtime::GenesisConfig {
 		system: pioneer_runtime::SystemConfig {
@@ -215,7 +268,9 @@ fn testnet_genesis(
 		sudo: pioneer_runtime::SudoConfig {
 			key: Some(root_key.clone()),
 		},
-		parachain_info: pioneer_runtime::ParachainInfoConfig { parachain_id: id },
+		parachain_info: pioneer_runtime::ParachainInfoConfig {
+			parachain_id: ROC_PARA_ID.into(),
+		},
 		collator_selection: pioneer_runtime::CollatorSelectionConfig {
 			invulnerables: initial_authorities.iter().cloned().map(|(acc, _)| acc).collect(),
 			candidacy_bond: EXISTENTIAL_DEPOSIT * 16,
@@ -237,14 +292,12 @@ fn testnet_genesis(
 		aura: Default::default(),
 		aura_ext: Default::default(),
 		parachain_system: Default::default(),
-		continuum: ContinuumConfig {
-			initial_active_session: Default::default(),
-			initial_auction_rate: 5,
-			initial_max_bound: (-100, 100),
-			spot_price: 5 * DOLLARS,
-		},
 		estate: EstateConfig {
 			minting_rate_config: metaverse_land_minting_config(),
+		},
+		oracle_membership: OracleMembershipConfig {
+			members: vec![],
+			phantom: Default::default(),
 		},
 	}
 }

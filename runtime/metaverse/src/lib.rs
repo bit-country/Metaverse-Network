@@ -597,29 +597,7 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
-}
-
-impl tokenization::Config for Runtime {
-	type Event = Event;
-	type TokenId = u64;
-	type MetaverseMultiCurrency = Currencies;
-	type FungibleTokenTreasury = MetaverseNetworkTreasuryPalletId;
-	type MetaverseInfoSource = Metaverse;
-	type LiquidityPoolManager = Swap;
-	type MinVestedTransfer = MinVestedTransfer;
-	type VestedTransferOrigin = EnsureRootOrMetaverseTreasury;
-}
-
-parameter_types! {
-	pub const SwapFee: (u32, u32) = (1, 20); //0.05%
-}
-
-impl swap::Config for Runtime {
-	type Event = Event;
-	type PalletId = SwapPalletId;
-	type FungibleTokenCurrency = Tokens;
-	type NativeCurrency = Balances;
-	type GetSwapFee = SwapFee;
+	type WeightInfo = weights::module_continuum::WeightInfo<Runtime>;
 }
 
 pub struct EnsureRootOrMetaverseTreasury;
@@ -680,7 +658,7 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
-	type WeightInfo = (); //weights::module_mining::WeightInfo<Runtime>;
+	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1098,9 +1076,7 @@ construct_runtime!(
 		Nft: nft::{Pallet, Call, Storage, Event<T>},
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
 		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
-		Continuum: continuum::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Tokenization: tokenization:: {Pallet, Call, Storage, Event<T>},
-		Swap: swap:: {Pallet, Call, Storage ,Event<T>},
+		Continuum: continuum::{Pallet, Call, Storage, Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},

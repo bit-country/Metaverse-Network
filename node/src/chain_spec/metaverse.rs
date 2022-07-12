@@ -15,9 +15,9 @@ use sp_runtime::{
 
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	BaseFeeConfig, CollatorSelectionConfig, ContinuumConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig,
-	GenesisAccount, GenesisConfig, GrandpaConfig, MintingRange, MintingRateInfo, OracleMembershipConfig, SessionConfig,
-	Signature, SudoConfig, SystemConfig,
+	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig, GenesisAccount,
+	GenesisConfig, GrandpaConfig, MintingRange, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature,
+	SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 
@@ -262,12 +262,6 @@ fn testnet_genesis(
 		democracy: DemocracyConfig::default(),
 		tokens: Default::default(),
 		vesting: Default::default(),
-		continuum: ContinuumConfig {
-			initial_active_session: Default::default(),
-			initial_auction_rate: 5,
-			initial_max_bound: (-100, 100),
-			spot_price: 5 * DOLLARS,
-		},
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()

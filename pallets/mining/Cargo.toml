@@ -33,7 +33,6 @@ orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-librar
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 auction-manager = { path = "../../traits/auction-manager", default-features = false }
-swap = { package = "pallet-swap", path = "../swap", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 
 [dependencies.country]
@@ -63,7 +62,6 @@ std = [
     'orml-traits/std',
     'primitives/std',
     'country/std',
-    'swap/std',
     'currencies/std',
     'scale-info/std',
     'frame-benchmarking/std',
