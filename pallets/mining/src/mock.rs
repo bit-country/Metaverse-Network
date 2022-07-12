@@ -110,8 +110,6 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = ();
-	type ReserveIdentifier = [u8; 8];
-	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
 }
 

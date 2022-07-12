@@ -1,4 +1,5 @@
 pub mod module_auction;
+pub mod module_currencies;
 pub mod module_economy;
 pub mod module_estate;
 pub mod module_metaverse;

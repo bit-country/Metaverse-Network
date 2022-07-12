@@ -296,7 +296,6 @@ impl Config for Runtime {
 	type ContinuumTreasury = ContinuumTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = MetaverseInfoSource;
-	type WeightInfo = ();
 }
 
 pub type ContinuumModule = Pallet<Runtime>;

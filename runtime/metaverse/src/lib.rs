@@ -23,10 +23,7 @@
 #[macro_use]
 extern crate orml_benchmarking;
 
-use codec::{Decode, Encode};
-// pub use this so we can import it in the chain spec.
-#[cfg(feature = "std")]
-pub use fp_evm::GenesisAccount;
+use codec::{Decode, Encode, MaxEncodedLen};
 use fp_rpc::TransactionStatus;
 // use metaverse::weights::WeightInfo;
 #[cfg(feature = "runtime-benchmarks")]
@@ -36,7 +33,7 @@ pub use frame_support::{
 	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
-		ConstantMultiplier, DispatchClass, DispatchInfo, IdentityFee, Weight, WeightToFeePolynomial,
+		DispatchClass, IdentityFee, Weight,
 	},
 	PalletId, RuntimeDebug, StorageValue,
 };
@@ -49,16 +46,20 @@ use frame_system::{
 	limits::{BlockLength, BlockWeights},
 	Config, EnsureRoot, RawOrigin,
 };
-// EVM imports
 use orml_traits::parameter_type_with_key;
 pub use pallet_balances::Call as BalancesCall;
-use pallet_contracts::{weights::WeightInfo, DefaultContractAccessWeight};
+use pallet_contracts::weights::WeightInfo;
 use pallet_ethereum::{Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction};
+// EVM imports
 use pallet_evm::{
 	Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner,
 	SubstrateBlockHashMapping,
 };
+// pub use this so we can import it in the chain spec.
+#[cfg(feature = "std")]
+pub use pallet_evm::GenesisAccount;
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
+pub use pallet_timestamp::Call as TimestampCall;
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
@@ -66,6 +67,7 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{
 	crypto::{KeyTypeId, Public},
 	sp_std::marker::PhantomData,
+	u32_trait::{_1, _2, _3, _4},
 	OpaqueMetadata, H160, H256, U256,
 };
 #[cfg(any(feature = "std", test))]
@@ -169,7 +171,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 54,
+	spec_version: 53,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -403,7 +405,7 @@ parameter_types! {
 
 impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
-	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
+	type TransactionByteFee = TransactionByteFee;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = IdentityFee<Balance>;
 	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
@@ -455,8 +457,6 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = MaxLocks;
-	type ReserveIdentifier = [u8; 8];
-	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
 }
 
@@ -469,6 +469,7 @@ impl currencies::Config for Runtime {
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = weights::module_currencies::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -546,7 +547,7 @@ impl estate::Config for Runtime {
 	type MetaverseInfoSource = Metaverse;
 	type Currency = Balances;
 	type MinimumLandPrice = MinimumLandPrice;
-	type CouncilOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
+	type CouncilOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type AuctionHandler = Auction;
 	type MinBlocksPerRound = MinBlocksPerLandIssuanceRound;
 	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
@@ -590,13 +591,12 @@ impl continuum::Config for Runtime {
 	type Event = Event;
 	type SessionDuration = ContinuumSessionDuration;
 	type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
-	type EmergencyOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 3>;
+	type EmergencyOrigin = pallet_collective::EnsureProportionMoreThan<_1, _2, AccountId, CouncilCollective>;
 	type AuctionHandler = Auction;
 	type AuctionDuration = SpotAuctionChillingDuration;
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
-	type WeightInfo = ();
 }
 
 impl tokenization::Config for Runtime {
@@ -649,8 +649,10 @@ impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
 	}
 }
 
-pub type EnsureRootOrHalfMetaverseCouncil =
-	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
+pub type EnsureRootOrHalfMetaverseCouncil = EnsureOneOf<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>,
+>;
 
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 10;
@@ -811,23 +813,23 @@ impl pallet_democracy::Config for Runtime {
 	// Same as EnactmentPeriod
 	type MinimumDeposit = MinimumDeposit;
 	/// A straight majority of the council can decide what their next motion is.
-	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
+	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<_1, _2, AccountId, CouncilCollective>;
 	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>;
+	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<_3, _4, AccountId, CouncilCollective>;
 	/// A unanimous council can have the next scheduled referendum be a straight default-carries
 	/// (NTB) vote.
-	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>;
+	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
 	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
 	/// be tabled immediately and with a shorter voting/enactment period.
-	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
-	type InstantOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>;
+	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
+	type InstantOrigin = pallet_collective::EnsureProportionAtLeast<_1, _1, AccountId, CouncilCollective>;
 	type InstantAllowed = InstantAllowed;
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
 	// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
+	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
 	// To cancel a proposal before it has been passed, the technical committee must be unanimous or
 	// Root must agree.
-	type CancelProposalOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
+	type CancelProposalOrigin = pallet_collective::EnsureProportionAtLeast<_2, _3, AccountId, CouncilCollective>;
 	type BlacklistOrigin = EnsureRoot<AccountId>;
 	// Any single technical committee member may veto a coming council proposal, however they can
 	// only do it once and it lasts only for the cool-off period.
@@ -843,7 +845,7 @@ impl pallet_democracy::Config for Runtime {
 	type MaxProposals = MaxProposals;
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, TypeInfo)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 pub enum ProposalType {
 	Any,
 	JustMetaverse,
@@ -1007,7 +1009,7 @@ impl pallet_evm::Config for Runtime {
 	type FindAuthor = FindAuthorTruncated<Aura>;
 	type PrecompilesType = ();
 	type PrecompilesValue = ();
-	//type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
+	type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
 }
 
 impl pallet_ethereum::Config for Runtime {
@@ -1053,7 +1055,6 @@ impl pallet_contracts::Config for Runtime {
 	type CallFilter = RPCCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
-	type ContractAccessWeight = DefaultContractAccessWeight<RuntimeBlockWeights>;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
@@ -1167,7 +1168,6 @@ pub type SignedExtra = (
 mod benches {
 	define_benchmarks!(
 		[auction, benchmarking::auction]
-		[continuum, benchmarking::continuum]
 		[estate, benchmarking::estate]
 		[metaverse, benchmarking::metaverse]
 	);
@@ -1175,8 +1175,6 @@ mod benches {
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = fp_self_contained::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
-/// The payload being signed in transactions.
-pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive =
 	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPalletsWithSystem>;
@@ -1198,14 +1196,9 @@ impl fp_self_contained::SelfContainedCall for Call {
 		}
 	}
 
-	fn validate_self_contained(
-		&self,
-		origin: &H160,
-		dispatch_info: &DispatchInfo,
-		len: usize,
-	) -> Option<TransactionValidity> {
+	fn validate_self_contained(&self, info: &Self::SignedInfo) -> Option<TransactionValidity> {
 		match self {
-			Call::Ethereum(call) => call.validate_self_contained(origin, dispatch_info, len),
+			Call::Ethereum(call) => call.validate_self_contained(info),
 			_ => None,
 		}
 	}
@@ -1294,11 +1287,11 @@ impl_runtime_apis! {
 		}
 
 		fn account_basic(address: H160) -> EVMAccount {
-			EVM::account_basic(&address).0
+			EVM::account_basic(&address)
 		}
 
 		fn gas_price() -> U256 {
-			<Runtime as pallet_evm::Config>::FeeCalculator::min_gas_price().0
+			<Runtime as pallet_evm::Config>::FeeCalculator::min_gas_price()
 		}
 
 		fn account_code_at(address: H160) -> Vec<u8> {
@@ -1345,12 +1338,11 @@ impl_runtime_apis! {
 				max_priority_fee_per_gas,
 				nonce,
 				Vec::new(),
-				estimate,
 				config
 					.as_ref()
 					.unwrap_or_else(|| <Runtime as pallet_evm::Config>::config()),
 			)
-			.map_err(|err| err.error.into())
+			.map_err(|err| err.into())
 		}
 
 		fn create(
@@ -1382,12 +1374,11 @@ impl_runtime_apis! {
 				max_priority_fee_per_gas,
 				nonce,
 				Vec::new(),
-				estimate,
 				config
 					.as_ref()
 					.unwrap_or(<Runtime as pallet_evm::Config>::config()),
 				)
-				.map_err(|err| err.error.into())
+				.map_err(|err| err.into())
 		}
 
 		fn current_transaction_statuses() -> Option<Vec<TransactionStatus>> {
@@ -1568,6 +1559,7 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
+			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1579,10 +1571,10 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
 			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
+			list_benchmark!(list, extra, currencies, CurrenciesBench::<Runtime>);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
 			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
-			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1602,6 +1594,7 @@ impl_runtime_apis! {
 			use mining::benchmarking::MiningModule as MiningBench;
 			use economy::benchmarking::EconomyModule as EconomyBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
+			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1627,10 +1620,10 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
 			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
+			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
 			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);
-			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			Ok(batches)
 		}
 	}
