@@ -195,6 +195,11 @@ pub mod pallet {
 	#[pallet::getter(fn allow_buy_now)]
 	pub type AllowBuyNow<T: Config> = StorageValue<_, bool, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn get_metaverse_leading_bid)]
+	pub type MetaverseLeadingBid<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, MapSpotId, Twox64Concat, MetaverseId, ()>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -266,6 +271,8 @@ pub mod pallet {
 		InvalidSpotAuction,
 		/// Metaverse has no deployed land.
 		MetaverseHasNotDeployedAnyLand,
+		/// Metaverse already leading bid of a spot. One leading bid per metaverse.
+		MetaverseHasBidLeading,
 	}
 
 	#[pallet::call]
@@ -361,6 +368,11 @@ pub mod pallet {
 				Error::<T>::MetaverseHasNotDeployedAnyLand
 			);
 
+			ensure!(
+				!Self::check_if_metaverse_has_leading_bid(&metaverse_id),
+				Error::<T>::MetaverseHasBidLeading
+			);
+
 			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
 
 			ensure!(auction_item.item_id.is_map_spot(), Error::<T>::InvalidSpotAuction);
@@ -376,7 +388,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Buy continuum slot with fixed price
+		/// Bid continuum slot with price
 		#[pallet::weight(T::WeightInfo::bid_map_spot())]
 		#[transactional]
 		pub fn bid_map_spot(
@@ -401,6 +413,11 @@ pub mod pallet {
 				Error::<T>::MetaverseHasNotDeployedAnyLand
 			);
 
+			ensure!(
+				!Self::check_if_metaverse_has_leading_bid(&metaverse_id),
+				Error::<T>::MetaverseHasBidLeading
+			);
+
 			let auction_item = T::AuctionHandler::auction_item(auction_id).ok_or(Error::<T>::InvalidSpotAuction)?;
 
 			ensure!(auction_item.item_id.is_map_spot(), Error::<T>::InvalidSpotAuction);
@@ -410,9 +427,15 @@ pub mod pallet {
 				.item_id
 				.get_map_spot_detail()
 				.ok_or(Error::<T>::InvalidSpotAuction)?;
-			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
 
+			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
 			T::AuctionHandler::auction_bid_handler(sender, auction_id, value)?;
+
+			// Remove leading bid of this spot
+			MetaverseLeadingBid::<T>::remove_prefix(spot_detail.0, None);
+
+			// Add metaverse leading bid
+			MetaverseLeadingBid::<T>::insert(spot_detail.0, metaverse_id, ());
 
 			Ok(())
 		}
@@ -446,6 +469,22 @@ impl<T: Config> Pallet<T> {
 		let spot_info = MapSpots::<T>::get(spot_id).ok_or(Error::<T>::MapSpotNotFound)?;
 		Ok(spot_info.owner == *owner)
 	}
+
+	// Check if metaverse has any leading bid
+	fn check_if_metaverse_has_leading_bid(metaverse_id: &MetaverseId) -> bool {
+		let mut has_leading = false;
+
+		for (_, leading_metaverse_id, _) in MetaverseLeadingBid::<T>::iter() {
+			if leading_metaverse_id == *metaverse_id {
+				has_leading = true;
+				break;
+			} else {
+				continue;
+			}
+		}
+
+		has_leading
+	}
 }
 
 impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
@@ -465,7 +504,7 @@ impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
 
 			Self::deposit_event(Event::<T>::ContinuumSpotTransferred(from, to.0, spot_id));
 			MetaverseMap::<T>::insert(to.1, spot_id);
-
+			MetaverseLeadingBid::<T>::remove_prefix(spot_id, None);
 			Ok(spot_id)
 		})
 	}
