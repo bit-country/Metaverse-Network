@@ -180,6 +180,57 @@ fn buy_now_continuum_should_work() {
 			100,
 			ALICE_METAVERSE_ID
 		));
+
+		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account();
+		ContinuumModule::transfer_spot(CONTINUUM_MAP_COORDINATE, treasury, (ALICE, ALICE_METAVERSE_ID));
+
+		// Ensure Metaverse leading bid has no record of this spot
+		assert_eq!(
+			MetaverseLeadingBid::<Runtime>::iter_prefix(CONTINUUM_MAP_COORDINATE).count(),
+			0
+		)
+	})
+}
+
+#[test]
+fn bid_auction_continuum_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::Auction,
+			100,
+			10
+		));
+
+		assert_ok!(ContinuumModule::bid_map_spot(
+			Origin::signed(ALICE),
+			1,
+			200,
+			ALICE_METAVERSE_ID
+		));
+
+		assert!(MetaverseLeadingBid::<Runtime>::contains_key(
+			CONTINUUM_MAP_COORDINATE,
+			ALICE_METAVERSE_ID
+		));
+
+		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account();
+		ContinuumModule::transfer_spot(CONTINUUM_MAP_COORDINATE, treasury, (ALICE, ALICE_METAVERSE_ID));
+
+		// Ensure Metaverse leading bid has no record of this spot
+		assert_eq!(
+			MetaverseLeadingBid::<Runtime>::iter_prefix(CONTINUUM_MAP_COORDINATE).count(),
+			0
+		)
 	})
 }
 
@@ -294,5 +345,179 @@ fn bid_auction_continuum_should_fail_if_has_not_deployed_land() {
 			ContinuumModule::bid_map_spot(Origin::signed(CHARLIE), 1, 100, CHARLIE_METAVERSE_ID),
 			Error::<Runtime>::MetaverseHasNotDeployedAnyLand
 		);
+	})
+}
+
+#[test]
+fn bid_auction_continuum_should_fail_if_has_leading_bid() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		MetaverseLeadingBid::<Runtime>::insert((0, 1), ALICE_METAVERSE_ID, ());
+
+		// Enable Allow BuyNow
+		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::Auction,
+			100,
+			10
+		));
+
+		assert_noop!(
+			ContinuumModule::bid_map_spot(Origin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
+			Error::<Runtime>::MetaverseHasBidLeading
+		);
+	})
+}
+
+#[test]
+fn buy_now_continuum_should_fail_if_has_any_leading_bid() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		MetaverseLeadingBid::<Runtime>::insert((0, 1), ALICE_METAVERSE_ID, ());
+
+		// Enable Allow BuyNow
+		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::BuyNow,
+			100,
+			10
+		));
+
+		assert_noop!(
+			ContinuumModule::buy_map_spot(Origin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
+			Error::<Runtime>::MetaverseHasBidLeading
+		);
+	})
+}
+
+#[test]
+fn metaverse_leading_bid_inserted_on_new_bid() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		// Enable Allow BuyNow
+		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::Auction,
+			100,
+			10
+		));
+
+		assert_ok!(ContinuumModule::bid_map_spot(
+			Origin::signed(ALICE),
+			1,
+			100,
+			ALICE_METAVERSE_ID
+		));
+
+		assert!(MetaverseLeadingBid::<Runtime>::contains_key(
+			CONTINUUM_MAP_COORDINATE,
+			ALICE_METAVERSE_ID
+		));
+	})
+}
+
+#[test]
+fn bid_auction_continuum_should_replace_another_leading_bid() {
+	ExtBuilder::default().build().execute_with(|| {
+		let root = Origin::root();
+
+		assert_ok!(ContinuumModule::issue_map_slot(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			TokenType::Transferable
+		));
+
+		assert_ok!(ContinuumModule::create_new_auction(
+			root.clone(),
+			CONTINUUM_MAP_COORDINATE,
+			AuctionType::Auction,
+			100,
+			10
+		));
+
+		assert_ok!(ContinuumModule::bid_map_spot(
+			Origin::signed(ALICE),
+			1,
+			200,
+			ALICE_METAVERSE_ID
+		));
+
+		assert!(MetaverseLeadingBid::<Runtime>::contains_key(
+			CONTINUUM_MAP_COORDINATE,
+			ALICE_METAVERSE_ID
+		));
+
+		assert_ok!(ContinuumModule::bid_map_spot(
+			Origin::signed(BOB),
+			1,
+			300,
+			BOB_METAVERSE_ID
+		));
+
+		assert!(MetaverseLeadingBid::<Runtime>::contains_key(
+			CONTINUUM_MAP_COORDINATE,
+			BOB_METAVERSE_ID
+		));
+
+		// Alice leading bid should be removed
+		assert!(!MetaverseLeadingBid::<Runtime>::contains_key(
+			CONTINUUM_MAP_COORDINATE,
+			ALICE_METAVERSE_ID
+		));
+
+		// Ensure Alice can bid again
+		assert_ok!(ContinuumModule::bid_map_spot(
+			Origin::signed(ALICE),
+			1,
+			400,
+			ALICE_METAVERSE_ID
+		));
+
+		assert!(MetaverseLeadingBid::<Runtime>::contains_key(
+			CONTINUUM_MAP_COORDINATE,
+			ALICE_METAVERSE_ID
+		));
+
+		// Bob leading bid should be removed
+		assert!(!MetaverseLeadingBid::<Runtime>::contains_key(
+			CONTINUUM_MAP_COORDINATE,
+			BOB_METAVERSE_ID
+		));
+
+		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account();
+		ContinuumModule::transfer_spot(CONTINUUM_MAP_COORDINATE, treasury, (BOB, BOB_METAVERSE_ID));
+
+		// Ensure Metaverse leading bid has no record of this spot
+		assert_eq!(
+			MetaverseLeadingBid::<Runtime>::iter_prefix(CONTINUUM_MAP_COORDINATE).count(),
+			0
+		)
 	})
 }

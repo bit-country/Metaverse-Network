@@ -385,6 +385,9 @@ pub mod pallet {
 			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
 
 			T::AuctionHandler::buy_now_handler(sender, auction_id, value)?;
+
+			// Remove leading bid of this spot if any (rarely happens but it's safe to check)
+			MetaverseLeadingBid::<T>::remove_prefix(spot_detail.0, None);
 			Ok(())
 		}
 
