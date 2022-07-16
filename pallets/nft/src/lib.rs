@@ -1230,7 +1230,11 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 
 	fn get_nft_class_detail(class_id: Self::ClassId) -> Result<NftClassData<BalanceOf<T>>, DispatchError> {
 		let asset_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::AssetInfoNotFound)?;
-
 		Ok(asset_info.data)
+	}
+
+	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
+		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::AssetInfoNotFound)?;
+		Ok(class_info.total_issuance)
 	}
 }
