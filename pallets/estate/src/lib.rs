@@ -1743,6 +1743,17 @@ impl<T: Config> MetaverseLandTrait<T::AccountId> for Pallet<T> {
 	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		Ok(LandUnits::<T>::contains_key(metaverse_id, coordinate))
 	}
+
+	fn check_estate_ownership(owner: T::AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		let owner_value = Self::get_estate_owner(estate_id);
+		match owner_value {
+			Some(token_value) => match token_value {
+				OwnerId::Token(c, t) => T::NFTTokenizationSource::check_ownership(&owner, &(c, t)),
+				OwnerId::Account(_) => Err(Error::<T>::InvalidOwnerValue.into()),
+			},
+			None => Ok(false),
+		}
+	}
 }
 
 impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
@@ -1802,26 +1813,6 @@ impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 			return Ok(false);
 		}
 		return Ok(true);
-	}
-
-	fn check_estate_ownership(owner: T::AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
-		let owner_value = Self::get_estate_owner(estate_id);
-		match owner_value{
-			Some(token_value)=> {
-				match token_value {
-					OwnerId::Token(c,t) => {
-						T::NFTTokenizationSource::check_ownership(&owner, &(c, t))
-					}
-					OwnerId::Account(_) => {
-						Err(Error::<T>::InvalidOwnerValue.into())
-					}
-				}
-
-			}
-			None => {
-				Ok(false)
-			}
-		}
 	}
 }
 

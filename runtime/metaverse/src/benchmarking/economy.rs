@@ -9,9 +9,7 @@ use sp_runtime::traits::{AccountIdConversion, Lookup, One, StaticLookup, UniqueS
 use core_primitives::RoundTrait;
 use primitives::estate::{EstateInfo, OwnerId};
 use primitives::staking::RoundInfo;
-use primitives::{
-	AccountId, Balance, ClassId, EstateId, FungibleTokenId, GroupCollectionId, MetaverseId, TokenId,
-};
+use primitives::{AccountId, Balance, ClassId, EstateId, FungibleTokenId, GroupCollectionId, MetaverseId, TokenId};
 
 use crate::{
 	Call, Currencies, Economy, EconomyTreasury, Estate, Event, Metaverse, MinimumStake, Mining, Runtime, System,

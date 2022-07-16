@@ -238,6 +238,10 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		};
 		Ok(new_data)
 	}
+
+	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
+		Ok(10.into())
+	}
 }
 
 ord_parameter_types! {

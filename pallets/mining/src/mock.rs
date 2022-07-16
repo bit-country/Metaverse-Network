@@ -178,6 +178,10 @@ impl Estate<u128> for EstateHandler {
 	fn get_total_undeploy_land_units() -> u64 {
 		10
 	}
+
+	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
 }
 
 pub struct MetaverseStakingHandler;

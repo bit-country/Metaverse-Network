@@ -155,7 +155,7 @@ benchmarks! {
 	pause_mining_round {
 	}: _(RawOrigin::Root)
 
- 	unpause_mining_round {
+	 unpause_mining_round {
 		crate::Pallet::<T>::pause_mining_round(RawOrigin::Root.into());
 	}: _(RawOrigin::Root)
 

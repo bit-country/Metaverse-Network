@@ -38,9 +38,7 @@ use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
 use primitives::{estate::Estate, EstateId};
-use primitives::{
-	AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex,
-};
+use primitives::{AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
