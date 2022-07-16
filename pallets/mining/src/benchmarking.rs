@@ -152,6 +152,12 @@ benchmarks! {
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &origin.clone()), 900);
 		assert_eq!(T::MiningCurrency::free_balance(FungibleTokenId::MiningResource(0), &dest.clone()), 1100);
 	}
+	pause_mining_round {
+	}: _(RawOrigin::Root)
+
+ 	unpause_mining_round {
+		crate::Pallet::<T>::pause_mining_round(RawOrigin::Root.into());
+	}: _(RawOrigin::Root)
 
 }
 impl_benchmark_test_suite!(Pallet, crate::benchmarking::tests::new_test_ext(), crate::mock::Test);

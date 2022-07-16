@@ -300,7 +300,7 @@ pub mod pallet {
 		}
 
 		/// Pause current mining round so new round will not roll out until unpaused
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::pause_mining_round())]
 		pub fn pause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -315,7 +315,7 @@ pub mod pallet {
 		}
 
 		/// Unpause current mining round so new round can roll out
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::unpause_mining_round())]
 		pub fn unpause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
