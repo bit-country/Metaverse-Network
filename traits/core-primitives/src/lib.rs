@@ -277,6 +277,8 @@ pub trait NFTTrait<AccountId, Balance> {
 	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> DispatchResult;
 	/// Get nft class detail
 	fn get_nft_class_detail(class_id: Self::ClassId) -> Result<NftClassData<Balance>, DispatchError>;
+	/// Get class total issuance
+	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError>;
 }
 
 pub trait RoundTrait<BlockNumber> {

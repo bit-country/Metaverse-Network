@@ -30,7 +30,7 @@ pub type ChainSpec = sc_service::GenericChainSpec<pioneer_runtime::GenesisConfig
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
 pub const PARA_ID: u32 = 2096;
-pub const ROC_PARA_ID: u32 = 4017;
+pub const ROC_PARA_ID: u32 = 2096;
 
 /// Generate the session keys from individual elements.
 ///
