@@ -1803,6 +1803,26 @@ impl<T: Config> UndeployedLandBlocksTrait<T::AccountId> for Pallet<T> {
 		}
 		return Ok(true);
 	}
+
+	fn check_estate_ownership(owner: T::AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		let owner_value = Self::get_estate_owner(estate_id);
+		match owner_value{
+			Some(token_value)=> {
+				match token_value {
+					OwnerId::Token(c,t) => {
+						T::NFTTokenizationSource::check_ownership(&owner, &(c, t))
+					}
+					OwnerId::Account(_) => {
+						Err(Error::<T>::InvalidOwnerValue.into())
+					}
+				}
+
+			}
+			None => {
+				Ok(false)
+			}
+		}
+	}
 }
 
 impl<T: Config> Estate<T::AccountId> for Pallet<T> {

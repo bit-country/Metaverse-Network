@@ -885,6 +885,7 @@ impl economy::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type MiningCurrencyId = MiningCurrencyId;
 	type NFTHandler = Nft;
+	type EstateHandler = Estate;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
@@ -1143,6 +1144,7 @@ mod benches {
 	define_benchmarks!(
 		[auction, benchmarking::auction]
 		[continuum, benchmarking::continuum]
+		[economy, benchmarking::economy]
 		[estate, benchmarking::estate]
 		[metaverse, benchmarking::metaverse]
 	);
@@ -1542,7 +1544,6 @@ impl_runtime_apis! {
 			use nft::benchmarking::Pallet as NftBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
-			use economy::benchmarking::EconomyModule as EconomyBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1552,12 +1553,12 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
-			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
+			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
+			orml_list_benchmark!(list, extra, economy, benchmarking::economy);
 			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
-			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1575,7 +1576,6 @@ impl_runtime_apis! {
 
 			use nft::benchmarking::Pallet as NftBench;
 			use mining::benchmarking::MiningModule as MiningBench;
-			use economy::benchmarking::EconomyModule as EconomyBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
@@ -1600,12 +1600,12 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, nft, NftBench::<Runtime>);
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
-			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
+			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
+			orml_add_benchmark!(params, batches, economy, benchmarking::economy);
 			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);
-			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			Ok(batches)
 		}
 	}

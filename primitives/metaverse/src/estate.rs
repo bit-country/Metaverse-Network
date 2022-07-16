@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::DispatchError;
 use sp_runtime::{Perbill, RuntimeDebug};
 
-use crate::{AccountId, ClassId, UndeployedLandBlockId};
+use crate::{AccountId, ClassId, EstateId, UndeployedLandBlockId};
 use crate::{EstateId, MetaverseId, TokenId};
 
 pub trait Estate<AccountId> {
@@ -35,6 +35,8 @@ pub trait Estate<AccountId> {
 	fn get_total_land_units() -> u64;
 
 	fn get_total_undeploy_land_units() -> u64;
+
+	fn check_estate_ownership(owner: T::AccountId, estate_id: EstateId) -> Result<bool, DispatchError>;
 }
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

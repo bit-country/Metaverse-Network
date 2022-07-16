@@ -3,7 +3,7 @@
 // use sp_runtime::traits::AccountIdConversion;
 // module benchmarking
 pub mod auction;
-pub mod continuum;
+pub mod economy;
 pub mod estate;
 pub mod metaverse;
 pub mod utils;
