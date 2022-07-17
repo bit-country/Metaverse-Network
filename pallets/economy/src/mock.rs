@@ -232,6 +232,8 @@ impl orml_tokens::Config for Runtime {
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = ();
 	type DustRemovalWhitelist = Nothing;
+	type ReserveIdentifier = [u8; 8];
+	type MaxReserves = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -246,7 +248,6 @@ impl currencies::Config for Runtime {
 	type MultiSocialCurrency = OrmlTokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
-	type WeightInfo = ();
 }
 
 pub struct MockAuctionManager;
