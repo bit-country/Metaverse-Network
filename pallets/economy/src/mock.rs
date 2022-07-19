@@ -172,6 +172,14 @@ impl Estate<u128> for EstateHandler {
 	fn get_total_undeploy_land_units() -> u64 {
 		10
 	}
+
+	fn is_estate_leasor(leasor: T::AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
+
+	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
 }
 
 pub struct MetaverseStakingHandler;

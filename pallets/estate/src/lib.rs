@@ -370,6 +370,8 @@ pub mod pallet {
 		EstateLeaseOfferExpired(T::AccountId, EstateId),
 		/// Estate lease contract ended [AccountId, Estate Id]
 		EstateLeaseContractEnded(T::AccountId, EstateId),
+		/// Estate rent collected [EstateId, Balance]
+		EstateRentCollected(EstateId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -452,6 +454,8 @@ pub mod pallet {
 		EstateIsNotLeased,
 		/// Lease offer does not exist
 		LeaseOfferDoesNotExist,
+		/// No unclaimed rent balance
+		NoUnclaimedRentLeft,
 	}
 
 	#[pallet::call]
@@ -1219,6 +1223,18 @@ pub mod pallet {
 				_ => Err(Error::<T>::InvalidOwnerValue.into()),
 			}
 		}
+
+		/// Create a lease offer for estate that is not leased
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only  origin that is not the estate owner can make this call.
+		/// - `estate_id`: the ID of the estate that will be leased
+		/// - `price_per_block`: lease
+		///
+		/// Emits `LandUnitsRemoved` if successful
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[transactional]
+		pub fn remove_land_unit_from_estate(
 	}
 }
 
@@ -1925,5 +1941,13 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 			},
 			None => Ok(false),
 		}
+	}
+
+	fn is_estate_leasor(leasor: T::AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		EstateLeasors::<T>::contains_key(leasor, estate_id)
+	}
+
+	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+		EstateLeases::<T>::contains_key(estate_id)
 	}
 }
