@@ -680,8 +680,8 @@ impl Contains<MultiLocation> for MultiLocationsFilter {
 }
 
 parameter_type_with_key! {
-	pub ParachainMinFee: |_location: MultiLocation| -> u128 {
-		u128::MAX
+	pub ParachainMinFee: |_location: MultiLocation| -> Option<u128> {
+		Some(u128::MAX)
 	};
 }
 
