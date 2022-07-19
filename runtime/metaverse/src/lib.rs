@@ -33,7 +33,7 @@ use fp_rpc::TransactionStatus;
 use frame_benchmarking::frame_support::pallet_prelude::Get;
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
+	traits::{ConstU32, EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		ConstantMultiplier, DispatchClass, DispatchInfo, IdentityFee, Weight, WeightToFeePolynomial,
@@ -1043,6 +1043,8 @@ impl pallet_contracts::Config for Runtime {
 	type Schedule = Schedule;
 	type CallStack = [pallet_contracts::Frame<Self>; 31];
 	type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
+	type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
+	type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
