@@ -556,7 +556,7 @@ pub mod pallet {
 		/// - `coordinates`: list of land units coordinates
 		///
 		/// Emits `NewEstateMinted` if successful.
-		#[pallet::weight(T::WeightInfo::create_estate() * coordinates.len() as u64 )]
+		#[pallet::weight(T::WeightInfo::create_estate() * coordinates.len() as u64)]
 		#[transactional]
 		pub fn create_estate(
 			origin: OriginFor<T>,
