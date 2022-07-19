@@ -251,7 +251,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn leases)]
 	/// Current active estate leases
-	pub type EstateLeases<T: Config> = StorageMap<_, Twox64Concat, EstateId, Twox64Concat, LeaseContract, ValueQuery>;
+	pub type EstateLeases<T: Config> = StorageMap<_, Twox64Concat, EstateId, LeaseContract, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn leasors)]
@@ -262,7 +262,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn lease_offers)]
 	/// Current estate lease offers
-	pub type EstateStake<T: Config> =
+	pub type EstateLeaseOffers<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, LeaseContract, ValueQuery>;
 
 	#[pallet::genesis_config]
