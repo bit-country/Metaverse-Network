@@ -318,7 +318,7 @@ pub mod pallet {
 		pub fn stake_estate(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
-			estate: EstateId,
+			estate_id: EstateId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -423,7 +423,7 @@ pub mod pallet {
 		pub fn unstake_estate(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
-			estate: EstateId,
+			estate_id: EstateId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
