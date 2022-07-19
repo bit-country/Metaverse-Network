@@ -75,7 +75,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
 		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Dispatchable, IdentifyAccount,
-		NumberFor, OpaqueKeys, PostDispatchInfoOf, Verify, Zero,
+		NumberFor, OpaqueKeys, PostDispatchInfoOf, UniqueSaturatedInto, Verify, Zero,
 	},
 	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError},
 	ApplyExtrinsicResult, FixedPointNumber, MultiSignature, Perbill, Percent, Permill, Perquintill,
@@ -1363,17 +1363,20 @@ impl_runtime_apis! {
 				None
 			};
 
+			let is_transactional = false;
+			let validate = true;
 			#[allow(clippy::or_fun_call)] // suggestion not helpful here
 			<Runtime as pallet_evm::Config>::Runner::create(
 				from,
 				data,
 				value,
-				gas_limit.low_u64(),
+				gas_limit.unique_saturated_into(),
 				max_fee_per_gas,
 				max_priority_fee_per_gas,
 				nonce,
 				Vec::new(),
-				estimate,
+				is_transactional,
+				validate,
 				config
 					.as_ref()
 					.unwrap_or(<Runtime as pallet_evm::Config>::config()),
