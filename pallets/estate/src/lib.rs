@@ -251,7 +251,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn leases)]
 	/// Current active estate leases
-	pub type EstateLeases<T: Config> = StorageMap<_, Twox64Concat, EstateId, LeaseContract, ValueQuery>;
+	pub type EstateLeases<T: Config> = StorageMap<_, Twox64Concat, EstateId, LeaseContract, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn leasors)]
@@ -263,7 +263,7 @@ pub mod pallet {
 	#[pallet::getter(fn lease_offers)]
 	/// Current estate lease offers
 	pub type EstateLeaseOffers<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, LeaseContract, ValueQuery>;
+		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, LeaseContract, OptionQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -448,6 +448,10 @@ pub mod pallet {
 		LeaseOfferPriceBelowMinimum,
 		/// Lease duration beyond max duration
 		LeaseOfferDurationAboveMaximum,
+		/// Estate is not leased
+		EstateIsNotLeased,
+		/// Lease offer does not exist
+		LeaseOfferDoesNotExist,
 	}
 
 	#[pallet::call]
