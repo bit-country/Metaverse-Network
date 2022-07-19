@@ -457,6 +457,10 @@ parameter_types! {
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = MAX_BOUND;
 	pub const NetworkFee: Balance = 1; // Network fee
+	pub const MaxOffersPerEstate: u32 = 10;
+	pub const MinLeasePricePerBlock: Balance = 1u128;
+	pub const MaxLeasePeriod: u32 = 9;
+	pub const LeaseOfferExpiryPeriod: u32 = 6;
 }
 
 impl Config for Runtime {
@@ -474,6 +478,10 @@ impl Config for Runtime {
 	type NFTTokenizationSource = MockNFTHandler;
 	type DefaultMaxBound = DefaultMaxBound;
 	type NetworkFee = NetworkFee;
+	type MaxOffersPerEstate = MaxOffersPerEstate;
+	type MinLeasePricePerBlock = MinLeasePricePerBlock;
+	type MaxLeasePeriod = MaxLeasePeriod;
+	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
 }
 
 construct_runtime!(

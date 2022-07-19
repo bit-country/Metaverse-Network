@@ -38,8 +38,9 @@ use core_primitives::*;
 pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
-	estate::Estate, estate::LandUnitStatus, estate::OwnerId, Attributes, ClassId, EstateId, FungibleTokenId, ItemId,
-	MetaverseId, NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
+	estate::Estate, estate::LandUnitStatus, estate::LeaseContract, estate::OwnerId, Attributes, ClassId, EstateId,
+	FungibleTokenId, ItemId, MetaverseId, NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId,
+	UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -122,6 +123,22 @@ pub mod pallet {
 		/// Network fee charged when deploying a land block or creating an estate
 		#[pallet::constant]
 		type NetworkFee: Get<BalanceOf<Self>>;
+
+		/// Maximum lease offers for an estate
+		#[pallet::constant]
+		type MaxOffersPerEstate: Get<u32>;
+
+		/// Minimum lease price per block
+		#[pallet::constant]
+		type MinLeasePricePerBlock: Get<BalanceOf<Self>>;
+
+		/// Maximum lease period duration (in number of blocks)
+		#[pallet::constant]
+		type MaxLeasePeriod: Get<u32>;
+
+		/// The period for each lease offer will be available for acceptance (in number of blocks)
+		#[pallet::constant]
+		type LeaseOfferExpiryPeriod: Get<u32>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -231,6 +248,23 @@ pub mod pallet {
 	pub type EstateStake<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn leases)]
+	/// Current active estate leases
+	pub type EstateLeases<T: Config> = StorageMap<_, Twox64Concat, EstateId, Twox64Concat, LeaseContract, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn leasors)]
+	/// Current estate leasors
+	pub type EstateLeasors<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn lease_offers)]
+	/// Current estate lease offers
+	pub type EstateStake<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, LeaseContract, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
 		pub minting_rate_config: MintingRateInfo,
@@ -328,6 +362,14 @@ pub mod pallet {
 		EstateStakeLeft(OwnerId<T::AccountId, ClassId, TokenId>, EstateId),
 		/// Account rewarded for staking [Account Id, Balance]
 		StakingRewarded(T::AccountId, BalanceOf<T>),
+		/// Estate lease offer is created [AccountId, Estate Id]
+		EstateLeaseOfferCreated(T::AccountId, EstateId),
+		/// Estate lease offer is accepted [Estate Id, Lease End Block, Rent amount]
+		EstateLeaseOfferAccepted(EstateId, T::BlockNumber, BalanceOf<T>),
+		/// Estate lease offer is expired [AccountId, Estate Id]
+		EstateLeaseOfferExpired(T::AccountId, EstateId),
+		/// Estate lease contract ended [AccountId, Estate Id]
+		EstateLeaseContractEnded(T::AccountId, EstateId),
 	}
 
 	#[pallet::error]
@@ -398,6 +440,14 @@ pub mod pallet {
 		InsufficientBalanceForDeployingLandOrCreatingEstate,
 		// Land Unit already formed in Estate
 		LandUnitAlreadyInEstate,
+		/// Estate is already rented
+		EstateIsAlreadyRented,
+		/// Estate lease offer limit is reached
+		EstateLeaseOffersQueueLimitIsReached,
+		/// Lease offer price per block is below the minimum
+		LeaseOfferPriceBelowMinimum,
+		/// Lease duration beyond max duration
+		LeaseOfferDurationAboveMaximum,
 	}
 
 	#[pallet::call]

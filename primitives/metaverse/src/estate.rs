@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sp_runtime::DispatchError;
 use sp_runtime::{Perbill, RuntimeDebug};
 
-use crate::{AccountId, ClassId, UndeployedLandBlockId};
+use crate::{AccountId, Balance, BlockNumber, ClassId, UndeployedLandBlockId};
 use crate::{EstateId, MetaverseId, TokenId};
 
 pub trait Estate<AccountId> {
@@ -60,4 +60,21 @@ pub enum LandUnitStatus<AccountId> {
 	Existing(AccountId),
 	NonExistingWithEstate,
 	RemovedFromEstate,
+}
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct LeaseContract {
+	/// Estate owner account
+	pub estate_owner: AccountId,
+	/// Price per block
+	pub price_per_block: Balance,
+	/// Lease duration (in number of blocks)
+	pub duration: u32,
+	/// Lease end block (equivalent to expiry block if offer is not accepted)
+	pub end_block: BlockNumber,
+	/// Lease start block (equal to end block + 1 if the offer is not accepted)
+	pub start_block: BlockNumber,
+	/// Unclaimed rent balance
+	pub unclaimed_rent: Balance,
 }
