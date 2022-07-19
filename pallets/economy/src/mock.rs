@@ -206,7 +206,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub TreasuryModuleAccount: AccountId = EconomyPalletId::get().into_account();
+	pub TreasuryModuleAccount: AccountId = EconomyPalletId::get().into_account_truncating();
 }
 
 impl orml_tokens::Config for Runtime {

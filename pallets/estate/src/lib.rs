@@ -500,7 +500,7 @@ pub mod pallet {
 			let new_estate_id = Self::get_new_estate_id()?;
 
 			// Generate sub account from estate
-			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
+			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(new_estate_id);
 
 			// Estate as owner
 			let token_properties = Self::get_estate_token_properties(metaverse_id, new_estate_id);
@@ -574,7 +574,7 @@ pub mod pallet {
 			// Generate new estate id
 			let new_estate_id = Self::get_new_estate_id()?;
 			// Generate sub account from estate
-			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(new_estate_id);
+			let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(new_estate_id);
 
 			let token_properties = Self::get_estate_token_properties(metaverse_id, new_estate_id);
 			let class_id = T::MetaverseInfoSource::get_metaverse_estate_class(metaverse_id)?;
@@ -1010,7 +1010,8 @@ pub mod pallet {
 						AllEstatesCount::<T>::put(new_total_estates_count);
 
 						// Mint new land tokens to replace the lands in the dissolved estate
-						let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
+						let estate_account_id: T::AccountId =
+							T::LandTreasury::get().into_sub_account_truncating(estate_id);
 						for land_unit in estate_info.land_units {
 							// Transfer land unit from treasury to estate owner
 							Self::mint_land_unit(
@@ -1065,7 +1066,7 @@ pub mod pallet {
 					);
 
 					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
+					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(estate_id);
 					// Check land unit ownership
 					for land_unit in land_units.clone() {
 						ensure!(
@@ -1133,7 +1134,7 @@ pub mod pallet {
 						Error::<T>::NoPermission
 					);
 					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account(estate_id);
+					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(estate_id);
 					// Mutate estates
 					Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
 						let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;

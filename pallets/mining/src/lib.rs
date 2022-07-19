@@ -353,7 +353,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
 	pub fn bit_mining_resource_account_id() -> T::AccountId {
-		T::BitMiningTreasury::get().into_account()
+		T::BitMiningTreasury::get().into_account_truncating()
 	}
 
 	fn bit_mining_resource_currency_id() -> FungibleTokenId {

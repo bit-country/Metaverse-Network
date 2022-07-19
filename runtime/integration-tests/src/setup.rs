@@ -204,5 +204,5 @@ pub fn development_account() -> AccountId {
 fn parachain_account(id: u32) -> AccountId {
 	use sp_runtime::traits::AccountIdConversion;
 
-	polkadot_parachain::primitives::Sibling::from(id).into_account()
+	polkadot_parachain::primitives::Sibling::from(id).into_account_truncating()
 }

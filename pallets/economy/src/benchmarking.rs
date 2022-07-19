@@ -99,8 +99,8 @@ benchmarks! {
 		let caller = funded_account::<T>("caller", 0);
 	}: _(RawOrigin::Root, BENEFICIARY_NFT, 123)
 	verify {
-		// let account_id = crate::Pallet::<T>::EconomyTreasury::get().into_sub_account(BENEFICIARY_NFT);
-		let account_id: T::AccountId = <<T as Config>::EconomyTreasury as Get<PalletId>>::get().into_sub_account(BENEFICIARY_NFT);
+		// let account_id = crate::Pallet::<T>::EconomyTreasury::get().into_sub_account_truncating(BENEFICIARY_NFT);
+		let account_id: T::AccountId = <<T as Config>::EconomyTreasury as Get<PalletId>>::get().into_sub_account_truncating(BENEFICIARY_NFT);
 
 		let new_balance = crate::Pallet::<T>::get_power_balance(account_id);
 		assert_eq!(new_balance, 123);

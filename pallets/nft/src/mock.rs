@@ -179,7 +179,7 @@ parameter_types! {
 	pub MaxBatchMinting: u32 = 12;
 	pub MaxMetadata: u32 = 10;
 	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account_truncating();
 }
 
 impl orml_tokens::Config for Runtime {
