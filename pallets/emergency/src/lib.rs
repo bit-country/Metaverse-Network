@@ -27,8 +27,14 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use sp_runtime::DispatchResult;
 use sp_std::{prelude::*, vec::Vec};
+pub use weights::WeightInfo;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 
 pub use module::*;
+
+pub mod weights;
 
 #[frame_support::pallet]
 pub mod module {
@@ -40,6 +46,9 @@ pub mod module {
 
 		/// The origin which may set filter.
 		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
+
+		/// Extrinsics' weights
+		type WeightInfo: WeightInfo;
 	}
 
 	#[pallet::error]
@@ -81,7 +90,7 @@ pub mod module {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::emergency_stop())]
 		#[transactional]
 		pub fn emergency_stop(origin: OriginFor<T>, pallet_name: Vec<u8>, function_name: Vec<u8>) -> DispatchResult {
 			T::EmergencyOrigin::ensure_origin(origin)?;
@@ -106,7 +115,7 @@ pub mod module {
 			Ok(())
 		}
 
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(T::WeightInfo::emergency_unstop())]
 		#[transactional]
 		pub fn emergency_unstop(origin: OriginFor<T>, pallet_name: Vec<u8>, function_name: Vec<u8>) -> DispatchResult {
 			T::EmergencyOrigin::ensure_origin(origin)?;

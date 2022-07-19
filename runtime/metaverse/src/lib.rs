@@ -469,6 +469,7 @@ impl currencies::Config for Runtime {
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = weights::module_currencies::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -894,6 +895,7 @@ impl economy::Config for Runtime {
 impl emergency::Config for Runtime {
 	type Event = Event;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1544,6 +1546,8 @@ impl_runtime_apis! {
 			use nft::benchmarking::Pallet as NftBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
+			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
+			use emergency::benchmarking::EmergencyModule as EmergencyBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1554,6 +1558,8 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
+			list_benchmark!(list, extra, currencies, CurrenciesBench::<Runtime>);
+			list_benchmark!(list, extra, emergency, EmergencyBench::<Runtime>);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
 			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 			orml_list_benchmark!(list, extra, economy, benchmarking::economy);
@@ -1577,6 +1583,8 @@ impl_runtime_apis! {
 			use nft::benchmarking::Pallet as NftBench;
 			use mining::benchmarking::MiningModule as MiningBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
+			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
+			use emergency::benchmarking::EmergencyModule as EmergencyBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1601,6 +1609,8 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
+			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
+			add_benchmark!(params, batches, emergency, EmergencyBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
 			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			orml_add_benchmark!(params, batches, economy, benchmarking::economy);

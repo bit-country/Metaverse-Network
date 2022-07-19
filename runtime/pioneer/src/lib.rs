@@ -718,6 +718,7 @@ impl currencies::Config for Runtime {
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = weights::module_currencies::WeightInfo<Runtime>;
 }
 
 parameter_types! {
@@ -1442,6 +1443,7 @@ pub type EnsureRootOrHalfMetaverseCouncil =
 impl emergency::Config for Runtime {
 	type Event = Event;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
 }
 
 parameter_types! {

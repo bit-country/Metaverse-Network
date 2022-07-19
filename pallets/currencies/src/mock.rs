@@ -173,6 +173,7 @@ impl Config for Runtime {
 	type CountryCurrency = Currencies;
 	type FungibleTokenTreasury = CountryFundPalletId;
 	type MetaverseInfoSource = MetaverseInfoSource;
+	type WeightInfo = ();
 }
 
 parameter_types! {
