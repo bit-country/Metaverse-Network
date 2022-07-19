@@ -235,6 +235,7 @@ impl currencies::Config for Runtime {
 	type MultiSocialCurrency = OrmlTokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
+	type WeightInfo = ();
 }
 
 pub struct MockAuctionManager;
