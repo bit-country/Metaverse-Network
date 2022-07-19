@@ -50,10 +50,10 @@ orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library",
 orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.24", default-features = false }
 
 # Misc
-xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "5a04d6286ee9082d4b7433541e48508f8b65616b" }
+xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "651af78d6d7521dc76e1f6bb257af485f8a454c7" }
 
 # Local
-metaverse-runtime = { path = "../metaverse", optional = true  }
+metaverse-runtime = { path = "../metaverse", optional = true }
 pioneer-runtime = { path = "../pioneer", optional = true }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 auction-manager = { path = "../../traits/auction-manager", default-features = false }
