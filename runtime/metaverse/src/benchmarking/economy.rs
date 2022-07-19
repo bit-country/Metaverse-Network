@@ -82,13 +82,13 @@ runtime_benchmarks! {
 		let min_stake = MinimumStake::get();
 		let stake_amount = min_stake + dollar(100);
 
-	}: stake(RawOrigin::Signed(caller.clone()), stake_amount, None)
+	}: stake(RawOrigin::Signed(caller.clone()), stake_amount)
 	verify {
 		let staking_balance = Economy::get_staking_info(caller.clone());
 		assert_eq!(staking_balance, stake_amount);
 	}
 
-	// stake with estate
+	// stake to estate
 	stake_b{
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
@@ -101,7 +101,7 @@ runtime_benchmarks! {
 		let min_stake = MinimumStake::get();
 		let stake_amount = min_stake + dollar(100);
 
-	}: stake(RawOrigin::Signed(caller.clone()), stake_amount, Some(ESTATE_ID))
+	}: stake_estate(RawOrigin::Signed(caller.clone()), stake_amount, ESTATE_ID)
 	verify {
 		let staking_balance = Economy::get_estate_staking_info(ESTATE_ID);
 		assert_eq!(staking_balance, stake_amount);
@@ -117,11 +117,11 @@ runtime_benchmarks! {
 		let min_stake = MinimumStake::get();
 		let stake_amount = min_stake + dollar(100);
 
-		Economy::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount, None);
+		Economy::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount);
 
 		let current_round = Mining::get_current_round_info();
 		let next_round = current_round.current.saturating_add(One::one());
-	}: unstake(RawOrigin::Signed(caller.clone()), dollar(10), None)
+	}: unstake(RawOrigin::Signed(caller.clone()), dollar(10))
 	verify {
 		let staking_balance = Economy::get_staking_info(caller.clone());
 		assert_eq!(staking_balance, min_stake + dollar(90));
@@ -145,11 +145,11 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 
-		Economy::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount, Some(ESTATE_ID));
+		Economy::stake_estate(RawOrigin::Signed(caller.clone()).into(), stake_amount, ESTATE_ID);
 
 		let current_round = Mining::get_current_round_info();
 		let next_round = current_round.current.saturating_add(One::one());
-	}: unstake(RawOrigin::Signed(caller.clone()), dollar(10), Some(ESTATE_ID))
+	}: unstake_estate(RawOrigin::Signed(caller.clone()), dollar(10), ESTATE_ID)
 	verify {
 		let staking_balance = Economy::get_estate_staking_info(ESTATE_ID);
 		assert_eq!(staking_balance, min_stake + dollar(90));
@@ -172,8 +172,8 @@ runtime_benchmarks! {
 		let current_round = Mining::get_current_round_info();
 		let next_round = current_round.current.saturating_add(One::one());
 
-		Economy::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount, None);
-		Economy::unstake(RawOrigin::Signed(caller.clone()).into(), 10u32.into(), None);
+		Economy::stake(RawOrigin::Signed(caller.clone()).into(), stake_amount);
+		Economy::unstake(RawOrigin::Signed(caller.clone()).into(), 10u32.into());
 
 		run_to_block(100);
 		let next_round = current_round.current.saturating_add(One::one());

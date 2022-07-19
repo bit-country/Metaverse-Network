@@ -269,19 +269,56 @@ pub mod pallet {
 		///
 		/// `amount`: the stake amount
 		///
-		/// Emit `SelfStakedToEconomy101` event or `EstateStakedToEconomy101` event if successful
-		#[pallet::weight(
-			if estate.is_some() {
-				T::WeightInfo::stake_b()
-			} else {
-				T::WeightInfo::stake_a()
-			}
-		)]
+		/// Emit `SelfStakedToEconomy101` event  if successful
+		#[pallet::weight(T::WeightInfo::stake_a())]
 		#[transactional]
-		pub fn stake(
+		pub fn stake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Check if user has enough balance for staking
+			ensure!(
+				T::Currency::free_balance(&who) >= amount,
+				Error::<T>::InsufficientBalanceForStaking
+			);
+
+			let current_round = T::RoundHandler::get_current_round_info();
+			// Check if user already in exit queue
+			ensure!(
+				!ExitQueue::<T>::contains_key(&who, current_round.current),
+				Error::<T>::ExitQueueAlreadyScheduled
+			);
+
+			let mut staked_balance = StakingInfo::<T>::get(&who);
+			let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+
+			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+
+			T::Currency::reserve(&who, amount)?;
+
+			StakingInfo::<T>::insert(&who, total);
+
+			let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
+			<TotalStake<T>>::put(new_total_staked);
+
+			let current_round = T::RoundHandler::get_current_round_info();
+			Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
+
+			Ok(().into())
+		}
+
+		/// Stake native token to estate staking ledger to receive build material every round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `amount`: the stake amount
+		/// - `estate_id`: the estate in which the amount will be staked
+		///
+		/// Emit `EstateStakedToEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::stake_b())]
+		#[transactional]
+		pub fn stake_estate(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
-			estate: Option<EstateId>,
+			estate: EstateId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -298,49 +335,29 @@ pub mod pallet {
 				Error::<T>::ExitQueueAlreadyScheduled
 			);
 
-			match estate {
-				None => {
-					let mut staked_balance = StakingInfo::<T>::get(&who);
-					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+			ensure!(
+				T::EstateHandler::check_estate(estate_id.clone())?,
+				Error::<T>::StakeEstateDoesNotExist
+			);
+			ensure!(
+				T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
+				Error::<T>::StakerNotEstateOwner
+			);
 
-					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+			let mut staked_balance = EstateStakingInfo::<T>::get(&estate_id);
+			let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
-					T::Currency::reserve(&who, amount)?;
+			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
 
-					StakingInfo::<T>::insert(&who, total);
+			T::Currency::reserve(&who, amount)?;
 
-					let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
-					<TotalStake<T>>::put(new_total_staked);
+			EstateStakingInfo::<T>::insert(&estate_id, total);
 
-					let current_round = T::RoundHandler::get_current_round_info();
-					Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
-				}
-				Some(estate_id) => {
-					ensure!(
-						T::EstateHandler::check_estate(estate_id.clone())?,
-						Error::<T>::StakeEstateDoesNotExist
-					);
-					ensure!(
-						T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
-						Error::<T>::StakerNotEstateOwner
-					);
+			let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
+			<TotalStake<T>>::put(new_total_staked);
 
-					let mut staked_balance = EstateStakingInfo::<T>::get(&estate_id);
-					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
-
-					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
-
-					T::Currency::reserve(&who, amount)?;
-
-					EstateStakingInfo::<T>::insert(&estate_id, total);
-
-					let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
-					<TotalStake<T>>::put(new_total_staked);
-
-					let current_round = T::RoundHandler::get_current_round_info();
-					Self::deposit_event(Event::EstateStakedToEconomy101(who, estate_id, amount));
-				}
-			}
+			let current_round = T::RoundHandler::get_current_round_info();
+			Self::deposit_event(Event::EstateStakedToEconomy101(who, estate_id, amount));
 
 			Ok(().into())
 		}
@@ -352,100 +369,106 @@ pub mod pallet {
 		///
 		/// `amount`: the stake amount
 		///
-		/// Emit `SelfStakingRemovedFromEconomy101` event or `EstateStakingRemovedFromEconomy101`
-		/// event if successful
-		#[pallet::weight(
-			if estate.is_some() {
-				T::WeightInfo::unstake_b()
+		/// Emit `SelfStakingRemovedFromEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::unstake_a())]
+		pub fn unstake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Ensure amount is greater than zero
+			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountIsZero);
+
+			let mut staked_balance = StakingInfo::<T>::get(&who);
+			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+
+			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+
+			let amount_to_unstake = if remaining < T::MinimumStake::get() {
+				// Remaining amount below minimum, remove all staked amount
+				staked_balance
 			} else {
-				T::WeightInfo::unstake_a()
+				amount
+			};
+
+			let current_round = T::RoundHandler::get_current_round_info();
+			let next_round = current_round.current.saturating_add(One::one());
+
+			// This exit queue will be executed by exit_staking extrinsics to unreserved token
+			ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
+
+			// Update staking info of user immediately
+			// Remove staking info
+			if amount_to_unstake == staked_balance {
+				StakingInfo::<T>::remove(&who);
+			} else {
+				StakingInfo::<T>::insert(&who, remaining);
 			}
-		)]
-		pub fn unstake(
+
+			let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
+			<TotalStake<T>>::put(new_total_staked);
+
+			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
+
+			Ok(().into())
+		}
+
+		/// Unstake native token from estate staking ledger. The unstaked amount able to redeem from the
+		/// next round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `amount`: the stake amount
+		/// - `estate_id`: the estate in which the amount will be staked
+		///
+		/// Emit `EstateStakingRemovedFromEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::unstake_b())]
+		pub fn unstake_estate(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
-			estate: Option<EstateId>,
+			estate: EstateId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			// Ensure amount is greater than zero
 			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountIsZero);
 
-			match estate {
-				None => {
-					let mut staked_balance = StakingInfo::<T>::get(&who);
-					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+			ensure!(
+				T::EstateHandler::check_estate(estate_id.clone())?,
+				Error::<T>::StakeEstateDoesNotExist
+			);
+			ensure!(
+				T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
+				Error::<T>::StakerNotEstateOwner
+			);
 
-					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+			let mut staked_balance = EstateStakingInfo::<T>::get(estate_id);
+			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
-					let amount_to_unstake = if remaining < T::MinimumStake::get() {
-						// Remaining amount below minimum, remove all staked amount
-						staked_balance
-					} else {
-						amount
-					};
+			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
 
-					let current_round = T::RoundHandler::get_current_round_info();
-					let next_round = current_round.current.saturating_add(One::one());
+			let amount_to_unstake = if remaining < T::MinimumStake::get() {
+				// Remaining amount below minimum, remove all staked amount
+				staked_balance
+			} else {
+				amount
+			};
 
-					// This exit queue will be executed by exit_staking extrinsics to unreserved token
-					ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
+			let current_round = T::RoundHandler::get_current_round_info();
+			let next_round = current_round.current.saturating_add(One::one());
 
-					// Update staking info of user immediately
-					// Remove staking info
-					if amount_to_unstake == staked_balance {
-						StakingInfo::<T>::remove(&who);
-					} else {
-						StakingInfo::<T>::insert(&who, remaining);
-					}
+			// This exit queue will be executed by exit_staking extrinsics to unreserved token
+			ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
 
-					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
-					<TotalStake<T>>::put(new_total_staked);
-
-					Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
-				}
-				Some(estate_id) => {
-					ensure!(
-						T::EstateHandler::check_estate(estate_id.clone())?,
-						Error::<T>::StakeEstateDoesNotExist
-					);
-					ensure!(
-						T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
-						Error::<T>::StakerNotEstateOwner
-					);
-
-					let mut staked_balance = EstateStakingInfo::<T>::get(estate_id);
-					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
-
-					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
-
-					let amount_to_unstake = if remaining < T::MinimumStake::get() {
-						// Remaining amount below minimum, remove all staked amount
-						staked_balance
-					} else {
-						amount
-					};
-
-					let current_round = T::RoundHandler::get_current_round_info();
-					let next_round = current_round.current.saturating_add(One::one());
-
-					// This exit queue will be executed by exit_staking extrinsics to unreserved token
-					ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
-
-					// Update staking info of user immediately
-					// Remove staking info
-					if amount_to_unstake == staked_balance {
-						EstateStakingInfo::<T>::remove(&estate_id);
-					} else {
-						EstateStakingInfo::<T>::insert(&estate_id, remaining);
-					}
-
-					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
-					<TotalStake<T>>::put(new_total_staked);
-
-					Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(who, estate_id, amount));
-				}
+			// Update staking info of user immediately
+			// Remove staking info
+			if amount_to_unstake == staked_balance {
+				EstateStakingInfo::<T>::remove(&estate_id);
+			} else {
+				EstateStakingInfo::<T>::insert(&estate_id, remaining);
 			}
+
+			let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
+			<TotalStake<T>>::put(new_total_staked);
+
+			Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(who, estate_id, amount));
 
 			Ok(().into())
 		}
