@@ -40,7 +40,7 @@ pub trait Estate<AccountId> {
 
 	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError>;
 
-	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError>; 
+	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError>;
 }
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]

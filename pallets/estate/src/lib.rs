@@ -1229,12 +1229,73 @@ pub mod pallet {
 		/// The dispatch origin for this call must be _Singed_.
 		/// Only  origin that is not the estate owner can make this call.
 		/// - `estate_id`: the ID of the estate that will be leased
-		/// - `price_per_block`: lease
+		/// - `price_per_block`: lease price per block
+		/// - `duration`: lease duration (in number of blocks)
 		///
-		/// Emits `LandUnitsRemoved` if successful
+		/// Emits `EstateLeaseOfferCreated` if successful
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
 		#[transactional]
-		pub fn remove_land_unit_from_estate(
+		pub fn create_lease_offer(
+			origin: OriginFor<T>,
+			estate_id: EstateId,
+			price_per_block: BalanceOf<T>,
+			duration: u64,
+		) {
+			todo!()
+		}
+
+		/// Accept lease offer for estate that is not leased
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
+		/// - `estate_id`: the ID of the estate that will be leased
+		/// - `recipient`: the account that made the lease offer
+		///
+		/// Emits `EstateLeaseOfferAccepted` if successful
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[transactional]
+		pub fn accept_lease_offer(origin: OriginFor<T>, estate_id: EstateId, recipient: T::AccountId) {
+			todo!()
+		}
+
+		/// Removes expired lease
+		///
+		/// The dispatch origin for this call must be _None_.
+		/// - `estate_id`: the ID of the estate that will be leased
+		/// - `leasor`: the account that is leasing the estate
+		///
+		/// Emits `EstateLeaseContractEnded` if successful
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[transactional]
+		pub fn remove_expired_lease(origin: OriginFor<T>, estate_id: EstateId, leasor: T::AccountId) {
+			todo!()
+		}
+
+		/// Removes expired lease offer
+		///
+		/// The dispatch origin for this call must be _None_.
+		/// - `estate_id`: the ID of the estate that will be leased
+		/// - `offerer`: the account that is offering to lease the estate
+		///
+		/// Emits `EstateLeaseOfferExpired` if successful
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[transactional]
+		pub fn remove_expired_lease_offer(origin: OriginFor<T>, estate_id: EstateId, leasor: T::AccountId) {
+			todo!()
+		}
+
+		/// Collect rent for a leased estate
+		///
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
+		/// - `estate_id`: the ID of the estate that will be leased
+		///
+		/// Emits `EstateRentCollected` if successful
+		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[transactional]
+		pub fn collect_rent(origin: OriginFor<T>, estate_id: EstateId) {
+			todo!()
+		}
 	}
 }
 
