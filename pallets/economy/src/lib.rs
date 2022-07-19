@@ -411,8 +411,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Unstake native token from estate staking ledger. The unstaked amount able to redeem from the
-		/// next round
+		/// Unstake native token from estate staking ledger. The unstaked amount able to redeem from
+		/// the next round
 		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// - `amount`: the stake amount
