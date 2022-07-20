@@ -296,7 +296,6 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		let client = client.clone();
 		let pool = transaction_pool.clone();
 		let is_authority = role.is_authority();
-		let enable_dev_signer = cli.run.enable_dev_signer;
 		let network = network.clone();
 		let filter_pool = filter_pool.clone();
 		let frontier_backend = frontier_backend.clone();
@@ -319,6 +318,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 				fee_history_limit: FEE_HISTORY_LIMIT,
 				overrides: overrides.clone(),
 				block_data_cache: block_data_cache.clone(),
+				command_sink: None,
 			};
 
 			crate::rpc::create_full(deps, subscription_task_executor).map_err(Into::into)
