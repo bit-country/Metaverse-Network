@@ -25,7 +25,7 @@ use mock::{Event, *};
 use super::*;
 
 fn estate_sub_account(estate_id: mock::EstateId) -> AccountId {
-	<Runtime as Config>::LandTreasury::get().into_sub_account(estate_id)
+	<Runtime as Config>::LandTreasury::get().into_sub_account_truncating(estate_id)
 }
 
 #[test]

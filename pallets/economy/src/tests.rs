@@ -54,7 +54,7 @@ fn test_attributes(x: u8) -> Attributes {
 }
 
 fn sub_account(nft_id: (ClassId, TokenId)) -> AccountId {
-	<Runtime as Config>::EconomyTreasury::get().into_sub_account(nft_id)
+	<Runtime as Config>::EconomyTreasury::get().into_sub_account_truncating(nft_id)
 }
 
 fn get_mining_currency() -> FungibleTokenId {

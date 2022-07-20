@@ -19,7 +19,7 @@ fn free_native_balance(who: AccountId) -> Balance {
 }
 
 fn class_id_account() -> AccountId {
-	<Runtime as Config>::Treasury::get().into_account()
+	<Runtime as Config>::Treasury::get().into_account_truncating()
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -528,7 +528,7 @@ fn do_withdraw_funds_from_class_fund_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		init_test_nft(origin.clone());
-		let class_fund: AccountId = <Runtime as Config>::PalletId::get().into_sub_account(CLASS_ID);
+		let class_fund: AccountId = <Runtime as Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
 		assert_ok!(<Runtime as Config>::Currency::transfer(origin.clone(), class_fund, 100));
 		assert_eq!(free_native_balance(ALICE), 99897);
 		assert_eq!(free_native_balance(class_fund), 100);

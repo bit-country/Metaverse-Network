@@ -465,7 +465,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
 	pub fn account_id() -> T::AccountId {
-		T::ContinuumTreasury::get().into_account()
+		T::ContinuumTreasury::get().into_account_truncating()
 	}
 	// noinspection ALL
 	fn check_spot_ownership(spot_id: &MapSpotId, owner: &T::AccountId) -> Result<bool, DispatchError> {

@@ -19,7 +19,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set-Up
         run: sudo apt install -y cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
@@ -31,7 +31,6 @@ jobs:
           rustup default nightly && rustup update
           rustup default nightly-2022-02-19
           rustup target add wasm32-unknown-unknown --toolchain nightly-2022-02-19
-
       - name: Check Rust version
         run: rustup show
       - name: Check Format

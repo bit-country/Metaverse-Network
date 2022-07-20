@@ -6,10 +6,7 @@ members = [
     'pallets/*',
     'traits/*',
     'node',
-    'runtime/continuum',
-    'runtime/pioneer',
-    'runtime/metaverse',
-    'runtime/integration-tests',
+    'runtime/*',
     'primitives/metaverse',
     'modules/relaychain',
     'modules/support',
@@ -26,9 +23,7 @@ exclude = [
 ]
 
 [patch.crates-io]
-#ethereum = { git = "https://github.com/justinphamnz/ethereum", branch = "polkadot-v0.9.22", optional = true }
+#ethereum = { git = "https://github.com/justinphamnz/ethereum", branch = "polkadot-v0.9.24", optional = true }
 #evm = { git = "https://github.com/justinphamnz/evm", branch = "master", version = "0.33.1", optional = true }
 #evm-gasometer = { git = "https://github.com/justinphamnz/evm", branch = "master", version = "0.33.0", optional = true }
 #evm-runtime = { git = "https://github.com/justinphamnz/evm", branch = "master", version = "0.33.0", optional = true }
-# TODO: https://github.com/paritytech/substrate/pull/11707
-syn = { git = "https://github.com/dtolnay/syn", rev = "19b3f0b53525ac7ab0882882a822adbd874dbe8c" }
