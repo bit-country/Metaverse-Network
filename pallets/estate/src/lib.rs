@@ -1255,17 +1255,17 @@ pub mod pallet {
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			ensure!(Estates::<T>::get(estate_id).is_some(), Error::<T>::EstateDoesNotExist);
-			ensure!(!Self::is_estate_leased(estate_id), Error::<T>::EstateIsAlreadyLeased);
+			ensure!(!EstateLeases::<T>::contains_key(estate_id), Error::<T>::EstateIsAlreadyLeased);
 			ensure!(
-				price_per_block >= T::MinLeasePricePerBlock,
+				price_per_block >= T::MinLeasePricePerBlock::get(),
 				Error::<T>::LeaseOfferPriceBelowMinimum
 			);
 			ensure!(
-				duration <= T::MaxLeasePeriod,
+				duration <= T::MaxLeasePeriod::get(),
 				Error::<T>::LeaseOfferDurationAboveMaximum
 			);
 			ensure!(
-				EstateLeaseOffers::<T>::iter_prefix(estate_id).count() <= T::MaxOffersPerEstate
+				EstateLeaseOffers::<T>::iter_prefix(estate_id).count() <= T::MaxOffersPerEstate::get(),
 				Error::<T>::EstateLeaseOffersQueueLimitIsReached
 			);
 
@@ -1276,7 +1276,7 @@ pub mod pallet {
 						Error::<T>::EstateAlreadyInAuction
 					);
 					ensure!(
-						!Self::check_if_land_or_estate_owner(from, &estate_owner_value),
+						!Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 						Error::<T>::NoPermission
 					);
 
@@ -1303,8 +1303,9 @@ pub mod pallet {
 			recipient: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(!Self::is_estate_leased(estate_id), EstateIsAlreadyLeased);
+			ensure!(!Self::is_estate_leased(estate_id), Error::<T>::EstateIsAlreadyLeased);
 
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
 					ensure!(
@@ -1312,7 +1313,7 @@ pub mod pallet {
 						Error::<T>::EstateAlreadyInAuction
 					);
 					ensure!(
-						Self::check_if_land_or_estate_owner(from, &estate_owner_value),
+						Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 						Error::<T>::NoPermission
 					);
 
@@ -1338,7 +1339,7 @@ pub mod pallet {
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-			ensure!(Self::is_estate_leased(estate_id), EstateIsNotLeased);
+			ensure!(EstateLeases::<T>::contains_key(estate_id), Error::<T>::EstateIsNotLeased);
 			ensure!(
 				EstateLeaseOffers::<T>::contains_key(estate_id, leasor),
 				Error::<T>::InvalidEstateLeasor
@@ -1364,8 +1365,8 @@ pub mod pallet {
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_none(origin)?;
-			ensure!(Self::is_estate_leased(estate_id), Error::<T>::LeaseDoesNotExist);
-			ensure!(Self::is_estate_leasor(leasor, estate_id), Error::<T>::LeaseDoesNotExist);
+			ensure!(EstateLeases::<T>::contains_key(estate_id), Error::<T>::LeaseDoesNotExist);
+			ensure!(EstateLeasors::<T>::contains_key(leasor, estate_id), Error::<T>::LeaseDoesNotExist);
 			Ok(().into())
 		}
 
@@ -1402,8 +1403,8 @@ pub mod pallet {
 		#[transactional]
 		pub fn collect_rent(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(Self::check_estate_ownership(who, estate_id), Error::<T>::NoPermission);
-			ensure!(Self::is_estate_leased(estate_id), Error::<T>::EstateIsNotLeased);
+			ensure!(Self::check_estate_ownership(who, estate_id)?, Error::<T>::NoPermission);
+			ensure!(EstateLeases::<T>::contains_key(estate_id), Error::<T>::EstateIsNotLeased);
 			Ok(().into())
 		}
 	}
@@ -2115,10 +2116,10 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 	}
 
 	fn is_estate_leasor(leasor: T::AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
-		EstateLeasors::<T>::contains_key(leasor, estate_id)
+		Ok(EstateLeasors::<T>::contains_key(leasor, estate_id))
 	}
 
 	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
-		EstateLeases::<T>::contains_key(estate_id)
+		Ok(EstateLeases::<T>::contains_key(estate_id))
 	}
 }
