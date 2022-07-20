@@ -26,6 +26,7 @@ pub type EstateId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
+pub const CHARLIE: AccountId = 6;
 pub const BENEFICIARY_ID: AccountId = 99;
 pub const AUCTION_BENEFICIARY_ID: AccountId = 100;
 pub const CLASS_FUND_ID: AccountId = 123;
@@ -38,6 +39,7 @@ pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
 pub const COORDINATE_IN_1: (i32, i32) = (-4, 4);
 pub const COORDINATE_IN_2: (i32, i32) = (-4, 5);
 pub const COORDINATE_IN_3: (i32, i32) = (-4, 6);
+pub const COORDINATE_IN_3: (i32, i32) = (-4, 8);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 pub const COORDINATE_IN_AUCTION: (i32, i32) = (-4, 7);
 pub const ESTATE_IN_AUCTION: EstateId = 3;
@@ -457,7 +459,7 @@ parameter_types! {
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = MAX_BOUND;
 	pub const NetworkFee: Balance = 1; // Network fee
-	pub const MaxOffersPerEstate: u32 = 10;
+	pub const MaxOffersPerEstate: u32 = 2;
 	pub const MinLeasePricePerBlock: Balance = 1u128;
 	pub const MaxLeasePeriod: u32 = 9;
 	pub const LeaseOfferExpiryPeriod: u32 = 6;
@@ -532,4 +534,16 @@ pub fn last_event() -> Event {
 		.pop()
 		.expect("Event expected")
 		.event
+}
+
+fn next_block() {
+	GovernanceModule::on_finalize(System::block_number());
+	System::set_block_number(System::block_number() + 1);
+	GovernanceModule::on_initialize(System::block_number());
+}
+
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		next_block();
+	}
 }

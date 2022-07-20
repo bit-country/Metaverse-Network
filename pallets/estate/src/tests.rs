@@ -2141,3 +2141,627 @@ fn issue_land_block_and_create_estate_should_work() {
 		);
 	});
 }
+
+#[test]
+fn create_estate_lease_offer_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		// Mint estate
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1]
+		));
+
+		assert_noop!(
+			EstateModule::create_lease_offer(
+				Origin::signed(ALICE),
+				1u32
+				10u128,
+				8u32
+			),
+			EstateDoesNotExist
+		);
+
+		assert_noop!(
+			EstateModule::create_lease_offer(
+				Origin::signed(ALICE),
+				0u32
+				0u128,
+				8u32
+			),
+			LeaseOfferPriceBelowMinimum
+		);
+
+		assert_noop!(
+			EstateModule::create_lease_offer(
+				Origin::signed(ALICE),
+				0u32
+				2u128,
+				1000u32
+			),
+			LeaseOfferDurationAboveMaximum
+		);
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(BOB),
+			0u32
+			11u128,
+			8u32
+		));
+
+		assert_noop!(
+			EstateModule::create_lease_offer(
+				Origin::signed(CHARLIE),
+				0u32
+				12u128,
+				8u32
+			),
+			EstateLeaseOffersQueueLimitIsReached
+		);
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			0u32,
+			ALICE
+		));
+
+		assert_noop!(
+			EstateModule::create_lease_offer(
+				Origin::signed(CHARLIE),
+				0u32
+				12u128,
+				8u32
+			),
+			EstateIsAlreadyLeased
+		);
+
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			AUCTION_BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_2]
+		));
+
+		assert_noop!(
+			EstateModule::create_lease_offer(
+				Origin::signed(ALICE),
+				1u32
+				3u128,
+				8u32
+			),
+			EstateAlreadyInAuction
+		);
+
+		assert_noop!(
+			EstateModule::create_lease_offer(
+				Origin::signed(BENEFICIARY_ID),
+				0u32
+				10u128,
+				8u32
+			),
+			NoPermission
+		);
+	});
+}
+
+#[test]
+fn create_estate_lease_offer_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateLeaseOfferCreated(ALICE, 0, 10))
+		);
+
+		let lease_contract = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 6,
+			start_block: 7,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+	});
+}
+
+#[test]
+fn accept_estate_lease_offer_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		// Mint estate
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(BOB),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_noop!(
+			EstateModule::accept_lease_offer(Origin::signed(ALICE), 0u32, BOB),
+			NoPermission
+		);
+		todo!()
+		//TO DO: Offer cannot be accepted after asset is listed on auction
+	});
+}
+
+#[test]
+fn accept_estate_lease_offer_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+
+		let lease_contract = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 6,
+			start_block: 7,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			0u32,
+			ALICE
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 8))
+		);
+
+		let lease = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 8,
+			start_block: 0,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::leases(0u32), Some(lease));
+
+		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+	});
+}
+
+#[test]
+fn cancel_lease_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		// Mint estate
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1]
+		));
+
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_noop!(
+			EstateModule::cancel_lease(Origin::signed(ALICE), 0u32, ALICE),
+			BadOrigin
+		);
+
+		assert_noop!(
+			EstateModule::cancel_lease(Origin::root(), 1u32, ALICE),
+			EstateIsNotLeased
+		);
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			0u32,
+			ALICE
+		));
+
+		assert_noop!(
+			EstateModule::cancel_lease(Origin::root(), 0u32, BOB),
+			InvalidEstateLeasor
+		);
+	});
+}
+
+#[test]
+fn cancel_lease_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+
+		let lease_contract = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 6,
+			start_block: 7,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			0u32,
+			ALICE
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 8))
+		);
+
+		let lease = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 8,
+			start_block: 0,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::leases(0u32), Some(lease));
+
+		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+
+		run_to_block(4);
+
+		assert_ok!(EstateModule::cancel_lease(Origin::root(), 0u32, ALICE));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateLeaseContractCancelled(0))
+		);
+
+		assert_eq!(EstateModule::leases(0u32), None);
+
+		assert_eq!(EstateModule::leasors(ALICE, 0u32), None);
+
+		assert_eq!(Balances::free_balance(ALICE), 99960);
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 1000040);
+	});
+}
+
+#[test]
+fn remove_expired_lease_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		// Mint estate
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_noop!(
+			EstateModule::remove_expired_lease(Origin::none(), 0u32, ALICE),
+			LeaseDoesNotExist
+		);
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			0u32,
+			ALICE
+		));
+
+		assert_noop!(
+			EstateModule::remove_expired_lease(Origin::none(), 0u32, ALICE),
+			LeaseIsNotExpired
+		);
+	});
+}
+
+#[test]
+fn remove_expired_lease_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+
+		let lease_contract = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 6,
+			start_block: 7,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			0u32,
+			ALICE
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 8))
+		);
+
+		let lease = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 8,
+			start_block: 0,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::leases(0u32), Some(lease));
+
+		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+
+		run_to_block(9);
+
+		assert_ok!(EstateModule::remove_expired_lease(Origin::none(), 0u32, ALICE));
+
+		assert_eq!(EstateModule::leases(0u32), None);
+
+		assert_eq!(EstateModule::leasors(ALICE, 0u32), None);
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 1000080);
+	});
+}
+
+#[test]
+fn remove_expired_lease_offer_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_noop!(
+			EstateModule::remove_expired_lease_offer(Origin::none(), 1u32, ALICE),
+			LeaseOfferDoesNotExist
+		);
+
+		assert_noop!(
+			EstateModule::remove_expired_lease_offer(Origin::none(), 0u32, ALICE),
+			LeaseOfferIsNotExpired
+		);
+	});
+}
+
+#[test]
+fn remove_expired_lease_offer_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+
+		let lease_contract = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 6,
+			start_block: 7,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+
+		run_to_block(7);
+
+		assert_ok!(EstateModule::remove_expired_lease_offer(Origin::none(), 0u32, ALICE));
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+		assert_eq!(Balances::free_balance(ALICE), 100000);
+	});
+}
+
+#[test]
+fn collect_rent_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			rigin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			Ovec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_noop!(
+			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32),
+			EstateIsNotLeased
+		);
+
+		assert_noop!(EstateModule::collect_rent(Origin::signed(ALICE), 0u32), NoPermission);
+	});
+}
+
+#[test]
+fn collect_rent_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+
+		let lease_contract = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 6,
+			start_block: 7,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			0u32,
+			ALICE
+		));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 8))
+		);
+
+		let lease = LeaseContract {
+			owner: BENEFICIARY_ID,
+			price_per_block: 10u128,
+			duration: 8u32,
+			end_block: 8,
+			start_block: 0,
+			unclaimed_rent: 80u32,
+		};
+
+		assert_eq!(EstateModule::leases(0u32), Some(lease));
+
+		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+
+		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+
+		run_to_block(4);
+
+		assert_ok!(EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32));
+
+		assert_eq!(last_event(), Event::Estate(crate::Event::EstateRentCollected(0, 40)));
+
+		assert_eq!(EstateModule::leases(0u32), Some(lease));
+
+		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+
+		assert_eq!(Balances::free_balance(ALICE), 99920);
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 1000040);
+	});
+}
