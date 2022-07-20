@@ -97,7 +97,7 @@ parameter_type_with_key! {
 
 parameter_types! {
 	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account();
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account_truncating();
 	pub const MiningTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
@@ -113,6 +113,8 @@ impl orml_tokens::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;

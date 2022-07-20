@@ -66,7 +66,7 @@ fn issue_continuum_spot_should_fail_when_no_root() {
 fn issue_continuum_spot_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let root = Origin::root();
-		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account();
+		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account_truncating();
 		assert_ok!(ContinuumModule::issue_map_slot(
 			root,
 			CONTINUUM_MAP_COORDINATE,
@@ -181,7 +181,7 @@ fn buy_now_continuum_should_work() {
 			ALICE_METAVERSE_ID
 		));
 
-		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account();
+		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account_truncating();
 		ContinuumModule::transfer_spot(CONTINUUM_MAP_COORDINATE, treasury, (ALICE, ALICE_METAVERSE_ID));
 
 		// Ensure Metaverse leading bid has no record of this spot
@@ -223,7 +223,7 @@ fn bid_auction_continuum_should_work() {
 			ALICE_METAVERSE_ID
 		));
 
-		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account();
+		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account_truncating();
 		ContinuumModule::transfer_spot(CONTINUUM_MAP_COORDINATE, treasury, (ALICE, ALICE_METAVERSE_ID));
 
 		// Ensure Metaverse leading bid has no record of this spot
@@ -511,7 +511,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 			BOB_METAVERSE_ID
 		));
 
-		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account();
+		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account_truncating();
 		ContinuumModule::transfer_spot(CONTINUUM_MAP_COORDINATE, treasury, (BOB, BOB_METAVERSE_ID));
 
 		// Ensure Metaverse leading bid has no record of this spot

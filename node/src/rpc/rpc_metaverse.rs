@@ -10,8 +10,8 @@ use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
 use jsonrpsee::RpcModule;
-use pallet_contracts_rpc::ContractsRpc;
-use pallet_transaction_payment_rpc::TransactionPaymentRpc;
+use pallet_contracts_rpc;
+use pallet_transaction_payment_rpc;
 use sc_cli::SubstrateCli;
 // Substrate
 use sc_client_api::{
@@ -26,7 +26,7 @@ use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Backend as BlockchainBackend, Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_runtime::traits::BlakeTwo256;
-use substrate_frame_rpc_system::SystemRpc;
+use substrate_frame_rpc_system::{System, SystemApiServer};
 
 use metaverse_runtime::{opaque::Block, AccountId, Hash, Index};
 use primitives::*;
@@ -87,20 +87,18 @@ pub struct FullDeps<C, P, A: ChainApi> {
 	pub deny_unsafe: DenyUnsafe,
 	/// The Node authority flag
 	pub is_authority: bool,
-	/// Whether to enable dev signer
-	pub enable_dev_signer: bool,
 	/// Network service
 	pub network: Arc<NetworkService<Block, Hash>>,
 	/// EthFilterApi pool.
 	pub filter_pool: Option<FilterPool>,
-	/// Backend.
-	pub backend: Arc<fc_db::Backend<Block>>,
+	/// Frontier Backend.
+	pub frontier_backend: Arc<fc_db::Backend<Block>>,
 	/// Maximum number of logs in a query.
 	pub max_past_logs: u32,
 	/// Fee history cache.
 	pub fee_history_cache: FeeHistoryCache,
 	/// Maximum fee history cache size.
-	pub fee_history_cache_limit: FeeHistoryCacheLimit,
+	pub fee_history_limit: u64,
 	/// Ethereum data access overrides.
 	pub overrides: Arc<OverrideHandle<Block>>,
 	/// Cache for Ethereum block data.
@@ -134,52 +132,47 @@ where
 		Eth, EthApiServer, EthDevSigner, EthFilter, EthFilterApiServer, EthPubSub, EthPubSubApiServer, EthSigner, Net,
 		NetApiServer, Web3, Web3ApiServer,
 	};
-	use pallet_transaction_payment_rpc::{TransactionPaymentApiServer, TransactionPaymentRpc};
-	use substrate_frame_rpc_system::{SystemApiServer, SystemRpc};
+	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+	use substrate_frame_rpc_system::SystemApiServer;
 
 	let mut io = RpcModule::new(());
 	let FullDeps {
 		client,
 		pool,
 		graph,
+		network,
 		deny_unsafe,
 		is_authority,
-		enable_dev_signer,
-		network,
 		filter_pool,
-		backend,
+		frontier_backend,
 		max_past_logs,
 		fee_history_cache,
-		fee_history_cache_limit,
+		fee_history_limit,
 		overrides,
 		block_data_cache,
 		#[cfg(feature = "manual-seal")]
 		command_sink,
 	} = deps;
 
-	io.merge(SystemRpc::new(Arc::clone(&client), Arc::clone(&pool), deny_unsafe).into_rpc())?;
-	io.merge(TransactionPaymentRpc::new(Arc::clone(&client)).into_rpc())?;
+	io.merge(System::new(Arc::clone(&client), Arc::clone(&pool), deny_unsafe).into_rpc())?;
+	io.merge(TransactionPayment::new(Arc::clone(&client)).into_rpc())?;
 
-	let mut signers = Vec::new();
-	if enable_dev_signer {
-		signers.push(Box::new(EthDevSigner::new()) as Box<dyn EthSigner>);
-	}
+	let no_tx_converter: Option<fp_rpc::NoTransactionConverter> = None;
 
 	io.merge(
 		Eth::new(
-			Arc::clone(&client),
-			Arc::clone(&pool),
+			client.clone(),
+			pool.clone(),
 			graph,
-			Some(metaverse_runtime::TransactionConverter),
-			Arc::clone(&network),
-			signers,
-			Arc::clone(&overrides),
-			Arc::clone(&backend),
-			// Is authority.
+			no_tx_converter,
+			network.clone(),
+			Default::default(),
+			overrides.clone(),
+			frontier_backend.clone(),
 			is_authority,
-			Arc::clone(&block_data_cache),
+			block_data_cache.clone(),
 			fee_history_cache,
-			fee_history_cache_limit,
+			fee_history_limit,
 		)
 		.into_rpc(),
 	)?;
@@ -188,7 +181,7 @@ where
 		io.merge(
 			EthFilter::new(
 				client.clone(),
-				backend,
+				frontier_backend,
 				filter_pool,
 				500_usize, // max stored filters
 				max_past_logs,

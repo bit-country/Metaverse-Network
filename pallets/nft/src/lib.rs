@@ -758,7 +758,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Getting a class fund
 	pub fn get_class_fund(class_id: &ClassIdOf<T>) -> T::AccountId {
-		T::PalletId::get().into_sub_account(class_id)
+		T::PalletId::get().into_sub_account_truncating(class_id)
 	}
 
 	/// Internal creation of group collection
@@ -878,7 +878,7 @@ impl<T: Config> Pallet<T> {
 		// Update class total issuance
 		Self::update_class_total_issuance(&sender, &class_id, quantity)?;
 
-		let class_fund: T::AccountId = T::Treasury::get().into_account();
+		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
 
@@ -937,7 +937,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Class fund
-		let class_fund: T::AccountId = T::Treasury::get().into_account();
+		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 
 		// Secure deposit of token class owner
 		let class_deposit = T::ClassMintingFee::get();
@@ -1152,7 +1152,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			Error::<T>::ExceedMaximumMetadataLength
 		);
 
-		let class_fund: T::AccountId = T::Treasury::get().into_account();
+		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
 		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
 
@@ -1209,7 +1209,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	}
 
 	fn get_class_fund(class_id: &Self::ClassId) -> T::AccountId {
-		T::PalletId::get().into_sub_account(class_id)
+		T::PalletId::get().into_sub_account_truncating(class_id)
 	}
 
 	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {

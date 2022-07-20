@@ -612,7 +612,7 @@ pub fn run() -> sc_cli::Result<()> {
 					let id = ParaId::from(para_id);
 
 					let parachain_account =
-						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account(&id);
+						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
 
 					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
 					let block: Block =
@@ -657,7 +657,7 @@ pub fn run() -> sc_cli::Result<()> {
 					let id = ParaId::from(para_id);
 
 					let parachain_account =
-						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account(&id);
+						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
 
 					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
 					let block: Block =
