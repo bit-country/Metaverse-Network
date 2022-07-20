@@ -126,7 +126,7 @@ pub mod pallet {
 
 		/// Maximum lease offers for an estate
 		#[pallet::constant]
-		type MaxOffersPerEstate: Get<u32>;
+		type MaxOffersPerEstate: Get<usize>;
 
 		/// Minimum lease price per block
 		#[pallet::constant]
