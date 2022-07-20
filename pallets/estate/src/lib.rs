@@ -1255,7 +1255,10 @@ pub mod pallet {
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			ensure!(Estates::<T>::get(estate_id).is_some(), Error::<T>::EstateDoesNotExist);
-			ensure!(!EstateLeases::<T>::contains_key(estate_id), Error::<T>::EstateIsAlreadyLeased);
+			ensure!(
+				!EstateLeases::<T>::contains_key(estate_id),
+				Error::<T>::EstateIsAlreadyLeased
+			);
 			ensure!(
 				price_per_block >= T::MinLeasePricePerBlock::get(),
 				Error::<T>::LeaseOfferPriceBelowMinimum
@@ -1339,7 +1342,10 @@ pub mod pallet {
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-			ensure!(EstateLeases::<T>::contains_key(estate_id), Error::<T>::EstateIsNotLeased);
+			ensure!(
+				EstateLeases::<T>::contains_key(estate_id),
+				Error::<T>::EstateIsNotLeased
+			);
 			ensure!(
 				EstateLeaseOffers::<T>::contains_key(estate_id, leasor),
 				Error::<T>::InvalidEstateLeasor
@@ -1365,8 +1371,14 @@ pub mod pallet {
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_none(origin)?;
-			ensure!(EstateLeases::<T>::contains_key(estate_id), Error::<T>::LeaseDoesNotExist);
-			ensure!(EstateLeasors::<T>::contains_key(leasor, estate_id), Error::<T>::LeaseDoesNotExist);
+			ensure!(
+				EstateLeases::<T>::contains_key(estate_id),
+				Error::<T>::LeaseDoesNotExist
+			);
+			ensure!(
+				EstateLeasors::<T>::contains_key(leasor, estate_id),
+				Error::<T>::LeaseDoesNotExist
+			);
 			Ok(().into())
 		}
 
@@ -1404,7 +1416,10 @@ pub mod pallet {
 		pub fn collect_rent(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			ensure!(Self::check_estate_ownership(who, estate_id)?, Error::<T>::NoPermission);
-			ensure!(EstateLeases::<T>::contains_key(estate_id), Error::<T>::EstateIsNotLeased);
+			ensure!(
+				EstateLeases::<T>::contains_key(estate_id),
+				Error::<T>::EstateIsNotLeased
+			);
 			Ok(().into())
 		}
 	}
