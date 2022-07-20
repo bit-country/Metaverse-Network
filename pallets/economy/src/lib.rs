@@ -354,7 +354,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			let account_id = T::EconomyTreasury::get().into_sub_account(beneficiary);
+			let account_id = T::EconomyTreasury::get().into_sub_account_truncating(beneficiary);
 			PowerBalance::<T>::insert(&account_id, amount);
 
 			Self::deposit_event(Event::<T>::SetPowerBalance(account_id, amount));
@@ -568,7 +568,8 @@ pub mod pallet {
 			Self::do_burn(&beneficiary, bit_amount)?;
 
 			// Get distributor NFT account id
-			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+			let nft_account_id: T::AccountId =
+				T::EconomyTreasury::get().into_sub_account_truncating(distributor_nft_id);
 			// Deposit commission to NFT operator
 			T::FungibleTokenCurrency::deposit(
 				T::MiningCurrencyId::get(),
@@ -605,7 +606,7 @@ pub mod pallet {
 
 			// Get distributor NFT account id
 			let distributor_nft_account_id: T::AccountId =
-				T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+				T::EconomyTreasury::get().into_sub_account_truncating(distributor_nft_id);
 
 			ensure!(
 				!BuyPowerByDistributorRequestQueue::<T>::contains_key(&generator_nft_id, &distributor_nft_account_id),
@@ -727,7 +728,7 @@ pub mod pallet {
 			Self::do_burn(&beneficiary, bit_amount)?;
 
 			// Get distributor NFT account id
-			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);
+			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account_truncating(generator_nft_id);
 			// Deposit commission to NFT operator
 			T::FungibleTokenCurrency::deposit(
 				T::MiningCurrencyId::get(),
@@ -931,7 +932,8 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			// Get distributor NFT account id
-			let generator_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);
+			let generator_nft_account_id: T::AccountId =
+				T::EconomyTreasury::get().into_sub_account_truncating(generator_nft_id);
 
 			// Ensure get power by generator only called by generator nft owner
 			// Check nft is part of generator collection
@@ -1033,7 +1035,7 @@ pub mod pallet {
 			ensure!(T::NFTHandler::check_ownership(&who, &nft_id)?, Error::<T>::NoPermission);
 
 			// Get NFT account id
-			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(nft_id);
+			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account_truncating(nft_id);
 
 			T::FungibleTokenCurrency::transfer(T::MiningCurrencyId::get(), &nft_account_id, &who, amount);
 			Ok(().into())
@@ -1098,7 +1100,8 @@ pub mod pallet {
 
 			// Nft account id
 			// Get receiver NFT account id
-			let receiver_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(receiver_nft_id);
+			let receiver_nft_account_id: T::AccountId =
+				T::EconomyTreasury::get().into_sub_account_truncating(receiver_nft_id);
 
 			// Check if queue exists
 			ensure!(
@@ -1222,7 +1225,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
 	pub fn economy_pallet_account_id() -> T::AccountId {
-		T::EconomyTreasury::get().into_account()
+		T::EconomyTreasury::get().into_account_truncating()
 	}
 
 	pub fn convert_power_to_bit(power_amount: Balance, commission: Perbill) -> (Balance, Balance) {
@@ -1257,7 +1260,8 @@ impl<T: Config> Pallet<T> {
 		distributor_nft_id: (ClassId, TokenId),
 	) -> DispatchResult {
 		// Convert distributor NFT to accountId
-		let distributor_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(distributor_nft_id);
+		let distributor_nft_account_id: T::AccountId =
+			T::EconomyTreasury::get().into_sub_account_truncating(distributor_nft_id);
 
 		let mut distributor_power_balance = PowerBalance::<T>::get(distributor_nft_account_id.clone());
 		ensure!(
@@ -1291,7 +1295,8 @@ impl<T: Config> Pallet<T> {
 		generator_nft_id: (ClassId, TokenId),
 	) -> DispatchResult {
 		// Convert generator NFT to accountId
-		let generator_nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account(generator_nft_id);
+		let generator_nft_account_id: T::AccountId =
+			T::EconomyTreasury::get().into_sub_account_truncating(generator_nft_id);
 
 		let mut generator_power_balance = PowerBalance::<T>::get(generator_nft_account_id.clone());
 		ensure!(

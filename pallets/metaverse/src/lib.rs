@@ -424,7 +424,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::check_ownership(&who, &metaverse_id), Error::<T>::NoPermission);
-			let metaverse_fund_account = T::MetaverseTreasury::get().into_sub_account(metaverse_id);
+			let metaverse_fund_account = T::MetaverseTreasury::get().into_sub_account_truncating(metaverse_id);
 
 			// Balance minus existential deposit
 			let metaverse_fund_balance = <T as Config>::Currency::free_balance(&metaverse_fund_account)
@@ -508,7 +508,7 @@ impl<T: Config> Pallet<T> {
 	/// This actually does computation. If you need to keep using it, then make sure you cache the
 	/// value and only call this once.
 	pub fn account_id() -> T::AccountId {
-		T::MetaverseTreasury::get().into_account()
+		T::MetaverseTreasury::get().into_account_truncating()
 	}
 
 	/// Update staking info of origin
@@ -529,7 +529,7 @@ impl<T: Config> Pallet<T> {
 		land_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
 		land_class_attributes.insert("Category:".as_bytes().to_vec(), "Lands".as_bytes().to_vec());
 		let land_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
-		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account();
+		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account_truncating();
 		T::NFTHandler::create_token_class(
 			&class_owner,
 			land_class_metadata,
@@ -549,7 +549,7 @@ impl<T: Config> Pallet<T> {
 		estate_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
 		estate_class_attributes.insert("Category:".as_bytes().to_vec(), "Estates".as_bytes().to_vec());
 		let estate_class_metadata: NftMetadata = metaverse_id.to_be_bytes().to_vec();
-		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account();
+		let class_owner: T::AccountId = T::MetaverseTreasury::get().into_account_truncating();
 		T::NFTHandler::create_token_class(
 			&class_owner,
 			estate_class_metadata,
@@ -690,11 +690,11 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> T::AccountId {
-		return T::MetaverseTreasury::get().into_sub_account(metaverse_id);
+		return T::MetaverseTreasury::get().into_sub_account_truncating(metaverse_id);
 	}
 
 	fn get_network_treasury() -> T::AccountId {
-		return T::MetaverseTreasury::get().into_account();
+		return T::MetaverseTreasury::get().into_account_truncating();
 	}
 
 	fn check_if_metaverse_estate(metaverse_id: MetaverseId, class_id: &ClassId) -> Result<bool, DispatchError> {

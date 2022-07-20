@@ -22,7 +22,7 @@ const COORDINATE_OUT: (i32, i32) = (0, 101);
 const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 
 fn get_metaverse_fund(metaverse_id: MetaverseId) -> AccountId {
-	MetaverseNetworkTreasuryPalletId::get().into_sub_account(metaverse_id)
+	MetaverseNetworkTreasuryPalletId::get().into_sub_account_truncating(metaverse_id)
 }
 
 runtime_benchmarks! {

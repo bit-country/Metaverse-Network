@@ -206,7 +206,7 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub TreasuryModuleAccount: AccountId = EconomyPalletId::get().into_account();
+	pub TreasuryModuleAccount: AccountId = EconomyPalletId::get().into_account_truncating();
 }
 
 impl orml_tokens::Config for Runtime {
@@ -221,6 +221,8 @@ impl orml_tokens::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;

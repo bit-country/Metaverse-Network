@@ -265,12 +265,6 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		EthTask::filter_pool_task(client.clone(), filter_pool.clone(), FILTER_RETAIN_THRESHOLD),
 	);
 
-	task_manager.spawn_essential_handle().spawn(
-		"frontier-schema-cache-task",
-		Some("frontier"),
-		EthTask::ethereum_schema_cache_task(client.clone(), frontier_backend.clone()),
-	);
-
 	const FEE_HISTORY_LIMIT: u64 = 2048;
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-fee-history",
@@ -302,7 +296,6 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		let client = client.clone();
 		let pool = transaction_pool.clone();
 		let is_authority = role.is_authority();
-		let enable_dev_signer = cli.run.enable_dev_signer;
 		let network = network.clone();
 		let filter_pool = filter_pool.clone();
 		let frontier_backend = frontier_backend.clone();
@@ -317,13 +310,12 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 				graph: pool.pool().clone(),
 				deny_unsafe,
 				is_authority,
-				enable_dev_signer,
 				network: network.clone(),
 				filter_pool: Some(filter_pool.clone()),
-				backend: frontier_backend.clone(),
+				frontier_backend: frontier_backend.clone(),
 				max_past_logs,
 				fee_history_cache: fee_history_cache.clone(),
-				fee_history_cache_limit: FEE_HISTORY_LIMIT,
+				fee_history_limit: FEE_HISTORY_LIMIT,
 				overrides: overrides.clone(),
 				block_data_cache: block_data_cache.clone(),
 			};

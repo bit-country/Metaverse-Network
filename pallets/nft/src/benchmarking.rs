@@ -54,7 +54,7 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 }
 
 fn get_class_fund<T: Config>(class_id: ClassId) -> T::AccountId {
-	T::PalletId::get().into_sub_account(class_id)
+	T::PalletId::get().into_sub_account_truncating(class_id)
 }
 
 fn test_attributes(x: u8) -> Attributes {
