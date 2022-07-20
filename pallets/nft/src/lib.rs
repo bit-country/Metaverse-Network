@@ -1097,6 +1097,11 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		Ok(asset_info.data)
 	}
 
+	fn get_nft_owner(asset_id: (Self::ClassId, Self::TokenId)) -> Result<T::AccountId, DispatchError> {
+		let asset_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+		Ok(asset_info.owner)
+	}
+
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
 		let group_collection_id = ClassDataCollection::<T>::get(nft_collection);
 		Ok(group_collection_id)

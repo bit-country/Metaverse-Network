@@ -126,7 +126,7 @@ pub mod pallet {
 
 		/// Maximum lease offers for an estate
 		#[pallet::constant]
-		type MaxOffersPerEstate: Get<usize>;
+		type MaxOffersPerEstate: Get<u32>;
 
 		/// Minimum lease price per block
 		#[pallet::constant]
@@ -1268,7 +1268,7 @@ pub mod pallet {
 				Error::<T>::LeaseOfferDurationAboveMaximum
 			);
 			ensure!(
-				EstateLeaseOffers::<T>::iter_prefix(estate_id).count() <= T::MaxOffersPerEstate::get(),
+				EstateLeaseOffers::<T>::iter_prefix(estate_id).count() <= T::MaxOffersPerEstate::get().try_into().unwrap(),
 				Error::<T>::EstateLeaseOffersQueueLimitIsReached
 			);
 
