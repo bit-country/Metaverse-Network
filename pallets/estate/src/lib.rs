@@ -1249,7 +1249,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			estate_id: EstateId,
 			price_per_block: BalanceOf<T>,
-			duration: u64,
+			duration: u32,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
@@ -1268,7 +1268,7 @@ pub mod pallet {
 				Error::<T>::LeaseOfferDurationAboveMaximum
 			);
 			ensure!(
-				EstateLeaseOffers::<T>::iter_prefix(estate_id).count() <= T::MaxOffersPerEstate::get(),
+				EstateLeaseOffers::<T>::iter_prefix(estate_id).count().into() <= T::MaxOffersPerEstate::get(),
 				Error::<T>::EstateLeaseOffersQueueLimitIsReached
 			);
 
@@ -1284,10 +1284,10 @@ pub mod pallet {
 					);
 
 					//Self::deposit_event(Event::<T>::TransferredEstate());
+					Ok(().into())
 				}
 				_ => Err(Error::<T>::InvalidOwnerValue.into()),
 			}
-			Ok(().into())
 		}
 
 		/// Accept lease offer for estate that is not leased
@@ -1306,7 +1306,7 @@ pub mod pallet {
 			recipient: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(!Self::is_estate_leased(estate_id), Error::<T>::EstateIsAlreadyLeased);
+			ensure!(!EstateLeases::<T>::contains_key(estate_id), Error::<T>::EstateIsAlreadyLeased);
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			match estate_owner_value {
@@ -1321,10 +1321,10 @@ pub mod pallet {
 					);
 
 					//Self::deposit_event(Event::<T>::TransferredEstate());
+					Ok(().into())
 				}
 				_ => Err(Error::<T>::InvalidOwnerValue.into()),
 			}
-			Ok(().into())
 		}
 
 		/// Cancels existing lease
