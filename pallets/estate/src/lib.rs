@@ -1306,7 +1306,10 @@ pub mod pallet {
 			recipient: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(!EstateLeases::<T>::contains_key(estate_id), Error::<T>::EstateIsAlreadyLeased);
+			ensure!(
+				!EstateLeases::<T>::contains_key(estate_id),
+				Error::<T>::EstateIsAlreadyLeased
+			);
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			match estate_owner_value {
