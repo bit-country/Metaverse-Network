@@ -1268,7 +1268,8 @@ pub mod pallet {
 				Error::<T>::LeaseOfferDurationAboveMaximum
 			);
 			ensure!(
-				EstateLeaseOffers::<T>::iter_prefix(estate_id).count() <= T::MaxOffersPerEstate::get().try_into().unwrap(),
+				EstateLeaseOffers::<T>::iter_prefix(estate_id).count()
+					<= T::MaxOffersPerEstate::get().try_into().unwrap(),
 				Error::<T>::EstateLeaseOffersQueueLimitIsReached
 			);
 
