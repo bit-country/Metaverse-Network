@@ -220,7 +220,8 @@ fn do_withdraw_from_metaverse_fund_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
-		let metaverse_fund: AccountId = <Runtime as Config>::MetaverseTreasury::get().into_sub_account(METAVERSE_ID);
+		let metaverse_fund: AccountId =
+			<Runtime as Config>::MetaverseTreasury::get().into_sub_account_truncating(METAVERSE_ID);
 		assert_ok!(<Runtime as Config>::Currency::transfer(
 			origin.clone(),
 			metaverse_fund,

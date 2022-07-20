@@ -9,5 +9,5 @@ pub mod metaverse;
 pub mod utils;
 
 // pub fn get_vesting_account() -> super::AccountId {
-// 	super::TreasuryPalletId::get().into_account()
+// 	super::TreasuryPalletId::get().into_account_truncating()
 // }

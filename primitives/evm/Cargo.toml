@@ -14,8 +14,8 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
-sp-core = {  git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.22" }
-sp-std = {  git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.22" }
+sp-core = {  git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
+sp-std = {  git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 serde = { version = "1.0.137", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
