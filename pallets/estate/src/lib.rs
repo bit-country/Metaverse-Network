@@ -62,12 +62,12 @@ pub mod pallet {
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
 
-	use primitives::estate::{EstateInfo, self};
+	use primitives::estate::EstateInfo;
 	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
 	use primitives::{RoundIndex, UndeployedLandBlockId};
 
 	use crate::mock::Balance;
-use crate::rate::{round_issuance_range, MintingRateInfo};
+	use crate::rate::{round_issuance_range, MintingRateInfo};
 
 	use super::*;
 
@@ -1280,11 +1280,11 @@ use crate::rate::{round_issuance_range, MintingRateInfo};
 						!Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 						Error::<T>::NoPermission
 					);
-					/* 
+					/*
 						let current_block_number = <frame_system::Pallet<T>>::block_number();
 						let end_block = current_block_number + T::LeaseOfferExpiryPeriod::get().into();
 						let unclaimed_rent:BalanceOf<T> = price_per_block.saturated_mul(duration);
-						
+
 						let lease_offer = LeaseContract {
 							price_per_block,
 							duration,
@@ -1384,7 +1384,9 @@ use crate::rate::{round_issuance_range, MintingRateInfo};
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_none(origin)?;
-			let lease = Self::leases(estate_id, leasor).ok_or(Error::<T>::LeaseDoesNotExist).unwrap();
+			let lease = Self::leases(estate_id, leasor)
+				.ok_or(Error::<T>::LeaseDoesNotExist)
+				.unwrap();
 			ensure!(
 				lease.end_block == <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::LeaseIsNotExpired
@@ -1414,12 +1416,14 @@ use crate::rate::{round_issuance_range, MintingRateInfo};
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_none(origin)?;
-			let lease_offer = Self::lease_offers(estate_id, leasor).ok_or(Error::<T>::LeaseOfferDoesNotExist).unwrap();
+			let lease_offer = Self::lease_offers(estate_id, leasor)
+				.ok_or(Error::<T>::LeaseOfferDoesNotExist)
+				.unwrap();
 			ensure!(
 				lease_offer.end_block == <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::LeaseOfferIsNotExpired
 			);
-			EstateLeaseOffers::<T>::remove(estate_id,leasor);
+			EstateLeaseOffers::<T>::remove(estate_id, leasor);
 			T::Currency::unreserve(&who, lease_offer.unclaimed_rent);
 			Self::deposit_event(Event::<T>::EstateLeaseOfferExpired(who, estate_id));
 			Ok(().into())
