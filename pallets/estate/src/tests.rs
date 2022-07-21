@@ -2275,7 +2275,6 @@ fn create_estate_lease_offer_should_work() {
 		);
 
 		let lease_contract = LeaseContract {
-			
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 6,
