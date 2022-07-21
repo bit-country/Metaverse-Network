@@ -2275,7 +2275,7 @@ fn create_estate_lease_offer_should_work() {
 		);
 
 		let lease_contract = LeaseContract {
-			owner: BENEFICIARY_ID,
+			
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 6,
@@ -2336,7 +2336,6 @@ fn accept_estate_lease_offer_should_work() {
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
 		let lease_contract = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 6,
@@ -2358,7 +2357,6 @@ fn accept_estate_lease_offer_should_work() {
 		);
 
 		let lease = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 8,
@@ -2444,7 +2442,6 @@ fn cancel_lease_should_work() {
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
 		let lease_contract = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 6,
@@ -2466,7 +2463,6 @@ fn cancel_lease_should_work() {
 		);
 
 		let lease = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 8,
@@ -2556,7 +2552,6 @@ fn remove_expired_lease_should_work() {
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
 		let lease_contract = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 6,
@@ -2578,7 +2573,6 @@ fn remove_expired_lease_should_work() {
 		);
 
 		let lease = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 8,
@@ -2656,7 +2650,6 @@ fn remove_expired_lease_offer_should_work() {
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
 		let lease_contract = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 6,
@@ -2713,7 +2706,6 @@ fn collect_rent_should_work() {
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
 		let lease_contract = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 6,
@@ -2735,7 +2727,6 @@ fn collect_rent_should_work() {
 		);
 
 		let lease = LeaseContract {
-			owner: BENEFICIARY_ID,
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 8,

@@ -255,7 +255,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
-			let account_id = T::EconomyTreasury::get().into_sub_account(beneficiary);
+			let account_id = T::EconomyTreasury::get().into_sub_account_truncating(beneficiary);
 			PowerBalance::<T>::insert(&account_id, amount);
 
 			Self::deposit_event(Event::<T>::SetPowerBalance(account_id, amount));
@@ -613,7 +613,7 @@ pub mod pallet {
 
 impl<T: Config> Pallet<T> {
 	pub fn economy_pallet_account_id() -> T::AccountId {
-		T::EconomyTreasury::get().into_account()
+		T::EconomyTreasury::get().into_account_truncating()
 	}
 
 	pub fn convert_power_to_bit(power_amount: Balance, commission: Perbill) -> (Balance, Balance) {

@@ -1716,6 +1716,10 @@ impl<T: Config> Pallet<T> {
 			ensure!(from != to, Error::<T>::AlreadyOwnTheEstate);
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			ensure!(
+				!EstateLeases::<T>::contains_key(estate_id),
+				Error::<T>::EstateIsAlreadyLeased
+			);
 
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
