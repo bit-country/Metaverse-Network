@@ -170,7 +170,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 59,
+	spec_version: 60,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -328,6 +328,7 @@ parameter_types! {
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
 	pub const BitMiningTreasury: PalletId = PalletId(*b"bit/ming");
 	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
+	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
 	pub const MaxAuthorities: u32 = 50;
 }
 
@@ -521,7 +522,7 @@ parameter_types! {
 
 impl metaverse::Config for Runtime {
 	type Event = Event;
-	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
+	type MetaverseTreasury = LocalMetaverseFundPalletId;
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
 	type MinContribution = MinContribution;
