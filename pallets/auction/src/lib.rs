@@ -758,6 +758,12 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
+					// Ensure auction end time below limit
+					ensure!(
+						Self::check_valid_finality(&end_time, One::one()),
+						Error::<T>::ExceedFinalityLimit
+					);
+
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
 					// Reserve network deposit fee
@@ -854,6 +860,12 @@ pub mod pallet {
 					ensure!(
 						T::EstateHandler::check_undeployed_land_block(&recipient, undeployed_land_block_id)?,
 						Error::<T>::UndeployedLandBlockDoesNotExistOrNotAvailable
+					);
+
+					// Ensure auction end time below limit
+					ensure!(
+						Self::check_valid_finality(&end_time, One::one()),
+						Error::<T>::ExceedFinalityLimit
 					);
 
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
