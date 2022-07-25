@@ -1,33 +1,31 @@
 [package]
-name = "fp-evm"
-version = "3.0.0-dev"
-license = "Apache-2.0"
-authors = ["Parity Technologies <admin@parity.io>"]
+name = "evm-primitives"
+version = "0.1.0"
+authors = ["Metaverse.Network & Bit.Country Developers"]
 edition = '2021'
-homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/frontier/"
-description = "Primitive EVM abstractions for Substrate."
-documentation = "https://docs.rs/sp-evm"
-
-[package.metadata.docs.rs]
-targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-scale-info = { version = "2.1", default-features = false, features = ["derive"] }
-sp-core = {  git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
-sp-std = {  git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
 serde = { version = "1.0.137", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
-evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
-impl-trait-for-tuples = "0.1"
+scale-info = { version = "2.1", default-features = false, features = ["derive"] }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../metaverse", default-features = false }
 
 [features]
 default = ["std"]
 std = [
-    "sp-core/std",
-    "sp-std/std",
     "serde",
     "codec/std",
-    "evm/std",
-    "evm/with-serde",
+    "scale-info/std",
+    "frame-system/std",
+    "frame-support/std",
+    "sp-application-crypto/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "primitives/std",
 ]

@@ -7,7 +7,7 @@ members = [
     'traits/*',
     'node',
     'runtime/*',
-    'primitives/metaverse',
+    'primitives/*',
     'modules/relaychain',
     'modules/support',
 ]
@@ -18,7 +18,6 @@ exclude = [
     'pallets/oracle',
     'pallet/evm',
     'pallet/evm/*',
-    'primitives/evm/',
     'modules/chainsafe',
 ]
 

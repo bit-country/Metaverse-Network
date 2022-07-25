@@ -2496,6 +2496,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "evm-primitives"
+version = "0.1.0"
+dependencies = [
+ "bit-country-primitives",
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "evm-runtime"
 version = "0.35.0"
 source = "git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3#01bcbd2205a212c34451d3b4fabc962793b057d3"
@@ -5311,12 +5327,27 @@ dependencies = [
 name = "metaverse-runtime-common"
 version = "0.0.1"
 dependencies = [
+ "auction-manager",
+ "bit-country-primitives",
+ "core-primitives",
+ "currencies",
  "frame-support",
  "frame-system",
  "impl-trait-for-tuples 0.2.2",
  "log",
+ "orml-currencies",
+ "orml-nft",
+ "orml-oracle",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-auction",
  "pallet-base-fee",
  "pallet-collective",
+ "pallet-continuum",
+ "pallet-crowdloan",
+ "pallet-economy",
+ "pallet-emergency",
+ "pallet-estate",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-blake2",
@@ -5326,6 +5357,10 @@ dependencies = [
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
+ "pallet-governance",
+ "pallet-metaverse",
+ "pallet-mining",
+ "pallet-nft",
  "pallet-scheduler",
  "sp-core",
  "sp-runtime",
