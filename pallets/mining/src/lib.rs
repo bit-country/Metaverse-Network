@@ -343,6 +343,7 @@ pub mod pallet {
 				let allocation_range = round_issuance_range::<T>(<MiningConfig<T>>::get());
 
 				// mining reward to BIT treasury
+				Self::treasury_reward(allocation_range);
 
 				round.update(n);
 				Round::<T>::put(round);
@@ -462,7 +463,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn treasury_reward(allocation_range: MiningRange<Balance>) -> DispatchResult {
+	pub fn treasury_reward(allocation_range: MiningRange<Balance>) -> DispatchResult {
 		let total_treasury_reward = T::TreasuryStakingReward::get() * allocation_range.ideal;
 		T::MiningCurrency::deposit(
 			Self::bit_mining_resource_currency_id(),
