@@ -68,7 +68,7 @@ pub enum LandUnitStatus<AccountId> {
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct LeaseContract {
+pub struct LeaseContract<Balance, BlockNumber> {
 	/// Price per block
 	pub price_per_block: Balance,
 	/// Lease duration (in number of blocks)

@@ -205,53 +205,14 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn round)]
-	/// Current round index and next round scheduled transition
-	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn minting_rate_config)]
 	/// Minting rate configuration
 	pub type MintingRateConfig<T: Config> = StorageValue<_, MintingRateInfo, ValueQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn total_stake)]
-	/// Total NEER locked by estate
-	type TotalStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn staked)]
-	/// Total backing stake for selected candidates in the round
-	pub type Staked<T: Config> = StorageMap<_, Twox64Concat, RoundIndex, BalanceOf<T>, ValueQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn exit_queue)]
-	/// A queue of account awaiting exit
-	type ExitQueue<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, EstateId, (), OptionQuery>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn at_stake)]
-	/// Snapshot of estate staking per session
-	pub type AtStake<T: Config> = StorageDoubleMap<
-		_,
-		Twox64Concat,
-		RoundIndex,
-		Twox64Concat,
-		EstateId,
-		StakeSnapshot<T::AccountId, BalanceOf<T>>,
-	>;
-
-	#[pallet::storage]
-	#[pallet::getter(fn estate_stake)]
-	/// Estate staking
-	pub type EstateStake<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, EstateId, Twox64Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn leases)]
 	/// Current active estate leases
-	pub type EstateLeases<T: Config> = StorageMap<_, Twox64Concat, EstateId, LeaseContract, OptionQuery>;
+	pub type EstateLeases<T: Config> = StorageMap<_, Twox64Concat, EstateId, LeaseContract<BalanceOf<T>, T::BlockNumber>, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn leasors)]
@@ -263,7 +224,7 @@ pub mod pallet {
 	#[pallet::getter(fn lease_offers)]
 	/// Current estate lease offers
 	pub type EstateLeaseOffers<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, EstateId, Blake2_128Concat, T::AccountId, LeaseContract, OptionQuery>;
+		StorageDoubleMap<_, Twox64Concat, EstateId, Blake2_128Concat, T::AccountId, LeaseContract<BalanceOf<T>, T::BlockNumber>, OptionQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -346,22 +307,6 @@ pub mod pallet {
 		UndeployedLandBlockUnfreezed(UndeployedLandBlockId),
 		/// Undeployed land block is burnt [Undeployed Land Block Id]
 		UndeployedLandBlockBurnt(UndeployedLandBlockId),
-		/// New staking round started [Starting Block, Round, Total Land Unit]
-		NewRound(T::BlockNumber, RoundIndex, u64),
-		/// Updated staking snapshot [Round Index, Balance]
-		StakeSnapshotUpdated(RoundIndex, BalanceOf<T>),
-		/// Stakers are paid for the round [Round Index]
-		StakersPaid(RoundIndex),
-		/// Exit queue is cleared [Round Index]
-		ExitQueueCleared(RoundIndex),
-		/// Increased stake on an estate [OwnerId, Estate Id, Balance]
-		EstateStakeIncreased(OwnerId<T::AccountId, ClassId, TokenId>, EstateId, BalanceOf<T>),
-		/// Decreased stake on an estate [OwnerId, Estate Id, Balance]
-		EstateStakeDecreased(OwnerId<T::AccountId, ClassId, TokenId>, EstateId, BalanceOf<T>),
-		/// Left staking on an estate [OwnerId, Estate Id]
-		EstateStakeLeft(OwnerId<T::AccountId, ClassId, TokenId>, EstateId),
-		/// Account rewarded for staking [Account Id, Balance]
-		StakingRewarded(T::AccountId, BalanceOf<T>),
 		/// Estate lease offer is created [AccountId, Estate Id, Total rent]
 		EstateLeaseOfferCreated(T::AccountId, EstateId, BalanceOf<T>),
 		/// Estate lease offer is accepted [Estate Id, Leasor account Id, Lease End Block]
@@ -1241,6 +1186,7 @@ pub mod pallet {
 		///
 		/// Emits `EstateLeaseOfferCreated` if successful
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[transactional]
 		pub fn create_lease_offer(
 			origin: OriginFor<T>,
 			estate_id: EstateId,
@@ -1335,7 +1281,20 @@ pub mod pallet {
 						Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 						Error::<T>::NoPermission
 					);
-					//Self::deposit_event(Event::<T>::TransferredEstate());
+					/*
+						let mut lease = Self::lease_offers(estate_id, leasor.clone())
+							.ok_or(Error::<T>::LeaseOfferDoesNotExist)
+							.unwrap();
+
+						lease.start_block = <frame_system::Pallet<T>>::block_number();
+						lease.end_block = lease.start_bock + lease.duration.into();
+
+						EstateLeaseOffers::<T>::remove_prefix(estate_id);
+						EstateLeases::<T>::insert(estate_id, lease);
+						EstateLeasors::<T>::insert(recipient.clone(), estate_id,());
+
+						Self::deposit_event(Event::<T>::EstateLeaseOfferAccepted(recipient.clone(), estate_id, lease.end_block);
+					*/
 					Ok(().into())
 				}
 				_ => Err(Error::<T>::InvalidOwnerValue.into()),
@@ -1364,7 +1323,9 @@ pub mod pallet {
 			);
 			EstateLeasors::<T>::remove(leasor, estate_id);
 			EstateLeases::<T>::remove(estate_id);
+			//let paid_balance = Self::pay_rent(lease, )
 			// pay rent up to the current block to the estate owner, return the rest to the leasor
+			// Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
 			Ok(().into())
 		}
 
@@ -1442,6 +1403,8 @@ pub mod pallet {
 				EstateLeases::<T>::contains_key(estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
+			//let paid_balance = Self::pay_rent(lease, )
+			//Self::deposit_event(Event::<T>::EstateRentCollected(who, estate_id));
 			Ok(().into())
 		}
 	}
@@ -1999,6 +1962,10 @@ impl<T: Config> Pallet<T> {
 		//)?;
 		//}
 		Ok(())
+	}
+
+	fn pay_rent(lease: LeaseContract, estate_owner: T::AccountId, estate_leasor: T::AccountId) -> BalanceOf<T> {
+		1u32.into()
 	}
 }
 
