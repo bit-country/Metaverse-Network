@@ -49,6 +49,7 @@ crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", ve
 economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
+precompile-utils = { path = "../../primitives/precompiles", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }

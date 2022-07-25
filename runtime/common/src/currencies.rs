@@ -4,6 +4,17 @@ use primitives::{Balance, FungibleTokenId};
 use sp_core::H160;
 use sp_std::{marker::PhantomData, prelude::*};
 
+#[precompile_utils::generate_function_selector]
+#[derive(Debug, PartialEq)]
+pub enum Action {
+	QueryName = "name()",
+	QuerySymbol = "symbol()",
+	QueryDecimals = "decimals()",
+	QueryTotalIssuance = "totalSupply()",
+	QueryBalance = "balanceOf(address)",
+	Transfer = "transfer(address,address,uint256)",
+}
+
 /// The `MultiCurrency` impl precompile.
 ///
 ///

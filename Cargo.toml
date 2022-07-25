@@ -12,12 +12,6 @@ members = [
     'modules/support',
 ]
 exclude = [
-    '/dapps/luckydraw',
-    '/dapps/airdrop',
-    '/dapps/countrytoken',
-    'pallets/oracle',
-    'pallet/evm',
-    'pallet/evm/*',
     'modules/chainsafe',
 ]
 
