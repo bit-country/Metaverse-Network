@@ -7,7 +7,9 @@ edition = '2021'
 [dependencies]
 serde = { version = "1.0.137", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+hex-literal = "0.3.1"
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
+num_enum = { version = "0.5.1", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
@@ -15,6 +17,7 @@ sp-application-crypto = { git = "https://github.com/paritytech/substrate", branc
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../metaverse", default-features = false }
+
 
 [features]
 default = ["std"]
