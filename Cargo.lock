@@ -551,6 +551,8 @@ version = "0.1.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "hex-literal",
+ "num_enum",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -2493,24 +2495,6 @@ dependencies = [
  "evm-core",
  "evm-runtime",
  "primitive-types",
-]
-
-[[package]]
-name = "evm-primitives"
-version = "0.1.0"
-dependencies = [
- "bit-country-primitives",
- "frame-support",
- "frame-system",
- "hex-literal",
- "num_enum",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-application-crypto",
- "sp-core",
- "sp-runtime",
- "sp-std",
 ]
 
 [[package]]

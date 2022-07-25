@@ -17,15 +17,16 @@
 
 use core::ops::Range;
 
+use crate::FungibleTokenId;
 use codec::{Decode, Encode, MaxEncodedLen};
 use hex_literal::hex;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use scale_info::TypeInfo;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_core::H160;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
-
-use primitives::FungibleTokenId;
 
 /// Evm Address.
 pub type EvmAddress = sp_core::H160;
@@ -85,9 +86,9 @@ impl TryFrom<FungibleTokenId> for EvmAddress {
 	fn try_from(val: FungibleTokenId) -> Result<Self, Self::Error> {
 		let mut address = [0u8; 20];
 		match val {
-			FungibleTokenId::NativeToken(token) => {
+			FungibleTokenId::NativeToken(token_id) => {
 				address[H160_POSITION_CURRENCY_ID_TYPE] = CurrencyIdType::NativeToken.into();
-				address[H160_POSITION_TOKEN] = token.into();
+				address[H160_POSITION_TOKEN] = token_id as u8;
 			}
 			FungibleTokenId::Erc20(erc20) => {
 				address[..].copy_from_slice(erc20.as_bytes());

@@ -85,7 +85,6 @@ pub mod pallet {
 	use pallet_balances::NegativeImbalance;
 	use sp_std::convert::TryInto;
 
-	use primitives::dex::Price;
 	use primitives::estate::Estate;
 	use primitives::staking::{MetaverseStakingTrait, RoundInfo};
 	use primitives::{FungibleTokenId, RoundIndex, TokenId, VestingSchedule};
