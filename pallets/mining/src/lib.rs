@@ -334,10 +334,10 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
 			let mut round = <Round<T>>::get();
-			if round.should_update(n) {
+			let is_mining_paused = MiningPaused::<T>::get();
+			if round.should_update(n) && !is_mining_paused {
 				// mutate round
 				let allocation_range = round_issuance_range::<T>(<MiningConfig<T>>::get());
-				T::MetaverseStakingHandler::update_staking_reward(round.current, allocation_range.staking_allocation);
 
 				round.update(n);
 				Round::<T>::put(round);
