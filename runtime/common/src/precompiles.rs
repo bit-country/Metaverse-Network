@@ -1,3 +1,4 @@
+use crate::currencies::MultiCurrencyPrecompile;
 use pallet_evm::{ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet};
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
@@ -6,7 +7,6 @@ use pallet_evm_precompile_ed25519::Ed25519Verify;
 use pallet_evm_precompile_modexp::Modexp;
 use pallet_evm_precompile_sha3fips::Sha3FIPS256;
 use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripemd160, Sha256};
-
 use sp_core::H160;
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
@@ -54,9 +54,9 @@ impl<R, C> PrecompileSet for MetaverseNetworkPrecompiles<R, C> {
 			a if a == hash(1027) => Some(Ed25519Verify::execute(handle)),
 			// Metaverse Network precompiles (starts from 0x5000):
 			// If the address matches asset prefix, the we route through the asset precompile set
-			//			a if a == MULTI_CURRENCY => Erc20AssetsPrecompileSet::<R>::new().execute(handle),
-			//			// Default
-			//			_ => None,
+			a if a == MULTI_CURRENCY => MultiCurrencyPrecompile::<R>::execute(handle),
+			// Default
+			_ => None,
 		}
 	}
 
