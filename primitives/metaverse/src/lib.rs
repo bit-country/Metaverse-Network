@@ -33,7 +33,6 @@ use sp_std::collections::btree_map::BTreeMap;
 use sp_std::vec::Vec;
 
 pub mod continuum;
-pub mod dex;
 pub mod estate;
 pub mod staking;
 
