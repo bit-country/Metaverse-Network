@@ -1270,6 +1270,7 @@ impl pallet_vesting::Config for Runtime {
 parameter_types! {
 	//Mining Resource Currency Id
 	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
 }
 
 impl mining::Config for Runtime {
@@ -1280,6 +1281,7 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
+	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
