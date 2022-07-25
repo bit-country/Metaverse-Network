@@ -612,12 +612,16 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		/// Hooks that call every new block finalized.
-		fn on_finalize(now: T::BlockNumber) {
+		fn on_initialize(now: T::BlockNumber) -> Weight {
+			let mut total_item = 0;
 			for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
+				total_item += 1;
 				if let Some(auction) = <Auctions<T>>::get(&auction_id) {
 					T::Handler::on_auction_ended(auction_id, auction.bid);
 				};
 			}
+
+			T::WeightInfo::on_finalize().saturating_mul(total_item)
 		}
 
 		//		fn on_runtime_upgrade() -> Weight {
