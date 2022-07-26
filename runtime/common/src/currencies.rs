@@ -1,30 +1,30 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use orml_traits::MultiCurrency as MultiCurrencyTrait;
-use pallet_evm::{PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet};
-use sp_core::H160;
+use pallet_evm::{ExitSucceed, PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet};
+use sp_core::{H160, U256};
 use sp_std::{marker::PhantomData, prelude::*};
 
-use precompile_utils::data::EvmDataWriter;
+use precompile_utils::data::{EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
 use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
-use precompile_utils::{
-	keccak256, succeed, Address, Bytes, EvmData, EvmDataWriter, EvmResult, FunctionModifier, LogExt, LogsBuilder,
-	PrecompileHandleExt, RuntimeHelper,
-};
-use primitives::evm::Erc20Mapping;
+use precompile_utils::{succeed, EvmResult};
+use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, FungibleTokenId};
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
 pub enum Action {
-	QueryName = "name()",
-	QuerySymbol = "symbol()",
-	QueryDecimals = "decimals()",
-	QueryTotalIssuance = "totalSupply()",
-	QueryBalance = "balanceOf(address)",
-	Transfer = "transfer(address,address,uint256)",
+	TotalSupply = "totalSupply()",
+	BalanceOf = "balanceOf(address)",
+	Allowance = "allowance(address,address)",
+	Transfer = "transfer(address,uint256)",
+	Approve = "approve(address,uint256)",
+	TransferFrom = "transferFrom(address,address,uint256)",
+	Name = "name()",
+	Symbol = "symbol()",
+	Decimals = "decimals()",
 }
 
 /// The `MultiCurrency` impl precompile.
@@ -44,6 +44,11 @@ where
 	Runtime: Erc20Mapping,
 	currencies::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
+	U256: From<
+		<<Runtime as currencies::Config>::MultiSocialCurrency as MultiCurrencyTrait<
+			<Runtime as frame_system::Config>::AccountId,
+		>>::Balance,
+	>,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		let address = handle.code_address();
@@ -67,15 +72,17 @@ where
 				match selector {
 					// Local and Foreign common
 					Action::TotalSupply => Self::total_supply(currency_id, handle),
-					//					Action::BalanceOf => Self::balance_of(currency_id, handle),
-					//					Action::Allowance => Self::allowance(asset_id, handle),
-					//					Action::Approve => Self::approve(asset_id, handle),
-					//					Action::Transfer => Self::transfer(currency_id, handle),
-					//					Action::TransferFrom => Self::transfer_from(currency_id, handle),
-				};
+					Action::BalanceOf => Self::total_supply(currency_id, handle),
+					Action::Allowance => Self::total_supply(currency_id, handle),
+					Action::Transfer => Self::total_supply(currency_id, handle),
+					Action::Approve => Self::total_supply(currency_id, handle),
+					Action::TransferFrom => Self::total_supply(currency_id, handle),
+					Action::Name => Self::total_supply(currency_id, handle),
+					Action::Symbol => Self::total_supply(currency_id, handle),
+					Action::Decimals => Self::total_supply(currency_id, handle),
+				}
 			};
-
-			Some(result)
+			return Some(result);
 		}
 		None
 	}
@@ -88,6 +95,8 @@ where
 impl<Runtime> MultiCurrencyPrecompile<Runtime>
 where
 	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
+	currencies::Pallet<Runtime>:
+		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 {
 	fn total_supply(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
@@ -97,9 +106,12 @@ where
 		input.expect_arguments(0)?;
 
 		// Fetch info
-		let total_issuance = currencies::Pallet::<Runtime>::total_issuance(currency_id).into();
+		let total_issuance = <Runtime as currencies::Config>::MultiSocialCurrency::total_issuance(currency_id);
 
-		// Build output
-		Ok(succeed(EvmDataWriter::new().write(total_issuance).build()))
+		log::debug!(target: "evm", "multicurrency: total issuance: {:?}", total_issuance);
+
+		let encoded = Output::encode_uint(total_issuance);
+		// Build output.
+		Ok(succeed(encoded))
 	}
 }
