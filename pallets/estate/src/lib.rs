@@ -1333,7 +1333,7 @@ pub mod pallet {
 			ensure_root(origin)?;
 			let lease = Self::leases(estate_id).ok_or(Error::<T>::LeaseDoesNotExist).unwrap();
 			ensure!(
-				EstateLeaseOffers::<T>::contains_key(estate_id, leasor),
+				EstateLeaseOffers::<T>::contains_key(estate_id, leasor.clone()),
 				Error::<T>::LeaseDoesNotExist
 			);
 			EstateLeasors::<T>::remove(leasor, estate_id);
@@ -1365,7 +1365,7 @@ pub mod pallet {
 				Error::<T>::LeaseIsNotExpired
 			);
 			ensure!(
-				EstateLeasors::<T>::contains_key(leasor, estate_id),
+				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
 			EstateLeasors::<T>::remove(leasor, estate_id);
@@ -1396,7 +1396,7 @@ pub mod pallet {
 				lease_offer.end_block == <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::LeaseOfferIsNotExpired
 			);
-			EstateLeaseOffers::<T>::remove(estate_id, leasor);
+			EstateLeaseOffers::<T>::remove(estate_id, leasor.clone());
 			T::Currency::unreserve(&leasor, lease_offer.unclaimed_rent.into());
 			Self::deposit_event(Event::<T>::EstateLeaseOfferExpired(leasor, estate_id));
 			Ok(().into())
