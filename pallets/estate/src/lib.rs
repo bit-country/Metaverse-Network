@@ -1345,7 +1345,12 @@ pub mod pallet {
 			// TO DO: Find estate owner
 			let rent_claim_amount = Self::find_rent_amount(lease);
 			T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
-			T::Currency::transfer(&leasor, &leasor /* estate owner account */, rent_claim_amount, ExistenceRequirement::KeepAlive);
+			T::Currency::transfer(
+				&leasor,
+				&leasor, /* estate owner account */
+				rent_claim_amount,
+				ExistenceRequirement::KeepAlive,
+			);
 			Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
 			Ok(().into())
 		}
@@ -1427,10 +1432,15 @@ pub mod pallet {
 					// TO DO: Find estate leasor
 
 					T::Currency::unreserve(&who /* estate leasor account */, rent_claim_amount);
-					T::Currency::transfer(&who /* estate leasor account */, &who, rent_claim_amount, ExistenceRequirement::KeepAlive);
+					T::Currency::transfer(
+						&who, /* estate leasor account */
+						&who,
+						rent_claim_amount,
+						ExistenceRequirement::KeepAlive,
+					);
 					Self::deposit_event(Event::<T>::EstateRentCollected(who, rent_claim_amount));
 					Ok(().into())
-				},
+				}
 				None => Err(Error::<T>::LeaseDoesNotExist.into()),
 			}
 		}
