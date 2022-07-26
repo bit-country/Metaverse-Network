@@ -332,6 +332,8 @@ pub mod pallet {
 		EstateLeaseContractCancelled(EstateId),
 		/// Estate rent collected [EstateId, Balance]
 		EstateRentCollected(EstateId, BalanceOf<T>),
+		/// New staking round started [Starting Block, Round, Total Land Unit]
+		NewRound(T::BlockNumber, RoundIndex, u64),
 	}
 
 	#[pallet::error]
@@ -1359,7 +1361,7 @@ pub mod pallet {
 			ensure_none(origin)?;
 			let lease = Self::leases(estate_id).ok_or(Error::<T>::LeaseDoesNotExist).unwrap();
 			ensure!(
-				lease.end_block.into() == <frame_system::Pallet<T>>::block_number(),
+				lease.end_block == <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::LeaseIsNotExpired
 			);
 			ensure!(
@@ -1391,7 +1393,7 @@ pub mod pallet {
 				.ok_or(Error::<T>::LeaseOfferDoesNotExist)
 				.unwrap();
 			ensure!(
-				lease_offer.end_block.into() == <frame_system::Pallet<T>>::block_number(),
+				lease_offer.end_block == <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::LeaseOfferIsNotExpired
 			);
 			EstateLeaseOffers::<T>::remove(estate_id, leasor);
