@@ -38,9 +38,9 @@ use core_primitives::*;
 pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
-	estate::Estate, estate::LandUnitStatus, estate::LeaseContract, estate::OwnerId, Attributes, ClassId, EstateId,
-	FungibleTokenId, ItemId, MetaverseId, NftMetadata, TokenId, UndeployedLandBlock, UndeployedLandBlockId,
-	UndeployedLandBlockType,
+	estate::{Estate, LandUnitStatus, LeaseContract, OwnerId},
+	Attributes, Balance, ClassId, EstateId, FungibleTokenId, ItemId, MetaverseId, NftMetadata, TokenId,
+	UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -203,6 +203,11 @@ pub mod pallet {
 	/// Index undeployed land blocks by account ID
 	pub type UndeployedLandBlocksOwner<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, UndeployedLandBlockId, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn round)]
+	/// Current round index and next round scheduled transition
+	pub type Round<T: Config> = StorageValue<_, RoundInfo<T::BlockNumber>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn minting_rate_config)]
@@ -1972,7 +1977,11 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn pay_rent(lease: LeaseContract, estate_owner: T::AccountId, estate_leasor: T::AccountId) -> BalanceOf<T> {
+	fn pay_rent(
+		lease: LeaseContract<Balance, T::BlockNumber>,
+		estate_owner: T::AccountId,
+		estate_leasor: T::AccountId,
+	) -> Balance {
 		1u32.into()
 	}
 }
