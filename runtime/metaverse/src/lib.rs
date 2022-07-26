@@ -90,7 +90,7 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
-use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
+use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
@@ -1023,14 +1023,14 @@ impl Erc20Mapping for Runtime {
 				.try_into()
 				.map(FungibleTokenId::NativeToken)
 				.ok(),
-			CurrencyIdType::MiningResource => address[H160_POSITION_MINING_RESOURCE]
-				.try_into()
-				.map(FungibleTokenId::MiningResource)
-				.ok(),
-			CurrencyIdType::FungibleToken => address[H160_POSITION_FUNGIBLE_TOKEN]
-				.try_into()
-				.map(FungibleTokenId::FungibleToken)
-				.ok(),
+			CurrencyIdType::MiningResource => {
+				let id = TokenId::from_be_bytes(address[H160_POSITION_MINING_RESOURCE].try_into().ok()?);
+				Some(FungibleTokenId::MiningResource(id))
+			}
+			CurrencyIdType::FungibleToken => {
+				let id = TokenId::from_be_bytes(address[H160_POSITION_FUNGIBLE_TOKEN].try_into().ok()?);
+				Some(FungibleTokenId::FungibleToken(id))
+			}
 		};
 
 		// Encode again to ensure encoded address is matched
