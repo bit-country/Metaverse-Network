@@ -18,12 +18,13 @@
 use core::ops::Range;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use ethabi::Token;
 use hex_literal::hex;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_core::H160;
+use sp_core::{H160, U256};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
@@ -109,5 +110,54 @@ impl TryFrom<FungibleTokenId> for EvmAddress {
 		};
 
 		Ok(EvmAddress::from_slice(&address))
+	}
+}
+
+pub struct Output;
+
+impl Output {
+	pub fn encode_bool(b: bool) -> Vec<u8> {
+		ethabi::encode(&[Token::Bool(b)])
+	}
+
+	pub fn encode_uint<T>(b: T) -> Vec<u8>
+	where
+		U256: From<T>,
+	{
+		ethabi::encode(&[Token::Uint(U256::from(b))])
+	}
+
+	pub fn encode_uint_tuple<T>(b: Vec<T>) -> Vec<u8>
+	where
+		U256: From<T>,
+	{
+		ethabi::encode(&[Token::Tuple(b.into_iter().map(U256::from).map(Token::Uint).collect())])
+	}
+
+	pub fn encode_uint_array<T>(b: Vec<T>) -> Vec<u8>
+	where
+		U256: From<T>,
+	{
+		ethabi::encode(&[Token::Array(b.into_iter().map(U256::from).map(Token::Uint).collect())])
+	}
+
+	pub fn encode_bytes(b: &[u8]) -> Vec<u8> {
+		ethabi::encode(&[Token::Bytes(b.to_vec())])
+	}
+
+	pub fn encode_fixed_bytes(b: &[u8]) -> Vec<u8> {
+		ethabi::encode(&[Token::FixedBytes(b.to_vec())])
+	}
+
+	pub fn encode_address(b: H160) -> Vec<u8> {
+		ethabi::encode(&[Token::Address(b)])
+	}
+
+	pub fn encode_address_tuple(b: Vec<H160>) -> Vec<u8> {
+		ethabi::encode(&[Token::Tuple(b.into_iter().map(Token::Address).collect())])
+	}
+
+	pub fn encode_address_array(b: Vec<H160>) -> Vec<u8> {
+		ethabi::encode(&[Token::Array(b.into_iter().map(Token::Address).collect())])
 	}
 }
