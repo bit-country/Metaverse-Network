@@ -90,8 +90,12 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
-//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
+//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
+use primitives::evm::{
+	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
+	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN,
+};
 
 // primitives imports
 use crate::opaque::SessionKeys;
@@ -990,7 +994,7 @@ impl pallet_evm::Config for Runtime {
 	type FindAuthor = FindAuthorTruncated<Aura>;
 	type PrecompilesType = ();
 	type PrecompilesValue = ();
-	//type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
+	// type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
 }
 
 impl pallet_ethereum::Config for Runtime {
@@ -1003,6 +1007,34 @@ pub struct RPCCallFilter;
 impl Contains<Call> for RPCCallFilter {
 	fn contains(c: &Call) -> bool {
 		matches!(c, Call::Currencies(..))
+	}
+}
+
+/// Evm address mapping
+impl Erc20Mapping for Runtime {
+	fn encode_evm_address(t: FungibleTokenId) -> Option<EvmAddress> {
+		EvmAddress::try_from(t).ok()
+	}
+
+	fn decode_evm_address(addr: EvmAddress) -> Option<FungibleTokenId> {
+		let address = addr.as_bytes();
+		let currency_id = match CurrencyIdType::try_from(address[H160_POSITION_CURRENCY_ID_TYPE]).ok()? {
+			CurrencyIdType::NativeToken => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::NativeToken)
+				.ok(),
+			CurrencyIdType::MiningResource => address[H160_POSITION_MINING_RESOURCE]
+				.try_into()
+				.map(FungibleTokenId::MiningResource)
+				.ok(),
+			CurrencyIdType::FungibleToken => address[H160_POSITION_FUNGIBLE_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::FungibleToken)
+				.ok(),
+		};
+
+		// Encode again to ensure encoded address is matched
+		Self::encode_evm_address(currency_id?).and_then(|encoded| if encoded == addr { currency_id } else { None })
 	}
 }
 
