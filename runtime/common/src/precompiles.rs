@@ -1,4 +1,5 @@
 use crate::currencies::MultiCurrencyPrecompile;
+use hex_literal::hex;
 use pallet_evm::{ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet};
 use pallet_evm_precompile_blake2::Blake2F;
 use pallet_evm_precompile_bn128::{Bn128Add, Bn128Mul, Bn128Pairing};
@@ -14,9 +15,9 @@ use sp_std::marker::PhantomData;
 pub const MULTI_CURRENCY: H160 = H160(hex!("0000000000000000000000000000000000000400"));
 /// The PrecompileSet installed in the Metaverse runtime.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct MetaverseNetworkPrecompiles<R, C>(PhantomData<(R, C)>);
+pub struct MetaverseNetworkPrecompiles<R>(PhantomData<(R)>);
 
-impl<R, C> MetaverseNetworkPrecompiles<R, C> {
+impl<R> MetaverseNetworkPrecompiles<R> {
 	pub fn new() -> Self {
 		Self(Default::default())
 	}
@@ -25,7 +26,12 @@ impl<R, C> MetaverseNetworkPrecompiles<R, C> {
 /// The following distribution has been decided for the precompiles
 /// 0-1023: Ethereum Mainnet Precompiles
 /// 1024-2047 Precompiles that are not in Ethereum Mainnet
-impl<R, C> PrecompileSet for MetaverseNetworkPrecompiles<R, C> {
+impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
+where
+	R: pallet_evm::Config,
+	MultiCurrencyPrecompile<R>: Precompile,
+	Dispatch<R>: Precompile,
+{
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		let address = handle.code_address();
 
@@ -54,7 +60,7 @@ impl<R, C> PrecompileSet for MetaverseNetworkPrecompiles<R, C> {
 			a if a == hash(1027) => Some(Ed25519Verify::execute(handle)),
 			// Metaverse Network precompiles (starts from 0x5000):
 			// If the address matches asset prefix, the we route through the asset precompile set
-			a if a == MULTI_CURRENCY => MultiCurrencyPrecompile::<R>::execute(handle),
+			a if a == MULTI_CURRENCY => Some(MultiCurrencyPrecompile::<R>::execute(handle)),
 			// Default
 			_ => None,
 		}

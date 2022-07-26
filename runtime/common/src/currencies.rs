@@ -1,8 +1,9 @@
 use orml_traits::MultiCurrency as MultiCurrencyTrait;
-use pallet_evm::{PrecompileHandle, PrecompileSet};
-use primitives::{Balance, FungibleTokenId};
+use pallet_evm::{PrecompileHandle, PrecompileResult, PrecompileSet};
 use sp_core::H160;
 use sp_std::{marker::PhantomData, prelude::*};
+
+use primitives::{evm, Balance, FungibleTokenId};
 
 #[precompile_utils::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -32,7 +33,7 @@ where
 	currencies::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 {
-	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<evm::executor::stack::executor::PrecompileResult> {
+	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		todo!()
 	}
 

@@ -5319,8 +5319,10 @@ dependencies = [
  "currencies",
  "frame-support",
  "frame-system",
+ "hex-literal",
  "impl-trait-for-tuples 0.2.2",
  "log",
+ "num_enum",
  "orml-currencies",
  "orml-nft",
  "orml-oracle",
@@ -9230,6 +9232,7 @@ checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 name = "precompile-utils"
 version = "0.1.0"
 dependencies = [
+ "hex-literal",
  "num_enum",
  "proc-macro2",
  "quote",
