@@ -1240,24 +1240,24 @@ pub mod pallet {
 						!Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 						Error::<T>::NoPermission
 					);
-					/*
-						let current_block_number = <frame_system::Pallet<T>>::block_number();
-						let end_block = current_block_number + T::LeaseOfferExpiryPeriod::get().into();
-						let unclaimed_rent:BalanceOf<T> = price_per_block.saturated_mul(duration);
+					
+					let current_block_number = <frame_system::Pallet<T>>::block_number();
+					let end_block = current_block_number + T::LeaseOfferExpiryPeriod::get().into();
+					let unclaimed_rent:BalanceOf<T> = price_per_block.saturated_mul(duration);
 
-						let lease_offer = LeaseContract {
-							price_per_block,
-							duration,
-							end_block,
-							start_block: end_block + 1u32.into(),
-							unclaimed_rent,
-						};
+					let lease_offer = LeaseContract {
+						price_per_block,
+						duration,
+						end_block,
+						start_block: end_block + 1u32.into(),
+						unclaimed_rent,
+					};
 
-						EstateLeaseOffers::<T>::insert(estate_id, who.clone(), lease_offer);
-						T::Currency::reserve(&who, unclaimed_rent);
+					EstateLeaseOffers::<T>::insert(estate_id, who.clone(), lease_offer);
+					T::Currency::reserve(&who, unclaimed_rent);
 
-						Self::deposit_event(Event::<T>::EstateLeaseOfferCreated(who, estate_id, unclaimed_rent));
-					*/
+					Self::deposit_event(Event::<T>::EstateLeaseOfferCreated(who, estate_id, unclaimed_rent));
+					
 					Ok(().into())
 				}
 				_ => Err(Error::<T>::InvalidOwnerValue.into()),
@@ -1296,20 +1296,20 @@ pub mod pallet {
 						Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 						Error::<T>::NoPermission
 					);
-					/*
-						let mut lease = Self::lease_offers(estate_id, leasor.clone())
-							.ok_or(Error::<T>::LeaseOfferDoesNotExist)
-							.unwrap();
+					
+					let mut lease = Self::lease_offers(estate_id, leasor.clone())
+						.ok_or(Error::<T>::LeaseOfferDoesNotExist)
+						.unwrap();
 
-						lease.start_block = <frame_system::Pallet<T>>::block_number();
-						lease.end_block = lease.start_bock + lease.duration.into();
+					lease.start_block = <frame_system::Pallet<T>>::block_number();
+					lease.end_block = lease.start_bock + lease.duration.into();
 
-						EstateLeaseOffers::<T>::remove_prefix(estate_id);
-						EstateLeases::<T>::insert(estate_id, lease);
-						EstateLeasors::<T>::insert(recipient.clone(), estate_id,());
+					EstateLeaseOffers::<T>::remove_prefix(estate_id);
+					EstateLeases::<T>::insert(estate_id, lease);
+					EstateLeasors::<T>::insert(recipient.clone(), estate_id,());
 
-						Self::deposit_event(Event::<T>::EstateLeaseOfferAccepted(recipient.clone(), estate_id, lease.end_block);
-					*/
+					Self::deposit_event(Event::<T>::EstateLeaseOfferAccepted(recipient.clone(), estate_id, lease.end_block));
+					
 					Ok(().into())
 				}
 				_ => Err(Error::<T>::InvalidOwnerValue.into()),
