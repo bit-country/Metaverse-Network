@@ -17,7 +17,6 @@
 
 use core::ops::Range;
 
-use crate::FungibleTokenId;
 use codec::{Decode, Encode, MaxEncodedLen};
 use hex_literal::hex;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -27,6 +26,8 @@ use serde::{Deserialize, Serialize};
 use sp_core::H160;
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
+
+use crate::FungibleTokenId;
 
 /// Evm Address.
 pub type EvmAddress = sp_core::H160;
