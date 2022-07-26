@@ -1304,7 +1304,7 @@ pub mod pallet {
 					lease.start_block = <frame_system::Pallet<T>>::block_number();
 					lease.end_block = lease.start_block + lease.duration.into();
 
-					EstateLeaseOffers::<T>::remove_prefix(estate_id, recipient.clone());
+					EstateLeaseOffers::<T>::remove_prefix(estate_id, None);
 					EstateLeases::<T>::insert(estate_id, lease);
 					EstateLeasors::<T>::insert(recipient.clone(), estate_id, ());
 
