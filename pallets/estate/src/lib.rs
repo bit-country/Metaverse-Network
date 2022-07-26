@@ -1342,9 +1342,11 @@ pub mod pallet {
 			);
 			EstateLeasors::<T>::remove(leasor, estate_id);
 			EstateLeases::<T>::remove(estate_id);
-			//let paid_balance = Self::pay_rent(lease, )
-			// pay rent up to the current block to the estate owner, return the rest to the leasor
-			// Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
+			// TO DO: Find estate owner
+			let rent_claim_amount = Self::find_rent_amount(lease, who.clone(), who.clone());
+			T::Currency::unreserve(&who, lease.unclaimed_rent.into());
+			T::Currency::transfer(&who, &who, rent_claim_amount);
+			Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
 			Ok(().into())
 		}
 
@@ -1422,8 +1424,11 @@ pub mod pallet {
 				EstateLeases::<T>::contains_key(estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
-			//let paid_balance = Self::pay_rent(lease, )
-			//Self::deposit_event(Event::<T>::EstateRentCollected(who, estate_id));
+			let rent_claim_amount = Self::find_rent_amount(lease, who.clone(), who.clone());
+			// TO DO: Find estate leasor
+			T::Currency::unreserve(&who, rent_claim_amount);
+			T::Currency::transfer(&who, &who, rent_claim_amount);
+			Self::deposit_event(Event::<T>::EstateRentCollected(who, estate_id));
 			Ok(().into())
 		}
 	}
@@ -1983,12 +1988,11 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn pay_rent(
-		lease: LeaseContract<Balance, T::BlockNumber>,
-		estate_owner: T::AccountId,
-		estate_leasor: T::AccountId,
-	) -> Balance {
-		1u32.into()
+	fn find_rent_amount(lease: LeaseContract<Balance, T::BlockNumber>) -> Balance {
+		let total_rent = lease.price_per_block * lease.duration.into();
+		let rent_period: u32 = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+		let rent_claim_amount = total_rent * (rent_period / duraton) - total_rent + lease.unclaimed_rent;
+		rent_claim_amount
 	}
 }
 
