@@ -39,7 +39,7 @@ pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
 pub const COORDINATE_IN_1: (i32, i32) = (-4, 4);
 pub const COORDINATE_IN_2: (i32, i32) = (-4, 5);
 pub const COORDINATE_IN_3: (i32, i32) = (-4, 6);
-pub const COORDINATE_IN_3: (i32, i32) = (-4, 8);
+pub const COORDINATE_IN_4: (i32, i32) = (-4, 8);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 pub const COORDINATE_IN_AUCTION: (i32, i32) = (-4, 7);
 pub const ESTATE_IN_AUCTION: EstateId = 3;
@@ -537,9 +537,9 @@ pub fn last_event() -> Event {
 }
 
 fn next_block() {
-	GovernanceModule::on_finalize(System::block_number());
+	EstateModule::on_finalize(System::block_number());
 	System::set_block_number(System::block_number() + 1);
-	GovernanceModule::on_initialize(System::block_number());
+	EstateModule::on_initialize(System::block_number());
 }
 
 pub fn run_to_block(n: u64) {

@@ -1243,7 +1243,7 @@ pub mod pallet {
 
 					let current_block_number = <frame_system::Pallet<T>>::block_number();
 					let end_block = current_block_number + T::LeaseOfferExpiryPeriod::get().into();
-					let unclaimed_rent: BalanceOf<T> = price_per_block.saturated_mul(duration);
+					let unclaimed_rent: BalanceOf<T> = price_per_block * duration.into();
 
 					let lease_offer = LeaseContract {
 						price_per_block,
@@ -1297,20 +1297,20 @@ pub mod pallet {
 						Error::<T>::NoPermission
 					);
 
-					let mut lease = Self::lease_offers(estate_id, leasor.clone())
+					let mut lease = Self::lease_offers(estate_id, recipient.clone())
 						.ok_or(Error::<T>::LeaseOfferDoesNotExist)
 						.unwrap();
 
 					lease.start_block = <frame_system::Pallet<T>>::block_number();
-					lease.end_block = lease.start_bock + lease.duration.into();
+					lease.end_block = lease.start_block + lease.duration.into();
 
-					EstateLeaseOffers::<T>::remove_prefix(estate_id);
+					EstateLeaseOffers::<T>::remove_prefix(estate_id, recipient.clone());
 					EstateLeases::<T>::insert(estate_id, lease);
 					EstateLeasors::<T>::insert(recipient.clone(), estate_id, ());
 
 					Self::deposit_event(Event::<T>::EstateLeaseOfferAccepted(
-						recipient.clone(),
 						estate_id,
+						recipient.clone(),
 						lease.end_block,
 					));
 
