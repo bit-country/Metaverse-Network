@@ -1343,9 +1343,9 @@ pub mod pallet {
 			EstateLeasors::<T>::remove(leasor, estate_id);
 			EstateLeases::<T>::remove(estate_id);
 			// TO DO: Find estate owner
-			let rent_claim_amount = Self::find_rent_amount(lease, who.clone(), who.clone());
-			T::Currency::unreserve(&who, lease.unclaimed_rent.into());
-			T::Currency::transfer(&who, &who, rent_claim_amount);
+			let rent_claim_amount = Self::find_rent_amount(lease);
+			T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
+			T::Currency::transfer(&leasor, &leasor /* estate owner account */, rent_claim_amount, ExistenceRequirement::KeepAlive);
 			Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
 			Ok(().into())
 		}
@@ -1420,16 +1420,19 @@ pub mod pallet {
 		pub fn collect_rent(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 			ensure!(Self::check_estate_ownership(who, estate_id)?, Error::<T>::NoPermission);
-			ensure!(
-				EstateLeases::<T>::contains_key(estate_id),
-				Error::<T>::LeaseDoesNotExist
-			);
-			let rent_claim_amount = Self::find_rent_amount(lease, who.clone(), who.clone());
-			// TO DO: Find estate leasor
-			T::Currency::unreserve(&who, rent_claim_amount);
-			T::Currency::transfer(&who, &who, rent_claim_amount);
-			Self::deposit_event(Event::<T>::EstateRentCollected(who, estate_id));
-			Ok(().into())
+			let lease_offer_value = Self::leases(estate_id);
+			match lease_offer_value {
+				Some(lease) => {
+					let rent_claim_amount = Self::find_rent_amount(lease);
+					// TO DO: Find estate leasor
+
+					T::Currency::unreserve(&who /* estate leasor account */, rent_claim_amount);
+					T::Currency::transfer(&who /* estate leasor account */, &who, rent_claim_amount, ExistenceRequirement::KeepAlive);
+					Self::deposit_event(Event::<T>::EstateRentCollected(who, rent_claim_amount));
+					Ok(().into())
+				},
+				None => Err(Error::<T>::LeaseDoesNotExist.into()),
+			}
 		}
 	}
 }
@@ -1990,8 +1993,8 @@ impl<T: Config> Pallet<T> {
 
 	fn find_rent_amount(lease: LeaseContract<Balance, T::BlockNumber>) -> Balance {
 		let total_rent = lease.price_per_block * lease.duration.into();
-		let rent_period: u32 = <frame_system::Pallet<T>>::block_number() - lease.start_block;
-		let rent_claim_amount = total_rent * (rent_period / duraton) - total_rent + lease.unclaimed_rent;
+		let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+		let rent_claim_amount = total_rent * (rent_period / lease.duration.into()) - total_rent + lease.unclaimed_rent;
 		rent_claim_amount
 	}
 }
