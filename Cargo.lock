@@ -870,7 +870,9 @@ version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
 dependencies = [
+ "lazy_static",
  "memchr",
+ "regex-automata",
 ]
 
 [[package]]
@@ -1154,6 +1156,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83827793632c72fa4f73c2edb31e7a997527dd8ffe7077344621fc62c5478157"
 dependencies = [
  "cache-padded",
+]
+
+[[package]]
+name = "console"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a28b32d32ca44b70c3e4acd7db1babf555fa026e385fb95f18028f88848b3c31"
+dependencies = [
+ "encode_unicode",
+ "libc",
+ "once_cell",
+ "terminal_size",
+ "winapi",
 ]
 
 [[package]]
@@ -2317,6 +2332,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "encode_unicode"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
+
+[[package]]
 name = "enum-as-inner"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2458,14 +2479,32 @@ checksum = "77f3309417938f28bf8228fcff79a4a37103981e3e186d2ccd19c74b38f4eb71"
 [[package]]
 name = "evm"
 version = "0.35.0"
+source = "git+https://github.com/rust-blockchain/evm?branch=master#51b8c2ce3104265e1fd5bb0fe5cdfd2e0938239c"
+dependencies = [
+ "auto_impl",
+ "ethereum",
+ "evm-core 0.35.0 (git+https://github.com/rust-blockchain/evm?branch=master)",
+ "evm-gasometer 0.35.0 (git+https://github.com/rust-blockchain/evm?branch=master)",
+ "evm-runtime 0.35.0 (git+https://github.com/rust-blockchain/evm?branch=master)",
+ "log",
+ "parity-scale-codec",
+ "primitive-types",
+ "rlp",
+ "scale-info",
+ "sha3 0.10.1",
+]
+
+[[package]]
+name = "evm"
+version = "0.35.0"
 source = "git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3#01bcbd2205a212c34451d3b4fabc962793b057d3"
 dependencies = [
  "auto_impl",
  "environmental",
  "ethereum",
- "evm-core",
- "evm-gasometer",
- "evm-runtime",
+ "evm-core 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
+ "evm-gasometer 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
+ "evm-runtime 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
  "log",
  "parity-scale-codec",
  "primitive-types",
@@ -2473,6 +2512,16 @@ dependencies = [
  "scale-info",
  "serde",
  "sha3 0.10.1",
+]
+
+[[package]]
+name = "evm-core"
+version = "0.35.0"
+source = "git+https://github.com/rust-blockchain/evm?branch=master#51b8c2ce3104265e1fd5bb0fe5cdfd2e0938239c"
+dependencies = [
+ "parity-scale-codec",
+ "primitive-types",
+ "scale-info",
 ]
 
 [[package]]
@@ -2489,12 +2538,33 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.35.0"
+source = "git+https://github.com/rust-blockchain/evm?branch=master#51b8c2ce3104265e1fd5bb0fe5cdfd2e0938239c"
+dependencies = [
+ "evm-core 0.35.0 (git+https://github.com/rust-blockchain/evm?branch=master)",
+ "evm-runtime 0.35.0 (git+https://github.com/rust-blockchain/evm?branch=master)",
+ "primitive-types",
+]
+
+[[package]]
+name = "evm-gasometer"
+version = "0.35.0"
 source = "git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3#01bcbd2205a212c34451d3b4fabc962793b057d3"
 dependencies = [
  "environmental",
- "evm-core",
- "evm-runtime",
+ "evm-core 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
+ "evm-runtime 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
  "primitive-types",
+]
+
+[[package]]
+name = "evm-runtime"
+version = "0.35.0"
+source = "git+https://github.com/rust-blockchain/evm?branch=master#51b8c2ce3104265e1fd5bb0fe5cdfd2e0938239c"
+dependencies = [
+ "auto_impl",
+ "evm-core 0.35.0 (git+https://github.com/rust-blockchain/evm?branch=master)",
+ "primitive-types",
+ "sha3 0.10.1",
 ]
 
 [[package]]
@@ -2504,7 +2574,7 @@ source = "git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b
 dependencies = [
  "auto_impl",
  "environmental",
- "evm-core",
+ "evm-core 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
  "primitive-types",
  "sha3 0.10.1",
 ]
@@ -2667,7 +2737,7 @@ source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.24#e
 dependencies = [
  "ethereum",
  "ethereum-types",
- "evm",
+ "evm 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
  "fc-db",
  "fc-rpc-core",
  "fp-rpc",
@@ -2852,7 +2922,7 @@ name = "fp-evm"
 version = "3.0.0-dev"
 source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.24#efb2d22d6e79701071743555aa7d603ee9b2983a"
 dependencies = [
- "evm",
+ "evm 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
  "frame-support",
  "parity-scale-codec",
  "serde",
@@ -5351,6 +5421,7 @@ dependencies = [
  "pallet-nft",
  "pallet-scheduler",
  "precompile-utils",
+ "precompile-utils-macro",
  "sp-core",
  "sp-runtime",
  "sp-std",
@@ -6748,7 +6819,7 @@ source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.24#e
 dependencies = [
  "ethereum",
  "ethereum-types",
- "evm",
+ "evm 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
  "fp-consensus",
  "fp-ethereum",
  "fp-evm",
@@ -6773,7 +6844,7 @@ name = "pallet-evm"
 version = "6.0.0-dev"
 source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.24#efb2d22d6e79701071743555aa7d603ee9b2983a"
 dependencies = [
- "evm",
+ "evm 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
  "fp-evm",
  "frame-benchmarking",
  "frame-support",
@@ -9232,7 +9303,29 @@ checksum = "eb9f9e6e233e5c4a35559a617bf40a4ec447db2e84c20b55a6f83167b7e57872"
 name = "precompile-utils"
 version = "0.1.0"
 dependencies = [
+ "evm 0.35.0 (git+https://github.com/rust-blockchain/evm?branch=master)",
+ "fp-evm",
+ "frame-support",
+ "frame-system",
  "hex-literal",
+ "impl-trait-for-tuples 0.2.2",
+ "log",
+ "num_enum",
+ "pallet-evm",
+ "parity-scale-codec",
+ "precompile-utils-macro",
+ "sha3 0.9.1",
+ "similar-asserts",
+ "sp-core",
+ "sp-io",
+ "sp-std",
+ "xcm",
+]
+
+[[package]]
+name = "precompile-utils-macro"
+version = "0.1.0"
+dependencies = [
  "num_enum",
  "proc-macro2",
  "quote",
@@ -11512,6 +11605,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "similar"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e24979f63a11545f5f2c60141afe249d4f19f84581ea2138065e400941d83d3"
+dependencies = [
+ "bstr",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "similar-asserts"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64c9f531a2375031d51c23c415ca12d0f0271b976211e2f727b7a0eac06a099d"
+dependencies = [
+ "console",
+ "similar",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12690,6 +12803,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bab24d30b911b2376f3a13cc2cd443142f0c81dda04c118693e35b3835757755"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "terminal_size"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "633c1a546cee861a1a6d0dc69ebeca693bf4296661ba7852b9d21d159e0506df"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]

@@ -1,142 +1,101 @@
 // Copyright 2019-2022 PureStake Inc.
+// This file is part Utils package, originally developed by PureStake
 
-// This file is part of Macro script, originally developed by Purestake Inc.
-// Macro script used in Metaverse Network in terms of GPLv3.
-//
-
-// Macro script is free software: you can redistribute it and/or modify
+// Utils is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// Macro script is distributed in the hope that it will be useful,
+// Utils is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-#![crate_type = "proc-macro"]
-extern crate proc_macro;
+// You should have received a copy of the GNU General Public License
+// along with Utils.  If not, see <http://www.gnu.org/licenses/>.
 
-use proc_macro::TokenStream;
-use proc_macro2::Literal;
-use quote::{quote, quote_spanned};
-use sha3::{Digest, Keccak256};
-use syn::{parse_macro_input, spanned::Spanned, Attribute, Expr, ExprLit, Ident, ItemEnum, Lit, LitStr};
+#![cfg_attr(not(feature = "std"), no_std)]
+#![feature(assert_matches)]
 
-struct Bytes(Vec<u8>);
+extern crate alloc;
 
-impl ::std::fmt::Debug for Bytes {
-	#[inline]
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> ::std::fmt::Result {
-		let data = &self.0;
-		write!(f, "[")?;
-		if !data.is_empty() {
-			write!(f, "{:#04x}u8", data[0])?;
-			for unit in data.iter().skip(1) {
-				write!(f, ", {:#04x}", unit)?;
-			}
-		}
-		write!(f, "]")
+pub mod costs;
+pub mod handle;
+pub mod logs;
+pub mod modifier;
+pub mod precompile_set;
+pub mod substrate;
+
+#[cfg(feature = "testing")]
+pub mod testing;
+
+#[cfg(test)]
+mod tests;
+
+use crate::alloc::borrow::ToOwned;
+use fp_evm::{ExitError, ExitRevert, ExitSucceed, PrecompileFailure, PrecompileHandle, PrecompileOutput};
+
+pub mod data;
+
+// pub use data::{Address, Bytes, EvmData, EvmDataReader, EvmDataWriter};
+// pub use fp_evm::Precompile;
+// pub use precompile_utils_macro::{generate_function_selector, keccak256};
+
+/// Return an error with provided (static) text.
+/// Using the `revert` function of `Gasometer` is preferred as erroring
+/// consumed all the gas limit and the error message is not easily
+/// retrievable.
+#[must_use]
+pub fn error<T: Into<alloc::borrow::Cow<'static, str>>>(text: T) -> PrecompileFailure {
+	PrecompileFailure::Error {
+		exit_status: ExitError::Other(text.into()),
 	}
 }
 
-#[proc_macro]
-pub fn keccak256(input: TokenStream) -> TokenStream {
-	let lit_str = parse_macro_input!(input as LitStr);
-
-	let hash = Keccak256::digest(lit_str.value().as_ref());
-
-	let bytes = Bytes(hash.to_vec());
-	let eval_str = format!("{:?}", bytes);
-	let eval_ts: proc_macro2::TokenStream = eval_str.parse().unwrap_or_else(|_| {
-		panic!("Failed to parse the string \"{}\" to TokenStream.", eval_str);
-	});
-	quote!(#eval_ts).into()
+#[must_use]
+pub fn revert(output: impl AsRef<[u8]>) -> PrecompileFailure {
+	PrecompileFailure::Revert {
+		exit_status: ExitRevert::Reverted,
+		output: output.as_ref().to_owned(),
+	}
 }
 
-/// This macro allows to associate to each variant of an enumeration a discriminant (of type u32
-/// whose value corresponds to the first 4 bytes of the Hash Keccak256 of the character string
-///indicated by the user of this macro.
-///
-/// Usage:
-///
-/// ```ignore
-/// #[generate_function_selector]
-/// enum Action {
-/// 	Toto = "toto()",
-/// 	Tata = "tata()",
-/// }
-/// ```
-///
-/// Extended to:
-///
-/// ```rust
-/// #[repr(u32)]
-/// enum Action {
-/// 	Toto = 119097542u32,
-/// 	Tata = 1414311903u32,
-/// }
-/// ```
-#[proc_macro_attribute]
-pub fn generate_function_selector(_: TokenStream, input: TokenStream) -> TokenStream {
-	let item = parse_macro_input!(input as ItemEnum);
-
-	let ItemEnum {
-		attrs,
-		vis,
-		enum_token,
-		ident,
-		variants,
-		..
-	} = item;
-
-	let mut ident_expressions: Vec<Ident> = vec![];
-	let mut variant_expressions: Vec<Expr> = vec![];
-	let mut variant_attrs: Vec<Vec<Attribute>> = vec![];
-	for variant in variants {
-		match variant.discriminant {
-			Some((_, Expr::Lit(ExprLit { lit, .. }))) => {
-				if let Lit::Str(lit_str) = lit {
-					let digest = Keccak256::digest(lit_str.value().as_ref());
-					let selector = u32::from_be_bytes([digest[0], digest[1], digest[2], digest[3]]);
-					ident_expressions.push(variant.ident);
-					variant_expressions.push(Expr::Lit(ExprLit {
-						lit: Lit::Verbatim(Literal::u32_suffixed(selector)),
-						attrs: Default::default(),
-					}));
-					variant_attrs.push(variant.attrs);
-				} else {
-					return quote_spanned! {
-						lit.span() => compile_error("Expected literal string");
-					}
-					.into();
-				}
-			}
-			Some((_eg, expr)) => {
-				return quote_spanned! {
-					expr.span() => compile_error("Expected literal");
-				}
-				.into()
-			}
-			None => {
-				return quote_spanned! {
-					variant.span() => compile_error("Each variant must have a discriminant");
-				}
-				.into()
-			}
-		}
+#[must_use]
+pub fn succeed(output: impl AsRef<[u8]>) -> PrecompileOutput {
+	PrecompileOutput {
+		exit_status: ExitSucceed::Returned,
+		output: output.as_ref().to_owned(),
 	}
+}
 
-	(quote! {
-		#(#attrs)*
-		#[derive(num_enum::TryFromPrimitive, num_enum::IntoPrimitive)]
-		#[repr(u32)]
-		#vis #enum_token #ident {
-			#(
-				#(#variant_attrs)*
-				#ident_expressions = #variant_expressions,
-			)*
-		}
-	})
-	.into()
+/// Alias for Result returning an EVM precompile error.
+pub type EvmResult<T = ()> = Result<T, PrecompileFailure>;
+
+/// Trait similar to `fp_evm::Precompile` but with a `&self` parameter to manage some
+/// state (this state is only kept in a single transaction and is lost afterward).
+pub trait StatefulPrecompile {
+	/// Instanciate the precompile.
+	/// Will be called once when building the PrecompileSet at the start of each
+	/// Ethereum transaction.
+	fn new() -> Self;
+
+	/// Execute the precompile with a reference to its state.
+	fn execute(&self, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput>;
+}
+
+pub mod prelude {
+	pub use {
+		crate::{
+			data::{Address, Bytes, EvmData, EvmDataReader, EvmDataWriter},
+			error,
+			handle::PrecompileHandleExt,
+			logs::{log0, log1, log2, log3, log4, LogExt},
+			modifier::{check_function_modifier, FunctionModifier},
+			revert,
+			substrate::RuntimeHelper,
+			succeed, EvmResult, StatefulPrecompile,
+		},
+		pallet_evm::PrecompileHandle,
+		precompile_utils_macro::{generate_function_selector, keccak256},
+	};
 }
