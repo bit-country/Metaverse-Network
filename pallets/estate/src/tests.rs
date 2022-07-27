@@ -2160,7 +2160,7 @@ fn create_estate_lease_offer_should_fail() {
 				10u128,
 				8u32
 			),
-			EstateDoesNotExist
+			Error::<Runtime>::EstateDoesNotExist
 		);
 
 		assert_noop!(
@@ -2170,7 +2170,7 @@ fn create_estate_lease_offer_should_fail() {
 				0u128,
 				8u32
 			),
-			LeaseOfferPriceBelowMinimum
+			Error::<Runtime>::LeaseOfferPriceBelowMinimum
 		);
 
 		assert_noop!(
@@ -2180,7 +2180,7 @@ fn create_estate_lease_offer_should_fail() {
 				2u128,
 				1000u32
 			),
-			LeaseOfferDurationAboveMaximum
+			Error::<Runtime>::LeaseOfferDurationAboveMaximum
 		);
 
 		assert_ok!(EstateModule::create_lease_offer(
@@ -2204,7 +2204,7 @@ fn create_estate_lease_offer_should_fail() {
 				12u128,
 				8u32
 			),
-			EstateLeaseOffersQueueLimitIsReached
+			Error::<Runtime>::EstateLeaseOffersQueueLimitIsReached
 		);
 
 		assert_ok!(EstateModule::accept_lease_offer(
@@ -2220,7 +2220,7 @@ fn create_estate_lease_offer_should_fail() {
 				12u128,
 				8u32
 			),
-			EstateIsAlreadyLeased
+			Error::<Runtime>::EstateIsAlreadyLeased
 		);
 
 		assert_ok!(EstateModule::mint_estate(
@@ -2237,7 +2237,7 @@ fn create_estate_lease_offer_should_fail() {
 				3u128,
 				8u32
 			),
-			EstateAlreadyInAuction
+			Error::<Runtime>::EstateAlreadyInAuction
 		);
 
 		assert_noop!(
@@ -2247,7 +2247,7 @@ fn create_estate_lease_offer_should_fail() {
 				10u128,
 				8u32
 			),
-			NoPermission
+			Error::<Runtime>::NoPermission
 		);
 	});
 }
@@ -2308,7 +2308,7 @@ fn accept_estate_lease_offer_should_fail() {
 
 		assert_noop!(
 			EstateModule::accept_lease_offer(Origin::signed(ALICE), 0u32, BOB),
-			NoPermission
+			Error::<Runtime>::NoPermission
 		);
 		todo!()
 		//TO DO: Offer cannot be accepted after asset is listed on auction
@@ -2405,7 +2405,7 @@ fn cancel_lease_should_fail() {
 
 		assert_noop!(
 			EstateModule::cancel_lease(Origin::root(), 1u32, ALICE),
-			EstateIsNotLeased
+			Error::<Runtime>::LeaseDoesNotExist
 		);
 
 		assert_ok!(EstateModule::accept_lease_offer(
@@ -2416,7 +2416,7 @@ fn cancel_lease_should_fail() {
 
 		assert_noop!(
 			EstateModule::cancel_lease(Origin::root(), 0u32, BOB),
-			InvalidEstateLeasor
+			Error::<Runtime>::LeaseDoesNotExist
 		);
 	});
 }
@@ -2508,7 +2508,7 @@ fn remove_expired_lease_should_fail() {
 
 		assert_noop!(
 			EstateModule::remove_expired_lease(Origin::none(), 0u32, ALICE),
-			LeaseDoesNotExist
+			Error::<Runtime>::LeaseDoesNotExist
 		);
 
 		assert_ok!(EstateModule::create_lease_offer(
@@ -2526,7 +2526,7 @@ fn remove_expired_lease_should_fail() {
 
 		assert_noop!(
 			EstateModule::remove_expired_lease(Origin::none(), 0u32, ALICE),
-			LeaseIsNotExpired
+			Error::<Runtime>::LeaseIsNotExpired
 		);
 	});
 }
@@ -2619,12 +2619,12 @@ fn remove_expired_lease_offer_should_fail() {
 
 		assert_noop!(
 			EstateModule::remove_expired_lease_offer(Origin::none(), 1u32, ALICE),
-			LeaseOfferDoesNotExist
+			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
 
 		assert_noop!(
 			EstateModule::remove_expired_lease_offer(Origin::none(), 0u32, ALICE),
-			LeaseOfferIsNotExpired
+			Error::<Runtime>::LeaseOfferIsNotExpired
 		);
 	});
 }
@@ -2677,11 +2677,32 @@ fn collect_rent_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32),
-			EstateIsNotLeased
+			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32, ALICE),
+			Error::<Runtime>::LeaseDoesNotExist
 		);
 
-		assert_noop!(EstateModule::collect_rent(Origin::signed(ALICE), 0u32), NoPermission);
+		assert_noop!(
+			EstateModule::collect_rent(Origin::signed(ALICE), 0u32, BENEFICIARY_ID),
+			Error::<Runtime>::NoPermission
+		);
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			0u32
+			10u128,
+			8u32
+		));
+
+		assert_noop!(
+			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32, BOB),
+			Error::<Runtime>::LeaseDoesNotExist
+		);
 	});
 }
 
@@ -2743,7 +2764,7 @@ fn collect_rent_should_work() {
 
 		run_to_block(4);
 
-		assert_ok!(EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32));
+		assert_ok!(EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32, ALICE));
 
 		assert_eq!(last_event(), Event::Estate(crate::Event::EstateRentCollected(0, 40)));
 
