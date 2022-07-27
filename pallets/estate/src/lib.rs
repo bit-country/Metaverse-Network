@@ -1225,8 +1225,7 @@ pub mod pallet {
 				Error::<T>::LeaseOfferDurationAboveMaximum
 			);
 			ensure!(
-				EstateLeaseOffers::<T>::iter_prefix(estate_id).count()
-					<= T::MaxOffersPerEstate::get().into(),
+				EstateLeaseOffers::<T>::iter_prefix(estate_id).count() <= T::MaxOffersPerEstate::get().into(),
 				Error::<T>::EstateLeaseOffersQueueLimitIsReached
 			);
 
@@ -1347,8 +1346,6 @@ pub mod pallet {
 			let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
 			let rent_claim_amount =
 				total_rent * (rent_period / lease.duration.into()).into() - total_rent + lease.unclaimed_rent;
-			let estate_owner_value = 
-			
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
@@ -1455,12 +1452,7 @@ pub mod pallet {
 						total_rent * (rent_period / lease.duration.into()) - total_rent + lease.unclaimed_rent;
 
 					T::Currency::unreserve(&leasor, rent_claim_amount);
-					T::Currency::transfer(
-						&leasor,
-						&who,
-						rent_claim_amount.into(),
-						ExistenceRequirement::KeepAlive,
-					);
+					T::Currency::transfer(&leasor, &who, rent_claim_amount.into(), ExistenceRequirement::KeepAlive);
 					Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
 					Ok(().into())
 				}
