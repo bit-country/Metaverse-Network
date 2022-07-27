@@ -1,11 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use orml_traits::MultiCurrency as MultiCurrencyTrait;
-use pallet_evm::{ExitSucceed, PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet};
+use frame_support::pallet_prelude::Get;
+use frame_support::traits::Currency;
+use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
+use pallet_evm::{AddressMapping, ExitSucceed, PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet};
 use sp_core::{H160, U256};
 use sp_std::{marker::PhantomData, prelude::*};
 
-use precompile_utils::data::{EvmData, EvmDataWriter};
+use precompile_utils::data::{Address, EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
 use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
@@ -116,6 +118,29 @@ where
 		log::debug!(target: "evm", "multicurrency: total issuance: {:?}", total_issuance);
 
 		let encoded = Output::encode_uint(total_issuance);
+		// Build output.
+		Ok(succeed(encoded))
+	}
+
+	fn balance_of(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input of index 1 (owner)
+		let mut input = handle.read_input()?;
+		input.expect_arguments(1)?;
+
+		let owner: H160 = input.read::<Address>()?.into();
+		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		// Fetch info
+		let balance = if currency_id == <Runtime as currencies::Config>::GetNativeCurrencyId::get() {
+			<Runtime as currencies::Config>::NativeCurrency::free_balance(&who)
+		} else {
+			<Runtime as currencies::Config>::MultiSocialCurrency::free_balance(currency_id, &who)
+		};
+
+		log::debug!(target: "evm", "multicurrency: who: {:?} balance: {:?}", who ,balance);
+
+		let encoded = Output::encode_uint(balance);
 		// Build output.
 		Ok(succeed(encoded))
 	}
