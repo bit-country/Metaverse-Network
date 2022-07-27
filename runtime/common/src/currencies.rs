@@ -144,4 +144,27 @@ where
 		// Build output.
 		Ok(succeed(encoded))
 	}
+
+	fn transfer(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_log_costs_manual(3, 32)?;
+
+		// Parse input of index 1 (owner)
+		let mut input = handle.read_input()?;
+		input.expect_arguments(2)?;
+
+		let owner: H160 = input.read::<Address>()?.into();
+		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		// Fetch info
+		let balance = if currency_id == <Runtime as currencies::Config>::GetNativeCurrencyId::get() {
+			<Runtime as currencies::Config>::NativeCurrency::free_balance(&who)
+		} else {
+			<Runtime as currencies::Config>::MultiSocialCurrency::free_balance(currency_id, &who)
+		};
+
+		log::debug!(target: "evm", "multicurrency: who: {:?} balance: {:?}", who ,balance);
+
+		let encoded = Output::encode_uint(balance);
+		// Build output.
+		Ok(succeed(encoded))
+	}
 }
