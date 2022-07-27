@@ -1226,7 +1226,7 @@ pub mod pallet {
 			);
 			ensure!(
 				EstateLeaseOffers::<T>::iter_prefix(estate_id).count()
-					<= T::MaxOffersPerEstate::get().try_into().unwrap(),
+					<= T::MaxOffersPerEstate::get().into(),
 				Error::<T>::EstateLeaseOffersQueueLimitIsReached
 			);
 
@@ -1346,17 +1346,25 @@ pub mod pallet {
 			let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
 			let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
 			let rent_claim_amount =
-				total_rent * (rent_period / lease.duration.into()) - total_rent + lease.unclaimed_rent;
-
-			T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
-			T::Currency::transfer(
-				&leasor,
-				&leasor, /* estate owner account */
-				rent_claim_amount,
-				ExistenceRequirement::KeepAlive,
-			);
-			Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
-			Ok(().into())
+				total_rent * (rent_period / lease.duration.into()).into() - total_rent + lease.unclaimed_rent;
+			let estate_owner_value = 
+			
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+			match estate_owner_value {
+				OwnerId::Token(class_id, token_id) => {
+					let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id));
+					T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
+					T::Currency::transfer(
+						&leasor,
+						&estate_owner,
+						rent_claim_amount,
+						ExistenceRequirement::KeepAlive,
+					);
+					Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
+					Ok(().into())
+				}
+				_ => Err(Error::<T>::InvalidOwnerValue.into()),
+			}
 		}
 
 		/// Removes expired lease
@@ -1449,7 +1457,7 @@ pub mod pallet {
 					T::Currency::unreserve(&leasor, rent_claim_amount);
 					T::Currency::transfer(
 						&leasor,
-						&lwho,
+						&who,
 						rent_claim_amount.into(),
 						ExistenceRequirement::KeepAlive,
 					);
