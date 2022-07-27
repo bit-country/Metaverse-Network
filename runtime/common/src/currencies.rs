@@ -97,6 +97,11 @@ where
 	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
 	currencies::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
+	U256: From<
+		<<Runtime as currencies::Config>::MultiSocialCurrency as MultiCurrencyTrait<
+			<Runtime as frame_system::Config>::AccountId,
+		>>::Balance,
+	>,
 {
 	fn total_supply(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
