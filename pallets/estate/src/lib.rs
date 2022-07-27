@@ -1344,7 +1344,7 @@ pub mod pallet {
 			EstateLeases::<T>::remove(estate_id);
 
 			let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-			let rent_period: u32 = (<frame_system::Pallet<T>>::block_number() - lease.start_block).into();
+			let rent_period: u32 = (<frame_system::Pallet<T>>::block_number() - lease.start_block).try_into().unwrap();
 			let rent_claim_amount =
 				total_rent / lease.duration.into() * rent_period.into() - total_rent + lease.unclaimed_rent;
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
