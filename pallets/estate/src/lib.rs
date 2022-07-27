@@ -1342,8 +1342,12 @@ pub mod pallet {
 			);
 			EstateLeasors::<T>::remove(leasor, estate_id);
 			EstateLeases::<T>::remove(estate_id);
-			// TO DO: Find estate owner
-			let rent_claim_amount: BalanceOf<T> = Self::find_rent_amount(&lease)?;
+
+			let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
+			let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+			let rent_claim_amount =
+				total_rent * (rent_period / lease.duration.into()) - total_rent + lease.unclaimed_rent;
+
 			T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
 			T::Currency::transfer(
 				&leasor,
@@ -1436,7 +1440,12 @@ pub mod pallet {
 						EstateLeasors::<T>::contains_key(leasor, estate_id),
 						Error::<T>::LeaseDoesNotExist
 					);
-					let rent_claim_amount: BalanceOf<T> = Self::find_rent_amount(&lease)?;
+
+					let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
+					let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+					let rent_claim_amount =
+						total_rent * (rent_period / lease.duration.into()) - total_rent + lease.unclaimed_rent;
+
 					T::Currency::unreserve(&leasor, rent_claim_amount);
 					T::Currency::transfer(
 						&leasor,
@@ -2005,14 +2014,6 @@ impl<T: Config> Pallet<T> {
 		//)?;
 		//}
 		Ok(())
-	}
-
-	fn find_rent_amount(lease: &LeaseContract<BalanceOf<T>, T::BlockNumber>) -> Result<BalanceOf<T>, DispatchError> {
-		let total_rent: T::Balance = *lease.price_per_block * *lease.duration.into();
-		let rent_period = <frame_system::Pallet<T>>::block_number() - *lease.start_block;
-		let rent_claim_amount =
-			total_rent * (rent_period / *lease.duration.into()) - total_rent + *lease.unclaimed_rent;
-		Ok(rent_claim_amount)
 	}
 }
 
