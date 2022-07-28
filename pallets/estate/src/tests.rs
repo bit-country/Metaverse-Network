@@ -2719,7 +2719,7 @@ fn collect_rent_should_work() {
 			unclaimed_rent: 80u128,
 		};
 
-		assert_eq!(EstateModule::leases(0u64), Some(lease));
+		assert_eq!(EstateModule::leases(0u64), Some(lease.clone()));
 
 		assert_eq!(EstateModule::leasors(ALICE, 0u64), Some(()));
 
