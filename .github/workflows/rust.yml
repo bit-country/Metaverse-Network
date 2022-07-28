@@ -41,3 +41,6 @@ jobs:
       - name: Run all test cases
         run: |
           SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime
+      - name: Build Benchmarking
+        run: |
+          cargo build --release --features runtime-benchmarks

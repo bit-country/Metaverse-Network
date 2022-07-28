@@ -2194,12 +2194,7 @@ fn create_estate_lease_offer_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::create_lease_offer(
-				Origin::signed(CHARLIE),
-				0u64
-				12u128,
-				8u32
-			),
+			EstateModule::create_lease_offer(Origin::signed(CHARLIE), 0u64, 12u128, 8u32),
 			Error::<Runtime>::EstateIsAlreadyLeased
 		);
 
@@ -2211,22 +2206,12 @@ fn create_estate_lease_offer_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::create_lease_offer(
-				Origin::signed(ALICE),
-				1u64
-				3u128,
-				8u32
-			),
+			EstateModule::create_lease_offer(Origin::signed(ALICE), 1u64, 3u128, 8u32),
 			Error::<Runtime>::EstateAlreadyInAuction
 		);
 
 		assert_noop!(
-			EstateModule::create_lease_offer(
-				Origin::signed(BENEFICIARY_ID),
-				0u64
-				10u128,
-				8u32
-			),
+			EstateModule::create_lease_offer(Origin::signed(BENEFICIARY_ID), 0u64, 10u128, 8u32),
 			Error::<Runtime>::NoPermission
 		);
 	});
