@@ -5334,6 +5334,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "hex-literal",
+ "metaverse-runtime-common",
  "orml-benchmarking",
  "orml-currencies",
  "orml-nft",

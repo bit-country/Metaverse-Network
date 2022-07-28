@@ -90,6 +90,7 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
+use metaverse_runtime_common::precompiles::MetaverseNetworkPrecompiles;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use primitives::evm::{
@@ -973,7 +974,10 @@ impl pallet_base_fee::Config for Runtime {
 parameter_types! {
 	pub const ChainId: u64 = 2042;
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
+	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
 }
+
+pub type Precompiles = MetaverseNetworkPrecompiles<Runtime>;
 
 impl pallet_evm::Config for Runtime {
 	type Event = Event;
@@ -992,8 +996,8 @@ impl pallet_evm::Config for Runtime {
 	type GasWeightMapping = ();
 	type OnChargeTransaction = ();
 	type FindAuthor = FindAuthorTruncated<Aura>;
-	type PrecompilesType = ();
-	type PrecompilesValue = ();
+	type PrecompilesType = Precompiles;
+	type PrecompilesValue = PrecompilesValue;
 	// type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
 }
 

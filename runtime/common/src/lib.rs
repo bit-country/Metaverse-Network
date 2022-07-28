@@ -16,4 +16,4 @@
 // limitations under the License.
 
 mod currencies;
-mod precompiles;
+pub mod precompiles;
