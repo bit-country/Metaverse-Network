@@ -2339,7 +2339,7 @@ fn accept_estate_lease_offer_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u128
+			unclaimed_rent: 80u128,
 		};
 
 		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
@@ -2445,7 +2445,7 @@ fn cancel_lease_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u128
+			unclaimed_rent: 80u128,
 		};
 
 		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
@@ -2555,7 +2555,7 @@ fn remove_expired_lease_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u128
+			unclaimed_rent: 80u128,
 		};
 
 		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
@@ -2653,7 +2653,7 @@ fn remove_expired_lease_offer_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u128
+			unclaimed_rent: 80u128,
 		};
 
 		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
@@ -2730,7 +2730,7 @@ fn collect_rent_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u128
+			unclaimed_rent: 80u128,
 		};
 
 		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
