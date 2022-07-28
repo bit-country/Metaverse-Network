@@ -195,6 +195,10 @@ impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
 	}
 }
 
+parameter_types! {
+	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
@@ -203,6 +207,7 @@ impl Config for Runtime {
 	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type MetaverseStakingHandler = MetaverseStakingHandler;
+	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = ();
 }
 

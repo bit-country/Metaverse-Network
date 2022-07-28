@@ -170,7 +170,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 59,
+	spec_version: 61,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -328,6 +328,7 @@ parameter_types! {
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
 	pub const BitMiningTreasury: PalletId = PalletId(*b"bit/ming");
 	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
+	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
 	pub const MaxAuthorities: u32 = 50;
 }
 
@@ -521,7 +522,7 @@ parameter_types! {
 
 impl metaverse::Config for Runtime {
 	type Event = Event;
-	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
+	type MetaverseTreasury = LocalMetaverseFundPalletId;
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
 	type MinContribution = MinContribution;
@@ -566,7 +567,7 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
-	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
+	pub const MaxFinality: u32 = 500; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
 	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
@@ -649,6 +650,7 @@ impl pallet_vesting::Config for Runtime {
 parameter_types! {
 	//Mining Resource Currency Id
 	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
 }
 
 impl mining::Config for Runtime {
@@ -659,6 +661,7 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
+	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
