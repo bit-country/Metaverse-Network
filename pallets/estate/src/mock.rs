@@ -3,7 +3,11 @@
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
+use sp_runtime::{
+	testing::Header,
+	traits::{ConvertInto, IdentityLookup},
+	DispatchError, Perbill,
+};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 use sp_std::vec::Vec;
@@ -488,6 +492,7 @@ impl Config for Runtime {
 	type MinLeasePricePerBlock = MinLeasePricePerBlock;
 	type MaxLeasePeriod = MaxLeasePeriod;
 	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
+	type BlockNumberToBalance = ConvertInto;
 }
 
 construct_runtime!(

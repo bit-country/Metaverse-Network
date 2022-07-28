@@ -568,6 +568,7 @@ impl estate::Config for Runtime {
 	type MinLeasePricePerBlock = MinLeasePricePerBlock;
 	type MaxLeasePeriod = MaxLeasePeriod;
 	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
+	type BlockNumberToBalance = ConvertInto;
 }
 
 parameter_types! {

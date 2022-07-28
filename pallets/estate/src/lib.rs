@@ -28,7 +28,7 @@ use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, One, Saturating},
+	traits::{AccountIdConversion, Convert, One, Saturating},
 	ArithmeticError, DispatchError,
 };
 use sp_std::vec::Vec;
@@ -139,6 +139,9 @@ pub mod pallet {
 		/// The period for each lease offer will be available for acceptance (in number of blocks)
 		#[pallet::constant]
 		type LeaseOfferExpiryPeriod: Get<u32>;
+
+		/// Allows converting block numbers into balance
+		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
 	}
 
 	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -1344,8 +1347,10 @@ pub mod pallet {
 			EstateLeases::<T>::remove(estate_id);
 
 			let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-			let rent_period: u32 = <frame_system::Pallet<T>>::block_number() - lease.start_block;
-			let rent_claim_amount = total_rent - lease.unclaimed_rent;
+			let rent_period =
+				T::BlockNumberToBalance::convert(<frame_system::Pallet<T>>::block_number() - lease.start_block);
+			let rent_claim_amount = lease.price_per_block * rent_period.into() - total_rent + lease.unclaimed_rent;
+
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
@@ -1447,7 +1452,8 @@ pub mod pallet {
 					);
 
 					let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-					let rent_period: u32 = <frame_system::Pallet<T>>::block_number() as u32 - lease.start_block as u32;
+					let rent_period =
+						T::BlockNumberToBalance::convert(<frame_system::Pallet<T>>::block_number() - lease.start_block);
 					let rent_claim_amount =
 						lease.price_per_block * rent_period.into() - total_rent + lease.unclaimed_rent;
 
