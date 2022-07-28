@@ -2154,32 +2154,17 @@ fn create_estate_lease_offer_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::create_lease_offer(
-				Origin::signed(ALICE),
-				1u64
-				10u128,
-				8u32
-			),
+			EstateModule::create_lease_offer(Origin::signed(ALICE), 1u64, 10u128, 8u32),
 			Error::<Runtime>::EstateDoesNotExist
 		);
 
 		assert_noop!(
-			EstateModule::create_lease_offer(
-				Origin::signed(ALICE),
-				0u64
-				0u128,
-				8u32
-			),
+			EstateModule::create_lease_offer(Origin::signed(ALICE), 0u64, 0u128, 8u32),
 			Error::<Runtime>::LeaseOfferPriceBelowMinimum
 		);
 
 		assert_noop!(
-			EstateModule::create_lease_offer(
-				Origin::signed(ALICE),
-				0u64
-				2u128,
-				1000u32
-			),
+			EstateModule::create_lease_offer(Origin::signed(ALICE), 0u64, 2u128, 1000u32),
 			Error::<Runtime>::LeaseOfferDurationAboveMaximum
 		);
 
@@ -2192,18 +2177,13 @@ fn create_estate_lease_offer_should_fail() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(BOB),
-			0u64
+			0u64,
 			11u128,
 			8u32
 		));
 
 		assert_noop!(
-			EstateModule::create_lease_offer(
-				Origin::signed(CHARLIE),
-				0u64
-				12u128,
-				8u32
-			),
+			EstateModule::create_lease_offer(Origin::signed(CHARLIE), 0u64, 12u128, 8u32),
 			Error::<Runtime>::EstateLeaseOffersQueueLimitIsReached
 		);
 
@@ -2301,13 +2281,13 @@ fn accept_estate_lease_offer_should_fail() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(BOB),
-			0u64
+			0u64,
 			10u128,
 			8u32
 		));
 
 		assert_noop!(
-			EstateModule::accept_lease_offer(Origin::signed(ALICE), 0u6, BOB),
+			EstateModule::accept_lease_offer(Origin::signed(ALICE), 0u64, BOB),
 			Error::<Runtime>::NoPermission
 		);
 		todo!()
@@ -2507,7 +2487,7 @@ fn remove_expired_lease_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::remove_expired_lease(Origin::none(), 0u32, ALICE),
+			EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
 
@@ -2525,7 +2505,7 @@ fn remove_expired_lease_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::remove_expired_lease(Origin::none(), 0u32, ALICE),
+			EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE),
 			Error::<Runtime>::LeaseIsNotExpired
 		);
 	});
@@ -2673,7 +2653,7 @@ fn collect_rent_should_fail() {
 			Origin::root(),
 			BENEFICIARY_ID,
 			METAVERSE_ID,
-			Ovec![COORDINATE_IN_1, COORDINATE_IN_2]
+			vec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
 		assert_noop!(
@@ -2700,7 +2680,7 @@ fn collect_rent_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u, BOB),
+			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, BOB),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
 	});
