@@ -175,7 +175,7 @@ where
 			currency_id,
 			&origin,
 			&to,
-			amount.try_into().ok(),
+			amount.try_into().ok().unwrap(),
 		)
 		.map_err(|e| PrecompileFailure::Revert {
 			exit_status: ExitRevert::Reverted,
