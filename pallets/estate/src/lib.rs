@@ -1343,7 +1343,7 @@ pub mod pallet {
 				EstateLeaseOffers::<T>::contains_key(estate_id, leasor.clone()),
 				Error::<T>::LeaseDoesNotExist
 			);
-			EstateLeasors::<T>::remove(leasor, estate_id);
+			EstateLeasors::<T>::remove(leasor.clone(), estate_id);
 			EstateLeases::<T>::remove(estate_id);
 
 			let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
@@ -1442,12 +1442,15 @@ pub mod pallet {
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
-			ensure!(Self::check_estate_ownership(who, estate_id)?, Error::<T>::NoPermission);
+			ensure!(
+				Self::check_estate_ownership(who.clone(), estate_id)?,
+				Error::<T>::NoPermission
+			);
 			let lease_offer_value = Self::leases(estate_id);
 			match lease_offer_value {
 				Some(lease) => {
 					ensure!(
-						EstateLeasors::<T>::contains_key(leasor, estate_id),
+						EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 						Error::<T>::LeaseDoesNotExist
 					);
 
