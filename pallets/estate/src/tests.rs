@@ -2156,7 +2156,7 @@ fn create_estate_lease_offer_should_fail() {
 		assert_noop!(
 			EstateModule::create_lease_offer(
 				Origin::signed(ALICE),
-				1u32
+				1u64
 				10u128,
 				8u32
 			),
@@ -2166,7 +2166,7 @@ fn create_estate_lease_offer_should_fail() {
 		assert_noop!(
 			EstateModule::create_lease_offer(
 				Origin::signed(ALICE),
-				0u32
+				0u64
 				0u128,
 				8u32
 			),
@@ -2176,7 +2176,7 @@ fn create_estate_lease_offer_should_fail() {
 		assert_noop!(
 			EstateModule::create_lease_offer(
 				Origin::signed(ALICE),
-				0u32
+				0u64
 				2u128,
 				1000u32
 			),
@@ -2185,14 +2185,14 @@ fn create_estate_lease_offer_should_fail() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(BOB),
-			0u32
+			0u64
 			11u128,
 			8u32
 		));
@@ -2200,7 +2200,7 @@ fn create_estate_lease_offer_should_fail() {
 		assert_noop!(
 			EstateModule::create_lease_offer(
 				Origin::signed(CHARLIE),
-				0u32
+				0u64
 				12u128,
 				8u32
 			),
@@ -2209,14 +2209,14 @@ fn create_estate_lease_offer_should_fail() {
 
 		assert_ok!(EstateModule::accept_lease_offer(
 			Origin::signed(BENEFICIARY_ID),
-			0u32,
+			0u64,
 			ALICE
 		));
 
 		assert_noop!(
 			EstateModule::create_lease_offer(
 				Origin::signed(CHARLIE),
-				0u32
+				0u64
 				12u128,
 				8u32
 			),
@@ -2233,7 +2233,7 @@ fn create_estate_lease_offer_should_fail() {
 		assert_noop!(
 			EstateModule::create_lease_offer(
 				Origin::signed(ALICE),
-				1u32
+				1u64
 				3u128,
 				8u32
 			),
@@ -2243,7 +2243,7 @@ fn create_estate_lease_offer_should_fail() {
 		assert_noop!(
 			EstateModule::create_lease_offer(
 				Origin::signed(BENEFICIARY_ID),
-				0u32
+				0u64
 				10u128,
 				8u32
 			),
@@ -2264,7 +2264,7 @@ fn create_estate_lease_offer_should_work() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
@@ -2279,10 +2279,10 @@ fn create_estate_lease_offer_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128,
 		};
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 	});
@@ -2301,13 +2301,13 @@ fn accept_estate_lease_offer_should_fail() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(BOB),
-			0u32
+			0u64
 			10u128,
 			8u32
 		));
 
 		assert_noop!(
-			EstateModule::accept_lease_offer(Origin::signed(ALICE), 0u32, BOB),
+			EstateModule::accept_lease_offer(Origin::signed(ALICE), 0u6, BOB),
 			Error::<Runtime>::NoPermission
 		);
 		todo!()
@@ -2327,7 +2327,7 @@ fn accept_estate_lease_offer_should_work() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
@@ -2339,14 +2339,14 @@ fn accept_estate_lease_offer_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128
 		};
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
 
 		assert_ok!(EstateModule::accept_lease_offer(
 			Origin::signed(BENEFICIARY_ID),
-			0u32,
+			0u64,
 			ALICE
 		));
 
@@ -2360,14 +2360,14 @@ fn accept_estate_lease_offer_should_work() {
 			duration: 8u32,
 			end_block: 8,
 			start_block: 0,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128,
 		};
 
-		assert_eq!(EstateModule::leases(0u32), Some(lease));
+		assert_eq!(EstateModule::leases(0u64), Some(lease));
 
-		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+		assert_eq!(EstateModule::leasors(ALICE, 0u64), Some(()));
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), None);
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 	});
@@ -2393,29 +2393,29 @@ fn cancel_lease_should_fail() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
 
 		assert_noop!(
-			EstateModule::cancel_lease(Origin::signed(ALICE), 0u32, ALICE),
+			EstateModule::cancel_lease(Origin::signed(ALICE), 0u64, ALICE),
 			BadOrigin
 		);
 
 		assert_noop!(
-			EstateModule::cancel_lease(Origin::root(), 1u32, ALICE),
+			EstateModule::cancel_lease(Origin::root(), 1u64, ALICE),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
 
 		assert_ok!(EstateModule::accept_lease_offer(
 			Origin::signed(BENEFICIARY_ID),
-			0u32,
+			0u64,
 			ALICE
 		));
 
 		assert_noop!(
-			EstateModule::cancel_lease(Origin::root(), 0u32, BOB),
+			EstateModule::cancel_lease(Origin::root(), 0u64, BOB),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
 	});
@@ -2433,7 +2433,7 @@ fn cancel_lease_should_work() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
@@ -2445,14 +2445,14 @@ fn cancel_lease_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128
 		};
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
 
 		assert_ok!(EstateModule::accept_lease_offer(
 			Origin::signed(BENEFICIARY_ID),
-			0u32,
+			0u64,
 			ALICE
 		));
 
@@ -2466,29 +2466,29 @@ fn cancel_lease_should_work() {
 			duration: 8u32,
 			end_block: 8,
 			start_block: 0,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128,
 		};
 
-		assert_eq!(EstateModule::leases(0u32), Some(lease));
+		assert_eq!(EstateModule::leases(0u64), Some(lease));
 
-		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+		assert_eq!(EstateModule::leasors(ALICE, 0u64), Some(()));
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), None);
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
 		run_to_block(4);
 
-		assert_ok!(EstateModule::cancel_lease(Origin::root(), 0u32, ALICE));
+		assert_ok!(EstateModule::cancel_lease(Origin::root(), 0u64, ALICE));
 
 		assert_eq!(
 			last_event(),
 			Event::Estate(crate::Event::EstateLeaseContractCancelled(0))
 		);
 
-		assert_eq!(EstateModule::leases(0u32), None);
+		assert_eq!(EstateModule::leases(0u64), None);
 
-		assert_eq!(EstateModule::leasors(ALICE, 0u32), None);
+		assert_eq!(EstateModule::leasors(ALICE, 0u64), None);
 
 		assert_eq!(Balances::free_balance(ALICE), 99960);
 		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 1000040);
@@ -2513,14 +2513,14 @@ fn remove_expired_lease_should_fail() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
 
 		assert_ok!(EstateModule::accept_lease_offer(
 			Origin::signed(BENEFICIARY_ID),
-			0u32,
+			0u64,
 			ALICE
 		));
 
@@ -2543,7 +2543,7 @@ fn remove_expired_lease_should_work() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
@@ -2555,14 +2555,14 @@ fn remove_expired_lease_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128
 		};
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
 
 		assert_ok!(EstateModule::accept_lease_offer(
 			Origin::signed(BENEFICIARY_ID),
-			0u32,
+			0u64,
 			ALICE
 		));
 
@@ -2576,24 +2576,24 @@ fn remove_expired_lease_should_work() {
 			duration: 8u32,
 			end_block: 8,
 			start_block: 0,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128,
 		};
 
-		assert_eq!(EstateModule::leases(0u32), Some(lease));
+		assert_eq!(EstateModule::leases(0u64), Some(lease));
 
-		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+		assert_eq!(EstateModule::leasors(ALICE, 0u64), Some(()));
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), None);
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
 		run_to_block(9);
 
-		assert_ok!(EstateModule::remove_expired_lease(Origin::none(), 0u32, ALICE));
+		assert_ok!(EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE));
 
-		assert_eq!(EstateModule::leases(0u32), None);
+		assert_eq!(EstateModule::leases(0u64), None);
 
-		assert_eq!(EstateModule::leasors(ALICE, 0u32), None);
+		assert_eq!(EstateModule::leasors(ALICE, 0u64), None);
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 1000080);
@@ -2612,18 +2612,18 @@ fn remove_expired_lease_offer_should_fail() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
 
 		assert_noop!(
-			EstateModule::remove_expired_lease_offer(Origin::none(), 1u32, ALICE),
+			EstateModule::remove_expired_lease_offer(Origin::none(), 1u64, ALICE),
 			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
 
 		assert_noop!(
-			EstateModule::remove_expired_lease_offer(Origin::none(), 0u32, ALICE),
+			EstateModule::remove_expired_lease_offer(Origin::none(), 0u64, ALICE),
 			Error::<Runtime>::LeaseOfferIsNotExpired
 		);
 	});
@@ -2641,7 +2641,7 @@ fn remove_expired_lease_offer_should_work() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
@@ -2653,15 +2653,15 @@ fn remove_expired_lease_offer_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128
 		};
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
 
 		run_to_block(7);
 
-		assert_ok!(EstateModule::remove_expired_lease_offer(Origin::none(), 0u32, ALICE));
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+		assert_ok!(EstateModule::remove_expired_lease_offer(Origin::none(), 0u64, ALICE));
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), None);
 		assert_eq!(Balances::free_balance(ALICE), 100000);
 	});
 }
@@ -2670,37 +2670,37 @@ fn remove_expired_lease_offer_should_work() {
 fn collect_rent_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::mint_estate(
-			rigin::root(),
+			Origin::root(),
 			BENEFICIARY_ID,
 			METAVERSE_ID,
 			Ovec![COORDINATE_IN_1, COORDINATE_IN_2]
 		));
 
 		assert_noop!(
-			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32, ALICE),
+			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, ALICE),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
 
 		assert_noop!(
-			EstateModule::collect_rent(Origin::signed(ALICE), 0u32, BENEFICIARY_ID),
+			EstateModule::collect_rent(Origin::signed(ALICE), 0u64, BENEFICIARY_ID),
 			Error::<Runtime>::NoPermission
 		);
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
 
 		assert_noop!(
-			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32, BOB),
+			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u, BOB),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
 	});
@@ -2718,7 +2718,7 @@ fn collect_rent_should_work() {
 
 		assert_ok!(EstateModule::create_lease_offer(
 			Origin::signed(ALICE),
-			0u32
+			0u64,
 			10u128,
 			8u32
 		));
@@ -2730,14 +2730,14 @@ fn collect_rent_should_work() {
 			duration: 8u32,
 			end_block: 6,
 			start_block: 7,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128
 		};
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), Some(lease_contract));
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
 
 		assert_ok!(EstateModule::accept_lease_offer(
 			Origin::signed(BENEFICIARY_ID),
-			0u32,
+			0u64,
 			ALICE
 		));
 
@@ -2751,26 +2751,26 @@ fn collect_rent_should_work() {
 			duration: 8u32,
 			end_block: 8,
 			start_block: 0,
-			unclaimed_rent: 80u32,
+			unclaimed_rent: 80u128,
 		};
 
-		assert_eq!(EstateModule::leases(0u32), Some(lease));
+		assert_eq!(EstateModule::leases(0u64), Some(lease));
 
-		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+		assert_eq!(EstateModule::leasors(ALICE, 0u64), Some(()));
 
-		assert_eq!(EstateModule::lease_offers(0u32, ALICE), None);
+		assert_eq!(EstateModule::lease_offers(0u64, ALICE), None);
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
 		run_to_block(4);
 
-		assert_ok!(EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u32, ALICE));
+		assert_ok!(EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, ALICE));
 
 		assert_eq!(last_event(), Event::Estate(crate::Event::EstateRentCollected(0, 40)));
 
-		assert_eq!(EstateModule::leases(0u32), Some(lease));
+		assert_eq!(EstateModule::leases(0u64), Some(lease));
 
-		assert_eq!(EstateModule::leasors(ALICE, 0u32), Some());
+		assert_eq!(EstateModule::leasors(ALICE, 0u64), Some(()));
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 1000040);
