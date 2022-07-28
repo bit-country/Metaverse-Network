@@ -3,7 +3,10 @@
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::Currency;
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
-use pallet_evm::{AddressMapping, ExitSucceed, PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet};
+use pallet_evm::{
+	AddressMapping, ExitRevert, ExitSucceed, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult,
+	PrecompileSet,
+};
 use sp_core::{H160, U256};
 use sp_std::{marker::PhantomData, prelude::*};
 
@@ -29,6 +32,11 @@ pub enum Action {
 	Decimals = "decimals()",
 }
 
+/// Alias for the Balance type for the provided Runtime and Instance.
+pub type BalanceOf<Runtime> = <<Runtime as currencies::Config>::MultiSocialCurrency as MultiCurrencyTrait<
+	<Runtime as frame_system::Config>::AccountId,
+>>::Balance;
+
 /// The `MultiCurrency` impl precompile.
 ///
 ///
@@ -51,6 +59,7 @@ where
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
+	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		let address = handle.code_address();
@@ -74,9 +83,9 @@ where
 				match selector {
 					// Local and Foreign common
 					Action::TotalSupply => Self::total_supply(currency_id, handle),
-					Action::BalanceOf => Self::total_supply(currency_id, handle),
+					Action::BalanceOf => Self::balance_of(currency_id, handle),
 					Action::Allowance => Self::total_supply(currency_id, handle),
-					Action::Transfer => Self::total_supply(currency_id, handle),
+					Action::Transfer => Self::transfer(currency_id, handle),
 					Action::Approve => Self::total_supply(currency_id, handle),
 					Action::TransferFrom => Self::total_supply(currency_id, handle),
 					Action::Name => Self::total_supply(currency_id, handle),
@@ -104,6 +113,7 @@ where
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
+	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
 	fn total_supply(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
@@ -152,19 +162,27 @@ where
 		let mut input = handle.read_input()?;
 		input.expect_arguments(2)?;
 
-		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
-		// Fetch info
-		let balance = if currency_id == <Runtime as currencies::Config>::GetNativeCurrencyId::get() {
-			<Runtime as currencies::Config>::NativeCurrency::free_balance(&who)
-		} else {
-			<Runtime as currencies::Config>::MultiSocialCurrency::free_balance(currency_id, &who)
-		};
+		let to: H160 = input.read::<Address>()?.into();
+		let amount = input.read::<BalanceOf<Runtime>>()?;
 
-		log::debug!(target: "evm", "multicurrency: who: {:?} balance: {:?}", who ,balance);
+		// Build call info
+		let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
+		let to = Runtime::AddressMapping::into_account_id(to);
 
-		let encoded = Output::encode_uint(balance);
+		log::debug!(target: "evm", "multicurrency: transfer from: {:?}, to: {:?}, amount: {:?}", origin, to, amount);
+
+		<currencies::Pallet<Runtime> as MultiCurrencyTrait<Runtime::AccountId>>::transfer(
+			currency_id,
+			&origin,
+			&to,
+			amount.try_into().ok(),
+		)
+		.map_err(|e| PrecompileFailure::Revert {
+			exit_status: ExitRevert::Reverted,
+			output: Into::<&str>::into(e).as_bytes().to_vec(),
+		})?;
+
 		// Build output.
-		Ok(succeed(encoded))
+		Ok(succeed(EvmDataWriter::new().write(true).build()))
 	}
 }
