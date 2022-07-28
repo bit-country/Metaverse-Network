@@ -186,7 +186,7 @@ impl Estate<u128> for EstateHandler {
 		Ok(false)
 	}
 
-	fn is_estate_leasor(leasor: T::AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
