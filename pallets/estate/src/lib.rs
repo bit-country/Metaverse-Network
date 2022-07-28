@@ -1447,8 +1447,8 @@ pub mod pallet {
 					);
 
 					let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-					let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
-					let rent_claim_amount = lease.unclaimed_rent;
+					let rent_period: u32 = <frame_system::Pallet<T>>::block_number() as u32 - lease.start_block as u32;
+					let rent_claim_amount = lease.price_per_block * rent_period.into() - total_rent + lease.unclaimed_rent;
 
 					T::Currency::unreserve(&leasor, rent_claim_amount);
 					T::Currency::transfer(&leasor, &who, rent_claim_amount.into(), ExistenceRequirement::KeepAlive);
