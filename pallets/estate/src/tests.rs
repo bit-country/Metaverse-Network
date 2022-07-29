@@ -2599,6 +2599,11 @@ fn remove_expired_lease_should_work() {
 
 		assert_ok!(EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE));
 
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateLeaseContractEnded(0u64))
+		);
+
 		assert_eq!(EstateModule::leases(0u64), None);
 
 		assert_eq!(EstateModule::leasors(ALICE, 0u64), None);
@@ -2669,6 +2674,12 @@ fn remove_expired_lease_offer_should_work() {
 		run_to_block(7);
 
 		assert_ok!(EstateModule::remove_expired_lease_offer(Origin::none(), 0u64, ALICE));
+
+		assert_eq!(
+			last_event(),
+			Event::Estate(crate::Event::EstateLeaseOfferExpired(ALICE, 0u64))
+		);
+
 		assert_eq!(EstateModule::lease_offers(0u64, ALICE), None);
 		assert_eq!(Balances::free_balance(ALICE), 100000);
 	});

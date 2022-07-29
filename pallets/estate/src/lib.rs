@@ -1338,7 +1338,7 @@ pub mod pallet {
 			ensure_root(origin)?;
 			let lease = Self::leases(estate_id).ok_or(Error::<T>::LeaseDoesNotExist)?;
 			ensure!(
-				EstateLeaseOffers::<T>::contains_key(estate_id, leasor.clone()),
+				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
 			EstateLeasors::<T>::remove(leasor.clone(), estate_id);
@@ -1346,10 +1346,11 @@ pub mod pallet {
 
 			let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
 			let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
-			let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period) - total_rent
-				+ lease.unclaimed_rent;
+			let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
+				+ lease.unclaimed_rent
+				- total_rent;
 
-			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
 					let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id))?;
@@ -1382,16 +1383,16 @@ pub mod pallet {
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_none(origin)?;
-			let lease = Self::leases(estate_id).ok_or(Error::<T>::LeaseDoesNotExist).unwrap();
-			ensure!(
-				lease.end_block == <frame_system::Pallet<T>>::block_number(),
-				Error::<T>::LeaseIsNotExpired
-			);
+			let lease = Self::leases(estate_id).ok_or(Error::<T>::LeaseDoesNotExist)?;
 			ensure!(
 				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
-			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+			ensure!(
+				lease.end_block >= <frame_system::Pallet<T>>::block_number(),
+				Error::<T>::LeaseIsNotExpired
+			);
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
 					let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id))?;
@@ -1431,7 +1432,7 @@ pub mod pallet {
 			let lease_offer =
 				Self::lease_offers(estate_id, leasor.clone()).ok_or(Error::<T>::LeaseOfferDoesNotExist)?;
 			ensure!(
-				lease_offer.end_block == <frame_system::Pallet<T>>::block_number(),
+				lease_offer.end_block >= <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::LeaseOfferIsNotExpired
 			);
 			EstateLeaseOffers::<T>::remove(estate_id, leasor.clone());
@@ -1470,7 +1471,7 @@ pub mod pallet {
 					let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
 					let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
 					let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
-						- total_rent + lease.unclaimed_rent;
+						+ lease.unclaimed_rent - total_rent;
 
 					T::Currency::unreserve(&leasor, rent_claim_amount);
 					T::Currency::transfer(&leasor, &who, rent_claim_amount.into(), ExistenceRequirement::KeepAlive);
