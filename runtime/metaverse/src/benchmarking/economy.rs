@@ -67,7 +67,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 	}: _(RawOrigin::Root, BENEFICIARY_NFT, 123)
 	verify {
-		let account_id: AccountId = EconomyTreasury::get().into_sub_account(BENEFICIARY_NFT);
+		let account_id: AccountId = EconomyTreasury::get().into_sub_account_truncating(BENEFICIARY_NFT);
 
 		let new_balance = Economy::get_power_balance(account_id);
 		assert_eq!(new_balance, 123);

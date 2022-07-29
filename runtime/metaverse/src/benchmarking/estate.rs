@@ -1,7 +1,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use frame_benchmarking::{account, whitelisted_caller};
-use frame_support::traits::{Currency, Get, OnInitialize};
+use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
 use sp_runtime::traits::{AccountIdConversion, Lookup, StaticLookup, UniqueSaturatedInto};
@@ -450,7 +450,7 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
-		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), target.clone());
+		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(5);
 	}: _(RawOrigin::Root, 0u32.into(), target.clone())
 
@@ -469,7 +469,7 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
-		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), target.clone());
+		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(102);
 	}: _(RawOrigin::None, 0u32.into(), target.clone())
 
@@ -506,7 +506,7 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
-		Estate:accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), target.clone());
+		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(10);
 	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
 

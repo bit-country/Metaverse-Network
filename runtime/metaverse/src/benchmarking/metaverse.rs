@@ -131,58 +131,6 @@ runtime_benchmarks! {
 		assert_eq!(Metaverse::get_metaverse(0), None);
 	}
 
-	register_metaverse{
-		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		let target: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &target, dollar(10));
-
-		create_land_and_estate_group();
-		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
-	}: _(RawOrigin::Signed(caller.clone()), 0)
-	verify {
-		let metaverse = Metaverse::get_registered_metaverse(0);
-		match metaverse {
-			Some(a) => {
-				assert_eq!(1, 1);
-			}
-			_ => {
-				// Should fail test
-				assert_eq!(0, 1);
-			}
-		}
-	}
-
-	stake{
-		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		let target: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &target, dollar(10));
-
-		create_land_and_estate_group();
-		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
-		Metaverse::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
-	}: _(RawOrigin::Signed(caller.clone()), 0, dollar(2))
-	verify {
-		let staking_info = Metaverse::staking_info(caller);
-		assert_eq!(staking_info, dollar(2));
-	}
-
-	unstake_and_withdraw{
-		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		let target: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &target, dollar(10));
-		create_land_and_estate_group();
-		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
-		Metaverse::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
-		Metaverse::stake(RawOrigin::Signed(caller.clone()).into(), 0, dollar(2));
-	}: _(RawOrigin::Signed(caller.clone()), 0, 1u32.into())
-	verify {
-		let staking_info = Metaverse::staking_info(caller);
-		assert_eq!(staking_info, 1999999999999999999);
-	}
-
 	update_metaverse_listing_fee {
 		let caller: AccountId = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(10));
