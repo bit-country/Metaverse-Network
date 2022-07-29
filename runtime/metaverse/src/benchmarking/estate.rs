@@ -415,7 +415,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &target, dollar(10));
 
 		create_land_and_estate_group();
-		Metaverse::create_metaverse(c.into(), vec![1u8]);
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 	}: _(RawOrigin::Signed(target.clone()), 0u32.into(), 10u32.into(), 100u32)
 

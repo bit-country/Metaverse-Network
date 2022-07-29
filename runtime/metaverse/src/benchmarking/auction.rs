@@ -1,5 +1,5 @@
 #![cfg(feature = "runtime-benchmarks")]
-use super::utils::{create_metaverse_for_account, create_nft_group, dollar, mint_NFT, set_balance, test_attributes};
+use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, test_attributes};
 use crate::{Auction, Balances, Call, Currencies, Event, Metaverse, MinimumAuctionDuration, Nft, Runtime, System};
 use auction::Config;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
