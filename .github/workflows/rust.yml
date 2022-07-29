@@ -38,7 +38,7 @@ jobs:
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release --features with-pioneer-runtime,with-metaverse-runtime
-      s- name: Build Benchmarking
+      - name: Build Benchmarking
         run: |
           cargo build --release --features runtime-benchmarks
       - name: Run all test cases
