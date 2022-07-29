@@ -2360,14 +2360,14 @@ fn accept_estate_lease_offer_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 8))
+			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 9))
 		);
 
 		let lease = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 8,
-			start_block: 0,
+			end_block: 9,
+			start_block: 1,
 			unclaimed_rent: 80u128,
 		};
 
@@ -2466,14 +2466,14 @@ fn cancel_lease_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 8))
+			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 9))
 		);
 
 		let lease = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 8,
-			start_block: 0,
+			end_block: 9,
+			start_block: 1,
 			unclaimed_rent: 80u128,
 		};
 
@@ -2576,14 +2576,14 @@ fn remove_expired_lease_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 8))
+			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 9))
 		);
 
 		let lease = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 8,
-			start_block: 0,
+			end_block: 9,
+			start_block: 1,
 			unclaimed_rent: 80u128,
 		};
 
@@ -2751,14 +2751,14 @@ fn collect_rent_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 8))
+			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 9))
 		);
 
 		let lease = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 8,
-			start_block: 0,
+			end_block: 9,
+			start_block: 1,
 			unclaimed_rent: 80u128,
 		};
 
