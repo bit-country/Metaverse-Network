@@ -1406,13 +1406,11 @@ pub mod pallet {
 					EstateLeasors::<T>::remove(leasor, estate_id);
 					EstateLeases::<T>::remove(estate_id);
 
-					Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
+					Self::deposit_event(Event::<T>::EstateLeaseContractEnded(estate_id));
 					Ok(().into())
 				}
 				_ => Err(Error::<T>::InvalidOwnerValue.into()),
 			}
-			Self::deposit_event(Event::<T>::EstateLeaseContractEnded(estate_id));
-			Ok(().into())
 		}
 
 		/// Removes expired lease offer
