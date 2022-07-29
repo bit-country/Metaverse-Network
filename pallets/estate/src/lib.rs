@@ -1336,7 +1336,7 @@ pub mod pallet {
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-			let lease = Self::leases(estate_id).ok_or(Error::<T>::LeaseDoesNotExist).unwrap();
+			let lease = Self::leases(estate_id).ok_or(Error::<T>::LeaseDoesNotExist)?;
 			ensure!(
 				EstateLeaseOffers::<T>::contains_key(estate_id, leasor.clone()),
 				Error::<T>::LeaseDoesNotExist
@@ -1345,9 +1345,9 @@ pub mod pallet {
 			EstateLeases::<T>::remove(estate_id);
 
 			let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-			let rent_period =
-				T::BlockNumberToBalance::convert(<frame_system::Pallet<T>>::block_number() - lease.start_block);
-			let rent_claim_amount = lease.price_per_block * rent_period.into() - total_rent + lease.unclaimed_rent;
+			let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+			let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period) - total_rent
+				+ lease.unclaimed_rent;
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
 			match estate_owner_value {
@@ -1391,8 +1391,26 @@ pub mod pallet {
 				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
-			EstateLeasors::<T>::remove(leasor, estate_id);
-			EstateLeases::<T>::remove(estate_id);
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+			match estate_owner_value {
+				OwnerId::Token(class_id, token_id) => {
+					let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id))?;
+					T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
+					T::Currency::transfer(
+						&leasor,
+						&estate_owner,
+						lease.unclaimed_rent.into(),
+						ExistenceRequirement::KeepAlive,
+					);
+
+					EstateLeasors::<T>::remove(leasor, estate_id);
+					EstateLeases::<T>::remove(estate_id);
+
+					Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
+					Ok(().into())
+				}
+				_ => Err(Error::<T>::InvalidOwnerValue.into()),
+			}
 			Self::deposit_event(Event::<T>::EstateLeaseContractEnded(estate_id));
 			Ok(().into())
 		}
@@ -1452,10 +1470,9 @@ pub mod pallet {
 					);
 
 					let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-					let rent_period =
-						T::BlockNumberToBalance::convert(<frame_system::Pallet<T>>::block_number() - lease.start_block);
-					let rent_claim_amount =
-						lease.price_per_block * rent_period.into() - total_rent + lease.unclaimed_rent;
+					let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+					let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
+						- total_rent + lease.unclaimed_rent;
 
 					T::Currency::unreserve(&leasor, rent_claim_amount);
 					T::Currency::transfer(&leasor, &who, rent_claim_amount.into(), ExistenceRequirement::KeepAlive);
