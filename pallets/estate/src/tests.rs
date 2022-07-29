@@ -2236,14 +2236,14 @@ fn create_estate_lease_offer_should_work() {
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateLeaseOfferCreated(ALICE, 0, 10))
+			Event::Estate(crate::Event::EstateLeaseOfferCreated(ALICE, 0, 80))
 		);
 
 		let lease_contract = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 6,
-			start_block: 7,
+			end_block: 7,
+			start_block: 8,
 			unclaimed_rent: 80u128,
 		};
 
@@ -2275,8 +2275,51 @@ fn accept_estate_lease_offer_should_fail() {
 			EstateModule::accept_lease_offer(Origin::signed(ALICE), 0u64, BOB),
 			Error::<Runtime>::NoPermission
 		);
-		todo!()
 		//TO DO: Offer cannot be accepted after asset is listed on auction
+
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_2]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(BOB),
+			1u64,
+			10u128,
+			8u32
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			1u64,
+			10u128,
+			8u32
+		));
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			1u64,
+			ALICE
+		));
+
+		assert_noop!(
+			EstateModule::accept_lease_offer(Origin::signed(BENEFICIARY_ID), 1u64, BOB),
+			Error::<Runtime>::EstateIsAlreadyLeased
+		);
+
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_3]
+		));
+
+		assert_noop!(
+			EstateModule::accept_lease_offer(Origin::signed(BENEFICIARY_ID), 2u64, BOB),
+			Error::<Runtime>:::LeaseOfferDoesNotExist
+		);
 	});
 }
 
@@ -2302,8 +2345,8 @@ fn accept_estate_lease_offer_should_work() {
 		let lease_contract = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 6,
-			start_block: 7,
+			end_block: 7,
+			start_block: 8,
 			unclaimed_rent: 80u128,
 		};
 
@@ -2408,8 +2451,8 @@ fn cancel_lease_should_work() {
 		let lease_contract = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 6,
-			start_block: 7,
+			end_block: 7,
+			start_block: 8,
 			unclaimed_rent: 80u128,
 		};
 
@@ -2518,8 +2561,8 @@ fn remove_expired_lease_should_work() {
 		let lease_contract = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 6,
-			start_block: 7,
+			end_block: 7,
+			start_block: 8,
 			unclaimed_rent: 80u128,
 		};
 
@@ -2616,8 +2659,8 @@ fn remove_expired_lease_offer_should_work() {
 		let lease_contract = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 6,
-			start_block: 7,
+			end_block: 7,
+			start_block: 8,
 			unclaimed_rent: 80u128,
 		};
 
@@ -2693,8 +2736,8 @@ fn collect_rent_should_work() {
 		let lease_contract = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
-			end_block: 6,
-			start_block: 7,
+			end_block: 7,
+			start_block: 8,
 			unclaimed_rent: 80u128,
 		};
 

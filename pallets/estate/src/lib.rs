@@ -1213,8 +1213,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
-			ensure!(Estates::<T>::get(estate_id).is_some(), Error::<T>::EstateDoesNotExist);
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
 				!EstateLeases::<T>::contains_key(estate_id),
 				Error::<T>::EstateIsAlreadyLeased
@@ -1288,7 +1287,7 @@ pub mod pallet {
 				Error::<T>::EstateIsAlreadyLeased
 			);
 
-			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
+			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
 					ensure!(
