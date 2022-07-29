@@ -136,7 +136,6 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
-		Metaverse::register_metaverse(RawOrigin::Signed(caller.clone()).into(), 0);
 	}: _(RawOrigin::Signed(caller.clone()), 0, Perbill::from_percent(1u32))
 	verify {
 		let metaverse_info = Metaverse::get_metaverse(0);
