@@ -19,7 +19,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set-Up
         run: sudo apt install -y cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
@@ -38,9 +38,10 @@ jobs:
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release --features with-pioneer-runtime,with-metaverse-runtime
+      s- name: Build Benchmarking
+        run: |
+          cargo build --release --features runtime-benchmarks
       - name: Run all test cases
         run: |
           SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime
-      - name: Build Benchmarking
-        run: |
-          cargo build --release --features runtime-benchmarks
+
