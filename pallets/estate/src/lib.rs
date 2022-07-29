@@ -1299,8 +1299,8 @@ pub mod pallet {
 						Error::<T>::NoPermission
 					);
 
-					let mut lease = Self::lease_offers(estate_id, recipient.clone())
-						.ok_or(Error::<T>::LeaseOfferDoesNotExist)?;
+					let mut lease =
+						Self::lease_offers(estate_id, recipient.clone()).ok_or(Error::<T>::LeaseOfferDoesNotExist)?;
 
 					lease.start_block = <frame_system::Pallet<T>>::block_number();
 					lease.end_block = lease.start_block + lease.duration.into();
@@ -1412,8 +1412,8 @@ pub mod pallet {
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			ensure_none(origin)?;
-			let lease_offer = Self::lease_offers(estate_id, leasor.clone())
-				.ok_or(Error::<T>::LeaseOfferDoesNotExist)?;
+			let lease_offer =
+				Self::lease_offers(estate_id, leasor.clone()).ok_or(Error::<T>::LeaseOfferDoesNotExist)?;
 			ensure!(
 				lease_offer.end_block == <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::LeaseOfferIsNotExpired
