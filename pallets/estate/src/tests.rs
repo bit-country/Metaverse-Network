@@ -2318,7 +2318,7 @@ fn accept_estate_lease_offer_should_fail() {
 
 		assert_noop!(
 			EstateModule::accept_lease_offer(Origin::signed(BENEFICIARY_ID), 2u64, BOB),
-			Error::<Runtime>:::LeaseOfferDoesNotExist
+			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
 	});
 }
