@@ -32,16 +32,16 @@ jobs:
           rustup default nightly-2022-02-19
           rustup target add wasm32-unknown-unknown --toolchain nightly-2022-02-19
       - name: Check Rust version
-        run: rustup show
-      - name: Build Benchmarking
-        run: |
-          cargo build --release --features runtime-benchmarks
+        run: rustup show      
+      - name: Check Format
+        run: cargo fmt --all -- --check
       - name: Run all test cases
         run: |
           SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime
-      - name: Check Format
-        run: cargo fmt --all -- --check
       - name: Check Build
         run: |
           SKIP_WASM_BUILD=1 cargo check --release --features with-pioneer-runtime,with-metaverse-runtime
+      - name: Build Benchmarking
+        run: |
+          cargo build --release --features runtime-benchmarks
 
