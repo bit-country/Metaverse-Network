@@ -1478,7 +1478,7 @@ pub mod pallet {
 						&leasor,
 						&who,
 						rent_claim_amount.into(),
-						ExistenceRequirement::KeepAlive
+						ExistenceRequirement::KeepAlive,
 					)?;
 					Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
 					Ok(().into())
