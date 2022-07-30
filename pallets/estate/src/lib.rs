@@ -1355,12 +1355,12 @@ pub mod pallet {
 				OwnerId::Token(class_id, token_id) => {
 					let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id))?;
 					T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
-					T::Currency::transfer(
+					<T as Config>::Currency::transfer(
 						&leasor,
 						&estate_owner,
 						rent_claim_amount,
 						ExistenceRequirement::KeepAlive,
-					);
+					)?;
 					Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
 					Ok(().into())
 				}
@@ -1397,12 +1397,12 @@ pub mod pallet {
 				OwnerId::Token(class_id, token_id) => {
 					let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id))?;
 					T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
-					T::Currency::transfer(
+					<T as Config>::Currency::transfer(
 						&leasor,
 						&estate_owner,
 						lease.unclaimed_rent.into(),
 						ExistenceRequirement::KeepAlive,
-					);
+					)?;
 
 					EstateLeasors::<T>::remove(leasor, estate_id);
 					EstateLeases::<T>::remove(estate_id);
@@ -1474,7 +1474,7 @@ pub mod pallet {
 						+ lease.unclaimed_rent - total_rent;
 
 					T::Currency::unreserve(&leasor, rent_claim_amount);
-					T::Currency::transfer(&leasor, &who, rent_claim_amount.into(), ExistenceRequirement::KeepAlive);
+					<T as Config>::Currency::transfer(&leasor, &who, rent_claim_amount.into(), ExistenceRequirement::KeepAlive)?;
 					Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
 					Ok(().into())
 				}

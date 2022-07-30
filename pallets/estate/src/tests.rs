@@ -2485,7 +2485,7 @@ fn cancel_lease_should_work() {
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
-		run_to_block(4);
+		run_to_block(5);
 
 		assert_ok!(EstateModule::cancel_lease(Origin::root(), 0u64, ALICE));
 
@@ -2531,6 +2531,8 @@ fn remove_expired_lease_should_fail() {
 			0u64,
 			ALICE
 		));
+		
+		run_to_block(3);
 
 		assert_noop!(
 			EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE),
@@ -2634,6 +2636,8 @@ fn remove_expired_lease_offer_should_fail() {
 			EstateModule::remove_expired_lease_offer(Origin::none(), 1u64, ALICE),
 			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
+		
+		run_to_block(2);
 
 		assert_noop!(
 			EstateModule::remove_expired_lease_offer(Origin::none(), 0u64, ALICE),
@@ -2785,13 +2789,13 @@ fn collect_rent_should_work() {
 
 		assert_ok!(EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, ALICE));
 
-		assert_eq!(last_event(), Event::Estate(crate::Event::EstateRentCollected(0, 40)));
+		assert_eq!(last_event(), Event::Estate(crate::Event::EstateRentCollected(0, 30)));
 
 		assert_eq!(EstateModule::leases(0u64), Some(lease));
 
 		assert_eq!(EstateModule::leasors(ALICE, 0u64), Some(()));
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
-		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 1000040);
+		assert_eq!(Balances::free_balance(BENEFICIARY_ID), 1000030);
 	});
 }
