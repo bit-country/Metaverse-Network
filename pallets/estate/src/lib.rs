@@ -1474,7 +1474,12 @@ pub mod pallet {
 						+ lease.unclaimed_rent - total_rent;
 
 					T::Currency::unreserve(&leasor, rent_claim_amount);
-					<T as Config>::Currency::transfer(&leasor, &who, rent_claim_amount.into(), ExistenceRequirement::KeepAlive)?;
+					<T as Config>::Currency::transfer(
+						&leasor,
+						&who,
+						rent_claim_amount.into(),
+						ExistenceRequirement::KeepAlive
+					)?;
 					Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
 					Ok(().into())
 				}

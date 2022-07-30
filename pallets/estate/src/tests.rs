@@ -2531,7 +2531,7 @@ fn remove_expired_lease_should_fail() {
 			0u64,
 			ALICE
 		));
-		
+
 		run_to_block(3);
 
 		assert_noop!(
@@ -2636,7 +2636,6 @@ fn remove_expired_lease_offer_should_fail() {
 			EstateModule::remove_expired_lease_offer(Origin::none(), 1u64, ALICE),
 			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
-		
 		run_to_block(2);
 
 		assert_noop!(
