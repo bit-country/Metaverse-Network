@@ -2597,7 +2597,7 @@ fn remove_expired_lease_should_work() {
 
 		assert_eq!(Balances::free_balance(ALICE), 99920);
 
-		run_to_block(9);
+		run_to_block(10);
 
 		assert_ok!(EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE));
 
@@ -2622,7 +2622,14 @@ fn remove_expired_lease_offer_should_fail() {
 			Origin::root(),
 			BENEFICIARY_ID,
 			METAVERSE_ID,
-			vec![COORDINATE_IN_1, COORDINATE_IN_2]
+			vec![COORDINATE_IN_1]
+		));
+
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_2]
 		));
 
 		assert_ok!(EstateModule::create_lease_offer(
@@ -2768,7 +2775,7 @@ fn collect_rent_should_work() {
 			Event::Estate(crate::Event::EstateLeaseOfferAccepted(0, ALICE, 9))
 		);
 
-		let lease = LeaseContract {
+		let mut lease = LeaseContract {
 			price_per_block: 10u128,
 			duration: 8u32,
 			end_block: 9,
@@ -2789,6 +2796,8 @@ fn collect_rent_should_work() {
 		assert_ok!(EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, ALICE));
 
 		assert_eq!(last_event(), Event::Estate(crate::Event::EstateRentCollected(0, 30)));
+		
+		lease.unclaimed_rent = 50u128;
 
 		assert_eq!(EstateModule::leases(0u64), Some(lease));
 

@@ -1460,31 +1460,31 @@ pub mod pallet {
 				Self::check_estate_ownership(who.clone(), estate_id)?,
 				Error::<T>::NoPermission
 			);
-			let lease_offer_value = Self::leases(estate_id);
-			match lease_offer_value {
-				Some(lease) => {
-					ensure!(
-						EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
-						Error::<T>::LeaseDoesNotExist
-					);
+			ensure!(
+				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
+				Error::<T>::LeaseDoesNotExist
+			);
+			EstateLeases::try_mutate_exist(&estate |estate_lease_value| {
+				let lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
 
-					let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-					let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
-					let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
-						+ lease.unclaimed_rent - total_rent;
+				let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
+				let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+				let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
+					+ lease.unclaimed_rent - total_rent;
 
-					T::Currency::unreserve(&leasor, rent_claim_amount);
-					<T as Config>::Currency::transfer(
-						&leasor,
-						&who,
-						rent_claim_amount.into(),
-						ExistenceRequirement::KeepAlive,
-					)?;
-					Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
-					Ok(().into())
-				}
-				None => Err(Error::<T>::LeaseDoesNotExist.into()),
-			}
+				T::Currency::unreserve(&leasor, rent_claim_amount);
+				<T as Config>::Currency::transfer(
+					&leasor,
+					&who,
+					rent_claim_amount.into(),
+					ExistenceRequirement::KeepAlive,
+				)?;
+
+				lease.unclaimed_rent -= rent_claim_amount;
+
+				Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
+				Ok(().into())
+			})
 		}
 	}
 }
