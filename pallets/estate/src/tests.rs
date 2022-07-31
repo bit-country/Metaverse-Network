@@ -2183,6 +2183,11 @@ fn create_estate_lease_offer_should_fail() {
 		));
 
 		assert_noop!(
+			EstateModule::create_lease_offer(Origin::signed(ALICE), 0u64, 2u128, 7u32),
+			Error::<Runtime>::LeaseOfferAlreadyExists
+		);
+
+		assert_noop!(
 			EstateModule::create_lease_offer(Origin::signed(CHARLIE), 0u64, 12u128, 8u32),
 			Error::<Runtime>::EstateLeaseOffersQueueLimitIsReached
 		);
@@ -2426,6 +2431,13 @@ fn cancel_lease_should_fail() {
 			EstateModule::cancel_lease(Origin::root(), 0u64, BOB),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
+
+		run_to_block(22);
+
+		assert_noop!(
+			EstateModule::cancel_lease(Origin::root(), 1u64, ALICE),
+			Error::<Runtime>::LeaseIsExpired
+		);
 	});
 }
 
@@ -2515,7 +2527,7 @@ fn remove_expired_lease_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE),
+			EstateModule::remove_expired_lease(Origin::signed(BENEFICIARY_ID), 0u64, ALICE),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
 
@@ -2535,8 +2547,15 @@ fn remove_expired_lease_should_fail() {
 		run_to_block(3);
 
 		assert_noop!(
-			EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE),
+			EstateModule::remove_expired_lease(Origin::signed(BENEFICIARY_ID), 0u64, ALICE),
 			Error::<Runtime>::LeaseIsNotExpired
+		);
+
+		run_to_block(22);
+
+		assert_noop!(
+			EstateModule::remove_expired_lease(Origin::signed(BOB), 0u64, ALICE),
+			Error::<Runtime>::NoPermission
 		);
 	});
 }
@@ -2599,7 +2618,11 @@ fn remove_expired_lease_should_work() {
 
 		run_to_block(10);
 
-		assert_ok!(EstateModule::remove_expired_lease(Origin::none(), 0u64, ALICE));
+		assert_ok!(EstateModule::remove_expired_lease(
+			Origin::signed(BENEFICIARY_ID),
+			0u64,
+			ALICE
+		));
 
 		assert_eq!(
 			last_event(),
@@ -2616,7 +2639,7 @@ fn remove_expired_lease_should_work() {
 }
 
 #[test]
-fn remove_expired_lease_offer_should_fail() {
+fn remove_lease_offer_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
@@ -2640,20 +2663,19 @@ fn remove_expired_lease_offer_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::remove_expired_lease_offer(Origin::none(), 1u64, ALICE),
+			assert_ok!(EstateModule::remove_lease_offer(Origin::signed(BOB), 0u64));,
 			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
-		run_to_block(2);
 
 		assert_noop!(
-			EstateModule::remove_expired_lease_offer(Origin::none(), 0u64, ALICE),
-			Error::<Runtime>::LeaseOfferIsNotExpired
+			assert_ok!(EstateModule::remove_lease_offer(Origin::signed(ALICE), 1u64));,
+			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
 	});
 }
 
 #[test]
-fn remove_expired_lease_offer_should_work() {
+fn remove_lease_offer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
@@ -2681,13 +2703,11 @@ fn remove_expired_lease_offer_should_work() {
 
 		assert_eq!(EstateModule::lease_offers(0u64, ALICE), Some(lease_contract));
 
-		run_to_block(7);
-
-		assert_ok!(EstateModule::remove_expired_lease_offer(Origin::none(), 0u64, ALICE));
+		assert_ok!(EstateModule::remove_lease_offer(Origin::signed(ALICE), 0u64));
 
 		assert_eq!(
 			last_event(),
-			Event::Estate(crate::Event::EstateLeaseOfferExpired(ALICE, 0u64))
+			Event::Estate(crate::Event::EstateLeaseOfferRemoved(ALICE, 0u64))
 		);
 
 		assert_eq!(EstateModule::lease_offers(0u64, ALICE), None);
@@ -2721,16 +2741,23 @@ fn collect_rent_should_fail() {
 			10u128,
 			8u32
 		));
-		assert_ok!(EstateModule::create_lease_offer(
-			Origin::signed(ALICE),
-			0u64,
-			10u128,
-			8u32
-		));
 
 		assert_noop!(
 			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, BOB),
 			Error::<Runtime>::LeaseDoesNotExist
+		);
+
+		assert_ok!(EstateModule::accept_lease_offer(
+			Origin::signed(BENEFICIARY_ID),
+			0u64,
+			ALICE
+		));
+
+		run_to_block(22);
+
+		assert_noop!(
+			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, BOB),
+			Error::<Runtime>::LeaseIsExpired
 		);
 	});
 }
@@ -2796,7 +2823,7 @@ fn collect_rent_should_work() {
 		assert_ok!(EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, ALICE));
 
 		assert_eq!(last_event(), Event::Estate(crate::Event::EstateRentCollected(0, 30)));
-		
+
 		lease.unclaimed_rent = 50u128;
 
 		assert_eq!(EstateModule::leases(0u64), Some(lease));

@@ -327,8 +327,8 @@ pub mod pallet {
 		EstateLeaseOfferCreated(T::AccountId, EstateId, BalanceOf<T>),
 		/// Estate lease offer is accepted [Estate Id, Leasor account Id, Lease End Block]
 		EstateLeaseOfferAccepted(EstateId, T::AccountId, T::BlockNumber),
-		/// Estate lease offer is expired [AccountId, Estate Id]
-		EstateLeaseOfferExpired(T::AccountId, EstateId),
+		/// Estate lease offer is removed [AccountId, Estate Id]
+		EstateLeaseOfferRemoved(T::AccountId, EstateId),
 		/// Estate lease contract ended [Estate Id]
 		EstateLeaseContractEnded(EstateId),
 		/// Estate lease contract was cancelled [Estate Id]
@@ -415,12 +415,16 @@ pub mod pallet {
 		LeaseOfferPriceBelowMinimum,
 		/// Lease offer does not exist
 		LeaseOfferDoesNotExist,
+		/// Lease offer already exists
+		LeaseOfferAlreadyExists,
 		/// Lease offer is not expired
 		LeaseOfferIsNotExpired,
 		/// Lease does not exist
 		LeaseDoesNotExist,
 		/// Lease is not expired
 		LeaseIsNotExpired,
+		/// Lease is expired
+		LeaseIsExpired,
 		/// Lease duration beyond max duration
 		LeaseOfferDurationAboveMaximum,
 		/// No unclaimed rent balance
@@ -1215,6 +1219,10 @@ pub mod pallet {
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
+				!EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
+				Error::<T>::LeaseOfferAlreadyExists
+			);
+			ensure!(
 				!EstateLeases::<T>::contains_key(estate_id),
 				Error::<T>::EstateIsAlreadyLeased
 			);
@@ -1227,7 +1235,7 @@ pub mod pallet {
 				Error::<T>::LeaseOfferDurationAboveMaximum
 			);
 			ensure!(
-				EstateLeaseOffers::<T>::iter_prefix(estate_id).collect::<Vec<_>>().len()
+				EstateLeaseOffers::<T>::iter_prefix(estate_id).count()
 					<= T::MaxOffersPerEstate::get().try_into().unwrap(),
 				Error::<T>::EstateLeaseOffersQueueLimitIsReached
 			);
@@ -1341,6 +1349,11 @@ pub mod pallet {
 				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
+			ensure!(
+				lease.end_block >= <frame_system::Pallet<T>>::block_number(),
+				Error::<T>::LeaseIsExpired
+			);
+
 			EstateLeasors::<T>::remove(leasor.clone(), estate_id);
 			EstateLeases::<T>::remove(estate_id);
 
@@ -1370,7 +1383,8 @@ pub mod pallet {
 
 		/// Removes expired lease
 		///
-		/// The dispatch origin for this call must be _None_.
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the estate owner can make this call.
 		/// - `estate_id`: the ID of the estate that will be leased
 		/// - `leasor`: the account that is leasing the estate
 		///
@@ -1382,7 +1396,7 @@ pub mod pallet {
 			estate_id: EstateId,
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
-			ensure_none(origin)?;
+			let who = ensure_signed(origin)?;
 			let lease = Self::leases(estate_id).ok_or(Error::<T>::LeaseDoesNotExist)?;
 			ensure!(
 				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
@@ -1395,11 +1409,15 @@ pub mod pallet {
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
-					let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id))?;
+					ensure!(
+						Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
+						Error::<T>::NoPermission
+					);
+
 					T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
 					<T as Config>::Currency::transfer(
 						&leasor,
-						&estate_owner,
+						&who,
 						lease.unclaimed_rent.into(),
 						ExistenceRequirement::KeepAlive,
 					)?;
@@ -1414,27 +1432,19 @@ pub mod pallet {
 			}
 		}
 
-		/// Removes expired lease offer
+		/// Removes lease offer
 		///
-		/// The dispatch origin for this call must be _None_.
+		/// The dispatch origin for this call must be _Singed_.
+		/// Only the account made the lease offer can make this call.
 		/// - `estate_id`: the ID of the estate that will be leased
-		/// - `offerer`: the account that is offering to lease the estate
 		///
-		/// Emits `EstateLeaseOfferExpired` if successful
+		/// Emits `EstateLeaseOfferRemoved` if successful
 		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
 		#[transactional]
-		pub fn remove_expired_lease_offer(
-			origin: OriginFor<T>,
-			estate_id: EstateId,
-			leasor: T::AccountId,
-		) -> DispatchResultWithPostInfo {
-			ensure_none(origin)?;
+		pub fn remove_lease_offer(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
+			let leasor = ensure_signed(origin)?;
 			let lease_offer =
 				Self::lease_offers(estate_id, leasor.clone()).ok_or(Error::<T>::LeaseOfferDoesNotExist)?;
-			ensure!(
-				lease_offer.end_block >= <frame_system::Pallet<T>>::block_number(),
-				Error::<T>::LeaseOfferIsNotExpired
-			);
 			EstateLeaseOffers::<T>::remove(estate_id, leasor.clone());
 			T::Currency::unreserve(&leasor, lease_offer.unclaimed_rent.into());
 			Self::deposit_event(Event::<T>::EstateLeaseOfferExpired(leasor, estate_id));
@@ -1464,27 +1474,34 @@ pub mod pallet {
 				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
-			EstateLeases::try_mutate_exist(&estate |estate_lease_value| {
-				let lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
+			EstateLeases::try_mutate_exist(
+				&estate | estate_lease_value | {
+					let lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
 
-				let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-				let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
-				let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
-					+ lease.unclaimed_rent - total_rent;
+					ensure!(
+						lease.end_block >= <frame_system::Pallet<T>>::block_number(),
+						Error::<T>::LeaseIsExpired
+					);
 
-				T::Currency::unreserve(&leasor, rent_claim_amount);
-				<T as Config>::Currency::transfer(
-					&leasor,
-					&who,
-					rent_claim_amount.into(),
-					ExistenceRequirement::KeepAlive,
-				)?;
+					let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
+					let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+					let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
+						+ lease.unclaimed_rent - total_rent;
 
-				lease.unclaimed_rent -= rent_claim_amount;
+					T::Currency::unreserve(&leasor, rent_claim_amount);
+					<T as Config>::Currency::transfer(
+						&leasor,
+						&who,
+						rent_claim_amount.into(),
+						ExistenceRequirement::KeepAlive,
+					)?;
 
-				Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
-				Ok(().into())
-			})
+					lease.unclaimed_rent -= rent_claim_amount;
+
+					Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
+					Ok(().into())
+				},
+			)
 		}
 	}
 }

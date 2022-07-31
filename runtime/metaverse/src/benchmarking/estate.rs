@@ -471,10 +471,10 @@ runtime_benchmarks! {
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
 		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(102);
-	}: _(RawOrigin::None, 0u32.into(), target.clone())
+	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
 
 	// remove lease offer
-	remove_expired_lease_offer {
+	remove_lease_offer {
 		System::set_block_number(1u32.into());
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
@@ -489,7 +489,7 @@ runtime_benchmarks! {
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
 		run_to_block(10002);
-	}: _(RawOrigin::None, 0u32.into(), target.clone())
+	}: _(RawOrigin::Signed(target.clone()), 0u32.into())
 
 	// collect rent
 	collect_rent{
