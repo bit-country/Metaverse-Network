@@ -1474,11 +1474,11 @@ pub mod pallet {
 				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
-			EstateLeases::<T>::try_mutate_exist(&estate_id, |estate_lease_value| {
+			EstateLeases::<T>::try_mutate_exists(&estate_id, |estate_lease_value| {
 				let mut lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
 
 				ensure!(
-					lease.end_block >= <frame_system::Pallet<T>>::block_number(),
+					lease.end_block >= <frame_system::Pallet<T as Config>>::block_number(),
 					Error::<T>::LeaseIsExpired
 				);
 
@@ -1488,7 +1488,7 @@ pub mod pallet {
 					+ lease.unclaimed_rent
 					- total_rent;
 
-				T::Currency::unreserve(&leasor, rent_claim_amount);
+				<T as Config>::Currency::unreserve(&leasor, rent_claim_amount);
 				<T as Config>::Currency::transfer(
 					&leasor,
 					&who,
