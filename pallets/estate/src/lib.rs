@@ -1219,7 +1219,7 @@ pub mod pallet {
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
-				!EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
+				!EstateLeasors::<T>::contains_key(who.clone(), estate_id),
 				Error::<T>::LeaseOfferAlreadyExists
 			);
 			ensure!(
@@ -1447,7 +1447,7 @@ pub mod pallet {
 				Self::lease_offers(estate_id, leasor.clone()).ok_or(Error::<T>::LeaseOfferDoesNotExist)?;
 			EstateLeaseOffers::<T>::remove(estate_id, leasor.clone());
 			T::Currency::unreserve(&leasor, lease_offer.unclaimed_rent.into());
-			Self::deposit_event(Event::<T>::EstateLeaseOfferExpired(leasor, estate_id));
+			Self::deposit_event(Event::<T>::EstateLeaseOfferRemoved(leasor, estate_id));
 			Ok(().into())
 		}
 
@@ -1474,34 +1474,33 @@ pub mod pallet {
 				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
-			EstateLeases::try_mutate_exist(
-				&estate | estate_lease_value | {
-					let mut lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
+			EstateLeases::<T>::try_mutate_exist(&estate_id, |estate_lease_value| {
+				let mut lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
 
-					ensure!(
-						lease.end_block >= <frame_system::Pallet<T>>::block_number(),
-						Error::<T>::LeaseIsExpired
-					);
+				ensure!(
+					lease.end_block >= <frame_system::Pallet<T>>::block_number(),
+					Error::<T>::LeaseIsExpired
+				);
 
-					let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
-					let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
-					let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
-						+ lease.unclaimed_rent - total_rent;
+				let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
+				let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
+				let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
+					+ lease.unclaimed_rent
+					- total_rent;
 
-					T::Currency::unreserve(&leasor, rent_claim_amount);
-					<T as Config>::Currency::transfer(
-						&leasor,
-						&who,
-						rent_claim_amount.into(),
-						ExistenceRequirement::KeepAlive,
-					)?;
+				T::Currency::unreserve(&leasor, rent_claim_amount);
+				<T as Config>::Currency::transfer(
+					&leasor,
+					&who,
+					rent_claim_amount.into(),
+					ExistenceRequirement::KeepAlive,
+				)?;
 
-					lease.unclaimed_rent -= rent_claim_amount;
+				lease.unclaimed_rent -= rent_claim_amount;
 
-					Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
-					Ok(().into())
-				},
-			)
+				Self::deposit_event(Event::<T>::EstateRentCollected(estate_id, rent_claim_amount.into()));
+				Ok(().into())
+			})
 		}
 	}
 }
