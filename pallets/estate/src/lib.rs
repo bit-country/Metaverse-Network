@@ -1350,7 +1350,7 @@ pub mod pallet {
 				Error::<T>::LeaseDoesNotExist
 			);
 			ensure!(
-				lease.end_block >= <frame_system::Pallet<T>>::block_number(),
+				lease.end_block < <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::LeaseIsExpired
 			);
 
@@ -1474,13 +1474,11 @@ pub mod pallet {
 				EstateLeasors::<T>::contains_key(leasor.clone(), estate_id),
 				Error::<T>::LeaseDoesNotExist
 			);
+			let current_block = <frame_system::Pallet<T>>::block_number();
 			EstateLeases::<T>::try_mutate_exists(&estate_id, |estate_lease_value| {
 				let mut lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
 
-				ensure!(
-					lease.end_block >= <frame_system::Pallet<T as Config>>::block_number(),
-					Error::<T>::LeaseIsExpired
-				);
+				ensure!(lease.end_block < current_block, Error::<T>::LeaseIsExpired);
 
 				let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
 				let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
