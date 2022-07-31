@@ -2435,7 +2435,7 @@ fn cancel_lease_should_fail() {
 		run_to_block(22);
 
 		assert_noop!(
-			EstateModule::cancel_lease(Origin::root(), 1u64, ALICE),
+			EstateModule::cancel_lease(Origin::root(), 0u64, ALICE),
 			Error::<Runtime>::LeaseIsExpired
 		);
 	});
