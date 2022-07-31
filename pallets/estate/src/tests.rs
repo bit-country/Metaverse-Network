@@ -2412,12 +2412,12 @@ fn cancel_lease_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::cancel_lease(Origin::signed(ALICE), 0u64, ALICE),
+			EstateModule::cancel_lease(Origin::signed(BOB), BENEFICIARY_ID, 0u64, ALICE),
 			BadOrigin
 		);
 
 		assert_noop!(
-			EstateModule::cancel_lease(Origin::root(), 1u64, ALICE),
+			EstateModule::cancel_lease(Origin::root(), BENEFICIARY_ID, 1u64, ALICE),
 			Error::<Runtime>::LeaseDoesNotExist
 		);
 
@@ -2428,14 +2428,18 @@ fn cancel_lease_should_fail() {
 		));
 
 		assert_noop!(
-			EstateModule::cancel_lease(Origin::root(), 0u64, BOB),
+			EstateModule::cancel_lease(Origin::root(), BENEFICIARY_ID, 0u64, BOB),
 			Error::<Runtime>::LeaseDoesNotExist
+		);
+		assert_noop!(
+			EstateModule::cancel_lease(Origin::root(), BOB, 0u64, ALICE),
+			Error::<Runtime>::NoPermission
 		);
 
 		run_to_block(22);
 
 		assert_noop!(
-			EstateModule::cancel_lease(Origin::root(), 0u64, ALICE),
+			EstateModule::cancel_lease(Origin::root(), BENEFICIARY_ID, 0u64, ALICE),
 			Error::<Runtime>::LeaseIsExpired
 		);
 	});
@@ -2499,7 +2503,7 @@ fn cancel_lease_should_work() {
 
 		run_to_block(5);
 
-		assert_ok!(EstateModule::cancel_lease(Origin::root(), 0u64, ALICE));
+		assert_ok!(EstateModule::cancel_lease(Origin::root(), BENEFICIARY_ID, 0u64, ALICE));
 
 		assert_eq!(
 			last_event(),

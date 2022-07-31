@@ -1340,6 +1340,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn cancel_lease(
 			origin: OriginFor<T>,
+			estate_owner: T::AccoountId,
 			estate_id: EstateId,
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
@@ -1363,7 +1364,11 @@ pub mod pallet {
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
-					let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id))?;
+					//let estate_owner = T::NFTTokenizationSource::get_asset_owner(&(class_id, token_id))?;
+					ensure!(
+						Self::check_if_land_or_estate_owner(&estate_owner, &estate_owner_value),
+						Error::<T>::NoPermission
+					);
 					T::Currency::unreserve(&leasor, lease.unclaimed_rent.into());
 					<T as Config>::Currency::transfer(
 						&leasor,

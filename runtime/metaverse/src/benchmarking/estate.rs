@@ -452,7 +452,7 @@ runtime_benchmarks! {
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
 		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(5);
-	}: _(RawOrigin::Root, 0u32.into(), target.clone())
+	}: _(RawOrigin::Root, caller.clone(), 0u32.into(), target.clone())
 
 	// remove lease
 	remove_expired_lease{
