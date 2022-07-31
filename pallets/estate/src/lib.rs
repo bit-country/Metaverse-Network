@@ -1219,7 +1219,7 @@ pub mod pallet {
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
-				!EstateLeaseOffers::<T>::contains_key(who.clone(), estate_id),
+				!EstateLeaseOffers::<T>::contains_key(estate_id, who.clone()),
 				Error::<T>::LeaseOfferAlreadyExists
 			);
 			ensure!(
