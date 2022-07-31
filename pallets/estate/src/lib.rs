@@ -1476,7 +1476,7 @@ pub mod pallet {
 			);
 			EstateLeases::try_mutate_exist(
 				&estate | estate_lease_value | {
-					let lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
+					let mut lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
 
 					ensure!(
 						lease.end_block >= <frame_system::Pallet<T>>::block_number(),
