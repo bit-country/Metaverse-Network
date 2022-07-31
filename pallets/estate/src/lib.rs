@@ -1340,7 +1340,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn cancel_lease(
 			origin: OriginFor<T>,
-			estate_owner: T::AccoountId,
+			estate_owner: T::AccountId,
 			estate_id: EstateId,
 			leasor: T::AccountId,
 		) -> DispatchResultWithPostInfo {
