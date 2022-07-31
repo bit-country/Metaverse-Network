@@ -31,6 +31,7 @@ pub type EstateId = u64;
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
 pub const CHARLIE: AccountId = 6;
+pub const DOM: AccountId = 6;
 pub const BENEFICIARY_ID: AccountId = 99;
 pub const AUCTION_BENEFICIARY_ID: AccountId = 100;
 pub const CLASS_FUND_ID: AccountId = 123;

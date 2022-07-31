@@ -1234,12 +1234,7 @@ pub mod pallet {
 				duration <= T::MaxLeasePeriod::get(),
 				Error::<T>::LeaseOfferDurationAboveMaximum
 			);
-			ensure!(
-				EstateLeaseOffers::<T>::iter_key_prefix(estate_id).count()
-					<= T::MaxOffersPerEstate::get().try_into().unwrap(),
-				Error::<T>::EstateLeaseOffersQueueLimitIsReached
-			);
-
+		
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
 					ensure!(
@@ -1249,6 +1244,12 @@ pub mod pallet {
 					ensure!(
 						!Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
 						Error::<T>::NoPermission
+					);
+
+					ensure!(
+						EstateLeaseOffers::<T>::iter_key_prefix(estate_id).count()
+							<= T::MaxOffersPerEstate::get().try_into().unwrap(),
+						Error::<T>::EstateLeaseOffersQueueLimitIsReached
 					);
 
 					let current_block_number = <frame_system::Pallet<T>>::block_number();

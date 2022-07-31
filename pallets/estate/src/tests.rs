@@ -2175,21 +2175,9 @@ fn create_estate_lease_offer_should_fail() {
 			8u32
 		));
 
-		assert_ok!(EstateModule::create_lease_offer(
-			Origin::signed(BOB),
-			0u64,
-			11u128,
-			8u32
-		));
-
 		assert_noop!(
 			EstateModule::create_lease_offer(Origin::signed(ALICE), 0u64, 2u128, 7u32),
 			Error::<Runtime>::LeaseOfferAlreadyExists
-		);
-
-		assert_noop!(
-			EstateModule::create_lease_offer(Origin::signed(CHARLIE), 0u64, 12u128, 8u32),
-			Error::<Runtime>::EstateLeaseOffersQueueLimitIsReached
 		);
 
 		assert_ok!(EstateModule::accept_lease_offer(
@@ -2218,6 +2206,39 @@ fn create_estate_lease_offer_should_fail() {
 		assert_noop!(
 			EstateModule::create_lease_offer(Origin::signed(BENEFICIARY_ID), 0u64, 10u128, 8u32),
 			Error::<Runtime>::NoPermission
+		);
+
+		assert_ok!(EstateModule::mint_estate(
+			Origin::root(),
+			AUCTION_BENEFICIARY_ID,
+			METAVERSE_ID,
+			vec![COORDINATE_IN_3]
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(BOB),
+			2u64,
+			12u128,
+			8u32
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(ALICE),
+			2u64,
+			13u128,
+			8u32
+		));
+
+		assert_ok!(EstateModule::create_lease_offer(
+			Origin::signed(CHARLIE),
+			2u64,
+			14u128,
+			8u32
+		));
+
+		assert_noop!(
+			EstateModule::create_lease_offer(Origin::signed(DOM), 2u64, 15u128, 8u32),
+			Error::<Runtime>::EstateLeaseOffersQueueLimitIsReached
 		);
 	});
 }
