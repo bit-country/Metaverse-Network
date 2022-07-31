@@ -2663,12 +2663,12 @@ fn remove_lease_offer_should_fail() {
 		));
 
 		assert_noop!(
-			assert_ok!(EstateModule::remove_lease_offer(Origin::signed(BOB), 0u64));,
+			assert_ok!(EstateModule::remove_lease_offer(Origin::signed(BOB), 0u64)),
 			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
 
 		assert_noop!(
-			assert_ok!(EstateModule::remove_lease_offer(Origin::signed(ALICE), 1u64));,
+			assert_ok!(EstateModule::remove_lease_offer(Origin::signed(ALICE), 1u64)),
 			Error::<Runtime>::LeaseOfferDoesNotExist
 		);
 	});
