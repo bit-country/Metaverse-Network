@@ -2756,7 +2756,7 @@ fn collect_rent_should_fail() {
 		run_to_block(22);
 
 		assert_noop!(
-			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, BOB),
+			EstateModule::collect_rent(Origin::signed(BENEFICIARY_ID), 0u64, ALICE),
 			Error::<Runtime>::LeaseIsExpired
 		);
 	});

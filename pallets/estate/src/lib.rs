@@ -1219,7 +1219,7 @@ pub mod pallet {
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
-				!EstateLeasors::<T>::contains_key(who.clone(), estate_id),
+				!EstateLeaseOffers::<T>::contains_key(who.clone(), estate_id),
 				Error::<T>::LeaseOfferAlreadyExists
 			);
 			ensure!(
@@ -1354,9 +1354,6 @@ pub mod pallet {
 				Error::<T>::LeaseIsExpired
 			);
 
-			EstateLeasors::<T>::remove(leasor.clone(), estate_id);
-			EstateLeases::<T>::remove(estate_id);
-
 			let total_rent: BalanceOf<T> = lease.price_per_block * lease.duration.into();
 			let rent_period = <frame_system::Pallet<T>>::block_number() - lease.start_block;
 			let rent_claim_amount = lease.price_per_block * T::BlockNumberToBalance::convert(rent_period)
@@ -1374,6 +1371,10 @@ pub mod pallet {
 						rent_claim_amount,
 						ExistenceRequirement::KeepAlive,
 					)?;
+
+					EstateLeasors::<T>::remove(leasor.clone(), estate_id);
+					EstateLeases::<T>::remove(estate_id);
+
 					Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
 					Ok(().into())
 				}
