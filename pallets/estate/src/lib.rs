@@ -1234,7 +1234,7 @@ pub mod pallet {
 				duration <= T::MaxLeasePeriod::get(),
 				Error::<T>::LeaseOfferDurationAboveMaximum
 			);
-		
+
 			match estate_owner_value {
 				OwnerId::Token(class_id, token_id) => {
 					ensure!(
