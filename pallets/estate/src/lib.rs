@@ -1435,7 +1435,6 @@ pub mod pallet {
 					EstateLeases::<T>::remove(estate_id);
 					T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
 
-
 					Self::deposit_event(Event::<T>::EstateLeaseContractEnded(estate_id));
 					Ok(().into())
 				}
