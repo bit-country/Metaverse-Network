@@ -1317,6 +1317,7 @@ pub mod pallet {
 					EstateLeaseOffers::<T>::remove_prefix(estate_id, None);
 					EstateLeases::<T>::insert(estate_id, lease.clone());
 					EstateLeasors::<T>::insert(recipient.clone(), estate_id, ());
+					T::NFTTokenizationSource::set_lock_nft((class_id, token_id), true)?;
 
 					Self::deposit_event(Event::<T>::EstateLeaseOfferAccepted(
 						estate_id,
@@ -1380,6 +1381,7 @@ pub mod pallet {
 
 					EstateLeasors::<T>::remove(leasor.clone(), estate_id);
 					EstateLeases::<T>::remove(estate_id);
+					T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
 
 					Self::deposit_event(Event::<T>::EstateLeaseContractCancelled(estate_id));
 					Ok(().into())
@@ -1431,6 +1433,8 @@ pub mod pallet {
 
 					EstateLeasors::<T>::remove(leasor, estate_id);
 					EstateLeases::<T>::remove(estate_id);
+					T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
+
 
 					Self::deposit_event(Event::<T>::EstateLeaseContractEnded(estate_id));
 					Ok(().into())
