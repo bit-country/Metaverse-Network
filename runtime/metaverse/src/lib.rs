@@ -977,8 +977,6 @@ parameter_types! {
 	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
 }
 
-pub type Precompiles = MetaverseNetworkPrecompiles<Runtime>;
-
 impl pallet_evm::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -996,7 +994,7 @@ impl pallet_evm::Config for Runtime {
 	type GasWeightMapping = ();
 	type OnChargeTransaction = ();
 	type FindAuthor = FindAuthorTruncated<Aura>;
-	type PrecompilesType = Precompiles;
+	type PrecompilesType = MetaverseNetworkPrecompiles<Self>;
 	type PrecompilesValue = PrecompilesValue;
 	// type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
 }
