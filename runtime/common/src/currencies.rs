@@ -1,13 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::Get;
-use frame_support::traits::Currency;
+use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
 use pallet_evm::{
-	AddressMapping, ExitRevert, ExitSucceed, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult,
-	PrecompileSet,
+	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
+	PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
+use sp_runtime::traits::Dispatchable;
 use sp_std::{marker::PhantomData, prelude::*};
 
 use precompile_utils::data::{Address, EvmData, EvmDataWriter};
@@ -48,9 +49,9 @@ pub type BalanceOf<Runtime> = <<Runtime as currencies::Config>::MultiSocialCurre
 /// - Transfer. Rest `input` bytes: `from`, `to`, `amount`.
 pub struct MultiCurrencyPrecompile<Runtime>(PhantomData<Runtime>);
 
-impl<Runtime> PrecompileSet for MultiCurrencyPrecompile<Runtime>
+impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies::Config + pallet_evm::Config,
+	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
 	Runtime: Erc20Mapping,
 	currencies::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
@@ -60,8 +61,9 @@ where
 		>>::Balance,
 	>,
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
-	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
+	fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
 		let address = handle.code_address();
 
 		if let Some(currency_id) = Runtime::decode_evm_address(address) {
@@ -70,14 +72,14 @@ where
 			let result = {
 				let selector = match handle.read_selector() {
 					Ok(selector) => selector,
-					Err(e) => return Some(Err(e)),
+					Err(e) => return Err(e),
 				};
 
 				if let Err(err) = handle.check_function_modifier(match selector {
 					Action::Approve | Action::Transfer | Action::TransferFrom => FunctionModifier::NonPayable,
 					_ => FunctionModifier::View,
 				}) {
-					return Some(Err(err));
+					return Err(err);
 				}
 
 				match selector {
@@ -93,13 +95,11 @@ where
 					Action::Decimals => Self::total_supply(currency_id, handle),
 				}
 			};
-			return Some(result);
 		}
-		None
-	}
-
-	fn is_precompile(&self, address: H160) -> bool {
-		todo!()
+		Err(PrecompileFailure::Revert {
+			exit_status: ExitRevert::Reverted,
+			output: "invalid currency id".into(),
+		})
 	}
 }
 
