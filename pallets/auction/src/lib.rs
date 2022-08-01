@@ -663,10 +663,13 @@ pub mod pallet {
 				Error::<T>::NoPermissionToMakeOffer
 			);
 			ensure!(
+				T::NFTHandler::is_transferable(&asset)?,
+				Error::<T>::NoPermissionToMakeOffer
+			);
+			ensure!(
 				!Offers::<T>::contains_key(asset.clone(), offeror.clone()),
 				Error::<T>::OfferAlreadyExists
 			);
-			ensure!(T::NFTHandler::is_transferable(&asset)?, Error::<T>::OfferAlreadyExists);
 
 			T::Currency::reserve(&offeror, offer_amount);
 
@@ -705,7 +708,15 @@ pub mod pallet {
 				T::NFTHandler::check_ownership(&owner, &asset)?,
 				Error::<T>::NoPermissionToAcceptOffer
 			);
+			ensure!(
+				T::NFTHandler::is_transferable(&asset)?,
+				Error::<T>::NoPermissionToAcceptOffer
+			);
 			let offer = Self::nft_offers(asset.clone(), offeror.clone()).ok_or(Error::<T>::OfferDoesNotExist)?;
+			ensure!(
+				offer.end_block <= <frame_system::Pallet<T>>::block_number(),
+				Error::<T>::OfferIsExpired
+			);
 
 			T::Currency::unreserve(&offeror, offer.amount);
 			<T as Config>::Currency::transfer(&oferror, &owner, offer.amount, ExistenceRequirement::KeepAlive)?;
