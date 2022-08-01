@@ -1,4 +1,3 @@
-use crate::currencies::MultiCurrencyPrecompile;
 use hex_literal::hex;
 use pallet_evm::{ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet};
 use pallet_evm_precompile_blake2::Blake2F;
@@ -11,6 +10,8 @@ use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripe
 use sp_core::H160;
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
+
+use crate::currencies::MultiCurrencyPrecompile;
 
 pub const MULTI_CURRENCY: H160 = H160(hex!("0000000000000000000000000000000000000400"));
 /// The PrecompileSet installed in the Metaverse runtime.
@@ -28,7 +29,7 @@ impl<R> MetaverseNetworkPrecompiles<R> {
 /// 1024-2047 Precompiles that are not in Ethereum Mainnet
 impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
-	R: pallet_evm::Config,
+	R: pallet_evm::Config + currencies::Config,
 	MultiCurrencyPrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
