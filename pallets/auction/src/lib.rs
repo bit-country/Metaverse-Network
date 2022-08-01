@@ -672,14 +672,11 @@ pub mod pallet {
 			);
 
 			T::Currency::reserve(&offeror, offer_amount);
-
 			let offer_end_block = <frame_system::Pallet<T>>::block_number() + T::OfferDuration::get();
-
 			let offer = NftOffer {
 				amount: offer_amount,
 				end_block: offer_end_block,
 			};
-
 			Offers::<T>::insert(asset, offeror.clone(), offer);
 
 			Self::deposit_event(Event::<T>::NftOfferMade(asset.0, asset.1, offeror, offer_amount));
@@ -714,7 +711,7 @@ pub mod pallet {
 			);
 			let offer = Self::nft_offers(asset.clone(), offeror.clone()).ok_or(Error::<T>::OfferDoesNotExist)?;
 			ensure!(
-				offer.end_block <= <frame_system::Pallet<T>>::block_number(),
+				offer.end_block >= <frame_system::Pallet<T>>::block_number(),
 				Error::<T>::OfferIsExpired
 			);
 
