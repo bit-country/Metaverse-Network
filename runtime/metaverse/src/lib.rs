@@ -571,6 +571,7 @@ parameter_types! {
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
 	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
+	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
 }
 
 impl auction::Config for Runtime {
@@ -589,6 +590,7 @@ impl auction::Config for Runtime {
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
+	type OfferDuration = OfferDuration;
 }
 
 impl continuum::Config for Runtime {

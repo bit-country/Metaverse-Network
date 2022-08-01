@@ -180,8 +180,13 @@ pub mod pallet {
 		/// Network fee that will be collected when auction or buy now is completed.
 		#[pallet::constant]
 		type NetworkFeeCommission: Get<Perbill>;
+
 		/// Weight info
 		type WeightInfo: WeightInfo;
+
+		/// Offer duration
+		#[pallet::constant]
+		type OfferDuration: Get<Self::BlockNumber>;
 	}
 
 	#[pallet::storage]
@@ -331,6 +336,10 @@ pub mod pallet {
 		OfferDoesNotExist,
 		/// The NFT offer is expired
 		OfferIsExpired,
+		/// No permission to make offer for a NFT.
+		NoPermissionToMakeOffer,
+		/// No permission to accept offer for a NFT.
+		NoPermissionToAcceptOffer,
 	}
 
 	#[pallet::call]
@@ -631,6 +640,100 @@ pub mod pallet {
 				}
 				_ => Err(Error::<T>::NoPermissionToCancelAuction.into()),
 			}
+		}
+
+		/// Make offer for an NFT asset
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only accounts that does not own the NFT asset can make this call
+		/// - `asset`: the NFT for which an offer will be made.
+		/// - `offer_amount`: the  amount of native tokens offered in exchange of the nft.
+		///
+		/// Emits `NftOfferMade` if successful.
+		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		#[transactional]
+		pub fn make_offer(
+			origin: OriginFor<T>,
+			asset: (ClassId, TokenId),
+			offer_amount: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let offeror = ensure_signed(origin)?;
+			ensure!(
+				!T::NFTHandler::check_ownership(&offeror, &asset)?,
+				Error::<T>::NoPermissionToMakeOffer
+			);
+			ensure!(
+				!Offers::<T>::contains_key(asset.clone(), offeror.clone()),
+				Error::<T>::OfferAlreadyExists
+			);
+			ensure!(T::NFTHandler::is_transferable(&asset)?, Error::<T>::OfferAlreadyExists);
+
+			T::Currency::reserve(&offeror, offer_amount);
+
+			let offer_end_block = <frame_system::Pallet<T>>::block_number() + T::OfferDuration::get();
+
+			let offer = NftOffer {
+				amount: offer_amount,
+				end_block: offer_end_block,
+			};
+
+			Offers::<T>::insert(asset, offeror.clone(), offer);
+
+			Self::deposit_event(Event::<T>::NftOfferMade(asset.0, asset.1, offeror, offer_amount));
+
+			Ok(().into())
+		}
+
+		/// Accept offer for an NFT asset
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only NFT owner can make this call.
+		/// - `asset`: the NFT for which te offer will be accepted.
+		/// - `offeror`: the account whose offer will be accepted.
+		///
+		/// Emits `NftOfferAccepted` if successful.
+		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		#[transactional]
+		pub fn accept_offer(
+			origin: OriginFor<T>,
+			asset: (ClassId, TokenId),
+			offeror: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let owner = ensure_signed(origin)?;
+			// Check ownership
+			ensure!(
+				T::NFTHandler::check_ownership(&owner, &asset)?,
+				Error::<T>::NoPermissionToAcceptOffer
+			);
+			let offer = Self::nft_offers(asset.clone(), offeror.clone()).ok_or(Error::<T>::OfferDoesNotExist)?;
+
+			T::Currency::unreserve(&offeror, offer.amount);
+			<T as Config>::Currency::transfer(&oferror, &owner, offer.amount, ExistenceRequirement::KeepAlive)?;
+			T::NFTHandler::transfer_nft(&owner, &offeror, &asset)?;
+			Offers::<T>::remove(asset, offeror.clone());
+
+			Self::deposit_event(Event::<T>::NftOfferAccepted(asset.0, asset.1, offeror));
+			Ok(().into())
+		}
+
+		/// Withdraw offer for an NFT asset
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only account which have already made an offer for the given NFT can make this call.
+		/// - `asset`: the NFT for which te offer will be withdrawn
+		///
+		/// Emits `NftOfferWithdrawn` if successful.
+		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		#[transactional]
+		pub fn withdraw_offer(origin: OriginFor<T>, asset: (ClassId, TokenId)) -> DispatchResultWithPostInfo {
+			let offeror = ensure_signed(origin)?;
+			let offer = Self::nft_offers(asset.clone(), offeror.clone()).ok_or(Error::<T>::OfferDoesNotExist)?;
+
+			T::Currency::unreserve(&offeror, offer.amount);
+			Offers::<T>::remove(asset, offeror.clone());
+
+			Self::deposit_event(Event::<T>::NftOfferWithdrawn(asset.0, asset.1, offeror));
+			Ok(().into())
 		}
 	}
 
