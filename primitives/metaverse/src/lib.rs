@@ -216,6 +216,15 @@ impl FungibleTokenId {
 	}
 }
 
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftOffer<Balance, BlockNumber> {
+	/// Offer amount
+	amount: Balance,
+	/// Offer expiry block
+	end_block: BlockNumber,
+}
+
 /// App-specific crypto used for reporting equivocation/misbehavior in BABE and
 /// GRANDPA. Any rewards for misbehavior reporting will be paid out to this
 /// account.

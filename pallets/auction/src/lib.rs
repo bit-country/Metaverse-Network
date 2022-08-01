@@ -40,7 +40,7 @@ use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, Auction
 use core_primitives::UndeployedLandBlocksTrait;
 pub use pallet::*;
 use pallet_nft::Pallet as NFTModule;
-use primitives::{continuum::MapTrait, estate::Estate, AuctionId, ItemId};
+use primitives::{continuum::MapTrait, estate::Estate, AuctionId, ItemId, NftOffer};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -218,6 +218,19 @@ pub mod pallet {
 	pub(super) type MetaverseCollection<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, ClassId, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn nft_offers)]
+	/// Index NFT offers by token and oferror
+	pub(super) type Offers<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		(ClassId, TokenId),
+		Blake2_128Concat,
+		T::AccountId,
+		NftOffer<BalanceOf<T>, T::BlockNumber>,
+		OptionQuery,
+	>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -246,7 +259,13 @@ pub mod pallet {
 		CollectionAuthorizationRemoveInMetaverse(ClassId, MetaverseId),
 		/// Cancel listing with auction id. [class_id,
 		/// metaverse_id]
-		AuctionCancelled(AuctionId),
+		AuctionCancelled(T::AuctionId),
+		/// Nft offer is made [class_id, token_id, account_id, offer amount]
+		NftOfferMade(ClassId, TokenId, AccountId, Balance),
+		/// Nft offer is accepted [class_id, token_id, account_id]
+		NftOfferAccepted(ClassId, TokenId, AccountId),
+		/// Nft offer is withdrawn [class_id, token_id, account_id]
+		NftOfferWithdrawn(ClassId, TokenId, AccountId),
 	}
 
 	/// Errors inform users that something went wrong.
@@ -306,6 +325,12 @@ pub mod pallet {
 		CollectionIsNotAuthorised,
 		/// Auction already started or got bid
 		AuctionAlreadyStartedOrBid,
+		/// The account has already made offer for a given NFT
+		OfferAlreadyExists,
+		/// The NFT offer does not exist
+		OfferDoesNotExist,
+		/// The NFT offer is expired
+		OfferIsExpired,
 	}
 
 	#[pallet::call]
