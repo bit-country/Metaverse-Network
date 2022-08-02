@@ -11,7 +11,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
 use primitives::{
-	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId,
+	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId, NftOffer,
 	UndeployedLandBlockId,
 };
 

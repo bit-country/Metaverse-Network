@@ -697,7 +697,7 @@ pub mod pallet {
 		pub fn accept_offer(
 			origin: OriginFor<T>,
 			asset: (ClassId, TokenId),
-			offeror: BalanceOf<T>,
+			offeror: T::AccountId,
 		) -> DispatchResultWithPostInfo {
 			let owner = ensure_signed(origin)?;
 			// Check ownership
