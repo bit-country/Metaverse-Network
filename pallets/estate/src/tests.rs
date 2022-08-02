@@ -2159,6 +2159,11 @@ fn create_estate_lease_offer_should_fail() {
 		);
 
 		assert_noop!(
+			EstateModule::create_lease_offer(Origin::signed(BENEFICIARY_ID), 0u64, 10u128, 8u32),
+			Error::<Runtime>::NoPermission
+		);
+
+		assert_noop!(
 			EstateModule::create_lease_offer(Origin::signed(ALICE), 0u64, 0u128, 8u32),
 			Error::<Runtime>::LeaseOfferPriceBelowMinimum
 		);
@@ -2201,11 +2206,6 @@ fn create_estate_lease_offer_should_fail() {
 		assert_noop!(
 			EstateModule::create_lease_offer(Origin::signed(ALICE), 1u64, 3u128, 8u32),
 			Error::<Runtime>::EstateAlreadyInAuction
-		);
-
-		assert_noop!(
-			EstateModule::create_lease_offer(Origin::signed(BENEFICIARY_ID), 0u64, 10u128, 8u32),
-			Error::<Runtime>::NoPermission
 		);
 
 		assert_ok!(EstateModule::mint_estate(

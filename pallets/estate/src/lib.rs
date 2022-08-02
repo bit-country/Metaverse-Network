@@ -1219,6 +1219,10 @@ pub mod pallet {
 
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
+				!Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
+				Error::<T>::NoPermission
+			);
+			ensure!(
 				!EstateLeaseOffers::<T>::contains_key(estate_id, who.clone()),
 				Error::<T>::LeaseOfferAlreadyExists
 			);
@@ -1241,11 +1245,6 @@ pub mod pallet {
 						!T::AuctionHandler::check_item_in_auction(ItemId::NFT(class_id, token_id)),
 						Error::<T>::EstateAlreadyInAuction
 					);
-					ensure!(
-						!Self::check_if_land_or_estate_owner(&who, &estate_owner_value),
-						Error::<T>::NoPermission
-					);
-
 					ensure!(
 						EstateLeaseOffers::<T>::iter_key_prefix(estate_id).count() as u32
 							<= T::MaxOffersPerEstate::get(),
