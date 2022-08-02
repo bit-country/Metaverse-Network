@@ -43,7 +43,7 @@ use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for estate.
-pub trait WeightInfo {	fn mint_land() -> Weight;	fn mint_lands() -> Weight;	fn transfer_land() -> Weight;	fn mint_estate() -> Weight;	fn dissolve_estate() -> Weight;	fn add_land_unit_to_estate() -> Weight;	fn remove_land_unit_from_estate() -> Weight;	fn create_estate() -> Weight;	fn transfer_estate() -> Weight;	fn issue_undeployed_land_blocks() -> Weight;	fn freeze_undeployed_land_blocks() -> Weight;	fn unfreeze_undeployed_land_blocks() -> Weight;	fn approve_undeployed_land_blocks() -> Weight;	fn unapprove_undeployed_land_blocks() -> Weight;	fn transfer_undeployed_land_blocks() -> Weight;	fn deploy_land_block() -> Weight;	fn on_initialize() -> Weight;	fn burn_undeployed_land_blocks() -> Weight;}
+pub trait WeightInfo {	fn mint_land() -> Weight;	fn mint_lands() -> Weight;	fn transfer_land() -> Weight;	fn mint_estate() -> Weight;	fn dissolve_estate() -> Weight;	fn add_land_unit_to_estate() -> Weight;	fn remove_land_unit_from_estate() -> Weight;	fn create_estate() -> Weight;	fn transfer_estate() -> Weight;	fn issue_undeployed_land_blocks() -> Weight;	fn freeze_undeployed_land_blocks() -> Weight;	fn unfreeze_undeployed_land_blocks() -> Weight;	fn approve_undeployed_land_blocks() -> Weight;	fn unapprove_undeployed_land_blocks() -> Weight;	fn transfer_undeployed_land_blocks() -> Weight;	fn deploy_land_block() -> Weight;	fn on_initialize() -> Weight;	fn burn_undeployed_land_blocks() -> Weight; fn create_lease_offer() -> Weight;	fn accept_lease_offer() -> Weight;	fn cancel_lease() -> Weight;	fn remove_expired_lease() -> Weight;	fn remove_lease_offer() -> Weight;	fn collect_rent() -> Weight;}
 
 /// Weights for estate using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
@@ -193,4 +193,5 @@ impl WeightInfo for () {	fn mint_land() -> Weight {
 		(131_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn remove_expired_lease() -> Weight {
 		(246_800_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn remove_lease_offer() -> Weight {
 		(173_100_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn collect_rent() -> Weight {
-		(168_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}}
+		(168_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}
+}
