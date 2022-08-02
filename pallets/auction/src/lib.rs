@@ -266,11 +266,11 @@ pub mod pallet {
 		/// metaverse_id]
 		AuctionCancelled(T::AuctionId),
 		/// Nft offer is made [class_id, token_id, account_id, offer amount]
-		NftOfferMade(ClassId, TokenId, AccountId, Balance),
+		NftOfferMade(ClassId, TokenId, T::AccountId, BalanceOf<T>),
 		/// Nft offer is accepted [class_id, token_id, account_id]
-		NftOfferAccepted(ClassId, TokenId, AccountId),
+		NftOfferAccepted(ClassId, TokenId, T::AccountId),
 		/// Nft offer is withdrawn [class_id, token_id, account_id]
-		NftOfferWithdrawn(ClassId, TokenId, AccountId),
+		NftOfferWithdrawn(ClassId, TokenId, T::AccountId),
 	}
 
 	/// Errors inform users that something went wrong.
@@ -716,7 +716,7 @@ pub mod pallet {
 			);
 
 			T::Currency::unreserve(&offeror, offer.amount);
-			<T as Config>::Currency::transfer(&oferror, &owner, offer.amount, ExistenceRequirement::KeepAlive)?;
+			<T as Config>::Currency::transfer(&offeror, &owner, offer.amount, ExistenceRequirement::KeepAlive)?;
 			T::NFTHandler::transfer_nft(&owner, &offeror, &asset)?;
 			Offers::<T>::remove(asset, offeror.clone());
 

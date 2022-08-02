@@ -224,6 +224,7 @@ parameter_types! {
 	pub const MaxBundleItem: u32 = 5;
 	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
+	pub const OfferDuration: BlockNumber = 10; // Default 10
 }
 
 pub struct MetaverseInfoSource {}
@@ -304,6 +305,7 @@ impl Config for Runtime {
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = ();
+	type OfferDuration = OfferDuration;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
