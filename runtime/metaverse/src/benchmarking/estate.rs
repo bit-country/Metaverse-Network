@@ -348,12 +348,11 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
-		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 2, UndeployedLandBlockType::Transferable);
-	}: _(RawOrigin::Signed(caller.clone()), Default::default(), METAVERSE_ID, (0,0), vec![COORDINATE_IN_1, COORDINATE_IN_2])
+		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 1, UndeployedLandBlockType::Transferable);
+	}: _(RawOrigin::Signed(caller.clone()), Default::default(), METAVERSE_ID, (0,0), vec![COORDINATE_IN_1])
 	verify {
 		assert_eq!(Estate::get_undeployed_land_block(0), None);
-		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0, 0)));
-		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_2), Some(OwnerId::Token(0, 1)))
+		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0, 0)))
 	}
 
 	on_initialize {
@@ -412,12 +411,12 @@ runtime_benchmarks! {
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-	}: _(RawOrigin::Signed(target.clone()), 0u32.into(), 10u32.into(), 100u32)
+	}: _(RawOrigin::Signed(target.clone()), 0u32.into(), dollar(1), 100u32.into())
 
 	// accept lease offer
 	accept_lease_offer {
@@ -427,16 +426,17 @@ runtime_benchmarks! {
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
 	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
 
 	// cancel lease
 	cancel_lease{
+		log::info!("c lease");
 		System::set_block_number(1u32.into());
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
@@ -444,12 +444,12 @@ runtime_benchmarks! {
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
 		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(5);
 	}: _(RawOrigin::Root, caller.clone(), 0u32.into(), target.clone())
@@ -463,12 +463,12 @@ runtime_benchmarks! {
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
 		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(102);
 	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
@@ -482,12 +482,12 @@ runtime_benchmarks! {
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
 		run_to_block(10002);
 	}: _(RawOrigin::Signed(target.clone()), 0u32.into())
 
@@ -500,16 +500,15 @@ runtime_benchmarks! {
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
-		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), 10u32.into(), 100u32);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
 		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(10);
 	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
-
 }
 
 #[cfg(test)]

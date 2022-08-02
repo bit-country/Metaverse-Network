@@ -662,7 +662,7 @@ pub mod pallet {
 		/// - `coordinates`: list of land units coordinates
 		///
 		/// Emits `LandBlockDeployed` if successful.
-		#[pallet::weight(T::WeightInfo::deploy_land_block())]
+		#[pallet::weight(T::WeightInfo::deploy_land_block() * coordinates.len() as u64)]
 		#[transactional]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
@@ -1207,7 +1207,7 @@ pub mod pallet {
 		/// - `duration`: lease duration (in number of blocks)
 		///
 		/// Emits `EstateLeaseOfferCreated` if successful
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::create_lease_offer())]
 		#[transactional]
 		pub fn create_lease_offer(
 			origin: OriginFor<T>,
@@ -1247,8 +1247,8 @@ pub mod pallet {
 					);
 
 					ensure!(
-						EstateLeaseOffers::<T>::iter_key_prefix(estate_id).count()
-							<= T::MaxOffersPerEstate::get().try_into().unwrap(),
+						EstateLeaseOffers::<T>::iter_key_prefix(estate_id).count() as u32
+							<= T::MaxOffersPerEstate::get(),
 						Error::<T>::EstateLeaseOffersQueueLimitIsReached
 					);
 
@@ -1283,7 +1283,7 @@ pub mod pallet {
 		/// - `recipient`: the account that made the lease offer
 		///
 		/// Emits `EstateLeaseOfferAccepted` if successful
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::accept_lease_offer())]
 		#[transactional]
 		pub fn accept_lease_offer(
 			origin: OriginFor<T>,
@@ -1338,7 +1338,7 @@ pub mod pallet {
 		/// - `leasor`: the account that is leasing the estate
 		///
 		/// Emits `EstateLeaseContractCancelled` if successful
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::cancel_lease())]
 		#[transactional]
 		pub fn cancel_lease(
 			origin: OriginFor<T>,
@@ -1398,7 +1398,7 @@ pub mod pallet {
 		/// - `leasor`: the account that is leasing the estate
 		///
 		/// Emits `EstateLeaseContractEnded` if successful
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::remove_expired_lease())]
 		#[transactional]
 		pub fn remove_expired_lease(
 			origin: OriginFor<T>,
@@ -1449,7 +1449,7 @@ pub mod pallet {
 		/// - `estate_id`: the ID of the estate that will be leased
 		///
 		/// Emits `EstateLeaseOfferRemoved` if successful
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::remove_lease_offer())]
 		#[transactional]
 		pub fn remove_lease_offer(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let leasor = ensure_signed(origin)?;
@@ -1468,7 +1468,7 @@ pub mod pallet {
 		/// - `estate_id`: the ID of the estate that will be leased
 		///
 		/// Emits `EstateRentCollected` if successful
-		#[pallet::weight(T::WeightInfo::remove_land_unit_from_estate())]
+		#[pallet::weight(T::WeightInfo::collect_rent())]
 		#[transactional]
 		pub fn collect_rent(
 			origin: OriginFor<T>,

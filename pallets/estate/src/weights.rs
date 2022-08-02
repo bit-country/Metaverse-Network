@@ -124,9 +124,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 	fn deploy_land_block() -> Weight {
-		(204_100_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(12 as Weight))
-			.saturating_add(T::DbWeight::get().writes(13 as Weight))
+		(373_900_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(11 as Weight))
+			.saturating_add(T::DbWeight::get().writes(10 as Weight))
 	}
 	fn on_initialize() -> Weight {
 		(900_000 as Weight)
@@ -135,6 +135,36 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		(36_600_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+	}
+	fn create_lease_offer() -> Weight {
+		(159_200_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(4 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	fn accept_lease_offer() -> Weight {
+		(155_300_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(5 as Weight))
+			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+	}
+	fn cancel_lease() -> Weight {
+		(131_600_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(4 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
+	fn remove_expired_lease() -> Weight {
+		(246_800_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(4 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
+	fn remove_lease_offer() -> Weight {
+		(173_100_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(1 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+	}
+	fn collect_rent() -> Weight {
+		(168_600_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(4 as Weight))
+			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 }
 
@@ -155,6 +185,12 @@ impl WeightInfo for () {	fn mint_land() -> Weight {
 		(29_700_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn unapprove_undeployed_land_blocks() -> Weight {
 		(29_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn transfer_undeployed_land_blocks() -> Weight {
 		(66_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn deploy_land_block() -> Weight {
-		(204_100_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(12 as Weight))			.saturating_add(RocksDbWeight::get().writes(13 as Weight))	}	fn on_initialize() -> Weight {
+		(373_900_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(11 as Weight))			.saturating_add(RocksDbWeight::get().writes(10 as Weight))	}	fn on_initialize() -> Weight {
 		(900_000 as Weight)	}	fn burn_undeployed_land_blocks() -> Weight {
-		(36_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}}
+		(36_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn create_lease_offer() -> Weight {
+		(159_200_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn accept_lease_offer() -> Weight {
+		(155_300_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(5 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn cancel_lease() -> Weight {
+		(131_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn remove_expired_lease() -> Weight {
+		(246_800_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn remove_lease_offer() -> Weight {
+		(173_100_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn collect_rent() -> Weight {
+		(168_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}}
