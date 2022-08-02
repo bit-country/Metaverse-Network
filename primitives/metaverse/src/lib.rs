@@ -220,9 +220,9 @@ impl FungibleTokenId {
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftOffer<Balance, BlockNumber> {
 	/// Offer amount
-	amount: Balance,
+	pub amount: Balance,
 	/// Offer expiry block
-	end_block: BlockNumber,
+	pub end_block: BlockNumber,
 }
 
 /// App-specific crypto used for reporting equivocation/misbehavior in BABE and
