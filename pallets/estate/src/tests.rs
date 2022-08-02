@@ -2202,15 +2202,15 @@ fn create_estate_lease_offer_should_fail() {
 			METAVERSE_ID,
 			vec![COORDINATE_IN_2]
 		));
-
+		
 		assert_noop!(
-			EstateModule::create_lease_offer(Origin::signed(ALICE), 1u64, 3u128, 8u32),
+			EstateModule::create_lease_offer(Origin::signed(ALICE), 1u64, 100u128, 8u32),
 			Error::<Runtime>::EstateAlreadyInAuction
 		);
-
+		
 		assert_ok!(EstateModule::mint_estate(
 			Origin::root(),
-			AUCTION_BENEFICIARY_ID,
+			BENEFICIARY_ID,
 			METAVERSE_ID,
 			vec![COORDINATE_IN_3]
 		));
