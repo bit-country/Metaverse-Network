@@ -122,6 +122,35 @@ runtime_benchmarks! {
 		Auction::authorise_metaverse_collection(RawOrigin::Signed(alice.clone()).into(), 0u32.into(), METAVERSE_ID);
 	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
 
+	make_offer {
+		let owner: AccountId = account("owner", 0, SEED);
+		set_balance(CURRENCY_ID, &owner, dollar(10));
+		let offeror: AccountId = account("offeror", 0, SEED);
+		set_balance(CURRENCY_ID, &offeror, dollar(10));
+		create_nft_group();
+		mint_NFT(&owner, 0u32);
+	}: _(RawOrigin::Signed(offeror.clone()), (0u32.into(), 0u32.into()), dollar(1))
+
+	withdraw_offer {
+		let owner: AccountId = account("owner", 0, SEED);
+		set_balance(CURRENCY_ID, &owner, dollar(10));
+		let offeror: AccountId = account("offeror", 0, SEED);
+		set_balance(CURRENCY_ID, &offeror, dollar(10));
+		create_nft_group();
+		mint_NFT(&owner, 0u32);
+		Auction::make_offer(RawOrigin::Signed(offeror.clone()).into(), (0u32.into(), 0u32.into()), dollar(1));
+	}: _(RawOrigin::Signed(offeror.clone()), (0u32.into(), 0u32.into()))
+
+	accept_offer {
+		let owner: AccountId = account("owner", 0, SEED);
+		set_balance(CURRENCY_ID, &owner, dollar(10));
+		let offeror: AccountId = account("offeror", 0, SEED);
+		set_balance(CURRENCY_ID, &offeror, dollar(10));
+		create_nft_group();
+		mint_NFT(&owner, 0u32);
+		Auction::make_offer(RawOrigin::Signed(offeror.clone()).into(), (0u32.into(), 0u32.into()), dollar(1));
+	}: _(RawOrigin::Signed(owner.clone()), (0u32.into(), 0u32.into()), oferror.clone())
+
 	on_finalize {
 		System::set_block_number(1u32.into());
 		let caller = account("caller", 0, SEED);

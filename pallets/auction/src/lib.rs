@@ -264,7 +264,7 @@ pub mod pallet {
 		CollectionAuthorizationRemoveInMetaverse(ClassId, MetaverseId),
 		/// Cancel listing with auction id. [class_id,
 		/// metaverse_id]
-		AuctionCancelled(T::AuctionId),
+		AuctionCancelled(AuctionId),
 		/// Nft offer is made [class_id, token_id, account_id, offer amount]
 		NftOfferMade(ClassId, TokenId, T::AccountId, BalanceOf<T>),
 		/// Nft offer is accepted [class_id, token_id, account_id]
