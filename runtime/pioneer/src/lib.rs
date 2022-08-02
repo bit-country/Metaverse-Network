@@ -1435,6 +1435,7 @@ impl economy::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type MiningCurrencyId = MiningCurrencyId;
 	type NFTHandler = Nft;
+	type EstateHandler = Estate;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
