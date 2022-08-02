@@ -63,9 +63,9 @@ pub const ASSET_CLASS_ID: ClassId = 5;
 pub const ASSET_TOKEN_ID: TokenId = 6;
 pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
 pub const METAVERSE_LAND_CLASS: ClassId = 15;
-pub const METAVERSE_LAND_IN_AUCTION_TOKEN: TokenId = 6;
+pub const METAVERSE_LAND_IN_AUCTION_TOKEN: TokenId = 4;
 pub const METAVERSE_ESTATE_CLASS: ClassId = 16;
-pub const METAVERSE_ESTATE_IN_AUCTION_TOKEN: TokenId = 5;
+pub const METAVERSE_ESTATE_IN_AUCTION_TOKEN: TokenId = 3;
 
 pub const OWNER_ACCOUNT_ID: OwnerId<AccountId, ClassId, TokenId> = OwnerId::Account(BENEFICIARY_ID);
 pub const OWNER_ID_ALICE: OwnerId<AccountId, ClassId, TokenId> = OwnerId::Account(ALICE);

@@ -2204,7 +2204,7 @@ fn create_estate_lease_offer_should_fail() {
 		));
 		
 		assert_noop!(
-			EstateModule::create_lease_offer(Origin::signed(ALICE), 1u64, 100u128, 8u32),
+			EstateModule::create_lease_offer(Origin::signed(BOB), 1u64, 100u128, 8u32),
 			Error::<Runtime>::EstateAlreadyInAuction
 		);
 		
