@@ -149,7 +149,7 @@ runtime_benchmarks! {
 		create_nft_group();
 		mint_NFT(&owner, 0u32);
 		Auction::make_offer(RawOrigin::Signed(offeror.clone()).into(), (0u32.into(), 0u32.into()), dollar(1));
-	}: _(RawOrigin::Signed(owner.clone()), (0u32.into(), 0u32.into()), oferror.clone())
+	}: _(RawOrigin::Signed(owner.clone()), (0u32.into(), 0u32.into()), offeror.clone())
 
 	on_finalize {
 		System::set_block_number(1u32.into());
