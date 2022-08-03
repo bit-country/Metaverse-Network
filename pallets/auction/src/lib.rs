@@ -650,7 +650,7 @@ pub mod pallet {
 		/// - `offer_amount`: the  amount of native tokens offered in exchange of the nft.
 		///
 		/// Emits `NftOfferMade` if successful.
-		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		#[pallet::weight(T::WeightInfo::make_offer())]
 		#[transactional]
 		pub fn make_offer(
 			origin: OriginFor<T>,
@@ -692,7 +692,7 @@ pub mod pallet {
 		/// - `offeror`: the account whose offer will be accepted.
 		///
 		/// Emits `NftOfferAccepted` if successful.
-		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		#[pallet::weight(T::WeightInfo::accept_offer())]
 		#[transactional]
 		pub fn accept_offer(
 			origin: OriginFor<T>,
@@ -731,7 +731,7 @@ pub mod pallet {
 		/// - `asset`: the NFT for which te offer will be withdrawn
 		///
 		/// Emits `NftOfferWithdrawn` if successful.
-		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		#[pallet::weight(T::WeightInfo::withdraw_offer())]
 		#[transactional]
 		pub fn withdraw_offer(origin: OriginFor<T>, asset: (ClassId, TokenId)) -> DispatchResultWithPostInfo {
 			let offeror = ensure_signed(origin)?;
