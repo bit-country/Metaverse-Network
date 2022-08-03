@@ -1418,7 +1418,7 @@ fn make_offer_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(Origin::signed(ALICE));
 		assert_noop!(
-			AuctionModule::make_offer(Origin::signed(ALICE), ItemId::NFT(0, 0), 150),
+			AuctionModule::make_offer(Origin::signed(ALICE), (0, 0), 150),
 			Error::<Runtime>::NoPermissionToMakeOffer
 		);
 
@@ -1438,9 +1438,9 @@ fn make_offer_should_fail() {
 		);
 
 		AuctionModule::remove_auction(0, ItemId::NFT(0, 0));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), ItemId::NFT(0, 0), 150));
+		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
 		assert_noop!(
-			AuctionModule::make_offer(Origin::signed(BOB), ItemId::NFT(0, 0), 150),
+			AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150),
 			Error::<Runtime>::OfferAlreadyExists
 		);
 		assert_eq!(Balances::free_balance(BOB), 850);
@@ -1452,7 +1452,7 @@ fn make_offer_should_fail() {
 fn make_offer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), ItemId::NFT(0, 0), 150));
+		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
 
 		let event = mock::Event::AuctionModule(crate::Event::NftOfferMade(0, 0, BOB, 150));
 		assert_eq!(last_event(), event);
@@ -1472,10 +1472,10 @@ fn make_offer_should_work() {
 fn accept_offer_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), ItemId::NFT(0, 0), 150));
+		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
 		assert_eq!(Balances::free_balance(BOB), 850);
 		assert_noop!(
-			AuctionModule::accept_offer(Origin::signed(BOB), ItemId::NFT(0, 0), BOB),
+			AuctionModule::accept_offer(Origin::signed(BOB), (0, 0), BOB),
 			Error::<Runtime>::NoPermissionToAcceptOffer
 		);
 
@@ -1490,14 +1490,14 @@ fn accept_offer_should_fail() {
 			Perbill::from_percent(0u32)
 		));
 		assert_noop!(
-			AuctionModule::accept_offer(Origin::signed(ALICE), ItemId::NFT(0, 0), BOB),
+			AuctionModule::accept_offer(Origin::signed(ALICE), (0, 0), BOB),
 			Error::<Runtime>::NoPermissionToAcceptOffer
 		);
 
-		AuctionModule::remove_auction(0, ItemId::NFT(0, 0));
+		AuctionModule::remove_auction(0, ItemId::NFTs(0, 0));
 		run_to_block(100);
 		assert_noop!(
-			AuctionModule::accept_offer(Origin::signed(ALICE), ItemId::NFT(0, 0), BOB),
+			AuctionModule::accept_offer(Origin::signed(ALICE), (0, 0), BOB),
 			Error::<Runtime>::OfferIsExpired
 		);
 	});
@@ -1508,7 +1508,7 @@ fn accept_offer_should_fail() {
 fn accept_offer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), ItemId::NFT(0, 0), 150));
+		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
 		assert_eq!(Balances::free_balance(BOB), 850);
 		assert_ok!(AuctionModule::accept_offer(
 			Origin::signed(ALICE),
@@ -1527,11 +1527,11 @@ fn accept_offer_should_work() {
 
 #[test]
 // Withdrawing offer for a NFT should work
-fn withdraw_offer_should_work() {
+fn withdraw_offer_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(Origin::signed(ALICE));
 		assert_noop!(
-			AuctionModule::withdraw_offer(Origin::signed(BOB), ItemId::NFT(0, 0),),
+			AuctionModule::withdraw_offer(Origin::signed(BOB), (0, 0),),
 			Error::<Runtime>::OfferDoesNotExist
 		);
 		assert_eq!(Balances::free_balance(BOB), 1000);
@@ -1543,10 +1543,10 @@ fn withdraw_offer_should_work() {
 fn withdraw_offer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), ItemId::NFT(0, 0), 150));
+		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
 
 		assert_eq!(Balances::free_balance(BOB), 850);
-		assert_ok!(AuctionModule::withdraw_offer(Origin::signed(BOB), ItemId::NFT(0, 0)));
+		assert_ok!(AuctionModule::withdraw_offer(Origin::signed(BOB), (0, 0)));
 
 		let event = mock::Event::AuctionModule(crate::Event::NftOfferWithdrawn(0, 0, BOB));
 		assert_eq!(last_event(), event);
