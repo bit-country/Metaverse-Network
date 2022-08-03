@@ -355,42 +355,6 @@ runtime_benchmarks! {
 		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0, 0)))
 	}
 
-	on_initialize {
-		// INITIALIZE RUNTIME STATE
-		let minting_info = 	MintingRateInfo {
-			expect: Default::default(),
-			// 10% minting rate per annual
-			annual: 10,
-			// Max 100 millions land unit
-			max: 100_000_000,
-		};
-		// Pre issue 5 land blocks x 100 land units
-		issue_new_undeployed_land_block(5)?;
-		let min_block_per_round = 5u32;
-
-		let new_round = RoundInfo::new(1u32, 0u32.into(), min_block_per_round.into());
-
-		Round::<Runtime>::put(new_round);
-		let high_inflation_rate = MintingRateInfo {
-			expect: Default::default(),
-			annual: 20,
-			// Max 100 millions land unit
-			max: 100_000_000,
-		};
-		MintingRateConfig::<Runtime>::put(high_inflation_rate);
-
-//		// PREPARE RUN_TO_BLOCK LOOP
-//		let before_running_round_index = EstateModule::<T>::round().current;
-//		let round_length: T::BlockNumber = EstateModule::<T>::round().length.into();
-//
-//
-//		let mut now = <frame_system::Pallet<T>>::block_number() + 1u32.into();
-//		let mut counter = 0usize;
-//		let end = EstateModule::<T>::round().first + (round_length * min_block_per_round.into());
-	}: {
-		Estate::on_initialize(6u32.into());
-	}
-
 	// burn_undeployed_land_blocks
 	burn_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
@@ -436,7 +400,6 @@ runtime_benchmarks! {
 
 	// cancel lease
 	cancel_lease{
-		log::info!("c lease");
 		System::set_block_number(1u32.into());
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
@@ -509,6 +472,42 @@ runtime_benchmarks! {
 		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
 		run_to_block(10);
 	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
+
+	on_initialize {
+		// INITIALIZE RUNTIME STATE
+		let minting_info = 	MintingRateInfo {
+			expect: Default::default(),
+			// 10% minting rate per annual
+			annual: 10,
+			// Max 100 millions land unit
+			max: 100_000_000,
+		};
+		// Pre issue 5 land blocks x 100 land units
+		issue_new_undeployed_land_block(5)?;
+		let min_block_per_round = 5u32;
+
+		let new_round = RoundInfo::new(1u32, 0u32.into(), min_block_per_round.into());
+
+		Round::<Runtime>::put(new_round);
+		let high_inflation_rate = MintingRateInfo {
+			expect: Default::default(),
+			annual: 20,
+			// Max 100 millions land unit
+			max: 100_000_000,
+		};
+		MintingRateConfig::<Runtime>::put(high_inflation_rate);
+
+//		// PREPARE RUN_TO_BLOCK LOOP
+//		let before_running_round_index = EstateModule::<T>::round().current;
+//		let round_length: T::BlockNumber = EstateModule::<T>::round().length.into();
+//
+//
+//		let mut now = <frame_system::Pallet<T>>::block_number() + 1u32.into();
+//		let mut counter = 0usize;
+//		let end = EstateModule::<T>::round().first + (round_length * min_block_per_round.into());
+	}: {
+		Estate::on_initialize(6u32.into());
+	}
 }
 
 #[cfg(test)]
