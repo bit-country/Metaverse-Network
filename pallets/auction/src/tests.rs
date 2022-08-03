@@ -1518,7 +1518,7 @@ fn accept_offer_should_work() {
 
 		assert_eq!(Offers::<Runtime>::get((0, 0), BOB), None);
 		assert_eq!(Balances::free_balance(BOB), 350);
-		assert_eq!(Balances::free_balance(ALICE), 10147);
+		assert_eq!(Balances::free_balance(ALICE), 100147);
 	});
 }
 
