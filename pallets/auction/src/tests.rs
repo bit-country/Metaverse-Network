@@ -1433,7 +1433,7 @@ fn make_offer_should_fail() {
 			Perbill::from_percent(0u32)
 		));
 		assert_noop!(
-			AuctionModule::make_offer(Origin::signed(BOB), ItemId::NFT(0, 0), 150),
+			AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150),
 			Error::<Runtime>::NoPermissionToMakeOffer
 		);
 
@@ -1494,7 +1494,7 @@ fn accept_offer_should_fail() {
 			Error::<Runtime>::NoPermissionToAcceptOffer
 		);
 
-		AuctionModule::remove_auction(0, ItemId::NFTs(0, 0));
+		AuctionModule::remove_auction(0, ItemId::NFT(0, 0));
 		run_to_block(100);
 		assert_noop!(
 			AuctionModule::accept_offer(Origin::signed(ALICE), (0, 0), BOB),
@@ -1512,7 +1512,7 @@ fn accept_offer_should_work() {
 		assert_eq!(Balances::free_balance(BOB), 850);
 		assert_ok!(AuctionModule::accept_offer(
 			Origin::signed(ALICE),
-			ItemId::NFT(0, 0),
+			(0, 0),
 			BOB
 		));
 
