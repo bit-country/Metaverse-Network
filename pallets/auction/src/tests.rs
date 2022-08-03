@@ -1510,11 +1510,7 @@ fn accept_offer_should_work() {
 		init_test_nft(Origin::signed(ALICE));
 		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
 		assert_eq!(Balances::free_balance(BOB), 850);
-		assert_ok!(AuctionModule::accept_offer(
-			Origin::signed(ALICE),
-			(0, 0),
-			BOB
-		));
+		assert_ok!(AuctionModule::accept_offer(Origin::signed(ALICE), (0, 0), BOB));
 
 		let event = mock::Event::AuctionModule(crate::Event::NftOfferAccepted(0, 0, BOB));
 		assert_eq!(last_event(), event);
