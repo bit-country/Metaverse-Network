@@ -431,6 +431,13 @@ pub mod pallet {
 		NoUnclaimedRentLeft,
 	}
 
+	// TO DO: Implement offchain removal of expired lease offers
+	//#[pallet::hooks]
+	//impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+	//	fn offchain_worker(block_number: T::BlockNumber) {
+	//	}
+	//}
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// Minting of a land unit, only used by council to manually mint single land for
