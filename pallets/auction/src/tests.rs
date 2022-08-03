@@ -1438,9 +1438,9 @@ fn make_offer_should_fail() {
 		);
 
 		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (1, 0), 150));
+		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 1), 150));
 		assert_noop!(
-			AuctionModule::make_offer(Origin::signed(BOB), (1, 0), 150),
+			AuctionModule::make_offer(Origin::signed(BOB), (0, 1), 150),
 			Error::<Runtime>::OfferAlreadyExists
 		);
 		assert_eq!(Balances::free_balance(BOB), 350);
@@ -1495,10 +1495,10 @@ fn accept_offer_should_fail() {
 		);
 
 		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (1, 0), 150));
+		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 1), 150));
 		run_to_block(100);
 		assert_noop!(
-			AuctionModule::accept_offer(Origin::signed(ALICE), (1, 0), BOB),
+			AuctionModule::accept_offer(Origin::signed(ALICE), (0, 1), BOB),
 			Error::<Runtime>::OfferIsExpired
 		);
 	});
@@ -1518,7 +1518,7 @@ fn accept_offer_should_work() {
 
 		assert_eq!(Offers::<Runtime>::get((0, 0), BOB), None);
 		assert_eq!(Balances::free_balance(BOB), 350);
-		assert_eq!(Balances::free_balance(ALICE), 10150);
+		assert_eq!(Balances::free_balance(ALICE), 10147);
 	});
 }
 
