@@ -30,11 +30,11 @@ use sp_runtime::{
 	MultiSignature,
 };
 use sp_std::collections::btree_map::BTreeMap;
+use sp_std::prelude::*;
 use sp_std::vec::Vec;
-
 pub mod continuum;
-pub mod dex;
 pub mod estate;
+pub mod evm;
 pub mod staking;
 
 /// An index to a block.
@@ -160,9 +160,9 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 pub enum FungibleTokenId {
 	NativeToken(TokenId),
 	FungibleToken(TokenId),
-	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
-	Stable(TokenId), // kUSD
+	Stable(TokenId),
+	Erc20(EvmAddress), //TODO Runtime migration required for MetaverseInfo
 }
 
 impl FungibleTokenId {
@@ -174,36 +174,8 @@ impl FungibleTokenId {
 		matches!(self, FungibleTokenId::FungibleToken(_))
 	}
 
-	pub fn is_dex_share_social_token_currency_id(&self) -> bool {
-		matches!(self, FungibleTokenId::DEXShare(_, _))
-	}
-
 	pub fn is_mining_resource_currency(&self) -> bool {
 		matches!(self, FungibleTokenId::MiningResource(_))
-	}
-
-	pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
-		match self {
-			FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1) => Some((
-				FungibleTokenId::NativeToken(*token_currency_id_0),
-				FungibleTokenId::FungibleToken(*token_currency_id_1),
-			)),
-			_ => None,
-		}
-	}
-
-	pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
-		match (currency_id_0, currency_id_1) {
-			(
-				FungibleTokenId::NativeToken(token_currency_id_0),
-				FungibleTokenId::FungibleToken(token_currency_id_1),
-			) => Some(FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1)),
-			(
-				FungibleTokenId::FungibleToken(token_currency_id_0),
-				FungibleTokenId::NativeToken(token_currency_id_1),
-			) => Some(FungibleTokenId::DEXShare(token_currency_id_1, token_currency_id_0)),
-			_ => None,
-		}
 	}
 
 	pub fn decimals(&self) -> u8 {
@@ -338,33 +310,4 @@ pub struct UndeployedLandBlock<AccountId> {
 	pub approved: Option<AccountId>,
 	/// Whether the undeployed land block is locked
 	pub is_locked: bool,
-}
-
-// create_currency_id! {
-// Represent a Token symbol with 8 bit
-// Bit 8 : 0 for Pokladot Ecosystem, 1 for Kusama Ecosystem
-// Bit 7 : Reserved
-// Bit 6 - 1 : The token ID
-#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[repr(u8)]
-pub enum TokenSymbol {
-	// 0 => NEER
-	// 1 => KSM
-	// 2 => KAR
-	// 3 => KUSD
-	NEER = 0,
-	// NEER("NEER Token", 18) = 10,
-	KSM = 1,
-	// KSM("Kusama", 12) = 4,
-	KAR = 2,
-	// KAR("Karura", 12) = 6,
-	KUSD = 3, // KUSD("Karura Dollar", 12) = 2,
-}
-// }
-
-impl Default for TokenSymbol {
-	fn default() -> Self {
-		Self::NEER
-	}
 }

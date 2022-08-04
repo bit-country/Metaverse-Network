@@ -86,7 +86,6 @@ pub mod pallet {
 	use sp_runtime::Perbill;
 	use sp_std::convert::TryInto;
 
-	use primitives::dex::Price;
 	use primitives::estate::Estate;
 	use primitives::staking::{MetaverseStakingTrait, RoundInfo};
 	use primitives::{FungibleTokenId, RoundIndex, TokenId, VestingSchedule};

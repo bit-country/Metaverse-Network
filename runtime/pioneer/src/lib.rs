@@ -80,7 +80,7 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
-use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
+use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
@@ -934,7 +934,7 @@ pub struct FungibleTokenIdConvert;
 
 impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert {
 	fn convert(id: FungibleTokenId) -> Option<MultiLocation> {
-		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
+		use FungibleTokenId::{FungibleToken, MiningResource, NativeToken, Stable};
 		match id {
 			// KSM
 			NativeToken(1) => Some(MultiLocation::parent()),
@@ -960,7 +960,7 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 
 impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 	fn convert(location: MultiLocation) -> Option<FungibleTokenId> {
-		use FungibleTokenId::{DEXShare, FungibleToken, MiningResource, NativeToken, Stable};
+		use FungibleTokenId::{FungibleToken, MiningResource, NativeToken, Stable};
 
 		// NativeToken
 		// 0 => NEER

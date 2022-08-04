@@ -16,7 +16,6 @@ serde = { version = '1.0.137', optional = true, features = ['derive'] }
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 smallvec = "1.6.1"
 hex-literal = { version = "0.3.4" }
-#evm = { git = "https://github.com/PureStake/evm", branch = "joshy-scale-info", default-features = false, features = ["with-codec"] }
 
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.24", default-features = false }
