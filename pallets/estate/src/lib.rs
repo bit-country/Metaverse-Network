@@ -631,7 +631,7 @@ pub mod pallet {
 		/// - `coordinates`: list of land units coordinates
 		///
 		/// Emits `LandBlockDeployed` if successful.
-		#[pallet::weight(T::WeightInfo::deploy_land_block())]
+		#[pallet::weight(T::WeightInfo::deploy_land_block() * coordinates.len() as u64)]
 		#[transactional]
 		pub fn deploy_land_block(
 			origin: OriginFor<T>,
