@@ -46,7 +46,10 @@ pub mod module {
 
 		/// The origin which may set filter.
 		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
-
+		/// The base call filter to be used in normal operating mode
+		type NormalCallFilter: Contains<Self::Call>;
+		/// The base call filter to be used when we are in the middle of migrations
+		type MaintenanceCallFilter: Contains<Self::Call>;
 		/// Extrinsics' weights
 		type WeightInfo: WeightInfo;
 	}
@@ -172,6 +175,16 @@ pub mod module {
 			Self::deposit_event(Event::MaintenanceModeEnded);
 
 			Ok(().into())
+		}
+	}
+
+	impl<T: Config> Contains<T::Call> for Pallet<T> {
+		fn contains(call: &T::Call) -> bool {
+			if MaintenanceMode::<T>::get() {
+				T::MaintenanceCallFilter::contains(call)
+			} else {
+				T::NormalCallFilter::contains(call)
+			}
 		}
 	}
 }
