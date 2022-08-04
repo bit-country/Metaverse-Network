@@ -1069,6 +1069,37 @@ impl pallet_contracts::Config for Runtime {
 	type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
 }
 
+// Treasury and Bounty
+parameter_types! {
+	pub const ProposalBond: Permill = Permill::from_percent(5);
+	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
+	pub const ProposalBondMaximum: Balance = 50 * DOLLARS;
+	pub const SpendPeriod: BlockNumber = 1 * DAYS;
+	pub const Burn: Permill = Permill::from_percent(0); // No burn
+	pub const MaxApprovals: u32 = 100;
+}
+
+type EnsureRootOrHalfCouncilCollective =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
+
+impl pallet_treasury::Config for Runtime {
+	type PalletId = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type ApproveOrigin = EnsureRootOrHalfCouncilCollective;
+	type RejectOrigin = EnsureRootOrHalfCouncilCollective;
+	type Event = Event;
+	type OnSlash = Treasury;
+	type ProposalBond = ProposalBond;
+	type ProposalBondMinimum = ProposalBondMinimum;
+	type SpendPeriod = SpendPeriod;
+	type Burn = Burn;
+	type BurnDestination = ();
+	type SpendFunds = ();
+	type WeightInfo = ();
+	type MaxApprovals = MaxApprovals;
+	type ProposalBondMaximum = ProposalBondMaximum;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1128,8 +1159,8 @@ construct_runtime!(
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
 
 		// Technical committee
-		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>}
-
+		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>},
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Event<T>}
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
