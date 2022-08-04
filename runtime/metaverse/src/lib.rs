@@ -238,9 +238,9 @@ parameter_types! {
 // Filter call that we don't enable before governance launch
 // Allow base system calls needed for block production and runtime upgrade
 // Other calls will be disallowed
-pub struct BaseFilter;
+pub struct NormalCallFilter;
 
-impl Contains<Call> for BaseFilter {
+impl Contains<Call> for NormalCallFilter {
 	fn contains(c: &Call) -> bool {
 		let is_parachain_call = matches!(
 			c,
@@ -268,11 +268,33 @@ impl Contains<Call> for BaseFilter {
 	}
 }
 
+/// Maintenance mode Call filter
+pub struct MaintenanceFilter;
+impl Contains<Call> for MaintenanceFilter {
+	fn contains(c: &Call) -> bool {
+		match c {
+			Call::Auction(_) => false,
+			Call::Balances(_) => false,
+			Call::Currencies(_) => false,
+			Call::Crowdloan(_) => false,
+			Call::Continuum(_) => false,
+			Call::Economy(_) => false,
+			Call::Estate(_) => false,
+			Call::Mining(_) => false,
+			Call::Metaverse(_) => false,
+			Call::Nft(_) => false,
+			Call::Treasury(_) => false,
+			Call::Vesting(_) => false,
+			_ => true,
+		}
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = Emergency;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -918,6 +940,8 @@ impl economy::Config for Runtime {
 impl emergency::Config for Runtime {
 	type Event = Event;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type NormalCallFilter = NormalCallFilter;
+	type MaintenanceCallFilter = MaintenanceFilter;
 	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
 }
 
