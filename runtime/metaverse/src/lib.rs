@@ -238,9 +238,9 @@ parameter_types! {
 // Filter call that we don't enable before governance launch
 // Allow base system calls needed for block production and runtime upgrade
 // Other calls will be disallowed
-pub struct BaseFilter;
+pub struct NormalCallFilter;
 
-impl Contains<Call> for BaseFilter {
+impl Contains<Call> for NormalCallFilter {
 	fn contains(c: &Call) -> bool {
 		let is_parachain_call = matches!(
 			c,
@@ -268,11 +268,33 @@ impl Contains<Call> for BaseFilter {
 	}
 }
 
+/// Maintenance mode Call filter
+pub struct MaintenanceFilter;
+impl Contains<Call> for MaintenanceFilter {
+	fn contains(c: &Call) -> bool {
+		match c {
+			Call::Auction(_) => false,
+			Call::Balances(_) => false,
+			Call::Currencies(_) => false,
+			Call::Crowdloan(_) => false,
+			Call::Continuum(_) => false,
+			Call::Economy(_) => false,
+			Call::Estate(_) => false,
+			Call::Mining(_) => false,
+			Call::Metaverse(_) => false,
+			Call::Nft(_) => false,
+			Call::Treasury(_) => false,
+			Call::Vesting(_) => false,
+			_ => true,
+		}
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = Emergency;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -918,6 +940,8 @@ impl economy::Config for Runtime {
 impl emergency::Config for Runtime {
 	type Event = Event;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type NormalCallFilter = NormalCallFilter;
+	type MaintenanceCallFilter = MaintenanceFilter;
 	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
 }
 
@@ -1069,6 +1093,37 @@ impl pallet_contracts::Config for Runtime {
 	type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
 }
 
+// Treasury and Bounty
+parameter_types! {
+	pub const ProposalBond: Permill = Permill::from_percent(5);
+	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
+	pub const ProposalBondMaximum: Balance = 50 * DOLLARS;
+	pub const SpendPeriod: BlockNumber = 1 * DAYS;
+	pub const Burn: Permill = Permill::from_percent(0); // No burn
+	pub const MaxApprovals: u32 = 100;
+}
+
+type EnsureRootOrHalfCouncilCollective =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
+
+impl pallet_treasury::Config for Runtime {
+	type PalletId = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type ApproveOrigin = EnsureRootOrHalfCouncilCollective;
+	type RejectOrigin = EnsureRootOrHalfCouncilCollective;
+	type Event = Event;
+	type OnSlash = Treasury;
+	type ProposalBond = ProposalBond;
+	type ProposalBondMinimum = ProposalBondMinimum;
+	type SpendPeriod = SpendPeriod;
+	type Burn = Burn;
+	type BurnDestination = ();
+	type SpendFunds = ();
+	type WeightInfo = ();
+	type MaxApprovals = MaxApprovals;
+	type ProposalBondMaximum = ProposalBondMaximum;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1128,8 +1183,8 @@ construct_runtime!(
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
 
 		// Technical committee
-		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>}
-
+		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>},
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Event<T>}
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}

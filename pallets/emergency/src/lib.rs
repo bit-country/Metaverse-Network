@@ -27,12 +27,12 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use sp_runtime::DispatchResult;
 use sp_std::{prelude::*, vec::Vec};
+
+pub use module::*;
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
-
-pub use module::*;
 
 pub mod weights;
 
@@ -46,7 +46,10 @@ pub mod module {
 
 		/// The origin which may set filter.
 		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
-
+		/// The base call filter to be used in normal operating mode
+		type NormalCallFilter: Contains<Self::Call>;
+		/// The base call filter to be used when we are in the middle of migrations
+		type MaintenanceCallFilter: Contains<Self::Call>;
 		/// Extrinsics' weights
 		type WeightInfo: WeightInfo;
 	}
@@ -57,6 +60,10 @@ pub mod module {
 		CannotStopEmergencyCall,
 		/// invalid character encoding
 		InvalidPalletAndFunction,
+		/// The chain cannot enter maintenance mode because it is already in maintenance mode
+		AlreadyInMaintenanceMode,
+		/// The chain cannot resume normal operation because it is not in maintenance mode
+		NotInMaintenanceMode,
 	}
 
 	#[pallet::event]
@@ -72,6 +79,10 @@ pub mod module {
 			pallet_name_bytes: Vec<u8>,
 			function_name_bytes: Vec<u8>,
 		},
+		/// Chain is enter maintenance mode
+		MaintenanceModeStarted,
+		/// Chain is exit maintenance mode and enter normal operation
+		MaintenanceModeEnded,
 	}
 
 	/// The paused transaction map
@@ -80,6 +91,11 @@ pub mod module {
 	#[pallet::storage]
 	#[pallet::getter(fn emergency_stopped_pallets)]
 	pub type EmergencyStoppedPallets<T: Config> = StorageMap<_, Twox64Concat, (Vec<u8>, Vec<u8>), (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn maintenance_mode)]
+	/// If the chain is in maintenance mode
+	type MaintenanceMode<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
@@ -126,6 +142,49 @@ pub mod module {
 				});
 			};
 			Ok(())
+		}
+
+		#[pallet::weight(T::DbWeight::get().read + 2 * T::DbWeight::get().write)]
+		#[transactional]
+		pub fn start_maintenance_mode(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			// Ensure Origin
+			T::EmergencyOrigin::ensure_origin(origin)?;
+
+			// Ensure we're not aleady in maintenance mode.
+			ensure!(!MaintenanceMode::<T>::get(), Error::<T>::AlreadyInMaintenanceMode);
+
+			MaintenanceMode::<T>::put(true);
+
+			// Event
+			Self::deposit_event(Event::MaintenanceModeStarted);
+
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::DbWeight::get().read + 2 * T::DbWeight::get().write)]
+		#[transactional]
+		pub fn exit_maintenance_mode(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
+			// Ensure Origin
+			T::EmergencyOrigin::ensure_origin(origin)?;
+
+			// Ensure we're started the maintenance mode.
+			ensure!(MaintenanceMode::<T>::get(), Error::<T>::NotInMaintenanceMode);
+
+			MaintenanceMode::<T>::put(false);
+
+			Self::deposit_event(Event::MaintenanceModeEnded);
+
+			Ok(().into())
+		}
+	}
+
+	impl<T: Config> Contains<T::Call> for Pallet<T> {
+		fn contains(call: &T::Call) -> bool {
+			if MaintenanceMode::<T>::get() {
+				T::MaintenanceCallFilter::contains(call)
+			} else {
+				T::NormalCallFilter::contains(call)
+			}
 		}
 	}
 }
