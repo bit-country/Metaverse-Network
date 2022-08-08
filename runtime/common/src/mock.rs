@@ -227,6 +227,15 @@ impl pallet_scheduler::Config for Test {
 	type NoPreimagePostponement = ();
 }
 
+impl evm_mapping::Config for Test {
+	type Event = Event;
+	type Currency = Balances;
+	type AddressMapping = EvmAddressMapping<Test>;
+	type ChainId = ConstU64<2096>;
+	type TransferAll = ();
+	// type WeightInfo = ();
+}
+
 pub const ALICE: AccountId = AccountId::new([1u8; 32]);
 pub const BOB: AccountId = AccountId::new([2u8; 32]);
 pub const EVA: AccountId = AccountId::new([3u8; 32]);
@@ -277,6 +286,7 @@ frame_support::construct_runtime!(
 		Tokens: orml_tokens exclude_parts { Call },
 		Balances: pallet_balances,
 		Currencies: pallet_currencies,
+		EvmMapping: evm_mapping,
         Scheduler: pallet_scheduler,
 	}
 );
