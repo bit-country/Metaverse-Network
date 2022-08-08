@@ -17,3 +17,5 @@
 
 mod currencies;
 pub mod precompiles;
+mod tests;
+//mod weights;
