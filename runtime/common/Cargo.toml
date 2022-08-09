@@ -41,7 +41,7 @@ primitives = { package = "bit-country-primitives", path = "../../primitives/meta
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
 estate = { package = "pallet-estate", path = "../../pallets/estate", default-features = false }
-evm_mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", default-features = false }
+evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", default-features = false }
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
 continuum = { package = "pallet-continuum", path = "../../pallets/continuum", version = "0.0.1", default-features = false }
 auction = { package = "pallet-auction", path = "../../pallets/auction", version = "2.0.0-rc6", default-features = false }
@@ -81,7 +81,7 @@ std = [
     "continuum/std",
     "currencies/std",
     "mining/std",
-    "evm_mapping/std",
+    "evm-mapping/std",
     "governance/std",
     "crowdloan/std",
     "economy/std",
