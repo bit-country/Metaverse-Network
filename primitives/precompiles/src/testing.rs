@@ -258,11 +258,11 @@ impl<'p, P: PrecompileSet> PrecompilesTester<'p, P> {
 
 		let res = self.precompiles.execute(
 			handle,
-			// self.to,
-			// &self.data,
-			// self.target_gas,
-			// &self.context,
-			// self.is_static,
+			/* self.to,
+			 * &self.data,
+			 * self.target_gas,
+			 * &self.context,
+			 * self.is_static, */
 		);
 
 		self.subcall_handle = handle.subcall_handle.take();

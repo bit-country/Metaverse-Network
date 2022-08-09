@@ -227,6 +227,28 @@ impl pallet_scheduler::Config for Test {
 	type NoPreimagePostponement = ();
 }
 
+impl pallet_evm::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+
+	type BlockGasLimit = BlockGasLimit;
+	type ChainId = ChainId;
+	type BlockHashMapping = EthereumBlockHashMapping<Self>;
+	type Runner = pallet_evm::runner::stack::Runner<Self>;
+
+	type CallOrigin = EnsureAddressRoot<AccountId>;
+	type WithdrawOrigin = EnsureAddressNever<AccountId>;
+	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+
+	type FeeCalculator = ();
+	type GasWeightMapping = ();
+	type OnChargeTransaction = ();
+	type FindAuthor = FindAuthorTruncated<Aura>;
+	type PrecompilesType = MetaverseNetworkPrecompiles<Self>;
+	type PrecompilesValue = PrecompilesValue;
+	// type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
+}
+
 impl evm_mapping::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
@@ -241,7 +263,7 @@ pub const BOB: AccountId = AccountId::new([2u8; 32]);
 pub const EVA: AccountId = AccountId::new([3u8; 32]);
 
 pub fn alice() -> AccountId {
-	<Test as module_evm::Config>::AddressMapping::get_account_id(&alice_evm_addr())
+	<Test as evm_mapping::Config>::AddressMapping::get_account_id(&alice_evm_addr())
 }
 
 pub fn alice_evm_addr() -> EvmAddress {
@@ -249,7 +271,7 @@ pub fn alice_evm_addr() -> EvmAddress {
 }
 
 pub fn bob() -> AccountId {
-	<Test as module_evm::Config>::AddressMapping::get_account_id(&bob_evm_addr())
+	<Test as evm_mapping::Config>::AddressMapping::get_account_id(&bob_evm_addr())
 }
 
 pub fn bob_evm_addr() -> EvmAddress {
@@ -287,6 +309,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances,
 		Currencies: pallet_currencies,
 		EvmMapping: evm_mapping,
+		EvmModule: pallet_evm,
         Scheduler: pallet_scheduler,
 	}
 );
@@ -310,9 +333,35 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	let mut accounts = BTreeMap::new();
 
+	accounts.insert(
+		alice_evm_addr(),
+		pallet_evm::GenesisAccount {
+			nonce: 1,
+			balance: INITIAL_BALANCE,
+			code: vec![],
+			storage: std::collections::BTreeMap::new(),
+		},
+	);
+	
+	accounts.insert(
+		bob_evm_addr(),
+		pallet_evm::GenesisAccount {
+			nonce: 1,
+			balance: INITIAL_BALANCE,
+			code: Default::default(),
+			storage: Default::default(),
+		},
+	);
+
 	pallet_balances::GenesisConfig::<Test>::default()
 		.assimilate_storage(&mut storage)
 		.unwrap();
+	pallet_evm::GenesisConfig::<Test> {
+		chain_id: 2096,
+		accounts,
+	}
+	.assimilate_storage(&mut storage)
+	.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(storage);
 	ext.execute_with(|| {

@@ -81,7 +81,7 @@ std = [
     "continuum/std",
     "currencies/std",
     "mining/std",
-    "evm-mapping/std",
+    "evm_mapping/std",
     "governance/std",
     "crowdloan/std",
     "economy/std",
