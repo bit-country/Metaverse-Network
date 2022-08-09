@@ -270,6 +270,7 @@ impl Contains<Call> for NormalCallFilter {
 			| Call::PolkadotXcm{..}
 			// Orml XCM wrapper
 			| Call::OrmlXcm{..}
+			| Call::Balances(..)
 		);
 
 		if is_core {
