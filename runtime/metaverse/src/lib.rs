@@ -170,7 +170,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 59,
+	spec_version: 64,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -238,9 +238,9 @@ parameter_types! {
 // Filter call that we don't enable before governance launch
 // Allow base system calls needed for block production and runtime upgrade
 // Other calls will be disallowed
-pub struct BaseFilter;
+pub struct NormalCallFilter;
 
-impl Contains<Call> for BaseFilter {
+impl Contains<Call> for NormalCallFilter {
 	fn contains(c: &Call) -> bool {
 		let is_parachain_call = matches!(
 			c,
@@ -268,11 +268,33 @@ impl Contains<Call> for BaseFilter {
 	}
 }
 
+/// Maintenance mode Call filter
+pub struct MaintenanceFilter;
+impl Contains<Call> for MaintenanceFilter {
+	fn contains(c: &Call) -> bool {
+		match c {
+			Call::Auction(_) => false,
+			Call::Balances(_) => false,
+			Call::Currencies(_) => false,
+			Call::Crowdloan(_) => false,
+			Call::Continuum(_) => false,
+			Call::Economy(_) => false,
+			Call::Estate(_) => false,
+			Call::Mining(_) => false,
+			Call::Metaverse(_) => false,
+			Call::Nft(_) => false,
+			Call::Treasury(_) => false,
+			Call::Vesting(_) => false,
+			_ => true,
+		}
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = Emergency;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -328,6 +350,7 @@ parameter_types! {
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
 	pub const BitMiningTreasury: PalletId = PalletId(*b"bit/ming");
 	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
+	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
 	pub const MaxAuthorities: u32 = 50;
 }
 
@@ -421,8 +444,9 @@ parameter_types! {
 	pub const CouncilMaxMembers: u32 = 10;
 }
 
-// Council related pallets
+// Council & Technical committee related pallets
 type CouncilCollective = pallet_collective::Instance1;
+type TechnicalCommitteeCollective = pallet_collective::Instance2;
 
 impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type Origin = Origin;
@@ -431,6 +455,23 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
 	type MaxMembers = CouncilMaxMembers;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const TechnicalCommitteeMotionDuration: BlockNumber = 5 * DAYS;
+	pub const TechnicalCommitteeMaxProposals: u32 = 100;
+	pub const TechnicalCouncilMaxMembers: u32 = 3;
+}
+
+impl pallet_collective::Config<TechnicalCommitteeCollective> for Runtime {
+	type Origin = Origin;
+	type Proposal = Call;
+	type Event = Event;
+	type MotionDuration = TechnicalCommitteeMotionDuration;
+	type MaxProposals = TechnicalCommitteeMaxProposals;
+	type MaxMembers = TechnicalCouncilMaxMembers;
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
@@ -521,7 +562,7 @@ parameter_types! {
 
 impl metaverse::Config for Runtime {
 	type Event = Event;
-	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
+	type MetaverseTreasury = LocalMetaverseFundPalletId;
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
 	type MinContribution = MinContribution;
@@ -576,7 +617,7 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
-	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
+	pub const MaxFinality: u32 = 500; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
 	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
@@ -659,6 +700,7 @@ impl pallet_vesting::Config for Runtime {
 parameter_types! {
 	//Mining Resource Currency Id
 	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
 }
 
 impl mining::Config for Runtime {
@@ -669,6 +711,7 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
+	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
@@ -908,6 +951,8 @@ impl economy::Config for Runtime {
 impl emergency::Config for Runtime {
 	type Event = Event;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type NormalCallFilter = NormalCallFilter;
+	type MaintenanceCallFilter = MaintenanceFilter;
 	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
 }
 
@@ -1059,6 +1104,37 @@ impl pallet_contracts::Config for Runtime {
 	type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
 }
 
+// Treasury and Bounty
+parameter_types! {
+	pub const ProposalBond: Permill = Permill::from_percent(5);
+	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
+	pub const ProposalBondMaximum: Balance = 50 * DOLLARS;
+	pub const SpendPeriod: BlockNumber = 1 * DAYS;
+	pub const Burn: Permill = Permill::from_percent(0); // No burn
+	pub const MaxApprovals: u32 = 100;
+}
+
+type EnsureRootOrHalfCouncilCollective =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
+
+impl pallet_treasury::Config for Runtime {
+	type PalletId = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type ApproveOrigin = EnsureRootOrHalfCouncilCollective;
+	type RejectOrigin = EnsureRootOrHalfCouncilCollective;
+	type Event = Event;
+	type OnSlash = Treasury;
+	type ProposalBond = ProposalBond;
+	type ProposalBondMinimum = ProposalBondMinimum;
+	type SpendPeriod = SpendPeriod;
+	type Burn = Burn;
+	type BurnDestination = ();
+	type SpendFunds = ();
+	type WeightInfo = ();
+	type MaxApprovals = MaxApprovals;
+	type ProposalBondMaximum = ProposalBondMaximum;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1116,6 +1192,10 @@ construct_runtime!(
 
 		// ink! Smart Contracts.
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
+
+		// Technical committee
+		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>},
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Event<T>}
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}

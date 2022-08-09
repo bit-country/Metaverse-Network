@@ -5228,7 +5228,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-runtime"
-version = "0.0.38"
+version = "0.0.60"
 dependencies = [
  "auction-manager",
  "bit-country-primitives",
@@ -5283,6 +5283,7 @@ dependencies = [
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-treasury",
  "pallet-utility",
  "pallet-vesting",
  "parity-scale-codec",
