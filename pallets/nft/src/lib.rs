@@ -590,7 +590,7 @@ pub mod pallet {
 		/// The dispatch origin for this call must be _Root_.
 		/// - `class_id`: the class ID of the collection
 		///
-		/// Emits `BurnedNft` if successful.
+		/// Emits `CollectionLocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn force_lock_collection(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResult {
 			ensure_root(origin)?;
@@ -726,7 +726,7 @@ pub mod pallet {
 		/// The dispatch origin for this call must be _Root_.
 		/// - `class_id`: the class ID of the collection
 		///
-		/// Emits `CollectionUnlocked` if successful.
+		/// Emits `NftUnlocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn force_unlock_nft(origin: OriginFor<T>, token_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
 			ensure_root(origin)?;
