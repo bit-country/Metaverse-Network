@@ -3,7 +3,11 @@
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
+use sp_runtime::{
+	testing::Header,
+	traits::{ConvertInto, IdentityLookup},
+	DispatchError, Perbill,
+};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 use sp_std::vec::Vec;
@@ -26,6 +30,8 @@ pub type EstateId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 5;
+pub const CHARLIE: AccountId = 6;
+pub const DOM: AccountId = 7;
 pub const BENEFICIARY_ID: AccountId = 99;
 pub const AUCTION_BENEFICIARY_ID: AccountId = 100;
 pub const CLASS_FUND_ID: AccountId = 123;
@@ -38,6 +44,7 @@ pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
 pub const COORDINATE_IN_1: (i32, i32) = (-4, 4);
 pub const COORDINATE_IN_2: (i32, i32) = (-4, 5);
 pub const COORDINATE_IN_3: (i32, i32) = (-4, 6);
+pub const COORDINATE_IN_4: (i32, i32) = (-4, 8);
 pub const COORDINATE_OUT: (i32, i32) = (0, 101);
 pub const COORDINATE_IN_AUCTION: (i32, i32) = (-4, 7);
 pub const ESTATE_IN_AUCTION: EstateId = 3;
@@ -445,8 +452,12 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(new_data)
 	}
 
-	fn get_total_issuance(_class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
-		Ok(1)
+	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
+		Ok(10u64)
+	}
+
+	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError> {
+		Ok(ALICE)
 	}
 }
 
@@ -457,6 +468,10 @@ parameter_types! {
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = MAX_BOUND;
 	pub const NetworkFee: Balance = 1; // Network fee
+	pub const MaxOffersPerEstate: u32 = 2;
+	pub const MinLeasePricePerBlock: Balance = 1u128;
+	pub const MaxLeasePeriod: u32 = 9;
+	pub const LeaseOfferExpiryPeriod: u32 = 6;
 }
 
 impl Config for Runtime {
@@ -474,6 +489,11 @@ impl Config for Runtime {
 	type NFTTokenizationSource = MockNFTHandler;
 	type DefaultMaxBound = DefaultMaxBound;
 	type NetworkFee = NetworkFee;
+	type MaxOffersPerEstate = MaxOffersPerEstate;
+	type MinLeasePricePerBlock = MinLeasePricePerBlock;
+	type MaxLeasePeriod = MaxLeasePeriod;
+	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
+	type BlockNumberToBalance = ConvertInto;
 }
 
 construct_runtime!(
@@ -524,4 +544,16 @@ pub fn last_event() -> Event {
 		.pop()
 		.expect("Event expected")
 		.event
+}
+
+fn next_block() {
+	EstateModule::on_finalize(System::block_number());
+	System::set_block_number(System::block_number() + 1);
+	EstateModule::on_initialize(System::block_number());
+}
+
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		next_block();
+	}
 }

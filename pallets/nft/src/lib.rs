@@ -1237,4 +1237,9 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::AssetInfoNotFound)?;
 		Ok(class_info.total_issuance)
 	}
+
+	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<T::AccountId, DispatchError> {
+		let asset_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+		Ok(asset_info.owner)
+	}
 }
