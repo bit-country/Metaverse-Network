@@ -26,14 +26,14 @@ pub mod pioneer_imports {
 	use sp_runtime::Percent;
 	pub use xcm_executor::XcmExecutor;
 
-	pub use core_traits::TokenSymbol;
+	pub use core_primitives:CurrencyId;
 	pub use pioneer_runtime::{
 		AccountId, Auction, Balances, BlockNumber, Continuum, CumulusXcm, Currencies, DmpQueue, Estate, Metaverse,
 		Mining, Nft, Origin, OrmlNFT, OrmlXcm, ParachainSystem, PolkadotXcm, Runtime, Scheduler, Session, System,
 		Timestamp, TransactionPayment, Vesting, XTokens, XcmpQueue,
 	};
 
-	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::NEER;
+	pub const NATIVE_TOKEN: CurrencyId = 0;
 }
 
 /// Accounts
