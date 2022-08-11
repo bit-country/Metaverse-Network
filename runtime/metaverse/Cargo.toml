@@ -187,6 +187,8 @@ runtime-benchmarks = [
     "pallet-collective/runtime-benchmarks",
     "nft/runtime-benchmarks",
     "estate/runtime-benchmarks",
+    "emergency/runtime-benchmarks",
+    "currencies/runtime-benchmarks",
     "auction/runtime-benchmarks",
     "metaverse/runtime-benchmarks",
     "crowdloan/runtime-benchmarks",

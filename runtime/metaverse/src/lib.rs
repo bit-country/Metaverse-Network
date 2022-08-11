@@ -583,6 +583,11 @@ parameter_types! {
 	pub const RewardPaymentDelay: u32 = 1;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
 	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
+	pub const MaxOffersPerEstate: u32 = 100;
+	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
+	pub const MaxLeasePeriod: u32 = 1000000;
+	pub const LeaseOfferExpiryPeriod: u32 = 10000;
+
 }
 
 impl estate::Config for Runtime {
@@ -600,6 +605,11 @@ impl estate::Config for Runtime {
 	type NFTTokenizationSource = Nft;
 	type DefaultMaxBound = DefaultMaxBound;
 	type NetworkFee = NetworkFee;
+	type MaxOffersPerEstate = MaxOffersPerEstate;
+	type MinLeasePricePerBlock = MinLeasePricePerBlock;
+	type MaxLeasePeriod = MaxLeasePeriod;
+	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
+	type BlockNumberToBalance = ConvertInto;
 }
 
 parameter_types! {
@@ -611,6 +621,7 @@ parameter_types! {
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
 	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
+	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
 }
 
 impl auction::Config for Runtime {
@@ -629,6 +640,7 @@ impl auction::Config for Runtime {
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
+	type OfferDuration = OfferDuration;
 }
 
 impl continuum::Config for Runtime {
@@ -932,6 +944,7 @@ impl economy::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type MiningCurrencyId = MiningCurrencyId;
 	type NFTHandler = Nft;
+	type EstateHandler = Estate;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
@@ -1230,6 +1243,7 @@ mod benches {
 	define_benchmarks!(
 		[auction, benchmarking::auction]
 		[continuum, benchmarking::continuum]
+		[economy, benchmarking::economy]
 		[estate, benchmarking::estate]
 		[metaverse, benchmarking::metaverse]
 	);
@@ -1641,7 +1655,6 @@ impl_runtime_apis! {
 			use nft::benchmarking::Pallet as NftBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
-			use economy::benchmarking::EconomyModule as EconomyBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
 
@@ -1653,14 +1666,14 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
-			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, currencies, CurrenciesBench::<Runtime>);
 			list_benchmark!(list, extra, emergency, EmergencyBench::<Runtime>);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
+			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
+			orml_list_benchmark!(list, extra, economy, benchmarking::economy);
 			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
-			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1678,7 +1691,6 @@ impl_runtime_apis! {
 
 			use nft::benchmarking::Pallet as NftBench;
 			use mining::benchmarking::MiningModule as MiningBench;
-			use economy::benchmarking::EconomyModule as EconomyBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
@@ -1705,14 +1717,14 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, nft, NftBench::<Runtime>);
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
-			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
 			add_benchmark!(params, batches, emergency, EmergencyBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
+			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
+			orml_add_benchmark!(params, batches, economy, benchmarking::economy);
 			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);
-			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			Ok(batches)
 		}
 	}

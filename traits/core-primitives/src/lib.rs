@@ -279,6 +279,8 @@ pub trait NFTTrait<AccountId, Balance> {
 	fn get_nft_class_detail(class_id: Self::ClassId) -> Result<NftClassData<Balance>, DispatchError>;
 	/// Get class total issuance
 	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError>;
+	/// Get nft asset owner
+	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError>;
 }
 
 pub trait RoundTrait<BlockNumber> {

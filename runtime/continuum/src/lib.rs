@@ -1383,6 +1383,10 @@ parameter_types! {
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
 	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
+	pub const MaxOffersPerEstate: u32 = 100;
+	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
+	pub const MaxLeasePeriod: u32 = 1000000;
+	pub const LeaseOfferExpiryPeriod: u32 = 10000;
 }
 
 impl estate::Config for Runtime {
@@ -1400,6 +1404,11 @@ impl estate::Config for Runtime {
 	type NFTTokenizationSource = Nft;
 	type DefaultMaxBound = DefaultMaxBound;
 	type NetworkFee = NetworkFee;
+	type MaxOffersPerEstate = MaxOffersPerEstate;
+	type MinLeasePricePerBlock = MinLeasePricePerBlock;
+	type MaxLeasePeriod = MaxLeasePeriod;
+	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
+	type BlockNumberToBalance = ConvertInto;
 }
 
 parameter_types! {
@@ -1411,6 +1420,7 @@ parameter_types! {
 	pub const MaxBundleItem: u32 = 100; // Maximum number of item per bundle
 	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
+	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
 }
 
 impl auction::Config for Runtime {
@@ -1429,6 +1439,7 @@ impl auction::Config for Runtime {
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
+	type OfferDuration = OfferDuration;
 }
 
 impl continuum::Config for Runtime {
@@ -1466,6 +1477,7 @@ impl economy::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type MiningCurrencyId = MiningCurrencyId;
 	type NFTHandler = Nft;
+	type EstateHandler = Estate;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;

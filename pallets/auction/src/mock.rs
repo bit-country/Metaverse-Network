@@ -11,7 +11,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
 use primitives::{
-	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId,
+	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId, NftOffer,
 	UndeployedLandBlockId,
 };
 
@@ -159,6 +159,18 @@ impl Estate<u128> for EstateHandler {
 	fn get_total_undeploy_land_units() -> u64 {
 		100
 	}
+
+	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
+
+	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
+
+	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
 }
 
 pub struct Handler;
@@ -224,6 +236,7 @@ parameter_types! {
 	pub const MaxBundleItem: u32 = 5;
 	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
+	pub const OfferDuration: BlockNumber = 10; // Default 10
 }
 
 pub struct MetaverseInfoSource {}
@@ -304,6 +317,7 @@ impl Config for Runtime {
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = ();
+	type OfferDuration = OfferDuration;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
