@@ -396,7 +396,7 @@ fn currency_id_convert_test() {
 
 	assert_eq!(
 		FungibleTokenId::MiningResource(0).encode(),
-		vec![3, 0, 0, 0, 0, 0, 0, 0, 0]
+		vec![2, 0, 0, 0, 0, 0, 0, 0, 0]
 	);
 
 	assert_eq!(
