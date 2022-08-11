@@ -812,13 +812,13 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 10 * MINUTES;
-	pub const VotingPeriod: BlockNumber = 10 * MINUTES;
-	pub const FastTrackVotingPeriod: BlockNumber = 10 * MINUTES;
+	pub const LaunchPeriod: BlockNumber = 6 * HOURS;
+	pub const VotingPeriod: BlockNumber = 6 * HOURS;
+	pub const FastTrackVotingPeriod: BlockNumber = 1 * HOURS;
 	pub const InstantAllowed: bool = true;
-	pub const MinimumDeposit: Balance = 100 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 10 * MINUTES;
-	pub const CooloffPeriod: BlockNumber = 10 * MINUTES;
+	pub const MinimumDeposit: Balance = 1000 * DOLLARS;
+	pub const EnactmentPeriod: BlockNumber = 1 * HOURS;
+	pub const CooloffPeriod: BlockNumber = 1 * HOURS;
 	pub const PreimageByteDeposit: Balance = 1 * CENTS;
 	pub const MaxVotes: u32 = 50;
 	pub const MaxProposals: u32 = 50;
