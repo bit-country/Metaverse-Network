@@ -1171,6 +1171,26 @@ impl pallet_treasury::Config for Runtime {
 	type ProposalBondMaximum = ProposalBondMaximum;
 }
 
+pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
+impl orml_currencies::Config for Runtime {
+	type Event = Event;
+	type MultiCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = ();
+}
+
+
+impl evm_mapping::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type AddressMapping = EvmAddressMapping<Runtime>;
+	type ChainId = ChainId;
+	type TransferAll = OrmlCurrencies;
+	type WeightInfo = weights::module_evm_mapping::WeightInfo<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1185,18 +1205,15 @@ construct_runtime!(
 		Aura: pallet_aura::{Pallet, Config<T>},
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 		Utility: pallet_utility::{Pallet, Call, Event},
-
-		// Governance
-		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
+		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 
 		// Token & Related
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
+		OrmlCurrencies: orml_currencies::{Pallet, Call, Event<T>},
 
 		// Metaverse & Related
 		OrmlNFT: orml_nft::{Pallet, Storage},
@@ -1215,6 +1232,8 @@ construct_runtime!(
 		// Governance
 		Governance: governance::{Pallet, Call ,Storage, Event<T>},
 		Democracy: pallet_democracy::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
+		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
 
 		// External consensus support
 		CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>},
@@ -1222,9 +1241,11 @@ construct_runtime!(
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>},
 
+		// EVM 
 		EVM: pallet_evm::{Pallet, Call, Storage, Config, Event<T>},
 		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
+		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
 
 		// ink! Smart Contracts.
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
@@ -1691,6 +1712,7 @@ impl_runtime_apis! {
 			use mining::benchmarking::MiningModule as MiningBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
+			use evm_mapping::benchmarking::EvmMappingModule as EvmMappingBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1703,6 +1725,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, currencies, CurrenciesBench::<Runtime>);
 			list_benchmark!(list, extra, emergency, EmergencyBench::<Runtime>);
+			list_benchmark!(list, extra, evm_mapping, EvmMappingBench::<Runtime>);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
 			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 			orml_list_benchmark!(list, extra, economy, benchmarking::economy);
@@ -1728,6 +1751,7 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
+			use evm_mapping::benchmarking::EvmMappingModule as EvmMappingBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1754,6 +1778,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
 			add_benchmark!(params, batches, emergency, EmergencyBench::<Runtime>);
+			add_benchmark!(params, batches, evm_mapping, EvmMappingBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
 			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			orml_add_benchmark!(params, batches, economy, benchmarking::economy);
