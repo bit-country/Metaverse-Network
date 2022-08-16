@@ -1,5 +1,5 @@
 pub mod mock;
-//smod tests;
+// mod tests;
 
 use frame_support::log;
 use hex_literal::hex;

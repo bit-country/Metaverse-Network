@@ -1,3 +1,20 @@
+// This file is part of Metaverse.Network & Bit.Country.
+
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::Get;
@@ -184,5 +201,139 @@ where
 
 		// Build output.
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	use crate::precompile::mock::{
+		neer_evm_address, alice, nuum_evm_address, bob, erc20_address_not_exists, new_test_ext,
+		Balances, Test,
+	};
+	use frame_support::assert_noop;
+	use hex_literal::hex;
+
+	type MultiCurrencyPrecompile = crate::MultiCurrencyPrecompile<Test>;
+
+	#[test]
+	fn handles_invalid_currency_id() {
+		new_test_ext().execute_with(|| {
+			// call with not exists erc20
+			let context = Context {
+				address: Default::default(),
+				caller: erc20_address_not_exists(),
+				apparent_value: Default::default(),
+			};
+
+			// symbol() -> 0x95d89b41
+			let input = hex! {"
+				95d89b41
+			"};
+
+			assert_noop!(
+				MultiCurrencyPrecompile::execute(&input, Some(10_000), &context, false),
+				PrecompileFailure::Revert {
+					exit_status: ExitRevert::Reverted,
+					output: "invalid currency id".into(),
+					cost: target_gas_limit(Some(10_000)).unwrap(),
+				}
+			);
+		});
+	}
+
+	#[test]
+	fn total_supply_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// totalSupply() -> 0x18160ddd
+			let input = hex! {"
+				18160ddd
+			"};
+
+			// Token
+			context.caller = neer_evm_address();
+
+			// 2_000_000_000
+			let expected_output = hex! {"
+				00000000000000000000000000000000 00000000000000000000000077359400
+			"};
+
+			let resp = MultiCurrencyPrecompile::execute(&input, None, &context, false).unwrap();
+			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+			assert_eq!(resp.output, expected_output.to_vec());
+		});
+	}
+
+	#[test]
+	fn balance_of_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// balanceOf(address) -> 0x70a08231
+			// account
+			let input = hex! {"
+				70a08231
+				000000000000000000000000 1000000000000000000000000000000000000001
+			"};
+
+			// Token
+			context.caller = neer_evm_address();
+
+			// INITIAL_BALANCE = 1_000_000_000_000
+			let expected_output = hex! {"
+				00000000000000000000000000000000 0000000000000000000000e8d4a51000
+			"};
+
+			let resp = MultiCurrencyPrecompile::execute(&input, None, &context, false).unwrap();
+			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+			assert_eq!(resp.output, expected_output.to_vec());
+		})
+	}
+
+	#[test]
+	fn transfer_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// transfer(address,address,uint256) -> 0xbeabacc8
+			// from
+			// to
+			// amount
+			let input = hex! {"
+				beabacc8
+				000000000000000000000000 1000000000000000000000000000000000000001
+				000000000000000000000000 1000000000000000000000000000000000000002
+				00000000000000000000000000000000 00000000000000000000000000000001
+			"};
+
+			let from_balance = Balances::free_balance(alice());
+			let to_balance = Balances::free_balance(bob());
+
+			// Token
+			context.caller = neer_evm_address();
+
+			let resp = MultiCurrencyPrecompile::execute(&input, None, &context, false).unwrap();
+			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+			assert_eq!(resp.output, [0u8; 0].to_vec());
+
+			assert_eq!(Balances::free_balance(alice()), from_balance - 1);
+			assert_eq!(Balances::free_balance(bob()), to_balance + 1);
+
+		})
 	}
 }
