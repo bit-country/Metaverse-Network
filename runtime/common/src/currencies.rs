@@ -244,6 +244,62 @@ mod tests {
 	}
 
 	#[test]
+	fn name_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// name() -> 0x06fdde03
+			let input = hex! {"
+				06fdde03
+			"};
+
+			// Token
+			context.caller = neer_evm_address();
+
+			let expected_output = hex! {"
+				0000000000000000000000000000000000000000000000000000000000000020
+				0000000000000000000000000000000000000000000000000000000000000005
+				4163616c61000000000000000000000000000000000000000000000000000000
+			"};
+
+			let resp = MultiCurrencyPrecompile::execute(&input, None, &context, false).unwrap();
+			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+			assert_eq!(resp.output, expected_output.to_vec());
+		});
+	}
+
+	#[test]
+	fn decimals_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// decimals() -> 0x313ce567
+			let input = hex! {"
+				313ce567
+			"};
+
+			// Token
+			context.caller = neer_evm_address();
+
+			let expected_output = hex! {"
+				00000000000000000000000000000000 0000000000000000000000000000000c
+			"};
+
+			let resp = MultiCurrencyPrecompile::execute(&input, None, &context, false).unwrap();
+			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+			assert_eq!(resp.output, expected_output.to_vec());
+		});
+	}
+
+	#[test]
 	fn total_supply_works() {
 		new_test_ext().execute_with(|| {
 			let mut context = Context {
