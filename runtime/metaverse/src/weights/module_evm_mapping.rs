@@ -21,7 +21,7 @@ use sp_std::marker::PhantomData;
 /// Weight functions for EVM mapping.
 pub struct WeightInfo<T>(PhantomData<T>);
 
-impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
+impl<T: frame_system::Config> WeightInfo for WeightInfo<T> {
 	fn claim_eth_account() -> Weight {
 		(345_800_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
