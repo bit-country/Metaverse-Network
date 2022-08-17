@@ -1181,7 +1181,6 @@ impl orml_currencies::Config for Runtime {
 	type WeightInfo = ();
 }
 
-
 impl evm_mapping::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
@@ -1241,7 +1240,7 @@ construct_runtime!(
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>},
 
-		// EVM 
+		// EVM
 		EVM: pallet_evm::{Pallet, Call, Storage, Config, Event<T>},
 		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},

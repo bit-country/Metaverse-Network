@@ -54,7 +54,7 @@ pub use weights::WeightInfo;
 
 mod mock;
 mod tests;
-//pub mod weights;
+pub mod weights;
 
 #[derive(Encode, Decode, Clone, TypeInfo)]
 pub struct EcdsaSignature(pub [u8; 65]);
@@ -100,8 +100,6 @@ pub trait AddressMapping<AccountId> {
 	/// and false if is not.
 	fn is_linked(account_id: &AccountId, evm: &EvmAddress) -> bool;
 }
-
-pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -243,7 +241,6 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-
 	#[cfg(any(feature = "runtime-benchmarks", feature = "std"))]
 	// Returns an Etherum public key derived from an Ethereum secret key.
 	pub fn eth_public(secret: &libsecp256k1::SecretKey) -> libsecp256k1::PublicKey {
@@ -260,7 +257,6 @@ impl<T: Config> Pallet<T> {
 	#[cfg(any(feature = "runtime-benchmarks", feature = "std"))]
 	// Constructs a message and signs it.
 	pub fn eth_sign(secret: &libsecp256k1::SecretKey, who: &T::AccountId) -> EcdsaSignature {
-		
 		let address = Self::eth_address(secret);
 
 		let what = address.using_encoded(to_ascii_hex);
@@ -269,9 +265,7 @@ impl<T: Config> Pallet<T> {
 		let mut r = [0u8; 65];
 		r[0..64].copy_from_slice(&sig.serialize()[..]);
 		r[64] = recovery_id.serialize();
-		let signature = EcdsaSignature {
-			0: r
-		};
+		let signature = EcdsaSignature { 0: r };
 		signature
 	}
 

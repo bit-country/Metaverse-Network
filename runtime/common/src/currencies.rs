@@ -209,8 +209,7 @@ mod tests {
 	use super::*;
 
 	use crate::precompile::mock::{
-		neer_evm_address, alice, nuum_evm_address, bob, erc20_address_not_exists, new_test_ext,
-		Balances, Test,
+		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
 	};
 	use frame_support::assert_noop;
 	use hex_literal::hex;
@@ -389,7 +388,6 @@ mod tests {
 
 			assert_eq!(Balances::free_balance(alice()), from_balance - 1);
 			assert_eq!(Balances::free_balance(bob()), to_balance + 1);
-
 		})
 	}
 }
