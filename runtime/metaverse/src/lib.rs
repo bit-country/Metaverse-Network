@@ -90,6 +90,7 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
+use evm_mapping::EvmAddressMapping;
 use metaverse_runtime_common::precompiles::MetaverseNetworkPrecompiles;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
@@ -1174,7 +1175,6 @@ impl pallet_treasury::Config for Runtime {
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 impl orml_currencies::Config for Runtime {
-	type Event = Event;
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
@@ -1212,7 +1212,7 @@ construct_runtime!(
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-		OrmlCurrencies: orml_currencies::{Pallet, Call, Event<T>},
+		OrmlCurrencies: orml_currencies::{Pallet, Call},
 
 		// Metaverse & Related
 		OrmlNFT: orml_nft::{Pallet, Storage},
