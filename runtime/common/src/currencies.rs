@@ -16,7 +16,7 @@
 // limitations under the License.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-
+use crate::WeightToGas;
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
@@ -208,7 +208,7 @@ where
 mod tests {
 	use super::*;
 
-	use crate::precompile::mock::{
+	use crate::mock::{
 		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
 	};
 	use frame_support::assert_noop;
@@ -236,7 +236,7 @@ mod tests {
 				PrecompileFailure::Revert {
 					exit_status: ExitRevert::Reverted,
 					output: "invalid currency id".into(),
-					cost: target_gas_limit(Some(10_000)).unwrap(),
+					cost: Some(10_000).unwrap(),
 				}
 			);
 		});
