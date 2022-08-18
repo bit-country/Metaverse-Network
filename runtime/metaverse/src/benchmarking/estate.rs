@@ -1,7 +1,7 @@
 #![cfg(feature = "runtime-benchmarks")]
 
 use frame_benchmarking::{account, whitelisted_caller};
-use frame_support::traits::{Currency, Get, OnInitialize};
+use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
 use sp_runtime::traits::{AccountIdConversion, Lookup, StaticLookup, UniqueSaturatedInto};
@@ -31,6 +31,18 @@ const COORDINATE_IN_2: (i32, i32) = (-1, 0);
 const COORDINATE_OUT: (i32, i32) = (0, 101);
 const ESTATE_ID: EstateId = 0;
 const CURRENCY_ID: FungibleTokenId = FungibleTokenId::NativeToken(0);
+
+fn next_block() {
+	Estate::on_finalize(System::block_number());
+	System::set_block_number(System::block_number() + 1);
+	Estate::on_initialize(System::block_number());
+}
+
+pub fn run_to_block(n: u32) {
+	while System::block_number() < n {
+		next_block();
+	}
+}
 
 runtime_benchmarks! {
 	{ Runtime, estate }
@@ -336,13 +348,130 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 		create_land_and_estate_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
-		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 2, UndeployedLandBlockType::Transferable);
+		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 1, UndeployedLandBlockType::Transferable);
 	}: _(RawOrigin::Signed(caller.clone()), Default::default(), METAVERSE_ID, (0,0), vec![COORDINATE_IN_1])
 	verify {
 		assert_eq!(Estate::get_undeployed_land_block(0), None);
-		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0, 0)));
-		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_2), Some(OwnerId::Token(0, 1)))
+		assert_eq!(Estate::get_land_units(METAVERSE_ID, COORDINATE_IN_1), Some(OwnerId::Token(0, 0)))
 	}
+
+	// burn_undeployed_land_blocks
+	burn_undeployed_land_blocks {
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
+		create_land_and_estate_group();
+		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 2, UndeployedLandBlockType::Transferable);
+	}: _(RawOrigin::Root, Default::default())
+	verify {
+		assert_eq!(Estate::get_undeployed_land_block(0), None)
+	}
+
+	// create lease offer
+	create_lease_offer {
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
+
+		let target: AccountId = whitelisted_caller();
+		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &target, dollar(1000));
+
+		create_land_and_estate_group();
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
+		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+	}: _(RawOrigin::Signed(target.clone()), 0u32.into(), dollar(1), 100u32.into())
+
+	// accept lease offer
+	accept_lease_offer {
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
+
+		let target: AccountId = whitelisted_caller();
+		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &target, dollar(1000));
+
+		create_land_and_estate_group();
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
+		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
+	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
+
+	// cancel lease
+	cancel_lease{
+		System::set_block_number(1u32.into());
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
+
+		let target: AccountId = whitelisted_caller();
+		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &target, dollar(1000));
+
+		create_land_and_estate_group();
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
+		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
+		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
+		run_to_block(5);
+	}: _(RawOrigin::Root, caller.clone(), 0u32.into(), target.clone())
+
+	// remove lease
+	remove_expired_lease{
+		System::set_block_number(1u32.into());
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
+
+		let target: AccountId = whitelisted_caller();
+		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &target, dollar(1000));
+
+		create_land_and_estate_group();
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
+		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
+		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
+		run_to_block(102);
+	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
+
+	// remove lease offer
+	remove_lease_offer {
+		System::set_block_number(1u32.into());
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
+
+		let target: AccountId = whitelisted_caller();
+		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &target, dollar(1000));
+
+		create_land_and_estate_group();
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
+		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
+		run_to_block(10002);
+	}: _(RawOrigin::Signed(target.clone()), 0u32.into())
+
+	// collect rent
+	collect_rent{
+		System::set_block_number(1u32.into());
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(10));
+
+		let target: AccountId = whitelisted_caller();
+		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &target, dollar(1000));
+
+		create_land_and_estate_group();
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
+		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
+		Estate::accept_lease_offer(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), target.clone());
+		run_to_block(10);
+	}: _(RawOrigin::Signed(caller.clone()), 0u32.into(), target.clone())
 
 	on_initialize {
 		// INITIALIZE RUNTIME STATE
@@ -379,19 +508,6 @@ runtime_benchmarks! {
 	}: {
 		Estate::on_initialize(6u32.into());
 	}
-
-	// burn_undeployed_land_blocks
-	burn_undeployed_land_blocks {
-		let caller: AccountId = whitelisted_caller();
-		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		create_land_and_estate_group();
-		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 2, UndeployedLandBlockType::Transferable);
-	}: _(RawOrigin::Root, Default::default())
-	verify {
-		assert_eq!(Estate::get_undeployed_land_block(0), None)
-	}
-
 }
 
 #[cfg(test)]

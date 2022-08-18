@@ -37,13 +37,12 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{
-	AssetId, Balance, ClassId, DomainId, ElementId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex,
-};
+use primitives::{estate::Estate, EstateId};
+use primitives::{AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
-#[cfg(feature = "runtime-benchmarks")]
-pub mod benchmarking;
+//#[cfg(feature = "runtime-benchmarks")]
+//pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -53,36 +52,13 @@ mod tests;
 
 pub mod weights;
 
-/// A record for basic element info. i.e. price, compositions and rules
-#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct ElementInfo {
-	/// Power price for the element
-	power_price: PowerAmount,
-	/// The tuple of other element index -> required amount
-	compositions: Vec<(ElementId, u128)>,
-}
-
-/// A record for basic element info. i.e. price, compositions and rules
-#[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct OrderInfo<BlockNumber> {
-	/// Power price for the element
-	power_amount: PowerAmount,
-	/// The tuple of other element index -> required amount
-	bit_amount: Balance,
-	/// Target block number that order can be fullfilled
-	target: BlockNumber,
-	/// Commission amount
-	commission_fee: Balance,
-}
-
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
-	use sp_runtime::ArithmeticError;
-
 	use primitives::staking::RoundInfo;
 	use primitives::{ClassId, GroupCollectionId, NftId};
+	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
+	use sp_runtime::ArithmeticError;
 
 	use super::*;
 
@@ -117,6 +93,9 @@ pub mod pallet {
 		/// Round handler
 		type RoundHandler: RoundTrait<Self::BlockNumber>;
 
+		/// Estate handler
+		type EstateHandler: Estate<Self::AccountId>;
+
 		/// Economy treasury fund
 		#[pallet::constant]
 		type EconomyTreasury: Get<PalletId>;
@@ -142,46 +121,6 @@ pub mod pallet {
 	#[pallet::getter(fn get_bit_power_exchange_rate)]
 	pub(super) type BitPowerExchangeRate<T: Config> = StorageValue<_, Balance, ValueQuery>;
 
-	/// Element index
-	#[pallet::storage]
-	#[pallet::getter(fn get_element_index)]
-	pub type ElementIndex<T: Config> = StorageMap<_, Twox64Concat, ElementId, ElementInfo>;
-
-	/// Element balance of individual account
-	#[pallet::storage]
-	#[pallet::getter(fn get_elements_by_account)]
-	pub type ElementBalance<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, ElementId, u64, ValueQuery>;
-
-	/// Authorize power generator collection with associated commission
-	#[pallet::storage]
-	#[pallet::getter(fn get_authorized_generator_collection)]
-	pub type AuthorizedGeneratorCollection<T: Config> =
-		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassId), (), OptionQuery>;
-
-	/// Authorize power generator collection with associated commission
-	#[pallet::storage]
-	#[pallet::getter(fn get_authorized_distributor_collection)]
-	pub type AuthorizedDistributorCollection<T: Config> =
-		StorageMap<_, Twox64Concat, (GroupCollectionId, ClassId), (), OptionQuery>;
-
-	/// Specific NFT commission for power conversion
-	#[pallet::storage]
-	#[pallet::getter(fn get_power_conversion_commission)]
-	pub type EconomyCommission<T: Config> = StorageMap<_, Twox64Concat, (ClassId, TokenId), Perbill, OptionQuery>;
-
-	/// Buy power by user request queue
-	#[pallet::storage]
-	#[pallet::getter(fn get_buy_power_by_user_request_queue)]
-	pub type BuyPowerByUserRequestQueue<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, (ClassId, TokenId), Twox64Concat, T::AccountId, OrderInfo<T::BlockNumber>>;
-
-	/// Buy power by distributor request queue
-	#[pallet::storage]
-	#[pallet::getter(fn get_buy_power_by_distributor_request_queue)]
-	pub type BuyPowerByDistributorRequestQueue<T: Config> =
-		StorageDoubleMap<_, Twox64Concat, (ClassId, TokenId), Twox64Concat, T::AccountId, OrderInfo<T::BlockNumber>>;
-
 	/// Power balance of user
 	#[pallet::storage]
 	#[pallet::getter(fn get_power_balance)]
@@ -196,6 +135,11 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_staking_info)]
 	pub type StakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+	/// Estate-staking info
+	#[pallet::storage]
+	#[pallet::getter(fn get_estate_staking_info)]
+	pub type EstateStakingInfo<T: Config> = StorageMap<_, Twox64Concat, EstateId, BalanceOf<T>, ValueQuery>;
 
 	/// Self-staking exit queue info
 	/// This will keep track of stake exits queue, unstake only allows after 1 round
@@ -212,107 +156,64 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// Power generator collection has authorized [group_collection_id, class_id]
-		PowerGeneratorCollectionAuthorized(GroupCollectionId, ClassId),
-		/// Power distributor collection has authorized [group_collection_id, class_id]
-		PowerDistributorCollectionAuthorized(GroupCollectionId, ClassId),
-		/// New power order by user has added to queue [sender, power_amount, (class_id, token_id)]
-		BuyPowerOrderByUserHasAddedToQueue(T::AccountId, PowerAmount, (ClassId, TokenId)),
-		/// New power order by user has executed [sender, power_amount, (class_id, token_id)]
-		BuyPowerOrderByUserExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
-		/// New power order by distributor has added to the queue [sender, power_amount, (class_id,
-		/// token_id)]
-		BuyPowerOrderByDistributorHasAddedToQueue(T::AccountId, PowerAmount, (ClassId, TokenId)),
-		/// New power order by distributor has executed [sender, power_amount, (class_id, token_id)]
-		BuyPowerOrderByDistributorExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
-		/// New power order by generator has executed [sender, power_amount, (class_id, token_id)]
-		BuyPowerOrderByGeneratorToNetworkExecuted(T::AccountId, PowerAmount, (ClassId, TokenId)),
-		/// New element minted on chain [sender, element_index, quantity]
-		ElementMinted(T::AccountId, u32, u64),
 		/// Mining resource burned [amount]
 		MiningResourceBurned(Balance),
 		/// Self staking to economy 101 [staker, amount]
 		SelfStakedToEconomy101(T::AccountId, BalanceOf<T>),
+		/// Estate staking to economy 101 [staker, estate_id, amount]
+		EstateStakedToEconomy101(T::AccountId, EstateId, BalanceOf<T>),
 		/// Self staking removed from economy 101 [staker, amount]
 		SelfStakingRemovedFromEconomy101(T::AccountId, BalanceOf<T>),
+		/// Estate staking remoed from economy 101 [staker, estate_id, amount]
+		EstateStakingRemovedFromEconomy101(T::AccountId, EstateId, BalanceOf<T>),
 		/// New BIT to Power exchange rate has updated [amount]
 		BitPowerExchangeRateUpdated(Balance),
 		/// Unstaked amount has been withdrew after it's expired [account, rate]
 		UnstakedAmountWithdrew(T::AccountId, BalanceOf<T>),
 		/// Set power balance by sudo [account, power_amount]
 		SetPowerBalance(T::AccountId, PowerAmount),
-		/// Commission has been updated [(class_id, token_id), percent]
-		CommissionUpdated((ClassId, TokenId), Perbill),
 		/// Power conversion request has cancelled [(class_id, token_id), account]
 		CancelPowerConversionRequest((ClassId, TokenId), T::AccountId),
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
-		// Power generator collection already authorized
-		PowerGeneratorCollectionAlreadyAuthorized,
-		// Power distributor collection already authorized
-		PowerDistributorCollectionAlreadyAuthorized,
-		// NFT asset does not exist
+		/// NFT asset does not exist
 		NFTAssetDoesNotExist,
-		// NFT class does not exist
+		/// NFT class does not exist
 		NFTClassDoesNotExist,
-		// NFT collection does not exist
+		/// NFT collection does not exist
 		NFTCollectionDoesNotExist,
-		// No permission
+		/// No permission
 		NoPermission,
-		// No permission to buy power
-		NoPermissionToBuyPower,
-		// No permission to execute buy power order
-		NoPermissionToExecuteBuyPowerOrder,
-		// No authorization
-		NoPermissionToExecuteGeneratingPowerOrder,
-		// No authorization
+		/// No authorization
 		NoAuthorization,
-		// Element does not exist
-		ElementDoesNotExist,
-		// Number of element is invalid
-		InvalidNumberOfElements,
-		// Insufficient power balance
+		/// Insufficient power balance
 		AccountHasNoPowerBalance,
-		// Insufficient balance to mint element
-		InsufficientBalanceToMintElement,
-		// Insufficient balance to distribute power
-		InsufficientBalanceToDistributePower,
-		// Insufficient balance to generate power
-		InsufficientBalanceToGeneratePower,
-		// Insufficient balance to buy power
-		InsufficientBalanceToBuyPower,
-		// Power amount is zero
+		/// Power amount is zero
 		PowerAmountIsZero,
-		// Power distributor queue does not exist
-		PowerDistributionQueueDoesNotExist,
-		// Power generator queue does not exist
-		PowerGenerationQueueDoesNotExist,
-		// Power generator is not authorized
-		PowerGenerationIsNotAuthorized,
-		// Power distributor is not authorized
-		PowerDistributorIsNotAuthorized,
-		// Not enough free balance for staking
+		/// Not enough free balance for staking
 		InsufficientBalanceForStaking,
-		// Unstake amount greater than staked amount
+		/// Unstake amount greater than staked amount
 		UnstakeAmountExceedStakedAmount,
-		// Has scheduled exit staking of current round, only stake/unstake after queue exit
+		/// Has scheduled exit staking, only stake after queue exit
 		ExitQueueAlreadyScheduled,
-		// Stake amount below minimum staking required
+		/// Stake amount below minimum staking required
 		StakeBelowMinimum,
-		// Withdraw future round
+		/// Withdraw future round
 		WithdrawFutureRound,
-		// Exit queue does not exist
+		/// Exit queue does not exist
 		ExitQueueDoesNotExit,
-		// Unstaked amount is zero
+		/// Unstaked amount is zero
 		UnstakeAmountIsZero,
-		// Request already exists
+		/// Request already exists
 		RequestAlreadyExist,
-		// Order has not reach target
+		/// Order has not reach target
 		NotReadyToExecute,
-		// Order needs to reach target before cancelling
-		OrderIsNotReadyForCancel,
+		/// Staker is not estate owner
+		StakerNotEstateOwner,
+		/// Staking estate does not exist
+		StakeEstateDoesNotExist,
 	}
 
 	#[pallet::call]
@@ -362,444 +263,26 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Authorize a NFT collector for power generator
-		///
-		/// The dispatch origin for this call must be _Root_.
-		///
-		/// `collection_id`: group NFT collection id - future support multi-chain
-		/// `class_id`: NFT collection itself
-		///
-		/// Emit `PowerGeneratorCollectionAuthorized` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn authorize_power_generator_collection(
-			origin: OriginFor<T>,
-			collection_id: GroupCollectionId,
-			class_id: ClassId,
-		) -> DispatchResultWithPostInfo {
-			// Only root can authorize
-			ensure_root(origin)?;
-
-			// Check that NFT collection is not authorized already
-			ensure!(
-				!AuthorizedGeneratorCollection::<T>::contains_key((collection_id, &class_id)),
-				Error::<T>::PowerGeneratorCollectionAlreadyAuthorized
-			);
-
-			// Check if NFT class exist and match the specified collection
-			ensure!(
-				T::NFTHandler::check_collection_and_class(collection_id, class_id)?,
-				Error::<T>::NFTCollectionDoesNotExist
-			);
-
-			AuthorizedGeneratorCollection::<T>::insert((collection_id, &class_id), ());
-
-			Self::deposit_event(Event::<T>::PowerGeneratorCollectionAuthorized(
-				collection_id,
-				class_id.clone(),
-			));
-
-			Ok(().into())
-		}
-
-		/// Authorize a NFT collector for power distributor
-		///
-		/// The dispatch origin for this call must be _Root_.
-		///
-		///
-		/// `collection_id`: group NFT collection id - future support multi-chain
-		/// `class_id`: NFT collection itself
-		///
-		/// Emit `PowerDistributorCollectionAuthorized` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn authorize_power_distributor_collection(
-			origin: OriginFor<T>,
-			collection_id: GroupCollectionId,
-			class_id: ClassId,
-		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
-
-			// Check that NFT collection is not authorized already
-			ensure!(
-				!AuthorizedDistributorCollection::<T>::contains_key((collection_id, &class_id)),
-				Error::<T>::PowerDistributorCollectionAlreadyAuthorized
-			);
-
-			// Check if NFT class exist and match the specified collection
-			ensure!(
-				T::NFTHandler::check_collection_and_class(collection_id, class_id)?,
-				Error::<T>::NFTCollectionDoesNotExist
-			);
-
-			AuthorizedDistributorCollection::<T>::insert((collection_id, &class_id), ());
-
-			Self::deposit_event(Event::<T>::PowerDistributorCollectionAuthorized(
-				collection_id,
-				class_id.clone(),
-			));
-
-			Ok(().into())
-		}
-
-		/// Buy power with specific distributor NFT
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `power_amount`: power amount
-		/// `distributor_nft_id`: NFT id of power distributor
-		///
-		/// Emit `BuyPowerOrderByUserHasAddedToQueue` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn buy_power_by_user(
-			origin: OriginFor<T>,
-			power_amount: PowerAmount,
-			distributor_nft_id: (ClassId, TokenId),
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			ensure!(power_amount > 0, Error::<T>::PowerAmountIsZero);
-
-			ensure!(
-				!BuyPowerByUserRequestQueue::<T>::contains_key(&distributor_nft_id, &who),
-				Error::<T>::RequestAlreadyExist
-			);
-
-			// Get NFT details
-			let group_distributor_nft = T::NFTHandler::get_nft_group_collection(&distributor_nft_id.0)?;
-
-			// Ensure distributor NFT is authorized
-			ensure!(
-				AuthorizedDistributorCollection::<T>::contains_key((group_distributor_nft, distributor_nft_id.0)),
-				Error::<T>::NoPermissionToBuyPower
-			);
-
-			let commission = match EconomyCommission::<T>::get(distributor_nft_id) {
-				Some(cm) => cm,
-				None => Perbill::from_percent(0),
-			};
-
-			// Convert to bit by using global exchange rate
-			let (bit_amount, commission_fee) = Self::convert_power_to_bit(power_amount.into(), commission);
-			ensure!(
-				T::FungibleTokenCurrency::can_reserve(T::MiningCurrencyId::get(), &who, bit_amount),
-				Error::<T>::InsufficientBalanceToBuyPower
-			);
-
-			// Reserve BIT
-			T::FungibleTokenCurrency::reserve(T::MiningCurrencyId::get(), &who, bit_amount);
-
-			let target_block = Self::get_target_execution_order(power_amount)?;
-
-			// Add key if does not exist
-			BuyPowerByUserRequestQueue::<T>::insert(
-				distributor_nft_id,
-				who.clone(),
-				OrderInfo {
-					power_amount,
-					bit_amount,
-					target: target_block,
-					commission_fee,
-				},
-			);
-
-			Self::deposit_event(Event::<T>::BuyPowerOrderByUserHasAddedToQueue(
-				who.clone(),
-				power_amount,
-				distributor_nft_id,
-			));
-
-			Ok(().into())
-		}
-
-		/// Execute power order from specific distributor NFT
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `distributor_nft_id`: distributor nft id of how execute the order
-		/// `beneficiary`: the account of order
-		///
-		/// Emit `BuyPowerOrderByUserExecuted` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn execute_buy_power_order(
-			origin: OriginFor<T>,
-			distributor_nft_id: (ClassId, TokenId),
-			beneficiary: T::AccountId,
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			// Get asset detail
-			// Check nft is part of distributor collection
-			let group_distributor_nft_detail = T::NFTHandler::get_nft_group_collection(&distributor_nft_id.0)?;
-			// Ensure distributor NFT is authorized
-			ensure!(
-				AuthorizedDistributorCollection::<T>::contains_key((
-					group_distributor_nft_detail,
-					distributor_nft_id.0
-				)),
-				Error::<T>::NoAuthorization
-			);
-
-			// Check if executor is the owner of the Distributor NFT
-			ensure!(
-				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
-				Error::<T>::NoPermissionToExecuteBuyPowerOrder
-			);
-
-			// Process queue and delete if queue has been proceeded
-			let buy_power_by_user_request =
-				Self::get_buy_power_by_user_request_queue(&distributor_nft_id, &beneficiary)
-					.ok_or(Error::<T>::PowerDistributionQueueDoesNotExist)?;
-
-			ensure!(
-				Self::check_target_execution(buy_power_by_user_request.target),
-				Error::<T>::NotReadyToExecute
-			);
-
-			let power_amount = buy_power_by_user_request.power_amount;
-			let bit_amount = buy_power_by_user_request.bit_amount;
-
-			// Unreserve BIT
-			T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
-
-			// Burn BIT
-			Self::do_burn(&beneficiary, bit_amount)?;
-
-			// Get distributor NFT account id
-			let nft_account_id: T::AccountId =
-				T::EconomyTreasury::get().into_sub_account_truncating(distributor_nft_id);
-			// Deposit commission to NFT operator
-			T::FungibleTokenCurrency::deposit(
-				T::MiningCurrencyId::get(),
-				&nft_account_id,
-				buy_power_by_user_request.commission_fee,
-			);
-
-			// Transfer power amount
-			Self::distribute_power_by_operator(power_amount, &beneficiary, distributor_nft_id)?;
-
-			BuyPowerByUserRequestQueue::<T>::remove(distributor_nft_id, beneficiary);
-
-			Ok(().into())
-		}
-
-		/// Buy power from specific power generator
-		///
-		/// The dispatch origin for this call must be _Signed_. The owner of power distributor nft
-		///
-		/// `generator_nft_id`: nft id of power generator
-		/// `distributor_nft_id`: NFT id of power distributor
-		/// `power_amount`: power amount
-		///
-		/// Emit `BuyPowerOrderByDistributorHasAddedToQueue` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn buy_power_by_distributor(
-			origin: OriginFor<T>,
-			generator_nft_id: (ClassId, TokenId),
-			distributor_nft_id: (ClassId, TokenId),
-			power_amount: PowerAmount,
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			// Get distributor NFT account id
-			let distributor_nft_account_id: T::AccountId =
-				T::EconomyTreasury::get().into_sub_account_truncating(distributor_nft_id);
-
-			ensure!(
-				!BuyPowerByDistributorRequestQueue::<T>::contains_key(&generator_nft_id, &distributor_nft_account_id),
-				Error::<T>::RequestAlreadyExist
-			);
-
-			// Ensure buy power by distributor only called by distributor nft owner
-			// Check nft is part of distributor collection
-			let group_distributor_nft_detail = T::NFTHandler::get_nft_group_collection(&distributor_nft_id.0)?;
-			// Ensure distributor NFT is authorized
-			ensure!(
-				AuthorizedDistributorCollection::<T>::contains_key((
-					group_distributor_nft_detail,
-					distributor_nft_id.0
-				)),
-				Error::<T>::NoPermissionToBuyPower
-			);
-
-			// Check if origin is the owner of the Distributor NFT
-			ensure!(
-				T::NFTHandler::check_ownership(&who, &distributor_nft_id)?,
-				Error::<T>::NoPermissionToBuyPower
-			);
-
-			// Check nft is part of generator collection
-			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&generator_nft_id.0)?;
-			// Ensure generator NFT is authorized
-			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key((group_generator_nft_detail, generator_nft_id.0)),
-				Error::<T>::PowerGenerationIsNotAuthorized
-			);
-
-			let commission = match EconomyCommission::<T>::get(generator_nft_id) {
-				Some(cm) => cm,
-				None => Perbill::from_percent(0),
-			};
-
-			// Convert to bit by using global exchange rate
-			let (bit_amount, commission_fee) = Self::convert_power_to_bit(power_amount.into(), commission);
-
-			ensure!(
-				T::FungibleTokenCurrency::can_reserve(
-					T::MiningCurrencyId::get(),
-					&distributor_nft_account_id,
-					bit_amount
-				),
-				Error::<T>::InsufficientBalanceToBuyPower
-			);
-
-			// Reserve BIT
-			T::FungibleTokenCurrency::reserve(T::MiningCurrencyId::get(), &distributor_nft_account_id, bit_amount);
-
-			let target_block = Self::get_target_execution_order(power_amount)?;
-
-			// Add key if does not exist
-			BuyPowerByDistributorRequestQueue::<T>::insert(
-				generator_nft_id,
-				distributor_nft_account_id.clone(),
-				OrderInfo {
-					power_amount,
-					bit_amount,
-					target: target_block,
-					commission_fee,
-				},
-			);
-
-			Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorHasAddedToQueue(
-				distributor_nft_account_id.clone(),
-				power_amount,
-				generator_nft_id,
-			));
-
-			Ok(().into())
-		}
-
-		/// Execute buying power order of power distributors from specific generator NFT
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `distributor_nft_id`: distributor nft id of how execute the order
-		/// `beneficiary`: the account of order
-		///
-		/// Emit `BuyPowerOrderByUserExecuted` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn execute_generate_power_order(
-			origin: OriginFor<T>,
-			generator_nft_id: (ClassId, TokenId),
-			beneficiary: T::AccountId,
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			// Ensure executor is holding generator NFT
-			// Check nft is part of generator collection
-			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&generator_nft_id.0)?;
-			// Ensure generator NFT is authorized
-			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key((group_generator_nft_detail, generator_nft_id.0)),
-				Error::<T>::PowerGenerationIsNotAuthorized
-			);
-
-			// Check if origin is the owner of the Distributor NFT
-			ensure!(
-				T::NFTHandler::check_ownership(&who, &generator_nft_id)?,
-				Error::<T>::NoPermissionToExecuteGeneratingPowerOrder
-			);
-
-			let buy_power_by_distributor_request =
-				Self::get_buy_power_by_distributor_request_queue(&generator_nft_id, &beneficiary)
-					.ok_or(Error::<T>::PowerGenerationQueueDoesNotExist)?;
-
-			let power_amount = buy_power_by_distributor_request.power_amount;
-			let bit_amount = buy_power_by_distributor_request.bit_amount;
-
-			// Unreserve BIT
-			T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &beneficiary, bit_amount);
-
-			// Burn BIT
-			Self::do_burn(&beneficiary, bit_amount)?;
-
-			// Get distributor NFT account id
-			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account_truncating(generator_nft_id);
-			// Deposit commission to NFT operator
-			T::FungibleTokenCurrency::deposit(
-				T::MiningCurrencyId::get(),
-				&nft_account_id,
-				buy_power_by_distributor_request.commission_fee,
-			);
-
-			// Transfer power amount
-			Self::generate_power_by_operator(power_amount, &beneficiary, generator_nft_id)?;
-
-			BuyPowerByDistributorRequestQueue::<T>::remove(&generator_nft_id, &beneficiary);
-
-			Ok(().into())
-		}
-
-		/// Mint new elements
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `element_index`: the element index
-		/// `number_of_element`: number of element needs to be minted
-		///
-		/// Emit `ElementMinted` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn mint_element(
-			origin: OriginFor<T>,
-			element_index: ElementId,
-			number_of_element: u64,
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			ensure!(!number_of_element.is_zero(), Error::<T>::InvalidNumberOfElements);
-
-			let element_info = ElementIndex::<T>::get(element_index).ok_or(Error::<T>::ElementDoesNotExist)?;
-
-			let power_cost: PowerAmount = number_of_element
-				.checked_mul(element_info.power_price)
-				.ok_or(ArithmeticError::Overflow)?;
-
-			let mut power_balance = PowerBalance::<T>::get(&who);
-			ensure!(power_balance > power_cost, Error::<T>::InsufficientBalanceToMintElement);
-
-			// Update PowerBalance
-			power_balance = power_balance
-				.checked_sub(power_cost)
-				.ok_or(ArithmeticError::Underflow)?;
-			PowerBalance::<T>::insert(&who, power_balance);
-
-			// Update ElementBalance
-			let mut element_balance = ElementBalance::<T>::get(who.clone(), element_index);
-			element_balance = element_balance
-				.checked_add(number_of_element)
-				.ok_or(ArithmeticError::Overflow)?;
-			ElementBalance::<T>::insert(who.clone(), element_index, element_balance);
-
-			Self::deposit_event(Event::<T>::ElementMinted(who.clone(), element_index, number_of_element));
-
-			Ok(().into())
-		}
-
 		/// Stake native token to staking ledger to receive build material every round
 		///
 		/// The dispatch origin for this call must be _Signed_.
 		///
 		/// `amount`: the stake amount
 		///
-		/// Emit `SelfStakedToEconomy101` event if successful
-		#[pallet::weight(T::WeightInfo::stake())]
+		/// Emit `SelfStakedToEconomy101` event or `EstateStakedToEconomy101` event if successful
+		#[pallet::weight(
+			if estate.is_some() {
+				T::WeightInfo::stake_b()
+			} else {
+				T::WeightInfo::stake_a()
+			}
+		)]
 		#[transactional]
-		pub fn stake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
+		pub fn stake(
+			origin: OriginFor<T>,
+			amount: BalanceOf<T>,
+			estate: Option<EstateId>,
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			// Check if user has enough balance for staking
@@ -815,22 +298,49 @@ pub mod pallet {
 				Error::<T>::ExitQueueAlreadyScheduled
 			);
 
-			// Update staking info
-			let mut staked_balance = StakingInfo::<T>::get(&who);
-			let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+			match estate {
+				None => {
+					let mut staked_balance = StakingInfo::<T>::get(&who);
+					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
-			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
 
-			T::Currency::reserve(&who, amount)?;
+					T::Currency::reserve(&who, amount)?;
 
-			StakingInfo::<T>::insert(&who, total);
+					StakingInfo::<T>::insert(&who, total);
 
-			let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
-			<TotalStake<T>>::put(new_total_staked);
+					let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
+					<TotalStake<T>>::put(new_total_staked);
 
-			let current_round = T::RoundHandler::get_current_round_info();
+					let current_round = T::RoundHandler::get_current_round_info();
+					Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
+				}
+				Some(estate_id) => {
+					ensure!(
+						T::EstateHandler::check_estate(estate_id.clone())?,
+						Error::<T>::StakeEstateDoesNotExist
+					);
+					ensure!(
+						T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
+						Error::<T>::StakerNotEstateOwner
+					);
 
-			Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
+					let mut staked_balance = EstateStakingInfo::<T>::get(&estate_id);
+					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
+
+					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+
+					T::Currency::reserve(&who, amount)?;
+
+					EstateStakingInfo::<T>::insert(&estate_id, total);
+
+					let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
+					<TotalStake<T>>::put(new_total_staked);
+
+					let current_round = T::RoundHandler::get_current_round_info();
+					Self::deposit_event(Event::EstateStakedToEconomy101(who, estate_id, amount));
+				}
+			}
 
 			Ok(().into())
 		}
@@ -842,51 +352,100 @@ pub mod pallet {
 		///
 		/// `amount`: the stake amount
 		///
-		/// Emit `SelfStakingRemovedFromEconomy101` event if successful
-		#[pallet::weight(T::WeightInfo::unstake())]
-		pub fn unstake(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResultWithPostInfo {
+		/// Emit `SelfStakingRemovedFromEconomy101` event or `EstateStakingRemovedFromEconomy101`
+		/// event if successful
+		#[pallet::weight(
+			if estate.is_some() {
+				T::WeightInfo::unstake_b()
+			} else {
+				T::WeightInfo::unstake_a()
+			}
+		)]
+		pub fn unstake(
+			origin: OriginFor<T>,
+			amount: BalanceOf<T>,
+			estate: Option<EstateId>,
+		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
 			// Ensure amount is greater than zero
 			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountIsZero);
 
-			// Update staking info
-			let mut staked_balance = StakingInfo::<T>::get(&who);
-			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+			match estate {
+				None => {
+					let mut staked_balance = StakingInfo::<T>::get(&who);
+					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
-			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
 
-			let amount_to_unstake = if remaining < T::MinimumStake::get() {
-				// Remaining amount below minimum, remove all staked amount
-				staked_balance
-			} else {
-				amount
-			};
+					let amount_to_unstake = if remaining < T::MinimumStake::get() {
+						// Remaining amount below minimum, remove all staked amount
+						staked_balance
+					} else {
+						amount
+					};
 
-			let current_round = T::RoundHandler::get_current_round_info();
-			let next_round = current_round.current.saturating_add(One::one());
+					let current_round = T::RoundHandler::get_current_round_info();
+					let next_round = current_round.current.saturating_add(One::one());
 
-			// Check if user already in exit queue of the current
-			ensure!(
-				!ExitQueue::<T>::contains_key(&who, next_round),
-				Error::<T>::ExitQueueAlreadyScheduled
-			);
+					// This exit queue will be executed by exit_staking extrinsics to unreserved token
+					ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
 
-			// This exit queue will be executed by exit_staking extrinsics to unreserved token
-			ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
+					// Update staking info of user immediately
+					// Remove staking info
+					if amount_to_unstake == staked_balance {
+						StakingInfo::<T>::remove(&who);
+					} else {
+						StakingInfo::<T>::insert(&who, remaining);
+					}
 
-			// Update staking info of user immediately
-			// Remove staking info
-			if amount_to_unstake == staked_balance {
-				StakingInfo::<T>::remove(&who);
-			} else {
-				StakingInfo::<T>::insert(&who, remaining);
+					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
+					<TotalStake<T>>::put(new_total_staked);
+
+					Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
+				}
+				Some(estate_id) => {
+					ensure!(
+						T::EstateHandler::check_estate(estate_id.clone())?,
+						Error::<T>::StakeEstateDoesNotExist
+					);
+					ensure!(
+						T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
+						Error::<T>::StakerNotEstateOwner
+					);
+
+					let mut staked_balance = EstateStakingInfo::<T>::get(estate_id);
+					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+
+					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+
+					let amount_to_unstake = if remaining < T::MinimumStake::get() {
+						// Remaining amount below minimum, remove all staked amount
+						staked_balance
+					} else {
+						amount
+					};
+
+					let current_round = T::RoundHandler::get_current_round_info();
+					let next_round = current_round.current.saturating_add(One::one());
+
+					// This exit queue will be executed by exit_staking extrinsics to unreserved token
+					ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
+
+					// Update staking info of user immediately
+					// Remove staking info
+					if amount_to_unstake == staked_balance {
+						EstateStakingInfo::<T>::remove(&estate_id);
+					} else {
+						EstateStakingInfo::<T>::insert(&estate_id, remaining);
+					}
+
+					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
+					<TotalStake<T>>::put(new_total_staked);
+
+					Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(who, estate_id, amount));
+				}
 			}
-
-			let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
-			<TotalStake<T>>::put(new_total_staked);
-
-			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
 
 			Ok(().into())
 		}
@@ -914,224 +473,6 @@ pub mod pallet {
 			Ok(().into())
 		}
 
-		/// Get more power from the network from specific generator NFT
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `generator_nft_id`: generator nft
-		/// `power_amount`: the power amount that generator want to request
-		///
-		/// Emit `BuyPowerOrderByGeneratorToNetworkExecuted` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn get_more_power_by_generator(
-			origin: OriginFor<T>,
-			generator_nft_id: (ClassId, TokenId),
-			power_amount: PowerAmount,
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			// Get distributor NFT account id
-			let generator_nft_account_id: T::AccountId =
-				T::EconomyTreasury::get().into_sub_account_truncating(generator_nft_id);
-
-			// Ensure get power by generator only called by generator nft owner
-			// Check nft is part of generator collection
-			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&generator_nft_id.0)?;
-			// Ensure generator NFT is authorized
-			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key((group_generator_nft_detail, generator_nft_id.0)),
-				Error::<T>::PowerGenerationIsNotAuthorized
-			);
-
-			// Check if origin is the owner of the Distributor NFT
-			ensure!(
-				T::NFTHandler::check_ownership(&who, &generator_nft_id)?,
-				Error::<T>::NoPermissionToBuyPower
-			);
-
-			// Convert to bit by using global exchange rate - no commission applied
-			let (bit_amount, _commission_fee) =
-				Self::convert_power_to_bit(power_amount.into(), Perbill::from_percent(0));
-
-			ensure!(
-				T::FungibleTokenCurrency::can_reserve(
-					T::MiningCurrencyId::get(),
-					&generator_nft_account_id,
-					bit_amount
-				),
-				Error::<T>::InsufficientBalanceToBuyPower
-			);
-
-			// Burn BIT
-			T::FungibleTokenCurrency::withdraw(T::MiningCurrencyId::get(), &generator_nft_account_id, bit_amount);
-
-			// Update Power Balance
-			Self::distribute_power_by_network(power_amount.into(), &generator_nft_account_id);
-
-			Self::deposit_event(Event::<T>::BuyPowerOrderByGeneratorToNetworkExecuted(
-				generator_nft_account_id.clone(),
-				power_amount,
-				generator_nft_id,
-			));
-
-			Ok(().into())
-		}
-
-		/// Update commission of power distributor / generator
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `nft_id`: nft id of either power generator or distributor
-		/// `commission`: the new commission rate
-		///
-		/// Emit `CommissionUpdated` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn update_commission(
-			origin: OriginFor<T>,
-			nft_id: (ClassId, TokenId),
-			commission: Perbill,
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			// Check if origin is the owner of the NFT
-			ensure!(T::NFTHandler::check_ownership(&who, &nft_id)?, Error::<T>::NoPermission);
-
-			// Check nft is part of generator collection
-			let group_generator_nft_detail = T::NFTHandler::get_nft_group_collection(&nft_id.0)?;
-			// Ensure NFT is authorized
-			ensure!(
-				AuthorizedGeneratorCollection::<T>::contains_key((group_generator_nft_detail, nft_id.0))
-					|| AuthorizedDistributorCollection::<T>::contains_key((group_generator_nft_detail, nft_id.0)),
-				Error::<T>::NoAuthorization
-			);
-
-			EconomyCommission::<T>::insert((nft_id.0, &nft_id.1), commission.clone());
-
-			Self::deposit_event(Event::<T>::CommissionUpdated(nft_id.clone(), commission));
-
-			Ok(().into())
-		}
-
-		/// Withdraw mining resource from nft account
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `nft_id`: nft id of either power generator or distributor
-		/// `amount`: the amount needs to withdraw
-		///
-		/// Emit `Transferred` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn withdraw_mining_resource(
-			origin: OriginFor<T>,
-			nft_id: (ClassId, TokenId),
-			amount: Balance,
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			// Check if origin is the owner of the NFT
-			ensure!(T::NFTHandler::check_ownership(&who, &nft_id)?, Error::<T>::NoPermission);
-
-			// Get NFT account id
-			let nft_account_id: T::AccountId = T::EconomyTreasury::get().into_sub_account_truncating(nft_id);
-
-			T::FungibleTokenCurrency::transfer(T::MiningCurrencyId::get(), &nft_account_id, &who, amount);
-			Ok(().into())
-		}
-
-		/// Cancel queue order of power distributor
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `nft_id`: nft id of either power generator
-		///
-		/// Emit `CancelPowerConversionRequest` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn cancel_user_queue_order(origin: OriginFor<T>, nft_id: (ClassId, TokenId)) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-			ensure!(
-				BuyPowerByUserRequestQueue::<T>::contains_key(nft_id, &who),
-				Error::<T>::PowerGenerationQueueDoesNotExist
-			);
-
-			let order_info = BuyPowerByUserRequestQueue::<T>::get(nft_id, &who)
-				.ok_or(Error::<T>::PowerDistributionQueueDoesNotExist)?;
-
-			let current_block_number = <frame_system::Pallet<T>>::current_block_number();
-
-			ensure!(
-				order_info.target < current_block_number,
-				Error::<T>::OrderIsNotReadyForCancel
-			);
-
-			T::FungibleTokenCurrency::unreserve(T::MiningCurrencyId::get(), &who, order_info.bit_amount);
-
-			BuyPowerByUserRequestQueue::<T>::remove(nft_id, &who);
-
-			Self::deposit_event(Event::CancelPowerConversionRequest(nft_id, who));
-
-			Ok(().into())
-		}
-
-		/// Cancel queue power order of user
-		///
-		/// The dispatch origin for this call must be _Signed_.
-		///
-		/// `nft_id`: nft id of power distributor
-		///
-		/// Emit `CancelPowerConversionRequest` event if successful
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		#[transactional]
-		pub fn cancel_distributor_queue_order(
-			origin: OriginFor<T>,
-			nft_id: (ClassId, TokenId),
-			receiver_nft_id: (ClassId, TokenId),
-		) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
-
-			// Check if origin is the owner of the NFT
-			ensure!(
-				T::NFTHandler::check_ownership(&who, &receiver_nft_id)?,
-				Error::<T>::NoPermission
-			);
-
-			// Nft account id
-			// Get receiver NFT account id
-			let receiver_nft_account_id: T::AccountId =
-				T::EconomyTreasury::get().into_sub_account_truncating(receiver_nft_id);
-
-			// Check if queue exists
-			ensure!(
-				BuyPowerByDistributorRequestQueue::<T>::contains_key(nft_id, &receiver_nft_account_id),
-				Error::<T>::PowerGenerationQueueDoesNotExist
-			);
-
-			let current_block_number = <frame_system::Pallet<T>>::current_block_number();
-
-			let order_info = BuyPowerByDistributorRequestQueue::<T>::get(nft_id, &receiver_nft_account_id)
-				.ok_or(Error::<T>::PowerGenerationQueueDoesNotExist)?;
-
-			ensure!(
-				order_info.target < current_block_number,
-				Error::<T>::OrderIsNotReadyForCancel
-			);
-
-			T::FungibleTokenCurrency::unreserve(
-				T::MiningCurrencyId::get(),
-				&receiver_nft_account_id,
-				order_info.bit_amount,
-			);
-
-			BuyPowerByDistributorRequestQueue::<T>::remove(nft_id, &receiver_nft_account_id);
-
-			Self::deposit_event(Event::CancelPowerConversionRequest(nft_id, receiver_nft_account_id));
-
-			Ok(().into())
-		}
-
 		/// Force unstake native token from staking ledger. The unstaked amount able to redeem
 		/// immediately
 		///
@@ -1141,47 +482,94 @@ pub mod pallet {
 		/// `amount`: the stake amount
 		/// `who`: the address of staker
 		///
-		/// Emit `SelfStakingRemovedFromEconomy101` event if successful
-		#[pallet::weight(T::WeightInfo::unstake())]
+		/// Emit `SelfStakingRemovedFromEconomy101` event or `EstateStakingRemovedFromEconomy101`
+		/// event if successful
+		#[pallet::weight(
+			if estate.is_some() {
+				T::WeightInfo::unstake_b()
+			} else {
+				T::WeightInfo::unstake_a()
+			}
+		)]
 		pub fn force_unstake(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
 			who: T::AccountId,
+			estate: Option<EstateId>,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
 			// Ensure amount is greater than zero
 			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountIsZero);
 
-			// Update staking info
-			let mut staked_balance = StakingInfo::<T>::get(&who);
-			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+			match estate {
+				None => {
+					let mut staked_balance = StakingInfo::<T>::get(&who);
+					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
-			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
 
-			let amount_to_unstake = if remaining < T::MinimumStake::get() {
-				// Remaining amount below minimum, remove all staked amount
-				staked_balance
-			} else {
-				amount
-			};
+					let amount_to_unstake = if remaining < T::MinimumStake::get() {
+						// Remaining amount below minimum, remove all staked amount
+						staked_balance
+					} else {
+						amount
+					};
 
-			// Update staking info of user immediately
-			// Remove staking info
-			if amount_to_unstake == staked_balance {
-				StakingInfo::<T>::remove(&who);
-			} else {
-				StakingInfo::<T>::insert(&who, remaining);
+					// Update staking info of user immediately
+					// Remove staking info
+					if amount_to_unstake == staked_balance {
+						StakingInfo::<T>::remove(&who);
+					} else {
+						StakingInfo::<T>::insert(&who, remaining);
+					}
+
+					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
+					<TotalStake<T>>::put(new_total_staked);
+
+					T::Currency::unreserve(&who, amount_to_unstake);
+
+					Self::deposit_event(Event::UnstakedAmountWithdrew(who.clone(), amount_to_unstake));
+					Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
+				}
+				Some(estate_id) => {
+					ensure!(
+						T::EstateHandler::check_estate(estate_id.clone())?,
+						Error::<T>::StakeEstateDoesNotExist
+					);
+					ensure!(
+						T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
+						Error::<T>::StakerNotEstateOwner
+					);
+					let mut staked_balance = EstateStakingInfo::<T>::get(estate_id);
+					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
+
+					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+
+					let amount_to_unstake = if remaining < T::MinimumStake::get() {
+						// Remaining amount below minimum, remove all staked amount
+						staked_balance
+					} else {
+						amount
+					};
+
+					// Update staking info of user immediately
+					// Remove staking info
+					if amount_to_unstake == staked_balance {
+						EstateStakingInfo::<T>::remove(&estate_id);
+					} else {
+						EstateStakingInfo::<T>::insert(&estate_id, remaining);
+					}
+
+					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
+					<TotalStake<T>>::put(new_total_staked);
+
+					T::Currency::unreserve(&who, amount_to_unstake);
+
+					Self::deposit_event(Event::UnstakedAmountWithdrew(who.clone(), amount_to_unstake));
+					Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(who, estate_id, amount));
+				}
 			}
-
-			let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
-			<TotalStake<T>>::put(new_total_staked);
-
-			T::Currency::unreserve(&who, amount_to_unstake);
-
-			Self::deposit_event(Event::UnstakedAmountWithdrew(who.clone(), amount_to_unstake));
-			Self::deposit_event(Event::SelfStakingRemovedFromEconomy101(who, amount));
-
 			Ok(().into())
 		}
 
@@ -1195,7 +583,7 @@ pub mod pallet {
 		/// `who`: the address of staker
 		///
 		/// Emit `SelfStakingRemovedFromEconomy101` event if successful
-		#[pallet::weight(T::WeightInfo::unstake())]
+		#[pallet::weight(T::WeightInfo::unstake_b())]
 		pub fn force_unreserved_staking(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
@@ -1254,76 +642,6 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn distribute_power_by_operator(
-		power_amount: PowerAmount,
-		beneficiary: &T::AccountId,
-		distributor_nft_id: (ClassId, TokenId),
-	) -> DispatchResult {
-		// Convert distributor NFT to accountId
-		let distributor_nft_account_id: T::AccountId =
-			T::EconomyTreasury::get().into_sub_account_truncating(distributor_nft_id);
-
-		let mut distributor_power_balance = PowerBalance::<T>::get(distributor_nft_account_id.clone());
-		ensure!(
-			distributor_power_balance > power_amount,
-			Error::<T>::InsufficientBalanceToDistributePower
-		);
-		distributor_power_balance = distributor_power_balance
-			.checked_sub(power_amount)
-			.ok_or(ArithmeticError::Underflow)?;
-
-		let mut user_power_balance = PowerBalance::<T>::get(beneficiary.clone());
-		user_power_balance = user_power_balance
-			.checked_add(power_amount)
-			.ok_or(ArithmeticError::Overflow)?;
-
-		PowerBalance::<T>::insert(distributor_nft_account_id.clone(), distributor_power_balance);
-		PowerBalance::<T>::insert(beneficiary.clone(), user_power_balance);
-
-		Self::deposit_event(Event::<T>::BuyPowerOrderByUserExecuted(
-			beneficiary.clone(),
-			power_amount,
-			distributor_nft_id,
-		));
-
-		Ok(())
-	}
-
-	fn generate_power_by_operator(
-		power_amount: PowerAmount,
-		beneficiary: &T::AccountId,
-		generator_nft_id: (ClassId, TokenId),
-	) -> DispatchResult {
-		// Convert generator NFT to accountId
-		let generator_nft_account_id: T::AccountId =
-			T::EconomyTreasury::get().into_sub_account_truncating(generator_nft_id);
-
-		let mut generator_power_balance = PowerBalance::<T>::get(generator_nft_account_id.clone());
-		ensure!(
-			generator_power_balance > power_amount,
-			Error::<T>::InsufficientBalanceToGeneratePower
-		);
-		generator_power_balance = generator_power_balance
-			.checked_sub(power_amount)
-			.ok_or(ArithmeticError::Underflow)?;
-
-		let mut distributor_power_balance = PowerBalance::<T>::get(beneficiary.clone());
-		distributor_power_balance = distributor_power_balance
-			.checked_add(power_amount)
-			.ok_or(ArithmeticError::Overflow)?;
-
-		PowerBalance::<T>::insert(generator_nft_account_id.clone(), generator_power_balance);
-		PowerBalance::<T>::insert(beneficiary.clone(), distributor_power_balance);
-
-		Self::deposit_event(Event::<T>::BuyPowerOrderByDistributorExecuted(
-			beneficiary.clone(),
-			power_amount,
-			generator_nft_id,
-		));
-
-		Ok(())
-	}
-
 	fn distribute_power_by_network(power_amount: PowerAmount, beneficiary: &T::AccountId) -> DispatchResult {
 		let mut distributor_power_balance = PowerBalance::<T>::get(beneficiary);
 		distributor_power_balance = distributor_power_balance
@@ -1360,25 +678,5 @@ impl<T: Config> Pallet<T> {
 		let current_block_number = <frame_system::Pallet<T>>::current_block_number();
 
 		current_block_number >= target
-	}
-
-	fn upgrade_order_info_data_v2() -> Weight {
-		log::info!("Start upgrading order info data v2");
-		let mut num_order_queue_classes = 0;
-
-		BuyPowerByUserRequestQueue::<T>::translate(|_k, _k2, order_info: OrderInfo<T::BlockNumber>| {
-			num_order_queue_classes += 1;
-
-			Some(OrderInfo {
-				power_amount: order_info.power_amount,
-				bit_amount: order_info.bit_amount,
-				target: T::BlockNumber::zero(),
-				commission_fee: 0,
-			})
-		});
-
-		log::info!("Classes upgraded: {}", num_order_queue_classes);
-
-		0
 	}
 }
