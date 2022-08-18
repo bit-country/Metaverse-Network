@@ -140,6 +140,7 @@ impl Config for Runtime {
 	type ChainId = ();
 	type AddressMapping = EvmAddressMapping<Runtime>;
 	type TransferAll = Currencies;
+	type WeightInfo = ();
 }
 
 construct_runtime!(
