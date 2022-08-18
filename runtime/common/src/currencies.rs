@@ -215,7 +215,7 @@ mod tests {
 	use frame_support::assert_noop;
 	use hex_literal::hex;
 
-	type MultiCurrencyPrecompile = MultiCurrencyPrecompile;
+	type MultiCurrencyPrecompile = crate::MultiCurrencyPrecompile<Runtime>;
 
 	#[test]
 	fn handles_invalid_currency_id() {
