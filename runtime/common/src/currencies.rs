@@ -206,16 +206,18 @@ where
 }
 
 #[cfg(test)]
+pub use mock::{
+	alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
+};
+
+#[cfg(test)]
 mod tests {
 	use super::*;
 
-	use mock::{
-		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
-	};
 	use frame_support::assert_noop;
 	use hex_literal::hex;
 
-	type MultiCurrencyPrecompile = crate::MultiCurrencyPrecompile<Runtime>;
+	type MultiCurrencyPrecompile = crate::currencies::MultiCurrencyPrecompile<Test>;
 
 	#[test]
 	fn handles_invalid_currency_id() {
