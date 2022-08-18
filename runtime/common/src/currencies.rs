@@ -64,6 +64,7 @@ pub type BalanceOf<Runtime> = <<Runtime as currencies::Config>::MultiSocialCurre
 /// - Query total issuance.
 /// - Query balance. Rest `input` bytes: `account_id`.
 /// - Transfer. Rest `input` bytes: `from`, `to`, `amount`.
+
 pub struct MultiCurrencyPrecompile<Runtime>(PhantomData<Runtime>);
 
 impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
@@ -208,13 +209,13 @@ where
 mod tests {
 	use super::*;
 
-	use super::mock::{
+	use mock::{
 		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
 	};
 	use frame_support::assert_noop;
 	use hex_literal::hex;
 
-	type MultiCurrencyPrecompile = MultiCurrencyPrecompile<Test>;
+	type MultiCurrencyPrecompile = MultiCurrencyPrecompile;
 
 	#[test]
 	fn handles_invalid_currency_id() {

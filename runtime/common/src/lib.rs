@@ -15,7 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod currencies;
+pub mod currencies;
 pub mod precompiles;
+
 //mod tests;
 //mod weights;
