@@ -16,12 +16,12 @@
 // limitations under the License.
 
 #![cfg_attr(not(feature = "std"), no_std)]
-use crate::WeightToGas;
+//use crate::WeightToGas;
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
 use pallet_evm::{
-	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
+	AddressMapping, Context, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 	PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
@@ -208,13 +208,13 @@ where
 mod tests {
 	use super::*;
 
-	use crate::mock::{
+	use super::mock::{
 		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
 	};
 	use frame_support::assert_noop;
 	use hex_literal::hex;
 
-	type MultiCurrencyPrecompile = crate::MultiCurrencyPrecompile<Test>;
+	type MultiCurrencyPrecompile = MultiCurrencyPrecompile<Test>;
 
 	#[test]
 	fn handles_invalid_currency_id() {
@@ -236,7 +236,6 @@ mod tests {
 				PrecompileFailure::Revert {
 					exit_status: ExitRevert::Reverted,
 					output: "invalid currency id".into(),
-					cost: Some(10_000).unwrap(),
 				}
 			);
 		});
