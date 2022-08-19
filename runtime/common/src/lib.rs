@@ -18,10 +18,10 @@
 #![recursion_limit = "256"]
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use sp_std::{collections::btree_map::BTreeMap, marker::PhantomData, prelude::*};
-use scale_info::TypeInfo;
 use frame_support::weights::Weight;
+use scale_info::TypeInfo;
 use sp_runtime::traits::Convert;
+use sp_std::{collections::btree_map::BTreeMap, marker::PhantomData, prelude::*};
 
 pub const RATIO: u64 = 9000;
 

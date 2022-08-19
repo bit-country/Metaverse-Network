@@ -91,7 +91,7 @@ use core_primitives::{NftAssetData, NftClassData};
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 use evm_mapping::EvmAddressMapping;
-use metaverse_runtime_common::precompile::mod::MetaverseNetworkPrecompiles;
+use metaverse_runtime_common::precompile::r#mod::MetaverseNetworkPrecompiles;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use primitives::evm::{

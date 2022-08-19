@@ -21,8 +21,8 @@ use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
 use pallet_evm::{
-	AddressMapping, Context, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
-	PrecompileResult, PrecompileSet,
+	AddressMapping, Context, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
+	PrecompileOutput, PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
@@ -208,11 +208,11 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use crate::precompile::mock::{
-		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
-	};
 	use frame_support::assert_noop;
 	use hex_literal::hex;
+	use mock::{
+		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
+	};
 
 	type MultiCurrencyPrecompile = crate::precompile::currencies::MultiCurrencyPrecompile<Test>;
 
