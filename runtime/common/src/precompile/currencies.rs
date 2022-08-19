@@ -210,7 +210,7 @@ mod tests {
 	use super::*;
 	use frame_support::assert_noop;
 	use hex_literal::hex;
-	use mock::{
+	use crate::precompile::mock::{
 		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
 	};
 
