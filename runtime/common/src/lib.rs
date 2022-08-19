@@ -15,8 +15,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod currencies;
-pub mod precompiles;
+//pub mod currencies;
+//pub mod precompiles;
+pub const RATIO: u64 = 9000;
+
+/// Convert gas to weight
+pub struct GasToWeight;
+impl Convert<u64, Weight> for GasToWeight {
+	fn convert(gas: u64) -> Weight {
+		gas.saturating_mul(RATIO)
+	}
+}
+
+/// Convert weight to gas
+pub struct WeightToGas;
+impl Convert<Weight, u64> for WeightToGas {
+	fn convert(weight: Weight) -> u64 {
+		weight
+			.checked_div(RATIO)
+			.expect("Compile-time constant is not zero; qed;")
+	}
+}
 
 //mod tests;
 //mod weights;
