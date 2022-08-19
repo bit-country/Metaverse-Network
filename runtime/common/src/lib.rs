@@ -44,6 +44,7 @@ impl Convert<Weight, u64> for WeightToGas {
 }
 
 //pub mod currencies;
-//pub mod precompiles;
+mod precompile;
+
 //mod tests;
 //mod weights;
