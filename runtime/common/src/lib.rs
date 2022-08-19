@@ -14,9 +14,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![cfg_attr(not(feature = "std"), no_std)]
+#![recursion_limit = "256"]
 
-//pub mod currencies;
-//pub mod precompiles;
+use codec::{Decode, Encode, MaxEncodedLen};
+use sp_std::{collections::btree_map::BTreeMap, marker::PhantomData, prelude::*};
+use scale_info::TypeInfo;
+use frame_support::weights::Weight;
+use sp_runtime::traits::Convert;
+
 pub const RATIO: u64 = 9000;
 
 /// Convert gas to weight
@@ -37,5 +43,7 @@ impl Convert<Weight, u64> for WeightToGas {
 	}
 }
 
+//pub mod currencies;
+//pub mod precompiles;
 //mod tests;
 //mod weights;
