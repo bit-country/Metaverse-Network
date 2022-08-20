@@ -1539,9 +1539,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
 				// Check if account free_balance + network fee less than ED
-				let amount_plus_free_balance = T::Currency::free_balance(to)
-					.checked_add(amount)
-					.unwrap_or_else(Zero::zero());
+				let amount_plus_free_balance = T::Currency::free_balance(to).saturating_add(amount);
 				// Only transfer fee if amount plus balance greater than ED, never fail
 				if amount_plus_free_balance >= T::Currency::minimum_balance() {
 					<T as Config>::Currency::transfer(from, to, amount, ExistenceRequirement::KeepAlive)?;
@@ -1549,8 +1547,7 @@ pub mod pallet {
 			} else {
 				// Check if account free_balance + network fee less than ED
 				let amount_plus_free_balance = T::FungibleTokenCurrency::free_balance(social_currency_id.clone(), to)
-					.checked_add(amount.saturated_into())
-					.unwrap_or_else(Zero::zero());
+					.saturating_add(amount.saturated_into());
 				// Only transfer fee if amount plus balance greater than ED, never fail
 				if amount_plus_free_balance >= T::FungibleTokenCurrency::minimum_balance(social_currency_id.clone()) {
 					T::FungibleTokenCurrency::transfer(social_currency_id.clone(), from, to, amount.saturated_into())?;
