@@ -108,6 +108,7 @@ pub mod pallet {
 	use frame_system::ensure_root;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use sp_runtime::traits::CheckedAdd;
 	use sp_runtime::ArithmeticError;
 
 	use auction_manager::{AuctionItemV1, CheckAuctionItemHandler, ListingLevel};
@@ -1549,6 +1550,8 @@ pub mod pallet {
 		) -> DispatchResult {
 			let network_fund = T::MetaverseInfoSource::get_network_treasury();
 			let network_fee: BalanceOf<T> = T::NetworkFeeCommission::get() * *high_bid_price;
+
+			// Check if account free_balance + network fee less than ED
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
 				<T as Config>::Currency::transfer(
 					&recipient,
@@ -1563,6 +1566,35 @@ pub mod pallet {
 					&network_fund,
 					network_fee.saturated_into(),
 				)?;
+			}
+			Ok(())
+		}
+
+		/// Handle fee transfer from one account to another
+		fn fee_transfer_handler(
+			from: &T::AccountId,
+			to: &T::AccountId,
+			social_currency_id: FungibleTokenId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			if social_currency_id == FungibleTokenId::NativeToken(0) {
+				// Check if account free_balance + network fee less than ED
+				let amount_plus_free_balance = T::Currency::free_balance(to)
+					.checked_add(amount)
+					.unwrap_or_else(Zero::zero());
+				// Only transfer fee if amount plus balance greater than ED, never fail
+				if amount_plus_free_balance >= T::Currency::minimum_balance() {
+					<T as Config>::Currency::transfer(from, to, amount, ExistenceRequirement::KeepAlive)?;
+				}
+			} else {
+				// Check if account free_balance + network fee less than ED
+				let amount_plus_free_balance = T::FungibleTokenCurrency::free_balance(social_currency_id.clone(), to)
+					.checked_add(amount.saturated_into())
+					.unwrap_or_else(Zero::zero());
+				// Only transfer fee if amount plus balance greater than ED, never fail
+				if amount_plus_free_balance >= T::FungibleTokenCurrency::minimum_balance(social_currency_id.clone()) {
+					T::FungibleTokenCurrency::transfer(social_currency_id.clone(), from, to, amount.saturated_into())?;
+				}
 			}
 			Ok(())
 		}
