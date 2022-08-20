@@ -1188,21 +1188,8 @@ pub mod pallet {
 			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
 
 			// Transfer loyalty fee from winner to class fund pot
-			if social_currency_id == FungibleTokenId::NativeToken(0) {
-				<T as Config>::Currency::transfer(
-					&high_bidder,
-					&class_fund,
-					royalty_fee,
-					ExistenceRequirement::KeepAlive,
-				)?;
-			} else {
-				T::FungibleTokenCurrency::transfer(
-					social_currency_id.clone(),
-					&high_bidder,
-					&class_fund,
-					royalty_fee.saturated_into(),
-				)?;
-			}
+			Self::fee_transfer_handler(&high_bidder, &class_fund, social_currency_id, royalty_fee)?;
+
 			Ok(())
 		}
 
@@ -1523,21 +1510,8 @@ pub mod pallet {
 			if let ListingLevel::Local(metaverse_id) = listing_level {
 				let metaverse_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
 				let listing_fee_amount = listing_fee * *high_bid_price;
-				if social_currency_id == FungibleTokenId::NativeToken(0) {
-					<T as Config>::Currency::transfer(
-						&high_bidder,
-						&metaverse_fund,
-						listing_fee_amount,
-						ExistenceRequirement::KeepAlive,
-					)?;
-				} else {
-					T::FungibleTokenCurrency::transfer(
-						social_currency_id.clone(),
-						&high_bidder,
-						&metaverse_fund,
-						listing_fee_amount.saturated_into(),
-					)?;
-				}
+
+				Self::fee_transfer_handler(&high_bidder, &metaverse_fund, social_currency_id, listing_fee_amount)?;
 			}
 			Ok(())
 		}
@@ -1551,22 +1525,8 @@ pub mod pallet {
 			let network_fund = T::MetaverseInfoSource::get_network_treasury();
 			let network_fee: BalanceOf<T> = T::NetworkFeeCommission::get() * *high_bid_price;
 
-			// Check if account free_balance + network fee less than ED
-			if social_currency_id == FungibleTokenId::NativeToken(0) {
-				<T as Config>::Currency::transfer(
-					&recipient,
-					&network_fund,
-					network_fee,
-					ExistenceRequirement::KeepAlive,
-				)?;
-			} else {
-				T::FungibleTokenCurrency::transfer(
-					social_currency_id.clone(),
-					&recipient,
-					&network_fund,
-					network_fee.saturated_into(),
-				)?;
-			}
+			Self::fee_transfer_handler(&recipient, &network_fund, social_currency_id, network_fee)?;
+
 			Ok(())
 		}
 
