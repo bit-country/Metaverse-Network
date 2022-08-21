@@ -23,15 +23,16 @@ use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, BlockNumberProvider, Convert, IdentityLookup, One as OneT, Zero},
 	AccountId32, DispatchResult, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
 };
-use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress};
+use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header};
 use sp_std::prelude::*;
+use orml_traits::parameter_type_with_key;
 
 pub type AccountId = AccountId32;
 type Key = CurrencyId;
 pub type Price = FixedU128;
 type Balance = u128;
 
-impl frame_system::Config for Runtime {
+impl frame_system::Config for Test {
 	type BaseCallFilter = Everything;
     type BlockWeights = RuntimeBlockWeights;
     type BlockLength = ();
@@ -70,14 +71,14 @@ parameter_types! {
 	pub const CountryFundPalletId: PalletId = PalletId(*b"bit/fund");
 }
 
-impl orml_tokens::Config for Runtime {
+impl orml_tokens::Config for Test {
 	type Event = Event;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = CurrencyId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type OnDust = orml_tokens::TransferDust<Test, TreasuryModuleAccount>;
 	type MaxLocks = ();
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
@@ -105,7 +106,7 @@ parameter_types! {
 	pub const GetNativeCurrencyId: CurrencyId = NEER;
 }
 
-pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
 
 pub struct MetaverseInfoSource {}
 
@@ -164,7 +165,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 }
 
-impl orml_currencies::Config for Runtime {
+impl orml_currencies::Config for Test {
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
@@ -234,7 +235,7 @@ impl pallet_scheduler::Config for Test {
 	type NoPreimagePostponement = ();
 }
 
-impl pallet_evm::Config for Runtime {
+impl pallet_evm::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 
@@ -316,7 +317,7 @@ frame_support::construct_runtime!(
 		Balances: pallet_balances,
 		Currencies: currencies,
 		EvmMapping: evm_mapping,
-		EvmModule: pallet_evm,
+		EvmModule: pallet_evm exclude_parts { Call },
         Scheduler: pallet_scheduler,
 	}
 );
@@ -379,7 +380,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			Origin::root(),
 			ALICE,
 			NEER,
-			1_000_000_000_000
+			1_000_000_000
 		));
 		assert_ok!(Currencies::update_balance(Origin::root(), ALICE, NUUM, 1_000_000_000));
 
