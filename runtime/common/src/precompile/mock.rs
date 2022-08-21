@@ -1,6 +1,6 @@
 #![cfg(any(test, feature = "bench"))]
 
-use crate::{AllPrecompiles, Ratio, RuntimeBlockWeights, Weight};
+use crate::precompile::{AllPrecompiles, Ratio, RuntimeBlockWeights, Weight};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	ord_parameter_types, parameter_types,
@@ -25,7 +25,6 @@ use sp_runtime::{
 };
 use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress};
 use sp_std::prelude::*;
-use xcm::latest::prelude::*;
 
 pub type AccountId = AccountId32;
 type Key = CurrencyId;
@@ -172,13 +171,21 @@ impl orml_currencies::Config for Runtime {
 	type WeightInfo = ();
 }
 
-impl pallet_currencies::Config for Test {
+impl currencies::Config for Test {
     type Event = Event;
 	type TokenId = u64;
 	type CountryCurrency = Currencies;
 	type FungibleTokenTreasury = CountryFundPalletId;
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const ExistenceRequirement: u128 = 1;
+	pub const MinimumCount: u32 = 1;
+	pub const ExpiresIn: u32 = 600;
+	pub const RootOperatorAccountId: AccountId = ALICE;
+	pub OracleMembers: Vec<AccountId> = vec![ALICE, BOB, EVA];
 }
 
 pub struct Members;
@@ -307,7 +314,7 @@ frame_support::construct_runtime!(
 		Timestamp: pallet_timestamp,
 		Tokens: orml_tokens exclude_parts { Call },
 		Balances: pallet_balances,
-		Currencies: pallet_currencies,
+		Currencies: currencies,
 		EvmMapping: evm_mapping,
 		EvmModule: pallet_evm,
         Scheduler: pallet_scheduler,

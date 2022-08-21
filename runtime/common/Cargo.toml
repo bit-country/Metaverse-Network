@@ -20,6 +20,7 @@ pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 # EVM pallets
 pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
