@@ -33,7 +33,7 @@ use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripe
 use sp_core::H160;
 use sp_std::{collections::btree_set::BTreeSet, fmt::Debug, marker::PhantomData};
 
-pub mod self::currencies;
+pub mod currencies;
 
 pub use currencies::MultiCurrencyPrecompile;
 
