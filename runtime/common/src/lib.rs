@@ -25,6 +25,10 @@ use sp_std::{collections::btree_map::BTreeMap, marker::PhantomData, prelude::*};
 
 pub const RATIO: u64 = 9000;
 
+pub mod precompile;
+//mod tests;
+//mod weights;
+
 /// Convert gas to weight
 pub struct GasToWeight;
 impl Convert<u64, Weight> for GasToWeight {
@@ -43,8 +47,3 @@ impl Convert<Weight, u64> for WeightToGas {
 	}
 }
 
-//pub mod currencies;
-mod precompile;
-
-//mod tests;
-//mod weights;

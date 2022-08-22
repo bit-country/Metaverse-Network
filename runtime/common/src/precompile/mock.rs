@@ -18,12 +18,12 @@ use evm_mapping::EvmAddressMapping;
 use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy};
 use scale_info::TypeInfo;
 use sp_core::{H160, H256};
+use sp_core::ecdsa::Signature;
 use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, BlockNumberProvider, Convert, IdentityLookup, One as OneT, Zero},
 	AccountId32, DispatchResult, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
 };
 use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header};
-use core_primitives::{MetaverseTrait, MetaverseMetadata, MetaverseInfo};
 use sp_std::prelude::*;
 use orml_traits::parameter_type_with_key;
 
