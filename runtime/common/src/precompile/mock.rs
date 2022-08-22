@@ -1,6 +1,5 @@
 #![cfg(any(test, feature = "bench"))]
-
-use crate::precompile::{AllPrecompiles, Ratio, RuntimeBlockWeights, Weight};
+use crate::precompile::AllPrecompiles;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	ord_parameter_types, parameter_types,
@@ -24,6 +23,7 @@ use sp_runtime::{
 	AccountId32, DispatchResult, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
 };
 use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header};
+use core_primitives::{MetaverseTrait, MetaverseMetadata, MetaverseInfo};
 use sp_std::prelude::*;
 use orml_traits::parameter_type_with_key;
 
@@ -108,63 +108,6 @@ parameter_types! {
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
 
-pub struct MetaverseInfoSource {}
-
-impl MetaverseTrait<AccountId> for MetaverseInfoSource {
-	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
-		1u64
-	}
-
-	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
-		match *who {
-			ALICE => true,
-			_ => false,
-		}
-	}
-
-	fn get_country(metaverse_id: MetaverseId) -> Option<MetaverseInfo<AccountId>> {
-		None
-	}
-
-	fn get_country_token(metaverse_id: MetaverseId) -> Option<CurrencyId> {
-		None
-	}
-
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
-		Ok(15u32)
-	}
-
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
-		Ok(16u32)
-	}
-
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
-		Ok(Perbill::from_percent(1u32))
-	}
-
-	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
-		GENERAL_METAVERSE_FUND
-	}
-
-	fn get_network_treasury() -> AccountId {
-		GENERAL_METAVERSE_FUND
-	}
-
-	fn check_if_metaverse_estate(
-		metaverse_id: primitives::MetaverseId,
-		class_id: &ClassId,
-	) -> Result<bool, DispatchError> {
-		if class_id == &15u32 || class_id == &16u32 {
-			return Ok(true);
-		}
-		return Ok(false);
-	}
-
-	fn check_if_metaverse_has_any_land(_metaverse_id: primitives::MetaverseId) -> Result<bool, DispatchError> {
-		Ok(true)
-	}
-}
-
 impl orml_currencies::Config for Test {
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
@@ -174,10 +117,9 @@ impl orml_currencies::Config for Test {
 
 impl currencies::Config for Test {
     type Event = Event;
-	type TokenId = u64;
-	type CountryCurrency = Currencies;
-	type FungibleTokenTreasury = CountryFundPalletId;
-	type MetaverseInfoSource = MetaverseInfoSource;
+	type MultiSocialCurrency = ();
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
 	type WeightInfo = ();
 }
 
@@ -343,7 +285,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	accounts.insert(
 		alice_evm_addr(),
-		pallet_evm::GenesisAccount {
+		fp_evm::GenesisAccount {
 			nonce: 1,
 			balance: INITIAL_BALANCE,
 			code: vec![],
@@ -353,7 +295,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	
 	accounts.insert(
 		bob_evm_addr(),
-		pallet_evm::GenesisAccount {
+		fp_evm::GenesisAccount {
 			nonce: 1,
 			balance: INITIAL_BALANCE,
 			code: Default::default(),
