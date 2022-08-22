@@ -222,7 +222,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 8,
+	spec_version: 9,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -283,7 +283,7 @@ impl Contains<Call> for NormalCallFilter {
 			// Not allow stopped tx
 			return false;
 		}
-		return false;
+		return true;
 	}
 }
 
@@ -1414,14 +1414,15 @@ impl estate::Config for Runtime {
 
 parameter_types! {
 	pub const AuctionTimeToClose: u32 = 100; // Default 100800 Blocks
-	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
-	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
-	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
+	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
 	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum number of item per bundle
-	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeReserve: Balance = 10 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
+	pub const MinimumListingPrice: Balance = DOLLARS;
 }
 
 impl auction::Config for Runtime {
@@ -1441,6 +1442,7 @@ impl auction::Config for Runtime {
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
 	type OfferDuration = OfferDuration;
+	type MinimumListingPrice = MinimumListingPrice;
 }
 
 impl continuum::Config for Runtime {
