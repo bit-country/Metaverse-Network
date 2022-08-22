@@ -188,6 +188,10 @@ pub mod pallet {
 		/// Offer duration
 		#[pallet::constant]
 		type OfferDuration: Get<Self::BlockNumber>;
+
+		/// Minimum listing price
+		#[pallet::constant]
+		type MinimumListingPrice: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]
@@ -341,6 +345,8 @@ pub mod pallet {
 		NoPermissionToMakeOffer,
 		/// No permission to accept offer for a NFT.
 		NoPermissionToAcceptOffer,
+		/// Listing price is below the minimum.
+		ListingPriceIsBelowMinimum,
 	}
 
 	#[pallet::call]
@@ -824,6 +830,11 @@ pub mod pallet {
 			listing_level: ListingLevel<T::AccountId>,
 			listing_fee: Perbill,
 		) -> Result<AuctionId, DispatchError> {
+			ensure!(
+				initial_amount.clone() >= T::MinimumListingPrice::get(),
+				Error::<T>::ListingPriceIsBelowMinimum
+			);
+
 			ensure!(
 				Self::items_in_auction(item_id.clone()) == None,
 				Error::<T>::ItemAlreadyInAuction
