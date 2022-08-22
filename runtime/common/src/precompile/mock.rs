@@ -1,5 +1,5 @@
 #![cfg(any(test, feature = "bench"))]
-use crate::precompile::AllPrecompiles;
+use crate::precompile::{AllPrecompiles, MetaverseNetworkPrecompiles};
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::{
 	ord_parameter_types, parameter_types,
@@ -26,6 +26,9 @@ use sp_runtime::{
 use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header};
 use sp_std::prelude::*;
 use orml_traits::parameter_type_with_key;
+
+use pallet_evm::{EnsureAddressRoot, EnsureAddressNever, HashedAddressMapping};
+use pallet_ethereum::EthereumBlockHashMapping;
 
 pub type AccountId = AccountId32;
 type Key = CurrencyId;
@@ -96,7 +99,7 @@ impl pallet_balances::Config for Test {
 	type WeightInfo = ();
 	type MaxLocks = ();
 	type MaxReserves = ConstU32<50>;
-	type ReserveIdentifier = ReserveIdentifier;
+	type ReserveIdentifier = [u8; 8];
 }
 
 pub const NEER: CurrencyId = 0;
@@ -117,7 +120,7 @@ impl orml_currencies::Config for Test {
 
 impl currencies::Config for Test {
     type Event = Event;
-	type MultiSocialCurrency = ();
+	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
 	type WeightInfo = ();
@@ -255,7 +258,7 @@ frame_support::construct_runtime!(
 		System: frame_system,
 		Oracle: orml_oracle,
 		Timestamp: pallet_timestamp,
-		Tokens: orml_tokens exclude_parts { Call },
+		Tokens: orml_tokens,
 		Balances: pallet_balances,
 		Currencies: currencies,
 		EvmMapping: evm_mapping,

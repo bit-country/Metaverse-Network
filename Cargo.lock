@@ -5404,6 +5404,7 @@ dependencies = [
  "bit-country-primitives",
  "core-primitives",
  "currencies",
+ "fp-evm",
  "frame-support",
  "frame-system",
  "hex-literal",
