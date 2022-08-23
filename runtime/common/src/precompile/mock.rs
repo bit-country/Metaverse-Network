@@ -180,6 +180,12 @@ impl pallet_scheduler::Config for Test {
 	type NoPreimagePostponement = ();
 }
 
+parameter_types! {
+	pub const ChainId: u64 = 2042;
+	pub BlockGasLimit: U256 = U256::from(u32::max_value());
+	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
+}
+
 impl pallet_evm::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
@@ -196,19 +202,19 @@ impl pallet_evm::Config for Test {
 	type FeeCalculator = ();
 	type GasWeightMapping = ();
 	type OnChargeTransaction = ();
-	type FindAuthor = FindAuthorTruncated<Aura>;
+	type FindAuthor = ();
 	type PrecompilesType = MetaverseNetworkPrecompiles<Self>;
 	type PrecompilesValue = PrecompilesValue;
-	// type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
+	//type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
 }
 
 impl evm_mapping::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
 	type AddressMapping = EvmAddressMapping<Test>;
-	type ChainId = ConstU64<2096>;
+	type ChainId = ChainId;
 	type TransferAll = ();
-	// type WeightInfo = ();
+	type WeightInfo = ();
 }
 
 pub const ALICE: AccountId = AccountId::new([1u8; 32]);
@@ -224,7 +230,7 @@ pub fn alice_evm_addr() -> EvmAddress {
 }
 
 pub fn bob() -> AccountId {
-	<Test as evm_mapping::Config>::AddressMapping::get_account_id(&bob_evm_addr())
+	<Test as evm_mapping::Config>::EvmAddressMapping::get_account_id(&bob_evm_addr())
 }
 
 pub fn bob_evm_addr() -> EvmAddress {
@@ -309,8 +315,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_balances::GenesisConfig::<Test>::default()
 		.assimilate_storage(&mut storage)
 		.unwrap();
-	pallet_evm::GenesisConfig::<Test> {
-		chain_id: 2096,
+	pallet_evm::GenesisConfig {
 		accounts,
 	}
 	.assimilate_storage(&mut storage)
