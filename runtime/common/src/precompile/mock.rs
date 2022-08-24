@@ -17,13 +17,13 @@ use pallet_evm::{
 use evm_mapping::EvmAddressMapping;
 use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy};
 use scale_info::TypeInfo;
-use sp_core::{H160, H256};
+use sp_core::{H160, H256, U256};
 use sp_core::ecdsa::Signature;
 use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, BlockNumberProvider, Convert, IdentityLookup, One as OneT, Zero},
 	AccountId32, DispatchResult, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
 };
-use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header, FungibleTokenId};
+use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header, FungibleTokenId, TokenId};
 use sp_std::prelude::*;
 use orml_traits::parameter_type_with_key;
 
@@ -104,6 +104,7 @@ impl pallet_balances::Config for Test {
 
 pub const NEER: CurrencyId = 0;
 pub const NUUM: CurrencyId = 1;
+pub const NEER_TOKEN_ID: TokenId = 0;
 
 parameter_types! {
 	pub const GetNativeCurrencyId: CurrencyId = NEER;
@@ -122,7 +123,7 @@ impl currencies::Config for Test {
     type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = FungibleTokenId::NativeToken(0u64.into());
+	type GetNativeCurrencyId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
 	type WeightInfo = ();
 }
 
@@ -249,7 +250,7 @@ pub fn erc20_address_not_exists() -> EvmAddress {
 	EvmAddress::from(hex_literal::hex!("0000000000000000000000000000000200000001"))
 }
 
-pub const INITIAL_BALANCE: Balance = 1_000_000_000_000;
+pub const INITIAL_BALANCE: U256 = 1_000_000_000_000;
 
 pub type SignedExtra = (frame_system::CheckWeight<Test>,);
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
