@@ -231,10 +231,9 @@ mod tests {
 				95d89b41
 			"};
 
-			let handle = PrecompileHandle::new(input, Some(10000), context, false);
-			let resp = MultiCurrencyPrecompile::execute(&handle).unwrap();
+			let mut handle = MockHandle::new(input, Some(10000), context, false);
 			assert_noop!(
-				MultiCurrencyPrecompile::execute(&handle),
+				MultiCurrencyPrecompile::execute(&mut handle),
 				PrecompileFailure::Revert {
 					exit_status: ExitRevert::Reverted,
 					output: "invalid currency id".into(),
@@ -266,8 +265,8 @@ mod tests {
 				4163616c61000000000000000000000000000000000000000000000000000000
 			"};
 
-			let handle = PrecompileHandle::new(input, None, context, false);
-			let resp = MultiCurrencyPrecompile::execute(&handle).unwrap();
+			let mut handle = MockHandle::new(input, None, context, false);
+			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
 			assert_eq!(resp.output, expected_output.to_vec());
@@ -295,8 +294,8 @@ mod tests {
 				00000000000000000000000000000000 0000000000000000000000000000000c
 			"};
 
-			let handle = PrecompileHandle::new(input, None, context, false);
-			let resp = MultiCurrencyPrecompile::execute(&handle).unwrap();
+			let mut handle = MockHandle::new(input, None, context, false);
+			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
 			assert_eq!(resp.output, expected_output.to_vec());
@@ -325,8 +324,8 @@ mod tests {
 				00000000000000000000000000000000 00000000000000000000000077359400
 			"};
 
-			let handle = PrecompileHandle::new(input, None, context, false);
-			let resp = MultiCurrencyPrecompile::execute(&handle).unwrap();
+			let mut handle = MockHandle::new(input, None, context, false);
+			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
 			assert_eq!(resp.output, expected_output.to_vec());
@@ -357,8 +356,8 @@ mod tests {
 				00000000000000000000000000000000 0000000000000000000000e8d4a51000
 			"};
 
-			let handle = PrecompileHandle::new(input, None, context, false);
-			let resp = MultiCurrencyPrecompile::execute(&handle).unwrap();
+			let mut handle = MockHandle::new(input, None, context, false);
+			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
 			assert_eq!(resp.output, expected_output.to_vec());
@@ -391,8 +390,8 @@ mod tests {
 			// Token
 			context.caller = neer_evm_address();
 
-			let handle = PrecompileHandle::new(input, None, context, false);
-			let resp = MultiCurrencyPrecompile::execute(&handle).unwrap();
+			let mut handle = MockHandle::new(input, None, context, false);
+			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
 			assert_eq!(resp.output, [0u8; 0].to_vec());
