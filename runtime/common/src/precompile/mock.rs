@@ -271,7 +271,7 @@ pub fn neer_evm_address() -> EvmAddress {
 }
 
 pub fn nuum_evm_address() -> EvmAddress {
-	EvmAddress::try_from(NUUM,.into()).unwrap()
+	EvmAddress::try_from(NUUM.into()).unwrap()
 }
 
 pub fn erc20_address_not_exists() -> EvmAddress {
@@ -294,7 +294,7 @@ frame_support::construct_runtime!(
 		System: frame_system,
 		Oracle: orml_oracle,
 		Timestamp: pallet_timestamp,
-		Tokens: orml_tokens,
+		Tokens: orml_tokens exclude_parts { Call },
 		Balances: pallet_balances,
 		Currencies: currencies,
 		EvmMapping: evm_mapping,
@@ -359,14 +359,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 		assert_ok!(Currencies::update_balance(
 			Origin::root(),
-			EvmAddressMapping::<Test>::get_account_id(&alice_evm_addr()),
+			AddressMapping<AccountId>::get_account_id(&alice_evm_addr()),
 			NEER,
 			1_000_000_000
 		));
 
 		assert_ok!(Currencies::update_balance(
 			Origin::root(),
-			EvmAddressMapping::<Test>::get_account_id(&alice_evm_addr()),
+			AddressMapping<AccountId>::into_account_id(&alice_evm_addr()),
 			NUUM,
 			1_000_000_000
 		));
