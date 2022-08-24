@@ -122,7 +122,7 @@ impl currencies::Config for Test {
     type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = FungibleTokenId::NativeToken(0);
+	type GetNativeCurrencyId = FungibleTokenId::NativeToken(0u64.into());
 	type WeightInfo = ();
 }
 
