@@ -8,10 +8,10 @@ use frame_support::{
 		ConstU128, ConstU32, ConstU64, EqualPrivilegeOnly, Everything, InstanceFilter, Nothing, OnFinalize,
 		OnInitialize, SortedMembers,
 	},
-	weights::{IdentityFee, Weight},
+	weights::{IdentityFee, Weight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
 	PalletId, RuntimeDebug,
 };
-use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy};
+use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy, BlockWeights};
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
@@ -20,6 +20,7 @@ use pallet_evm::{
 use primitives::{
 	evm::EvmAddress, Amount, BlockNumber, ClassId, CurrencyId, FungibleTokenId, Header, MetaverseId, Nonce, TokenId,
 };
+use evm_mapping::EvmAddressMapping;
 use scale_info::TypeInfo;
 use sp_core::ecdsa::Signature;
 use sp_core::{H160, H256, U256};
@@ -36,6 +37,26 @@ pub type AccountId = AccountId32;
 type Key = CurrencyId;
 pub type Price = FixedU128;
 type Balance = u128;
+
+const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
+const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
+const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+
+
+parameter_types! {
+	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
+	.base_block(BlockExecutionWeight::get())
+	.for_class(DispatchClass::all(), |weights| {
+		weights.base_extrinsic = ExtrinsicBaseWeight::get();
+		weights.max_total = Some(MAXIMUM_BLOCK_WEIGHT);
+		weights.reserved = Some(
+			MAXIMUM_BLOCK_WEIGHT - NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT
+		);
+	})
+	.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
+	.build_or_panic();
+}
+
 
 impl frame_system::Config for Test {
 	type BaseCallFilter = Everything;
@@ -108,8 +129,11 @@ pub const NEER: CurrencyId = 0;
 pub const NUUM: CurrencyId = 1;
 pub const NEER_TOKEN_ID: TokenId = 0;
 
+
+
 parameter_types! {
 	pub const GetNativeCurrencyId: CurrencyId = NEER;
+	pub const GetNativeCurrencyTokenId: FungibleTokenId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
 }
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
@@ -125,7 +149,7 @@ impl currencies::Config for Test {
 	type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
+	type GetNativeCurrencyId = GetNativeCurrencyTokenId;
 	type WeightInfo = ();
 }
 
@@ -225,7 +249,7 @@ pub const BOB: AccountId = AccountId::new([2u8; 32]);
 pub const EVA: AccountId = AccountId::new([3u8; 32]);
 
 pub fn alice() -> AccountId {
-	<Test as evm_mapping::Config>::AddressMapping::get_account_id(&alice_evm_addr())
+	AddressMapping<AccountId>::into_account_id(&alice_evm_addr())
 }
 
 pub fn alice_evm_addr() -> EvmAddress {
@@ -233,7 +257,7 @@ pub fn alice_evm_addr() -> EvmAddress {
 }
 
 pub fn bob() -> AccountId {
-	<Test as evm_mapping::Config>::EvmAddressMapping::get_account_id(&bob_evm_addr())
+	AddressMapping<AccountId>::into_account_id(&bob_evm_addr())
 }
 
 pub fn bob_evm_addr() -> EvmAddress {
@@ -252,11 +276,12 @@ pub fn erc20_address_not_exists() -> EvmAddress {
 	EvmAddress::from(hex_literal::hex!("0000000000000000000000000000000200000001"))
 }
 
-pub const INITIAL_BALANCE: U256 = 1_000_000_000_000;
+pub const INITIAL_BALANCE: U256 = 1_000_000_000_000u128.into();
+pub const NONCE: U256 = 1u128.into();
 
 pub type SignedExtra = (frame_system::CheckWeight<Test>,);
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-pub type Block = frame_system::mocking::MockBloc<Test>;
+pub type Block = frame_system::mocking::MockBlock<Test>;
 
 frame_support::construct_runtime!(
 	pub enum Test where
@@ -298,7 +323,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	accounts.insert(
 		alice_evm_addr(),
 		fp_evm::GenesisAccount {
-			nonce: 1,
+			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: vec![],
 			storage: std::collections::BTreeMap::new(),
@@ -308,7 +333,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	accounts.insert(
 		bob_evm_addr(),
 		fp_evm::GenesisAccount {
-			nonce: 1,
+			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: Default::default(),
 			storage: Default::default(),
