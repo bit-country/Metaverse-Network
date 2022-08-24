@@ -616,7 +616,7 @@ parameter_types! {
 	pub const MinimumDeposit: Balance = 100 * DOLLARS;
 	pub const EnactmentPeriod: BlockNumber = 3 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * MINUTES;
-	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+	pub const PreimageByteDeposit: Balance = 10 * CENTS;
 	pub const MaxVotes: u32 = 100;
 	pub const MaxProposals: u32 = 50;
 }
@@ -1322,7 +1322,7 @@ impl mining::Config for Runtime {
 
 parameter_types! {
 	pub AssetMintingFee: Balance = 1 * DOLLARS;
-	pub ClassMintingFee: Balance = 2 * DOLLARS;
+	pub ClassMintingFee: Balance = 10 * DOLLARS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -1360,7 +1360,7 @@ impl orml_nft::Config for Runtime {
 
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
-	pub MinContribution: Balance = 1 * DOLLARS;
+	pub MinContribution: Balance = 50 * DOLLARS;
 	pub MaxNumberOfStakersPerMetaverse: u32 = 512;
 }
 
@@ -1385,7 +1385,7 @@ parameter_types! {
 	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
-	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
+	pub const NetworkFee: Balance = 10 * DOLLARS; // Network fee
 	pub const MaxOffersPerEstate: u32 = 100;
 	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
 	pub const MaxLeasePeriod: u32 = 1000000;
