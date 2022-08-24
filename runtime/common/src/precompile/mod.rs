@@ -35,7 +35,7 @@ use sp_std::{collections::btree_set::BTreeSet, fmt::Debug, marker::PhantomData};
 
 pub mod currencies;
 
-pub use currencies::MultiCurrencyPrecompile;
+pub use crate::precompile::currencies::MultiCurrencyPrecompile;
 
 pub const ECRECOVER: H160 = H160(hex!("0000000000000000000000000000000000000001"));
 pub const SHA256: H160 = H160(hex!("0000000000000000000000000000000000000002"));

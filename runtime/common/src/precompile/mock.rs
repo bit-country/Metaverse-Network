@@ -7,7 +7,7 @@ use frame_support::{
 		ConstU128, ConstU32, ConstU64, EqualPrivilegeOnly, Everything, InstanceFilter, Nothing, OnFinalize,
 		OnInitialize, SortedMembers,
 	},
-	weights::IdentityFee,
+	weights::{IdentityFee, Weight},
 	PalletId, RuntimeDebug,
 };
 use pallet_evm::{
@@ -23,7 +23,7 @@ use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, BlockNumberProvider, Convert, IdentityLookup, One as OneT, Zero},
 	AccountId32, DispatchResult, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
 };
-use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header};
+use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header, FungibleTokenId};
 use sp_std::prelude::*;
 use orml_traits::parameter_type_with_key;
 
@@ -122,7 +122,7 @@ impl currencies::Config for Test {
     type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type GetNativeCurrencyId = FungibleTokenId::NativeToken(0);
 	type WeightInfo = ();
 }
 
@@ -252,8 +252,8 @@ pub fn erc20_address_not_exists() -> EvmAddress {
 pub const INITIAL_BALANCE: Balance = 1_000_000_000_000;
 
 pub type SignedExtra = (frame_system::CheckWeight<Test>,);
-pub type UncheckedExtrinsic = sp_runtime::generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
-pub type Block = sp_runtime::generic::Block<Header, UncheckedExtrinsic>;
+pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
+pub type Block = frame_system::mocking::MockBloc<Test>;
 
 frame_support::construct_runtime!(
 	pub enum Test where
