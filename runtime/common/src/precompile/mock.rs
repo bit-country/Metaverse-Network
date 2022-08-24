@@ -2,16 +2,19 @@
 use crate::precompile::{AllPrecompiles, MetaverseNetworkPrecompiles};
 use codec::{Decode, Encode, MaxEncodedLen};
 use evm_mapping::EvmAddressMapping;
-use frame_support::{
+pub use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{
 		ConstU128, ConstU32, ConstU64, EqualPrivilegeOnly, Everything, InstanceFilter, Nothing, OnFinalize,
 		OnInitialize, SortedMembers,
 	},
-	weights::{IdentityFee, Weight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+	weights::{
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
+		DispatchClass, IdentityFee, Weight
+	},
 	PalletId, RuntimeDebug,
 };
-use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy, BlockWeights};
+use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy, BlockWeight};
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
@@ -20,7 +23,6 @@ use pallet_evm::{
 use primitives::{
 	evm::EvmAddress, Amount, BlockNumber, ClassId, CurrencyId, FungibleTokenId, Header, MetaverseId, Nonce, TokenId,
 };
-use evm_mapping::EvmAddressMapping;
 use scale_info::TypeInfo;
 use sp_core::ecdsa::Signature;
 use sp_core::{H160, H256, U256};
@@ -210,7 +212,7 @@ impl pallet_scheduler::Config for Test {
 parameter_types! {
 	pub const ChainId: u64 = 2042;
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
-	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
+	pub PrecompilesValue: MetaverseNetworkPrecompiles<Test> = MetaverseNetworkPrecompiles::<_>::new();
 }
 
 impl pallet_evm::Config for Test {
@@ -265,11 +267,11 @@ pub fn bob_evm_addr() -> EvmAddress {
 }
 
 pub fn neer_evm_address() -> EvmAddress {
-	EvmAddress::try_from(NEER).unwrap()
+	EvmAddress::try_from(NEER.into()).unwrap()
 }
 
 pub fn nuum_evm_address() -> EvmAddress {
-	EvmAddress::try_from(NUUM).unwrap()
+	EvmAddress::try_from(NUUM,.into()).unwrap()
 }
 
 pub fn erc20_address_not_exists() -> EvmAddress {
