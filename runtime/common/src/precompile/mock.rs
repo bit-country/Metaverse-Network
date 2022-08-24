@@ -1,6 +1,7 @@
 #![cfg(any(test, feature = "bench"))]
 use crate::precompile::{AllPrecompiles, MetaverseNetworkPrecompiles};
 use codec::{Decode, Encode, MaxEncodedLen};
+use evm_mapping::EvmAddressMapping;
 use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{
@@ -10,25 +11,26 @@ use frame_support::{
 	weights::{IdentityFee, Weight},
 	PalletId, RuntimeDebug,
 };
+use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy};
+use orml_traits::parameter_type_with_key;
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 	PrecompileResult, PrecompileSet,
 };
-use evm_mapping::EvmAddressMapping;
-use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy};
+use primitives::{
+	evm::EvmAddress, Amount, BlockNumber, ClassId, CurrencyId, FungibleTokenId, Header, MetaverseId, Nonce, TokenId,
+};
 use scale_info::TypeInfo;
-use sp_core::{H160, H256, U256};
 use sp_core::ecdsa::Signature;
+use sp_core::{H160, H256, U256};
 use sp_runtime::{
 	traits::{AccountIdConversion, BlakeTwo256, BlockNumberProvider, Convert, IdentityLookup, One as OneT, Zero},
 	AccountId32, DispatchResult, FixedPointNumber, FixedU128, Perbill, Percent, Permill,
 };
-use primitives::{Amount, ClassId, CurrencyId, BlockNumber, MetaverseId, evm::EvmAddress, Nonce, Header, FungibleTokenId, TokenId};
 use sp_std::prelude::*;
-use orml_traits::parameter_type_with_key;
 
-use pallet_evm::{EnsureAddressRoot, EnsureAddressNever, HashedAddressMapping};
 use pallet_ethereum::EthereumBlockHashMapping;
+use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
 
 pub type AccountId = AccountId32;
 type Key = CurrencyId;
@@ -37,8 +39,8 @@ type Balance = u128;
 
 impl frame_system::Config for Test {
 	type BaseCallFilter = Everything;
-    type BlockWeights = RuntimeBlockWeights;
-    type BlockLength = ();
+	type BlockWeights = RuntimeBlockWeights;
+	type BlockLength = ();
 	type Origin = Origin;
 	type Index = Nonce;
 	type BlockNumber = BlockNumber;
@@ -120,7 +122,7 @@ impl orml_currencies::Config for Test {
 }
 
 impl currencies::Config for Test {
-    type Event = Event;
+	type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
@@ -270,7 +272,7 @@ frame_support::construct_runtime!(
 		Currencies: currencies,
 		EvmMapping: evm_mapping,
 		EvmModule: pallet_evm exclude_parts { Call },
-        Scheduler: pallet_scheduler,
+		Scheduler: pallet_scheduler,
 	}
 );
 
@@ -302,7 +304,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			storage: std::collections::BTreeMap::new(),
 		},
 	);
-	
+
 	accounts.insert(
 		bob_evm_addr(),
 		fp_evm::GenesisAccount {
@@ -316,23 +318,16 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_balances::GenesisConfig::<Test>::default()
 		.assimilate_storage(&mut storage)
 		.unwrap();
-	pallet_evm::GenesisConfig {
-		accounts,
-	}
-	.assimilate_storage(&mut storage)
-	.unwrap();
+	pallet_evm::GenesisConfig { accounts }
+		.assimilate_storage(&mut storage)
+		.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(storage);
 	ext.execute_with(|| {
 		System::set_block_number(1);
 		Timestamp::set_timestamp(1);
 
-		assert_ok!(Currencies::update_balance(
-			Origin::root(),
-			ALICE,
-			NEER,
-			1_000_000_000
-		));
+		assert_ok!(Currencies::update_balance(Origin::root(), ALICE, NEER, 1_000_000_000));
 		assert_ok!(Currencies::update_balance(Origin::root(), ALICE, NUUM, 1_000_000_000));
 
 		assert_ok!(Currencies::update_balance(
@@ -359,4 +354,3 @@ pub fn run_to_block(n: u32) {
 		Scheduler::on_initialize(System::block_number());
 	}
 }
-

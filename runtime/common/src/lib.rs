@@ -46,4 +46,3 @@ impl Convert<Weight, u64> for WeightToGas {
 			.expect("Compile-time constant is not zero; qed;")
 	}
 }
-
