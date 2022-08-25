@@ -213,7 +213,7 @@ impl pallet_scheduler::Config for Test {
 parameter_types! {
 	pub const ChainId: u64 = 2042;
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
-	pub PrecompilesValue: MetaverseNetworkPrecompiles<Test> = MetaverseNetworkPrecompiles::<Test>::new();
+	pub PrecompilesValue: MetaverseNetworkPrecompiles<Test> = MetaverseNetworkPrecompiles::<_>::new();
 }
 
 impl pallet_ethereum::Config for Test {

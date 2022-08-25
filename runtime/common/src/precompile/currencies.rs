@@ -234,7 +234,7 @@ mod tests {
 
 			let mut handle = MockHandle::new(input.to_vec(), Some(10000), context);
 			assert_noop!(
-				MultiCurrencyPrecompile::execute(NEER, &mut handle),
+				MultiCurrencyPrecompile::execute(&mut handle),
 				PrecompileFailure::Revert {
 					exit_status: ExitRevert::Reverted,
 					output: "invalid currency id".into(),
@@ -358,7 +358,7 @@ mod tests {
 			"};
 
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
-			let resp = MultiCurrencyPrecompile::execute(NEER, &mut handle).unwrap();
+			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
 			assert_eq!(resp.output, expected_output.to_vec());
