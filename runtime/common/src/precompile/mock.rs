@@ -103,7 +103,7 @@ impl orml_tokens::Config for Test {
 	type Event = Event;
 	type Balance = Balance;
 	type Amount = Amount;
-	type CurrencyId = CurrencyId;
+	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Test, TreasuryModuleAccount>;
@@ -149,12 +149,11 @@ impl orml_currencies::Config for Test {
 
 parameter_types! {
 	pub const GetNativeCurrencyTokenId: FungibleTokenId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
-	pub const MultiSocialCurrency: FungibleTokenId = FungibleTokenId::NativeToken(BIT_TOKEN_ID);
 }
 
 impl currencies::Config for Test {
 	type Event = Event;
-	type MultiSocialCurrency = MultiSocialCurrency;
+	type MultiSocialCurrency = Tokens;//MultiSocialCurrency;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyTokenId;
 	type WeightInfo = ();
