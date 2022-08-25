@@ -133,7 +133,7 @@ pub const BIT_TOKEN_ID: TokenId = 2;
 
 pub const NEER: FungibleTokenId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
 pub const NUUM: FungibleTokenId = FungibleTokenId::NativeToken(NUUM_TOKEN_ID);
-pub const BIT: : FungibleTokenId = FungibleTokenId::MiningResource(BIT_TOKEN_ID);
+pub const BIT: FungibleTokenId = FungibleTokenId::MiningResource(BIT_TOKEN_ID);
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
 
