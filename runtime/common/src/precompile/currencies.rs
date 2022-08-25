@@ -24,6 +24,7 @@ use pallet_evm::{
 	AddressMapping, Context, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
 	PrecompileOutput, PrecompileResult, PrecompileSet,
 };
+use pallet_evm_test_vector_support::MockHandle
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
 use sp_std::{marker::PhantomData, prelude::*};

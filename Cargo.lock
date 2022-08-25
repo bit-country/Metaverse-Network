@@ -5435,6 +5435,7 @@ dependencies = [
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
+ "pallet-evm-test-vector-support",
  "pallet-governance",
  "pallet-metaverse",
  "pallet-mining",
@@ -6974,6 +6975,19 @@ dependencies = [
  "fp-evm",
  "ripemd",
  "sp-io",
+]
+
+[[package]]
+name = "pallet-evm-test-vector-support"
+version = "1.0.0-dev"
+source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.24#efb2d22d6e79701071743555aa7d603ee9b2983a"
+dependencies = [
+ "evm 0.35.0 (git+https://github.com/rust-blockchain/evm?rev=01bcbd2205a212c34451d3b4fabc962793b057d3)",
+ "fp-evm",
+ "hex",
+ "serde",
+ "serde_json",
+ "sp-core",
 ]
 
 [[package]]
@@ -13294,7 +13308,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",

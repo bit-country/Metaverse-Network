@@ -27,6 +27,7 @@ sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0
 pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-base-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
+pallet-evm-test-vector-support = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-evm-precompile-blake2 = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-evm-precompile-bn128 = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-evm-precompile-dispatch = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
