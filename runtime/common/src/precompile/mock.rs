@@ -257,7 +257,7 @@ pub const BOB: AccountId = AccountId::new([2u8; 32]);
 pub const EVA: AccountId = AccountId::new([3u8; 32]);
 
 pub fn alice() -> AccountId {
-	AddressMapping::<AccountId>::into_account_id(&alice_evm_addr())
+	AddressMapping::<AccountId>::into_account_id(alice_evm_addr())
 }
 
 pub fn alice_evm_addr() -> EvmAddress {
@@ -265,7 +265,7 @@ pub fn alice_evm_addr() -> EvmAddress {
 }
 
 pub fn bob() -> AccountId {
-	AddressMapping::<AccountId>::into_account_id(&bob_evm_addr())
+	AddressMapping::<AccountId>::into_account_id(bob_evm_addr())
 }
 
 pub fn bob_evm_addr() -> EvmAddress {
