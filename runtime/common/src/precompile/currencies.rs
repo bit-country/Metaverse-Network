@@ -210,7 +210,7 @@ where
 mod tests {
 	use super::*;
 	use crate::precompile::mock::{
-		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test,
+		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, Test, NEER, NUUM, BIT,
 	};
 	use frame_support::assert_noop;
 	use hex_literal::hex;
@@ -234,7 +234,7 @@ mod tests {
 
 			let mut handle = MockHandle::new(input.to_vec(), Some(10000), context);
 			assert_noop!(
-				MultiCurrencyPrecompile::execute(&mut handle),
+				MultiCurrencyPrecompile::execute(NEER, &mut handle),
 				PrecompileFailure::Revert {
 					exit_status: ExitRevert::Reverted,
 					output: "invalid currency id".into(),
@@ -358,7 +358,7 @@ mod tests {
 			"};
 
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
-			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+			let resp = MultiCurrencyPrecompile::execute(NEER, &mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
 			assert_eq!(resp.output, expected_output.to_vec());

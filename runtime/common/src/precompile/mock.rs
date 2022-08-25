@@ -38,7 +38,7 @@ use pallet_ethereum::EthereumBlockHashMapping;
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
 
 pub type AccountId = AccountId32;
-type Key = CurrencyId;
+type Key = FungibleTokenId;
 pub type Price = FixedU128;
 type Balance = u128;
 
@@ -137,22 +137,22 @@ pub const BIT: FungibleTokenId = FungibleTokenId::MiningResource(BIT_TOKEN_ID);
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
 
+parameter_types! {
+	pub const GetNativeCurrencyId: FungibleTokenId = NEER;
+}
+
 impl orml_currencies::Config for Test {
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = NEER;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
 	type WeightInfo = ();
-}
-
-parameter_types! {
-	pub const GetNativeCurrencyTokenId: FungibleTokenId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
 }
 
 impl currencies::Config for Test {
 	type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = NEER;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
 	type WeightInfo = ();
 }
 
