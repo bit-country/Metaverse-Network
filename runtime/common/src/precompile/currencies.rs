@@ -232,7 +232,7 @@ mod tests {
 				95d89b41
 			"};
 
-			let mut handle = MockHandle::new(input, Some(10000), context);
+			let mut handle = MockHandle::new(input.to_vec(), Some(10000), context);
 			assert_noop!(
 				MultiCurrencyPrecompile::execute(&mut handle),
 				PrecompileFailure::Revert {
@@ -266,7 +266,7 @@ mod tests {
 				4163616c61000000000000000000000000000000000000000000000000000000
 			"};
 
-			let mut handle = MockHandle::new(input, None, context);
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
@@ -295,7 +295,7 @@ mod tests {
 				00000000000000000000000000000000 0000000000000000000000000000000c
 			"};
 
-			let mut handle = MockHandle::new(input, None, context);
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
@@ -325,7 +325,7 @@ mod tests {
 				00000000000000000000000000000000 00000000000000000000000077359400
 			"};
 
-			let mut handle = MockHandle::new(input, None, context);
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
@@ -357,7 +357,7 @@ mod tests {
 				00000000000000000000000000000000 0000000000000000000000e8d4a51000
 			"};
 
-			let mut handle = MockHandle::new(input, None, context);
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
@@ -391,7 +391,7 @@ mod tests {
 			// Token
 			context.caller = neer_evm_address();
 
-			let mut handle = MockHandle::new(input, None, context);
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
