@@ -1,4 +1,6 @@
 #![cfg(any(test, feature = "bench"))]
+use core::ops::Mul;
+
 use crate::precompile::{AllPrecompiles, MetaverseNetworkPrecompiles};
 use codec::{Decode, Encode, MaxEncodedLen};
 use evm_mapping::EvmAddressMapping;
@@ -14,7 +16,7 @@ pub use frame_support::{
 	},
 	PalletId, RuntimeDebug,
 };
-use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy, BlockWeight};
+use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy, limits::BlockWeights};
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
@@ -129,13 +131,13 @@ impl pallet_balances::Config for Test {
 
 pub const NEER: CurrencyId = 0;
 pub const NUUM: CurrencyId = 1;
+pub const BIT: CurrencyId = 2;
+
 pub const NEER_TOKEN_ID: TokenId = 0;
-
-
+pub const BIT_TOKEN_ID: TokenId = 2;
 
 parameter_types! {
 	pub const GetNativeCurrencyId: CurrencyId = NEER;
-	pub const GetNativeCurrencyTokenId: FungibleTokenId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
 }
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
@@ -147,9 +149,14 @@ impl orml_currencies::Config for Test {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub const GetNativeCurrencyTokenId: FungibleTokenId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
+	pub const MultiSocialCurrency: FungibleTokenId = FungibleTokenId::NativeToken(BIT_TOKEN_ID);
+}
+
 impl currencies::Config for Test {
 	type Event = Event;
-	type MultiSocialCurrency = Tokens;
+	type MultiSocialCurrency = MultiSocialCurrency;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = GetNativeCurrencyTokenId;
 	type WeightInfo = ();
@@ -192,7 +199,7 @@ impl pallet_timestamp::Config for Test {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(10) * RuntimeBlockWeights::get().max_block;
+	pub MaximumSchedulerWeight: Weight = RuntimeBlockWeights::get().max_block / 10;
 }
 
 impl pallet_scheduler::Config for Test {
@@ -212,8 +219,14 @@ impl pallet_scheduler::Config for Test {
 parameter_types! {
 	pub const ChainId: u64 = 2042;
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
-	pub PrecompilesValue: MetaverseNetworkPrecompiles<Test> = MetaverseNetworkPrecompiles::<_>::new();
+	pub PrecompilesValue: MetaverseNetworkPrecompiles<Test> = MetaverseNetworkPrecompiles::<Test>::new();
 }
+
+impl pallet_ethereum::Config for Test {
+	type Event = Event;
+	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
+}
+
 
 impl pallet_evm::Config for Test {
 	type Event = Event;
@@ -267,11 +280,11 @@ pub fn bob_evm_addr() -> EvmAddress {
 }
 
 pub fn neer_evm_address() -> EvmAddress {
-	EvmAddress::try_from(NEER.into()).unwrap()
+	EvmAddress::from(hex_literal::hex!("0100000000000000000000000000000000000001"))
 }
 
 pub fn nuum_evm_address() -> EvmAddress {
-	EvmAddress::try_from(NUUM.into()).unwrap()
+	EvmAddress::from(hex_literal::hex!("0100000000000000000000000000000000000002"))
 }
 
 pub fn erc20_address_not_exists() -> EvmAddress {
@@ -297,6 +310,7 @@ frame_support::construct_runtime!(
 		Tokens: orml_tokens exclude_parts { Call },
 		Balances: pallet_balances,
 		Currencies: currencies,
+		Ethereum: pallet_ethereum,
 		EvmMapping: evm_mapping,
 		EvmModule: pallet_evm exclude_parts { Call },
 		Scheduler: pallet_scheduler,
