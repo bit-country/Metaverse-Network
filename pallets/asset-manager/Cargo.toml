@@ -1,0 +1,14 @@
+[package]
+name = "asset-manager"
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet for asset management.'
+edition = '2021'
+homepage = 'https://metaverse.network'
+repository = 'https://github.com/bit-country'
+version = '0.1.0'
+
+
+[dependencies]
+log = { version = "0.4", default-features = false }
+serde = { version = "1.0.124", optional = true }
+
