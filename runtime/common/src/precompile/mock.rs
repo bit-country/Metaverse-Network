@@ -23,7 +23,7 @@ use pallet_evm::{
 	PrecompileResult, PrecompileSet,
 };
 use primitives::{
-	evm::EvmAddress, Amount, BlockNumber, ClassId, CurrencyId, FungibleTokenId, Header, MetaverseId, Nonce, TokenId,
+	evm::EvmAddress, Amount, BlockNumber, ClassId, FungibleTokenId, Header, MetaverseId, Nonce, TokenId,
 };
 use scale_info::TypeInfo;
 use sp_core::ecdsa::Signature;
@@ -88,7 +88,7 @@ impl frame_system::Config for Test {
 }
 
 parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
+	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
 	};
 }
@@ -127,23 +127,20 @@ impl pallet_balances::Config for Test {
 	type ReserveIdentifier = [u8; 8];
 }
 
-pub const NEER: CurrencyId = 0;
-pub const NUUM: CurrencyId = 1;
-pub const BIT: CurrencyId = 2;
-
 pub const NEER_TOKEN_ID: TokenId = 0;
+pub const NUUM_TOKEN_ID: TokenId = 1;
 pub const BIT_TOKEN_ID: TokenId = 2;
 
-parameter_types! {
-	pub const GetNativeCurrencyId: CurrencyId = NEER;
-}
+pub const NEER: FungibleTokenId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
+pub const NUUM: FungibleTokenId = FungibleTokenId::NativeToken(NUUM_TOKEN_ID);
+pub const BIT: : FungibleTokenId = FungibleTokenId::MiningResource(BIT_TOKEN_ID);
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
 
 impl orml_currencies::Config for Test {
 	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type GetNativeCurrencyId = NEER;
 	type WeightInfo = ();
 }
 
@@ -153,9 +150,9 @@ parameter_types! {
 
 impl currencies::Config for Test {
 	type Event = Event;
-	type MultiSocialCurrency = Tokens;//MultiSocialCurrency;
+	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = GetNativeCurrencyTokenId;
+	type GetNativeCurrencyId = NEER;
 	type WeightInfo = ();
 }
 
