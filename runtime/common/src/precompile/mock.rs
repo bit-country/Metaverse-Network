@@ -12,11 +12,11 @@ pub use frame_support::{
 	},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_PER_SECOND},
-		DispatchClass, IdentityFee, Weight
+		DispatchClass, IdentityFee, Weight,
 	},
 	PalletId, RuntimeDebug,
 };
-use frame_system::{offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy, limits::BlockWeights};
+use frame_system::{limits::BlockWeights, offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
@@ -46,7 +46,6 @@ const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
-
 parameter_types! {
 	pub RuntimeBlockWeights: BlockWeights = BlockWeights::builder()
 	.base_block(BlockExecutionWeight::get())
@@ -60,7 +59,6 @@ parameter_types! {
 	.avg_block_initialization(AVERAGE_ON_INITIALIZE_RATIO)
 	.build_or_panic();
 }
-
 
 impl frame_system::Config for Test {
 	type BaseCallFilter = Everything;
@@ -227,7 +225,6 @@ impl pallet_ethereum::Config for Test {
 	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
 }
 
-
 impl pallet_evm::Config for Test {
 	type Event = Event;
 	type Currency = Balances;
@@ -264,7 +261,7 @@ pub const BOB: AccountId = AccountId::new([2u8; 32]);
 pub const EVA: AccountId = AccountId::new([3u8; 32]);
 
 pub fn alice() -> AccountId {
-	AddressMapping<AccountId>::into_account_id(&alice_evm_addr())
+	AddressMapping::<AccountId>::into_account_id(&alice_evm_addr())
 }
 
 pub fn alice_evm_addr() -> EvmAddress {
@@ -272,7 +269,7 @@ pub fn alice_evm_addr() -> EvmAddress {
 }
 
 pub fn bob() -> AccountId {
-	AddressMapping<AccountId>::into_account_id(&bob_evm_addr())
+	AddressMapping::<AccountId>::into_account_id(&bob_evm_addr())
 }
 
 pub fn bob_evm_addr() -> EvmAddress {
