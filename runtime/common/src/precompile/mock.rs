@@ -257,7 +257,8 @@ pub const BOB: AccountId = AccountId::new([2u8; 32]);
 pub const EVA: AccountId = AccountId::new([3u8; 32]);
 
 pub fn alice() -> AccountId {
-	AddressMapping::<AccountId>::into_account_id(alice_evm_addr())
+	let result: AccountId = AddressMapping::<AccountId>::into_account_id(alice_evm_addr())
+	result
 }
 
 pub fn alice_evm_addr() -> EvmAddress {
@@ -265,7 +266,8 @@ pub fn alice_evm_addr() -> EvmAddress {
 }
 
 pub fn bob() -> AccountId {
-	AddressMapping::<AccountId>::into_account_id(bob_evm_addr())
+	let result: AccountId = AddressMapping::<AccountId>::into_account_id(bob_evm_addr())
+	result
 }
 
 pub fn bob_evm_addr() -> EvmAddress {
@@ -331,7 +333,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	accounts.insert(
 		alice_evm_addr(),
-		fp_evm::GenesisAccount {
+		pallet_evm::GenesisAccount {
 			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: vec![],
@@ -341,7 +343,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	accounts.insert(
 		bob_evm_addr(),
-		fp_evm::GenesisAccount {
+		pallet_evm::GenesisAccount {
 			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: Default::default(),
