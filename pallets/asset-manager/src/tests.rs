@@ -77,6 +77,65 @@ fn register_foreign_asset_work() {
 }
 
 #[test]
+fn register_foreign_asset_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let v0_location = VersionedMultiLocation::V0(xcm::v0::MultiLocation::X1(xcm::v0::Junction::Parachain(2096)));
+
+		assert_ok!(AssetManager::register_foreign_asset(
+			Origin::signed(CouncilAccount::get()),
+			Box::new(v0_location.clone()),
+			Box::new(AssetMetadata {
+				name: b"TNEER".to_vec(),
+				symbol: b"TNEER".to_vec(),
+				decimals: 18,
+				minimal_balance: 1,
+			})
+		));
+
+		assert_noop!(
+			AssetManager::register_foreign_asset(
+				Origin::signed(CouncilAccount::get()),
+				Box::new(v0_location.clone()),
+				Box::new(AssetMetadata {
+					name: b"TNEER".to_vec(),
+					symbol: b"TNEER".to_vec(),
+					decimals: 18,
+					minimal_balance: 1,
+				})
+			),
+			Error::<Runtime>::MultiLocationExisted
+		);
+
+		let location: MultiLocation = v0_location.try_into().unwrap();
+		System::assert_last_event(Event::AssetManager(crate::Event::ForeignAssetRegistered {
+			asset_id: 0,
+			asset_address: location.clone(),
+			metadata: AssetMetadata {
+				name: b"TNEER".to_vec(),
+				symbol: b"TNEER".to_vec(),
+				decimals: 18,
+				minimal_balance: 1,
+			},
+		}));
+
+		assert_eq!(ForeignAssetLocations::<Runtime>::get(0), Some(location.clone()));
+		assert_eq!(
+			AssetMetadatas::<Runtime>::get(AssetIds::ForeignAssetId(0)),
+			Some(AssetMetadata {
+				name: b"TNEER".to_vec(),
+				symbol: b"TNEER".to_vec(),
+				decimals: 18,
+				minimal_balance: 1,
+			})
+		);
+		assert_eq!(
+			LocationToFungibleTokenIds::<Runtime>::get(location),
+			Some(FungibleTokenId::FungibleToken(0))
+		);
+	});
+}
+
+#[test]
 fn versioned_multi_location_convert_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		// v0
