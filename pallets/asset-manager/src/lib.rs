@@ -38,7 +38,7 @@ use xcm::v1::MultiLocation;
 use xcm::VersionedMultiLocation;
 
 pub use pallet::*;
-use primitives::{AssetIds, AssetMetadata, CurrencyId, ForeignAssetId, FungibleTokenId};
+use primitives::{AssetIds, AssetMetadata, CurrencyId, ForeignAssetId, ForeignAssetIdMapping, FungibleTokenId};
 
 mod mock;
 mod tests;
@@ -129,7 +129,7 @@ pub mod pallet {
 	/// Map the MultiLocation with FungibleTokenId
 	/// LocationToCurrencyIds: map MultiLocation => Option<FungibleTokenId>
 	#[pallet::storage]
-	#[pallet::getter(fn location_to_currency_ids)]
+	#[pallet::getter(fn location_to_fungible_token_ids)]
 	pub type LocationToFungibleTokenIds<T: Config> =
 		StorageMap<_, Twox64Concat, MultiLocation, FungibleTokenId, OptionQuery>;
 
@@ -274,5 +274,23 @@ impl<T: Config> Pallet<T> {
 				},
 			)
 		})
+	}
+}
+
+pub struct ForeignAssetMapping<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: Config> ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata<BalanceOf<T>>>
+	for ForeignAssetMapping<T>
+{
+	fn get_asset_metadata(asset_ids: AssetIds) -> Option<AssetMetadata<BalanceOf<T>>> {
+		Pallet::<T>::asset_metadatas(asset_ids)
+	}
+
+	fn get_multi_location(foreign_asset_id: ForeignAssetId) -> Option<MultiLocation> {
+		Pallet::<T>::foreign_asset_locations(foreign_asset_id)
+	}
+
+	fn get_currency_id(multi_location: MultiLocation) -> Option<FungibleTokenId> {
+		Pallet::<T>::location_to_fungible_token_ids(multi_location)
 	}
 }
