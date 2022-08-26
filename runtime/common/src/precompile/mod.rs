@@ -73,7 +73,7 @@ pub struct AllPrecompiles<R> {
 	_marker: PhantomData<R>,
 }
 
-impl<R> Precompile for MetaverseNetworkPrecompiles<R>
+impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
 	R: pallet_evm::Config,
 	MultiCurrencyPrecompile<R>: Precompile,
