@@ -75,12 +75,13 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 
+use asset_manager::ForeignAssetMapping;
 pub use constants::{currency::*, time::*};
 use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
-use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
+use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
 
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
@@ -985,6 +986,7 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 					GeneralKey(parachains::karura::KUSD_KEY.to_vec()),
 				),
 			)),
+			FungibleToken(token_id) => ForeignAssetMapping::<Runtime>::get_multi_location(token_id),
 			_ => Some(native_currency_location(id)),
 		}
 	}
@@ -1008,6 +1010,10 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 
 		if location == MultiLocation::parent() {
 			return Some(NativeToken(1));
+		}
+
+		if let Some(currency_id) = ForeignAssetMapping::<Runtime>::get_currency_id(location.clone()) {
+			return Some(currency_id);
 		}
 
 		match location.clone() {
@@ -1535,6 +1541,12 @@ impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
 	type WeightInfo = ();
 }
 
+impl asset_manager::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type RegisterOrigin = EnsureRootOrHalfMetaverseCouncil;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1611,6 +1623,7 @@ construct_runtime!(
 		Continuum: continuum::{Call, Pallet, Storage, Event<T>} = 63,
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
+		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}

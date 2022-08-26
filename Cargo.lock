@@ -7842,6 +7842,7 @@ dependencies = [
 name = "pioneer-runtime"
 version = "0.0.7"
 dependencies = [
+ "asset-manager",
  "bit-country-primitives",
  "core-primitives",
  "cumulus-pallet-aura-ext",
