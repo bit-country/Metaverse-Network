@@ -35,6 +35,7 @@ use scale_info::prelude::format;
 use sp_runtime::{traits::One, ArithmeticError, FixedPointNumber, FixedU128};
 use sp_std::{boxed::Box, vec::Vec};
 use xcm::v1::MultiLocation;
+use xcm::VersionedMultiLocation;
 
 pub use pallet::*;
 use primitives::{AssetIds, AssetMetadata, CurrencyId, ForeignAssetId, FungibleTokenId};
@@ -147,6 +148,51 @@ pub mod pallet {
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
+
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight(T::DbWeight::get().read + 2 * T::DbWeight::get().write)]
+		#[transactional]
+		pub fn register_foreign_asset(
+			origin: OriginFor<T>,
+			location: Box<VersionedMultiLocation>,
+			metadata: Box<AssetMetadata<BalanceOf<T>>>,
+		) -> DispatchResult {
+			T::RegisterOrigin::ensure_origin(origin)?;
+
+			let location: MultiLocation = (*location).try_into().map_err(|()| Error::<T>::BadLocation)?;
+			let foreign_asset_id = Self::do_register_foreign_asset(&location, &metadata)?;
+
+			Self::deposit_event(Event::<T>::ForeignAssetRegistered {
+				asset_id: foreign_asset_id,
+				asset_address: location,
+				metadata: *metadata,
+			});
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::DbWeight::get().read + 2 * T::DbWeight::get().write)]
+		#[transactional]
+		pub fn update_foreign_asset(
+			origin: OriginFor<T>,
+			foreign_asset_id: ForeignAssetId,
+			location: Box<VersionedMultiLocation>,
+			metadata: Box<AssetMetadata<BalanceOf<T>>>,
+		) -> DispatchResult {
+			T::RegisterOrigin::ensure_origin(origin)?;
+
+			let location: MultiLocation = (*location).try_into().map_err(|()| Error::<T>::BadLocation)?;
+			Self::do_update_foreign_asset(foreign_asset_id, &location, &metadata)?;
+
+			Self::deposit_event(Event::<T>::ForeignAssetUpdated {
+				asset_id: foreign_asset_id,
+				asset_address: location,
+				metadata: *metadata,
+			});
+			Ok(())
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
