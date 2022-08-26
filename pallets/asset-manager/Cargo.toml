@@ -18,7 +18,7 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
-
+xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.24", default-features = false }
 
 [features]
 default = ["std"]
@@ -32,4 +32,5 @@ std = [
     "frame-support/std",
     "frame-system/std",
     "primitives/std",
+    "xcm/std",
 ]

@@ -164,6 +164,7 @@ dependencies = [
  "serde",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]
