@@ -41,6 +41,7 @@ pub use pallet::*;
 use primitives::{AssetIds, AssetMetadata, CurrencyId, ForeignAssetId, FungibleTokenId};
 
 mod mock;
+mod tests;
 
 /// Type alias for currency balance.
 pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
