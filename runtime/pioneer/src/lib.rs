@@ -271,6 +271,7 @@ impl Contains<Call> for NormalCallFilter {
 			// Orml XCM wrapper
 			| Call::OrmlXcm{..}
 			| Call::Balances(..)
+			| Call::XTokens(..)
 		);
 
 		if is_core {
