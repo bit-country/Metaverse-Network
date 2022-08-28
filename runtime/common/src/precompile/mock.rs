@@ -257,7 +257,7 @@ pub const BOB: AccountId = AccountId::new([2u8; 32]);
 pub const EVA: AccountId = AccountId::new([3u8; 32]);
 
 pub fn alice() -> AccountId {
-	Test::AddressMapping::into_account_id(alice_evm_addr())
+	<Test as Trait>::AddressMapping::into_account_id(alice_evm_addr())
 }
 
 pub fn alice_evm_addr() -> EvmAddress {
@@ -265,7 +265,7 @@ pub fn alice_evm_addr() -> EvmAddress {
 }
 
 pub fn bob() -> AccountId {
-	Test::AddressMapping::into_account_id(bob_evm_addr())
+	<Test as Trait>::AddressMapping::into_account_id(bob_evm_addr())
 }
 
 pub fn bob_evm_addr() -> EvmAddress {
@@ -366,14 +366,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 		assert_ok!(Currencies::update_balance(
 			Origin::root(),
-			Test::AddressMapping::into_account_id(alice_evm_addr()),
+			<Test as Trait>::AddressMapping::into_account_id(alice_evm_addr()),
 			NEER,
 			1_000_000_000
 		));
 
 		assert_ok!(Currencies::update_balance(
 			Origin::root(),
-			Test::AddressMapping::into_account_id(alice_evm_addr()),
+			<Test as Trait>::AddressMapping::into_account_id(alice_evm_addr()),
 			NUUM,
 			1_000_000_000
 		));
