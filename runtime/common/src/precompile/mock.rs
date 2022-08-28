@@ -15,6 +15,7 @@ pub use frame_support::{
 	},
 	PalletId, RuntimeDebug,
 };
+use evm_mapping::EvmAddressMapping;
 use frame_system::{limits::BlockWeights, offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{
