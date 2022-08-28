@@ -3,7 +3,6 @@ use core::ops::Mul;
 
 use crate::precompile::{AllPrecompiles, MetaverseNetworkPrecompiles};
 use codec::{Decode, Encode, MaxEncodedLen};
-use evm_mapping::EvmAddressMapping;
 pub use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{
@@ -366,14 +365,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 		assert_ok!(Currencies::update_balance(
 			Origin::root(),
-			EvmAddressMapping::<Test>::get_account_id(&alice_evm_addr()),
+			<Test as pallet_evm::Config>::AddressMapping::into_account_id(alice_evm_addr()),
 			NEER,
 			1_000_000_000
 		));
 
 		assert_ok!(Currencies::update_balance(
 			Origin::root(),
-			EvmAddressMapping::<Test>::get_account_id(&alice_evm_addr()),
+			<Test as pallet_evm::Config>::AddressMapping::into_account_id(alice_evm_addr()),
 			NUUM,
 			1_000_000_000
 		));
