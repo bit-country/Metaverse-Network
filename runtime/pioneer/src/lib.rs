@@ -75,12 +75,13 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 
+use asset_manager::ForeignAssetMapping;
 pub use constants::{currency::*, time::*};
 use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
-use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
+use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
 
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
@@ -283,7 +284,7 @@ impl Contains<Call> for NormalCallFilter {
 			// Not allow stopped tx
 			return false;
 		}
-		return false;
+		false
 	}
 }
 
@@ -985,6 +986,7 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 					GeneralKey(parachains::karura::KUSD_KEY.to_vec()),
 				),
 			)),
+			FungibleToken(token_id) => ForeignAssetMapping::<Runtime>::get_multi_location(token_id),
 			_ => Some(native_currency_location(id)),
 		}
 	}
@@ -1008,6 +1010,10 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 
 		if location == MultiLocation::parent() {
 			return Some(NativeToken(1));
+		}
+
+		if let Some(currency_id) = ForeignAssetMapping::<Runtime>::get_currency_id(location.clone()) {
+			return Some(currency_id);
 		}
 
 		match location.clone() {
@@ -1414,14 +1420,15 @@ impl estate::Config for Runtime {
 
 parameter_types! {
 	pub const AuctionTimeToClose: u32 = 100; // Default 100800 Blocks
-	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
-	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
-	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
+	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
 	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum number of item per bundle
-	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeReserve: Balance = 10 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
+	pub const MinimumListingPrice: Balance = DOLLARS;
 }
 
 impl auction::Config for Runtime {
@@ -1441,6 +1448,7 @@ impl auction::Config for Runtime {
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
 	type OfferDuration = OfferDuration;
+	type MinimumListingPrice = MinimumListingPrice;
 }
 
 impl continuum::Config for Runtime {
@@ -1533,6 +1541,12 @@ impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
 	type WeightInfo = ();
 }
 
+impl asset_manager::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type RegisterOrigin = EnsureRootOrHalfMetaverseCouncil;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1609,6 +1623,7 @@ construct_runtime!(
 		Continuum: continuum::{Call, Pallet, Storage, Event<T>} = 63,
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
+		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}
