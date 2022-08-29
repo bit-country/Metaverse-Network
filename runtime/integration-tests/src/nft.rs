@@ -69,7 +69,7 @@ fn purchase_nft_from_buy_now_listing() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::NFT(2, 0),
 				100 * dollar(NATIVE_TOKEN),
-				100u32.into(),
+				300u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			run_to_block(2);
