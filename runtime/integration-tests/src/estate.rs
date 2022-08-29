@@ -68,7 +68,7 @@ fn deploy_land_blocks_won_in_an_auction() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::UndeployedLandBlock(0u32.into()),
 				100 * dollar(NATIVE_TOKEN),
-				31u32.into(),
+				400u32.into(),
 				ListingLevel::Global
 			));
 			run_to_block(2);
@@ -85,18 +85,18 @@ fn deploy_land_blocks_won_in_an_auction() {
 				0u32.into(),
 				105 * dollar(NATIVE_TOKEN),
 			));
-			run_to_block(35);
+			run_to_block(401);
 			// Check land block ownership and balances
 			assert_eq!(
 				Estate::check_undeployed_land_block(&AccountId::from(BOB), 0u32.into()),
 				Ok(true)
 			);
-			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 894 * dollar(NATIVE_TOKEN));
+			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 845 * dollar(NATIVE_TOKEN));
 			assert_eq!(
 				Balances::free_balance(AccountId::from(CHARLIE)),
 				1000 * dollar(NATIVE_TOKEN)
 			);
-			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1102950000000000000000);
+			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1053950000000000000000);
 			// Deploy undeployed land block
 			assert_ok!(Estate::deploy_land_block(
 				RawOrigin::Signed(AccountId::from(BOB)).into(),
