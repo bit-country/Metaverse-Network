@@ -167,7 +167,7 @@ fn win_nft_bundle_auction() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::Bundle(tokens.clone()),
 				100 * dollar(NATIVE_TOKEN),
-				31u32.into(),
+				300u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			run_to_block(2);
@@ -184,7 +184,7 @@ fn win_nft_bundle_auction() {
 				0u32.into(),
 				105 * dollar(NATIVE_TOKEN),
 			));
-			run_to_block(35);
+			run_to_block(301);
 			// Check NFT Bundle ownership and balances
 			assert_eq!(
 				Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 0u32.into())),
