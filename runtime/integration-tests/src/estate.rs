@@ -115,7 +115,7 @@ fn deploy_land_blocks_won_in_an_auction() {
 }
 
 #[test]
-fn create_estate_from_purhcased_land_blocks() {
+fn create_estate_from_raw_land_blocks() {
 	#[cfg(feature = "with-pioneer-runtime")]
 	const NATIVE_TOKEN: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -182,14 +182,14 @@ fn create_estate_from_purhcased_land_blocks() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::NFT(0u32.into(), 0u64.into()),
 				100 * dollar(NATIVE_TOKEN),
-				100u32.into(),
+				300u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::NFT(0u32.into(), 1u64.into()),
 				100 * dollar(NATIVE_TOKEN),
-				100u32.into(),
+				300u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			run_to_block(2);
