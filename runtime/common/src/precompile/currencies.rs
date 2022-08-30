@@ -234,7 +234,7 @@ mod tests {
 
 			let mut handle = MockHandle::new(input.to_vec(), Some(10000), context);
 			assert_noop!(
-				MultiCurrencyPrecompile::execute(handle.input, handle.gas_used)),
+				MultiCurrencyPrecompile::execute(&handle),
 				PrecompileFailure::Revert {
 					exit_status: ExitRevert::Reverted,
 					output: "invalid currency id".into(),
