@@ -74,7 +74,7 @@ where
 	MultiCurrencyPrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
-	fn execute(handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
+	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		let address = handle.code_address();
 		if !self.is_precompile(address) {
 			return None;
@@ -114,7 +114,7 @@ where
 		}
 	}
 
-	fn is_precompile(address: H160) -> bool {
+	fn is_precompile(&self, address: H160) -> bool {
 		if address != hash(1)
 			&& address != hash(2)
 			&& address != hash(3)
