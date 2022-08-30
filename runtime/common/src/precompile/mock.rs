@@ -331,7 +331,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	accounts.insert(
 		alice_evm_addr(),
-		GenesisAccount {
+		fp_evm::GenesisAccount {
 			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: vec![],
@@ -341,7 +341,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	accounts.insert(
 		bob_evm_addr(),
-		GenesisAccount {
+		fp_evm::GenesisAccount {
 			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: Default::default(),
