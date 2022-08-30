@@ -240,7 +240,7 @@ mod tests {
 					output: "invalid currency id".into(),
 				}
 			);
-		});
+		})
 	}
 
 	#[test]
@@ -273,6 +273,7 @@ mod tests {
 				exit_status: ExitSucceed::Returned,
 				output: expected_output.to_vec()
 			});
+		})
 	}
 
 	#[test]
@@ -303,7 +304,7 @@ mod tests {
 				exit_status: ExitSucceed::Returned,
 				output: expected_output.to_vec()
 			});
-		});
+		})
 	}
 
 	#[test]
@@ -331,9 +332,11 @@ mod tests {
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp.exit_status, ExitSucceed::Returned);
-			assert_eq!(resp.output, expected_output.to_vec());
-		});
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: expected_output.to_vec()
+			});
+		})
 	}
 
 	#[test]
