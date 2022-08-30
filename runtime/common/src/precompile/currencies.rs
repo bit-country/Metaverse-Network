@@ -267,11 +267,12 @@ mod tests {
 			"};
 
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
-			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp.exit_status, ExitSucceed::Returned);
-			assert_eq!(resp.output, expected_output.to_vec());
-		});
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: expected_output.to_vec()
+			});
 	}
 
 	#[test]
@@ -296,10 +297,12 @@ mod tests {
 			"};
 
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
-			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp.exit_status, ExitSucceed::Returned);
-			assert_eq!(resp.output, expected_output.to_vec());
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: expected_output.to_vec()
+			});
 		});
 	}
 
@@ -326,7 +329,7 @@ mod tests {
 			"};
 
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
-			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp.exit_status, ExitSucceed::Returned);
 			assert_eq!(resp.output, expected_output.to_vec());
@@ -358,10 +361,12 @@ mod tests {
 			"};
 
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
-			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp.exit_status, ExitSucceed::Returned);
-			assert_eq!(resp.output, expected_output.to_vec());
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: expected_output.to_vec()
+			});
 		})
 	}
 
@@ -392,10 +397,12 @@ mod tests {
 			context.caller = neer_evm_address();
 
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
-			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp.exit_status, ExitSucceed::Returned);
-			assert_eq!(resp.output, [0u8; 0].to_vec());
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: [0u8; 0].to_vec()
+			});
 
 			assert_eq!(Balances::free_balance(alice()), from_balance - 1);
 			assert_eq!(Balances::free_balance(bob()), to_balance + 1);
