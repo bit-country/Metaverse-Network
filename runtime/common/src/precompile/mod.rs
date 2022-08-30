@@ -71,7 +71,7 @@ pub fn target_gas_limit(target_gas: Option<u64>) -> Option<u64> {
 impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
 	R: pallet_evm::Config,
-	MultiCurrencyPrecompile<R>: Precompile,
+	// MultiCurrencyPrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {

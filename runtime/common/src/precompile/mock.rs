@@ -1,7 +1,7 @@
 #![cfg(any(test, feature = "bench"))]
 use core::ops::Mul;
 
-use crate::precompile::{AllPrecompiles, MetaverseNetworkPrecompiles};
+use crate::precompile::MetaverseNetworkPrecompiles;
 use codec::{Decode, Encode, MaxEncodedLen};
 pub use frame_support::{
 	ord_parameter_types, parameter_types,
