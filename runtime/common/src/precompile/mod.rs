@@ -68,18 +68,13 @@ pub fn target_gas_limit(target_gas: Option<u64>) -> Option<u64> {
 	target_gas.map(|x| x.saturating_div(10).saturating_mul(9)) // 90%
 }
 
-pub struct AllPrecompiles<R> {
-	active: BTreeSet<H160>,
-	_marker: PhantomData<R>,
-}
-
 impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
 	R: pallet_evm::Config,
 	MultiCurrencyPrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
-	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
+	fn execute(handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		let address = handle.code_address();
 		if !self.is_precompile(address) {
 			return None;
@@ -119,7 +114,7 @@ where
 		}
 	}
 
-	fn is_precompile(&self, address: H160) -> bool {
+	fn is_precompile(address: H160) -> bool {
 		if address != hash(1)
 			&& address != hash(2)
 			&& address != hash(3)
