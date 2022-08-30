@@ -19,7 +19,7 @@ use evm_mapping::EvmAddressMapping;
 use frame_system::{limits::BlockWeights, offchain::SendTransactionTypes, EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{
-	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
+	AddressMapping, ExitRevert, ExitSucceed, GenesisAccount, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 	PrecompileResult, PrecompileSet,
 };
 use primitives::{
@@ -331,7 +331,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	accounts.insert(
 		alice_evm_addr(),
-		fp_evm::GenesisAccount {
+		GenesisAccount {
 			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: vec![],
@@ -341,7 +341,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 
 	accounts.insert(
 		bob_evm_addr(),
-		fp_evm::GenesisAccount {
+		GenesisAccount {
 			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: Default::default(),

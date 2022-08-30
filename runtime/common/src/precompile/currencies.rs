@@ -68,7 +68,7 @@ pub type BalanceOf<Runtime> = <<Runtime as currencies::Config>::MultiSocialCurre
 
 pub struct MultiCurrencyPrecompile<Runtime>(PhantomData<Runtime>);
 
-impl<Runtime> LinearCostPrecompile for MultiCurrencyPrecompile<Runtime>
+impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
 where
 	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
 	Runtime: Erc20Mapping,
