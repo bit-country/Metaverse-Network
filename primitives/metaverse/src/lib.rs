@@ -155,6 +155,8 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 	}
 }
 
+pub type ForeignAssetId = TokenId;
+
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum FungibleTokenId {
@@ -162,7 +164,8 @@ pub enum FungibleTokenId {
 	FungibleToken(TokenId),
 	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
-	Stable(TokenId), // kUSD
+	Stable(TokenId), // kUSD,
+	Erc20(EvmAddress),
 }
 
 impl FungibleTokenId {
@@ -214,6 +217,14 @@ impl FungibleTokenId {
 			_ => 18,
 		}
 	}
+}
+
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+pub enum AssetIds {
+	Erc20(EvmAddress),
+	StableAssetId(TokenId),
+	ForeignAssetId(ForeignAssetId),
+	NativeAssetId(TokenId),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
@@ -376,4 +387,22 @@ impl Default for TokenSymbol {
 	fn default() -> Self {
 		Self::NEER
 	}
+}
+
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+pub struct AssetMetadata<Balance> {
+	pub name: Vec<u8>,
+	pub symbol: Vec<u8>,
+	pub decimals: u8,
+	pub minimal_balance: Balance,
+}
+
+/// A mapping between AssetId and AssetMetadata.
+pub trait ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata> {
+	/// Returns the AssetMetadata associated with a given `AssetIds`.
+	fn get_asset_metadata(asset_ids: AssetIds) -> Option<AssetMetadata>;
+	/// Returns the MultiLocation associated with a given ForeignAssetId.
+	fn get_multi_location(foreign_asset_id: ForeignAssetId) -> Option<MultiLocation>;
+	/// Returns the CurrencyId associated with a given MultiLocation.
+	fn get_currency_id(multi_location: MultiLocation) -> Option<FungibleTokenId>;
 }

@@ -69,7 +69,7 @@ fn purchase_nft_from_buy_now_listing() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::NFT(2, 0),
 				100 * dollar(NATIVE_TOKEN),
-				100u32.into(),
+				400u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			run_to_block(2);
@@ -87,7 +87,7 @@ fn purchase_nft_from_buy_now_listing() {
 			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 900 * dollar(NATIVE_TOKEN));
 			assert_eq!(
 				Balances::free_balance(AccountId::from(ALICE)),
-				1_095 * dollar(NATIVE_TOKEN)
+				1_038 * dollar(NATIVE_TOKEN)
 			);
 		});
 }
@@ -167,7 +167,7 @@ fn win_nft_bundle_auction() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::Bundle(tokens.clone()),
 				100 * dollar(NATIVE_TOKEN),
-				31u32.into(),
+				400u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			run_to_block(2);
@@ -184,7 +184,7 @@ fn win_nft_bundle_auction() {
 				0u32.into(),
 				105 * dollar(NATIVE_TOKEN),
 			));
-			run_to_block(35);
+			run_to_block(401);
 			// Check NFT Bundle ownership and balances
 			assert_eq!(
 				Nft::check_ownership(&AccountId::from(BOB), &(2u32.into(), 0u32.into())),
@@ -199,6 +199,6 @@ fn win_nft_bundle_auction() {
 				Balances::free_balance(AccountId::from(CHARLIE)),
 				1000 * dollar(NATIVE_TOKEN)
 			);
-			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1098950000000000000000);
+			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1041950000000000000000);
 		});
 }
