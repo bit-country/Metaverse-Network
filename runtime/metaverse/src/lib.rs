@@ -1084,14 +1084,14 @@ impl Erc20Mapping for Runtime {
 				.try_into()
 				.map(FungibleTokenId::NativeToken)
 				.ok(),
-			CurrencyIdType::MiningResource => {
-				let id = TokenId::from_be_bytes(address[H160_POSITION_TOKEN].try_into().ok()?);
-				Some(FungibleTokenId::MiningResource(id))
-			}
-			CurrencyIdType::FungibleToken => {
-				let id = TokenId::from_be_bytes(address[H160_POSITION_TOKEN].try_into().ok()?);
-				Some(FungibleTokenId::FungibleToken(id))
-			}
+			CurrencyIdType::MiningResource => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::MiningResource)
+				.ok(),
+			CurrencyIdType::FungibleToken => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::FungibleToken)
+				.ok(),
 		};
 
 		// Encode again to ensure encoded address is matched
