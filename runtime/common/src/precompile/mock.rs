@@ -345,14 +345,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			nonce: NONCE,
 			balance: INITIAL_BALANCE,
 			code: Default::default(),
-			storage: Default::default(),
+			storage: std::collections::BTreeMap::new(),
 		},
 	);
 
 	pallet_balances::GenesisConfig::<Test>::default()
 		.assimilate_storage(&mut storage)
 		.unwrap();
-	pallet_evm::GenesisConfig::<Test> { accounts }
+	pallet_evm::GenesisConfig { accounts }
 		.assimilate_storage(&mut storage)
 		.unwrap();
 

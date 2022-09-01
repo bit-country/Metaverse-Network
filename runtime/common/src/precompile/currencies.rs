@@ -68,7 +68,7 @@ pub type BalanceOf<Runtime> = <<Runtime as currencies::Config>::MultiSocialCurre
 
 pub struct MultiCurrencyPrecompile<Runtime>(PhantomData<Runtime>);
 
-impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
+impl<Runtime: LinearCostPrecompile> Precompile for MultiCurrencyPrecompile<Runtime>
 where
 	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
 	Runtime: Erc20Mapping,
@@ -121,6 +121,23 @@ where
 		})
 	}
 }
+/* 
+impl<Runtime> LinearCostPrecompile for MultiCurrencyPrecompile<Runtime>
+where
+	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: Erc20Mapping,
+	currencies::Pallet<Runtime>:
+		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
+	U256: From<
+		<<Runtime as currencies::Config>::MultiSocialCurrency as MultiCurrencyTrait<
+			<Runtime as frame_system::Config>::AccountId,
+		>>::Balance,
+	>,
+	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+{
+}
+*/
 
 impl<Runtime> MultiCurrencyPrecompile<Runtime>
 where
@@ -234,7 +251,7 @@ mod tests {
 
 			let mut handle = MockHandle::new(input.to_vec(), Some(10000), context);
 			assert_noop!(
-				MultiCurrencyPrecompile::execute(&handle),
+				MultiCurrencyPrecompile::execute(&mut handle),
 				PrecompileFailure::Revert {
 					exit_status: ExitRevert::Reverted,
 					output: "invalid currency id".into(),
@@ -267,7 +284,7 @@ mod tests {
 			"};
 
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
-			let resp = MultiCurrencyPrecompile::execute(handle.input, handle.gas_used)?;
+			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
 			assert_eq!(resp, PrecompileOutput { 
 				exit_status: ExitSucceed::Returned,
@@ -275,7 +292,6 @@ mod tests {
 			});
 		})
 	}
-/* 
 	#[test]
 	fn decimals_works() {
 		new_test_ext().execute_with(|| {
@@ -411,5 +427,4 @@ mod tests {
 			assert_eq!(Balances::free_balance(bob()), to_balance + 1);
 		})
 	}
-*/
 }
