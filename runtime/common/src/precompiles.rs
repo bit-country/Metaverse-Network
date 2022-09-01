@@ -61,14 +61,17 @@ where
 			a if a == hash(1027) => Some(Ed25519Verify::execute(handle)),
 			// Metaverse Network precompiles (starts from 0x5000):
 			// If the address matches asset prefix, the we route through the asset precompile set
-			a if a == MULTI_CURRENCY => Some(MultiCurrencyPrecompile::<R>::execute(handle)),
+			a if a == hash(400) => Some(MultiCurrencyPrecompile::<R>::execute(handle)),
 			// Default
 			_ => None,
 		}
 	}
 
 	fn is_precompile(&self, address: H160) -> bool {
-		todo!()
+		sp_std::vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1025, 1026, 1027, 400]
+			.into_iter()
+			.map(hash)
+			.any(|x| x == address)
 	}
 }
 
