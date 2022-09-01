@@ -27,6 +27,8 @@ use frame_support::{assert_noop, assert_ok};
 use sp_core::H160;
 
 use mock::{AssetManager, CouncilAccount, Event, ExtBuilder, Origin, Runtime, System};
+use primitives::evm::EvmAddress;
+use primitives::FungibleTokenId::FungibleToken;
 use primitives::TokenSymbol;
 
 use super::*;
@@ -168,4 +170,31 @@ fn versioned_multi_location_convert_work() {
 			VersionedMultiLocation::V0 { .. } | VersionedMultiLocation::V1 { .. } => true,
 		});
 	});
+}
+
+#[test]
+fn evm_decode_address_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let neer_evm_address = EvmAddress::try_from(FungibleTokenId::NativeToken(0)).ok();
+		let nuum_evm_address = EvmAddress::try_from(FungibleTokenId::NativeToken(1)).ok();
+		let bit_evm_address = EvmAddress::try_from(FungibleTokenId::MiningResource(0)).ok();
+		let fungile_asset_one_evm_address = EvmAddress::try_from(FungibleTokenId::FungibleToken(0)).ok();
+		assert_eq!(
+			neer_evm_address,
+			H160::from_str("0x0000000000000000000100000000000000000000").ok()
+		);
+		assert_eq!(
+			fungile_asset_one_evm_address,
+			H160::from_str("0x0000000000000000000200000000000000000000").ok()
+		);
+		assert_eq!(
+			nuum_evm_address,
+			H160::from_str("0x0000000000000000000100000000000000000001").ok()
+		);
+
+		assert_eq!(
+			bit_evm_address,
+			H160::from_str("0x0000000000000000000300000000000000000000").ok()
+		);
+	})
 }
