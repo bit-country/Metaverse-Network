@@ -30,11 +30,11 @@ use sp_runtime::{
 	MultiSignature,
 };
 use sp_std::collections::btree_map::BTreeMap;
+use sp_std::prelude::*;
 use sp_std::vec::Vec;
-
 pub mod continuum;
-pub mod dex;
 pub mod estate;
+pub mod evm;
 pub mod staking;
 
 /// An index to a block.
@@ -162,9 +162,8 @@ pub type ForeignAssetId = TokenId;
 pub enum FungibleTokenId {
 	NativeToken(TokenId),
 	FungibleToken(TokenId),
-	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
-	Stable(TokenId), // kUSD,
+	Stable(TokenId),
 	Erc20(EvmAddress),
 }
 
@@ -177,36 +176,8 @@ impl FungibleTokenId {
 		matches!(self, FungibleTokenId::FungibleToken(_))
 	}
 
-	pub fn is_dex_share_social_token_currency_id(&self) -> bool {
-		matches!(self, FungibleTokenId::DEXShare(_, _))
-	}
-
 	pub fn is_mining_resource_currency(&self) -> bool {
 		matches!(self, FungibleTokenId::MiningResource(_))
-	}
-
-	pub fn split_dex_share_social_token_currency_id(&self) -> Option<(Self, Self)> {
-		match self {
-			FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1) => Some((
-				FungibleTokenId::NativeToken(*token_currency_id_0),
-				FungibleTokenId::FungibleToken(*token_currency_id_1),
-			)),
-			_ => None,
-		}
-	}
-
-	pub fn join_dex_share_social_currency_id(currency_id_0: Self, currency_id_1: Self) -> Option<Self> {
-		match (currency_id_0, currency_id_1) {
-			(
-				FungibleTokenId::NativeToken(token_currency_id_0),
-				FungibleTokenId::FungibleToken(token_currency_id_1),
-			) => Some(FungibleTokenId::DEXShare(token_currency_id_0, token_currency_id_1)),
-			(
-				FungibleTokenId::FungibleToken(token_currency_id_0),
-				FungibleTokenId::NativeToken(token_currency_id_1),
-			) => Some(FungibleTokenId::DEXShare(token_currency_id_1, token_currency_id_0)),
-			_ => None,
-		}
 	}
 
 	pub fn decimals(&self) -> u8 {
