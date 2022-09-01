@@ -27,9 +27,9 @@ use frame_support::{assert_noop, assert_ok};
 use sp_core::H160;
 
 use mock::{AssetManager, CouncilAccount, Event, ExtBuilder, Origin, Runtime, System};
-use primitives::evm::EvmAddress;
+use primitives::evm::{CurrencyIdType, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN};
 use primitives::FungibleTokenId::FungibleToken;
-use primitives::TokenSymbol;
+use primitives::{TokenId, TokenSymbol};
 
 use super::*;
 
@@ -179,6 +179,29 @@ fn evm_decode_address_works() {
 		let nuum_evm_address = EvmAddress::try_from(FungibleTokenId::NativeToken(1)).ok();
 		let bit_evm_address = EvmAddress::try_from(FungibleTokenId::MiningResource(0)).ok();
 		let fungile_asset_one_evm_address = EvmAddress::try_from(FungibleTokenId::FungibleToken(0)).ok();
+
+		let address = EvmAddress::try_from(FungibleTokenId::MiningResource(5)).unwrap();
+
+		let currency_id = match CurrencyIdType::try_from(address[H160_POSITION_CURRENCY_ID_TYPE])
+			.ok()
+			.unwrap()
+		{
+			CurrencyIdType::NativeToken => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::NativeToken)
+				.ok(),
+			CurrencyIdType::MiningResource => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::MiningResource)
+				.ok(),
+			CurrencyIdType::FungibleToken => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::FungibleToken)
+				.ok(),
+		};
+
+		assert_eq!(currency_id.unwrap(), FungibleTokenId::MiningResource(5));
+
 		assert_eq!(
 			neer_evm_address,
 			H160::from_str("0x0000000000000000000100000000000000000000").ok()

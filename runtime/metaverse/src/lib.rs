@@ -1085,11 +1085,11 @@ impl Erc20Mapping for Runtime {
 				.map(FungibleTokenId::NativeToken)
 				.ok(),
 			CurrencyIdType::MiningResource => {
-				let id = TokenId::from_be_bytes(address[H160_POSITION_MINING_RESOURCE].try_into().ok()?);
+				let id = TokenId::from_be_bytes(address[H160_POSITION_TOKEN].try_into().ok()?);
 				Some(FungibleTokenId::MiningResource(id))
 			}
 			CurrencyIdType::FungibleToken => {
-				let id = TokenId::from_be_bytes(address[H160_POSITION_FUNGIBLE_TOKEN].try_into().ok()?);
+				let id = TokenId::from_be_bytes(address[H160_POSITION_TOKEN].try_into().ok()?);
 				Some(FungibleTokenId::FungibleToken(id))
 			}
 		};
