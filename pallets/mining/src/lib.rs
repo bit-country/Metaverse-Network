@@ -37,7 +37,7 @@ use orml_traits::{
 use scale_info::TypeInfo;
 use sp_runtime::{
 	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
-	DispatchError,
+	DispatchError, Perbill,
 };
 use sp_std::vec::Vec;
 
@@ -83,6 +83,7 @@ pub mod pallet {
 	use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
 	use frame_support::traits::OnUnbalanced;
 	use pallet_balances::NegativeImbalance;
+	use sp_runtime::Perbill;
 	use sp_std::convert::TryInto;
 
 	use primitives::estate::Estate;
@@ -118,6 +119,8 @@ pub mod pallet {
 		type EstateHandler: Estate<Self::AccountId>;
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
+		// Mining staking reward for treasury
+		type TreasuryStakingReward: Get<Perbill>;
 		// Weight implementation for mining extrinsics
 		type WeightInfo: WeightInfo;
 	}
@@ -299,7 +302,7 @@ pub mod pallet {
 		}
 
 		/// Pause current mining round so new round will not roll out until unpaused
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::pause_mining_round())]
 		pub fn pause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -314,7 +317,7 @@ pub mod pallet {
 		}
 
 		/// Unpause current mining round so new round can roll out
-		#[pallet::weight(100_000)]
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::unpause_mining_round())]
 		pub fn unpause_mining_round(origin: OriginFor<T>) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
 
@@ -333,10 +336,13 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_initialize(n: T::BlockNumber) -> Weight {
 			let mut round = <Round<T>>::get();
-			if round.should_update(n) {
+			let is_mining_paused = MiningPaused::<T>::get();
+			if round.should_update(n) && !is_mining_paused {
 				// mutate round
 				let allocation_range = round_issuance_range::<T>(<MiningConfig<T>>::get());
-				T::MetaverseStakingHandler::update_staking_reward(round.current, allocation_range.staking_allocation);
+
+				// mining reward to BIT treasury
+				Self::treasury_reward(allocation_range);
 
 				round.update(n);
 				Round::<T>::put(round);
@@ -351,7 +357,7 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	pub fn bit_mining_resource_account_id() -> T::AccountId {
+	pub fn bit_treasury_account_id() -> T::AccountId {
 		T::BitMiningTreasury::get().into_account_truncating()
 	}
 
@@ -376,7 +382,6 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(Self::is_mining_origin(&who), Error::<T>::NoPermission);
 
-		let mining_treasury = Self::bit_mining_resource_account_id();
 		//Deposit Bit mining to mining treasury
 		T::MiningCurrency::deposit(Self::bit_mining_resource_currency_id(), &to, amount)?;
 
@@ -391,7 +396,6 @@ impl<T: Config> Pallet<T> {
 		}
 		ensure!(Self::is_mining_origin(&who), Error::<T>::NoPermission);
 
-		let mining_treasury = Self::bit_mining_resource_account_id();
 		ensure!(
 			T::MiningCurrency::can_slash(Self::bit_mining_resource_currency_id(), &from, amount),
 			Error::<T>::BalanceZero
@@ -409,7 +413,7 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		let mining_treasury = Self::bit_mining_resource_account_id();
+		let mining_treasury = Self::bit_treasury_account_id();
 		ensure!(
 			T::MiningCurrency::free_balance(Self::bit_mining_resource_currency_id(), &who) >= amount,
 			Error::<T>::BalanceLow
@@ -429,7 +433,7 @@ impl<T: Config> Pallet<T> {
 
 		ensure!(Self::is_mining_origin(&who), Error::<T>::NoPermission);
 
-		let mining_treasury = Self::bit_mining_resource_account_id();
+		let mining_treasury = Self::bit_treasury_account_id();
 		ensure!(
 			T::MiningCurrency::free_balance(Self::bit_mining_resource_currency_id(), &mining_treasury) >= amount,
 			Error::<T>::BalanceLow
@@ -456,6 +460,15 @@ impl<T: Config> Pallet<T> {
 		MintingOrigins::<T>::remove(who.clone());
 		Self::deposit_event(Event::RemoveMiningOrigin(who));
 		Ok(())
+	}
+
+	pub fn treasury_reward(allocation_range: MiningRange<Balance>) -> DispatchResult {
+		let total_treasury_reward = T::TreasuryStakingReward::get() * allocation_range.ideal;
+		T::MiningCurrency::deposit(
+			Self::bit_mining_resource_currency_id(),
+			&Self::bit_treasury_account_id(),
+			total_treasury_reward,
+		)
 	}
 }
 

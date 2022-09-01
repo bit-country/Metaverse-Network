@@ -181,6 +181,18 @@ impl Estate<u128> for EstateHandler {
 	fn get_total_undeploy_land_units() -> u64 {
 		10
 	}
+
+	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
+
+	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
+
+	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
 }
 
 pub struct MetaverseStakingHandler;
@@ -191,6 +203,10 @@ impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
 	}
 }
 
+parameter_types! {
+	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
+}
+
 impl Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
@@ -199,6 +215,7 @@ impl Config for Runtime {
 	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type MetaverseStakingHandler = MetaverseStakingHandler;
+	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = ();
 }
 

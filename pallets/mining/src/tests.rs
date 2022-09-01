@@ -73,7 +73,7 @@ fn withdraw_mining_resource_should_work() {
 
 		let origin = Origin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
-		let treasury_id = MiningModule::bit_mining_resource_account_id();
+		let treasury_id = MiningModule::bit_treasury_account_id();
 		assert_ok!(MiningModule::mint(origin.clone(), treasury_id, 1000));
 		assert_eq!(
 			last_event(),
@@ -137,7 +137,7 @@ fn deposit_mining_resource_should_work() {
 
 		let origin = Origin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
-		let treasury_id = MiningModule::bit_mining_resource_account_id();
+		let treasury_id = MiningModule::bit_treasury_account_id();
 		assert_ok!(MiningModule::mint(origin.clone(), treasury_id, 1000));
 
 		assert_eq!(get_mining_balance(), 1000);

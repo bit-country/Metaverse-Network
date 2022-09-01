@@ -28,7 +28,7 @@ check-formatting:
 
 .PHONY: test
 test:
-	SKIP_WASM_BUILD= cargo test --all
+	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime,with-metaverse-runtime
 
 .PHONY: test-pioneer
 test-pioneer:

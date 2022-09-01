@@ -175,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 60,
+	spec_version: 45,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -243,9 +243,9 @@ parameter_types! {
 // Filter call that we don't enable before governance launch
 // Allow base system calls needed for block production and runtime upgrade
 // Other calls will be disallowed
-pub struct BaseFilter;
+pub struct NormalCallFilter;
 
-impl Contains<Call> for BaseFilter {
+impl Contains<Call> for NormalCallFilter {
 	fn contains(c: &Call) -> bool {
 		let is_parachain_call = matches!(
 			c,
@@ -273,11 +273,33 @@ impl Contains<Call> for BaseFilter {
 	}
 }
 
+/// Maintenance mode Call filter
+pub struct MaintenanceFilter;
+impl Contains<Call> for MaintenanceFilter {
+	fn contains(c: &Call) -> bool {
+		match c {
+			Call::Auction(_) => false,
+			Call::Balances(_) => false,
+			Call::Currencies(_) => false,
+			Call::Crowdloan(_) => false,
+			Call::Continuum(_) => false,
+			Call::Economy(_) => false,
+			Call::Estate(_) => false,
+			Call::Mining(_) => false,
+			Call::Metaverse(_) => false,
+			Call::Nft(_) => false,
+			Call::Treasury(_) => false,
+			Call::Vesting(_) => false,
+			_ => true,
+		}
+	}
+}
+
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = Emergency;
 	/// Block & extrinsics weights: base values and limits.
 	type BlockWeights = RuntimeBlockWeights;
 	/// The maximum length of a block (in bytes).
@@ -427,8 +449,9 @@ parameter_types! {
 	pub const CouncilMaxMembers: u32 = 10;
 }
 
-// Council related pallets
+// Council & Technical committee related pallets
 type CouncilCollective = pallet_collective::Instance1;
+type TechnicalCommitteeCollective = pallet_collective::Instance2;
 
 impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type Origin = Origin;
@@ -437,6 +460,23 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
 	type MaxMembers = CouncilMaxMembers;
+	type DefaultVote = pallet_collective::PrimeDefaultVote;
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
+}
+
+parameter_types! {
+	pub const TechnicalCommitteeMotionDuration: BlockNumber = 5 * DAYS;
+	pub const TechnicalCommitteeMaxProposals: u32 = 100;
+	pub const TechnicalCouncilMaxMembers: u32 = 3;
+}
+
+impl pallet_collective::Config<TechnicalCommitteeCollective> for Runtime {
+	type Origin = Origin;
+	type Proposal = Call;
+	type Event = Event;
+	type MotionDuration = TechnicalCommitteeMotionDuration;
+	type MaxProposals = TechnicalCommitteeMaxProposals;
+	type MaxMembers = TechnicalCouncilMaxMembers;
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
@@ -548,6 +588,11 @@ parameter_types! {
 	pub const RewardPaymentDelay: u32 = 1;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
 	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
+	pub const MaxOffersPerEstate: u32 = 100;
+	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
+	pub const MaxLeasePeriod: u32 = 1000000;
+	pub const LeaseOfferExpiryPeriod: u32 = 10000;
+
 }
 
 impl estate::Config for Runtime {
@@ -565,6 +610,11 @@ impl estate::Config for Runtime {
 	type NFTTokenizationSource = Nft;
 	type DefaultMaxBound = DefaultMaxBound;
 	type NetworkFee = NetworkFee;
+	type MaxOffersPerEstate = MaxOffersPerEstate;
+	type MinLeasePricePerBlock = MinLeasePricePerBlock;
+	type MaxLeasePeriod = MaxLeasePeriod;
+	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
+	type BlockNumberToBalance = ConvertInto;
 }
 
 parameter_types! {
@@ -572,10 +622,12 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
-	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
+	pub const MaxFinality: u32 = 500; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
 	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
+	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
+	pub const MinimumListingPrice: Balance = DOLLARS;
 }
 
 impl auction::Config for Runtime {
@@ -594,6 +646,8 @@ impl auction::Config for Runtime {
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
+	type OfferDuration = OfferDuration;
+	type MinimumListingPrice = MinimumListingPrice;
 }
 
 impl continuum::Config for Runtime {
@@ -655,6 +709,7 @@ impl pallet_vesting::Config for Runtime {
 parameter_types! {
 	//Mining Resource Currency Id
 	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
 }
 
 impl mining::Config for Runtime {
@@ -665,6 +720,7 @@ impl mining::Config for Runtime {
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
+	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
@@ -775,13 +831,13 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 10 * MINUTES;
-	pub const VotingPeriod: BlockNumber = 10 * MINUTES;
-	pub const FastTrackVotingPeriod: BlockNumber = 10 * MINUTES;
+	pub const LaunchPeriod: BlockNumber = 6 * HOURS;
+	pub const VotingPeriod: BlockNumber = 6 * HOURS;
+	pub const FastTrackVotingPeriod: BlockNumber = 1 * HOURS;
 	pub const InstantAllowed: bool = true;
-	pub const MinimumDeposit: Balance = 100 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 10 * MINUTES;
-	pub const CooloffPeriod: BlockNumber = 10 * MINUTES;
+	pub const MinimumDeposit: Balance = 1000 * DOLLARS;
+	pub const EnactmentPeriod: BlockNumber = 1 * HOURS;
+	pub const CooloffPeriod: BlockNumber = 1 * HOURS;
 	pub const PreimageByteDeposit: Balance = 1 * CENTS;
 	pub const MaxVotes: u32 = 50;
 	pub const MaxProposals: u32 = 50;
@@ -895,6 +951,7 @@ impl economy::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type MiningCurrencyId = MiningCurrencyId;
 	type NFTHandler = Nft;
+	type EstateHandler = Estate;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
@@ -903,6 +960,8 @@ impl economy::Config for Runtime {
 impl emergency::Config for Runtime {
 	type Event = Event;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type NormalCallFilter = NormalCallFilter;
+	type MaintenanceCallFilter = MaintenanceFilter;
 	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
 }
 
@@ -1083,6 +1142,37 @@ impl pallet_contracts::Config for Runtime {
 	type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
 }
 
+// Treasury and Bounty
+parameter_types! {
+	pub const ProposalBond: Permill = Permill::from_percent(5);
+	pub const ProposalBondMinimum: Balance = 1 * DOLLARS;
+	pub const ProposalBondMaximum: Balance = 50 * DOLLARS;
+	pub const SpendPeriod: BlockNumber = 1 * DAYS;
+	pub const Burn: Permill = Permill::from_percent(0); // No burn
+	pub const MaxApprovals: u32 = 100;
+}
+
+type EnsureRootOrHalfCouncilCollective =
+	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
+
+impl pallet_treasury::Config for Runtime {
+	type PalletId = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type ApproveOrigin = EnsureRootOrHalfCouncilCollective;
+	type RejectOrigin = EnsureRootOrHalfCouncilCollective;
+	type Event = Event;
+	type OnSlash = Treasury;
+	type ProposalBond = ProposalBond;
+	type ProposalBondMinimum = ProposalBondMinimum;
+	type SpendPeriod = SpendPeriod;
+	type Burn = Burn;
+	type BurnDestination = ();
+	type SpendFunds = ();
+	type WeightInfo = ();
+	type MaxApprovals = MaxApprovals;
+	type ProposalBondMaximum = ProposalBondMaximum;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1140,6 +1230,10 @@ construct_runtime!(
 
 		// ink! Smart Contracts.
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
+
+		// Technical committee
+		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>},
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Event<T>}
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
@@ -1185,6 +1279,7 @@ mod benches {
 	define_benchmarks!(
 		[auction, benchmarking::auction]
 		[continuum, benchmarking::continuum]
+		[economy, benchmarking::economy]
 		[estate, benchmarking::estate]
 		[metaverse, benchmarking::metaverse]
 	);
@@ -1596,7 +1691,6 @@ impl_runtime_apis! {
 			use nft::benchmarking::Pallet as NftBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use mining::benchmarking::MiningModule as MiningBench;
-			use economy::benchmarking::EconomyModule as EconomyBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
 
@@ -1608,14 +1702,14 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, nft, NftBench::<Runtime>);
 			list_benchmark!(list, extra, crowdloan, CrowdloanBench::<Runtime>);
 			list_benchmark!(list, extra, mining, MiningBench::<Runtime>);
-			list_benchmark!(list, extra, economy, EconomyBench::<Runtime>);
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, currencies, CurrenciesBench::<Runtime>);
 			list_benchmark!(list, extra, emergency, EmergencyBench::<Runtime>);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
+			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
+			orml_list_benchmark!(list, extra, economy, benchmarking::economy);
 			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
-			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1633,7 +1727,6 @@ impl_runtime_apis! {
 
 			use nft::benchmarking::Pallet as NftBench;
 			use mining::benchmarking::MiningModule as MiningBench;
-			use economy::benchmarking::EconomyModule as EconomyBench;
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
@@ -1660,14 +1753,14 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, nft, NftBench::<Runtime>);
 			add_benchmark!(params, batches, crowdloan, CrowdloanBench::<Runtime>);
 			add_benchmark!(params, batches, mining, MiningBench::<Runtime>);
-			add_benchmark!(params, batches, economy, EconomyBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
 			add_benchmark!(params, batches, emergency, EmergencyBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
+			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
+			orml_add_benchmark!(params, batches, economy, benchmarking::economy);
 			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);
-			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			Ok(batches)
 		}
 	}

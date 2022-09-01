@@ -590,7 +590,7 @@ pub mod pallet {
 		/// The dispatch origin for this call must be _Root_.
 		/// - `class_id`: the class ID of the collection
 		///
-		/// Emits `BurnedNft` if successful.
+		/// Emits `CollectionLocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn force_lock_collection(origin: OriginFor<T>, class_id: ClassIdOf<T>) -> DispatchResult {
 			ensure_root(origin)?;
@@ -726,7 +726,7 @@ pub mod pallet {
 		/// The dispatch origin for this call must be _Root_.
 		/// - `class_id`: the class ID of the collection
 		///
-		/// Emits `CollectionUnlocked` if successful.
+		/// Emits `NftUnlocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
 		pub fn force_unlock_nft(origin: OriginFor<T>, token_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResult {
 			ensure_root(origin)?;
@@ -1236,5 +1236,10 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
 		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::AssetInfoNotFound)?;
 		Ok(class_info.total_issuance)
+	}
+
+	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<T::AccountId, DispatchError> {
+		let asset_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
+		Ok(asset_info.owner)
 	}
 }

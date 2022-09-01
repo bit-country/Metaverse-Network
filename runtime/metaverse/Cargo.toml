@@ -50,6 +50,7 @@ pallet-democracy = { default-features = false, git = "https://github.com/parityt
 pallet-utility = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 pallet-preimage = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 pallet-membership = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+pallet-treasury = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.24" }
 frame-try-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24", optional = true, default-features = false }
 try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.24", optional = true, default-features = false }
@@ -132,6 +133,7 @@ std = [
     "pallet-democracy/std",
     "pallet-preimage/std",
     "pallet-membership/std",
+    "pallet-treasury/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",
@@ -187,6 +189,8 @@ runtime-benchmarks = [
     "pallet-collective/runtime-benchmarks",
     "nft/runtime-benchmarks",
     "estate/runtime-benchmarks",
+    "emergency/runtime-benchmarks",
+    "currencies/runtime-benchmarks",
     "auction/runtime-benchmarks",
     "metaverse/runtime-benchmarks",
     "crowdloan/runtime-benchmarks",

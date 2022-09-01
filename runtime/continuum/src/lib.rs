@@ -241,9 +241,9 @@ pub fn native_version() -> NativeVersion {
 // Filter call that we don't enable before governance launch
 // Allow base system calls needed for block production and runtime upgrade
 // Other calls will be disallowed
-pub struct BaseFilter;
+pub struct NormalCallFilter;
 
-impl Contains<Call> for BaseFilter {
+impl Contains<Call> for NormalCallFilter {
 	fn contains(c: &Call) -> bool {
 		let is_core = matches!(
 			c,
@@ -262,19 +262,54 @@ impl Contains<Call> for BaseFilter {
 			| Call::Vesting(..)
 			// Enable ultility
 			| Call::Utility{..}
+			// Enable multisign
+			| Call::Multisig(..)
 			// Enable Crowdloan
 			| Call::Crowdloan{..}
 			// Polkadot XCM
 			| Call::PolkadotXcm{..}
 			// Orml XCM wrapper
 			| Call::OrmlXcm{..}
+			| Call::Balances(..)
 		);
 
 		if is_core {
 			return true;
 		};
 
-		return false;
+		let is_emergency_stopped = emergency::EmergencyStoppedFilter::<Runtime>::contains(c);
+
+		if is_emergency_stopped {
+			// Not allow stopped tx
+			return false;
+		}
+		false
+	}
+}
+
+/// Maintenance mode Call filter
+pub struct MaintenanceFilter;
+
+impl Contains<Call> for MaintenanceFilter {
+	fn contains(c: &Call) -> bool {
+		match c {
+			Call::Auction(_) => false,
+			Call::Balances(_) => false,
+			Call::Currencies(_) => false,
+			Call::Crowdloan(_) => false,
+			Call::Continuum(_) => false,
+			Call::Economy(_) => false,
+			Call::Estate(_) => false,
+			Call::Mining(_) => false,
+			Call::Metaverse(_) => false,
+			Call::Nft(_) => false,
+			Call::OrmlXcm(_) => false,
+			Call::PolkadotXcm(_) => false,
+			Call::Treasury(_) => false,
+			Call::Vesting(_) => false,
+			Call::XTokens(_) => false,
+			_ => true,
+		}
 	}
 }
 
@@ -346,7 +381,7 @@ impl frame_system::Config for Runtime {
 	/// The weight of database operations that the runtime can invoke.
 	type DbWeight = RocksDbWeight;
 	/// The basic call filter to use in dispatchable.
-	type BaseCallFilter = BaseFilter;
+	type BaseCallFilter = Emergency;
 	/// Weight information for the extrinsics of this pallet.
 	type SystemWeightInfo = ();
 	/// Block & extrinsics weights: base values and limits.
@@ -447,7 +482,11 @@ parameter_types! {
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
-	pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
+	pub const BitMiningTreasuryPalletId: PalletId = PalletId(*b"cb/minig");
+	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
+	pub const CollatorPotPalletId: PalletId = PalletId(*b"bcPotStk");
+	pub const EconomyTreasuryPalletId: PalletId = PalletId(*b"bit/econ");
+	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 }
 
 // Treasury and Bounty
@@ -463,7 +502,6 @@ parameter_types! {
 	pub const DataDepositPerByte: Balance = 1 * CENTS;
 	pub const BountyDepositBase: Balance = 1 * DOLLARS;
 	pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
-	pub const TreasuryPalletId: PalletId = PalletId(*b"bc/trsry");
 	pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
@@ -504,7 +542,7 @@ type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
 >;
 
 impl pallet_treasury::Config for Runtime {
-	type PalletId = TreasuryPalletId;
+	type PalletId = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type ApproveOrigin = EnsureRootOrTwoThirdsCouncilCollective;
 	type RejectOrigin = EnsureRootOrHalfCouncilCollective;
@@ -550,7 +588,7 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type MaxProposals = CouncilMaxProposals;
 	type MaxMembers = CouncilMaxMembers;
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
-	type WeightInfo = ();
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -567,7 +605,7 @@ impl pallet_collective::Config<TechnicalCommitteeCollective> for Runtime {
 	type MaxProposals = TechnicalCommitteeMaxProposals;
 	type MaxMembers = TechnicalCouncilMaxMembers;
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
-	type WeightInfo = ();
+	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1136,7 +1174,6 @@ impl pallet_aura::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PotId: PalletId = PalletId(*b"bcPotStk");
 	pub const MaxCandidates: u32 = 10;
 	pub const MinCandidates: u32 = 5;
 	pub const MaxInvulnerables: u32 = 100;
@@ -1151,7 +1188,7 @@ impl pallet_collator_selection::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type UpdateOrigin = CollatorSelectionUpdateOrigin;
-	type PotId = PotId;
+	type PotId = CollatorPotPalletId;
 	type MaxCandidates = MaxCandidates;
 	type MinCandidates = MinCandidates;
 	type MaxInvulnerables = MaxInvulnerables;
@@ -1268,16 +1305,18 @@ impl pallet_vesting::Config for Runtime {
 parameter_types! {
 	//Mining Resource Currency Id
 	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
 }
 
 impl mining::Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
-	type BitMiningTreasury = BitMiningTreasury;
+	type BitMiningTreasury = BitMiningTreasuryPalletId;
 	type BitMiningResourceId = MiningResourceCurrencyId;
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
+	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
@@ -1327,7 +1366,7 @@ parameter_types! {
 
 impl metaverse::Config for Runtime {
 	type Event = Event;
-	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
+	type MetaverseTreasury = LocalMetaverseFundPalletId;
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
 	type MinContribution = MinContribution;
@@ -1342,12 +1381,15 @@ impl metaverse::Config for Runtime {
 
 parameter_types! {
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
-	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
 	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
 	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
+	pub const MaxOffersPerEstate: u32 = 100;
+	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
+	pub const MaxLeasePeriod: u32 = 1000000;
+	pub const LeaseOfferExpiryPeriod: u32 = 10000;
 }
 
 impl estate::Config for Runtime {
@@ -1365,17 +1407,24 @@ impl estate::Config for Runtime {
 	type NFTTokenizationSource = Nft;
 	type DefaultMaxBound = DefaultMaxBound;
 	type NetworkFee = NetworkFee;
+	type MaxOffersPerEstate = MaxOffersPerEstate;
+	type MinLeasePricePerBlock = MinLeasePricePerBlock;
+	type MaxLeasePeriod = MaxLeasePeriod;
+	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
+	type BlockNumberToBalance = ConvertInto;
 }
 
 parameter_types! {
 	pub const AuctionTimeToClose: u32 = 100; // Default 100800 Blocks
-	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
-	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
-	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
+	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
+	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
 	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum number of item per bundle
-	pub const NetworkFeeReserve: Balance = 1; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeReserve: Balance = 10 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
+	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
+	pub const MinimumListingPrice: Balance = DOLLARS;
 }
 
 impl auction::Config for Runtime {
@@ -1394,6 +1443,8 @@ impl auction::Config for Runtime {
 	type NetworkFeeReserve = NetworkFeeReserve;
 	type NetworkFeeCommission = NetworkFeeCommission;
 	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
+	type OfferDuration = OfferDuration;
+	type MinimumListingPrice = MinimumListingPrice;
 }
 
 impl continuum::Config for Runtime {
@@ -1418,19 +1469,19 @@ impl crowdloan::Config for Runtime {
 }
 
 parameter_types! {
-	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
 	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 	pub const PowerAmountPerBlock: u32 = 100;
 }
 
 impl economy::Config for Runtime {
 	type Currency = Balances;
-	type EconomyTreasury = EconomyTreasury;
+	type EconomyTreasury = EconomyTreasuryPalletId;
 	type Event = Event;
 	type FungibleTokenCurrency = Currencies;
 	type MinimumStake = MinimumStake;
 	type MiningCurrencyId = MiningCurrencyId;
 	type NFTHandler = Nft;
+	type EstateHandler = Estate;
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
@@ -1442,6 +1493,8 @@ pub type EnsureRootOrHalfMetaverseCouncil =
 impl emergency::Config for Runtime {
 	type Event = Event;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type NormalCallFilter = NormalCallFilter;
+	type MaintenanceCallFilter = MaintenanceFilter;
 	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
 }
 

@@ -155,6 +155,8 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 	}
 }
 
+pub type ForeignAssetId = TokenId;
+
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum FungibleTokenId {
@@ -162,7 +164,7 @@ pub enum FungibleTokenId {
 	FungibleToken(TokenId),
 	MiningResource(TokenId),
 	Stable(TokenId),
-	Erc20(EvmAddress), //TODO Runtime migration required for MetaverseInfo
+	Erc20(EvmAddress),
 }
 
 impl FungibleTokenId {
@@ -186,6 +188,23 @@ impl FungibleTokenId {
 			_ => 18,
 		}
 	}
+}
+
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+pub enum AssetIds {
+	Erc20(EvmAddress),
+	StableAssetId(TokenId),
+	ForeignAssetId(ForeignAssetId),
+	NativeAssetId(TokenId),
+}
+
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct NftOffer<Balance, BlockNumber> {
+	/// Offer amount
+	pub amount: Balance,
+	/// Offer expiry block
+	pub end_block: BlockNumber,
 }
 
 /// App-specific crypto used for reporting equivocation/misbehavior in BABE and
@@ -310,4 +329,51 @@ pub struct UndeployedLandBlock<AccountId> {
 	pub approved: Option<AccountId>,
 	/// Whether the undeployed land block is locked
 	pub is_locked: bool,
+}
+
+// create_currency_id! {
+// Represent a Token symbol with 8 bit
+// Bit 8 : 0 for Pokladot Ecosystem, 1 for Kusama Ecosystem
+// Bit 7 : Reserved
+// Bit 6 - 1 : The token ID
+#[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, PartialOrd, Ord, TypeInfo)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[repr(u8)]
+pub enum TokenSymbol {
+	// 0 => NEER
+	// 1 => KSM
+	// 2 => KAR
+	// 3 => KUSD
+	NEER = 0,
+	// NEER("NEER Token", 18) = 10,
+	KSM = 1,
+	// KSM("Kusama", 12) = 4,
+	KAR = 2,
+	// KAR("Karura", 12) = 6,
+	KUSD = 3, // KUSD("Karura Dollar", 12) = 2,
+}
+// }
+
+impl Default for TokenSymbol {
+	fn default() -> Self {
+		Self::NEER
+	}
+}
+
+#[derive(Clone, Eq, PartialEq, RuntimeDebug, Encode, Decode, TypeInfo)]
+pub struct AssetMetadata<Balance> {
+	pub name: Vec<u8>,
+	pub symbol: Vec<u8>,
+	pub decimals: u8,
+	pub minimal_balance: Balance,
+}
+
+/// A mapping between AssetId and AssetMetadata.
+pub trait ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata> {
+	/// Returns the AssetMetadata associated with a given `AssetIds`.
+	fn get_asset_metadata(asset_ids: AssetIds) -> Option<AssetMetadata>;
+	/// Returns the MultiLocation associated with a given ForeignAssetId.
+	fn get_multi_location(foreign_asset_id: ForeignAssetId) -> Option<MultiLocation>;
+	/// Returns the CurrencyId associated with a given MultiLocation.
+	fn get_currency_id(multi_location: MultiLocation) -> Option<FungibleTokenId>;
 }

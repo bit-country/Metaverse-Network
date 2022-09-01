@@ -47,7 +47,6 @@ pub const BIT_REQUIRED: Balance = 13_200_000_000_000_000_000;
 pub const BIT_REQUIRED_WITH_10_PERCENT_COMMISSION: Balance = 14_520_000_000_000_000_000;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 
-pub const ELEMENT_INDEX_ID: ElementId = 0;
 pub const ELEMENT_AMOUNT: u64 = 3;
 pub const ALICE_POWER_AMOUNT: PowerAmount = 20000;
 pub const ALICE_MINING_BALANCE: Balance = 10 * DOLLARS;
@@ -59,6 +58,9 @@ pub const STAKE_EXCESS_BALANCE: Balance = 10 * DOLLARS;
 pub const UNSTAKE_AMOUNT: Balance = 10;
 pub const CURRENT_ROUND: RoundIndex = 1;
 pub const FREE_BALANCE: Balance = 9010;
+
+pub const OWNED_ESTATE_ID: EstateId = 2;
+pub const EXISTING_ESTATE_ID: EstateId = 3;
 
 // Configure a mock runtime to test the pallet.
 
@@ -138,8 +140,18 @@ impl Estate<u128> for EstateHandler {
 		Ok(2)
 	}
 
-	fn check_estate(_estate_id: EstateId) -> Result<bool, DispatchError> {
-		Ok(true)
+	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
+		if estate_id == OWNED_ESTATE_ID || estate_id == EXISTING_ESTATE_ID {
+			return Ok(true);
+		}
+		Ok(false)
+	}
+
+	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		if estate_id == OWNED_ESTATE_ID {
+			return Ok(true);
+		}
+		Ok(false)
 	}
 
 	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
@@ -160,6 +172,14 @@ impl Estate<u128> for EstateHandler {
 	fn get_total_undeploy_land_units() -> u64 {
 		10
 	}
+
+	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
+
+	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
 }
 
 pub struct MetaverseStakingHandler;
@@ -170,6 +190,10 @@ impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
 	}
 }
 
+parameter_types! {
+	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
+}
+
 impl pallet_mining::Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
@@ -178,6 +202,7 @@ impl pallet_mining::Config for Runtime {
 	type EstateHandler = EstateHandler;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type MetaverseStakingHandler = MetaverseStakingHandler;
+	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = ();
 }
 
@@ -192,6 +217,7 @@ impl Config for Runtime {
 	type FungibleTokenCurrency = Currencies;
 	type NFTHandler = NFTModule;
 	type RoundHandler = Mining;
+	type EstateHandler = EstateHandler;
 	type EconomyTreasury = EconomyPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumStake = MinimumStake;
@@ -218,9 +244,9 @@ impl orml_tokens::Config for Runtime {
 	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = ();
+	type DustRemovalWhitelist = Nothing;
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
-	type DustRemovalWhitelist = Nothing;
 	type OnNewTokenAccount = ();
 	type OnKilledTokenAccount = ();
 }

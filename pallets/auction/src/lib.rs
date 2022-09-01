@@ -40,7 +40,7 @@ use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, Auction
 use core_primitives::UndeployedLandBlocksTrait;
 pub use pallet::*;
 use pallet_nft::Pallet as NFTModule;
-use primitives::{continuum::MapTrait, estate::Estate, AuctionId, ItemId};
+use primitives::{continuum::MapTrait, estate::Estate, AuctionId, ItemId, NftOffer};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -108,6 +108,7 @@ pub mod pallet {
 	use frame_system::ensure_root;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use sp_runtime::traits::CheckedAdd;
 	use sp_runtime::ArithmeticError;
 
 	use auction_manager::{AuctionItemV1, CheckAuctionItemHandler, ListingLevel};
@@ -180,8 +181,17 @@ pub mod pallet {
 		/// Network fee that will be collected when auction or buy now is completed.
 		#[pallet::constant]
 		type NetworkFeeCommission: Get<Perbill>;
+
 		/// Weight info
 		type WeightInfo: WeightInfo;
+
+		/// Offer duration
+		#[pallet::constant]
+		type OfferDuration: Get<Self::BlockNumber>;
+
+		/// Minimum listing price
+		#[pallet::constant]
+		type MinimumListingPrice: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]
@@ -218,6 +228,19 @@ pub mod pallet {
 	pub(super) type MetaverseCollection<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, ClassId, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn nft_offers)]
+	/// Index NFT offers by token and oferror
+	pub(super) type Offers<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		(ClassId, TokenId),
+		Blake2_128Concat,
+		T::AccountId,
+		NftOffer<BalanceOf<T>, T::BlockNumber>,
+		OptionQuery,
+	>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -247,6 +270,12 @@ pub mod pallet {
 		/// Cancel listing with auction id. [class_id,
 		/// metaverse_id]
 		AuctionCancelled(AuctionId),
+		/// Nft offer is made [class_id, token_id, account_id, offer amount]
+		NftOfferMade(ClassId, TokenId, T::AccountId, BalanceOf<T>),
+		/// Nft offer is accepted [class_id, token_id, account_id]
+		NftOfferAccepted(ClassId, TokenId, T::AccountId),
+		/// Nft offer is withdrawn [class_id, token_id, account_id]
+		NftOfferWithdrawn(ClassId, TokenId, T::AccountId),
 	}
 
 	/// Errors inform users that something went wrong.
@@ -306,6 +335,18 @@ pub mod pallet {
 		CollectionIsNotAuthorised,
 		/// Auction already started or got bid
 		AuctionAlreadyStartedOrBid,
+		/// The account has already made offer for a given NFT
+		OfferAlreadyExists,
+		/// The NFT offer does not exist
+		OfferDoesNotExist,
+		/// The NFT offer is expired
+		OfferIsExpired,
+		/// No permission to make offer for a NFT.
+		NoPermissionToMakeOffer,
+		/// No permission to accept offer for a NFT.
+		NoPermissionToAcceptOffer,
+		/// Listing price is below the minimum.
+		ListingPriceIsBelowMinimum,
 	}
 
 	#[pallet::call]
@@ -607,17 +648,123 @@ pub mod pallet {
 				_ => Err(Error::<T>::NoPermissionToCancelAuction.into()),
 			}
 		}
+
+		/// Make offer for an NFT asset
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only accounts that does not own the NFT asset can make this call
+		/// - `asset`: the NFT for which an offer will be made.
+		/// - `offer_amount`: the  amount of native tokens offered in exchange of the nft.
+		///
+		/// Emits `NftOfferMade` if successful.
+		#[pallet::weight(T::WeightInfo::make_offer())]
+		#[transactional]
+		pub fn make_offer(
+			origin: OriginFor<T>,
+			asset: (ClassId, TokenId),
+			offer_amount: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let offeror = ensure_signed(origin)?;
+			ensure!(
+				!T::NFTHandler::check_ownership(&offeror, &asset)?,
+				Error::<T>::NoPermissionToMakeOffer
+			);
+			ensure!(
+				T::NFTHandler::is_transferable(&asset)?,
+				Error::<T>::NoPermissionToMakeOffer
+			);
+			ensure!(
+				!Offers::<T>::contains_key(asset.clone(), offeror.clone()),
+				Error::<T>::OfferAlreadyExists
+			);
+
+			T::Currency::reserve(&offeror, offer_amount);
+			let offer_end_block = <frame_system::Pallet<T>>::block_number() + T::OfferDuration::get();
+			let offer = NftOffer {
+				amount: offer_amount,
+				end_block: offer_end_block,
+			};
+			Offers::<T>::insert(asset, offeror.clone(), offer);
+
+			Self::deposit_event(Event::<T>::NftOfferMade(asset.0, asset.1, offeror, offer_amount));
+
+			Ok(().into())
+		}
+
+		/// Accept offer for an NFT asset
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only NFT owner can make this call.
+		/// - `asset`: the NFT for which te offer will be accepted.
+		/// - `offeror`: the account whose offer will be accepted.
+		///
+		/// Emits `NftOfferAccepted` if successful.
+		#[pallet::weight(T::WeightInfo::accept_offer())]
+		#[transactional]
+		pub fn accept_offer(
+			origin: OriginFor<T>,
+			asset: (ClassId, TokenId),
+			offeror: T::AccountId,
+		) -> DispatchResultWithPostInfo {
+			let owner = ensure_signed(origin)?;
+			// Check ownership
+			ensure!(
+				T::NFTHandler::check_ownership(&owner, &asset)?,
+				Error::<T>::NoPermissionToAcceptOffer
+			);
+			ensure!(
+				T::NFTHandler::is_transferable(&asset)?,
+				Error::<T>::NoPermissionToAcceptOffer
+			);
+			let offer = Self::nft_offers(asset.clone(), offeror.clone()).ok_or(Error::<T>::OfferDoesNotExist)?;
+			ensure!(
+				offer.end_block >= <frame_system::Pallet<T>>::block_number(),
+				Error::<T>::OfferIsExpired
+			);
+
+			T::Currency::unreserve(&offeror, offer.amount);
+			<T as Config>::Currency::transfer(&offeror, &owner, offer.amount, ExistenceRequirement::KeepAlive)?;
+			T::NFTHandler::transfer_nft(&owner, &offeror, &asset)?;
+			Offers::<T>::remove(asset, offeror.clone());
+
+			Self::deposit_event(Event::<T>::NftOfferAccepted(asset.0, asset.1, offeror));
+			Ok(().into())
+		}
+
+		/// Withdraw offer for an NFT asset
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// Only account which have already made an offer for the given NFT can make this call.
+		/// - `asset`: the NFT for which te offer will be withdrawn
+		///
+		/// Emits `NftOfferWithdrawn` if successful.
+		#[pallet::weight(T::WeightInfo::withdraw_offer())]
+		#[transactional]
+		pub fn withdraw_offer(origin: OriginFor<T>, asset: (ClassId, TokenId)) -> DispatchResultWithPostInfo {
+			let offeror = ensure_signed(origin)?;
+			let offer = Self::nft_offers(asset.clone(), offeror.clone()).ok_or(Error::<T>::OfferDoesNotExist)?;
+
+			T::Currency::unreserve(&offeror, offer.amount);
+			Offers::<T>::remove(asset, offeror.clone());
+
+			Self::deposit_event(Event::<T>::NftOfferWithdrawn(asset.0, asset.1, offeror));
+			Ok(().into())
+		}
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		/// Hooks that call every new block finalized.
-		fn on_finalize(now: T::BlockNumber) {
+		fn on_initialize(now: T::BlockNumber) -> Weight {
+			let mut total_item = 0;
 			for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {
+				total_item += 1;
 				if let Some(auction) = <Auctions<T>>::get(&auction_id) {
 					T::Handler::on_auction_ended(auction_id, auction.bid);
 				};
 			}
+
+			T::WeightInfo::on_finalize().saturating_mul(total_item)
 		}
 
 		//		fn on_runtime_upgrade() -> Weight {
@@ -683,6 +830,11 @@ pub mod pallet {
 			listing_level: ListingLevel<T::AccountId>,
 			listing_fee: Perbill,
 		) -> Result<AuctionId, DispatchError> {
+			ensure!(
+				initial_amount.clone() >= T::MinimumListingPrice::get(),
+				Error::<T>::ListingPriceIsBelowMinimum
+			);
+
 			ensure!(
 				Self::items_in_auction(item_id.clone()) == None,
 				Error::<T>::ItemAlreadyInAuction
@@ -754,6 +906,12 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
+					// Ensure auction end time below limit
+					ensure!(
+						Self::check_valid_finality(&end_time, One::one()),
+						Error::<T>::ExceedFinalityLimit
+					);
+
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
 
 					// Reserve network deposit fee
@@ -850,6 +1008,12 @@ pub mod pallet {
 					ensure!(
 						T::EstateHandler::check_undeployed_land_block(&recipient, undeployed_land_block_id)?,
 						Error::<T>::UndeployedLandBlockDoesNotExistOrNotAvailable
+					);
+
+					// Ensure auction end time below limit
+					ensure!(
+						Self::check_valid_finality(&end_time, One::one()),
+						Error::<T>::ExceedFinalityLimit
 					);
 
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
@@ -1035,21 +1199,8 @@ pub mod pallet {
 			let class_fund = T::NFTHandler::get_class_fund(&asset_id.0);
 
 			// Transfer loyalty fee from winner to class fund pot
-			if social_currency_id == FungibleTokenId::NativeToken(0) {
-				<T as Config>::Currency::transfer(
-					&high_bidder,
-					&class_fund,
-					royalty_fee,
-					ExistenceRequirement::KeepAlive,
-				)?;
-			} else {
-				T::FungibleTokenCurrency::transfer(
-					social_currency_id.clone(),
-					&high_bidder,
-					&class_fund,
-					royalty_fee.saturated_into(),
-				)?;
-			}
+			Self::fee_transfer_handler(&high_bidder, &class_fund, social_currency_id, royalty_fee)?;
+
 			Ok(())
 		}
 
@@ -1370,21 +1521,8 @@ pub mod pallet {
 			if let ListingLevel::Local(metaverse_id) = listing_level {
 				let metaverse_fund = T::MetaverseInfoSource::get_metaverse_treasury(metaverse_id);
 				let listing_fee_amount = listing_fee * *high_bid_price;
-				if social_currency_id == FungibleTokenId::NativeToken(0) {
-					<T as Config>::Currency::transfer(
-						&high_bidder,
-						&metaverse_fund,
-						listing_fee_amount,
-						ExistenceRequirement::KeepAlive,
-					)?;
-				} else {
-					T::FungibleTokenCurrency::transfer(
-						social_currency_id.clone(),
-						&high_bidder,
-						&metaverse_fund,
-						listing_fee_amount.saturated_into(),
-					)?;
-				}
+
+				Self::fee_transfer_handler(&high_bidder, &metaverse_fund, social_currency_id, listing_fee_amount)?;
 			}
 			Ok(())
 		}
@@ -1397,20 +1535,34 @@ pub mod pallet {
 		) -> DispatchResult {
 			let network_fund = T::MetaverseInfoSource::get_network_treasury();
 			let network_fee: BalanceOf<T> = T::NetworkFeeCommission::get() * *high_bid_price;
+
+			Self::fee_transfer_handler(&recipient, &network_fund, social_currency_id, network_fee)?;
+
+			Ok(())
+		}
+
+		/// Handle fee transfer from one account to another
+		fn fee_transfer_handler(
+			from: &T::AccountId,
+			to: &T::AccountId,
+			social_currency_id: FungibleTokenId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
 			if social_currency_id == FungibleTokenId::NativeToken(0) {
-				<T as Config>::Currency::transfer(
-					&recipient,
-					&network_fund,
-					network_fee,
-					ExistenceRequirement::KeepAlive,
-				)?;
+				// Check if account free_balance + network fee less than ED
+				let amount_plus_free_balance = T::Currency::free_balance(to).saturating_add(amount);
+				// Only transfer fee if amount plus balance greater than ED, never fail
+				if amount_plus_free_balance >= T::Currency::minimum_balance() {
+					<T as Config>::Currency::transfer(from, to, amount, ExistenceRequirement::KeepAlive)?;
+				}
 			} else {
-				T::FungibleTokenCurrency::transfer(
-					social_currency_id.clone(),
-					&recipient,
-					&network_fund,
-					network_fee.saturated_into(),
-				)?;
+				// Check if account free_balance + network fee less than ED
+				let amount_plus_free_balance = T::FungibleTokenCurrency::free_balance(social_currency_id.clone(), to)
+					.saturating_add(amount.saturated_into());
+				// Only transfer fee if amount plus balance greater than ED, never fail
+				if amount_plus_free_balance >= T::FungibleTokenCurrency::minimum_balance(social_currency_id.clone()) {
+					T::FungibleTokenCurrency::transfer(social_currency_id.clone(), from, to, amount.saturated_into())?;
+				}
 			}
 			Ok(())
 		}
