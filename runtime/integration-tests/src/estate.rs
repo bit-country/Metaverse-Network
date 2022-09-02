@@ -68,7 +68,7 @@ fn deploy_land_blocks_won_in_an_auction() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::UndeployedLandBlock(0u32.into()),
 				100 * dollar(NATIVE_TOKEN),
-				31u32.into(),
+				400u32.into(),
 				ListingLevel::Global
 			));
 			run_to_block(2);
@@ -85,18 +85,18 @@ fn deploy_land_blocks_won_in_an_auction() {
 				0u32.into(),
 				105 * dollar(NATIVE_TOKEN),
 			));
-			run_to_block(35);
+			run_to_block(401);
 			// Check land block ownership and balances
 			assert_eq!(
 				Estate::check_undeployed_land_block(&AccountId::from(BOB), 0u32.into()),
 				Ok(true)
 			);
-			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 894 * dollar(NATIVE_TOKEN));
+			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 845 * dollar(NATIVE_TOKEN));
 			assert_eq!(
 				Balances::free_balance(AccountId::from(CHARLIE)),
 				1000 * dollar(NATIVE_TOKEN)
 			);
-			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1102950000000000000000);
+			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1053950000000000000000);
 			// Deploy undeployed land block
 			assert_ok!(Estate::deploy_land_block(
 				RawOrigin::Signed(AccountId::from(BOB)).into(),
@@ -115,7 +115,7 @@ fn deploy_land_blocks_won_in_an_auction() {
 }
 
 #[test]
-fn create_estate_from_purhcased_land_blocks() {
+fn create_estate_from_raw_land_blocks() {
 	#[cfg(feature = "with-pioneer-runtime")]
 	const NATIVE_TOKEN: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -182,14 +182,14 @@ fn create_estate_from_purhcased_land_blocks() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::NFT(0u32.into(), 0u64.into()),
 				100 * dollar(NATIVE_TOKEN),
-				100u32.into(),
+				400u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::NFT(0u32.into(), 1u64.into()),
 				100 * dollar(NATIVE_TOKEN),
-				100u32.into(),
+				400u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			run_to_block(2);
@@ -213,8 +213,8 @@ fn create_estate_from_purhcased_land_blocks() {
 				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 1u32.into())),
 				Ok(true)
 			);
-			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 799 * dollar(NATIVE_TOKEN));
-			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1174000000000000000000);
+			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 750 * dollar(NATIVE_TOKEN));
+			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1116000000000000000000);
 			// Create estate using the purchased land blocks
 			assert_ok!(Estate::create_estate(
 				RawOrigin::Signed(AccountId::from(BOB)).into(),
@@ -333,14 +333,14 @@ fn purchase_estate_and_modify_its_structure() {
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::NFT(1u32.into(), 0u64.into()),
 				100 * dollar(NATIVE_TOKEN),
-				100u32.into(),
+				400u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			assert_ok!(Auction::create_new_buy_now(
 				RawOrigin::Signed(AccountId::from(ALICE)).into(),
 				ItemId::NFT(0u32.into(), 2u64.into()),
 				100 * dollar(NATIVE_TOKEN),
-				100u32.into(),
+				400u32.into(),
 				ListingLevel::Local(0u32.into())
 			));
 			run_to_block(2);
@@ -364,8 +364,8 @@ fn purchase_estate_and_modify_its_structure() {
 				Nft::check_ownership(&AccountId::from(BOB), &(0u32.into(), 2u32.into())),
 				Ok(true)
 			);
-			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 799 * dollar(NATIVE_TOKEN));
-			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1176000000000000000000);
+			assert_eq!(Balances::free_balance(AccountId::from(BOB)), 750 * dollar(NATIVE_TOKEN));
+			assert_eq!(Balances::free_balance(AccountId::from(ALICE)), 1109000000000000000000);
 			// Add land unit to estate
 			assert_ok!(Estate::add_land_unit_to_estate(
 				RawOrigin::Signed(AccountId::from(BOB)).into(),

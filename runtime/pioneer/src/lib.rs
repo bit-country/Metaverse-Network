@@ -272,6 +272,7 @@ impl Contains<Call> for NormalCallFilter {
 			// Orml XCM wrapper
 			| Call::OrmlXcm{..}
 			| Call::Balances(..)
+			| Call::XTokens(..)
 		);
 
 		if is_core {
@@ -290,6 +291,7 @@ impl Contains<Call> for NormalCallFilter {
 
 /// Maintenance mode Call filter
 pub struct MaintenanceFilter;
+
 impl Contains<Call> for MaintenanceFilter {
 	fn contains(c: &Call) -> bool {
 		match c {
@@ -482,7 +484,11 @@ parameter_types! {
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 	pub const NftPalletId: PalletId = PalletId(*b"bit/bnft");
 	pub const SwapPalletId: PalletId = PalletId(*b"bit/swap");
-	pub const BitMiningTreasury: PalletId = PalletId(*b"cb/minig");
+	pub const BitMiningTreasuryPalletId: PalletId = PalletId(*b"cb/minig");
+	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
+	pub const CollatorPotPalletId: PalletId = PalletId(*b"bcPotStk");
+	pub const EconomyTreasuryPalletId: PalletId = PalletId(*b"bit/econ");
+	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 }
 
 // Treasury and Bounty
@@ -498,7 +504,6 @@ parameter_types! {
 	pub const DataDepositPerByte: Balance = 1 * CENTS;
 	pub const BountyDepositBase: Balance = 1 * DOLLARS;
 	pub const BountyDepositPayoutDelay: BlockNumber = 1 * DAYS;
-	pub const TreasuryPalletId: PalletId = PalletId(*b"bc/trsry");
 	pub const BountyUpdatePeriod: BlockNumber = 14 * DAYS;
 	pub const MaximumReasonLength: u32 = 16384;
 	pub const CuratorDepositMultiplier: Permill = Permill::from_percent(50);
@@ -539,7 +544,7 @@ type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
 >;
 
 impl pallet_treasury::Config for Runtime {
-	type PalletId = TreasuryPalletId;
+	type PalletId = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type ApproveOrigin = EnsureRootOrTwoThirdsCouncilCollective;
 	type RejectOrigin = EnsureRootOrHalfCouncilCollective;
@@ -613,7 +618,7 @@ parameter_types! {
 	pub const MinimumDeposit: Balance = 100 * DOLLARS;
 	pub const EnactmentPeriod: BlockNumber = 3 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * MINUTES;
-	pub const PreimageByteDeposit: Balance = 1 * CENTS;
+	pub const PreimageByteDeposit: Balance = 10 * CENTS;
 	pub const MaxVotes: u32 = 100;
 	pub const MaxProposals: u32 = 50;
 }
@@ -1176,7 +1181,6 @@ impl pallet_aura::Config for Runtime {
 }
 
 parameter_types! {
-	pub const PotId: PalletId = PalletId(*b"bcPotStk");
 	pub const MaxCandidates: u32 = 10;
 	pub const MinCandidates: u32 = 5;
 	pub const MaxInvulnerables: u32 = 100;
@@ -1191,7 +1195,7 @@ impl pallet_collator_selection::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type UpdateOrigin = CollatorSelectionUpdateOrigin;
-	type PotId = PotId;
+	type PotId = CollatorPotPalletId;
 	type MaxCandidates = MaxCandidates;
 	type MinCandidates = MinCandidates;
 	type MaxInvulnerables = MaxInvulnerables;
@@ -1314,7 +1318,7 @@ parameter_types! {
 impl mining::Config for Runtime {
 	type Event = Event;
 	type MiningCurrency = Currencies;
-	type BitMiningTreasury = BitMiningTreasury;
+	type BitMiningTreasury = BitMiningTreasuryPalletId;
 	type BitMiningResourceId = MiningResourceCurrencyId;
 	type EstateHandler = Estate;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
@@ -1325,7 +1329,7 @@ impl mining::Config for Runtime {
 
 parameter_types! {
 	pub AssetMintingFee: Balance = 1 * DOLLARS;
-	pub ClassMintingFee: Balance = 2 * DOLLARS;
+	pub ClassMintingFee: Balance = 10 * DOLLARS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -1363,13 +1367,13 @@ impl orml_nft::Config for Runtime {
 
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
-	pub MinContribution: Balance = 1 * DOLLARS;
+	pub MinContribution: Balance = 50 * DOLLARS;
 	pub MaxNumberOfStakersPerMetaverse: u32 = 512;
 }
 
 impl metaverse::Config for Runtime {
 	type Event = Event;
-	type MetaverseTreasury = MetaverseNetworkTreasuryPalletId;
+	type MetaverseTreasury = LocalMetaverseFundPalletId;
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
 	type MinContribution = MinContribution;
@@ -1384,12 +1388,11 @@ impl metaverse::Config for Runtime {
 
 parameter_types! {
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
-	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
 	pub const MinimumStake: Balance = 100 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
-	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
+	pub const NetworkFee: Balance = 10 * DOLLARS; // Network fee
 	pub const MaxOffersPerEstate: u32 = 100;
 	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
 	pub const MaxLeasePeriod: u32 = 1000000;
@@ -1473,14 +1476,13 @@ impl crowdloan::Config for Runtime {
 }
 
 parameter_types! {
-	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
 	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 	pub const PowerAmountPerBlock: u32 = 100;
 }
 
 impl economy::Config for Runtime {
 	type Currency = Balances;
-	type EconomyTreasury = EconomyTreasury;
+	type EconomyTreasury = EconomyTreasuryPalletId;
 	type Event = Event;
 	type FungibleTokenCurrency = Currencies;
 	type MinimumStake = MinimumStake;

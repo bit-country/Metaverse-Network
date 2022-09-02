@@ -97,15 +97,15 @@ impl TryFrom<FungibleTokenId> for EvmAddress {
 			}
 			FungibleTokenId::FungibleToken(token_id) => {
 				address[H160_POSITION_CURRENCY_ID_TYPE] = CurrencyIdType::FungibleToken.into();
-				address[H160_POSITION_FUNGIBLE_TOKEN].copy_from_slice(&token_id.to_be_bytes());
+				address[H160_POSITION_TOKEN] = token_id as u8;
 			}
 			FungibleTokenId::MiningResource(token_id) => {
 				address[H160_POSITION_CURRENCY_ID_TYPE] = CurrencyIdType::MiningResource.into();
-				address[H160_POSITION_MINING_RESOURCE].copy_from_slice(&token_id.to_be_bytes());
+				address[H160_POSITION_TOKEN] = token_id as u8;
 			}
 			FungibleTokenId::Stable(token_id) => {
 				address[H160_POSITION_CURRENCY_ID_TYPE] = CurrencyIdType::FungibleToken.into();
-				address[H160_POSITION_FUNGIBLE_TOKEN].copy_from_slice(&token_id.to_be_bytes());
+				address[H160_POSITION_TOKEN] = token_id as u8;
 			}
 		};
 

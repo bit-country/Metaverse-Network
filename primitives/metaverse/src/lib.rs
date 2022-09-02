@@ -163,7 +163,7 @@ pub enum FungibleTokenId {
 	NativeToken(TokenId),
 	FungibleToken(TokenId),
 	MiningResource(TokenId),
-	Stable(TokenId), // kUSD,
+	Stable(TokenId),
 	Erc20(EvmAddress),
 }
 
