@@ -21,7 +21,7 @@ use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
 use pallet_evm::{
-	AddressMapping, Context, ExitRevert, ExitSucceed, LinearCostPrecompile, Precompile, PrecompileFailure, PrecompileHandle,
+	AddressMapping, Context, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
 	PrecompileOutput, PrecompileResult, PrecompileSet,
 };
 use pallet_evm_test_vector_support::MockHandle;
@@ -68,7 +68,7 @@ pub type BalanceOf<Runtime> = <<Runtime as currencies::Config>::MultiSocialCurre
 
 pub struct MultiCurrencyPrecompile<Runtime>(PhantomData<Runtime>);
 
-impl<Runtime: LinearCostPrecompile> Precompile for MultiCurrencyPrecompile<Runtime>
+impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
 where
 	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
 	Runtime: Erc20Mapping,
@@ -121,23 +121,6 @@ where
 		})
 	}
 }
-/* 
-impl<Runtime> LinearCostPrecompile for MultiCurrencyPrecompile<Runtime>
-where
-	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
-	Runtime: Erc20Mapping,
-	currencies::Pallet<Runtime>:
-		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
-	U256: From<
-		<<Runtime as currencies::Config>::MultiSocialCurrency as MultiCurrencyTrait<
-			<Runtime as frame_system::Config>::AccountId,
-		>>::Balance,
-	>,
-	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
-	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
-{
-}
-*/
 
 impl<Runtime> MultiCurrencyPrecompile<Runtime>
 where
