@@ -13,7 +13,9 @@ use sp_std::marker::PhantomData;
 
 use crate::currencies::MultiCurrencyPrecompile;
 
-pub const MULTI_CURRENCY: H160 = H160(hex!("0000000000000000000000000000000000000400"));
+/// The asset precompile address prefix. Addresses that match against this prefix will be routed
+/// to MultiCurrencyPrecompile
+pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
 /// The PrecompileSet installed in the Metaverse runtime.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MetaverseNetworkPrecompiles<R>(PhantomData<(R)>);
@@ -36,12 +38,12 @@ where
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		let address = handle.code_address();
 
-		if self.is_precompile(address) && address > hash(9) && handle.context().address != address {
-			return Some(Err(PrecompileFailure::Revert {
-				exit_status: ExitRevert::Reverted,
-				output: b"cannot be called with DELEGATECALL or CALLCODE".to_vec(),
-			}));
-		}
+		//		if self.is_precompile(address) && address > hash(9) && handle.context().address != address {
+		//			return Some(Err(PrecompileFailure::Revert {
+		//				exit_status: ExitRevert::Reverted,
+		//				output: b"cannot be called with DELEGATECALL or CALLCODE".to_vec(),
+		//			}));
+		//		}
 
 		match address {
 			// Ethereum precompiles :
@@ -59,19 +61,22 @@ where
 			a if a == hash(1025) => Some(Dispatch::<R>::execute(handle)),
 			a if a == hash(1026) => Some(ECRecoverPublicKey::execute(handle)),
 			a if a == hash(1027) => Some(Ed25519Verify::execute(handle)),
-			// Metaverse Network precompiles (starts from 0x5000):
+			// Metaverse Network precompiles
 			// If the address matches asset prefix, the we route through the asset precompile set
-			a if a == hash(400) => Some(MultiCurrencyPrecompile::<R>::execute(handle)),
+			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
+				Some(MultiCurrencyPrecompile::<R>::execute(handle))
+			}
 			// Default
 			_ => None,
 		}
 	}
 
 	fn is_precompile(&self, address: H160) -> bool {
-		sp_std::vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1025, 1026, 1027, 400]
-			.into_iter()
-			.map(hash)
-			.any(|x| x == address)
+		//		sp_std::vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 1024, 1025, 1026, 1027, 400]
+		//			.into_iter()
+		//			.map(hash)
+		//			.any(|x| x == address)
+		true
 	}
 }
 
