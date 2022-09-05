@@ -5461,6 +5461,7 @@ dependencies = [
  "precompile-utils",
  "precompile-utils-macro",
  "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
  "substrate-wasm-builder",

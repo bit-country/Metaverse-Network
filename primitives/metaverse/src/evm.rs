@@ -53,12 +53,6 @@ pub trait Erc20Mapping {
 	fn decode_evm_address(v: EvmAddress) -> Option<FungibleTokenId>;
 }
 
-/// Ethereum Multicurrency precompiles
-/// 0 - 0x0000000000000000000000000000000000000400
-/// Metaverse.Network precompiles
-/// 0x0000000000000000000000000000000000000400 - 0x0000000000000000000000000000000000000800
-pub const PRECOMPILE_ADDRESS_START: EvmAddress = H160(hex!("0000000000000000000000000000000000000400"));
-
 #[rustfmt::skip]
 /// FungibleCurrencyId to H160([u8; 20]) bit encoding rule.
 ///
