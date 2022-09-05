@@ -62,7 +62,7 @@ emergency = { package = "pallet-emergency", path = "../../pallets/emergency", ve
 precompile-utils = { path = "../../primitives/precompiles", default-features = false }
 precompile-utils-macro = { path = "../../primitives/precompiles/macro", default-features = false }
 [build-dependencies]
-substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 
 [features]
 default = ["std"]

@@ -16,4 +16,4 @@
 // limitations under the License.
 #![cfg_attr(not(feature = "std"), no_std)]
 mod mock;
-//pub mod precompiles;
+pub mod precompile;
