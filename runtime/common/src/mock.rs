@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 use codec::{Decode, Encode};
 use frame_support::{
 	ord_parameter_types, parameter_types,
@@ -5,23 +6,22 @@ use frame_support::{
 	weights::Weight,
 	ConsensusEngineId, RuntimeDebug,
 };
-use pallet_evm::EvmTask;
+use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
+use pallet_ethereum::EthereumBlockHashMapping;
 use evm_mapping::EvmAddressMapping;
 use orml_traits::parameter_type_with_key;
 use primitives::{
-	define_combined_task, evm::convert_decimals_to_evm, task::TaskResult, Amount, BlockNumber, CurrencyId,
-	ReserveIdentifier, TokenSymbol,
+	evm::EvmAddress, Amount, BlockNumber, ClassId, FungibleTokenId, Header, MetaverseId, Nonce, TokenId, AccountId
 };
 use scale_info::TypeInfo;
-use sp_core::{H160, H256};
+use sp_core::{H160, H256, U256};
 use sp_runtime::traits::Convert;
 pub use sp_runtime::AccountId32;
 use sp_runtime::{
-	testing::Header,
-	traits::{BlakeTwo256, BlockNumberProvider, IdentityLookup, Zero},
+	traits::{AccountIdConversion, BlakeTwo256, BlockNumberProvider, IdentityLookup, Zero},
 };
+use frame_support::{PalletId, traits::Everything};
 use std::str::FromStr;
-
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 
@@ -29,7 +29,7 @@ type Balance = u128;
 
 impl frame_system::Config for TestRuntime {
 	type BaseCallFilter = Everything;
-	type BlockWeights = RuntimeBlockWeights;
+	type BlockWeights = ();
 	type BlockLength = ();
 	type Origin = Origin;
 	type Index = Nonce;
@@ -74,7 +74,7 @@ impl pallet_balances::Config for TestRuntime {
 	type WeightInfo = ();
 	type MaxLocks = ();
 	type MaxReserves = ConstU32<50>;
-	type ReserveIdentifier = ReserveIdentifier;
+	type ReserveIdentifier = [u8; 8];
 }
 
 impl pallet_timestamp::Config for TestRuntime {
@@ -84,26 +84,25 @@ impl pallet_timestamp::Config for TestRuntime {
 	type WeightInfo = ();
 }
 
-parameter_type_with_key! {
-	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
-		Default::default()
-	};
-}
-
-impl orml_tokens::Config for Test {
+impl orml_tokens::Config for TestRuntime {
 	type Event = Event;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Test, TreasuryModuleAccount>;
+	type OnDust = orml_tokens::TransferDust<TestRuntime, TreasuryModuleAccount>;
 	type MaxLocks = ();
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
 	type OnNewTokenAccount = ();
 	type OnKilledTokenAccount = ();
+}
+
+impl pallet_ethereum::Config for TestRuntime {
+	type Event = Event;
+	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
 }
 
 
@@ -157,25 +156,20 @@ impl FindAuthor<AccountId32> for AuthorGiven {
 
 parameter_types! {
 	pub NetworkContractSource: H160 = H160::from_low_u64_be(1);
-}
-
-ord_parameter_types! {
-	pub const CouncilAccount: AccountId32 = AccountId32::from([1u8; 32]);
-	pub const TreasuryAccount: AccountId32 = AccountId32::from([2u8; 32]);
-	pub const NetworkContractAccount: AccountId32 = AccountId32::from([0u8; 32]);
-	pub const StorageDepositPerByte: Balance = convert_decimals_to_evm(10);
+	pub const ChainId: u64 = 2042;
+	pub BlockGasLimit: U256 = U256::from(u32::max_value());
 }
 
 impl evm_mapping::Config for TestRuntime {
 	type Event = Event;
 	type Currency = Balances;
-	type AddressMapping = EvmAddressMapping<Test>;
+	type AddressMapping = EvmAddressMapping<TestRuntime>;
 	type ChainId = ChainId;
 	type TransferAll = ();
 	type WeightInfo = ();
 }
 
-impl pallet_evm::Config for Test {
+impl pallet_evm::Config for TestRuntime {
 	type Event = Event;
 	type Currency = Balances;
 
@@ -204,6 +198,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
+		Ethereum: pallet_ethereum,
 		EVM: pallet_evm,
 		EvmAccounts: evm_mapping,
 		Tokens: orml_tokens exclude_parts { Call },
@@ -213,5 +208,5 @@ frame_support::construct_runtime!(
 );
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	sp_io::TestExternalities::new()
+	sp_io::TestExternalities::new_empty()
 }
