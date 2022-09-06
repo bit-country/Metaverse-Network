@@ -6,11 +6,14 @@ members = [
     'pallets/*',
     'traits/*',
     'node',
-    'runtime/*',
+    'runtime/metaverse',
+    'runtime/continuum',
+    'runtime/pioneer',
     'primitives/*',
     'modules/relaychain',
     'modules/support',
 ]
 exclude = [
     'modules/chainsafe',
+    'runtime/integration-tests',
 ]
