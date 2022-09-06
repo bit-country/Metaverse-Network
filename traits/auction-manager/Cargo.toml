@@ -18,7 +18,7 @@ frame-support = { git = "https://github.com/paritytech/substrate", branch = "pol
 # Used for the node's RPCs
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
-funty = { version = "=1.1.0", default-features = false }
+#funty = { version = "=1.1.0", default-features = false }
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 
 [features]

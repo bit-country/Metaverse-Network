@@ -15,7 +15,6 @@ hex-literal = "0.3.1"
 # Substrate
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-pallet-collective = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
@@ -61,13 +60,18 @@ economy = { package = "pallet-economy", path = "../../pallets/economy", version 
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 precompile-utils = { path = "../../primitives/precompiles", default-features = false }
 precompile-utils-macro = { path = "../../primitives/precompiles/macro", default-features = false }
-[build-dependencies]
-substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 
 [features]
 default = ["std"]
 std = [
+    "sp-core/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "sp-io/std",
+    "frame-support/std",
+    "frame-system/std",
     "pallet-evm/std",
+    "pallet-ethereum/std",
     "pallet-evm-precompile-blake2/std",
     "pallet-evm-precompile-simple/std",
     "pallet-evm-precompile-bn128/std",

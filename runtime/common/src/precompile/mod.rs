@@ -14,7 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+#![cfg_attr(not(feature = "std"), no_std)]
 use frame_support::log;
 use hex_literal::hex;
 use pallet_evm::{
