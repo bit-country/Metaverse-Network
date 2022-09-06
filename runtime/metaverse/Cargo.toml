@@ -15,9 +15,8 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive", "max-encoded-len"] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0.136", optional = true, default-features = false }
-serde_json = { version = "1.0.68", default-features = false, features = ["alloc"] }
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 hex-literal = { version = "0.3.1" }
 getrandom = { version = "0.2.7", default-features = false, features = ["js"] }
@@ -95,7 +94,7 @@ crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", ve
 economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
-metaverse-runtime-common = { path = "../common", default-features = false }
+#metaverse-runtime-common = { path = "../common", default-features = false }
 
 # ink! contracts pacakges
 pallet-contracts = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
@@ -110,7 +109,6 @@ default = ["std"]
 std = [
     "codec/std",
     "serde",
-    "serde_json/std",
     "scale-info/std",
     "frame-executive/std",
     "frame-support/std",
@@ -174,7 +172,7 @@ std = [
     "pallet-contracts-primitives/std",
     "pallet-contracts-rpc-runtime-api/std",
     "frame-try-runtime/std",
-    "metaverse-runtime-common/std"
+#    "metaverse-runtime-common/std"
 ]
 runtime-benchmarks = [
     "orml-benchmarking",
