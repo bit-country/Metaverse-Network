@@ -5377,6 +5377,7 @@ dependencies = [
  "pallet-estate",
  "pallet-ethereum",
  "pallet-evm",
+ "pallet-evm-mapping",
  "pallet-governance",
  "pallet-grandpa",
  "pallet-membership",
@@ -6854,8 +6855,10 @@ name = "pallet-evm-mapping"
 version = "2.0.0-rc6"
 dependencies = [
  "bit-country-primitives",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex-literal",
  "libsecp256k1 0.6.0",
  "orml-currencies",
  "orml-tokens",
