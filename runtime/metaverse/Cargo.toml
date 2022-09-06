@@ -16,9 +16,10 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
-serde = { version = "1.0.136", optional = true, features = ["derive"] }
+serde = { version = "1.0.136", optional = true, default-features = false }
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 hex-literal = { version = "0.3.1" }
+getrandom = { version = "0.2.7", default-features = false, features = ["js"] }
 
 pallet-aura = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
@@ -63,7 +64,6 @@ pallet-transaction-payment-rpc-runtime-api = { default-features = false, git = "
 frame-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", optional = true }
 frame-system-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", optional = true }
 
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 # EVM pallets
 pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
@@ -95,10 +95,6 @@ economy = { package = "pallet-economy", path = "../../pallets/economy", version 
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 metaverse-runtime-common = { path = "../common", default-features = false }
-#modules-chainsafe = { package = "modules-chainsafe", path = "../../modules/chainsafe", version = "0.0.1", default-features = false }
-
-# ecosystem dependencies
-#chainbridge = { package = "parachain-staking", git = 'https://github.com/justinphamnz/parachain-staking', branch = 'master', default-features = false }
 
 # ink! contracts pacakges
 pallet-contracts = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
@@ -112,6 +108,7 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 default = ["std"]
 std = [
     "codec/std",
+    "serde",
     "scale-info/std",
     "frame-executive/std",
     "frame-support/std",
@@ -165,7 +162,6 @@ std = [
     "pallet-utility/std",
     "pallet-collator-selection/std",
     "orml-benchmarking/std",
-    "sp-io/std",
     "pallet-base-fee/std",
     "fp-self-contained/std",
     "fp-rpc/std",

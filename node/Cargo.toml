@@ -94,6 +94,7 @@ node-primitives = { git = "https://github.com/paritytech/substrate", branch = "p
 
 # Metaverse related dependencies
 primitives = { package = "bit-country-primitives", path = "../primitives/metaverse" }
+metaverse-runtime-common = { version = "0.0.1", path = "../runtime/common", optional = true }
 metaverse-runtime = { version = "0.0.60", path = "../runtime/metaverse", optional = true }
 pioneer-runtime = { version = "0.0.7", path = "../runtime/pioneer", optional = true }
 continuum-runtime = { version = "0.0.7", path = "../runtime/continuum", optional = true }
@@ -142,6 +143,7 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/substrate"
 default = ["with-metaverse-runtime"]
 
 with-metaverse-runtime = [
+    "metaverse-runtime-common",
     "metaverse-runtime",
     "fc-consensus",
     "fc-cli",
