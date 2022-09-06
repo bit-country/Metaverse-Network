@@ -17,3 +17,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 pub mod currencies;
 pub mod precompiles;
+
+#[cfg(test)]
+mod mock;

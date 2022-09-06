@@ -17,8 +17,13 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+
 # EVM pallets
 pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
+pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-evm-precompile-blake2 = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-evm-precompile-bn128 = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
 pallet-evm-precompile-dispatch = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.24", default-features = false }
@@ -30,12 +35,14 @@ pallet-evm-precompile-simple = { git = "https://github.com/justinphamnz/frontier
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.24", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.24", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.24", default-features = false }
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 precompile-utils = { path = "../../primitives/precompiles", default-features = false }
 precompile-utils-macro = { path = "../../primitives/precompiles/macro" }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
+evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
@@ -47,10 +54,14 @@ std = [
     "sp-core/std",
     "sp-runtime/std",
     "sp-std/std",
+    "sp-io/std",
+    "pallet-balances/std",
+    "pallet-timestamp/std",
     "log/std",
     "frame-support/std",
     "frame-system/std",
     "pallet-evm/std",
+    "pallet-ethereum/std",
     "pallet-evm-precompile-blake2/std",
     "pallet-evm-precompile-simple/std",
     "pallet-evm-precompile-bn128/std",
@@ -60,8 +71,10 @@ std = [
     "pallet-evm-precompile-sha3fips/std",
     "orml-currencies/std",
     "orml-traits/std",
+    "orml-tokens/std",
     "primitives/std",
     "core-primitives/std",
     "precompile-utils/std",
     "currencies/std",
+    "evm-mapping/std",
 ]
