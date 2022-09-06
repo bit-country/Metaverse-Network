@@ -94,7 +94,7 @@ crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", ve
 economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
-#metaverse-runtime-common = { path = "../common", default-features = false }
+metaverse-runtime-common = { path = "../common", default-features = false }
 
 # ink! contracts pacakges
 pallet-contracts = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }
@@ -172,7 +172,7 @@ std = [
     "pallet-contracts-primitives/std",
     "pallet-contracts-rpc-runtime-api/std",
     "frame-try-runtime/std",
-#    "metaverse-runtime-common/std"
+    "metaverse-runtime-common/std"
 ]
 runtime-benchmarks = [
     "orml-benchmarking",
