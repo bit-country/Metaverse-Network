@@ -19,4 +19,4 @@ pub mod currencies;
 pub mod precompiles;
 
 #[cfg(test)]
-mod mock;
+pub mod mock;

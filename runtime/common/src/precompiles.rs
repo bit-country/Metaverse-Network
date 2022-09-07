@@ -12,6 +12,9 @@ use sp_std::marker::PhantomData;
 
 use crate::currencies::MultiCurrencyPrecompile;
 
+#[cfg(test)]
+use crate::mock::*;
+
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
 pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];

@@ -1,12 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 use codec::{Decode, Encode};
+use crate::precompiles::{MetaverseNetworkPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX};
 use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, FindAuthor, Nothing},
 	weights::Weight,
 	ConsensusEngineId, RuntimeDebug,
 };
-use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
+use pallet_evm::{AddressMapping, EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
 use pallet_ethereum::EthereumBlockHashMapping;
 use evm_mapping::EvmAddressMapping;
 use orml_traits::parameter_type_with_key;
@@ -24,9 +25,11 @@ use frame_support::{PalletId, traits::Everything};
 use sp_std::str::FromStr;
 use sp_std::prelude::*;
 
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
 type Balance = u128;
+pub type Precompiles = MetaverseNetworkPrecompiles<TestRuntime>;
 
 impl frame_system::Config for TestRuntime {
 	type BaseCallFilter = Everything;
@@ -127,6 +130,14 @@ impl orml_currencies::Config for TestRuntime {
 	type GetNativeCurrencyId = GetNativeCurrencyId;
 	type WeightInfo = ();
 }
+
+impl currencies::Config for TestRuntime{
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = ();
+}
 pub struct MockBlockNumberProvider;
 
 impl BlockNumberProvider for MockBlockNumberProvider {
@@ -145,7 +156,7 @@ impl Convert<u64, u64> for GasToWeight {
 	}
 }
 
-/* 
+
 pub struct AuthorGiven;
 impl FindAuthor<AccountId32> for AuthorGiven {
 	fn find_author<'a, I>(_digests: I) -> Option<AccountId32>
@@ -155,12 +166,14 @@ impl FindAuthor<AccountId32> for AuthorGiven {
 		Some(AccountId32::from_str("1234500000000000000000000000000000000000").unwrap())
 	}
 }
-*/
+
 
 parameter_types! {
 	pub NetworkContractSource: H160 = H160::from_low_u64_be(1);
 	pub const ChainId: u64 = 2042;
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
+	pub PrecompilesValue: Precompiles = MetaverseNetworkPrecompiles::<_>::new();
+
 }
 
 impl evm_mapping::Config for TestRuntime {
@@ -201,15 +214,103 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system,
+		Timestamp: pallet_timestamp,
 		Ethereum: pallet_ethereum,
 		EVM: pallet_evm,
 		EvmAccounts: evm_mapping,
 		Tokens: orml_tokens exclude_parts { Call },
 		Balances: pallet_balances,
-		Currencies: orml_currencies,
+		Currencies: currencies,
+		OrmlCurrencies: orml_currencies,
 	}
 );
 
+pub const ALICE: AccountId = AccountId::new([1u8; 32]);
+pub const BOB: AccountId = AccountId::new([2u8; 32]);
+pub const EVA: AccountId = AccountId::new([3u8; 32]);
+
+pub fn alice() -> AccountId {
+	<TestRuntime as pallet_evm::Config>::AddressMapping::into_account_id(alice_evm_addr())
+}
+
+pub fn alice_evm_addr() -> EvmAddress {
+	EvmAddress::from(hex_literal::hex!("1000000000000000000000000000000000000001"))
+}
+
+pub fn bob() -> AccountId {
+	<TestRuntime as pallet_evm::Config>::AddressMapping::into_account_id(bob_evm_addr())
+}
+
+pub fn bob_evm_addr() -> EvmAddress {
+	EvmAddress::from(hex_literal::hex!("1000000000000000000000000000000000000002"))
+}
+
+pub fn neer_evm_address() -> EvmAddress {
+	EvmAddress::from(hex_literal::hex!("0100000000000000000000000000000000000001"))
+}
+
+pub fn nuum_evm_address() -> EvmAddress {
+	EvmAddress::from(hex_literal::hex!("0100000000000000000000000000000000000002"))
+}
+
+pub fn erc20_address_not_exists() -> EvmAddress {
+	EvmAddress::from(hex_literal::hex!("0000000000000000000000000000000200000001"))
+}
+
+pub const INITIAL_BALANCE: u128 = 1_000_000_000_000;
+pub const NONCE: u128 = 1;
+
+#[cfg(test)]
+// This function basically just builds a genesis storage key/value store
+// according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	sp_io::TestExternalities::new_empty()
+	use frame_support::{assert_ok, traits::GenesisBuild};
+	use sp_runtime::Storage;
+	use sp_std::collections::btree_map::BTreeMap;
+
+	let mut storage: Storage = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+
+	let mut accounts = BTreeMap::new();
+
+	accounts.insert(
+		alice_evm_addr(),
+		fp_evm::GenesisAccount {
+			nonce: NONCE.into(),
+			balance: INITIAL_BALANCE.into(),
+			code: vec![],
+			storage: std::collections::BTreeMap::new(),
+		},
+	);
+
+	accounts.insert(
+		bob_evm_addr(),
+		fp_evm::GenesisAccount {
+			nonce: NONCE.into(),
+			balance: INITIAL_BALANCE.into(),
+			code: Default::default(),
+			storage: std::collections::BTreeMap::new(),
+		},
+	);
+
+	pallet_balances::GenesisConfig::<TestRuntime>::default()
+		.assimilate_storage(&mut storage)
+		.unwrap();
+	//pallet_evm::GenesisConfig { accounts }
+	//	.assimilate_storage(&mut storage).into().unwrap();
+
+	let mut ext = sp_io::TestExternalities::new(storage);
+	ext.execute_with(|| {
+		System::set_block_number(1);
+		Timestamp::set_timestamp(1);
+
+		assert_ok!(Currencies::update_balance(Origin::root(), ALICE, NEER, 1_000_000_000));
+	
+		assert_ok!(Currencies::update_balance(
+			Origin::root(),
+			<TestRuntime as pallet_evm::Config>::AddressMapping::into_account_id(alice_evm_addr()),
+			NEER,
+			1_000_000_000
+		));
+	});
+	ext
 }
