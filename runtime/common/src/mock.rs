@@ -261,11 +261,20 @@ pub const INITIAL_BALANCE: u128 = 1_000_000_000_000;
 pub const NONCE: u128 = 1;
 
 #[cfg(test)]
+pub struct ExtBuilder();
+
+impl Default for ExtBuilder {
+	fn default() -> Self {
+		Self()
+	}
+}
+
+
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	use frame_support::{assert_ok, traits::GenesisBuild};
-	use sp_runtime::Storage;
+	use sp_runtime::{Storage, BuildModuleGenesisStorage, offchain::storage_lock};
 	use sp_std::collections::btree_map::BTreeMap;
 
 	let mut storage: Storage = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
@@ -295,8 +304,11 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	pallet_balances::GenesisConfig::<TestRuntime>::default()
 		.assimilate_storage(&mut storage)
 		.unwrap();
-	//pallet_evm::GenesisConfig { accounts }
-	//	.assimilate_storage(&mut storage).into().unwrap();
+
+	<pallet_evm::GenesisConfig as GenesisBuild<TestRuntime>>::assimilate_storage(
+		&pallet_evm::GenesisConfig { accounts }, &mut storage)
+		.unwrap();
+	
 
 	let mut ext = sp_io::TestExternalities::new(storage);
 	ext.execute_with(|| {
