@@ -1,30 +1,27 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-use codec::{Decode, Encode};
 use crate::precompiles::{MetaverseNetworkPrecompiles, ASSET_PRECOMPILE_ADDRESS_PREFIX};
+use codec::{Decode, Encode};
+use evm_mapping::EvmAddressMapping;
 use frame_support::{
 	ord_parameter_types, parameter_types,
 	traits::{ConstU128, ConstU32, ConstU64, FindAuthor, Nothing},
 	weights::Weight,
 	ConsensusEngineId, RuntimeDebug,
 };
-use pallet_evm::{AddressMapping, EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
-use pallet_ethereum::EthereumBlockHashMapping;
-use evm_mapping::EvmAddressMapping;
+use frame_support::{traits::Everything, PalletId};
 use orml_traits::parameter_type_with_key;
+use pallet_ethereum::EthereumBlockHashMapping;
+use pallet_evm::{AddressMapping, EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
 use primitives::{
-	evm::EvmAddress, Amount, BlockNumber, ClassId, FungibleTokenId, Header, MetaverseId, Nonce, TokenId, AccountId
+	evm::EvmAddress, AccountId, Amount, BlockNumber, ClassId, FungibleTokenId, Header, MetaverseId, Nonce, TokenId,
 };
 use scale_info::TypeInfo;
 use sp_core::{H160, H256, U256};
 use sp_runtime::traits::Convert;
+use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, BlockNumberProvider, IdentityLookup, Zero};
 pub use sp_runtime::AccountId32;
-use sp_runtime::{
-	traits::{AccountIdConversion, BlakeTwo256, BlockNumberProvider, IdentityLookup, Zero},
-};
-use frame_support::{PalletId, traits::Everything};
-use sp_std::str::FromStr;
 use sp_std::prelude::*;
-
+use sp_std::str::FromStr;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
@@ -109,7 +106,6 @@ impl pallet_ethereum::Config for TestRuntime {
 	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
 }
 
-
 pub const NEER_TOKEN_ID: TokenId = 0;
 pub const NEER: FungibleTokenId = FungibleTokenId::NativeToken(NEER_TOKEN_ID);
 
@@ -131,7 +127,7 @@ impl orml_currencies::Config for TestRuntime {
 	type WeightInfo = ();
 }
 
-impl currencies::Config for TestRuntime{
+impl currencies::Config for TestRuntime {
 	type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
@@ -156,7 +152,6 @@ impl Convert<u64, u64> for GasToWeight {
 	}
 }
 
-
 pub struct AuthorGiven;
 impl FindAuthor<AccountId32> for AuthorGiven {
 	fn find_author<'a, I>(_digests: I) -> Option<AccountId32>
@@ -166,7 +161,6 @@ impl FindAuthor<AccountId32> for AuthorGiven {
 		Some(AccountId32::from_str("1234500000000000000000000000000000000000").unwrap())
 	}
 }
-
 
 parameter_types! {
 	pub NetworkContractSource: H160 = H160::from_low_u64_be(1);
@@ -269,15 +263,16 @@ impl Default for ExtBuilder {
 	}
 }
 
-
 // This function basically just builds a genesis storage key/value store
 // according to our desired mockup.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	use frame_support::{assert_ok, traits::GenesisBuild};
-	use sp_runtime::{Storage, BuildModuleGenesisStorage, offchain::storage_lock};
+	use sp_runtime::{offchain::storage_lock, BuildModuleGenesisStorage, Storage};
 	use sp_std::collections::btree_map::BTreeMap;
 
-	let mut storage: Storage = frame_system::GenesisConfig::default().build_storage::<TestRuntime>().unwrap();
+	let mut storage: Storage = frame_system::GenesisConfig::default()
+		.build_storage::<TestRuntime>()
+		.unwrap();
 
 	let mut accounts = BTreeMap::new();
 
@@ -306,9 +301,10 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		.unwrap();
 
 	<pallet_evm::GenesisConfig as GenesisBuild<TestRuntime>>::assimilate_storage(
-		&pallet_evm::GenesisConfig { accounts }, &mut storage)
-		.unwrap();
-	
+		&pallet_evm::GenesisConfig { accounts },
+		&mut storage,
+	)
+	.unwrap();
 
 	let mut ext = sp_io::TestExternalities::new(storage);
 	ext.execute_with(|| {
@@ -316,7 +312,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 		Timestamp::set_timestamp(1);
 
 		assert_ok!(Currencies::update_balance(Origin::root(), ALICE, NEER, 1_000_000_000));
-	
+
 		assert_ok!(Currencies::update_balance(
 			Origin::root(),
 			<TestRuntime as pallet_evm::Config>::AddressMapping::into_account_id(alice_evm_addr()),

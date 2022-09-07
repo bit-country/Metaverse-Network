@@ -1207,7 +1207,7 @@ construct_runtime!(
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 		Utility: pallet_utility::{Pallet, Call, Event},
 		OrmlCurrencies: orml_currencies::{Pallet, Call},
-		
+
 		// Governance
 		Council: pallet_collective::<Instance1>::{Pallet, Call, Storage, Origin<T>, Event<T>, Config<T>},
 

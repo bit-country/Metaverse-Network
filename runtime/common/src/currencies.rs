@@ -3,8 +3,8 @@ use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
 use pallet_evm::{
-	AddressMapping, Context, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
-	PrecompileResult, PrecompileSet,
+	AddressMapping, Context, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle,
+	PrecompileOutput, PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
@@ -190,14 +190,15 @@ where
 mod tests {
 	use super::*;
 	use crate::mock::{
-		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, TestRuntime, NEER,
+		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, TestRuntime,
+		NEER,
 	};
-	use precompile_utils::testing::MockHandle;
 	use frame_support::assert_noop;
 	use hex_literal::hex;
+	use precompile_utils::testing::MockHandle;
 
 	type MultiCurrencyPrecompile = crate::currencies::MultiCurrencyPrecompile<TestRuntime>;
-/* 
+	/*
 	#[test]
 	fn handles_invalid_currency_id() {
 		new_test_ext().execute_with(|| {
@@ -250,7 +251,7 @@ mod tests {
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp, PrecompileOutput { 
+			assert_eq!(resp, PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_output.to_vec()
 			});
@@ -280,7 +281,7 @@ mod tests {
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp, PrecompileOutput { 
+			assert_eq!(resp, PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_output.to_vec()
 			});
@@ -312,7 +313,7 @@ mod tests {
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp, PrecompileOutput { 
+			assert_eq!(resp, PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_output.to_vec()
 			});
@@ -346,7 +347,7 @@ mod tests {
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp, PrecompileOutput { 
+			assert_eq!(resp, PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: expected_output.to_vec()
 			});
@@ -382,7 +383,7 @@ mod tests {
 			let mut handle = MockHandle::new(input.to_vec(), None, context);
 			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
 
-			assert_eq!(resp, PrecompileOutput { 
+			assert_eq!(resp, PrecompileOutput {
 				exit_status: ExitSucceed::Returned,
 				output: [0u8; 0].to_vec()
 			});
@@ -393,4 +394,3 @@ mod tests {
 	}
 	*/
 }
-
