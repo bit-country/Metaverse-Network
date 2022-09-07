@@ -219,5 +219,7 @@ fn evm_decode_address_works() {
 			bit_evm_address,
 			H160::from_str("0x0000000000000000000300000000000000000000").ok()
 		);
+
+		assert_eq!(neer_evm_address.unwrap().to_fixed_bytes()[0..9], [0u8; 9])
 	})
 }
