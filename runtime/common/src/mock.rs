@@ -202,8 +202,8 @@ impl pallet_evm::Config for TestRuntime {
 	type GasWeightMapping = ();
 	type OnChargeTransaction = ();
 	type FindAuthor = ();
-	type PrecompilesType = ();
-	type PrecompilesValue = ();
+	type PrecompilesType = Precompiles;
+	type PrecompilesValue = PrecompilesValue;
 	//type WeightInfo = pallet_evm::weights::SubstrateWeight<Self>;
 }
 
