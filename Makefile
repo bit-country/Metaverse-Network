@@ -30,6 +30,10 @@ check-formatting:
 test:
 	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime,with-metaverse-runtime
 
+.PHONY: test-precompiles
+test-precompiles:
+	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime,with-metaverse-runtime,testing
+
 .PHONY: test-pioneer
 test-pioneer:
 	SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime

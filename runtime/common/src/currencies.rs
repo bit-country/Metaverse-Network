@@ -1,8 +1,9 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
 use pallet_evm::{
-	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
+	AddressMapping, Context, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 	PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
@@ -184,3 +185,212 @@ where
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use crate::mock::{
+		alice, bob, erc20_address_not_exists, neer_evm_address, new_test_ext, nuum_evm_address, Balances, TestRuntime, NEER,
+	};
+	use precompile_utils::testing::MockHandle;
+	use frame_support::assert_noop;
+	use hex_literal::hex;
+
+	type MultiCurrencyPrecompile = crate::currencies::MultiCurrencyPrecompile<TestRuntime>;
+/* 
+	#[test]
+	fn handles_invalid_currency_id() {
+		new_test_ext().execute_with(|| {
+			// call with not exists erc20
+			let context = Context {
+				address: Default::default(),
+				caller: erc20_address_not_exists(),
+				apparent_value: Default::default(),
+			};
+
+			// symbol() -> 0x95d89b41
+			let input = hex! {"
+				95d89b41
+			"};
+
+			let mut handle = MockHandle::new(input.to_vec(), Some(10000), context);
+			assert_noop!(
+				MultiCurrencyPrecompile::execute(&mut handle),
+				PrecompileFailure::Revert {
+					exit_status: ExitRevert::Reverted,
+					output: "invalid currency id".into(),
+				}
+			);
+		})
+	}
+
+	#[test]
+	fn name_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// name() -> 0x06fdde03
+			let input = hex! {"
+				06fdde03
+			"};
+
+			// Token
+			context.caller = neer_evm_address();
+
+			let expected_output = hex! {"
+				0000000000000000000000000000000000000000000000000000000000000020
+				0000000000000000000000000000000000000000000000000000000000000005
+				4163616c61000000000000000000000000000000000000000000000000000000
+			"};
+
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
+			let resp = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: expected_output.to_vec()
+			});
+		})
+	}
+	#[test]
+	fn decimals_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// decimals() -> 0x313ce567
+			let input = hex! {"
+				313ce567
+			"};
+
+			// Token
+			context.caller = neer_evm_address();
+
+			let expected_output = hex! {"
+				00000000000000000000000000000000 0000000000000000000000000000000c
+			"};
+
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: expected_output.to_vec()
+			});
+		})
+	}
+
+	#[test]
+	fn total_supply_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// totalSupply() -> 0x18160ddd
+			let input = hex! {"
+				18160ddd
+			"};
+
+			// Token
+			context.caller = neer_evm_address();
+
+			// 2_000_000_000
+			let expected_output = hex! {"
+				00000000000000000000000000000000 00000000000000000000000077359400
+			"};
+
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: expected_output.to_vec()
+			});
+		})
+	}
+
+	#[test]
+	fn balance_of_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// balanceOf(address) -> 0x70a08231
+			// account
+			let input = hex! {"
+				70a08231
+				000000000000000000000000 1000000000000000000000000000000000000001
+			"};
+
+			// Token
+			context.caller = neer_evm_address();
+
+			// INITIAL_BALANCE = 1_000_000_000_000
+			let expected_output = hex! {"
+				00000000000000000000000000000000 0000000000000000000000e8d4a51000
+			"};
+
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: expected_output.to_vec()
+			});
+		})
+	}
+
+	#[test]
+	fn transfer_works() {
+		new_test_ext().execute_with(|| {
+			let mut context = Context {
+				address: Default::default(),
+				caller: Default::default(),
+				apparent_value: Default::default(),
+			};
+
+			// transfer(address,address,uint256) -> 0xbeabacc8
+			// from
+			// to
+			// amount
+			let input = hex! {"
+				beabacc8
+				000000000000000000000000 1000000000000000000000000000000000000001
+				000000000000000000000000 1000000000000000000000000000000000000002
+				00000000000000000000000000000000 00000000000000000000000000000001
+			"};
+
+			let from_balance = Balances::free_balance(alice());
+			let to_balance = Balances::free_balance(bob());
+
+			// Token
+			context.caller = neer_evm_address();
+
+			let mut handle = MockHandle::new(input.to_vec(), None, context);
+			let resp: PrecompileOutput = MultiCurrencyPrecompile::execute(&mut handle).unwrap();
+
+			assert_eq!(resp, PrecompileOutput { 
+				exit_status: ExitSucceed::Returned,
+				output: [0u8; 0].to_vec()
+			});
+
+			assert_eq!(Balances::free_balance(alice()), from_balance - 1);
+			assert_eq!(Balances::free_balance(bob()), to_balance + 1);
+		})
+	}
+	*/
+}
+
