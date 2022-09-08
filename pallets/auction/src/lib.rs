@@ -102,7 +102,7 @@ pub mod migration_v2 {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::dispatch::DispatchResultWithPostInfo;
+	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::tokens::currency};
 	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::ensure_root;
@@ -424,6 +424,7 @@ pub mod pallet {
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
+			currency_id: FungibleTokenId,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			// Only support NFT on marketplace
@@ -459,6 +460,7 @@ pub mod pallet {
 				start_time,
 				listing_level.clone(),
 				listing_fee,
+				currency_id,
 			)?;
 			Ok(().into())
 		}
@@ -481,6 +483,7 @@ pub mod pallet {
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
+			currency_id: FungibleTokenId,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
@@ -514,6 +517,7 @@ pub mod pallet {
 				start_time,
 				listing_level.clone(),
 				listing_fee,
+				currency_id,
 			)?;
 
 			Ok(().into())
@@ -829,6 +833,7 @@ pub mod pallet {
 			_start: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
 			listing_fee: Perbill,
+			currency_id: FungibleTokenId,
 		) -> Result<AuctionId, DispatchError> {
 			ensure!(
 				initial_amount.clone() >= T::MinimumListingPrice::get(),
@@ -877,7 +882,7 @@ pub mod pallet {
 
 					T::NFTHandler::set_lock_nft((class_id, token_id), true)?;
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
-					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
+					//let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
@@ -972,7 +977,7 @@ pub mod pallet {
 					}
 
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
-					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
+					//let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
 					// Reserve network deposit fee
 					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;

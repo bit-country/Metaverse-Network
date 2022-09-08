@@ -122,6 +122,7 @@ pub trait Auction<AccountId, BlockNumber> {
 		start: BlockNumber,
 		listing_level: ListingLevel<AccountId>,
 		listing_fee: Perbill,
+		currency_id: FungibleTokenId,
 	) -> Result<AuctionId, DispatchError>;
 
 	/// Remove auction by `id`

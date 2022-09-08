@@ -339,6 +339,7 @@ pub mod pallet {
 				now,
 				ListingLevel::Global,
 				Perbill::from_percent(0u32),
+				primitives::FungibleTokenId::NativeToken(0),
 			)?;
 			Ok(())
 		}
