@@ -1254,14 +1254,14 @@ pub mod pallet {
 					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
 
 					// Collect network commission fee
-					Self::collect_network_fee(&value, &auction_item.recipient, FungibleTokenId::NativeToken(0));
+					Self::collect_network_fee(&value, &auction_item.recipient, auction_item.currency_id);
 
 					match auction_item.item_id {
 						ItemId::NFT(class_id, token_id) => {
 							Self::collect_listing_fee(
 								&value,
 								&auction_item.recipient,
-								FungibleTokenId::NativeToken(0),
+								auction_item.currency_id,
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee.clone(),
 							)?;
@@ -1270,7 +1270,7 @@ pub mod pallet {
 								&value,
 								&auction_item.recipient,
 								&(class_id, token_id),
-								FungibleTokenId::NativeToken(0),
+								auction_item.currency_id,
 							)?;
 
 							T::NFTHandler::set_lock_nft((class_id, token_id), false);
@@ -1303,7 +1303,7 @@ pub mod pallet {
 							Self::collect_listing_fee(
 								&value,
 								&auction_item.recipient,
-								FungibleTokenId::NativeToken(0),
+								auction_item.currency_id,
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee,
 							)?;
@@ -1314,7 +1314,7 @@ pub mod pallet {
 									&token.2,
 									&auction_item.recipient,
 									&(token.0, token.1),
-									FungibleTokenId::NativeToken(0),
+									auction_item.currency_id,
 								)?;
 								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
 								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1))?;
@@ -1387,7 +1387,7 @@ pub mod pallet {
 						Self::collect_network_fee(
 							&high_bid_price,
 							&auction_item.recipient,
-							FungibleTokenId::NativeToken(0),
+							auction_item.currency_id,
 						);
 
 						// Transfer asset from asset owner to high bidder
@@ -1397,7 +1397,7 @@ pub mod pallet {
 								Self::collect_listing_fee(
 									&high_bid_price,
 									&auction_item.recipient,
-									FungibleTokenId::NativeToken(0),
+									auction_item.currency_id,
 									auction_item.listing_level.clone(),
 									auction_item.listing_fee,
 								);
@@ -1406,7 +1406,7 @@ pub mod pallet {
 									&high_bid_price,
 									&auction_item.recipient,
 									&(class_id, token_id),
-									FungibleTokenId::NativeToken(0),
+									auction_item.currency_id,
 								);
 
 								T::NFTHandler::set_lock_nft((class_id, token_id), false);
@@ -1443,7 +1443,7 @@ pub mod pallet {
 								Self::collect_listing_fee(
 									&high_bid_price,
 									&auction_item.recipient,
-									FungibleTokenId::NativeToken(0),
+									auction_item.currency_id,
 									auction_item.listing_level.clone(),
 									auction_item.listing_fee,
 								);
@@ -1454,7 +1454,7 @@ pub mod pallet {
 										&token.2,
 										&auction_item.recipient,
 										&(token.0, token.1),
-										FungibleTokenId::NativeToken(0),
+										auction_item.currency_id,
 									);
 									T::NFTHandler::set_lock_nft((token.0, token.1), false);
 									T::NFTHandler::transfer_nft(
