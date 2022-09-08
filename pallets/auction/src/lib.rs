@@ -877,6 +877,7 @@ pub mod pallet {
 						Error::<T>::ExceedFinalityLimit
 					);
 
+					
 					// Reserve network deposit fee
 					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
@@ -1100,10 +1101,19 @@ pub mod pallet {
 
 				ensure!(bid_result.accept_bid, Error::<T>::BidIsNotAccepted);
 
-				ensure!(
-					<T as Config>::Currency::free_balance(&from) >= value,
-					Error::<T>::InsufficientFreeBalance
-				);
+				if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+					ensure!(
+						<T as Config>::Currency::free_balance(&from) >= value,
+						Error::<T>::InsufficientFreeBalance
+					);
+				}
+				else {
+					ensure!(
+						T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from) >= value.saturated_into(),
+						Error::<T>::InsufficientFreeBalance
+					);
+				}
+					
 
 				Self::swap_new_bid(id, (from.clone(), value), auction.bid.clone())?;
 
@@ -1229,10 +1239,18 @@ pub mod pallet {
 			}
 
 			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyNowPrice);
-			ensure!(
-				<T as Config>::Currency::free_balance(&from) >= value,
-				Error::<T>::InsufficientFreeBalance
-			);
+			if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+				ensure!(
+					<T as Config>::Currency::free_balance(&from) >= value,
+					Error::<T>::InsufficientFreeBalance
+				);
+			}
+			else  {
+				ensure!(
+					T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from) >= value.saturated_into(),
+					Error::<T>::InsufficientFreeBalance
+				);
+			}
 
 			Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
 
@@ -1240,12 +1258,23 @@ pub mod pallet {
 			<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 
 			// Transfer balance from buy it now user to asset owner
-			let currency_transfer = <T as Config>::Currency::transfer(
-				&from,
-				&auction_item.recipient,
-				value,
-				ExistenceRequirement::KeepAlive,
-			);
+			let mut currency_transfer;
+			if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+				currency_transfer = <T as Config>::Currency::transfer(
+					&from,
+					&auction_item.recipient,
+					value,
+					ExistenceRequirement::KeepAlive,
+				);
+			}
+			else {
+				currency_transfer = T::FungibleTokenCurrency::transfer(
+					auction_item.currency_id,
+					&from,
+					&auction_item.recipient,
+					value.saturated_into()
+				);
+			}
 
 			match currency_transfer {
 				Err(_e) => {}
@@ -1375,12 +1404,25 @@ pub mod pallet {
 					<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
 
 					// Handle balance transfer
-					let currency_transfer = <T as Config>::Currency::transfer(
-						&high_bidder,
-						&auction_item.recipient,
-						high_bid_price,
-						ExistenceRequirement::KeepAlive,
-					);
+					let mut currency_transfer;
+					if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+						currency_transfer = <T as Config>::Currency::transfer(
+							&high_bidder,
+							&auction_item.recipient,
+							high_bid_price,
+							ExistenceRequirement::KeepAlive,
+						);
+					}
+					else {
+						currency_transfer = T::FungibleTokenCurrency::transfer(
+							auction_item.currency_id,
+							&high_bidder,
+							&auction_item.recipient,
+							high_bid_price.saturated_into()
+						);
+					}
+
+					
 
 					if let Ok(_transfer_succeeded) = currency_transfer {
 						// Collect network commission fee
@@ -1658,14 +1700,23 @@ pub mod pallet {
 					//unlock reserve amount
 					if !last_bid_price.is_zero() {
 						// Unreserve balance of last bidder
-						<T as Config>::Currency::unreserve(&last_bidder, last_bid_price);
+						if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+							<T as Config>::Currency::unreserve(&last_bidder, last_bid_price);
+						}
+						else {
+							T::FungibleTokenCurrency::unreserve(auction_item.currency_id, &last_bidder, last_bid_price.saturated_into());
+						}
 					}
 				}
 
 				// Lock fund of new bidder
 				// Reserve balance
-				<T as Config>::Currency::reserve(&new_bidder, new_bid_price)?;
-
+				if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+					<T as Config>::Currency::reserve(&new_bidder, new_bid_price)?;
+				}
+				else {
+					T::FungibleTokenCurrency::reserve(auction_item.currency_id, &new_bidder, new_bid_price.saturated_into())?;
+				}
 				// Update new bid price for individual item on bundle
 				if let ItemId::Bundle(tokens) = &auction_item.item_id {
 					let mut new_bundle: Vec<(ClassId, TokenId, BalanceOf<T>)> = Vec::new();
