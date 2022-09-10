@@ -1395,13 +1395,20 @@ pub mod pallet {
 		fn on_auction_ended(auction_id: AuctionId, winner: Option<(T::AccountId, BalanceOf<T>)>) {
 			if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id) {
 				Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
+
 				// Unreserve network deposit fee
 				<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 				// Transfer balance from high bidder to asset owner
 				if let Some(current_bid) = winner {
 					let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
+
 					// Handle listing
-					<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+					if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+						<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+					}
+					else {
+						T::FungibleTokenCurrency::unreserve(auction_item.currency_id, &high_bidder, high_bid_price.saturated_into());
+					}
 
 					// Handle balance transfer
 					let mut currency_transfer;
