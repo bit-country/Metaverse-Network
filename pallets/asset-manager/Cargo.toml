@@ -23,10 +23,10 @@ xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.2
 [dev-dependencies]
 serde_json = "1.0.68"
 hex = "0.4"
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
 
 [features]
 default = ["std"]
@@ -35,6 +35,7 @@ std = [
     "log/std",
     "codec/std",
     "scale-info/std",
+    "sp-core/std",
     "sp-runtime/std",
     "sp-std/std",
     "sp-io/std",
