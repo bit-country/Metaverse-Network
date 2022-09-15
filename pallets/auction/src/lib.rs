@@ -102,9 +102,9 @@ pub mod migration_v2 {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::tokens::currency};
 	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
+	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::tokens::currency};
 	use frame_system::ensure_root;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
@@ -877,7 +877,6 @@ pub mod pallet {
 						Error::<T>::ExceedFinalityLimit
 					);
 
-					
 					// Reserve network deposit fee
 					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
@@ -1106,14 +1105,13 @@ pub mod pallet {
 						<T as Config>::Currency::free_balance(&from) >= value,
 						Error::<T>::InsufficientFreeBalance
 					);
-				}
-				else {
+				} else {
 					ensure!(
-						T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from) >= value.saturated_into(),
+						T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from)
+							>= value.saturated_into(),
 						Error::<T>::InsufficientFreeBalance
 					);
 				}
-					
 
 				Self::swap_new_bid(id, (from.clone(), value), auction.bid.clone())?;
 
@@ -1244,10 +1242,10 @@ pub mod pallet {
 					<T as Config>::Currency::free_balance(&from) >= value,
 					Error::<T>::InsufficientFreeBalance
 				);
-			}
-			else  {
+			} else {
 				ensure!(
-					T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from) >= value.saturated_into(),
+					T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from)
+						>= value.saturated_into(),
 					Error::<T>::InsufficientFreeBalance
 				);
 			}
@@ -1266,13 +1264,12 @@ pub mod pallet {
 					value,
 					ExistenceRequirement::KeepAlive,
 				);
-			}
-			else {
+			} else {
 				currency_transfer = T::FungibleTokenCurrency::transfer(
 					auction_item.currency_id,
 					&from,
 					&auction_item.recipient,
-					value.saturated_into()
+					value.saturated_into(),
 				);
 			}
 
@@ -1405,9 +1402,12 @@ pub mod pallet {
 					// Handle listing
 					if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
 						<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
-					}
-					else {
-						T::FungibleTokenCurrency::unreserve(auction_item.currency_id, &high_bidder, high_bid_price.saturated_into());
+					} else {
+						T::FungibleTokenCurrency::unreserve(
+							auction_item.currency_id,
+							&high_bidder,
+							high_bid_price.saturated_into(),
+						);
 					}
 
 					// Handle balance transfer
@@ -1419,25 +1419,18 @@ pub mod pallet {
 							high_bid_price,
 							ExistenceRequirement::KeepAlive,
 						);
-					}
-					else {
+					} else {
 						currency_transfer = T::FungibleTokenCurrency::transfer(
 							auction_item.currency_id,
 							&high_bidder,
 							&auction_item.recipient,
-							high_bid_price.saturated_into()
+							high_bid_price.saturated_into(),
 						);
 					}
 
-					
-
 					if let Ok(_transfer_succeeded) = currency_transfer {
 						// Collect network commission fee
-						Self::collect_network_fee(
-							&high_bid_price,
-							&auction_item.recipient,
-							auction_item.currency_id,
-						);
+						Self::collect_network_fee(&high_bid_price, &auction_item.recipient, auction_item.currency_id);
 
 						// Transfer asset from asset owner to high bidder
 						// Check asset type and handle internal logic
@@ -1709,9 +1702,12 @@ pub mod pallet {
 						// Unreserve balance of last bidder
 						if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
 							<T as Config>::Currency::unreserve(&last_bidder, last_bid_price);
-						}
-						else {
-							T::FungibleTokenCurrency::unreserve(auction_item.currency_id, &last_bidder, last_bid_price.saturated_into());
+						} else {
+							T::FungibleTokenCurrency::unreserve(
+								auction_item.currency_id,
+								&last_bidder,
+								last_bid_price.saturated_into(),
+							);
 						}
 					}
 				}
@@ -1720,9 +1716,12 @@ pub mod pallet {
 				// Reserve balance
 				if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
 					<T as Config>::Currency::reserve(&new_bidder, new_bid_price)?;
-				}
-				else {
-					T::FungibleTokenCurrency::reserve(auction_item.currency_id, &new_bidder, new_bid_price.saturated_into())?;
+				} else {
+					T::FungibleTokenCurrency::reserve(
+						auction_item.currency_id,
+						&new_bidder,
+						new_bid_price.saturated_into(),
+					)?;
 				}
 				// Update new bid price for individual item on bundle
 				if let ItemId::Bundle(tokens) = &auction_item.item_id {

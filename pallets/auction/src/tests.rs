@@ -6,8 +6,8 @@ use sp_std::collections::btree_map::BTreeMap;
 use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, NFTTrait, TokenType};
 use mock::{Event, *};
-use primitives::{ClassId, FungibleTokenId};
 use primitives::ItemId::NFT;
+use primitives::{ClassId, FungibleTokenId};
 
 use super::*;
 
@@ -684,8 +684,11 @@ fn bid_multicurrency_works() {
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
-		
-		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).reserved, 200);
+
+		assert_eq!(
+			Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).reserved,
+			200
+		);
 	});
 }
 
@@ -844,7 +847,7 @@ fn asset_transfers_after_multicurrency_auction() {
 			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
 		);
 
-		// Verify transfer of fund 
+		// Verify transfer of fund
 		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5196);
 		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9800);
 
@@ -1100,7 +1103,6 @@ fn multicurrency_buy_now_with_bundle_should_work() {
 		// check balances were transferred
 		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5195);
 		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9800);
-
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));

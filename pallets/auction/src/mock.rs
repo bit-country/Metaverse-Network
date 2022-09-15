@@ -440,7 +440,10 @@ impl ExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, FungibleTokenId::MiningResource(0), 10000), (BOB, FungibleTokenId::MiningResource(0), 5000)],
+			balances: vec![
+				(ALICE, FungibleTokenId::MiningResource(0), 10000),
+				(BOB, FungibleTokenId::MiningResource(0), 5000),
+			],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

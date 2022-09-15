@@ -5,6 +5,7 @@ use auction::Config;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{Attributes, CollectionType, MetaverseInfo, MetaverseTrait, NftMetadata, TokenType};
 use frame_benchmarking::{account, whitelisted_caller};
+use frame_support::assert_ok;
 use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
@@ -21,18 +22,9 @@ pub type EstateId = u64;
 pub type MetaverseId = u64;
 
 const SEED: u32 = 0;
-
 const METAVERSE_ID: u64 = 0;
-pub const ALICE_METAVERSE_ID: MetaverseId = 1;
-pub const DEMO_METAVERSE_ID: MetaverseId = 3;
-
-const MAX_BOUND: (i32, i32) = (-100, 100);
-const COORDINATE_IN_1: (i32, i32) = (-10, 10);
-const COORDINATE_IN_2: (i32, i32) = (-5, 5);
-const COORDINATE_OUT: (i32, i32) = (0, 101);
-const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
-const ESTATE_IN_AUCTION: EstateId = 99;
 const CURRENCY_ID: FungibleTokenId = FungibleTokenId::NativeToken(0);
+const MINING_CURRENCY_ID: FungibleTokenId = FungibleTokenId::MiningResource(0);
 
 fn next_block() {
 	Auction::on_finalize(System::block_number());
@@ -53,13 +45,13 @@ runtime_benchmarks! {
 	create_new_auction{
 		System::set_block_number(1u32.into());
 		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
+		mint_NFT(&caller, 0u32);
 		create_nft_group();
-		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
-		mint_NFT(&caller, 2u32);
+		assert_ok!(Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]));
 		next_block();
-	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(2,0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID), FungibleTokenId::NativeCurrency(0))
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), dollar(1), 100u32.into(), ListingLevel::Local(METAVERSE_ID), CURRENCY_ID)
 
 	// create_new_buy_now
 	create_new_buy_now{
@@ -71,7 +63,7 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
 		next_block();
-	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(2,0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID), FungibleTokenId::NativeCurrency(0))
+	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(2,0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID), CURRENCY_ID)
 
 	// bid
 	bid{
@@ -85,7 +77,7 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
 		next_block();
-		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID), FungibleTokenId::NativeCurrency(0));
+		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID), CURRENCY_ID);
 		next_block();
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
@@ -101,7 +93,7 @@ runtime_benchmarks! {
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
 		next_block();
-		Auction::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID), FungibleTokenId::NativeCurrency(0));
+		Auction::create_new_buy_now(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), 100u32.into(), ListingLevel::Local(METAVERSE_ID), CURRENCY_ID);
 		next_block();
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), 100u32.into())
 
@@ -161,7 +153,7 @@ runtime_benchmarks! {
 		create_nft_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
-		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), MinimumAuctionDuration::get(), ListingLevel::Local(METAVERSE_ID), FungibleTokenId::NativeCurrency(0));
+		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), MinimumAuctionDuration::get(), ListingLevel::Local(METAVERSE_ID), CURRENCY_ID);
 		Auction::bid(RawOrigin::Signed(bidder.clone()).into(), 0u32.into(), 100u32.into());
 	}: {
 		Auction::on_finalize(System::block_number() + MinimumAuctionDuration::get());
