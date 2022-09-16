@@ -1,5 +1,5 @@
 #![cfg(feature = "runtime-benchmarks")]
-use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, test_attributes};
+use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, test_attributes, set_metaverse_treasury_initial_balance};
 use crate::{Auction, Balances, Call, Currencies, Event, Metaverse, MinimumAuctionDuration, Nft, Runtime, System};
 use auction::Config;
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
@@ -49,7 +49,8 @@ runtime_benchmarks! {
 		create_nft_group();
 		mint_NFT(&caller, 0u32);
 		create_nft_group();
-		assert_ok!(Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]));
+		set_metaverse_treasury_initial_balance();
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		next_block();
 	}: _(RawOrigin::Signed(caller.clone()), ItemId::NFT(0,0), dollar(1), 100u32.into(), ListingLevel::Local(METAVERSE_ID), CURRENCY_ID)
 
@@ -60,6 +61,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 		create_nft_group();
 		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
 		next_block();
@@ -74,6 +76,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &bidder, dollar(20));
 		create_nft_group();
 		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
 		next_block();
@@ -90,6 +93,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &bidder, dollar(20));
 		create_nft_group();
 		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
 		next_block();
@@ -101,15 +105,14 @@ runtime_benchmarks! {
 		let alice: AccountId = account("alice", 0, SEED);
 		set_balance(CURRENCY_ID, &alice, dollar(10));
 		create_nft_group();
-		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(alice.clone()).into(), vec![1u8]);
 	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
 
 	remove_authorise_metaverse_collection {
 		let alice: AccountId = account("alice", 0, SEED);
-		set_balance(CURRENCY_ID, &alice, dollar(10));
 		create_nft_group();
-		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(alice.clone()).into(), vec![1u8]);
 		Auction::authorise_metaverse_collection(RawOrigin::Signed(alice.clone()).into(), 0u32.into(), METAVERSE_ID);
 	}: _(RawOrigin::Signed(alice), 0u32.into(), METAVERSE_ID)
@@ -151,6 +154,7 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &bidder, dollar(10));
 		create_nft_group();
 		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		mint_NFT(&caller, 2u32);
 		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(2,0), 100u32.into(), MinimumAuctionDuration::get(), ListingLevel::Local(METAVERSE_ID), CURRENCY_ID);

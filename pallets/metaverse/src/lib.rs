@@ -474,22 +474,24 @@ impl<T: Config> Pallet<T> {
 
 	/// Internal new metaverse creation
 	fn do_create_metaverse(who: &T::AccountId, metadata: MetaverseMetadata) -> Result<MetaverseId, DispatchError> {
+		log::info!("Create metaverse");
 		ensure!(
 			metadata.len() as u32 <= T::MaxMetaverseMetadata::get(),
 			Error::<T>::MaxMetadataExceeded
 		);
 
 		ensure!(
-			T::Currency::free_balance(&who) >= T::MinContribution::get(),
+			T::Currency::free_balance(who) >= T::MinContribution::get(),
 			Error::<T>::InsufficientContribution
 		);
 
 		T::Currency::transfer(
-			&who,
+			who,
 			&Self::account_id(),
 			T::MinContribution::get(),
 			ExistenceRequirement::KeepAlive,
 		)?;
+		log::info!(" Fee transferred");
 		let metaverse_id = Self::new_metaverse(&who, metadata)?;
 
 		MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());
@@ -499,7 +501,7 @@ impl<T: Config> Pallet<T> {
 			.checked_add(One::one())
 			.ok_or("Overflow adding new count to new_total_metaverse_count")?;
 		AllMetaversesCount::<T>::put(new_total_metaverse_count);
-		//log::info!("Created Metaverse  with Id {:?}", metaverse_id);
+		log::info!("Created Metaverse  with Id {:?}", metaverse_id);
 		Ok(metaverse_id)
 	}
 
