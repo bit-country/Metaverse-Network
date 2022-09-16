@@ -6,7 +6,7 @@ use frame_system::RawOrigin;
 use orml_traits::MultiCurrencyExtended;
 use sp_runtime::Perbill;
 use sp_runtime::{
-	traits::{SaturatedConversion, StaticLookup, AccountIdConversion, UniqueSaturatedInto},
+	traits::{AccountIdConversion, SaturatedConversion, StaticLookup, UniqueSaturatedInto},
 	DispatchResult,
 };
 use sp_std::collections::btree_map::BTreeMap;
