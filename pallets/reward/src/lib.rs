@@ -44,9 +44,9 @@ pub use weights::WeightInfo;
 
 #[cfg(test)]
 mod mock;
-//
-//#[cfg(test)]
-//mod tests;
+
+#[cfg(test)]
+mod tests;
 
 pub mod weights;
 
@@ -126,44 +126,7 @@ pub mod pallet {
 	}
 
 	#[pallet::error]
-	pub enum Error<T> {
-		/// NFT asset does not exist
-		NFTAssetDoesNotExist,
-		/// NFT class does not exist
-		NFTClassDoesNotExist,
-		/// NFT collection does not exist
-		NFTCollectionDoesNotExist,
-		/// No permission
-		NoPermission,
-		/// No authorization
-		NoAuthorization,
-		/// Insufficient power balance
-		AccountHasNoPowerBalance,
-		/// Power amount is zero
-		PowerAmountIsZero,
-		/// Not enough free balance for staking
-		InsufficientBalanceForStaking,
-		/// Unstake amount greater than staked amount
-		UnstakeAmountExceedStakedAmount,
-		/// Has scheduled exit staking, only stake after queue exit
-		ExitQueueAlreadyScheduled,
-		/// Stake amount below minimum staking required
-		StakeBelowMinimum,
-		/// Withdraw future round
-		WithdrawFutureRound,
-		/// Exit queue does not exist
-		ExitQueueDoesNotExit,
-		/// Unstaked amount is zero
-		UnstakeAmountIsZero,
-		/// Request already exists
-		RequestAlreadyExist,
-		/// Order has not reach target
-		NotReadyToExecute,
-		/// Staker is not estate owner
-		StakerNotEstateOwner,
-		/// Staking estate does not exist
-		StakeEstateDoesNotExist,
-	}
+	pub enum Error<T> {}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -178,7 +141,7 @@ pub mod pallet {
 			let now = frame_system::Pallet::<T>::block_number();
 
 			let trie_index = Self::next_trie_index();
-			let new_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
+			let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
 			let deposit = T::CampaignDeposit::get();
 
@@ -191,17 +154,17 @@ pub mod pallet {
 			//TODO check minimum reward
 
 			Campaigns::<T>::insert(
-				next_campaign_id,
+				campaign_id,
 				CampaignInfo {
 					creator: creator.clone(),
 					reward,
 					end,
 					cap: reward,
-					trie_index: new_trie_index,
+					trie_index,
 				},
 			);
 
-			NextTrieIndex::<T>::put(new_trie_index);
+			NextTrieIndex::<T>::put(next_trie_index);
 			NextCampaignId::<T>::put(next_campaign_id);
 
 			Self::deposit_event(Event::<T>::NewRewardCampaignCreated(next_campaign_id, creator));
