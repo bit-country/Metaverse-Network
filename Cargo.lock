@@ -7346,6 +7346,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-reward"
+version = "2.0.0-rc6"
+dependencies = [
+ "auction-manager",
+ "bit-country-primitives",
+ "core-primitives",
+ "currencies",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-currencies",
+ "orml-nft",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-balances",
+ "pallet-estate",
+ "pallet-mining",
+ "pallet-nft",
+ "pallet-randomness-collective-flip",
+ "pallet-sudo",
+ "pallet-timestamp",
+ "pallet-transaction-payment",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-version",
+]
+
+[[package]]
 name = "pallet-scheduler"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.24#814752f60ab8cce7e2ece3ce0c1b10799b4eab28"
