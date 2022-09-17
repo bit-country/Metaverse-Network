@@ -13,7 +13,7 @@ use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
 use primitives::{Amount, AuctionId, EstateId, FungibleTokenId, ItemId, UndeployedLandBlockId};
 
-use crate as economy;
+use crate as reward;
 
 use super::*;
 
@@ -25,42 +25,8 @@ pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
 pub const FREEDY: AccountId = 3;
 
-pub const DISTRIBUTOR_COLLECTION_ID: u64 = 0;
-pub const DISTRIBUTOR_CLASS_ID: ClassId = 0;
-pub const DISTRIBUTOR_NFT_ASSET_ID: (ClassId, TokenId) = (0, 0);
-pub const NFT_ASSET_ID_NOT_EXIST: (ClassId, TokenId) = (0, 99);
-pub const USER_BUY_POWER_AMOUNT: PowerAmount = 100;
-pub const DISTRIBUTOR_POWER_BALANCE: PowerAmount = 100000;
-pub const DISTRIBUTOR_MINING_BALANCE: Balance = 1000 * DOLLARS;
-pub const DISTRIBUTOR_MINING_LOW_BALANCE: Balance = 1000;
-
-pub const GENERATOR_COLLECTION_ID: u64 = 1;
-pub const GENERATOR_CLASS_ID: ClassId = 1;
-pub const GENERATOR_NFT_ASSET_ID: (ClassId, TokenId) = (1, 0);
-pub const GENERATE_POWER_AMOUNT: PowerAmount = 200;
-pub const GENERATOR_POWER_BALANCE: PowerAmount = 200000;
-
-pub const COLLECTION_ID_NOT_EXIST: u64 = 99;
-
-pub const EXCHANGE_RATE: Balance = 66_000_000_000_000_000;
-pub const BIT_REQUIRED: Balance = 13_200_000_000_000_000_000;
-pub const BIT_REQUIRED_WITH_10_PERCENT_COMMISSION: Balance = 14_520_000_000_000_000_000;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
-
-pub const ELEMENT_AMOUNT: u64 = 3;
-pub const ALICE_POWER_AMOUNT: PowerAmount = 20000;
-pub const ALICE_MINING_BALANCE: Balance = 10 * DOLLARS;
-pub const ALICE_MINING_LOW_BALANCE: Balance = 1000;
-
-pub const STAKE_BALANCE: Balance = 1000;
-pub const STAKE_BELOW_MINIMUM_BALANCE: Balance = 1;
-pub const STAKE_EXCESS_BALANCE: Balance = 10 * DOLLARS;
-pub const UNSTAKE_AMOUNT: Balance = 10;
-pub const CURRENT_ROUND: RoundIndex = 1;
 pub const FREE_BALANCE: Balance = 9010;
-
-pub const OWNED_ESTATE_ID: EstateId = 2;
-pub const EXISTING_ESTATE_ID: EstateId = 3;
 
 // Configure a mock runtime to test the pallet.
 
@@ -117,111 +83,17 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = ();
 }
 
-pub struct EstateHandler;
-
-impl Estate<u128> for EstateHandler {
-	fn transfer_estate(estate_id: EstateId, _from: &u128, _to: &u128) -> Result<EstateId, DispatchError> {
-		Ok(estate_id)
-	}
-
-	fn transfer_landunit(
-		coordinate: (i32, i32),
-		_from: &u128,
-		_to: &(u128, primitives::MetaverseId),
-	) -> Result<(i32, i32), DispatchError> {
-		Ok(coordinate)
-	}
-
-	fn transfer_undeployed_land_block(
-		who: &AccountId,
-		to: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
-	) -> Result<UndeployedLandBlockId, DispatchError> {
-		Ok(2)
-	}
-
-	fn check_estate(estate_id: EstateId) -> Result<bool, DispatchError> {
-		if estate_id == OWNED_ESTATE_ID || estate_id == EXISTING_ESTATE_ID {
-			return Ok(true);
-		}
-		Ok(false)
-	}
-
-	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
-		if estate_id == OWNED_ESTATE_ID {
-			return Ok(true);
-		}
-		Ok(false)
-	}
-
-	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
-		Ok(true)
-	}
-
-	fn check_undeployed_land_block(
-		owner: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
-	) -> Result<bool, DispatchError> {
-		Ok(true)
-	}
-
-	fn get_total_land_units() -> u64 {
-		10
-	}
-
-	fn get_total_undeploy_land_units() -> u64 {
-		10
-	}
-
-	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
-		Ok(false)
-	}
-
-	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
-		Ok(false)
-	}
-}
-
-pub struct MetaverseStakingHandler;
-
-impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
-	fn update_staking_reward(round: RoundIndex, total_reward: u128) -> sp_runtime::DispatchResult {
-		Ok(())
-	}
-}
-
 parameter_types! {
-	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
+	pub const CampaignDeposit: Balance = 1;
 }
 
-impl pallet_mining::Config for Runtime {
-	type Event = Event;
-	type MiningCurrency = Currencies;
-	type BitMiningTreasury = MiningTreasuryPalletId;
-	type BitMiningResourceId = MiningCurrencyId;
-	type EstateHandler = EstateHandler;
-	type AdminOrigin = EnsureSignedBy<One, AccountId>;
-	type MetaverseStakingHandler = MetaverseStakingHandler;
-	type TreasuryStakingReward = TreasuryStakingReward;
-	type WeightInfo = ();
-}
-
-ord_parameter_types! {
-	pub const One: AccountId = 1;
-	pub const Two: AccountId = 2;
-	pub const PowerAmountPerBlock: u32 = 10;
-}
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type FungibleTokenCurrency = Currencies;
-	type NFTHandler = NFTModule;
-	type RoundHandler = Mining;
-	type EstateHandler = EstateHandler;
-	type EconomyTreasury = EconomyPalletId;
+	type CampaignDeposit = CampaignDeposit;
+	type PalletId = MiningTreasuryPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
-	type MinimumStake = MinimumStake;
-	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = ();
 }
 
@@ -384,7 +256,7 @@ impl orml_nft::Config for Runtime {
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
-pub type EconomyModule = Pallet<Runtime>;
+pub type RewardModule = Pallet<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -399,10 +271,9 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		OrmlTokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Mining: pallet_mining::{Pallet, Call, Storage, Event<T>},
-		Economy: economy::{Pallet, Call ,Storage, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
+		Reward: reward::{Pallet, Storage ,Call, Event<T>},
 	}
 );
 
@@ -456,7 +327,6 @@ pub fn run_to_block(n: u64) {
 		System::on_finalize(System::block_number());
 		System::set_block_number(System::block_number() + 1);
 		System::on_initialize(System::block_number());
-		Mining::on_initialize(System::block_number());
 	}
 }
 

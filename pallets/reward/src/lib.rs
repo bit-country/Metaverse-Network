@@ -42,8 +42,8 @@ use primitives::{estate::Estate, CampaignId, EstateId, TrieIndex};
 use primitives::{AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
-//#[cfg(test)]
-//mod mock;
+#[cfg(test)]
+mod mock;
 //
 //#[cfg(test)]
 //mod tests;
@@ -193,7 +193,7 @@ pub mod pallet {
 			Campaigns::<T>::insert(
 				next_campaign_id,
 				CampaignInfo {
-					creator,
+					creator: creator.clone(),
 					reward,
 					end,
 					cap: reward,
