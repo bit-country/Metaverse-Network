@@ -126,6 +126,8 @@ pub mod pallet {
 		NewRewardCampaignCreated(CampaignId, T::AccountId),
 		/// Reward claimed [campaign_id, account, balance]
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
+		/// Set Reward [campaign_id, account, balance]
+		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -134,6 +136,10 @@ pub mod pallet {
 		CampaignIsNotFound,
 		/// No reward found in this account
 		NoRewardFound,
+		/// Campaign already expired
+		CampaignExpired,
+		/// Reward exceed the cap reward
+		RewardExceedCap,
 	}
 
 	#[pallet::call]
@@ -153,9 +159,11 @@ pub mod pallet {
 
 			let deposit = T::CampaignDeposit::get();
 
-			T::Currency::reserve(&depositor, deposit)?;
-
 			let campaign_id = Self::next_campaign_id();
+
+			let fund_account = Self::fund_account_id(campaign_id);
+			T::Currency::transfer(&depositor, &fund_account, deposit, AllowDeath)?;
+
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
 			//TODO check end and now block
@@ -199,6 +207,31 @@ pub mod pallet {
 
 			Campaigns::<T>::insert(id, &campaign);
 			Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::unstake_b())]
+		pub fn set_reward(
+			origin: OriginFor<T>,
+			id: CampaignId,
+			to: T::AccountId,
+			amount: BalanceOf<T>,
+		) -> DispatchResult {
+			// Ensure root for now
+			// We need to move to SetRewardOrigin similar to MiningOrigin
+			let who = ensure_root(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+
+			ensure!(campaign.end > now, Error::<T>::CampaignExpired);
+
+			ensure!(amount < campaign.cap, Error::<T>::RewardExceedCap);
+
+			Self::reward_put(campaign.trie_index, &to, &amount, &[]);
+
+			Self::deposit_event(Event::<T>::SetReward(id, to, amount));
 
 			Ok(())
 		}
