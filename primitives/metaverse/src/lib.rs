@@ -392,6 +392,8 @@ pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
 	pub creator: AccountId,
 	/// The total reward amount.
 	pub reward: Balance,
+	/// The total claimed amount.
+	pub claimed: Balance,
 	/// Block number this campaign need to end
 	pub end: BlockNumber,
 	/// A hard-cap on the each reward amount that may be contributed.

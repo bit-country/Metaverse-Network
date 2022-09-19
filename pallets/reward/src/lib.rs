@@ -52,6 +52,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_support::traits::ExistenceRequirement::AllowDeath;
 	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
@@ -123,10 +124,17 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// New campaign created [campaign_id, account]
 		NewRewardCampaignCreated(CampaignId, T::AccountId),
+		/// Reward claimed [campaign_id, account, balance]
+		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
-	pub enum Error<T> {}
+	pub enum Error<T> {
+		/// Campaign has ended or not valid
+		CampaignIsNotFound,
+		/// No reward found in this account
+		NoRewardFound,
+	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -158,6 +166,7 @@ pub mod pallet {
 				CampaignInfo {
 					creator: creator.clone(),
 					reward,
+					claimed: Zero::zero(),
 					end,
 					cap: reward,
 					trie_index,
@@ -168,6 +177,28 @@ pub mod pallet {
 			NextCampaignId::<T>::put(next_campaign_id);
 
 			Self::deposit_event(Event::<T>::NewRewardCampaignCreated(next_campaign_id, creator));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::unstake_b())]
+		pub fn claim_reward(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let fund_account = Self::fund_account_id(id);
+
+			let (balance, _) = Self::reward_get(campaign.trie_index, &who);
+			ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
+
+			T::Currency::transfer(&fund_account, &who, balance, AllowDeath)?;
+
+			Self::reward_kill(campaign.trie_index, &who);
+			campaign.claimed = campaign.claimed.saturating_add(balance);
+
+			Campaigns::<T>::insert(id, &campaign);
+			Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
 
 			Ok(())
 		}
@@ -199,6 +230,10 @@ impl<T: Config> Pallet<T> {
 
 	pub fn reward_get(index: TrieIndex, who: &T::AccountId) -> (BalanceOf<T>, Vec<u8>) {
 		who.using_encoded(|b| child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(&Self::id_from_index(index), b))
+	}
+
+	pub fn reward_kill(index: TrieIndex, who: &T::AccountId) {
+		who.using_encoded(|b| child::kill(&Self::id_from_index(index), b));
 	}
 
 	pub fn campaign_reward_iterator(

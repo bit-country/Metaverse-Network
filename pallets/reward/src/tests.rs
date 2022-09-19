@@ -46,6 +46,7 @@ fn create_campaign_works() {
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			reward: 10,
+			claimed: 0,
 			end: 10,
 			cap: 10,
 			trie_index: 0,
