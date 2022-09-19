@@ -1239,11 +1239,11 @@ pub mod pallet {
 				&from,
 				&auction_item.recipient,
 				value,
-				ExistenceRequirement::KeepAlive,
+				ExistenceRequirement::AllowDeath,
 			);
 
 			match currency_transfer {
-				Err(_e) => {}
+				Err(_e) => return Err(DispatchError::Other("Failed to transfer token")),
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
 					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
@@ -1325,7 +1325,9 @@ pub mod pallet {
 							);
 
 							match undeployed_land_block {
-								Err(_) => (),
+								Err(_e) => {
+									return Err(DispatchError::Other("Failed to transfer undeployed land block"))
+								}
 								Ok(_) => {
 									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
 								}
@@ -1374,7 +1376,7 @@ pub mod pallet {
 						&high_bidder,
 						&auction_item.recipient,
 						high_bid_price,
-						ExistenceRequirement::KeepAlive,
+						ExistenceRequirement::AllowDeath,
 					);
 
 					if let Ok(_transfer_succeeded) = currency_transfer {
