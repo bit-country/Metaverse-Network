@@ -223,7 +223,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 8,
+	spec_version: 11,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -285,7 +285,7 @@ impl Contains<Call> for NormalCallFilter {
 			// Not allow stopped tx
 			return false;
 		}
-		false
+		true
 	}
 }
 
@@ -461,7 +461,7 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 
 parameter_types! {
 	/// Relay Chain `TransactionByteFee` / 10
-	pub const TransactionByteFee: Balance = 10 * MILLICENTS;
+	pub const TransactionByteFee: Balance = 100 * MILLICENTS;
 	pub const OperationalFeeMultiplier: u8 = 5;
 }
 
