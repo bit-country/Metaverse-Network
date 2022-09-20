@@ -102,9 +102,9 @@ pub mod migration_v2 {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
+	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::tokens::currency};
 	use frame_system::ensure_root;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
@@ -424,6 +424,7 @@ pub mod pallet {
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
+			currency_id: FungibleTokenId,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			// Only support NFT on marketplace
@@ -459,6 +460,7 @@ pub mod pallet {
 				start_time,
 				listing_level.clone(),
 				listing_fee,
+				currency_id,
 			)?;
 			Ok(().into())
 		}
@@ -481,6 +483,7 @@ pub mod pallet {
 			value: BalanceOf<T>,
 			end_time: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
+			currency_id: FungibleTokenId,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
@@ -514,6 +517,7 @@ pub mod pallet {
 				start_time,
 				listing_level.clone(),
 				listing_fee,
+				currency_id,
 			)?;
 
 			Ok(().into())
@@ -829,6 +833,7 @@ pub mod pallet {
 			_start: T::BlockNumber,
 			listing_level: ListingLevel<T::AccountId>,
 			listing_fee: Perbill,
+			currency_id: FungibleTokenId,
 		) -> Result<AuctionId, DispatchError> {
 			ensure!(
 				initial_amount.clone() >= T::MinimumListingPrice::get(),
@@ -877,7 +882,7 @@ pub mod pallet {
 
 					T::NFTHandler::set_lock_nft((class_id, token_id), true)?;
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
-					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
+					//let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
 					let new_auction_item = AuctionItem {
 						item_id: item_id.clone(),
@@ -972,7 +977,7 @@ pub mod pallet {
 					}
 
 					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
-					let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
+					//let mut currency_id: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
 					// Reserve network deposit fee
 					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
@@ -1095,10 +1100,18 @@ pub mod pallet {
 
 				ensure!(bid_result.accept_bid, Error::<T>::BidIsNotAccepted);
 
-				ensure!(
-					<T as Config>::Currency::free_balance(&from) >= value,
-					Error::<T>::InsufficientFreeBalance
-				);
+				if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+					ensure!(
+						<T as Config>::Currency::free_balance(&from) >= value,
+						Error::<T>::InsufficientFreeBalance
+					);
+				} else {
+					ensure!(
+						T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from)
+							>= value.saturated_into(),
+						Error::<T>::InsufficientFreeBalance
+					);
+				}
 
 				Self::swap_new_bid(id, (from.clone(), value), auction.bid.clone())?;
 
@@ -1224,10 +1237,18 @@ pub mod pallet {
 			}
 
 			ensure!(value == auction_item.amount, Error::<T>::InvalidBuyNowPrice);
-			ensure!(
-				<T as Config>::Currency::free_balance(&from) >= value,
-				Error::<T>::InsufficientFreeBalance
-			);
+			if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+				ensure!(
+					<T as Config>::Currency::free_balance(&from) >= value,
+					Error::<T>::InsufficientFreeBalance
+				);
+			} else {
+				ensure!(
+					T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from)
+						>= value.saturated_into(),
+					Error::<T>::InsufficientFreeBalance
+				);
+			}
 
 			Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
 
@@ -1235,28 +1256,38 @@ pub mod pallet {
 			<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 
 			// Transfer balance from buy it now user to asset owner
-			let currency_transfer = <T as Config>::Currency::transfer(
-				&from,
-				&auction_item.recipient,
-				value,
-				ExistenceRequirement::KeepAlive,
-			);
+			let mut currency_transfer;
+			if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+				currency_transfer = <T as Config>::Currency::transfer(
+					&from,
+					&auction_item.recipient,
+					value,
+					ExistenceRequirement::AllowDeath,
+				);
+			} else {
+				currency_transfer = T::FungibleTokenCurrency::transfer(
+					auction_item.currency_id,
+					&from,
+					&auction_item.recipient,
+					value.saturated_into(),
+				);
+			}
 
 			match currency_transfer {
-				Err(_e) => {}
+				Err(_e) => return Err(DispatchError::Other("Failed to transfer token")),
 				Ok(_v) => {
 					// Transfer asset from asset owner to buy it now user
 					<ItemsInAuction<T>>::remove(auction_item.item_id.clone());
 
 					// Collect network commission fee
-					Self::collect_network_fee(&value, &auction_item.recipient, FungibleTokenId::NativeToken(0));
+					Self::collect_network_fee(&value, &auction_item.recipient, auction_item.currency_id);
 
 					match auction_item.item_id {
 						ItemId::NFT(class_id, token_id) => {
 							Self::collect_listing_fee(
 								&value,
 								&auction_item.recipient,
-								FungibleTokenId::NativeToken(0),
+								auction_item.currency_id,
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee.clone(),
 							)?;
@@ -1265,7 +1296,7 @@ pub mod pallet {
 								&value,
 								&auction_item.recipient,
 								&(class_id, token_id),
-								FungibleTokenId::NativeToken(0),
+								auction_item.currency_id,
 							)?;
 
 							T::NFTHandler::set_lock_nft((class_id, token_id), false);
@@ -1298,7 +1329,7 @@ pub mod pallet {
 							Self::collect_listing_fee(
 								&value,
 								&auction_item.recipient,
-								FungibleTokenId::NativeToken(0),
+								auction_item.currency_id,
 								auction_item.listing_level.clone(),
 								auction_item.listing_fee,
 							)?;
@@ -1309,7 +1340,7 @@ pub mod pallet {
 									&token.2,
 									&auction_item.recipient,
 									&(token.0, token.1),
-									FungibleTokenId::NativeToken(0),
+									auction_item.currency_id,
 								)?;
 								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
 								T::NFTHandler::transfer_nft(&auction_item.recipient, &from, &(token.0, token.1))?;
@@ -1325,7 +1356,9 @@ pub mod pallet {
 							);
 
 							match undeployed_land_block {
-								Err(_) => (),
+								Err(_e) => {
+									return Err(DispatchError::Other("Failed to transfer undeployed land block"))
+								}
 								Ok(_) => {
 									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
 								}
@@ -1361,29 +1394,45 @@ pub mod pallet {
 		fn on_auction_ended(auction_id: AuctionId, winner: Option<(T::AccountId, BalanceOf<T>)>) {
 			if let Some(auction_item) = <AuctionItems<T>>::get(&auction_id) {
 				Self::remove_auction(auction_id.clone(), auction_item.item_id.clone());
+
 				// Unreserve network deposit fee
 				<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 				// Transfer balance from high bidder to asset owner
 				if let Some(current_bid) = winner {
 					let (high_bidder, high_bid_price): (T::AccountId, BalanceOf<T>) = current_bid;
+
 					// Handle listing
-					<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+					if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+						<T as Config>::Currency::unreserve(&high_bidder, high_bid_price);
+					} else {
+						T::FungibleTokenCurrency::unreserve(
+							auction_item.currency_id,
+							&high_bidder,
+							high_bid_price.saturated_into(),
+						);
+					}
 
 					// Handle balance transfer
-					let currency_transfer = <T as Config>::Currency::transfer(
-						&high_bidder,
-						&auction_item.recipient,
-						high_bid_price,
-						ExistenceRequirement::KeepAlive,
-					);
+					let mut currency_transfer;
+					if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+						currency_transfer = <T as Config>::Currency::transfer(
+							&high_bidder,
+							&auction_item.recipient,
+							high_bid_price,
+							ExistenceRequirement::AllowDeath,
+						);
+					} else {
+						currency_transfer = T::FungibleTokenCurrency::transfer(
+							auction_item.currency_id,
+							&high_bidder,
+							&auction_item.recipient,
+							high_bid_price.saturated_into(),
+						);
+					}
 
 					if let Ok(_transfer_succeeded) = currency_transfer {
 						// Collect network commission fee
-						Self::collect_network_fee(
-							&high_bid_price,
-							&auction_item.recipient,
-							FungibleTokenId::NativeToken(0),
-						);
+						Self::collect_network_fee(&high_bid_price, &auction_item.recipient, auction_item.currency_id);
 
 						// Transfer asset from asset owner to high bidder
 						// Check asset type and handle internal logic
@@ -1392,7 +1441,7 @@ pub mod pallet {
 								Self::collect_listing_fee(
 									&high_bid_price,
 									&auction_item.recipient,
-									FungibleTokenId::NativeToken(0),
+									auction_item.currency_id,
 									auction_item.listing_level.clone(),
 									auction_item.listing_fee,
 								);
@@ -1401,7 +1450,7 @@ pub mod pallet {
 									&high_bid_price,
 									&auction_item.recipient,
 									&(class_id, token_id),
-									FungibleTokenId::NativeToken(0),
+									auction_item.currency_id,
 								);
 
 								T::NFTHandler::set_lock_nft((class_id, token_id), false);
@@ -1438,7 +1487,7 @@ pub mod pallet {
 								Self::collect_listing_fee(
 									&high_bid_price,
 									&auction_item.recipient,
-									FungibleTokenId::NativeToken(0),
+									auction_item.currency_id,
 									auction_item.listing_level.clone(),
 									auction_item.listing_fee,
 								);
@@ -1449,7 +1498,7 @@ pub mod pallet {
 										&token.2,
 										&auction_item.recipient,
 										&(token.0, token.1),
-										FungibleTokenId::NativeToken(0),
+										auction_item.currency_id,
 									);
 									T::NFTHandler::set_lock_nft((token.0, token.1), false);
 									T::NFTHandler::transfer_nft(
@@ -1653,14 +1702,29 @@ pub mod pallet {
 					//unlock reserve amount
 					if !last_bid_price.is_zero() {
 						// Unreserve balance of last bidder
-						<T as Config>::Currency::unreserve(&last_bidder, last_bid_price);
+						if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+							<T as Config>::Currency::unreserve(&last_bidder, last_bid_price);
+						} else {
+							T::FungibleTokenCurrency::unreserve(
+								auction_item.currency_id,
+								&last_bidder,
+								last_bid_price.saturated_into(),
+							);
+						}
 					}
 				}
 
 				// Lock fund of new bidder
 				// Reserve balance
-				<T as Config>::Currency::reserve(&new_bidder, new_bid_price)?;
-
+				if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
+					<T as Config>::Currency::reserve(&new_bidder, new_bid_price)?;
+				} else {
+					T::FungibleTokenCurrency::reserve(
+						auction_item.currency_id,
+						&new_bidder,
+						new_bid_price.saturated_into(),
+					)?;
+				}
 				// Update new bid price for individual item on bundle
 				if let ItemId::Bundle(tokens) = &auction_item.item_id {
 					let mut new_bundle: Vec<(ClassId, TokenId, BalanceOf<T>)> = Vec::new();

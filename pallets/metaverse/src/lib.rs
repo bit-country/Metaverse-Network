@@ -480,12 +480,12 @@ impl<T: Config> Pallet<T> {
 		);
 
 		ensure!(
-			T::Currency::free_balance(&who) >= T::MinContribution::get(),
+			T::Currency::free_balance(who) >= T::MinContribution::get(),
 			Error::<T>::InsufficientContribution
 		);
 
 		T::Currency::transfer(
-			&who,
+			who,
 			&Self::account_id(),
 			T::MinContribution::get(),
 			ExistenceRequirement::KeepAlive,
