@@ -15,7 +15,7 @@ use crate::{
 	Call, Currencies, Economy, EconomyTreasury, Estate, Event, Metaverse, MinimumStake, Mining, Runtime, System,
 };
 
-use super::utils::{create_land_and_estate_group, dollar, mint_NFT, set_balance};
+use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance};
 
 const MAX_BOUND: (i32, i32) = (-100, 100);
 const COORDINATE_IN_1: (i32, i32) = (-10, 10);
@@ -94,7 +94,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 
@@ -141,7 +142,8 @@ runtime_benchmarks! {
 		let min_stake = MinimumStake::get();
 		let stake_amount = min_stake + dollar(100);
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 

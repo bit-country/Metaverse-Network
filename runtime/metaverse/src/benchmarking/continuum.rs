@@ -12,7 +12,7 @@ use primitives::{AccountId, Balance, FungibleTokenId};
 
 use crate::{Call, Continuum, Currencies, Event, Metaverse, Runtime, System};
 
-use super::utils::{create_land_and_estate_group, dollar, set_balance};
+use super::utils::{create_nft_group, dollar, set_balance, set_metaverse_treasury_initial_balance};
 
 const CURRENCY_ID: FungibleTokenId = FungibleTokenId::NativeToken(0);
 
@@ -38,7 +38,8 @@ runtime_benchmarks! {
 	buy_map_spot{
 		let buyer: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &buyer, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(buyer.clone()).into(), vec![1u8]);
 		Continuum::set_max_bounds(RawOrigin::Root.into(), (0i32, 0i32));
 		Continuum::set_allow_buy_now(RawOrigin::Root.into(), true);
@@ -50,7 +51,8 @@ runtime_benchmarks! {
 	bid_map_spot{
 		let bidder: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &bidder, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(bidder.clone()).into(), vec![1u8]);
 		Continuum::set_max_bounds(RawOrigin::Root.into(), (0i32, 0i32));
 		Continuum::issue_map_slot(RawOrigin::Root.into(), (0i32, 0i32), TokenType::Transferable);
