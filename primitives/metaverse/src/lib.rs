@@ -155,8 +155,6 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 	}
 }
 
-pub type ForeignAssetId = TokenId;
-
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum FungibleTokenId {
@@ -194,8 +192,8 @@ impl FungibleTokenId {
 pub enum AssetIds {
 	Erc20(EvmAddress),
 	StableAssetId(TokenId),
-	ForeignAssetId(ForeignAssetId),
-	NativeAssetId(TokenId),
+	ForeignAssetId(TokenId),
+	NativeAssetId(FungibleTokenId),
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
