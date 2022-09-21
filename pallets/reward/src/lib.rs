@@ -128,6 +128,8 @@ pub mod pallet {
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Set Reward [campaign_id, account, balance]
 		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
+		/// New campaign ended [campaign_id]
+		RewardCampaignEnded(CampaignId),
 	}
 
 	#[pallet::error]
@@ -140,6 +142,8 @@ pub mod pallet {
 		CampaignExpired,
 		/// Reward exceed the cap reward
 		RewardExceedCap,
+		/// Campaign end block is before the current block
+		CampaignEndBlockBeforeCurrentBlock,
 	}
 
 	#[pallet::call]
@@ -154,6 +158,8 @@ pub mod pallet {
 			let depositor = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
+			ensure!(now < end, Error::<T>::CampaignEndBlockBeforeCurrentBlock);
+
 			let trie_index = Self::next_trie_index();
 			let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
@@ -165,8 +171,7 @@ pub mod pallet {
 			T::Currency::transfer(&depositor, &fund_account, deposit, AllowDeath)?;
 
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-
-			//TODO check end and now block
+			
 			//TODO check minimum reward
 
 			Campaigns::<T>::insert(
@@ -238,7 +243,15 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
+	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		fn on_finalize(block_number: T::BlockNumber) {
+			for (id, info) in Campaigns::<T>::iter()
+				.filter(|(_, campaign_info)| campaign_info.end <= block_number)
+				.collect::<Vec<_>>() {
+				Self::end_campaign(id);
+			}
+		}
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -273,5 +286,10 @@ impl<T: Config> Pallet<T> {
 		index: TrieIndex,
 	) -> ChildTriePrefixIterator<(T::AccountId, (BalanceOf<T>, Vec<u8>))> {
 		ChildTriePrefixIterator::<_>::with_prefix_over_key::<Identity>(&Self::id_from_index(index), &[])
+	}
+	
+	fn end_campaign(campaign_id: CampaignId) -> DispatchResult {
+		Self::deposit_event(Event::<T>::RewardCampaignEnded(campaign_id));
+		Ok(())
 	}
 }
