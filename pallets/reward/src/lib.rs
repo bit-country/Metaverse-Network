@@ -53,7 +53,7 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::traits::ExistenceRequirement::AllowDeath;
-    use orml_traits::MultiCurrencyExtended;
+	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
@@ -167,7 +167,10 @@ pub mod pallet {
 
 			ensure!(now < end, Error::<T>::CampaignEndBlockBeforeCurrentBlock);
 
-			ensure!(reward >= T::MinimumRewardPool::get(), Error::<T>::RewardPoolBelowMinimum);
+			ensure!(
+				reward >= T::MinimumRewardPool::get(),
+				Error::<T>::RewardPoolBelowMinimum
+			);
 
 			let trie_index = Self::next_trie_index();
 			let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;

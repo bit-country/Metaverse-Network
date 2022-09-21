@@ -1173,7 +1173,6 @@ impl pallet_treasury::Config for Runtime {
 	type ProposalBondMaximum = ProposalBondMaximum;
 }
 
-
 parameter_types! {
 	pub const CampaignDeposit: Balance = 1 * DOLLARS;
 	pub const MinimumRewardPool: Balance = 100 * DOLLARS;
@@ -1189,8 +1188,6 @@ impl reward::Config for Runtime {
 	type CampaignDeposit = CampaignDeposit;
 	type WeightInfo = ();
 }
-
-
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
