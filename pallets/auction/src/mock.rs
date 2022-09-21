@@ -439,6 +439,15 @@ impl ExtBuilder {
 		.assimilate_storage(&mut t)
 		.unwrap();
 
+		orml_tokens::GenesisConfig::<Runtime> {
+			balances: vec![
+				(ALICE, FungibleTokenId::MiningResource(0), 10000),
+				(BOB, FungibleTokenId::MiningResource(0), 5000),
+			],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(block_number));
 		ext
@@ -501,6 +510,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
 		_listing_fee: Perbill,
+		_currency_id: FungibleTokenId,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}
