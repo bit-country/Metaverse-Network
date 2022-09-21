@@ -75,16 +75,16 @@ use xcm_builder::{
 };
 use xcm_executor::{Config, XcmExecutor};
 
-use asset_manager::ForeignAssetMapping;
+use asset_manager::{BuyWeightRateOfForeignAsset, ForeignAssetMapping};
 pub use constants::{currency::*, time::*};
 use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 // XCM Imports
-use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
-
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
+use metaverse_runtime_common::FixedRateOfAsset;
+use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -858,6 +858,8 @@ parameter_types! {
 		// KAR:KSM = 50:1
 		ksm_per_second() * 50
 	);
+
+	pub BaseRate: u128 = native_per_second();
 }
 
 pub struct ToTreasury;
@@ -882,6 +884,7 @@ impl TakeRevenue for ToTreasury {
 pub type Trader = (
 	FixedRateOfFungible<KsmPerSecond, ToTreasury>,
 	FixedRateOfFungible<GenericNeerPerSecond, ToTreasury>,
+	FixedRateOfAsset<BaseRate, ToTreasury, BuyWeightRateOfForeignAsset<Runtime>>,
 	FixedRateOfFungible<NeerPerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerX0PerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerX1PerSecond, ToTreasury>,
