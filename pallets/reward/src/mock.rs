@@ -85,12 +85,14 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub const CampaignDeposit: Balance = 1;
+	pub const MinimumRewardPool: Balance = 1;
 }
 
 impl Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type FungibleTokenCurrency = Currencies;
+	type MinimumRewardPool = MinimumRewardPool;
 	type CampaignDeposit = CampaignDeposit;
 	type PalletId = MiningTreasuryPalletId;
 	type MiningCurrencyId = MiningCurrencyId;

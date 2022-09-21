@@ -53,7 +53,7 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::traits::ExistenceRequirement::AllowDeath;
-	use orml_traits::MultiCurrencyExtended;
+    use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
@@ -96,7 +96,12 @@ pub mod pallet {
 		#[pallet::constant]
 		type MiningCurrencyId: Get<FungibleTokenId>;
 
+		/// The minimum reward pool for a campaign
+		#[pallet::constant]
+		type MinimumRewardPool: Get<BalanceOf<Self>>;
+
 		/// The amount to be held on deposit by the creator when creating new campaign.
+		#[pallet::constant]
 		type CampaignDeposit: Get<BalanceOf<Self>>;
 
 		/// Weight info
@@ -144,6 +149,8 @@ pub mod pallet {
 		RewardExceedCap,
 		/// Campaign end block is before the current block
 		CampaignEndBlockBeforeCurrentBlock,
+		/// Campaign reward pool is below the set minimum
+		RewardPoolBelowMinimum,
 	}
 
 	#[pallet::call]
@@ -160,6 +167,8 @@ pub mod pallet {
 
 			ensure!(now < end, Error::<T>::CampaignEndBlockBeforeCurrentBlock);
 
+			ensure!(reward >= T::MinimumRewardPool::get(), Error::<T>::RewardPoolBelowMinimum);
+
 			let trie_index = Self::next_trie_index();
 			let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
@@ -171,8 +180,6 @@ pub mod pallet {
 			T::Currency::transfer(&depositor, &fund_account, deposit, AllowDeath)?;
 
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-
-			//TODO check minimum reward
 
 			Campaigns::<T>::insert(
 				campaign_id,

@@ -5384,6 +5384,7 @@ dependencies = [
  "pallet-nft",
  "pallet-preimage",
  "pallet-randomness-collective-flip",
+ "pallet-reward",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",

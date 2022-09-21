@@ -1173,6 +1173,25 @@ impl pallet_treasury::Config for Runtime {
 	type ProposalBondMaximum = ProposalBondMaximum;
 }
 
+
+parameter_types! {
+	pub const CampaignDeposit: Balance = 1 * DOLLARS;
+	pub const MinimumRewardPool: Balance = 100 * DOLLARS;
+}
+
+impl reward::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type FungibleTokenCurrency = Currencies;
+	type PalletId = MetaverseNetworkTreasuryPalletId;
+	type MiningCurrencyId = MiningResourceCurrencyId;
+	type MinimumRewardPool = MinimumRewardPool;
+	type CampaignDeposit = CampaignDeposit;
+	type WeightInfo = ();
+}
+
+
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1207,7 +1226,8 @@ construct_runtime!(
 		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Event<T>},
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
-		Mining: mining:: {Pallet, Call, Storage ,Event<T>},
+		Mining: mining::{Pallet, Call, Storage ,Event<T>},
+		Reward: reward::{Pallet, Call, Storage ,Event<T>},
 		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
 		Economy: economy::{Pallet, Call, Storage, Event<T>},
 		Emergency: emergency::{Pallet, Call, Storage, Event<T>},
