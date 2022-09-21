@@ -38,7 +38,9 @@ use xcm::v1::MultiLocation;
 use xcm::VersionedMultiLocation;
 
 pub use pallet::*;
-use primitives::{AssetIds, AssetMetadata, CurrencyId, ForeignAssetIdMapping, FungibleTokenId, TokenId};
+use primitives::{
+	AssetIds, AssetMetadata, BuyWeightRate, CurrencyId, ForeignAssetIdMapping, FungibleTokenId, Ratio, TokenId,
+};
 
 mod mock;
 mod tests;
@@ -48,7 +50,7 @@ pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system:
 
 #[frame_support::pallet]
 pub mod pallet {
-	use primitives::{AssetIds, AssetMetadata, EvmAddress, TokenId, TokenId};
+	use primitives::{AssetIds, AssetMetadata, EvmAddress, TokenId};
 
 	use super::*;
 
@@ -321,5 +323,26 @@ impl<T: Config> ForeignAssetIdMapping<TokenId, MultiLocation, AssetMetadata<Bala
 
 	fn get_currency_id(multi_location: MultiLocation) -> Option<FungibleTokenId> {
 		Pallet::<T>::location_to_fungible_token_ids(multi_location)
+	}
+}
+
+pub struct BuyWeightRateOfForeignAsset<T>(sp_std::marker::PhantomData<T>);
+
+impl<T: Config> BuyWeightRate for BuyWeightRateOfForeignAsset<T>
+where
+	BalanceOf<T>: Into<u128>,
+{
+	fn calculate_rate(location: MultiLocation) -> Option<Ratio> {
+		if let Some(FungibleTokenId::FungibleToken(foreign_asset_id)) =
+			Pallet::<T>::location_to_fungible_token_ids(location)
+		{
+			if let Some(asset_metadata) = Pallet::<T>::asset_metadatas(AssetIds::ForeignAssetId(foreign_asset_id)) {
+				let minimum_balance = asset_metadata.minimal_balance.into();
+				let rate = FixedU128::saturating_from_rational(minimum_balance, T::Currency::minimum_balance().into());
+				log::debug!(target: "asset-manager::weight", "ForeignAsset: {}, MinimumBalance: {}, rate:{:?}", foreign_asset_id, minimum_balance, rate);
+				return Some(rate);
+			}
+		}
+		None
 	}
 }

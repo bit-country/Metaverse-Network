@@ -593,6 +593,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-std",
+ "xcm",
 ]
 
 [[package]]

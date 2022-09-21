@@ -22,16 +22,18 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::AtLeast32Bit;
-use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature,
 };
+use sp_runtime::{FixedU128, OpaqueExtrinsic as UncheckedExtrinsic};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
+use xcm::v1::MultiLocation;
+
 pub mod continuum;
 pub mod estate;
 pub mod evm;
@@ -122,7 +124,8 @@ pub type EvmAddress = sp_core::H160;
 pub type NftMetadata = Vec<u8>;
 /// NFT Attributes
 pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
-
+/// Weight ratio
+pub type Ratio = FixedU128;
 /// Land Token Class Id
 pub const LAND_CLASS_ID: ClassId = 15;
 /// Estate Token Class Id
@@ -194,6 +197,10 @@ pub enum AssetIds {
 	StableAssetId(TokenId),
 	ForeignAssetId(TokenId),
 	NativeAssetId(FungibleTokenId),
+}
+
+pub trait BuyWeightRate {
+	fn calculate_rate(location: MultiLocation) -> Option<Ratio>;
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
