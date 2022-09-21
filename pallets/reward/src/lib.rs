@@ -171,7 +171,7 @@ pub mod pallet {
 			T::Currency::transfer(&depositor, &fund_account, deposit, AllowDeath)?;
 
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
-			
+
 			//TODO check minimum reward
 
 			Campaigns::<T>::insert(
@@ -247,7 +247,8 @@ pub mod pallet {
 		fn on_finalize(block_number: T::BlockNumber) {
 			for (id, info) in Campaigns::<T>::iter()
 				.filter(|(_, campaign_info)| campaign_info.end <= block_number)
-				.collect::<Vec<_>>() {
+				.collect::<Vec<_>>()
+			{
 				Self::end_campaign(id);
 			}
 		}
@@ -287,7 +288,7 @@ impl<T: Config> Pallet<T> {
 	) -> ChildTriePrefixIterator<(T::AccountId, (BalanceOf<T>, Vec<u8>))> {
 		ChildTriePrefixIterator::<_>::with_prefix_over_key::<Identity>(&Self::id_from_index(index), &[])
 	}
-	
+
 	fn end_campaign(campaign_id: CampaignId) -> DispatchResult {
 		Self::deposit_event(Event::<T>::RewardCampaignEnded(campaign_id));
 		Ok(())
