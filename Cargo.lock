@@ -5442,6 +5442,9 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "substrate-wasm-builder",
+ "xcm",
+ "xcm-builder",
+ "xcm-executor",
 ]
 
 [[package]]
@@ -7969,6 +7972,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "hex-literal",
  "log",
+ "metaverse-runtime-common",
  "orml-currencies",
  "orml-nft",
  "orml-oracle",
