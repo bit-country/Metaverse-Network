@@ -57,24 +57,28 @@ fn create_campaign_works() {
 
 		let event = mock::Event::Reward(crate::Event::NewRewardCampaignCreated(campaign_id, ALICE));
 		assert_eq!(last_event(), event)
-
 	});
 }
-
 
 #[test]
 fn create_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
 
-		assert_noop!(Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 2, 10),
-		Error::<Runtime>::CampaignDurationBelowMinimum);
+		assert_noop!(
+			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 2, 10),
+			Error::<Runtime>::CampaignDurationBelowMinimum
+		);
 
-		assert_noop!(Reward::create_campaign(Origin::signed(ALICE), ALICE, 0, 10, 10),
-		Error::<Runtime>::RewardPoolBelowMinimum);
+		assert_noop!(
+			Reward::create_campaign(Origin::signed(ALICE), ALICE, 0, 10, 10),
+			Error::<Runtime>::RewardPoolBelowMinimum
+		);
 
-		assert_noop!(Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 1),
-		Error::<Runtime>::CoolingOffPeriodBelowMinimum);
+		assert_noop!(
+			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 1),
+			Error::<Runtime>::CoolingOffPeriodBelowMinimum
+		);
 	});
 }
 
@@ -119,14 +123,22 @@ fn set_reward_fails() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		assert_noop!(Reward::set_reward(Origin::root(), 1, BOB, 10),Error::<Runtime>::CampaignIsNotFound);
+		assert_noop!(
+			Reward::set_reward(Origin::root(), 1, BOB, 10),
+			Error::<Runtime>::CampaignIsNotFound
+		);
 
-		assert_noop!(Reward::set_reward(Origin::root(), 0, BOB, 10),Error::<Runtime>::RewardExceedCap);
+		assert_noop!(
+			Reward::set_reward(Origin::root(), 0, BOB, 10),
+			Error::<Runtime>::RewardExceedCap
+		);
 
 		run_to_block(11);
 
-		assert_noop!(Reward::set_reward(Origin::root(), 0, BOB, 5),Error::<Runtime>::CampaignExpired);
-
+		assert_noop!(
+			Reward::set_reward(Origin::root(), 0, BOB, 5),
+			Error::<Runtime>::CampaignExpired
+		);
 	});
 }
 
@@ -148,10 +160,10 @@ fn claim_reward_works() {
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 		assert_ok!(Reward::set_reward(Origin::root(), 0, BOB, 5));
-		
+
 		run_to_block(17);
 		//assert_eq!(last_event(), mock::Event::Reward(crate::Event::RewardCampaignEnded(0)));
-		
+
 		assert_ok!(Reward::claim_reward(Origin::signed(BOB), 0));
 		assert_eq!(Balances::free_balance(BOB), 20005);
 
@@ -189,22 +201,29 @@ fn claim_reward_fails() {
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 		assert_ok!(Reward::set_reward(Origin::root(), 0, BOB, 5));
-		
+
 		run_to_block(17);
-		
-		assert_noop!(Reward::claim_reward(Origin::signed(ALICE), 1),
-		Error::<Runtime>::CampaignIsNotFound);
 
-		assert_noop!(Reward::claim_reward(Origin::signed(ALICE), 0),
-		Error::<Runtime>::NoRewardFound);
+		assert_noop!(
+			Reward::claim_reward(Origin::signed(ALICE), 1),
+			Error::<Runtime>::CampaignIsNotFound
+		);
 
-		assert_noop!(Reward::claim_reward(Origin::signed(3), 0),
-		Error::<Runtime>::NoRewardFound);
-		
+		assert_noop!(
+			Reward::claim_reward(Origin::signed(ALICE), 0),
+			Error::<Runtime>::NoRewardFound
+		);
+
+		assert_noop!(
+			Reward::claim_reward(Origin::signed(3), 0),
+			Error::<Runtime>::NoRewardFound
+		);
+
 		run_to_block(23);
 
-		assert_noop!(Reward::claim_reward(Origin::signed(BOB), 0),
-		Error::<Runtime>::CoolingOffPeriodExpired);
-	
+		assert_noop!(
+			Reward::claim_reward(Origin::signed(BOB), 0),
+			Error::<Runtime>::CoolingOffPeriodExpired
+		);
 	});
 }

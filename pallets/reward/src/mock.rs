@@ -87,7 +87,7 @@ parameter_types! {
 	pub const CampaignTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const CampaignDeposit: Balance = 1;
 	pub const MinimumRewardPool: Balance = 1;
-	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10; 
+	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10;
 	pub const MinimumCampaignDuration: BlockNumber = 5;
 }
 
@@ -99,7 +99,7 @@ impl Config for Runtime {
 	type CampaignDeposit = CampaignDeposit;
 	type PalletId = CampaignTreasuryPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
-	type MinimumCampaignDuration = MinimumCampaignDuration; 
+	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
 	type WeightInfo = ();
 }

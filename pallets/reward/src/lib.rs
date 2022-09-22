@@ -179,9 +179,12 @@ pub mod pallet {
 		) -> DispatchResult {
 			let depositor = ensure_signed(origin)?;
 
-			let campaign_duration =	end - frame_system::Pallet::<T>::block_number();	
-			
-			ensure!(campaign_duration >= T::MinimumCampaignDuration::get(), Error::<T>::CampaignDurationBelowMinimum);
+			let campaign_duration = end - frame_system::Pallet::<T>::block_number();
+
+			ensure!(
+				campaign_duration >= T::MinimumCampaignDuration::get(),
+				Error::<T>::CampaignDurationBelowMinimum
+			);
 
 			ensure!(
 				reward >= T::MinimumRewardPool::get(),
@@ -237,7 +240,10 @@ pub mod pallet {
 			let (balance, _) = Self::reward_get(campaign.trie_index, &who);
 			ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
 
-			ensure!(campaign.end + campaign.cooling_off_duration > now, Error::<T>::CoolingOffPeriodExpired);
+			ensure!(
+				campaign.end + campaign.cooling_off_duration > now,
+				Error::<T>::CoolingOffPeriodExpired
+			);
 
 			T::Currency::transfer(&fund_account, &who, balance, AllowDeath)?;
 
