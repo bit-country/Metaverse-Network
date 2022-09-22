@@ -25,7 +25,7 @@ use frame_support::{
 };
 use primitives::BuyWeightRate;
 use sp_runtime::{FixedPointNumber, FixedU128};
-use std::marker::PhantomData;
+use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::prelude::*;
 use xcm_builder::TakeRevenue;
 use xcm_executor::{
