@@ -104,6 +104,14 @@ pub mod pallet {
 		#[pallet::constant]
 		type CampaignDeposit: Get<BalanceOf<Self>>;
 
+		/// The minimum amount of blocks during which campaign rewards can be claimed.
+		#[pallet::constant]
+		type MinimumCampaignDuration: Get<Self::BlockNumber>;
+
+		/// The minimum amount of blocks during which campaign rewards can be claimed.
+		#[pallet::constant]
+		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
+
 		/// Weight info
 		type WeightInfo: WeightInfo;
 	}
@@ -147,10 +155,16 @@ pub mod pallet {
 		CampaignExpired,
 		/// Reward exceed the cap reward
 		RewardExceedCap,
-		/// Campaign end block is before the current block
-		CampaignEndBlockBeforeCurrentBlock,
+		/// Invalid reward account
+		InvalidRewardAccount,
 		/// Campaign reward pool is below the set minimum
 		RewardPoolBelowMinimum,
+		/// Campaign duration is below minimum
+		CampaignDurationBelowMinimum,
+		/// Campaign cooling-off duration is below minimum
+		CoolingOffPeriodBelowMinimum,
+		/// Campaign claim period expired
+		CoolingOffPeriodExpired,
 	}
 
 	#[pallet::call]
@@ -161,15 +175,22 @@ pub mod pallet {
 			creator: T::AccountId,
 			reward: BalanceOf<T>,
 			end: T::BlockNumber,
+			cooling_off_duration: T::BlockNumber,
 		) -> DispatchResult {
 			let depositor = ensure_signed(origin)?;
-			let now = frame_system::Pallet::<T>::block_number();
 
-			ensure!(now < end, Error::<T>::CampaignEndBlockBeforeCurrentBlock);
+			let campaign_duration =	end - frame_system::Pallet::<T>::block_number();	
+			
+			ensure!(campaign_duration >= T::MinimumCampaignDuration::get(), Error::<T>::CampaignDurationBelowMinimum);
 
 			ensure!(
 				reward >= T::MinimumRewardPool::get(),
 				Error::<T>::RewardPoolBelowMinimum
+			);
+
+			ensure!(
+				cooling_off_duration >= T::MinimumCampaignCoolingOffPeriod::get(),
+				Error::<T>::CoolingOffPeriodBelowMinimum
 			);
 
 			let trie_index = Self::next_trie_index();
@@ -180,7 +201,7 @@ pub mod pallet {
 			let campaign_id = Self::next_campaign_id();
 
 			let fund_account = Self::fund_account_id(campaign_id);
-			T::Currency::transfer(&depositor, &fund_account, deposit, AllowDeath)?;
+			T::Currency::transfer(&depositor, &fund_account, reward + deposit, AllowDeath)?;
 
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
@@ -192,6 +213,7 @@ pub mod pallet {
 					claimed: Zero::zero(),
 					end,
 					cap: reward,
+					cooling_off_duration,
 					trie_index,
 				},
 			);
@@ -199,7 +221,7 @@ pub mod pallet {
 			NextTrieIndex::<T>::put(next_trie_index);
 			NextCampaignId::<T>::put(next_campaign_id);
 
-			Self::deposit_event(Event::<T>::NewRewardCampaignCreated(next_campaign_id, creator));
+			Self::deposit_event(Event::<T>::NewRewardCampaignCreated(campaign_id, creator));
 
 			Ok(())
 		}
@@ -214,6 +236,8 @@ pub mod pallet {
 
 			let (balance, _) = Self::reward_get(campaign.trie_index, &who);
 			ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
+
+			ensure!(campaign.end + campaign.cooling_off_duration > now, Error::<T>::CoolingOffPeriodExpired);
 
 			T::Currency::transfer(&fund_account, &who, balance, AllowDeath)?;
 

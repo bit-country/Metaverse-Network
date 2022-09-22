@@ -398,6 +398,8 @@ pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
 	pub end: BlockNumber,
 	/// A hard-cap on the each reward amount that may be contributed.
 	pub cap: Balance,
+	/// Duration of the period during which rewards can be claimed. 
+	pub cooling_off_duration: BlockNumber,
 	/// Index used for the child trie of this fund
 	pub trie_index: TrieIndex,
 }

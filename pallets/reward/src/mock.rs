@@ -84,8 +84,11 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
+	pub const CampaignTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const CampaignDeposit: Balance = 1;
 	pub const MinimumRewardPool: Balance = 1;
+	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10; 
+	pub const MinimumCampaignDuration: BlockNumber = 5;
 }
 
 impl Config for Runtime {
@@ -94,8 +97,10 @@ impl Config for Runtime {
 	type FungibleTokenCurrency = Currencies;
 	type MinimumRewardPool = MinimumRewardPool;
 	type CampaignDeposit = CampaignDeposit;
-	type PalletId = MiningTreasuryPalletId;
+	type PalletId = CampaignTreasuryPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
+	type MinimumCampaignDuration = MinimumCampaignDuration; 
+	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
 	type WeightInfo = ();
 }
 
@@ -302,13 +307,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 10000)],
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
-
-		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(BOB, 20000)],
+			balances: vec![(ALICE, 10000), (BOB, 20000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
