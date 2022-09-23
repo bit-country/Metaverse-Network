@@ -1190,6 +1190,7 @@ impl reward::Config for Runtime {
 	type CampaignDeposit = CampaignDeposit;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type SetRewardOrigin = EnsureRootOrMetaverseTreasury;
 	type WeightInfo = ();
 }
 

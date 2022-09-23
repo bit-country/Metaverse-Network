@@ -31,7 +31,7 @@ runtime_benchmarks! {
 
 	// create campaign
 	create_campaign {
-        System::set_block_number(1u32.into());
+		System::set_block_number(1u32.into());
 		let origin: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &origin, dollar(1000));
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
@@ -53,7 +53,7 @@ runtime_benchmarks! {
 
 	// set reward
 	set_reward{
-        System::set_block_number(1u32.into());
+		System::set_block_number(1u32.into());
 		let origin: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &origin, dollar(1000));
 		let claiming_account: AccountId = whitelisted_caller();

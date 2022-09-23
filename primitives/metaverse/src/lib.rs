@@ -402,7 +402,6 @@ pub struct CampaignInfoV1<AccountId, Balance, BlockNumber> {
 	pub trie_index: TrieIndex,
 }
 
-
 /// Information on a funding effort for a pre-existing parachain. We assume that the parachain ID
 /// is known as it's used for the key of the storage item for which this is the value (`Funds`).
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
