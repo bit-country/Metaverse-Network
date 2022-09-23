@@ -22,16 +22,18 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::AtLeast32Bit;
-use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature,
 };
+use sp_runtime::{FixedU128, OpaqueExtrinsic as UncheckedExtrinsic};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
+
+use xcm::v1::MultiLocation;
 
 pub mod continuum;
 pub mod estate;
@@ -123,6 +125,8 @@ pub type EvmAddress = sp_core::H160;
 pub type NftMetadata = Vec<u8>;
 /// NFT Attributes
 pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
+/// Weight ratio
+pub type Ratio = FixedU128;
 /// Trie index
 pub type TrieIndex = u32;
 /// Campaign index
@@ -159,8 +163,6 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 		}
 	}
 }
-
-pub type ForeignAssetId = TokenId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -199,8 +201,12 @@ impl FungibleTokenId {
 pub enum AssetIds {
 	Erc20(EvmAddress),
 	StableAssetId(TokenId),
-	ForeignAssetId(ForeignAssetId),
-	NativeAssetId(TokenId),
+	ForeignAssetId(TokenId),
+	NativeAssetId(FungibleTokenId),
+}
+
+pub trait BuyWeightRate {
+	fn calculate_rate(location: MultiLocation) -> Option<Ratio>;
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]

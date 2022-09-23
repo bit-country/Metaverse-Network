@@ -1194,6 +1194,12 @@ impl reward::Config for Runtime {
 	type WeightInfo = ();
 }
 
+impl asset_manager::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type RegisterOrigin = EnsureRootOrHalfMetaverseCouncil;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1255,7 +1261,11 @@ construct_runtime!(
 
 		// Technical committee
 		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>},
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Event<T>}
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Event<T>},
+
+		// Asset manager
+		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
+
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
