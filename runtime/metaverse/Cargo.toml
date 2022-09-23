@@ -95,6 +95,7 @@ economy = { package = "pallet-economy", path = "../../pallets/economy", version 
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 metaverse-runtime-common = { path = "../common", default-features = false }
+asset-manager = { path = "../../pallets/asset-manager", default-features = false }
 
 # ink! contracts pacakges
 pallet-contracts = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.24" }

@@ -15,15 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #![cfg_attr(not(feature = "std"), no_std)]
-pub mod currencies;
-pub mod precompiles;
 
 use codec::Encode;
 use frame_support::{
 	traits::Get,
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
-use primitives::BuyWeightRate;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::prelude::*;
@@ -32,6 +29,11 @@ use xcm_executor::{
 	traits::{DropAssets, WeightTrader},
 	Assets,
 };
+
+use primitives::BuyWeightRate;
+
+pub mod currencies;
+pub mod precompiles;
 
 /// Simple fee calculator that requires payment in a single fungible at a fixed rate.
 ///
