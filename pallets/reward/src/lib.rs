@@ -42,6 +42,9 @@ use primitives::{estate::Estate, CampaignId, EstateId, TrieIndex};
 use primitives::{AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
+//#[cfg(feature = "runtime-benchmarks")]
+//pub mod benchmarking;
+
 #[cfg(test)]
 mod mock;
 
@@ -169,7 +172,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(T::WeightInfo::unstake_b())]
+		#[pallet::weight(T::WeightInfo::create_campaign())]
 		pub fn create_campaign(
 			origin: OriginFor<T>,
 			creator: T::AccountId,
@@ -229,7 +232,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::unstake_b())]
+		#[pallet::weight(T::WeightInfo::claim_reward())]
 		pub fn claim_reward(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
@@ -256,7 +259,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::unstake_b())]
+		#[pallet::weight(T::WeightInfo::set_reward())]
 		pub fn set_reward(
 			origin: OriginFor<T>,
 			id: CampaignId,

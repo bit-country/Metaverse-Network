@@ -1303,6 +1303,7 @@ mod benches {
 		[economy, benchmarking::economy]
 		[estate, benchmarking::estate]
 		[metaverse, benchmarking::metaverse]
+		[reward, benchmarking::reward]
 	);
 }
 
@@ -1714,6 +1715,7 @@ impl_runtime_apis! {
 			use mining::benchmarking::MiningModule as MiningBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
+			//use reward::benchmarking::Pallet as RewardBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1726,11 +1728,13 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, currencies, CurrenciesBench::<Runtime>);
 			list_benchmark!(list, extra, emergency, EmergencyBench::<Runtime>);
+			//list_benchmark!(list, extra, reward, RewardBench::<Runtime>);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
 			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 			orml_list_benchmark!(list, extra, economy, benchmarking::economy);
 			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
+			orml_list_benchmark!(list, extra, reward, benchmarking::reward);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1751,6 +1755,7 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
+			//use reward::benchmarking::Pallet as RewardBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1777,11 +1782,13 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
 			add_benchmark!(params, batches, emergency, EmergencyBench::<Runtime>);
+			//add_benchmark!(params, batches, reward, RewardBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
 			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			orml_add_benchmark!(params, batches, economy, benchmarking::economy);
 			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);
+			orml_add_benchmark!(params, batches, reward, benchmarking::reward);
 			Ok(batches)
 		}
 	}

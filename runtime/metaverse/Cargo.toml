@@ -192,6 +192,7 @@ runtime-benchmarks = [
     "auction/runtime-benchmarks",
     "metaverse/runtime-benchmarks",
     "crowdloan/runtime-benchmarks",
+    "reward/runtime-benchmarks",
     "economy/runtime-benchmarks",
     "mining/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
