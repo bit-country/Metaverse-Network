@@ -41,10 +41,18 @@ fn basic_setup_works() {
 fn create_campaign_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 10));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			10,
+			10,
+			10,
+			vec![1]
+		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
+			properties: vec![1],
 			reward: 10,
 			claimed: 0,
 			end: 10,
@@ -66,17 +74,17 @@ fn create_campaign_fails() {
 		let campaign_id = 0;
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 2, 10),
+			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 2, 10, vec![1]),
 			Error::<Runtime>::CampaignDurationBelowMinimum
 		);
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 0, 10, 10),
+			Reward::create_campaign(Origin::signed(ALICE), ALICE, 0, 10, 10, vec![1]),
 			Error::<Runtime>::RewardPoolBelowMinimum
 		);
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 1),
+			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 1, vec![1]),
 			Error::<Runtime>::CoolingOffPeriodBelowMinimum
 		);
 	});
@@ -86,10 +94,18 @@ fn create_campaign_fails() {
 fn set_reward_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 10));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			10,
+			10,
+			10,
+			vec![1]
+		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
+			properties: vec![1],
 			reward: 10,
 			claimed: 0,
 			end: 10,
@@ -99,7 +115,7 @@ fn set_reward_works() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		assert_ok!(Reward::set_reward(Origin::root(), 0, BOB, 5));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
 
 		let event = mock::Event::Reward(crate::Event::SetReward(campaign_id, BOB, 5u32.into()));
 		assert_eq!(last_event(), event)
@@ -110,10 +126,18 @@ fn set_reward_works() {
 fn set_reward_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 10));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			10,
+			10,
+			10,
+			vec![1]
+		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
+			properties: vec![1],
 			reward: 10,
 			claimed: 0,
 			end: 10,
@@ -124,19 +148,19 @@ fn set_reward_fails() {
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
 		assert_noop!(
-			Reward::set_reward(Origin::root(), 1, BOB, 10),
+			Reward::set_reward(Origin::signed(ALICE), 1, BOB, 10),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		assert_noop!(
-			Reward::set_reward(Origin::root(), 0, BOB, 10),
+			Reward::set_reward(Origin::signed(ALICE), 0, BOB, 10),
 			Error::<Runtime>::RewardExceedCap
 		);
 
 		run_to_block(11);
 
 		assert_noop!(
-			Reward::set_reward(Origin::root(), 0, BOB, 5),
+			Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5),
 			Error::<Runtime>::CampaignExpired
 		);
 	});
@@ -146,10 +170,18 @@ fn set_reward_fails() {
 fn claim_reward_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 10));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			10,
+			10,
+			10,
+			vec![1]
+		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
+			properties: vec![1],
 			reward: 10,
 			claimed: 0,
 			end: 10,
@@ -157,9 +189,8 @@ fn claim_reward_works() {
 			cooling_off_duration: 10,
 			trie_index: 0,
 		};
-
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward(Origin::root(), 0, BOB, 5));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
 
 		run_to_block(17);
 		//assert_eq!(last_event(), mock::Event::Reward(crate::Event::RewardCampaignEnded(0)));
@@ -169,6 +200,7 @@ fn claim_reward_works() {
 
 		let campaign_info_after_claim = CampaignInfo {
 			creator: ALICE,
+			properties: vec![1],
 			reward: 10,
 			claimed: 5,
 			end: 10,
@@ -187,10 +219,18 @@ fn claim_reward_works() {
 fn claim_reward_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 10));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			10,
+			10,
+			10,
+			vec![1]
+		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
+			properties: vec![1],
 			reward: 10,
 			claimed: 0,
 			end: 10,
@@ -200,7 +240,7 @@ fn claim_reward_fails() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward(Origin::root(), 0, BOB, 5));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
 
 		run_to_block(17);
 

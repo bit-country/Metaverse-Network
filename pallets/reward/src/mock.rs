@@ -29,6 +29,9 @@ pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const FREE_BALANCE: Balance = 9010;
 
 // Configure a mock runtime to test the pallet.
+ord_parameter_types! {
+	pub const One: AccountId = ALICE;
+}
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -101,6 +104,7 @@ impl Config for Runtime {
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type SetRewardOrigin = EnsureSignedBy<One, AccountId>;
 	type WeightInfo = ();
 }
 

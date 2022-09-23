@@ -1190,6 +1190,7 @@ impl reward::Config for Runtime {
 	type CampaignDeposit = CampaignDeposit;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type SetRewardOrigin = EnsureRootOrMetaverseTreasury;
 	type WeightInfo = ();
 }
 
@@ -1303,6 +1304,7 @@ mod benches {
 		[economy, benchmarking::economy]
 		[estate, benchmarking::estate]
 		[metaverse, benchmarking::metaverse]
+		[reward, benchmarking::reward]
 	);
 }
 
@@ -1731,6 +1733,7 @@ impl_runtime_apis! {
 			orml_list_benchmark!(list, extra, economy, benchmarking::economy);
 			orml_list_benchmark!(list, extra, estate, benchmarking::estate);
 			orml_list_benchmark!(list, extra, metaverse, benchmarking::metaverse);
+			orml_list_benchmark!(list, extra, reward, benchmarking::reward);
 
 			let storage_info = AllPalletsWithSystem::storage_info();
 
@@ -1782,6 +1785,7 @@ impl_runtime_apis! {
 			orml_add_benchmark!(params, batches, economy, benchmarking::economy);
 			orml_add_benchmark!(params, batches, estate, benchmarking::estate);
 			orml_add_benchmark!(params, batches, metaverse, benchmarking::metaverse);
+			orml_add_benchmark!(params, batches, reward, benchmarking::reward);
 			Ok(batches)
 		}
 	}

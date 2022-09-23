@@ -38,9 +38,12 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{estate::Estate, CampaignId, EstateId, TrieIndex};
+use primitives::{estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, EstateId, TrieIndex};
 use primitives::{AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
+
+//#[cfg(feature = "runtime-benchmarks")]
+//pub mod benchmarking;
 
 #[cfg(test)]
 mod mock;
@@ -112,6 +115,9 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
 
+		/// Account that can set rewards
+		type SetRewardOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+
 		/// Weight info
 		type WeightInfo: WeightInfo;
 	}
@@ -169,13 +175,14 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(T::WeightInfo::unstake_b())]
+		#[pallet::weight(T::WeightInfo::create_campaign())]
 		pub fn create_campaign(
 			origin: OriginFor<T>,
 			creator: T::AccountId,
 			reward: BalanceOf<T>,
 			end: T::BlockNumber,
 			cooling_off_duration: T::BlockNumber,
+			properties: Vec<u8>,
 		) -> DispatchResult {
 			let depositor = ensure_signed(origin)?;
 
@@ -212,6 +219,7 @@ pub mod pallet {
 				campaign_id,
 				CampaignInfo {
 					creator: creator.clone(),
+					properties,
 					reward,
 					claimed: Zero::zero(),
 					end,
@@ -229,7 +237,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::unstake_b())]
+		#[pallet::weight(T::WeightInfo::claim_reward())]
 		pub fn claim_reward(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
@@ -256,7 +264,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::unstake_b())]
+		#[pallet::weight(T::WeightInfo::set_reward())]
 		pub fn set_reward(
 			origin: OriginFor<T>,
 			id: CampaignId,
@@ -265,7 +273,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			// Ensure root for now
 			// We need to move to SetRewardOrigin similar to MiningOrigin
-			let who = ensure_root(origin)?;
+			let who = T::SetRewardOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
 			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
@@ -291,6 +299,11 @@ pub mod pallet {
 			{
 				Self::end_campaign(id);
 			}
+		}
+
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_campaign_info_v2();
+			0
 		}
 	}
 }
@@ -332,5 +345,31 @@ impl<T: Config> Pallet<T> {
 	fn end_campaign(campaign_id: CampaignId) -> DispatchResult {
 		Self::deposit_event(Event::<T>::RewardCampaignEnded(campaign_id));
 		Ok(())
+	}
+
+	/// Internal update of campaign info to v2
+	pub fn upgrade_campaign_info_v2() -> Weight {
+		log::info!("Start upgrade_campaign_info_v2");
+		let mut upgraded_campaign_items = 0;
+
+		Campaigns::<T>::translate(
+			|k, campaign_info_v1: CampaignInfoV1<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+				upgraded_campaign_items += 1;
+
+				let v2: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber> = CampaignInfo {
+					creator: campaign_info_v1.creator,
+					properties: Vec::<u8>::new(),
+					reward: campaign_info_v1.reward,
+					claimed: campaign_info_v1.claimed,
+					end: campaign_info_v1.end,
+					cap: campaign_info_v1.cap,
+					cooling_off_duration: campaign_info_v1.cooling_off_duration,
+					trie_index: campaign_info_v1.trie_index,
+				};
+				Some(v2)
+			},
+		);
+		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
+		0
 	}
 }
