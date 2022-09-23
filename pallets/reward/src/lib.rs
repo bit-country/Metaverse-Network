@@ -322,7 +322,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_finalize(block_number: T::BlockNumber) {
 			for (id, info) in Campaigns::<T>::iter()
-				.filter(|(_, campaign_info)| campaign_info.end <= block_number)
+				.filter(|(_, campaign_info)| campaign_info.end == block_number)
 				.collect::<Vec<_>>()
 			{
 				Self::end_campaign(id);
