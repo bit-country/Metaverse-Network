@@ -55,14 +55,14 @@ pub trait WeightInfo {	fn create_campaign() -> Weight;	fn claim_reward() -> Weig
 /// Weights for reward using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn create_campaign() -> Weight {
-		(29_335_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(4 as Weight))	}	fn claim_reward() -> Weight {
-		(51_042_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn set_reward() -> Weight {
-		(11_121_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn on_finalize() -> Weight {
-		(13_792_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))	}}
+		(30_090_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(4 as Weight))	}	fn claim_reward() -> Weight {
+		(53_909_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn set_reward() -> Weight {
+		(11_275_000 as Weight)			.saturating_add(T::DbWeight::get().reads(1 as Weight))			.saturating_add(T::DbWeight::get().writes(1 as Weight))	}	fn on_finalize() -> Weight {
+		(14_058_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))	}}
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn create_campaign() -> Weight {
-		(29_335_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(4 as Weight))	}	fn claim_reward() -> Weight {
-		(51_042_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn set_reward() -> Weight {
-		(11_121_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn on_finalize() -> Weight {
-		(13_792_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))	}}
+		(30_090_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(4 as Weight))	}	fn claim_reward() -> Weight {
+		(53_909_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn set_reward() -> Weight {
+		(11_275_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn on_finalize() -> Weight {
+		(14_058_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))	}}

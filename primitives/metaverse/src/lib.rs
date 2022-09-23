@@ -383,6 +383,26 @@ pub trait ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata> {
 	fn get_currency_id(multi_location: MultiLocation) -> Option<FungibleTokenId>;
 }
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[codec(dumb_trait_bound)]
+pub struct CampaignInfoV1<AccountId, Balance, BlockNumber> {
+	/// The creator account who created this campaign.
+	pub creator: AccountId,
+	/// The total reward amount.
+	pub reward: Balance,
+	/// The total claimed amount.
+	pub claimed: Balance,
+	/// Block number this campaign need to end
+	pub end: BlockNumber,
+	/// A hard-cap on the each reward amount that may be contributed.
+	pub cap: Balance,
+	/// Duration of the period during which rewards can be claimed.
+	pub cooling_off_duration: BlockNumber,
+	/// Index used for the child trie of this fund
+	pub trie_index: TrieIndex,
+}
+
+
 /// Information on a funding effort for a pre-existing parachain. We assume that the parachain ID
 /// is known as it's used for the key of the storage item for which this is the value (`Funds`).
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -390,6 +410,8 @@ pub trait ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata> {
 pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
 	/// The creator account who created this campaign.
 	pub creator: AccountId,
+	/// The campaign info properties.
+	pub properties: Vec<u8>,
 	/// The total reward amount.
 	pub reward: Balance,
 	/// The total claimed amount.
