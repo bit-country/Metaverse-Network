@@ -1,26 +1,21 @@
 #![cfg(test)]
 
-use codec::{Decode, Encode};
-use frame_support::traits::{EqualPrivilegeOnly, Nothing};
-use frame_support::{construct_runtime, parameter_types};
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_support::traits::Nothing;
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
-use sp_runtime::testing::Header;
-use sp_runtime::traits::IdentityLookup;
-use sp_runtime::Perbill;
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
-use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
-pub use primitive_traits::{CollectionType, NftAssetData, NftClassData};
-use primitives::{Amount, AuctionId, CurrencyId, FungibleTokenId, ItemId};
+use auction_manager::*;
+use core_primitives::NftAssetData;
+use primitives::estate::Estate;
+use primitives::staking::MetaverseStakingTrait;
+use primitives::{Amount, AuctionId, EstateId, FungibleTokenId, ItemId, UndeployedLandBlockId};
 
-use crate as nft;
+use crate as reward;
 
 use super::*;
-
-parameter_types! {
-	pub const BlockHashCount: u32 = 256;
-}
 
 pub type AccountId = u128;
 pub type Balance = u128;
@@ -28,12 +23,19 @@ pub type BlockNumber = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
-pub const CLASS_ID_1: <Runtime as orml_nft::Config>::ClassId = 1;
-pub const NON_EXISTING_CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 1000;
-pub const TOKEN_ID: <Runtime as orml_nft::Config>::TokenId = 0;
-pub const COLLECTION_ID: u64 = 0;
+pub const FREEDY: AccountId = 3;
 
+pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
+pub const FREE_BALANCE: Balance = 9010;
+
+// Configure a mock runtime to test the pallet.
+
+parameter_types! {
+	pub const BlockHashCount: u64 = 250;
+	pub const MaximumBlockWeight: u32 = 1024;
+	pub const MaximumBlockLength: u32 = 2 * 1024;
+	pub const AvailableBlockRatio: Perbill = Perbill::one();
+}
 impl frame_system::Config for Runtime {
 	type Origin = Origin;
 	type Index = u64;
@@ -63,6 +65,10 @@ impl frame_system::Config for Runtime {
 
 parameter_types! {
 	pub const ExistentialDeposit: u64 = 1;
+	pub const EconomyPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MiningTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const MaxTokenMetadata: u32 = 1024;
+	pub const MinimumStake: Balance = 100;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -77,6 +83,27 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = ();
 }
 
+parameter_types! {
+	pub const CampaignTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
+	pub const CampaignDeposit: Balance = 1;
+	pub const MinimumRewardPool: Balance = 1;
+	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10;
+	pub const MinimumCampaignDuration: BlockNumber = 5;
+}
+
+impl Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type FungibleTokenCurrency = Currencies;
+	type MinimumRewardPool = MinimumRewardPool;
+	type CampaignDeposit = CampaignDeposit;
+	type PalletId = CampaignTreasuryPalletId;
+	type MiningCurrencyId = MiningCurrencyId;
+	type MinimumCampaignDuration = MinimumCampaignDuration;
+	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type WeightInfo = ();
+}
+
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
 		Default::default()
@@ -84,7 +111,38 @@ parameter_type_with_key! {
 }
 
 parameter_types! {
-	pub const GetNativeCurrencyId: CurrencyId = 0;
+	pub TreasuryModuleAccount: AccountId = EconomyPalletId::get().into_account_truncating();
+}
+
+impl orml_tokens::Config for Runtime {
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = FungibleTokenId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type DustRemovalWhitelist = Nothing;
+	type ReserveIdentifier = [u8; 8];
+	type MaxReserves = ();
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
+}
+
+pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
+parameter_types! {
+	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl currencies::Config for Runtime {
+	type Event = Event;
+	type MultiSocialCurrency = OrmlTokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = NativeCurrencyId;
+	type WeightInfo = ();
 }
 
 pub struct MockAuctionManager;
@@ -114,7 +172,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_start: u64,
 		_end: Option<u64>,
 	) -> Result<u64, DispatchError> {
-		Ok(0)
+		Ok(1)
 	}
 
 	fn create_auction(
@@ -128,7 +186,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_listing_fee: Perbill,
 		_currency_id: FungibleTokenId,
 	) -> Result<u64, DispatchError> {
-		Ok(0)
+		Ok(1)
 	}
 
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
@@ -142,18 +200,12 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn local_auction_bid_handler(
-		_: BlockNumber,
-		_: u64,
-		_: (
-			AccountId,
-			<Self as auction_manager::Auction<AccountId, BlockNumber>>::Balance,
-		),
-		_: std::option::Option<(
-			AccountId,
-			<Self as auction_manager::Auction<AccountId, BlockNumber>>::Balance,
-		)>,
-		_: FungibleTokenId,
-	) -> Result<(), sp_runtime::DispatchError> {
+		_now: u64,
+		_id: u64,
+		_new_bid: (u128, Self::Balance),
+		_last_bid: Option<(u128, Self::Balance)>,
+		_social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
 		Ok(())
 	}
 
@@ -174,98 +226,45 @@ impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
 }
 
 parameter_types! {
-	pub MetadataDataDepositPerByte: Balance = 1;
-	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
-	pub MaxBatchTransfer: u32 = 3;
-	pub MaxBatchMinting: u32 = 12;
-	pub MaxMetadata: u32 = 10;
-	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account_truncating();
-}
-
-impl orml_tokens::Config for Runtime {
-	type Event = Event;
-	type Balance = Balance;
-	type Amount = Amount;
-	type CurrencyId = FungibleTokenId;
-	type WeightInfo = ();
-	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
-	type MaxLocks = ();
-	type ReserveIdentifier = [u8; 8];
-	type MaxReserves = ();
-	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
-}
-
-pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
-
-parameter_types! {
-	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
-	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
-}
-
-impl currencies::Config for Runtime {
-	type Event = Event;
-	type MultiSocialCurrency = Tokens;
-	type NativeCurrency = AdaptedBasicCurrency;
-	type GetNativeCurrencyId = NativeCurrencyId;
-	type WeightInfo = ();
-}
-
-parameter_types! {
-	pub MaximumSchedulerWeight: Weight = 128;
-}
-impl pallet_scheduler::Config for Runtime {
-	type Event = Event;
-	type Origin = Origin;
-	type PalletsOrigin = OriginCaller;
-	type Call = Call;
-	type MaximumWeight = MaximumSchedulerWeight;
-	type ScheduleOrigin = EnsureRoot<AccountId>;
-	type OriginPrivilegeCmp = EqualPrivilegeOnly;
-	type MaxScheduledPerBlock = ();
-	type WeightInfo = ();
-	type PreimageProvider = ();
-	type NoPreimagePostponement = ();
-}
-
-parameter_types! {
-	pub AssetMintingFee: Balance = 1;
 	pub ClassMintingFee: Balance = 2;
-	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub AssetMintingFee: Balance = 1;
+	pub NftPalletId: PalletId = PalletId(*b"bit/bNFT");
+	pub MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub MaxBatchTransfer: u32 = 3;
+	pub MaxBatchMinting: u32 = 2000;
+	pub MaxMetadata: u32 = 10;
 }
 
-impl Config for Runtime {
+impl pallet_nft::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
-	type AuctionHandler = MockAuctionManager;
 	type WeightInfo = ();
+	type AuctionHandler = MockAuctionManager;
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxMetadata;
 	type MultiCurrency = Currencies;
 	type MiningResourceId = MiningCurrencyId;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {
 	pub MaxClassMetadata: u32 = 1024;
-	pub MaxTokenMetadata: u32 = 1024;
 }
 
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
-	type ClassData = NftClassData<Balance>;
+	type ClassData = pallet_nft::NftClassData<Balance>;
 	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
+
+pub type RewardModule = Pallet<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
@@ -277,31 +276,44 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
-		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
-		Tokens: orml_tokens::{ Pallet, Storage, Call, Event<T>},
-		Nft: nft::{Pallet, Call, Event<T>},
-		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+		OrmlTokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
+		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
+		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
+		Reward: reward::{Pallet, Storage ,Call, Event<T>},
 	}
 );
 
-pub struct ExtBuilder;
+pub struct ExtBuilder {
+	balances: Vec<(AccountId, FungibleTokenId, Balance)>,
+}
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
-		ExtBuilder
+		Self { balances: vec![] }
 	}
 }
 
 impl ExtBuilder {
+	pub fn balances(mut self, mut balances: Vec<(AccountId, FungibleTokenId, Balance)>) -> Self {
+		self.balances.append(&mut balances);
+		self
+	}
+
 	pub fn build(self) -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
 			.build_storage::<Runtime>()
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 1000)],
+			balances: vec![(ALICE, 10000), (BOB, 20000)],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		orml_tokens::GenesisConfig::<Runtime> {
+			balances: self.balances, //vec![(ALICE, MiningCurrencyId, 1000000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -312,13 +324,17 @@ impl ExtBuilder {
 	}
 }
 
+pub fn run_to_block(n: u64) {
+	while System::block_number() < n {
+		System::on_finalize(System::block_number());
+		System::set_block_number(System::block_number() + 1);
+		System::on_initialize(System::block_number());
+	}
+}
+
 pub fn last_event() -> Event {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
 		.event
-}
-
-pub fn transfer_balance_encode(to: AccountId, value: u128) -> Vec<u8> {
-	Call::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
 }

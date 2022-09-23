@@ -89,6 +89,7 @@ continuum = { package = "pallet-continuum", path = "../../pallets/continuum", ve
 auction = { package = "pallet-auction", path = "../../pallets/auction", version = "2.0.0-rc6", default-features = false }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
 mining = { package = "pallet-mining", path = "../../pallets/mining", version = "2.0.0-rc6", default-features = false }
+reward = { package = "pallet-reward", path = "../../pallets/reward", version = "2.0.0-rc6", default-features = false }
 governance = { package = "pallet-governance", path = "../../pallets/governance", version = "2.0.0-rc6", default-features = false }
 crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", version = "2.0.0-rc6", default-features = false }
 economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
@@ -156,6 +157,7 @@ std = [
     "continuum/std",
     "currencies/std",
     "mining/std",
+    "reward/std",
     "governance/std",
     "crowdloan/std",
     "economy/std",

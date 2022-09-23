@@ -32,6 +32,7 @@ use sp_runtime::{FixedU128, OpaqueExtrinsic as UncheckedExtrinsic};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
+
 use xcm::v1::MultiLocation;
 
 pub mod continuum;
@@ -126,6 +127,11 @@ pub type NftMetadata = Vec<u8>;
 pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
 /// Weight ratio
 pub type Ratio = FixedU128;
+/// Trie index
+pub type TrieIndex = u32;
+/// Campaign index
+pub type CampaignId = u32;
+
 /// Land Token Class Id
 pub const LAND_CLASS_ID: ClassId = 15;
 /// Estate Token Class Id
@@ -381,4 +387,25 @@ pub trait ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata> {
 	fn get_multi_location(foreign_asset_id: ForeignAssetId) -> Option<MultiLocation>;
 	/// Returns the CurrencyId associated with a given MultiLocation.
 	fn get_currency_id(multi_location: MultiLocation) -> Option<FungibleTokenId>;
+}
+
+/// Information on a funding effort for a pre-existing parachain. We assume that the parachain ID
+/// is known as it's used for the key of the storage item for which this is the value (`Funds`).
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[codec(dumb_trait_bound)]
+pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
+	/// The creator account who created this campaign.
+	pub creator: AccountId,
+	/// The total reward amount.
+	pub reward: Balance,
+	/// The total claimed amount.
+	pub claimed: Balance,
+	/// Block number this campaign need to end
+	pub end: BlockNumber,
+	/// A hard-cap on the each reward amount that may be contributed.
+	pub cap: Balance,
+	/// Duration of the period during which rewards can be claimed.
+	pub cooling_off_duration: BlockNumber,
+	/// Index used for the child trie of this fund
+	pub trie_index: TrieIndex,
 }

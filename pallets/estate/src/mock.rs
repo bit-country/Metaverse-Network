@@ -242,6 +242,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
 		_listing_fee: Perbill,
+		_currency_id: FungibleTokenId,
 	) -> Result<u64, DispatchError> {
 		Ok(1)
 	}

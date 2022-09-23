@@ -6,8 +6,8 @@ use sp_std::collections::btree_map::BTreeMap;
 use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, NFTTrait, TokenType};
 use mock::{Event, *};
-use primitives::ClassId;
 use primitives::ItemId::NFT;
+use primitives::{ClassId, FungibleTokenId};
 
 use super::*;
 
@@ -56,7 +56,40 @@ fn create_new_auction_work() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+		assert_eq!(Balances::free_balance(ALICE), 99996);
+	});
+}
+
+#[test]
+// Creating auction should work
+fn create_new_multicurrency_auction_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::MiningResource(0)
 		));
 
 		assert_eq!(
@@ -90,7 +123,47 @@ fn create_new_auction_bundle_work() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
+			Some(true)
+		);
+		assert_eq!(Balances::free_balance(ALICE), 99990);
+	});
+}
+
+#[test]
+// Creating auction should work
+fn create_new_multicurrency_auction_bundle_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+
+		let tokens: Vec<(u32, u64, Balance)> = vec![(0, 0, 30), (0, 1, 30), (0, 2, 40)];
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::Bundle(tokens.clone()),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::MiningResource(0)
 		));
 
 		assert_eq!(
@@ -127,7 +200,8 @@ fn create_new_auction_bundle_from_listed_nft_should_fail() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		assert_eq!(
@@ -148,7 +222,8 @@ fn create_new_auction_bundle_from_listed_nft_should_fail() {
 				100,
 				0,
 				ListingLevel::Global,
-				Perbill::from_percent(0u32)
+				Perbill::from_percent(0u32),
+				FungibleTokenId::NativeToken(0)
 			),
 			Ok(0)
 		);
@@ -173,7 +248,47 @@ fn create_new_buy_now_bundle_work() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
+			Some(true)
+		);
+		assert_eq!(Balances::free_balance(ALICE), 99990);
+	});
+}
+
+#[test]
+// Creating auction should work
+fn create_new_multicurrency_buy_now_bundle_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+		init_test_nft(origin.clone());
+
+		let tokens: Vec<(u32, u64, Balance)> = vec![(0, 0, 30), (0, 1, 30), (0, 2, 40)];
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			ItemId::Bundle(tokens.clone()),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::MiningResource(0)
 		));
 
 		assert_eq!(
@@ -329,7 +444,8 @@ fn create_auction_fail() {
 				100,
 				0,
 				ListingLevel::Global,
-				Perbill::from_percent(0u32)
+				Perbill::from_percent(0u32),
+				FungibleTokenId::NativeToken(0)
 			),
 			Error::<Runtime>::NoPermissionToCreateAuction
 		);
@@ -363,7 +479,8 @@ fn create_auction_fail() {
 				100,
 				0,
 				ListingLevel::Global,
-				Perbill::from_percent(0u32)
+				Perbill::from_percent(0u32),
+				FungibleTokenId::NativeToken(0)
 			),
 			Error::<Runtime>::NoPermissionToCreateAuction
 		);
@@ -377,7 +494,8 @@ fn create_auction_fail() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		// ALICE balance is 100000 - 1 (network fee) - 6 (minting fee) = 99993
@@ -392,7 +510,8 @@ fn create_auction_fail() {
 				100,
 				0,
 				ListingLevel::Global,
-				Perbill::from_percent(0u32)
+				Perbill::from_percent(0u32),
+				FungibleTokenId::NativeToken(0)
 			),
 			Error::<Runtime>::ItemAlreadyInAuction
 		);
@@ -420,7 +539,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		// ALICE balance is 100 000 - 1 (network fee) - 12 (minting fees) = 99987
@@ -434,7 +554,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		// ALICE balance is 99987 - 1 (network fee) = 99986
@@ -448,7 +569,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		// ALICE balance is 99986 - 1 (network fee) = 99985
@@ -465,7 +587,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 				100,
 				0,
 				ListingLevel::Global,
-				Perbill::from_percent(0u32)
+				Perbill::from_percent(0u32),
+				FungibleTokenId::NativeToken(0)
 			),
 			Error::<Runtime>::ExceedFinalityLimit
 		);
@@ -481,7 +604,8 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		// ALICE balance is 99985 - 1 (network fee) = 99984
@@ -503,7 +627,8 @@ fn remove_auction_work() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 		AuctionModule::remove_auction(0, ItemId::NFT(0, 0));
 		assert_eq!(AuctionModule::auctions(0), None);
@@ -527,31 +652,8 @@ fn bid_works() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
-		));
-
-		assert_ok!(AuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
-		assert_eq!(Balances::reserved_balance(ALICE), 200);
-	});
-}
-/*
-#[test]
-// Walk the happy path
-fn bid_works_for_valid_estate() {
-	ExtBuilder::default().build().execute_with(|| {
-		let bidder = Origin::signed(ALICE);
-		let item_id: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST);
-
-		assert_ok!(AuctionModule::create_auction(
-			AuctionType::Auction,
-			item_id,
-			None,
-			BOB,
-			100,
-			0,
-			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0),
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
@@ -562,28 +664,34 @@ fn bid_works_for_valid_estate() {
 
 #[test]
 // Walk the happy path
-fn bid_works_for_valid_land_unit() {
+fn bid_multicurrency_works() {
 	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
 		let bidder = Origin::signed(ALICE);
-		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
 
+		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
-			item_id,
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::MiningResource(0),
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
-		assert_eq!(Balances::reserved_balance(ALICE), 200);
+
+		assert_eq!(
+			Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).reserved,
+			200
+		);
 	});
 }
-*/
+
 #[test]
 fn cannot_bid_on_non_existent_auction() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -611,7 +719,8 @@ fn cannot_bid_with_insufficient_funds() {
 			600,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		assert_noop!(
@@ -637,7 +746,8 @@ fn cannot_bid_on_own_auction() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		assert_noop!(
@@ -669,7 +779,8 @@ fn asset_transfers_after_auction() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
@@ -698,6 +809,55 @@ fn asset_transfers_after_auction() {
 }
 
 #[test]
+fn asset_transfers_after_multicurrency_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let bidder = Origin::signed(ALICE);
+
+		// Make sure balances start off as we expect
+		assert_eq!(Balances::free_balance(BOB), 500);
+		assert_eq!(Balances::free_balance(ALICE), 100000);
+
+		// Setup NFT and verify that BOB has ownership
+		init_test_nft(owner.clone());
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
+
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::MiningResource(0)
+		));
+
+		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+
+		// BOB should have 500 - 1 (network reserve fee) - 3 minting fee = 496
+		assert_eq!(Balances::free_balance(BOB), 496);
+
+		run_to_block(102);
+		// Verify asset transfers to alice after end of auction
+		assert_eq!(
+			last_event(),
+			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
+		);
+
+		// Verify transfer of fund
+		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5196);
+		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9800);
+
+		// Verify Alice has the NFT and Bob doesn't
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(false));
+	});
+}
+
+#[test]
 fn cannot_bid_on_ended_auction() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = Origin::signed(BOB);
@@ -712,7 +872,8 @@ fn cannot_bid_on_ended_auction() {
 			150,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		System::set_block_number(101);
@@ -741,7 +902,8 @@ fn buy_now_work() {
 			200,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		//assert_eq!(Balances::free_balance(BOB), 499);
@@ -765,7 +927,8 @@ fn buy_now_work() {
 			200,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 200));
@@ -796,137 +959,52 @@ fn buy_now_work() {
 		);
 	});
 }
-/*
+
 #[test]
-// Private bid_auction should work
-fn buy_now_works_for_valid_estate() {
+// Buy now should work
+fn multicurrency_buy_now_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		// let owner = Origin::signed(BOB);
+		let owner = Origin::signed(BOB);
 		let buyer = Origin::signed(ALICE);
 
-		let item_id: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST);
-		// call create_auction
+		init_test_nft(owner.clone());
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
-			item_id,
+			ItemId::NFT(0, 0),
 			None,
 			BOB,
-			150,
+			200,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::MiningResource(0)
 		));
 
-		// BOB balance is  500 - 1 (network reserve fee) = 499
-		assert_eq!(Balances::free_balance(BOB), 499);
-
-		// buy now successful
-		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
-
-		// BOB balance is  500 + 150 - 1 (network fee)
-		assert_eq!(Balances::free_balance(BOB), 649);
-
-		let item_id_1: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST_1);
-		assert_ok!(AuctionModule::create_auction(
-			AuctionType::BuyNow,
-			item_id_1,
-			None,
-			BOB,
-			150,
-			0,
-			ListingLevel::Global,
-			Perbill::from_percent(0u32)
-		));
-
-		// BOB balance is 649 - 1  (network reserve fee)
-		assert_eq!(Balances::free_balance(BOB), 648);
-
-		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		assert_eq!(AuctionModule::auctions(0), None);
+		// check account received asset
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
 
 		// check balances were transferred
-		assert_eq!(Balances::free_balance(ALICE), 99700);
-		// BOB balance is  649 + 150 - 1 (network fee)
-		assert_eq!(Balances::free_balance(BOB), 798);
+		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5196);
+		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9800);
 
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
+		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
 		assert_eq!(last_event(), event);
 
+		// check of auction item is still valid
+		assert_eq!(AuctionItems::<Runtime>::get(0), None);
 		// Check that auction is over
 		assert_noop!(
-			AuctionModule::buy_now(buyer.clone(), 1, 150),
+			AuctionModule::buy_now(buyer.clone(), 0, 150),
 			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});
 }
 
-#[test]
-// Buy now with valid land unit should work
-fn buy_now_works_for_valid_landunit() {
-	ExtBuilder::default().build().execute_with(|| {
-		// let owner = Origin::signed(BOB);
-		let buyer = Origin::signed(ALICE);
-
-		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
-		// call create_auction
-		assert_ok!(AuctionModule::create_auction(
-			AuctionType::BuyNow,
-			item_id,
-			None,
-			BOB,
-			150,
-			0,
-			ListingLevel::Global,
-			Perbill::from_percent(0u32)
-		));
-
-		// BOB balance is  500 - 1 (network reserve fee) = 499
-		assert_eq!(Balances::free_balance(BOB), 499);
-
-		// buy now successful
-		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 150));
-
-		// BOB balance is  500 + 150 - 1 (network fee)
-		assert_eq!(Balances::free_balance(BOB), 649);
-
-		let item_id_1: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST_1, ALICE_METAVERSE_ID);
-		assert_ok!(AuctionModule::create_auction(
-			AuctionType::BuyNow,
-			item_id_1,
-			None,
-			BOB,
-			150,
-			0,
-			ListingLevel::Global,
-			Perbill::from_percent(0u32)
-		));
-
-		// BOB balance is 649 - 1(network reserve fee)
-		assert_eq!(Balances::free_balance(BOB), 648);
-
-		assert_ok!(AuctionModule::buy_now(buyer.clone(), 1, 150));
-
-		assert_eq!(AuctionModule::auctions(0), None);
-
-		// check balances were transferred
-		assert_eq!(Balances::free_balance(ALICE), 99700);
-		// BOB balance is  649 + 150 - 1 (network fee)
-		assert_eq!(Balances::free_balance(BOB), 798);
-
-		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 150));
-		assert_eq!(last_event(), event);
-
-		// Check that auction is over
-		assert_noop!(
-			AuctionModule::buy_now(buyer.clone(), 1, 150),
-			Error::<Runtime>::AuctionDoesNotExist
-		);
-	});
-}
-*/
 #[test]
 // Test if buying now bundle should work
 fn buy_now_with_bundle_should_work() {
@@ -948,7 +1026,8 @@ fn buy_now_with_bundle_should_work() {
 			200,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		// BOB Balance is 500 - 1 (network reserve fee) - 9 (minting fee) = 490
@@ -985,6 +1064,59 @@ fn buy_now_with_bundle_should_work() {
 }
 
 #[test]
+// Test if buying now bundle should work
+fn multicurrency_buy_now_with_bundle_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let buyer = Origin::signed(ALICE);
+
+		// create 3 nfts
+		init_test_nft(owner.clone());
+		init_test_nft(owner.clone());
+		init_test_nft(owner.clone());
+
+		// call create_auction
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			ItemId::Bundle(vec![(0, 0, 60), (0, 1, 70), (0, 2, 70)]),
+			None,
+			BOB,
+			200,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::MiningResource(0)
+		));
+
+		// BOB Balance is 500 - 1 (network reserve fee) - 9 (minting fee) = 490
+		assert_eq!(Balances::free_balance(BOB), 490);
+
+		// buy now successful
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
+
+		assert_eq!(AuctionModule::auctions(0), None);
+		// check account received asset
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 1)), Ok(true));
+		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 2)), Ok(true));
+
+		// check balances were transferred
+		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5195);
+		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9800);
+
+		// event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
+		assert_eq!(last_event(), event);
+
+		// Check that auction is over
+		assert_noop!(
+			AuctionModule::buy_now(buyer.clone(), 1, 150),
+			Error::<Runtime>::AuctionDoesNotExist
+		);
+	});
+}
+
+#[test]
 // Private bid_auction should work
 fn buy_now_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -1003,7 +1135,8 @@ fn buy_now_should_fail() {
 			150,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 
 		// BOB balance is 500 - 1 (network fee) - 3 (minting fee) = 496
@@ -1062,7 +1195,8 @@ fn buy_now_should_fail() {
 				150,
 				0,
 				ListingLevel::Global,
-				Perbill::from_percent(0u32)
+				Perbill::from_percent(0u32),
+				FungibleTokenId::NativeToken(0)
 			),
 			Error::<Runtime>::NoPermissionToCreateAuction
 		);
@@ -1085,7 +1219,8 @@ fn invalid_auction_type() {
 			150,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 		assert_noop!(
 			AuctionModule::bid(participant.clone(), 0, 200),
@@ -1100,7 +1235,8 @@ fn invalid_auction_type() {
 			150,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 		assert_noop!(
 			AuctionModule::buy_now(participant.clone(), 1, 150),
@@ -1124,7 +1260,8 @@ fn on_finalize_should_work() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
@@ -1167,7 +1304,8 @@ fn on_finalize_with_listing_fee_should_work() {
 			100,
 			0,
 			ListingLevel::Local(ALICE_METAVERSE_ID),
-			Perbill::from_percent(10u32)
+			Perbill::from_percent(10u32),
+			FungibleTokenId::NativeToken(0)
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
 		assert_ok!(AuctionModule::bid(bidder, 0, 100));
@@ -1212,7 +1350,8 @@ fn auction_bundle_should_update_new_price_according_new_bid() {
 			200,
 			0,
 			ListingLevel::Local(ALICE_METAVERSE_ID),
-			Perbill::from_percent(10u32)
+			Perbill::from_percent(10u32),
+			FungibleTokenId::NativeToken(0)
 		));
 		assert_eq!(
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
@@ -1251,7 +1390,8 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 			200,
 			0,
 			ListingLevel::Local(ALICE_METAVERSE_ID),
-			Perbill::from_percent(10u32)
+			Perbill::from_percent(10u32),
+			FungibleTokenId::NativeToken(0)
 		));
 		assert_eq!(
 			AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone())),
@@ -1301,7 +1441,8 @@ fn on_finalize_with_undeployed_land_block_should_work() {
 			200,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
 		));
 		assert_eq!(
 			AuctionModule::items_in_auction(ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST)),
@@ -1328,6 +1469,7 @@ fn list_item_on_auction_local_marketplace_should_work() {
 			100,
 			102,
 			ListingLevel::Local(ALICE_METAVERSE_ID),
+			FungibleTokenId::NativeToken(0),
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true))
 	});
@@ -1345,6 +1487,7 @@ fn list_item_on_buy_now_local_marketplace_should_work() {
 			100,
 			102,
 			ListingLevel::Local(ALICE_METAVERSE_ID),
+			FungibleTokenId::NativeToken(0),
 		));
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true))
 	});
@@ -1362,7 +1505,8 @@ fn create_new_auction_for_undeployed_land_block_should_work() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0),
 		));
 
 		assert_eq!(
@@ -1393,7 +1537,8 @@ fn create_buy_now_for_undeployed_land_block_should_work() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0),
 		));
 
 		assert_eq!(
@@ -1430,7 +1575,8 @@ fn make_offer_should_fail() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0),
 		));
 		assert_noop!(
 			AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150),
@@ -1487,7 +1633,8 @@ fn accept_offer_should_fail() {
 			100,
 			0,
 			ListingLevel::Global,
-			Perbill::from_percent(0u32)
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0),
 		));
 		assert_noop!(
 			AuctionModule::accept_offer(Origin::signed(ALICE), (0, 0), BOB),

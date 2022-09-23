@@ -12,12 +12,11 @@ use primitives::staking::RoundInfo;
 use primitives::UndeployedLandBlockType;
 use primitives::{AccountId, Balance, FungibleTokenId, TokenId};
 
-use crate::{
-	benchmarking::utils::create_land_and_estate_group, Call, Currencies, Estate, Event, Metaverse, MinimumStake,
-	Runtime, System,
+use super::utils::{
+	create_nft_group, dollar, issue_new_undeployed_land_block, mint_NFT, set_balance,
+	set_metaverse_treasury_initial_balance,
 };
-
-use super::utils::{dollar, issue_new_undeployed_land_block, mint_NFT, set_balance};
+use crate::{Call, Currencies, Estate, Event, Metaverse, MinimumStake, Runtime, System};
 
 //pub type AccountId = u128;
 pub type LandId = u64;
@@ -52,7 +51,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, COORDINATE_IN_1)
 	verify {
@@ -65,7 +65,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
 	verify {
@@ -86,7 +87,7 @@ runtime_benchmarks! {
 
 		// <T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
 
-		create_land_and_estate_group();
+		create_nft_group();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_land(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, COORDINATE_IN_1);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), METAVERSE_ID, COORDINATE_IN_1)
@@ -100,7 +101,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 	}: _(RawOrigin::Root, caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1])
 	verify {
@@ -117,7 +119,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 	}: _(RawOrigin::Signed(caller.clone()), 0)
@@ -131,7 +134,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::mint_land(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, COORDINATE_IN_2);
@@ -149,7 +153,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2]);
 	}: _(RawOrigin::Signed(caller.clone()), 0, vec![COORDINATE_IN_2])
@@ -166,7 +171,8 @@ runtime_benchmarks! {
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_lands(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2]);
 	}: _(RawOrigin::Signed(caller.clone()), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2])
@@ -187,7 +193,8 @@ runtime_benchmarks! {
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1, COORDINATE_IN_2]);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), 0)
@@ -200,7 +207,8 @@ runtime_benchmarks! {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 	}: _(RawOrigin::Root, caller.clone(), 20, 100, UndeployedLandBlockType::BoundToAddress)
 	verify {
 		let issued_undeployed_land_block = Estate::get_undeployed_land_block(0);
@@ -224,7 +232,7 @@ runtime_benchmarks! {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
 		issue_new_undeployed_land_block(5)?;
 	}: _(RawOrigin::Root, Default::default())
 	verify {
@@ -246,7 +254,7 @@ runtime_benchmarks! {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
 		issue_new_undeployed_land_block(5)?;
 		Estate::freeze_undeployed_land_blocks(RawOrigin::Root.into(), Default::default());
 	}: _(RawOrigin::Root, Default::default())
@@ -273,7 +281,7 @@ runtime_benchmarks! {
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
 	verify {
@@ -298,7 +306,7 @@ runtime_benchmarks! {
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &target, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
 		Estate::approve_undeployed_land_blocks(RawOrigin::Signed(caller.clone()).into(), target.clone(), Default::default());
 	}: _(RawOrigin::Signed(caller.clone()), Default::default())
@@ -324,7 +332,7 @@ runtime_benchmarks! {
 
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		create_land_and_estate_group();
+		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::Transferable);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
 	verify {
@@ -346,7 +354,8 @@ runtime_benchmarks! {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 1, UndeployedLandBlockType::Transferable);
 	}: _(RawOrigin::Signed(caller.clone()), Default::default(), METAVERSE_ID, (0,0), vec![COORDINATE_IN_1])
@@ -360,7 +369,7 @@ runtime_benchmarks! {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
 		set_balance(CURRENCY_ID, &caller, dollar(10));
-		create_land_and_estate_group();
+		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 2, UndeployedLandBlockType::Transferable);
 	}: _(RawOrigin::Root, Default::default())
 	verify {
@@ -377,7 +386,8 @@ runtime_benchmarks! {
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &target, dollar(1000));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 	}: _(RawOrigin::Signed(target.clone()), 0u32.into(), dollar(1), 100u32.into())
@@ -392,7 +402,8 @@ runtime_benchmarks! {
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &target, dollar(1000));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
@@ -409,7 +420,8 @@ runtime_benchmarks! {
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &target, dollar(1000));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
@@ -428,7 +440,8 @@ runtime_benchmarks! {
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &target, dollar(1000));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
@@ -447,7 +460,8 @@ runtime_benchmarks! {
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &target, dollar(1000));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
@@ -465,7 +479,8 @@ runtime_benchmarks! {
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &target, dollar(1000));
 
-		create_land_and_estate_group();
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
 		Estate::mint_estate(RawOrigin::Root.into(), caller.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
 		Estate::create_lease_offer(RawOrigin::Signed(target.clone()).into(), 0u32.into(), dollar(1), 100u32.into());
