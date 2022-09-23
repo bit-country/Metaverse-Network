@@ -490,7 +490,7 @@ runtime_benchmarks! {
 
 	on_initialize {
 		// INITIALIZE RUNTIME STATE
-		let minting_info = 	MintingRateInfo {
+		let minting_info = MintingRateInfo {
 			expect: Default::default(),
 			// 10% minting rate per annual
 			annual: 10,

@@ -106,6 +106,7 @@ xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "releas
 xcm-executor = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.24", default-features = false }
 pallet-xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.24", default-features = false }
 polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.24", default-features = false }
+metaverse-runtime-common = { path = "../common", default-features = false }
 
 [features]
 default = ['std']
@@ -185,5 +186,6 @@ std = [
     "emergency/std",
     "asset-manager/std",
     'pallet-collator-selection/std',
-    "pallet-preimage/std"
+    "pallet-preimage/std",
+    "metaverse-runtime-common/std"
 ]

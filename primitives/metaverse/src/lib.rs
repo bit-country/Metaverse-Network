@@ -22,16 +22,18 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::AtLeast32Bit;
-use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
 use sp_runtime::RuntimeDebug;
 use sp_runtime::{
 	generic,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
 	MultiSignature,
 };
+use sp_runtime::{FixedU128, OpaqueExtrinsic as UncheckedExtrinsic};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
+
+use xcm::v1::MultiLocation;
 
 pub mod continuum;
 pub mod estate;
@@ -123,6 +125,8 @@ pub type EvmAddress = sp_core::H160;
 pub type NftMetadata = Vec<u8>;
 /// NFT Attributes
 pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
+/// Weight ratio
+pub type Ratio = FixedU128;
 /// Trie index
 pub type TrieIndex = u32;
 /// Campaign index
@@ -159,8 +163,6 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 		}
 	}
 }
-
-pub type ForeignAssetId = TokenId;
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -199,8 +201,12 @@ impl FungibleTokenId {
 pub enum AssetIds {
 	Erc20(EvmAddress),
 	StableAssetId(TokenId),
-	ForeignAssetId(ForeignAssetId),
-	NativeAssetId(TokenId),
+	ForeignAssetId(TokenId),
+	NativeAssetId(FungibleTokenId),
+}
+
+pub trait BuyWeightRate {
+	fn calculate_rate(location: MultiLocation) -> Option<Ratio>;
 }
 
 #[derive(Encode, Decode, Eq, PartialEq, Copy, Clone, RuntimeDebug, MaxEncodedLen, PartialOrd, Ord, TypeInfo)]
@@ -383,6 +389,25 @@ pub trait ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata> {
 	fn get_currency_id(multi_location: MultiLocation) -> Option<FungibleTokenId>;
 }
 
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[codec(dumb_trait_bound)]
+pub struct CampaignInfoV1<AccountId, Balance, BlockNumber> {
+	/// The creator account who created this campaign.
+	pub creator: AccountId,
+	/// The total reward amount.
+	pub reward: Balance,
+	/// The total claimed amount.
+	pub claimed: Balance,
+	/// Block number this campaign need to end
+	pub end: BlockNumber,
+	/// A hard-cap on the each reward amount that may be contributed.
+	pub cap: Balance,
+	/// Duration of the period during which rewards can be claimed.
+	pub cooling_off_duration: BlockNumber,
+	/// Index used for the child trie of this fund
+	pub trie_index: TrieIndex,
+}
+
 /// Information on a funding effort for a pre-existing parachain. We assume that the parachain ID
 /// is known as it's used for the key of the storage item for which this is the value (`Funds`).
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -390,6 +415,8 @@ pub trait ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata> {
 pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
 	/// The creator account who created this campaign.
 	pub creator: AccountId,
+	/// The campaign info properties.
+	pub properties: Vec<u8>,
 	/// The total reward amount.
 	pub reward: Balance,
 	/// The total claimed amount.
