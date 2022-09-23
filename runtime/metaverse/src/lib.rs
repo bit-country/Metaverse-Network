@@ -1176,8 +1176,8 @@ impl pallet_treasury::Config for Runtime {
 parameter_types! {
 	pub const CampaignDeposit: Balance = 1 * DOLLARS;
 	pub const MinimumRewardPool: Balance = 100 * DOLLARS;
-	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 4 * 30 * 7200; // Around 4 months in blocktime
-	pub const MinimumCampaignDuration: BlockNumber = 7 * 7200; // Around a week in blocktime
+	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 1; //  4 * 30 * 7200 Around 4 months in blocktime
+	pub const MinimumCampaignDuration: BlockNumber = 1; // 7 * 7200 Around a week in blocktime
 }
 
 impl reward::Config for Runtime {

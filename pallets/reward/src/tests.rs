@@ -267,3 +267,50 @@ fn claim_reward_fails() {
 		);
 	});
 }
+
+#[test]
+fn close_campaign_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+
+		assert_eq!(Balances::free_balance(ALICE), 9989);
+
+		run_to_block(100);
+
+		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0));
+
+		assert_eq!(Balances::free_balance(ALICE), 9989);
+		assert_eq!(Balances::free_balance(BOB), 20010);
+
+		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+
+		let event = mock::Event::Reward(crate::Event::RewardCampaignClosed(campaign_id));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
+fn close_campaign_fails() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+
+		run_to_block(17);
+
+		assert_noop!(
+			Reward::close_campaign(Origin::signed(ALICE), 1),
+			Error::<Runtime>::CampaignIsNotFound
+		);
+
+		assert_noop!(
+			Reward::close_campaign(Origin::signed(ALICE), 0),
+			Error::<Runtime>::NotCampaignCreator
+		);
+
+		assert_noop!(
+			Reward::close_campaign(Origin::signed(BOB), 0),
+			Error::<Runtime>::CampaignStillActive
+		);
+	});
+}
