@@ -147,8 +147,10 @@ pub mod pallet {
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Set Reward [campaign_id, account, balance]
 		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
-		/// New campaign ended [campaign_id]
+		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
+		/// Reward campaign closed [campaign_id]
+		RewardCampaignClosed(CampaignId),
 	}
 
 	#[pallet::error]
@@ -171,6 +173,10 @@ pub mod pallet {
 		CoolingOffPeriodBelowMinimum,
 		/// Campaign claim period expired
 		CoolingOffPeriodExpired,
+	    /// Campaign is still active
+		CampaignStillActive,
+		/// Not campaign creator
+		NotCampaignCreator,
 	}
 
 	#[pallet::call]
@@ -271,8 +277,6 @@ pub mod pallet {
 			to: T::AccountId,
 			amount: BalanceOf<T>,
 		) -> DispatchResult {
-			// Ensure root for now
-			// We need to move to SetRewardOrigin similar to MiningOrigin
 			let who = T::SetRewardOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -285,6 +289,36 @@ pub mod pallet {
 			Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 
 			Self::deposit_event(Event::<T>::SetReward(id, to, amount));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::set_reward())]
+		pub fn close_campaign(
+			origin: OriginFor<T>,
+			id: CampaignId,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+
+			ensure!(
+				who == campaign.creator, 
+				Error::<T>::NotCampaignCreator
+			);
+
+			ensure!(
+				campaign.end + campaign.cooling_off_duration < now,
+				Error::<T>::CampaignStillActive
+			);
+
+			let fund_account = Self::fund_account_id(id);
+			let unclaimed_balance = campaign.reward - campaign.claimed; 
+			T::Currency::transfer(&fund_account, &who, unclaimed_balance, AllowDeath)?;
+			Campaigns::<T>::remove(id);
+
+			Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 
 			Ok(())
 		}
