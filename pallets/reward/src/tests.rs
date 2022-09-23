@@ -272,14 +272,7 @@ fn claim_reward_fails() {
 fn close_campaign_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(
-			Origin::signed(ALICE),
-			BOB,
-			10,
-			10,
-			10,
-			vec![1]
-		));
+		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 
@@ -301,14 +294,7 @@ fn close_campaign_works() {
 fn close_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(
-			Origin::signed(ALICE),
-			BOB,
-			10,
-			10,
-			10,
-			vec![1]
-		));
+		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
 
 		run_to_block(17);
 

@@ -173,7 +173,7 @@ pub mod pallet {
 		CoolingOffPeriodBelowMinimum,
 		/// Campaign claim period expired
 		CoolingOffPeriodExpired,
-	    /// Campaign is still active
+		/// Campaign is still active
 		CampaignStillActive,
 		/// Not campaign creator
 		NotCampaignCreator,
@@ -293,20 +293,14 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::set_reward())]
-		pub fn close_campaign(
-			origin: OriginFor<T>,
-			id: CampaignId,
-		) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::close_campaign())]
+		pub fn close_campaign(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
 			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
-			ensure!(
-				who == campaign.creator, 
-				Error::<T>::NotCampaignCreator
-			);
+			ensure!(who == campaign.creator, Error::<T>::NotCampaignCreator);
 
 			ensure!(
 				campaign.end + campaign.cooling_off_duration < now,
@@ -314,7 +308,7 @@ pub mod pallet {
 			);
 
 			let fund_account = Self::fund_account_id(id);
-			let unclaimed_balance = campaign.reward - campaign.claimed; 
+			let unclaimed_balance = campaign.reward - campaign.claimed;
 			T::Currency::transfer(&fund_account, &who, unclaimed_balance, AllowDeath)?;
 			Campaigns::<T>::remove(id);
 
