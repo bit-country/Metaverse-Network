@@ -153,7 +153,7 @@ fn set_reward_fails() {
 		);
 
 		assert_noop!(
-			Reward::set_reward(Origin::signed(ALICE), 0, BOB, 10),
+			Reward::set_reward(Origin::signed(ALICE), 0, BOB, 11),
 			Error::<Runtime>::RewardExceedCap
 		);
 
@@ -241,6 +241,13 @@ fn claim_reward_fails() {
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
+
+		run_to_block(9);
+
+		assert_noop!(
+			Reward::claim_reward(Origin::signed(BOB), 0),
+			Error::<Runtime>::CampaignStillActive
+		);
 
 		run_to_block(17);
 
