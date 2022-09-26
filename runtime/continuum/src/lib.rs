@@ -41,6 +41,7 @@ use frame_system::{
 use orml_traits::location::{AbsoluteReserveProvider, RelativeReserveProvider, Reserve};
 use orml_traits::{arithmetic::Zero, parameter_type_with_key, MultiCurrency};
 pub use orml_xcm_support::{IsNativeConcrete, MultiCurrencyAdapter, MultiNativeAsset};
+pub use runtime_common::CheckRelayNumber;
 // XCM Imports
 use orml_xcm_support::DepositToAlternative;
 // Polkadot Imports
@@ -464,6 +465,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
+	type Event = Event;
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type WeightToFee = WeightToFee;
@@ -556,6 +558,7 @@ impl pallet_treasury::Config for Runtime {
 	type SpendFunds = Bounties;
 	type WeightInfo = ();
 	type MaxApprovals = MaxApprovals;
+	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
 	type ProposalBondMaximum = ProposalBondMaximum;
 }
 
@@ -772,6 +775,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type OutboundXcmpMessageSource = XcmpQueue;
 	type XcmpMessageHandler = XcmpQueue;
 	type ReservedXcmpWeight = ReservedXcmpWeight;
+	type CheckAssociatedRelayNumber = CheckRelayNumber<EvmChainId<Runtime>, cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases>;
 	type OnSystemEvent = ();
 }
 

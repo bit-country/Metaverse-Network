@@ -66,7 +66,7 @@ pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> EvmResult<Network
 
 	match network_selector[0] {
 		0 => Ok(NetworkId::Any),
-		1 => Ok(NetworkId::Named(encoded_network_id.read_till_end()?.to_vec())),
+		1 => Ok(NetworkId::Named(encoded_network_id.read_till_end()?.to_vec().into())),
 		2 => Ok(NetworkId::Polkadot),
 		3 => Ok(NetworkId::Kusama),
 		_ => Err(revert("Non-valid Network Id")),
