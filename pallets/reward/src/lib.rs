@@ -279,13 +279,16 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = T::SetRewardOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
-	
+
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
 				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
-				
-				ensure!(campaign.end + campaign.cooling_off_duration >= now, Error::<T>::CampaignExpired);
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
 				ensure!(amount <= campaign.cap, Error::<T>::RewardExceedCap);
-				
+
 				campaign.cap -= amount;
 				Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 

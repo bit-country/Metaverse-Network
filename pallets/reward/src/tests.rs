@@ -175,7 +175,7 @@ fn set_reward_fails() {
 			Reward::set_reward(Origin::signed(ALICE), 0, ALICE, 6),
 			Error::<Runtime>::RewardExceedCap
 		);
-		
+
 		run_to_block(21);
 
 		assert_noop!(
