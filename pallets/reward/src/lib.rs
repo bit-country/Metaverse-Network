@@ -254,10 +254,7 @@ pub mod pallet {
 			let (balance, _) = Self::reward_get(campaign.trie_index, &who);
 			ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
 
-			ensure!(
-				campaign.end < now,
-				Error::<T>::CampaignStillActive
-			);
+			ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 			ensure!(
 				campaign.end + campaign.cooling_off_duration > now,
