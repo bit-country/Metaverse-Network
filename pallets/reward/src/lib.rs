@@ -255,6 +255,11 @@ pub mod pallet {
 			ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
 
 			ensure!(
+				campaign.end < now,
+				Error::<T>::CampaignStillActive
+			);
+
+			ensure!(
 				campaign.end + campaign.cooling_off_duration > now,
 				Error::<T>::CoolingOffPeriodExpired
 			);
@@ -284,7 +289,7 @@ pub mod pallet {
 
 			ensure!(campaign.end > now, Error::<T>::CampaignExpired);
 
-			ensure!(amount < campaign.cap, Error::<T>::RewardExceedCap);
+			ensure!(amount <= campaign.cap, Error::<T>::RewardExceedCap);
 
 			Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 
