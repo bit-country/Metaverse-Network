@@ -29,10 +29,11 @@ use sp_runtime::traits::StaticLookup;
 use frame_support::{traits::Get, weights::Weight, RuntimeDebug};
 use module_support::CallBuilder;
 use primitives::Balance;
-use sp_std::{boxed::Box, marker::PhantomData, prelude::*};
+use sp_std::{boxed::Box, marker::PhantomData, prelude::*, vec};
 
 pub use cumulus_primitives_core::ParaId;
 use xcm::latest::prelude::*;
+
 
 use frame_system::Config;
 
@@ -142,7 +143,7 @@ where
 		RelayChainCall::Balances(BalancesCall::TransferKeepAlive(T::Lookup::unlookup(to), amount))
 	}
 
-	fn finalize_call_into_xcm_message(call: Self::RelayChainCall, extra_fee: Self::Balance, weight: Weight) -> Xcm<()> {
+	fn finalize_call_into_xcm_message(call: Self::RelayChainCall, extra_fee: Self::Balance, weight: Weight) -> Xcm<()>{
 		let asset = MultiAsset {
 			id: Concrete(MultiLocation::here()),
 			fun: Fungibility::Fungible(extra_fee),
