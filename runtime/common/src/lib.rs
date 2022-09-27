@@ -17,10 +17,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
+use cumulus_pallet_parachain_system::CheckAssociatedRelayNumber;
 use frame_support::{
 	traits::Get,
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
+use polkadot_parachain::primitives::RelayChainBlockNumber;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::prelude::*;
@@ -143,26 +145,6 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> Drop for FixedRateO
 				)
 					.into(),
 			);
-		}
-	}
-}
-
-pub struct CheckRelayNumber<EvmChainID, RelayNumberStrictlyIncreases>(EvmChainID, RelayNumberStrictlyIncreases);
-impl<EvmChainID: Get<u64>, RelayNumberStrictlyIncreases: CheckAssociatedRelayNumber> CheckAssociatedRelayNumber
-	for CheckRelayNumber<EvmChainID, RelayNumberStrictlyIncreases>
-{
-	fn check_associated_relay_number(current: RelayChainBlockNumber, previous: RelayChainBlockNumber) {
-		match EvmChainID::get() {
-			CHAIN_ID_METAVERSE | CHAIN_ID_PIONEER  => {//| CHAIN_ID_CONTINUUM => {
-				if current <= previous {
-					log::warn!(
-						"Relay chain block number was reset, current: {:?}, previous: {:?}",
-						current,
-						previous
-					);
-				}
-			}
-			_ => RelayNumberStrictlyIncreases::check_associated_relay_number(current, previous),
 		}
 	}
 }

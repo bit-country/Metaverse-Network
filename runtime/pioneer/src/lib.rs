@@ -32,7 +32,7 @@ use frame_support::{
 		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
-	BoundedVec, PalletId,
+	BoundedVec, PalletId, WeakBoundedVec,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -85,7 +85,6 @@ use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
 use metaverse_runtime_common::FixedRateOfAsset;
 use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
-pub use runtime_common::CheckRelayNumber;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -777,7 +776,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type OutboundXcmpMessageSource = XcmpQueue;
 	type XcmpMessageHandler = XcmpQueue;
 	type ReservedXcmpWeight = ReservedXcmpWeight;
-	type CheckAssociatedRelayNumber = CheckRelayNumber<EvmChainId<Runtime>, cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases>;
+	type CheckAssociatedRelayNumber = cumulus_pallet_parachain_system::RelayNumberStrictlyIncreases;
 	type OnSystemEvent = ();
 }
 
@@ -800,56 +799,56 @@ parameter_types! {
 	pub GenericNeerPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+			X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None)))
 		).into(),
 		native_per_second()
 	);
 	pub NeerPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(2096), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+			X2(Parachain(2096), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None)))
 		).into(),
 		native_per_second()
 	);
 	pub NeerX0PerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			0,
-			X1(GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+			X1(GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None)))
 		).into(),
 		native_per_second()
 	);
 	pub NeerX1PerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(3096), GeneralKey(FungibleTokenId::NativeToken(0).encode())),
+			X2(Parachain(3096), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None))),
 		).into(),
 		native_per_second()
 	);
 	pub NeerX2PerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(parachains::karura::ID), GeneralKey(FungibleTokenId::NativeToken(0).encode()))
+			X2(Parachain(parachains::karura::ID), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None))),
 		).into(),
 		native_per_second()
 	);
 	pub BitPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(2096), GeneralKey(FungibleTokenId::MiningResource(0).encode()))
+			X2(Parachain(2096), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::MiningResource(0).encode(), None))),
 		).into(),
 		native_per_second()
 	);
 	pub BitX1PerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			0,
-			X1(GeneralKey(FungibleTokenId::MiningResource(0).encode())),
+			X1(GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::MiningResource(0).encode(), None))),
 		).into(),
 		native_per_second()
 	);
 	pub KUsdPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KUSD_KEY.to_vec()))
+			X2(Parachain(parachains::karura::ID), GeneralKey(WeakBoundedVec::force_from(parachains::karura::KUSD_KEY.to_vec(), None)))
 		).into(),
 		// kUSD:KSM = 400:1
 		ksm_per_second() * 400
@@ -857,7 +856,7 @@ parameter_types! {
 	pub KarPerSecond: (AssetId, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(parachains::karura::ID), GeneralKey(parachains::karura::KAR_KEY.to_vec()))
+			X2(Parachain(parachains::karura::ID), GeneralKey(WeakBoundedVec::force_from(parachains::karura::KAR_KEY.to_vec(), None)))
 		).into(),
 		// KAR:KSM = 50:1
 		ksm_per_second() * 50
@@ -968,7 +967,10 @@ match_type! {
 fn native_currency_location(id: FungibleTokenId) -> MultiLocation {
 	MultiLocation::new(
 		1,
-		X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(id.encode())),
+		X2(
+			Parachain(ParachainInfo::parachain_id().into()),
+			GeneralKey(WeakBoundedVec::force_from(id.encode(), None)),
+		),
 	)
 }
 
@@ -988,14 +990,14 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 				1,
 				X2(
 					Parachain(parachains::karura::ID),
-					GeneralKey(parachains::karura::KAR_KEY.to_vec()),
+					GeneralKey(WeakBoundedVec::force_from(parachains::karura::KAR_KEY.to_vec(), None)),
 				),
 			)),
 			Stable(0) => Some(MultiLocation::new(
 				1,
 				X2(
 					Parachain(parachains::karura::ID),
-					GeneralKey(parachains::karura::KUSD_KEY.to_vec()),
+					GeneralKey(WeakBoundedVec::force_from(parachains::karura::KUSD_KEY.to_vec(), None)),
 				),
 			)),
 			FungibleToken(token_id) => ForeignAssetMapping::<Runtime>::get_multi_location(token_id),
@@ -1579,7 +1581,7 @@ construct_runtime!(
 
 		// Monetary.
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 10,
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 11,
+		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>} = 11,
 
 		// Sudo
 		Sudo: pallet_sudo::{Pallet, Call, Storage, Config<T>, Event<T>} = 12,
@@ -1589,7 +1591,7 @@ construct_runtime!(
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>} = 14,
 
 		// Treasury
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Event<T>} = 15,
+		Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 15,
 		Bounties: pallet_bounties::{Pallet, Call, Storage, Event<T>} = 16,
 
 

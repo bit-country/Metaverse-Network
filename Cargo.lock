@@ -5472,6 +5472,7 @@ version = "0.0.1"
 dependencies = [
  "bit-country-primitives",
  "core-primitives",
+ "cumulus-pallet-parachain-system",
  "currencies",
  "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.26)",
  "frame-system 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.26)",
@@ -5489,6 +5490,7 @@ dependencies = [
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
  "parity-scale-codec",
+ "polkadot-parachain 0.9.26",
  "precompile-utils",
  "precompile-utils-macro",
  "scale-info",

@@ -68,6 +68,9 @@ pub trait Erc20Mapping {
 ///                       ^^^^^^^^             CurrencyId Type is 2-FungibleToken
 ///                               ^^^^^^^^^^^^ CurrencyId Type is 3-MiningResource
 
+//pub const METAVERSE_CHAIN_ID: u64 = 2042;
+//pub const PIONEER_CHAIN_ID: u64 = 137;
+
 pub const H160_POSITION_CURRENCY_ID_TYPE: usize = 9;
 pub const H160_POSITION_TOKEN: usize = 19;
 pub const H160_POSITION_TOKEN_NFT: Range<usize> = 14..20;
