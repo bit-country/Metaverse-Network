@@ -6120,6 +6120,7 @@ dependencies = [
  "pallet-xcm",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-io",
  "sp-runtime",
  "sp-std",

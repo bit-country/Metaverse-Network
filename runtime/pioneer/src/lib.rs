@@ -85,7 +85,7 @@ use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
 use metaverse_runtime_common::FixedRateOfAsset;
 use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
-
+use scale_info::prelude::vec;
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));

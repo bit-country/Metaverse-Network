@@ -171,6 +171,7 @@ std = [
     'orml-tokens/std',
     'orml-nft/std',
     "orml-oracle/std",
+    "orml-xtokens/std",
     'primitives/std',
     'metaverse/std',
     'currencies/std',

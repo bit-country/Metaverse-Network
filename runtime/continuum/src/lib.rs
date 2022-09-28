@@ -84,6 +84,7 @@ use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
+use scale_info::prelude::vec;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
