@@ -254,6 +254,8 @@ pub mod pallet {
 			let (balance, _) = Self::reward_get(campaign.trie_index, &who);
 			ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
 
+			ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
+
 			ensure!(
 				campaign.end + campaign.cooling_off_duration > now,
 				Error::<T>::CoolingOffPeriodExpired
@@ -284,7 +286,7 @@ pub mod pallet {
 
 			ensure!(campaign.end > now, Error::<T>::CampaignExpired);
 
-			ensure!(amount < campaign.cap, Error::<T>::RewardExceedCap);
+			ensure!(amount <= campaign.cap, Error::<T>::RewardExceedCap);
 
 			Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 
@@ -322,7 +324,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		fn on_finalize(block_number: T::BlockNumber) {
 			for (id, info) in Campaigns::<T>::iter()
-				.filter(|(_, campaign_info)| campaign_info.end <= block_number)
+				.filter(|(_, campaign_info)| campaign_info.end == block_number)
 				.collect::<Vec<_>>()
 			{
 				Self::end_campaign(id);
