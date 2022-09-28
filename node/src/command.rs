@@ -499,7 +499,6 @@ pub fn run() -> sc_cli::Result<()> {
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-
 			let spec = load_spec(&params.chain.clone().unwrap_or_default())?;
 			let state_version = Cli::native_runtime_version(&spec).state_version();
 			let block: Block = generate_genesis_block(spec.as_ref(), state_version)?;
@@ -616,8 +615,8 @@ pub fn run() -> sc_cli::Result<()> {
 						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
 
 					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
-					let block: Block =
-						generate_genesis_block(config.chain_spec.as_ref(), state_version).map_err(|e| format!("{:?}", e))?;
+					let block: Block = generate_genesis_block(config.chain_spec.as_ref(), state_version)
+						.map_err(|e| format!("{:?}", e))?;
 					let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
 					let tokio_handle = config.tokio_handle.clone();
@@ -661,8 +660,8 @@ pub fn run() -> sc_cli::Result<()> {
 						AccountIdConversion::<polkadot_primitives::v2::AccountId>::into_account_truncating(&id);
 
 					let state_version = RelayChainCli::native_runtime_version(&config.chain_spec).state_version();
-					let block: Block =
-						generate_genesis_block(config.chain_spec.as_ref(), state_version).map_err(|e| format!("{:?}", e))?;
+					let block: Block = generate_genesis_block(config.chain_spec.as_ref(), state_version)
+						.map_err(|e| format!("{:?}", e))?;
 					let genesis_state = format!("0x{:?}", HexDisplay::from(&block.header().encode()));
 
 					let tokio_handle = config.tokio_handle.clone();

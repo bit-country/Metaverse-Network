@@ -32,7 +32,7 @@ use frame_support::{
 		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
-	BoundedVec, PalletId, WeakBoundedVec
+	BoundedVec, PalletId, WeakBoundedVec,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -963,7 +963,10 @@ match_type! {
 fn native_currency_location(id: FungibleTokenId) -> MultiLocation {
 	MultiLocation::new(
 		1,
-		X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::force_from(id.encode(), None))),
+		X2(
+			Parachain(ParachainInfo::parachain_id().into()),
+			GeneralKey(WeakBoundedVec::force_from(id.encode(), None)),
+		),
 	)
 }
 

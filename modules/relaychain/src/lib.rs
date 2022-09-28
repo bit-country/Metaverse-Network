@@ -34,7 +34,6 @@ use sp_std::{boxed::Box, marker::PhantomData, prelude::*, vec};
 pub use cumulus_primitives_core::ParaId;
 use xcm::latest::prelude::*;
 
-
 use frame_system::Config;
 
 #[derive(Encode, Decode, RuntimeDebug)]
@@ -143,7 +142,7 @@ where
 		RelayChainCall::Balances(BalancesCall::TransferKeepAlive(T::Lookup::unlookup(to), amount))
 	}
 
-	fn finalize_call_into_xcm_message(call: Self::RelayChainCall, extra_fee: Self::Balance, weight: Weight) -> Xcm<()>{
+	fn finalize_call_into_xcm_message(call: Self::RelayChainCall, extra_fee: Self::Balance, weight: Weight) -> Xcm<()> {
 		let asset = MultiAsset {
 			id: Concrete(MultiLocation::here()),
 			fun: Fungibility::Fungible(extra_fee),
