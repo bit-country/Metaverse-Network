@@ -244,6 +244,7 @@ fn pioneer_genesis(
 			members: vec![],
 			phantom: Default::default(),
 		},
+		treasury: Default::default(),
 	}
 }
 

@@ -261,6 +261,7 @@ fn testnet_genesis(
 		council: Default::default(),
 		democracy: DemocracyConfig::default(),
 		tokens: Default::default(),
+		treasury: Default::default(),
 		vesting: Default::default(),
 		session: SessionConfig {
 			keys: initial_authorities
@@ -272,7 +273,7 @@ fn testnet_genesis(
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {
-			members: vec![],
+			members: BoundedVec<AccountId, OracleMaxMembers>::new(),
 			phantom: Default::default(),
 		},
 		evm: EVMConfig {
