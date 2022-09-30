@@ -239,9 +239,10 @@ fn continuum_genesis(
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {
-			members: vec![],
+			members: Default::default(),
 			phantom: Default::default(),
 		},
+		treasury: Default::default(),
 	}
 }
 
@@ -293,9 +294,10 @@ fn testnet_genesis(
 			minting_rate_config: metaverse_land_minting_config(),
 		},
 		oracle_membership: OracleMembershipConfig {
-			members: vec![],
+			members: Default::default(),
 			phantom: Default::default(),
 		},
+		treasury: Default::default(),
 	}
 }
 
