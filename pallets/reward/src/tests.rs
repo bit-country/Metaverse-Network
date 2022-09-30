@@ -117,6 +117,18 @@ fn set_reward_works() {
 
 		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
 
+		let campaign_info = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: 10,
+			claimed: 0,
+			end: 10,
+			cap: 5,
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
+
 		let event = mock::Event::Reward(crate::Event::SetReward(campaign_id, BOB, 5u32.into()));
 		assert_eq!(last_event(), event)
 	});
@@ -157,7 +169,14 @@ fn set_reward_fails() {
 			Error::<Runtime>::RewardExceedCap
 		);
 
-		run_to_block(11);
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
+
+		assert_noop!(
+			Reward::set_reward(Origin::signed(ALICE), 0, ALICE, 6),
+			Error::<Runtime>::RewardExceedCap
+		);
+
+		run_to_block(21);
 
 		assert_noop!(
 			Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5),
@@ -204,7 +223,7 @@ fn claim_reward_works() {
 			reward: 10,
 			claimed: 5,
 			end: 10,
-			cap: 10,
+			cap: 5,
 			cooling_off_duration: 10,
 			trie_index: 0,
 		};
@@ -270,7 +289,7 @@ fn claim_reward_fails() {
 
 		assert_noop!(
 			Reward::claim_reward(Origin::signed(BOB), 0),
-			Error::<Runtime>::CoolingOffPeriodExpired
+			Error::<Runtime>::CampaignExpired
 		);
 	});
 }

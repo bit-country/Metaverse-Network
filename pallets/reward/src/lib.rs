@@ -171,8 +171,6 @@ pub mod pallet {
 		CampaignDurationBelowMinimum,
 		/// Campaign cooling-off duration is below minimum
 		CoolingOffPeriodBelowMinimum,
-		/// Campaign claim period expired
-		CoolingOffPeriodExpired,
 		/// Campaign is still active
 		CampaignStillActive,
 		/// Not campaign creator
@@ -257,8 +255,8 @@ pub mod pallet {
 			ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 			ensure!(
-				campaign.end + campaign.cooling_off_duration > now,
-				Error::<T>::CoolingOffPeriodExpired
+				campaign.end + campaign.cooling_off_duration >= now,
+				Error::<T>::CampaignExpired
 			);
 
 			T::Currency::transfer(&fund_account, &who, balance, AllowDeath)?;
@@ -282,16 +280,21 @@ pub mod pallet {
 			let who = T::SetRewardOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
-			ensure!(campaign.end > now, Error::<T>::CampaignExpired);
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+				ensure!(amount <= campaign.cap, Error::<T>::RewardExceedCap);
 
-			ensure!(amount <= campaign.cap, Error::<T>::RewardExceedCap);
+				campaign.cap -= amount;
+				Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 
-			Self::reward_put(campaign.trie_index, &to, &amount, &[]);
-
-			Self::deposit_event(Event::<T>::SetReward(id, to, amount));
-
+				Self::deposit_event(Event::<T>::SetReward(id, to, amount));
+				Ok(())
+			})?;
 			Ok(())
 		}
 
