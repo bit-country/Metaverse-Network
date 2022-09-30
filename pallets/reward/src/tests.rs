@@ -78,6 +78,12 @@ fn create_campaign_fails() {
 			Error::<Runtime>::CampaignDurationBelowMinimum
 		);
 
+		run_to_block(11);
+		assert_noop!(
+			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 10, vec![1]),
+			Error::<Runtime>::CampaignDurationBelowMinimum
+		);
+
 		assert_noop!(
 			Reward::create_campaign(Origin::signed(ALICE), ALICE, 0, 10, 10, vec![1]),
 			Error::<Runtime>::RewardPoolBelowMinimum
