@@ -29,7 +29,7 @@ use sp_runtime::traits::StaticLookup;
 use frame_support::{traits::Get, weights::Weight, RuntimeDebug};
 use module_support::CallBuilder;
 use primitives::Balance;
-use sp_std::{boxed::Box, marker::PhantomData, prelude::*};
+use sp_std::{boxed::Box, marker::PhantomData, prelude::*, vec};
 
 pub use cumulus_primitives_core::ParaId;
 use xcm::latest::prelude::*;

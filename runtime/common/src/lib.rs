@@ -17,10 +17,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
+use cumulus_pallet_parachain_system::CheckAssociatedRelayNumber;
 use frame_support::{
 	traits::Get,
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
+use polkadot_parachain::primitives::RelayChainBlockNumber;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::prelude::*;

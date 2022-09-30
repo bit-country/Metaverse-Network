@@ -20,6 +20,7 @@ use {
 		prelude::*,
 	},
 	fp_evm::PrecompileFailure,
+	frame_support::WeakBoundedVec,
 	hex_literal::hex,
 	pallet_evm::Context,
 	sp_core::{H160, H256, U256},
@@ -839,8 +840,11 @@ fn network_id_decoder_works() {
 	);
 
 	assert_eq!(
-		network_id_from_bytes(network_id_to_bytes(NetworkId::Named(b"myname".to_vec()))),
-		Ok(NetworkId::Named(b"myname".to_vec()))
+		network_id_from_bytes(network_id_to_bytes(NetworkId::Named(WeakBoundedVec::force_from(
+			b"myname".to_vec(),
+			None
+		)))),
+		Ok(NetworkId::Named(WeakBoundedVec::force_from(b"myname".to_vec(), None)))
 	);
 
 	assert_eq!(

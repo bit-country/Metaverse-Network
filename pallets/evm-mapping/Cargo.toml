@@ -6,25 +6,25 @@ edition = '2021'
 
 [dependencies]
 serde = { version = "1.0.137", optional = true }
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false }
 libsecp256k1 = { version = "0.6", default-features = false, features = ["hmac", "static-context"], optional = true }
-scale-info = { version = "2.1", default-features = false, features = ["derive"] }
+scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
+frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
+sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.24", default-features = false }
+orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 [dev-dependencies]
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.24" }
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.24", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.24", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 
 [features]
 default = ["std"]

@@ -21,7 +21,7 @@ use {
 		data::{Bytes, EvmData, EvmDataReader, EvmDataWriter},
 		revert, EvmResult,
 	},
-	frame_support::ensure,
+	frame_support::{ensure, WeakBoundedVec},
 	sp_std::vec::Vec,
 	xcm::latest::{Junction, Junctions, MultiLocation, NetworkId},
 };
@@ -43,7 +43,7 @@ pub(crate) fn network_id_to_bytes(network_id: NetworkId) -> Vec<u8> {
 		}
 		NetworkId::Named(mut name) => {
 			encoded.push(1u8);
-			encoded.append(&mut name);
+			encoded.append(&mut name.to_vec());
 			encoded
 		}
 		NetworkId::Polkadot => {
@@ -66,7 +66,10 @@ pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> EvmResult<Network
 
 	match network_selector[0] {
 		0 => Ok(NetworkId::Any),
-		1 => Ok(NetworkId::Named(encoded_network_id.read_till_end()?.to_vec())),
+		1 => Ok(NetworkId::Named(WeakBoundedVec::force_from(
+			encoded_network_id.read_till_end()?.to_vec(),
+			None,
+		))),
 		2 => Ok(NetworkId::Polkadot),
 		3 => Ok(NetworkId::Kusama),
 		_ => Err(revert("Non-valid Network Id")),
@@ -135,7 +138,10 @@ impl EvmData for Junction {
 				general_index.copy_from_slice(&encoded_junction.read_raw_bytes(16)?);
 				Ok(Junction::GeneralIndex(u128::from_be_bytes(general_index)))
 			}
-			6 => Ok(Junction::GeneralKey(encoded_junction.read_till_end()?.to_vec())),
+			6 => Ok(Junction::GeneralKey(WeakBoundedVec::force_from(
+				encoded_junction.read_till_end()?.to_vec(),
+				None,
+			))),
 			7 => Ok(Junction::OnlyChild),
 			_ => Err(revert("No selector for this")),
 		}
@@ -179,7 +185,7 @@ impl EvmData for Junction {
 			}
 			Junction::GeneralKey(mut key) => {
 				encoded.push(6u8);
-				encoded.append(&mut key);
+				encoded.append(&mut key.to_vec());
 				encoded.as_slice().into()
 			}
 			Junction::OnlyChild => {
