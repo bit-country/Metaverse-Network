@@ -87,6 +87,12 @@ fn create_campaign_fails() {
 			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 1, vec![1]),
 			Error::<Runtime>::CoolingOffPeriodBelowMinimum
 		);
+
+		run_to_block(11);
+		assert_noop!(
+			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 10, vec![1]),
+			Error::<Runtime>::CampaignDurationBelowMinimum
+		);
 	});
 }
 
