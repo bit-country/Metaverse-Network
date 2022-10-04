@@ -47,7 +47,8 @@ fn create_campaign_works() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
@@ -74,17 +75,41 @@ fn create_campaign_fails() {
 		let campaign_id = 0;
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 2, 10, vec![1]),
+			Reward::create_campaign(
+				Origin::signed(ALICE),
+				ALICE,
+				10,
+				2,
+				10,
+				vec![1],
+				FungibleTokenId::NativeToken(0)
+			),
 			Error::<Runtime>::CampaignDurationBelowMinimum
 		);
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 0, 10, 10, vec![1]),
+			Reward::create_campaign(
+				Origin::signed(ALICE),
+				ALICE,
+				0,
+				10,
+				10,
+				vec![1],
+				FungibleTokenId::NativeToken(0)
+			),
 			Error::<Runtime>::RewardPoolBelowMinimum
 		);
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 1, vec![1]),
+			Reward::create_campaign(
+				Origin::signed(ALICE),
+				ALICE,
+				10,
+				10,
+				1,
+				vec![1],
+				FungibleTokenId::NativeToken(0)
+			),
 			Error::<Runtime>::CoolingOffPeriodBelowMinimum
 		);
 	});
@@ -102,7 +127,8 @@ fn set_reward_works() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
@@ -147,7 +173,8 @@ fn set_reward_fails() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
@@ -204,7 +231,8 @@ fn claim_reward_works() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
@@ -254,7 +282,8 @@ fn claim_reward_fails() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
@@ -308,7 +337,15 @@ fn claim_reward_fails() {
 fn close_campaign_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 
@@ -330,7 +367,15 @@ fn close_campaign_works() {
 fn close_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
 
 		run_to_block(17);
 
@@ -355,7 +400,15 @@ fn close_campaign_fails() {
 fn cancel_campaign_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 
@@ -377,7 +430,15 @@ fn cancel_campaign_works() {
 fn cancel_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
 
 		assert_noop!(
 			Reward::cancel_campaign(Origin::signed(ALICE), 1),

@@ -31,7 +31,7 @@ use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurren
 use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	ArithmeticError, DispatchError, Perbill, SaturatedConversion
+	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
@@ -57,6 +57,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_support::traits::tokens::currency;
 	use frame_support::traits::ExistenceRequirement::AllowDeath;
 	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
@@ -130,8 +131,12 @@ pub mod pallet {
 	/// Info of campaign.
 	#[pallet::storage]
 	#[pallet::getter(fn campaigns)]
-	pub(super) type Campaigns<T: Config> =
-		StorageMap<_, Twox64Concat, CampaignId, CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId>>;
+	pub(super) type Campaigns<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		CampaignId,
+		CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId>,
+	>;
 
 	/// Tracker for the next available trie index
 	#[pallet::storage]
@@ -200,7 +205,7 @@ pub mod pallet {
 		/// Invalid set reward origin
 		InvalidSetRewardOrigin,
 		/// Invalid reward type
-		InvalidRewardType, 
+		InvalidRewardType,
 	}
 
 	#[pallet::call]
@@ -213,6 +218,7 @@ pub mod pallet {
 			end: T::BlockNumber,
 			cooling_off_duration: T::BlockNumber,
 			properties: Vec<u8>,
+			currency_id: FungibleTokenId,
 		) -> DispatchResult {
 			let depositor = ensure_signed(origin)?;
 
@@ -242,12 +248,7 @@ pub mod pallet {
 
 			let fund_account = Self::fund_account_id(campaign_id);
 			T::Currency::transfer(&depositor, &fund_account, deposit, AllowDeath)?;
-			T::FungibleTokenCurrency::transfer(
-				FungibleTokenId::NativeToken(0),
-				&depositor,
-				&fund_account,
-				reward.saturated_into(),
-			)?;
+			T::FungibleTokenCurrency::transfer(currency_id, &depositor, &fund_account, reward.saturated_into())?;
 
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
@@ -259,9 +260,9 @@ pub mod pallet {
 					end,
 					cooling_off_duration,
 					trie_index,
-					reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), reward),
-					claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), Zero::zero()),
-					cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), reward),
+					reward: RewardType::FungibleTokens(currency_id, reward),
+					claimed: RewardType::FungibleTokens(currency_id, Zero::zero()),
+					cap: RewardType::FungibleTokens(currency_id, reward),
 				},
 			);
 
@@ -294,19 +295,14 @@ pub mod pallet {
 
 				match campaign.claimed {
 					RewardType::FungibleTokens(c, r) => {
-						T::FungibleTokenCurrency::transfer(
-							c,
-							&fund_account,
-							&who,
-							balance.saturated_into(),
-						)?;
+						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
 
 						Self::reward_kill(campaign.trie_index, &who);
 
 						campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
 						Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
 					}
-					_ =>  {}	
+					_ => {}
 				}
 				Ok(())
 			})?;
@@ -333,8 +329,8 @@ pub mod pallet {
 					campaign.end + campaign.cooling_off_duration >= now,
 					Error::<T>::CampaignExpired
 				);
-				
-				match campaign.cap  {
+
+				match campaign.cap {
 					RewardType::FungibleTokens(c, b) => {
 						ensure!(amount <= b, Error::<T>::RewardExceedCap);
 						campaign.cap = RewardType::FungibleTokens(c, b - amount);
@@ -343,7 +339,7 @@ pub mod pallet {
 					}
 					_ => {}
 				};
-			
+
 				Ok(())
 			})?;
 			Ok(())
@@ -364,26 +360,19 @@ pub mod pallet {
 			);
 
 			let fund_account = Self::fund_account_id(id);
-			match campaign.reward  {
-				RewardType::FungibleTokens(_, r) => {
-					match campaign.claimed {
-						RewardType::FungibleTokens(c, b) => {
-							let unclaimed_balance = r - b;
-							T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
-							T::FungibleTokenCurrency::transfer(
-								c,
-								&fund_account,
-								&who,
-								unclaimed_balance.saturated_into(),
-							)?;
-						
-							Self::reward_kill(campaign.trie_index, &who);
-							Campaigns::<T>::remove(id);
-							Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
-						}
-						_ => {}
+			match campaign.reward {
+				RewardType::FungibleTokens(_, r) => match campaign.claimed {
+					RewardType::FungibleTokens(c, b) => {
+						let unclaimed_balance = r - b;
+						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
+						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
+
+						Self::reward_kill(campaign.trie_index, &who);
+						Campaigns::<T>::remove(id);
+						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 					}
-				}
+					_ => {}
+				},
 				_ => {}
 			}
 			Ok(())
@@ -399,20 +388,15 @@ pub mod pallet {
 			ensure!(campaign.end > now, Error::<T>::CampaignEnded);
 
 			let fund_account = Self::fund_account_id(id);
-			
+
 			match campaign.reward {
 				RewardType::FungibleTokens(c, r) => {
 					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
-					T::FungibleTokenCurrency::transfer(
-						c,
-						&fund_account,
-						&campaign.creator,
-						r.saturated_into(),
-					)?;
+					T::FungibleTokenCurrency::transfer(c, &fund_account, &campaign.creator, r.saturated_into())?;
 					Campaigns::<T>::remove(id);
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 				}
-				_ =>  {}	
+				_ => {}
 			}
 			Ok(())
 		}
@@ -511,34 +495,34 @@ impl<T: Config> Pallet<T> {
 		let set_reward_origin = Self::set_reward_origins(who);
 		set_reward_origin == Some(())
 	}
-/* 
-	/// Internal update of campaign info to v2
-	pub fn upgrade_campaign_info_v2() -> Weight {
-		log::info!("Start upgrade_campaign_info_v2");
-		let mut upgraded_campaign_items = 0;
+	/*
+		/// Internal update of campaign info to v2
+		pub fn upgrade_campaign_info_v2() -> Weight {
+			log::info!("Start upgrade_campaign_info_v2");
+			let mut upgraded_campaign_items = 0;
 
-		Campaigns::<T>::translate(
-			|k, campaign_info_v1: CampaignInfoV1<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
-				upgraded_campaign_items += 1;
+			Campaigns::<T>::translate(
+				|k, campaign_info_v1: CampaignInfoV1<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+					upgraded_campaign_items += 1;
 
-				let v2: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber> = CampaignInfo {
-					creator: campaign_info_v1.creator,
-					properties: Vec::<u8>::new(),
-					reward: campaign_info_v1.reward,
-					claimed: campaign_info_v1.claimed,
-					end: campaign_info_v1.end,
-					cap: campaign_info_v1.cap,
-					cooling_off_duration: campaign_info_v1.cooling_off_duration,
-					trie_index: campaign_info_v1.trie_index,
-				};
-				Some(v2)
-			},
-		);
-		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
-		0
-	}
-*/
-	
+					let v2: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber> = CampaignInfo {
+						creator: campaign_info_v1.creator,
+						properties: Vec::<u8>::new(),
+						reward: campaign_info_v1.reward,
+						claimed: campaign_info_v1.claimed,
+						end: campaign_info_v1.end,
+						cap: campaign_info_v1.cap,
+						cooling_off_duration: campaign_info_v1.cooling_off_duration,
+						trie_index: campaign_info_v1.trie_index,
+					};
+					Some(v2)
+				},
+			);
+			log::info!("{} campaigns upgraded:", upgraded_campaign_items);
+			0
+		}
+	*/
+
 	/// Internal update of campaign info to v3
 	pub fn upgrade_campaign_info_v3() -> Weight {
 		log::info!("Start upgrade_campaign_info_v3");
@@ -552,21 +536,21 @@ impl<T: Config> Pallet<T> {
 				let v3_claimed = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.claimed);
 				let v3_cap = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.cap);
 
-				let v3: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId> = CampaignInfo {
-					creator: campaign_info_v2.creator,
-					properties: campaign_info_v2.properties,
-					end: campaign_info_v2.end,
-					cooling_off_duration: campaign_info_v2.cooling_off_duration,
-					trie_index: campaign_info_v2.trie_index,
-					reward: v3_reward,
-					claimed: v3_claimed,
-					cap: v3_cap,
-				};
+				let v3: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId> =
+					CampaignInfo {
+						creator: campaign_info_v2.creator,
+						properties: campaign_info_v2.properties,
+						end: campaign_info_v2.end,
+						cooling_off_duration: campaign_info_v2.cooling_off_duration,
+						trie_index: campaign_info_v2.trie_index,
+						reward: v3_reward,
+						claimed: v3_claimed,
+						cap: v3_cap,
+					};
 				Some(v3)
 			},
 		);
 		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
 		0
 	}
-	
 }
