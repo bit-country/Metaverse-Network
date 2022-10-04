@@ -45,10 +45,15 @@ runtime_benchmarks! {
 		let claiming_account: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &claiming_account, dollar(10));
 
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+		Reward::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
-		Reward::set_reward(RawOrigin::Root.into(), 0u32.into(), claiming_account.clone(), 5u32.into());
-		run_to_block(campaign_end);
+		Reward::set_reward(RawOrigin::Signed(who.clone()).into(), 0u32.into(), claiming_account.clone(), 5u32.into());
+		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
+		run_to_block(claiming_block);
 	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into())
 
 	// set reward
@@ -59,9 +64,13 @@ runtime_benchmarks! {
 		let claiming_account: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &claiming_account, dollar(10));
 
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+		Reward::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
-	}: _(RawOrigin::Root, 0u32.into(), claiming_account.clone(), 5u32.into())
+	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), claiming_account.clone(), 5u32.into())
 
 	// close_campaign
 	close_campaign{
@@ -71,8 +80,40 @@ runtime_benchmarks! {
 
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
-		run_to_block(2*campaign_end);
+		run_to_block(2 * (campaign_end + MinimumCampaignCoolingOffPeriod::get()));
 	}: _(RawOrigin::Signed(origin.clone()), 0u32.into())
+
+	// cancel_campaign
+	cancel_campaign{
+		System::set_block_number(1u32.into());
+		let origin: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &origin, dollar(1000));
+
+		let campaign_end = System::block_number() + MinimumCampaignDuration::get();
+		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
+		run_to_block(MinimumCampaignDuration::get());
+	}: _(RawOrigin::Root, 0u32.into())
+
+	// add set reward origin
+	add_set_reward_origin {
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+
+	}: _(RawOrigin::Root, who.clone())
+	verify {
+		assert_eq!(Reward::is_set_reward_origin(&who.clone()), true);
+	}
+
+	// remove set reward origin
+	remove_set_reward_origin {
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+
+		Reward::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+	}: _(RawOrigin::Root, who.clone())
+	verify {
+		assert_eq!(Reward::is_set_reward_origin(&who.clone()), false);
+	}
 
 	// on finalize
 	on_finalize {
@@ -86,7 +127,7 @@ runtime_benchmarks! {
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
 		Reward::set_reward(RawOrigin::Root.into(), 0u32.into(), claiming_account.clone(), 5u32.into());
 	}: {
-		Reward::on_finalize(System::block_number() + MinimumCampaignDuration::get());
+		Reward::on_finalize(campaign_end);
 	}
 }
 

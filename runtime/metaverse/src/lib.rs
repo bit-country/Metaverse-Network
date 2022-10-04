@@ -431,6 +431,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
+	type Event = Event;
 	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
@@ -1139,6 +1140,7 @@ impl pallet_contracts::Config for Runtime {
 	type CallStack = [pallet_contracts::Frame<Self>; 31];
 	type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
 	type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
+	type MaxStorageKeyLen = ConstU32<1024>;
 	type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
 }
 
@@ -1170,13 +1172,14 @@ impl pallet_treasury::Config for Runtime {
 	type SpendFunds = ();
 	type WeightInfo = ();
 	type MaxApprovals = MaxApprovals;
+	type SpendOrigin = frame_support::traits::NeverEnsureOrigin<Balance>;
 	type ProposalBondMaximum = ProposalBondMaximum;
 }
 
 parameter_types! {
 	pub const CampaignDeposit: Balance = 1 * DOLLARS;
 	pub const MinimumRewardPool: Balance = 100 * DOLLARS;
-	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 1; //  4 * 30 * 7200 Around 4 months in blocktime
+	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 2; //  4 * 30 * 7200 Around 4 months in blocktime
 	pub const MinimumCampaignDuration: BlockNumber = 1; // 7 * 7200 Around a week in blocktime
 }
 
@@ -1190,7 +1193,8 @@ impl reward::Config for Runtime {
 	type CampaignDeposit = CampaignDeposit;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
-	type SetRewardOrigin = EnsureRootOrMetaverseTreasury;
+	type AdminOrigin = EnsureRootOrMetaverseTreasury;
+	type NFTHandler = Nft;
 	type WeightInfo = ();
 }
 
@@ -1222,7 +1226,7 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Storage, Event<T>, Config<T>},
-		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+		TransactionPayment: pallet_transaction_payment::{Pallet, Storage, Event<T>},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
@@ -1261,7 +1265,7 @@ construct_runtime!(
 
 		// Technical committee
 		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>},
-		Treasury: pallet_treasury::{Pallet, Call, Storage, Event<T>},
+		Treasury: pallet_treasury::{Pallet, Storage, Config, Event<T>, Call},
 
 		// Asset manager
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
@@ -1705,7 +1709,7 @@ impl_runtime_apis! {
 
 		fn get_storage(
 			address: AccountId,
-			key: [u8; 32],
+			key: Vec<u8>,
 		) -> pallet_contracts_primitives::GetStorageResult {
 			Contracts::get_storage(address, key)
 		}

@@ -38,8 +38,10 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, EstateId, TrieIndex};
-use primitives::{AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex};
+use primitives::{
+	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, RewardType, TrieIndex,
+};
+use primitives::{Balance, ClassId, FungibleTokenId, NftId};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -61,7 +63,7 @@ pub mod pallet {
 	use sp_runtime::ArithmeticError;
 
 	use primitives::staking::RoundInfo;
-	use primitives::{CampaignId, CampaignInfo, ClassId, GroupCollectionId, NftId};
+	use primitives::{CampaignId, CampaignInfo, ClassId, NftId};
 
 	use super::*;
 
@@ -115,8 +117,11 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
 
-		/// Account that can set rewards
-		type SetRewardOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		/// Accounts that can set rewards
+		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+
+		/// NFT trait type that handler NFT implementation
+		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 
 		/// Weight info
 		type WeightInfo: WeightInfo;
@@ -138,6 +143,11 @@ pub mod pallet {
 	#[pallet::getter(fn next_campaign_id)]
 	pub(super) type NextCampaignId<T> = StorageValue<_, u32, ValueQuery>;
 
+	/// Set reward origins
+	#[pallet::storage]
+	#[pallet::getter(fn set_reward_origins)]
+	pub type SetRewardOrigins<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -145,12 +155,18 @@ pub mod pallet {
 		NewRewardCampaignCreated(CampaignId, T::AccountId),
 		/// Reward claimed [campaign_id, account, balance]
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
-		/// Set Reward [campaign_id, account, balance]
+		/// Set reward [campaign_id, account, balance]
 		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
 		RewardCampaignClosed(CampaignId),
+		/// Reward campaign canceled [campaign_id]
+		RewardCampaignCanceled(CampaignId),
+		/// Set reward origin added [account]
+		SetRewardOriginAdded(T::AccountId),
+		/// Set reward origin removed [account]
+		SetRewardOriginRemoved(T::AccountId),
 	}
 
 	#[pallet::error]
@@ -175,6 +191,14 @@ pub mod pallet {
 		CampaignStillActive,
 		/// Not campaign creator
 		NotCampaignCreator,
+		/// Campaign period for setting rewards is over
+		CampaignEnded,
+		/// Reward origin already added
+		SetRewardOriginAlreadyAdded,
+		/// Reward origin does not exist
+		SetRewardOriginDoesNotExist,
+		/// InvalidSetRewardOrigin
+		InvalidSetRewardOrigin,
 	}
 
 	#[pallet::call]
@@ -229,12 +253,12 @@ pub mod pallet {
 				CampaignInfo {
 					creator: creator.clone(),
 					properties,
-					reward,
-					claimed: Zero::zero(),
 					end,
-					cap: reward,
 					cooling_off_duration,
 					trie_index,
+					reward,
+					claimed: Zero::zero(),
+					cap: reward,
 				},
 			);
 
@@ -282,7 +306,10 @@ pub mod pallet {
 			to: T::AccountId,
 			amount: BalanceOf<T>,
 		) -> DispatchResult {
-			let who = T::SetRewardOrigin::ensure_origin(origin)?;
+			let who = ensure_signed(origin)?;
+
+			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
+
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
@@ -318,11 +345,62 @@ pub mod pallet {
 			);
 
 			let fund_account = Self::fund_account_id(id);
-			let unclaimed_balance = campaign.reward - campaign.claimed;
+			let unclaimed_balance = campaign.reward - campaign.claimed + T::CampaignDeposit::get();
 			T::Currency::transfer(&fund_account, &who, unclaimed_balance, AllowDeath)?;
 			Campaigns::<T>::remove(id);
 
 			Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::cancel_campaign())]
+		pub fn cancel_campaign(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+
+			ensure!(campaign.end > now, Error::<T>::CampaignEnded);
+
+			let fund_account = Self::fund_account_id(id);
+			let unclaimed_balance = campaign.reward + T::CampaignDeposit::get();
+			T::Currency::transfer(&fund_account, &campaign.creator, unclaimed_balance, AllowDeath)?;
+			Campaigns::<T>::remove(id);
+
+			Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::add_set_reward_origin())]
+		pub fn add_set_reward_origin(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+
+			ensure!(
+				!Self::is_set_reward_origin(&account),
+				Error::<T>::SetRewardOriginAlreadyAdded
+			);
+
+			SetRewardOrigins::<T>::insert(account.clone(), ());
+
+			Self::deposit_event(Event::<T>::SetRewardOriginAdded(account));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::remove_set_reward_origin())]
+		pub fn remove_set_reward_origin(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+
+			ensure!(
+				Self::is_set_reward_origin(&account),
+				Error::<T>::SetRewardOriginDoesNotExist
+			);
+
+			SetRewardOrigins::<T>::remove(account.clone());
+
+			Self::deposit_event(Event::<T>::SetRewardOriginRemoved(account));
 
 			Ok(())
 		}
@@ -385,6 +463,11 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub fn is_set_reward_origin(who: &T::AccountId) -> bool {
+		let set_reward_origin = Self::set_reward_origins(who);
+		set_reward_origin == Some(())
+	}
+
 	/// Internal update of campaign info to v2
 	pub fn upgrade_campaign_info_v2() -> Weight {
 		log::info!("Start upgrade_campaign_info_v2");
@@ -410,4 +493,35 @@ impl<T: Config> Pallet<T> {
 		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
 		0
 	}
+	/*
+		/// Internal update of campaign info to v3
+		pub fn upgrade_campaign_info_v3() -> Weight {
+			log::info!("Start upgrade_campaign_info_v3");
+			let mut upgraded_campaign_items = 0;
+
+			Campaigns::<T>::translate(
+				|k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+					upgraded_campaign_items += 1;
+
+					let v3_reward = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.reward);
+					let v3_claimed = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.claimed);
+					let v3_cap = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.cap);
+
+					let v3: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId> = CampaignInfo {
+						creator: campaign_info_v2.creator,
+						properties: campaign_info_v2.properties,
+						end: campaign_info_v2.end,
+						cooling_off_duration: campaign_info_v2.cooling_off_duration,
+						trie_index: campaign_info_v2.trie_index,
+						reward: campaign_info_v2.reward,
+						claimed: campaign_info_v2.claimed,
+						cap: campaign_info_v2.cap,
+					};
+					Some(v3)
+				},
+			);
+			log::info!("{} campaigns upgraded:", upgraded_campaign_items);
+			0
+		}
+	*/
 }

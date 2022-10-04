@@ -34,6 +34,7 @@ pub mod pioneer_imports {
 	};
 
 	pub const NATIVE_TOKEN_SYMBOL: TokenSymbol = TokenSymbol::NEER;
+	use scale_info::prelude::vec;
 }
 
 /// Accounts
