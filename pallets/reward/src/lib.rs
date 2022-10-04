@@ -31,7 +31,7 @@ use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurren
 use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	ArithmeticError, DispatchError, Perbill,
+	ArithmeticError, DispatchError, Perbill, SaturatedConversion
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
@@ -241,7 +241,13 @@ pub mod pallet {
 			let campaign_id = Self::next_campaign_id();
 
 			let fund_account = Self::fund_account_id(campaign_id);
-			T::Currency::transfer(&depositor, &fund_account, reward + deposit, AllowDeath)?;
+			T::Currency::transfer(&depositor, &fund_account, deposit, AllowDeath)?;
+			T::FungibleTokenCurrency::transfer(
+				FungibleTokenId::NativeToken(0),
+				&depositor,
+				&fund_account,
+				reward.saturated_into(),
+			)?;
 
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
@@ -286,12 +292,17 @@ pub mod pallet {
 					Error::<T>::CampaignExpired
 				);
 
-				T::Currency::transfer(&fund_account, &who, balance, AllowDeath)?;
-
-				Self::reward_kill(campaign.trie_index, &who);
-
 				match campaign.claimed {
 					RewardType::FungibleTokens(c, r) => {
+						T::FungibleTokenCurrency::transfer(
+							c,
+							&fund_account,
+							&who,
+							balance.saturated_into(),
+						)?;
+
+						Self::reward_kill(campaign.trie_index, &who);
+
 						campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
 						Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
 					}
@@ -354,11 +365,19 @@ pub mod pallet {
 
 			let fund_account = Self::fund_account_id(id);
 			match campaign.reward  {
-				RewardType::FungibleTokens(c1, r) => {
+				RewardType::FungibleTokens(_, r) => {
 					match campaign.claimed {
-						RewardType::FungibleTokens(c2, b) => {
-							let unclaimed_balance = r - b + T::CampaignDeposit::get();
-							T::Currency::transfer(&fund_account, &who, unclaimed_balance, AllowDeath)?;
+						RewardType::FungibleTokens(c, b) => {
+							let unclaimed_balance = r - b;
+							T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
+							T::FungibleTokenCurrency::transfer(
+								c,
+								&fund_account,
+								&who,
+								unclaimed_balance.saturated_into(),
+							)?;
+						
+							Self::reward_kill(campaign.trie_index, &who);
 							Campaigns::<T>::remove(id);
 							Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 						}
@@ -383,8 +402,13 @@ pub mod pallet {
 			
 			match campaign.reward {
 				RewardType::FungibleTokens(c, r) => {
-					let reward_balance = r + T::CampaignDeposit::get();
-					T::Currency::transfer(&fund_account, &campaign.creator, reward_balance, AllowDeath)?;
+					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
+					T::FungibleTokenCurrency::transfer(
+						c,
+						&fund_account,
+						&campaign.creator,
+						r.saturated_into(),
+					)?;
 					Campaigns::<T>::remove(id);
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 				}
