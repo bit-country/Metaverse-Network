@@ -53,22 +53,22 @@ pub trait WeightInfo {	fn create_campaign() -> Weight;	fn claim_reward() -> Weig
 /// Weights for reward using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn create_campaign() -> Weight {
-		(28_841_000 as Weight)			.saturating_add(T::DbWeight::get().reads(4 as Weight))			.saturating_add(T::DbWeight::get().writes(5 as Weight))	}	fn claim_reward() -> Weight {
-		(33_536_000 as Weight)			.saturating_add(T::DbWeight::get().reads(4 as Weight))			.saturating_add(T::DbWeight::get().writes(4 as Weight))	}	fn set_reward() -> Weight {
-		(16_974_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn close_campaign() -> Weight {
-		(28_954_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn cancel_campaign() -> Weight {
-		(27_831_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn add_set_reward_origin() -> Weight {
-		(11_451_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn remove_set_reward_origin() -> Weight {
-		(12_045_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn on_finalize() -> Weight {
-		(13_303_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))	}}
+		(40_343_000 as Weight)			.saturating_add(T::DbWeight::get().reads(4 as Weight))			.saturating_add(T::DbWeight::get().writes(5 as Weight))	}	fn claim_reward() -> Weight {
+		(35_792_000 as Weight)			.saturating_add(T::DbWeight::get().reads(4 as Weight))			.saturating_add(T::DbWeight::get().writes(4 as Weight))	}	fn set_reward() -> Weight {
+		(18_545_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn close_campaign() -> Weight {
+		(78_316_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(4 as Weight))	}	fn cancel_campaign() -> Weight {
+		(40_238_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn add_set_reward_origin() -> Weight {
+		(11_917_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn remove_set_reward_origin() -> Weight {
+		(12_165_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn on_finalize() -> Weight {
+		(14_033_000 as Weight)			.saturating_add(T::DbWeight::get().reads(2 as Weight))	}}
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn create_campaign() -> Weight {
-		(28_841_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(5 as Weight))	}	fn claim_reward() -> Weight {
-		(33_536_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(4 as Weight))	}	fn set_reward() -> Weight {
-		(16_974_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn close_campaign() -> Weight {
-		(28_954_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn cancel_campaign() -> Weight {
-		(27_831_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn add_set_reward_origin() -> Weight {
-		(11_451_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn remove_set_reward_origin() -> Weight {
-		(12_045_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn on_finalize() -> Weight {
-		(13_303_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))	}}
+		(40_343_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(5 as Weight))	}	fn claim_reward() -> Weight {
+		(35_792_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(4 as Weight))	}	fn set_reward() -> Weight {
+		(18_545_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn close_campaign() -> Weight {
+		(78_316_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(4 as Weight))	}	fn cancel_campaign() -> Weight {
+		(40_238_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn add_set_reward_origin() -> Weight {
+		(11_917_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn remove_set_reward_origin() -> Weight {
+		(12_165_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn on_finalize() -> Weight {
+		(14_033_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))	}}

@@ -18,14 +18,10 @@
 #![cfg(test)]
 
 use frame_support::{assert_err, assert_noop, assert_ok, sp_runtime::runtime_logger};
-use orml_nft::Tokens;
-use sp_runtime::traits::BadOrigin;
 use sp_std::default::Default;
 
-use auction_manager::ListingLevel;
-use core_primitives::{Attributes, CollectionType, TokenType};
 use mock::{Event, *};
-use primitives::{CampaignInfo, GroupCollectionId};
+use primitives::{CampaignInfo, FungibleTokenId};
 
 use super::*;
 
@@ -47,21 +43,55 @@ fn create_campaign_works() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 		assert_eq!(Balances::free_balance(ALICE), 9989);
+
+		let event = mock::Event::Reward(crate::Event::NewRewardCampaignCreated(campaign_id, ALICE));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
+fn create_multicurrency_campaign_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::MiningResource(0),
+		));
+
+		let campaign_info = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			cooling_off_duration: 10,
+			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 10),
+		};
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
+		assert_eq!(Balances::free_balance(ALICE), 9999);
+		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9990);
 
 		let event = mock::Event::Reward(crate::Event::NewRewardCampaignCreated(campaign_id, ALICE));
 		assert_eq!(last_event(), event)
@@ -74,17 +104,41 @@ fn create_campaign_fails() {
 		let campaign_id = 0;
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 2, 10, vec![1]),
+			Reward::create_campaign(
+				Origin::signed(ALICE),
+				ALICE,
+				10,
+				2,
+				10,
+				vec![1],
+				FungibleTokenId::NativeToken(0)
+			),
 			Error::<Runtime>::CampaignDurationBelowMinimum
 		);
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 0, 10, 10, vec![1]),
+			Reward::create_campaign(
+				Origin::signed(ALICE),
+				ALICE,
+				0,
+				10,
+				10,
+				vec![1],
+				FungibleTokenId::NativeToken(0)
+			),
 			Error::<Runtime>::RewardPoolBelowMinimum
 		);
 
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 1, vec![1]),
+			Reward::create_campaign(
+				Origin::signed(ALICE),
+				ALICE,
+				10,
+				10,
+				1,
+				vec![1],
+				FungibleTokenId::NativeToken(0)
+			),
 			Error::<Runtime>::CoolingOffPeriodBelowMinimum
 		);
 
@@ -108,18 +162,19 @@ fn set_reward_works() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
@@ -128,10 +183,10 @@ fn set_reward_works() {
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
 			end: 10,
-			cap: 5,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 5),
 			cooling_off_duration: 10,
 			trie_index: 0,
 		};
@@ -153,18 +208,19 @@ fn set_reward_fails() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
@@ -210,18 +266,19 @@ fn claim_reward_works() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
@@ -235,10 +292,61 @@ fn claim_reward_works() {
 		let campaign_info_after_claim = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 5,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 5),
 			end: 10,
-			cap: 5,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 5),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim));
+
+		let event = mock::Event::Reward(crate::Event::RewardClaimed(campaign_id, BOB, 5u32.into()));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
+fn claim_multicurrency_reward_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::MiningResource(0),
+		));
+
+		let campaign_info = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			cooling_off_duration: 10,
+			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 10),
+		};
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
+
+		run_to_block(17);
+		//assert_eq!(last_event(), mock::Event::Reward(crate::Event::RewardCampaignEnded(0)));
+
+		assert_ok!(Reward::claim_reward(Origin::signed(BOB), 0));
+		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5005);
+
+		let campaign_info_after_claim = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 5),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 5),
 			cooling_off_duration: 10,
 			trie_index: 0,
 		};
@@ -260,18 +368,19 @@ fn claim_reward_fails() {
 			10,
 			10,
 			10,
-			vec![1]
+			vec![1],
+			FungibleTokenId::NativeToken(0),
 		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
@@ -314,7 +423,15 @@ fn claim_reward_fails() {
 fn close_campaign_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 
@@ -333,10 +450,51 @@ fn close_campaign_works() {
 }
 
 #[test]
+fn close_multicurrency_campaign_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::MiningResource(0)
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 9999);
+		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9990);
+
+		run_to_block(100);
+
+		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0));
+
+		assert_eq!(Balances::free_balance(ALICE), 9999);
+		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9990);
+		assert_eq!(Balances::free_balance(BOB), 20001);
+		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5010);
+
+		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+
+		let event = mock::Event::Reward(crate::Event::RewardCampaignClosed(campaign_id));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
 fn close_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
 
 		run_to_block(17);
 
@@ -361,7 +519,15 @@ fn close_campaign_fails() {
 fn cancel_campaign_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 
@@ -380,10 +546,51 @@ fn cancel_campaign_works() {
 }
 
 #[test]
+fn cancel_multicurrency_campaign_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::MiningResource(0)
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 9999);
+		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9990);
+
+		run_to_block(5);
+
+		assert_ok!(Reward::cancel_campaign(Origin::signed(ALICE), 0));
+
+		assert_eq!(Balances::free_balance(ALICE), 9999);
+		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9990);
+		assert_eq!(Balances::free_balance(BOB), 20001);
+		assert_eq!(Tokens::accounts(BOB, FungibleTokenId::MiningResource(0)).free, 5010);
+
+		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+
+		let event = mock::Event::Reward(crate::Event::RewardCampaignCanceled(campaign_id));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
 fn cancel_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
-		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
 
 		assert_noop!(
 			Reward::cancel_campaign(Origin::signed(ALICE), 1),
