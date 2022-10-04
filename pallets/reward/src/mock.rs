@@ -105,6 +105,7 @@ impl Config for Runtime {
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
 	type SetRewardOrigin = EnsureSignedBy<One, AccountId>;
+	type NFTHandler = NFTModule;
 	type WeightInfo = ();
 }
 

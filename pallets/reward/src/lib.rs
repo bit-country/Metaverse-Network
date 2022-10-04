@@ -115,8 +115,11 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
 
-		/// Account that can set rewards
+		/// Accounts that can set rewards
 		type SetRewardOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+
+		/// NFT trait type that handler NFT implementation
+		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 
 		/// Weight info
 		type WeightInfo: WeightInfo;
@@ -145,12 +148,18 @@ pub mod pallet {
 		NewRewardCampaignCreated(CampaignId, T::AccountId),
 		/// Reward claimed [campaign_id, account, balance]
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
-		/// Set Reward [campaign_id, account, balance]
+		/// Set reward [campaign_id, account, balance]
 		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
 		RewardCampaignClosed(CampaignId),
+		/// Reward campaign canceled [campaign_id]
+		RewardCampaignCanceled(CampaignId),
+		// Set reward origin added [account]
+		//SetRewardOriginAdded(T::AccountId),
+		// Set reward origin removed [account]
+		//SetRewardOriginRemoved(T::AccountId),
 	}
 
 	#[pallet::error]
@@ -175,6 +184,10 @@ pub mod pallet {
 		CampaignStillActive,
 		/// Not campaign creator
 		NotCampaignCreator,
+		/// Campaign period for setting rewards is over
+		CampaignEnded,
+		// Reward origin already added
+		//RewardOriginAlreadyAdded,
 	}
 
 	#[pallet::call]
@@ -313,11 +326,33 @@ pub mod pallet {
 			);
 
 			let fund_account = Self::fund_account_id(id);
-			let unclaimed_balance = campaign.reward - campaign.claimed;
+			let unclaimed_balance = campaign.reward - campaign.claimed + T::CampaignDeposit::get();
 			T::Currency::transfer(&fund_account, &who, unclaimed_balance, AllowDeath)?;
 			Campaigns::<T>::remove(id);
 
 			Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::cancel_campaign())]
+		pub fn cancel_campaign(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
+			let who = ensure_root(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+
+			ensure!(
+				campaign.end > now,
+				Error::<T>::CampaignEnded
+			);
+
+			let fund_account = Self::fund_account_id(id);
+			let unclaimed_balance = campaign.reward + T::CampaignDeposit::get();
+			T::Currency::transfer(&fund_account, &campaign.creator, unclaimed_balance, AllowDeath)?;
+			Campaigns::<T>::remove(id);
+
+			Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 
 			Ok(())
 		}
