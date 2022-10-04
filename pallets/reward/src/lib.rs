@@ -116,7 +116,7 @@ pub mod pallet {
 		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
 
 		/// Accounts that can set rewards
-		type SetRewardOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
@@ -141,6 +141,11 @@ pub mod pallet {
 	#[pallet::getter(fn next_campaign_id)]
 	pub(super) type NextCampaignId<T> = StorageValue<_, u32, ValueQuery>;
 
+	/// Set reward origins
+	#[pallet::storage]
+	#[pallet::getter(fn set_reward_origins)]
+	pub type SetRewardOrigins<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -156,10 +161,10 @@ pub mod pallet {
 		RewardCampaignClosed(CampaignId),
 		/// Reward campaign canceled [campaign_id]
 		RewardCampaignCanceled(CampaignId),
-		// Set reward origin added [account]
-		//SetRewardOriginAdded(T::AccountId),
-		// Set reward origin removed [account]
-		//SetRewardOriginRemoved(T::AccountId),
+		/// Set reward origin added [account]
+		SetRewardOriginAdded(T::AccountId),
+		/// Set reward origin removed [account]
+		SetRewardOriginRemoved(T::AccountId),
 	}
 
 	#[pallet::error]
@@ -186,8 +191,12 @@ pub mod pallet {
 		NotCampaignCreator,
 		/// Campaign period for setting rewards is over
 		CampaignEnded,
-		// Reward origin already added
-		//RewardOriginAlreadyAdded,
+		/// Reward origin already added
+		SetRewardOriginAlreadyAdded,
+		/// Reward origin does not exist
+		SetRewardOriginDoesNotExist,
+		/// InvalidSetRewardOrigin
+		InvalidSetRewardOrigin,
 	}
 
 	#[pallet::call]
@@ -290,7 +299,13 @@ pub mod pallet {
 			to: T::AccountId,
 			amount: BalanceOf<T>,
 		) -> DispatchResult {
-			let who = T::SetRewardOrigin::ensure_origin(origin)?;
+			let who = ensure_signed(origin)?;
+
+			ensure!(
+				Self::is_set_reward_origin(&who),
+				Error::<T>::InvalidSetRewardOrigin
+			);
+
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
@@ -337,7 +352,7 @@ pub mod pallet {
 
 		#[pallet::weight(T::WeightInfo::cancel_campaign())]
 		pub fn cancel_campaign(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
-			let who = ensure_root(origin)?;
+			T::AdminOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
 			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
@@ -353,6 +368,39 @@ pub mod pallet {
 			Campaigns::<T>::remove(id);
 
 			Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
+
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::cancel_campaign())]
+		pub fn add_set_reward_origin(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+	
+			ensure!(
+				!Self::is_set_reward_origin(&account),
+				Error::<T>::SetRewardOriginAlreadyAdded
+			);
+
+			SetRewardOrigins::<T>::insert(account.clone(), ());
+
+			Self::deposit_event(Event::<T>::SetRewardOriginAdded(account));
+
+			Ok(())
+		}
+
+
+		#[pallet::weight(T::WeightInfo::cancel_campaign())]
+		pub fn remove_set_reward_origin(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+
+			ensure!(
+				Self::is_set_reward_origin(&account),
+				Error::<T>::SetRewardOriginDoesNotExist
+			);
+
+			SetRewardOrigins::<T>::remove(account.clone());
+
+			Self::deposit_event(Event::<T>::SetRewardOriginRemoved(account));
 
 			Ok(())
 		}
@@ -413,6 +461,11 @@ impl<T: Config> Pallet<T> {
 	fn end_campaign(campaign_id: CampaignId) -> DispatchResult {
 		Self::deposit_event(Event::<T>::RewardCampaignEnded(campaign_id));
 		Ok(())
+	}
+
+	pub fn is_set_reward_origin(who: &T::AccountId) -> bool {
+		let set_reward_origin = Self::set_reward_origins(who);
+		set_reward_origin == Some(())
 	}
 
 	/// Internal update of campaign info to v2

@@ -104,7 +104,7 @@ impl Config for Runtime {
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
-	type SetRewardOrigin = EnsureSignedBy<One, AccountId>;
+	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type NFTHandler = NFTModule;
 	type WeightInfo = ();
 }
