@@ -144,7 +144,15 @@ fn create_campaign_fails() {
 
 		run_to_block(11);
 		assert_noop!(
-			Reward::create_campaign(Origin::signed(ALICE), ALICE, 10, 10, 10, vec![1], FungibleTokenId::NativeToken(0)),
+			Reward::create_campaign(
+				Origin::signed(ALICE),
+				ALICE,
+				10,
+				10,
+				10,
+				vec![1],
+				FungibleTokenId::NativeToken(0)
+			),
 			Error::<Runtime>::CampaignDurationBelowMinimum
 		);
 	});
