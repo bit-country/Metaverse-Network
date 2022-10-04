@@ -86,6 +86,26 @@ runtime_benchmarks! {
 		run_to_block(MinimumCampaignDuration::get());
 	}: _(RawOrigin::Root, 0u32.into())
 
+	// add set reward origin
+	add_set_reward_origin {
+		let who: T::AccountId = account("target", 0, SEED);
+	}: _(RawOrigin::Root, who.clone())
+	verify {
+		assert_eq!(crate::Pallet::<T>::ensure_admin(RawOrigin::Root.into()), Ok(()));
+		assert_eq!(crate::Pallet::<T>::is_set_reward_origin(&who.clone()), true);
+	}
+
+	// remove set reward origin
+	remove_set_reward_origin {
+		let who: T::AccountId = account("target", 0, SEED);
+
+		crate::Pallet::<T>::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+	}: _(RawOrigin::Root, who.clone())
+	verify {
+		assert_eq!(crate::Pallet::<T>::ensure_admin(RawOrigin::Root.into()), Ok(()));
+		assert_eq!(crate::Pallet::<T>::is_set_reward_origin(&who.clone()), false);
+	}
+
 	// on finalize
 	on_finalize {
 		System::set_block_number(1u32.into());

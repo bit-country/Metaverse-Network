@@ -94,6 +94,8 @@ fn create_campaign_fails() {
 fn set_reward_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+
 		assert_ok!(Reward::create_campaign(
 			Origin::signed(ALICE),
 			ALICE,
@@ -138,6 +140,7 @@ fn set_reward_works() {
 fn set_reward_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
 		assert_ok!(Reward::create_campaign(
 			Origin::signed(ALICE),
 			ALICE,
@@ -176,6 +179,11 @@ fn set_reward_fails() {
 			Error::<Runtime>::RewardExceedCap
 		);
 
+		assert_noop!(
+			Reward::set_reward(Origin::signed(3), 0, BOB, 5),
+			Error::<Runtime>::InvalidSetRewardOrigin
+		);
+
 		run_to_block(21);
 
 		assert_noop!(
@@ -189,6 +197,7 @@ fn set_reward_fails() {
 fn claim_reward_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
 		assert_ok!(Reward::create_campaign(
 			Origin::signed(ALICE),
 			ALICE,
@@ -238,6 +247,7 @@ fn claim_reward_works() {
 fn claim_reward_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
 		assert_ok!(Reward::create_campaign(
 			Origin::signed(ALICE),
 			ALICE,
@@ -351,7 +361,7 @@ fn cancel_campaign_works() {
 
 		run_to_block(5);
 
-		assert_ok!(Reward::cancel_campaign(Origin::root(), 0));
+		assert_ok!(Reward::cancel_campaign(Origin::signed(ALICE), 0));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 		assert_eq!(Balances::free_balance(BOB), 20011);
@@ -370,15 +380,58 @@ fn cancel_campaign_fails() {
 		assert_ok!(Reward::create_campaign(Origin::signed(ALICE), BOB, 10, 10, 10, vec![1]));
 
 		assert_noop!(
-			Reward::cancel_campaign(Origin::root(), 1),
+			Reward::cancel_campaign(Origin::signed(ALICE), 1),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		run_to_block(11);
 
 		assert_noop!(
-			Reward::cancel_campaign(Origin::root(), 0),
+			Reward::cancel_campaign(Origin::signed(ALICE), 0),
 			Error::<Runtime>::CampaignEnded
+		);
+	});
+}
+
+#[test]
+fn add_reward_origin_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		assert_eq!(Reward::is_set_reward_origin(&ALICE), true);
+		let event = mock::Event::Reward(crate::Event::SetRewardOriginAdded(ALICE));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
+fn add_reward_origin_fails() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		assert_noop!(
+			Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE),
+			Error::<Runtime>::SetRewardOriginAlreadyAdded
+		);
+	});
+}
+
+#[test]
+fn remove_reward_origin_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		assert_eq!(Reward::is_set_reward_origin(&ALICE), true);
+		assert_ok!(Reward::remove_set_reward_origin(Origin::signed(ALICE), ALICE));
+		assert_eq!(Reward::is_set_reward_origin(&ALICE), false);
+		let event = mock::Event::Reward(crate::Event::SetRewardOriginRemoved(ALICE));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
+fn remove_reward_origin_fails() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_noop!(
+			Reward::remove_set_reward_origin(Origin::signed(ALICE), ALICE),
+			Error::<Runtime>::SetRewardOriginDoesNotExist
 		);
 	});
 }
