@@ -385,6 +385,7 @@ pub mod pallet {
 				RewardType::FungibleTokens(c, r) => {
 					let reward_balance = r + T::CampaignDeposit::get();
 					T::Currency::transfer(&fund_account, &campaign.creator, reward_balance, AllowDeath)?;
+					Campaigns::<T>::remove(id);
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 				}
 				_ =>  {}	

@@ -53,12 +53,12 @@ fn create_campaign_works() {
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 		assert_eq!(Balances::free_balance(ALICE), 9989);
@@ -108,12 +108,12 @@ fn set_reward_works() {
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
@@ -122,10 +122,10 @@ fn set_reward_works() {
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
 			end: 10,
-			cap: 5,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 5),
 			cooling_off_duration: 10,
 			trie_index: 0,
 		};
@@ -153,12 +153,12 @@ fn set_reward_fails() {
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
@@ -210,12 +210,12 @@ fn claim_reward_works() {
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
@@ -229,10 +229,10 @@ fn claim_reward_works() {
 		let campaign_info_after_claim = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 5,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 5),
 			end: 10,
-			cap: 5,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 5),
 			cooling_off_duration: 10,
 			trie_index: 0,
 		};
@@ -260,12 +260,12 @@ fn claim_reward_fails() {
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
 			properties: vec![1],
-			reward: 10,
-			claimed: 0,
-			end: 10,
-			cap: 10,
 			cooling_off_duration: 10,
 			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
