@@ -38,7 +38,9 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, TrieIndex, RewardType};
+use primitives::{
+	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, RewardType, TrieIndex,
+};
 use primitives::{Balance, ClassId, FungibleTokenId, NftId};
 pub use weights::WeightInfo;
 
@@ -301,10 +303,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			ensure!(
-				Self::is_set_reward_origin(&who),
-				Error::<T>::InvalidSetRewardOrigin
-			);
+			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
 
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -357,10 +356,7 @@ pub mod pallet {
 
 			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
-			ensure!(
-				campaign.end > now,
-				Error::<T>::CampaignEnded
-			);
+			ensure!(campaign.end > now, Error::<T>::CampaignEnded);
 
 			let fund_account = Self::fund_account_id(id);
 			let unclaimed_balance = campaign.reward + T::CampaignDeposit::get();
@@ -372,10 +368,10 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::cancel_campaign())]
+		#[pallet::weight(T::WeightInfo::add_set_reward_origin())]
 		pub fn add_set_reward_origin(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
-	
+
 			ensure!(
 				!Self::is_set_reward_origin(&account),
 				Error::<T>::SetRewardOriginAlreadyAdded
@@ -388,8 +384,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-
-		#[pallet::weight(T::WeightInfo::cancel_campaign())]
+		#[pallet::weight(T::WeightInfo::remove_set_reward_origin())]
 		pub fn remove_set_reward_origin(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
 
@@ -493,35 +488,35 @@ impl<T: Config> Pallet<T> {
 		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
 		0
 	}
-/*
-	/// Internal update of campaign info to v3
-	pub fn upgrade_campaign_info_v3() -> Weight {
-		log::info!("Start upgrade_campaign_info_v3");
-		let mut upgraded_campaign_items = 0;
+	/*
+		/// Internal update of campaign info to v3
+		pub fn upgrade_campaign_info_v3() -> Weight {
+			log::info!("Start upgrade_campaign_info_v3");
+			let mut upgraded_campaign_items = 0;
 
-		Campaigns::<T>::translate(
-			|k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
-				upgraded_campaign_items += 1;
+			Campaigns::<T>::translate(
+				|k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+					upgraded_campaign_items += 1;
 
-				let v3_reward = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.reward);
-				let v3_claimed = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.claimed);
-				let v3_cap = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.cap);
+					let v3_reward = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.reward);
+					let v3_claimed = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.claimed);
+					let v3_cap = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.cap);
 
-				let v3: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId> = CampaignInfo {
-					creator: campaign_info_v2.creator,
-					properties: campaign_info_v2.properties,
-					end: campaign_info_v2.end,
-					cooling_off_duration: campaign_info_v2.cooling_off_duration,
-					trie_index: campaign_info_v2.trie_index,
-					reward: campaign_info_v2.reward,
-					claimed: campaign_info_v2.claimed,
-					cap: campaign_info_v2.cap,
-				};
-				Some(v3)
-			},
-		);
-		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
-		0
-	}
-*/
+					let v3: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId> = CampaignInfo {
+						creator: campaign_info_v2.creator,
+						properties: campaign_info_v2.properties,
+						end: campaign_info_v2.end,
+						cooling_off_duration: campaign_info_v2.cooling_off_duration,
+						trie_index: campaign_info_v2.trie_index,
+						reward: campaign_info_v2.reward,
+						claimed: campaign_info_v2.claimed,
+						cap: campaign_info_v2.cap,
+					};
+					Some(v3)
+				},
+			);
+			log::info!("{} campaigns upgraded:", upgraded_campaign_items);
+			0
+		}
+	*/
 }
