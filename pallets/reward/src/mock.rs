@@ -144,7 +144,7 @@ parameter_types! {
 
 impl currencies::Config for Runtime {
 	type Event = Event;
-	type MultiSocialCurrency = OrmlTokens;
+	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
 	type WeightInfo = ();
@@ -283,7 +283,7 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
-		OrmlTokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
 		Reward: reward::{Pallet, Storage ,Call, Event<T>},
@@ -318,7 +318,10 @@ impl ExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			balances: self.balances, //vec![(ALICE, MiningCurrencyId, 1000000)],
+			balances: vec![
+				(ALICE, FungibleTokenId::MiningResource(0), 10000),
+				(BOB, FungibleTokenId::MiningResource(0), 5000),
+			],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
