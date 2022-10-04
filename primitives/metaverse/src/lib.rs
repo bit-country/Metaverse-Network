@@ -440,7 +440,7 @@ pub struct CampaignInfoV2<AccountId, Balance, BlockNumber> {
 /// is known as it's used for the key of the storage item for which this is the value (`Funds`).
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[codec(dumb_trait_bound)]
-pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
+pub struct CampaignInfo<AccountId, Balance, BlockNumber, FungibleTokenId, ClassId, TokenId> {
 	/// The creator account who created this campaign.
 	pub creator: AccountId,
 	/// The campaign info properties.
@@ -451,10 +451,10 @@ pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
 	pub cooling_off_duration: BlockNumber,
 	/// Index used for the child trie of this fund
 	pub trie_index: TrieIndex,
-	/// A hard-cap on the each reward amount that may be contributed.
-	pub cap: Balance,
 	/// The total reward amount.
-	pub reward: Balance,
+	pub reward: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
 	/// The total claimed amount.
-	pub claimed: Balance,
+	pub claimed: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
+	/// A hard-cap on the each reward amount that may be contributed.
+	pub cap: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
 }
