@@ -338,7 +338,7 @@ pub mod pallet {
 				match campaign.cap {
 					RewardType::FungibleTokens(c, b) => {
 						ensure!(amount <= b, Error::<T>::RewardExceedCap);
-						campaign.cap = RewardType::FungibleTokens(c, b.saturated_sub(amount));
+						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(amount));
 						Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 						Self::deposit_event(Event::<T>::SetReward(id, to, amount));
 					}
@@ -368,7 +368,7 @@ pub mod pallet {
 			match campaign.reward {
 				RewardType::FungibleTokens(_, r) => match campaign.claimed {
 					RewardType::FungibleTokens(c, b) => {
-						let unclaimed_balance = r.saturated_sub(b);
+						let unclaimed_balance = r.saturating_sub(b);
 						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
 
