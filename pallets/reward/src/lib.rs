@@ -224,6 +224,11 @@ pub mod pallet {
 		) -> DispatchResult {
 			let depositor = ensure_signed(origin)?;
 
+			ensure!(
+				end > frame_system::Pallet::<T>::block_number(),
+				Error::<T>::CampaignDurationBelowMinimum
+			);
+
 			let campaign_duration = end - frame_system::Pallet::<T>::block_number();
 
 			ensure!(
