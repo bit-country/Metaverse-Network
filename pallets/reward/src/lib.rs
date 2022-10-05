@@ -206,6 +206,8 @@ pub mod pallet {
 		InvalidSetRewardOrigin,
 		/// Invalid reward type
 		InvalidRewardType,
+		/// No permission to create nft campaign
+		NoPermissionToUseNftInRewardPool,
 	}
 
 	#[pallet::call]
@@ -274,6 +276,74 @@ pub mod pallet {
 			Ok(())
 		}
 
+		#[pallet::weight(T::WeightInfo::create_campaign() * reward.len() as u64)]
+		#[transactional]
+		pub fn create_nft_campaign(
+			origin: OriginFor<T>,
+			creator: T::AccountId,
+			reward: Vec<(ClassId, TokenId)>,
+			end: T::BlockNumber,
+			cooling_off_duration: T::BlockNumber,
+			properties: Vec<u8>,
+		) -> DispatchResult {
+			let depositor = ensure_signed(origin)?;
+
+			let campaign_duration = end - frame_system::Pallet::<T>::block_number();
+
+			ensure!(
+				campaign_duration >= T::MinimumCampaignDuration::get(),
+				Error::<T>::CampaignDurationBelowMinimum
+			);
+
+			ensure!(
+				cooling_off_duration >= T::MinimumCampaignCoolingOffPeriod::get(),
+				Error::<T>::CoolingOffPeriodBelowMinimum
+			);
+
+			ensure!(
+				reward.len() > 0,
+				Error::<T>::RewardPoolBelowMinimum
+			);
+
+			let trie_index = Self::next_trie_index();
+			let campaign_id = Self::next_campaign_id();
+			let fund_account = Self::fund_account_id(campaign_id);
+			
+			for token in reward.clone() {
+				ensure!(
+					T::NFTHandler::check_ownership(&creator, &(token.0, token.1))?,
+					Error::<T>::NoPermissionToUseNftInRewardPool
+				);
+				T::NFTHandler::set_lock_nft((token.0, token.1), true)?
+			}
+
+			let next_trie_index = trie_index.checked_add(1).ok_or(ArithmeticError::Overflow)?;
+			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
+
+			T::Currency::transfer(&depositor, &fund_account, T::CampaignDeposit::get(), AllowDeath)?;
+
+			Campaigns::<T>::insert(
+				campaign_id,
+				CampaignInfo {
+					creator: creator.clone(),
+					properties,
+					end,
+					cooling_off_duration,
+					trie_index,
+					reward: RewardType::NftAssets(reward.clone()),
+					claimed: RewardType::NftAssets(Vec::new()),
+					cap: RewardType::NftAssets(reward),
+				},
+			);
+
+			NextTrieIndex::<T>::put(next_trie_index);
+			NextCampaignId::<T>::put(next_campaign_id);
+
+			Self::deposit_event(Event::<T>::NewRewardCampaignCreated(campaign_id, creator));
+
+			Ok(())
+		}
+
 		#[pallet::weight(T::WeightInfo::claim_reward())]
 		pub fn claim_reward(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -281,11 +351,7 @@ pub mod pallet {
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
 				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
-				let fund_account = Self::fund_account_id(id);
-
-				let (balance, _) = Self::reward_get(campaign.trie_index, &who);
-				ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
-
+				
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 				ensure!(
@@ -295,6 +361,9 @@ pub mod pallet {
 
 				match campaign.claimed {
 					RewardType::FungibleTokens(c, r) => {
+						let fund_account = Self::fund_account_id(id);
+						let (balance, _) = Self::reward_get(campaign.trie_index, &who);
+						ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
 
 						Self::reward_kill(campaign.trie_index, &who);
@@ -391,11 +460,16 @@ pub mod pallet {
 
 			match campaign.reward {
 				RewardType::FungibleTokens(c, r) => {
-					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
 					T::FungibleTokenCurrency::transfer(c, &fund_account, &campaign.creator, r.saturated_into())?;
+					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
 					Campaigns::<T>::remove(id);
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 				}
+				//RewardType::NftAssets(reward) => {
+				//	for token in reward {
+				//		T::NFTHandler::set_lock_nft((token.0, token.1), false)?
+				//	}
+				//}
 				_ => {}
 			}
 			Ok(())

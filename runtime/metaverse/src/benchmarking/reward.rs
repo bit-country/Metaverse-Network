@@ -6,7 +6,7 @@ use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
 use primitives::{AccountId, Balance, BlockNumber, FungibleTokenId};
 
-use super::utils::{dollar, set_balance, set_metaverse_treasury_initial_balance};
+use super::utils::{dollar, set_balance, set_metaverse_treasury_initial_balance, mint_NFT, create_nft_group};
 
 use crate::{
 	Call, Event, MinimumCampaignCoolingOffPeriod, MinimumCampaignDuration, MinimumRewardPool, Reward, Runtime, System,
@@ -36,6 +36,16 @@ runtime_benchmarks! {
 		set_balance(CURRENCY_ID, &origin, dollar(1000));
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 	}: _(RawOrigin::Signed(origin.clone()), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID)
+
+	// create nft campaign
+	create_nft_campaign {
+		System::set_block_number(1u32.into());
+		let origin: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &origin, dollar(1000));
+		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
+		create_nft_group();
+		mint_NFT(&origin, 0u32.into());
+	}: _(RawOrigin::Signed(origin.clone()), origin.clone(), vec![(0u32.into(),0u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1])
 
 	//  claim reward
 	claim_reward{
