@@ -338,7 +338,7 @@ pub mod pallet {
 				match campaign.cap {
 					RewardType::FungibleTokens(c, b) => {
 						ensure!(amount <= b, Error::<T>::RewardExceedCap);
-						campaign.cap = RewardType::FungibleTokens(c, b - amount);
+						campaign.cap = RewardType::FungibleTokens(c, b.saturated_sub(amount));
 						Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 						Self::deposit_event(Event::<T>::SetReward(id, to, amount));
 					}
