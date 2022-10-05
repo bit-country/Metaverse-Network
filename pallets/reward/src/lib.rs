@@ -160,6 +160,8 @@ pub mod pallet {
 		NewRewardCampaignCreated(CampaignId, T::AccountId),
 		/// Reward claimed [campaign_id, account, balance]
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
+		/// Reward claimed [campaign_id, account, asset]
+		NftRewardClaimed(CampaignId, T::AccountId, (ClassId, TokenId)),
 		/// Set reward [campaign_id, account, balance]
 		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Set reward [campaign_id, account, asset]
@@ -379,6 +381,48 @@ pub mod pallet {
 
 						campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
 						Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
+					}
+					_ => {}
+				}
+				Ok(())
+			})?;
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::claim_nft_reward())]
+		pub fn claim_nft_reward(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+				
+				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+
+				match campaign.reward.clone() {
+					RewardType::NftAssets(reward) => {
+						match campaign.claimed.clone() {
+							RewardType::NftAssets(claimed) => {
+								let (token, _) = Self::reward_get_nft(campaign.trie_index, &who);
+								ensure!(reward.contains(&token) && !claimed.contains(&token), Error::<T>::NoRewardFound);
+								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
+								T::NFTHandler::transfer_nft(&campaign.creator, &who, &token)?;
+
+								let mut new_claimed = claimed.clone();
+								new_claimed.push(token);
+								campaign.claimed = RewardType::NftAssets(new_claimed);
+
+								Self::reward_kill(campaign.trie_index, &who);
+
+								Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, token));
+							}
+							_ => {}
+						}
 					}
 					_ => {}
 				}

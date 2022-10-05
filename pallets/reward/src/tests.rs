@@ -519,6 +519,62 @@ fn claim_reward_works() {
 	});
 }
 
+
+#[test]
+fn claim_nft_reward_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		init_test_nft(Origin::signed(ALICE));
+
+		assert_ok!(Reward::create_nft_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			vec![(0u32, 0u64)],
+			10,
+			10,
+			vec![1],
+		));
+
+		let campaign_info = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			cooling_off_duration: 10,
+			trie_index: 0,
+			end: 10,
+			reward:RewardType::NftAssets(vec![(0u32, 0u64)]),
+			claimed: RewardType::NftAssets(vec![]),
+			cap: RewardType::NftAssets(vec![(0u32, 0u64)]),
+		};
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
+		assert_eq!(Balances::free_balance(ALICE), 9996);
+		assert_eq!(OrmlNft::tokens(0u32, 0u64).unwrap().data.is_locked, true);
+
+		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 0, BOB));
+
+		run_to_block(17);
+
+		assert_ok!(Reward::claim_nft_reward(Origin::signed(BOB), 0));
+
+		let campaign_info_after_claim = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			cooling_off_duration: 10,
+			trie_index: 0,
+			end: 10,
+			reward:RewardType::NftAssets(vec![(0u32, 0u64)]),
+			claimed: RewardType::NftAssets(vec![(0u32, 0u64)]),
+			cap: RewardType::NftAssets(vec![]),
+		};
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim));
+		assert_eq!(OrmlNft::tokens(0u32, 0u64).unwrap().data.is_locked, false);
+		assert_eq!(OrmlNft::tokens(0u32, 0u64).unwrap().owner, BOB);
+
+		let event = mock::Event::Reward(crate::Event::NftRewardClaimed(campaign_id, BOB, (0u32, 0u64)));
+		assert_eq!(last_event(), event)
+	});
+}
+
 #[test]
 fn claim_multicurrency_reward_works() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -618,8 +674,10 @@ fn claim_reward_fails() {
 			Error::<Runtime>::NoRewardFound
 		);
 
+		assert_ok!(Reward::claim_reward(Origin::signed(BOB), 0));
+
 		assert_noop!(
-			Reward::claim_reward(Origin::signed(3), 0),
+			Reward::claim_reward(Origin::signed(BOB), 0),
 			Error::<Runtime>::NoRewardFound
 		);
 
@@ -627,6 +685,61 @@ fn claim_reward_fails() {
 
 		assert_noop!(
 			Reward::claim_reward(Origin::signed(BOB), 0),
+			Error::<Runtime>::CampaignExpired
+		);
+	});
+}
+
+#[test]
+fn claim_nft_reward_fails() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		init_test_nft(Origin::signed(ALICE));
+		init_test_nft(Origin::signed(ALICE));
+
+		assert_ok!(Reward::create_nft_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			vec![(0u32, 1u64)],
+			10,
+			10,
+			vec![1],
+		));
+
+		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 0, BOB));
+
+		run_to_block(9);
+
+		assert_noop!(
+			Reward::claim_nft_reward(Origin::signed(BOB), 0),
+			Error::<Runtime>::CampaignStillActive
+		);
+
+		run_to_block(17);
+
+		assert_noop!(
+			Reward::claim_nft_reward(Origin::signed(ALICE), 1),
+			Error::<Runtime>::CampaignIsNotFound
+		);
+
+		assert_noop!(
+			Reward::claim_nft_reward(Origin::signed(ALICE), 0),
+			Error::<Runtime>::NoRewardFound
+		);
+		// ! TEST SEEMS TO FAIL FOR TOKEN (0, 0)
+
+		assert_ok!(Reward::claim_nft_reward(Origin::signed(BOB), 0));
+
+		assert_noop!(
+			Reward::claim_nft_reward(Origin::signed(BOB), 0),
+			Error::<Runtime>::NoRewardFound
+		);
+
+		run_to_block(23);
+
+		assert_noop!(
+			Reward::claim_nft_reward(Origin::signed(BOB), 0),
 			Error::<Runtime>::CampaignExpired
 		);
 	});
