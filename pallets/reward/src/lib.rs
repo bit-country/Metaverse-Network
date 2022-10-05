@@ -368,7 +368,7 @@ pub mod pallet {
 			match campaign.reward {
 				RewardType::FungibleTokens(_, r) => match campaign.claimed {
 					RewardType::FungibleTokens(c, b) => {
-						let unclaimed_balance = r - b;
+						let unclaimed_balance = r.saturated_sub(b);
 						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
 
