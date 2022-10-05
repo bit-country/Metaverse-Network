@@ -367,18 +367,16 @@ pub mod pallet {
 			let fund_account = Self::fund_account_id(id);
 			match campaign.reward {
 				RewardType::FungibleTokens(_, r) => match campaign.claimed {
-					match campaign.claimed {
-						RewardType::FungibleTokens(c, b) => {
-							let unclaimed_balance = r.saturating_sub(b);
-							T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
-							T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
+					RewardType::FungibleTokens(c, b) => {
+						let unclaimed_balance = r.saturating_sub(b);
+						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
+						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
 
-							Self::reward_kill(campaign.trie_index, &who);
-							Campaigns::<T>::remove(id);
-							Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
-						}
-						_ => {}
+						Self::reward_kill(campaign.trie_index, &who);
+						Campaigns::<T>::remove(id);
+						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 					}
+					_ => {}
 				},
 				_ => {}
 			}
