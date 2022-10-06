@@ -411,7 +411,6 @@ fn set_reward_fails() {
 			Reward::set_reward(Origin::signed(ALICE), 1, BOB, 5),
 			Error::<Runtime>::InvalidCampaignType
 		);
-
 	});
 }
 
@@ -469,7 +468,6 @@ fn set_nft_reward_fails() {
 			Reward::set_nft_reward(Origin::signed(ALICE), 1, BOB),
 			Error::<Runtime>::InvalidCampaignType
 		);
-
 	});
 }
 
@@ -704,14 +702,13 @@ fn claim_reward_fails() {
 		));
 
 		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 1, BOB));
-		
+
 		run_to_block(37);
 
 		assert_noop!(
 			Reward::claim_reward(Origin::signed(BOB), 1),
 			Error::<Runtime>::InvalidCampaignType
 		);
-
 	});
 }
 
