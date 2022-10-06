@@ -216,6 +216,8 @@ pub mod pallet {
 		NftTokenCannotBeRewarded,
 		/// Invalid left NFT quantity
 		InvalidLeftNftQuantity,
+		/// Invalid campaign type
+		InvalidCampaignType,
 	}
 
 	#[pallet::call]
@@ -237,7 +239,7 @@ pub mod pallet {
 				Error::<T>::CampaignDurationBelowMinimum
 			);
 
-			let campaign_duration = end - frame_system::Pallet::<T>::block_number();
+			let campaign_duration = end.saturating_sub(frame_system::Pallet::<T>::block_number());
 
 			ensure!(
 				campaign_duration >= T::MinimumCampaignDuration::get(),
@@ -301,7 +303,7 @@ pub mod pallet {
 		) -> DispatchResult {
 			let depositor = ensure_signed(origin)?;
 
-			let campaign_duration = end - frame_system::Pallet::<T>::block_number();
+			let campaign_duration = end.saturating_sub(frame_system::Pallet::<T>::block_number());
 
 			ensure!(
 				campaign_duration >= T::MinimumCampaignDuration::get(),
@@ -380,10 +382,10 @@ pub mod pallet {
 
 						campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
 						Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
+						Ok(())
 					}
-					_ => {}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
 				}
-				Ok(())
 			})?;
 			Ok(())
 		}
@@ -421,12 +423,12 @@ pub mod pallet {
 							Self::reward_kill(campaign.trie_index, &who);
 
 							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, token));
+							Ok(())
 						}
-						_ => {}
+						_ => Err(Error::<T>::InvalidCampaignType.into()),
 					},
-					_ => {}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
 				}
-				Ok(())
 			})?;
 			Ok(())
 		}
@@ -455,14 +457,13 @@ pub mod pallet {
 				match campaign.cap {
 					RewardType::FungibleTokens(c, b) => {
 						ensure!(amount <= b, Error::<T>::RewardExceedCap);
-						campaign.cap = RewardType::FungibleTokens(c, b - amount);
+						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(amount));
 						Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 						Self::deposit_event(Event::<T>::SetReward(id, to, amount));
+						Ok(())
 					}
-					_ => {}
-				};
-
-				Ok(())
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
 			})?;
 			Ok(())
 		}
@@ -490,10 +491,10 @@ pub mod pallet {
 						Self::reward_put_nft(campaign.trie_index, &to, &token, &[]);
 						campaign.cap = RewardType::NftAssets(new_cap);
 						Self::deposit_event(Event::<T>::SetNftReward(id, to, token));
+						Ok(())
 					}
-					_ => {}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
 				}
-				Ok(())
 			})?;
 			Ok(())
 		}
@@ -516,19 +517,19 @@ pub mod pallet {
 			match campaign.reward {
 				RewardType::FungibleTokens(_, r) => match campaign.claimed {
 					RewardType::FungibleTokens(c, b) => {
-						let unclaimed_balance = r - b;
+						let unclaimed_balance = r.saturating_sub(b);
 						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
 
 						Self::reward_kill(campaign.trie_index, &who);
 						Campaigns::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
+						Ok(())
 					}
-					_ => {}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
 				},
-				_ => {}
+				_ => Err(Error::<T>::InvalidCampaignType.into()),
 			}
-			Ok(())
 		}
 
 		#[pallet::weight(T::WeightInfo::close_nft_campaign() * left_nfts)]
@@ -550,7 +551,7 @@ pub mod pallet {
 				RewardType::NftAssets(reward) => match campaign.claimed {
 					RewardType::NftAssets(claimed) => {
 						ensure!(
-							reward.len() as u64 - claimed.len() as u64 == left_nfts,
+							reward.len().saturating_sub(claimed.len()) as u64 == left_nfts,
 							Error::<T>::InvalidLeftNftQuantity
 						);
 						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
@@ -564,12 +565,12 @@ pub mod pallet {
 						Self::reward_kill(campaign.trie_index, &who);
 						Campaigns::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
+						Ok(())
 					}
-					_ => {}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
 				},
-				_ => {}
+				_ => Err(Error::<T>::InvalidCampaignType.into()),
 			}
-			Ok(())
 		}
 
 		#[pallet::weight(T::WeightInfo::cancel_campaign())]
@@ -589,10 +590,10 @@ pub mod pallet {
 					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
 					Campaigns::<T>::remove(id);
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
+					Ok(())
 				}
-				_ => {}
+				_ => Err(Error::<T>::InvalidCampaignType.into()),
 			}
-			Ok(())
 		}
 
 		#[pallet::weight(T::WeightInfo::cancel_nft_campaign() * left_nfts)]
@@ -615,10 +616,10 @@ pub mod pallet {
 					}
 					Campaigns::<T>::remove(id);
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
+					Ok(().into())
 				}
-				_ => {}
+				_ => Err(Error::<T>::InvalidCampaignType.into()),
 			}
-			Ok(())
 		}
 
 		#[pallet::weight(T::WeightInfo::add_set_reward_origin())]
