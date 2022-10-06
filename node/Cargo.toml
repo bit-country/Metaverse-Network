@@ -28,7 +28,7 @@ async-trait = "0.1"
 jsonrpsee = { version = "0.14.0", features = ["server"] }
 parity-util-mem = { version = "0.11.0", default-features = false, features = ["jemalloc-global"] }
 url = "2.2.2"
-tracing-core = "0.1.26"
+tracing-core = "0.1.28"
 
 sc-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 sc-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }

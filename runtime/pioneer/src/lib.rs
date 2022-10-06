@@ -893,6 +893,7 @@ pub type Trader = (
 	FixedRateOfFungible<NeerX1PerSecond, ToTreasury>,
 	FixedRateOfFungible<NeerX2PerSecond, ToTreasury>,
 	FixedRateOfFungible<BitPerSecond, ToTreasury>,
+	FixedRateOfFungible<BitX1PerSecond, ToTreasury>,
 	FixedRateOfFungible<KarPerSecond, ToTreasury>,
 	FixedRateOfFungible<KUsdPerSecond, ToTreasury>,
 );
