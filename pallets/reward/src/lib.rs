@@ -595,7 +595,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::cancel_campaign() * left_nfts)]
+		#[pallet::weight(T::WeightInfo::cancel_nft_campaign() * left_nfts)]
 		pub fn cancel_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();

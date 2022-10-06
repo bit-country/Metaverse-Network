@@ -1007,14 +1007,14 @@ fn cancel_nft_campaign_fails() {
 		);
 
 		assert_noop!(
-			Reward::cancel_nft_campaign(Origin::signed(ALICE), 1, 1),
+			Reward::cancel_nft_campaign(Origin::signed(ALICE), 0, 1),
 			Error::<Runtime>::InvalidLeftNftQuantity
 		);
 
 		run_to_block(11);
 
 		assert_noop!(
-			Reward::cancel_campaign(Origin::signed(ALICE), 0, 2),
+			Reward::cancel_nft_campaign(Origin::signed(ALICE), 0, 2),
 			Error::<Runtime>::CampaignEnded
 		);
 	});
