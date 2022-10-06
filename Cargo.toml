@@ -15,5 +15,5 @@ members = [
 ]
 exclude = [
     'modules/chainsafe',
-    'runtime/integration-tests',
+#    'runtime/integration-tests',
 ]
