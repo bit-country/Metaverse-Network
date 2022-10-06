@@ -6,7 +6,7 @@ use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
 use primitives::{AccountId, Balance, BlockNumber, FungibleTokenId};
 
-use super::utils::{dollar, set_balance, set_metaverse_treasury_initial_balance, mint_NFT, create_nft_group};
+use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance};
 
 use crate::{
 	Call, Event, MinimumCampaignCoolingOffPeriod, MinimumCampaignDuration, MinimumRewardPool, Reward, Runtime, System,

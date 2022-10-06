@@ -59,7 +59,7 @@ pub mod weights;
 pub mod pallet {
 	use frame_support::traits::tokens::currency;
 	use frame_support::traits::ExistenceRequirement::AllowDeath;
-	use orml_traits::{MultiCurrencyExtended, rewards};
+	use orml_traits::{rewards, MultiCurrencyExtended};
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
@@ -313,15 +313,12 @@ pub mod pallet {
 				Error::<T>::CoolingOffPeriodBelowMinimum
 			);
 
-			ensure!(
-				reward.len() > 0,
-				Error::<T>::RewardPoolBelowMinimum
-			);
+			ensure!(reward.len() > 0, Error::<T>::RewardPoolBelowMinimum);
 
 			let trie_index = Self::next_trie_index();
 			let campaign_id = Self::next_campaign_id();
 			let fund_account = Self::fund_account_id(campaign_id);
-			
+
 			for token in reward.clone() {
 				ensure!(
 					T::NFTHandler::check_ownership(&creator, &(token.0, token.1))?,
@@ -364,7 +361,7 @@ pub mod pallet {
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
 				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
-				
+
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 				ensure!(
@@ -398,7 +395,7 @@ pub mod pallet {
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
 				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
-				
+
 				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
 
 				ensure!(
@@ -407,25 +404,26 @@ pub mod pallet {
 				);
 
 				match campaign.reward.clone() {
-					RewardType::NftAssets(reward) => {
-						match campaign.claimed.clone() {
-							RewardType::NftAssets(claimed) => {
-								let (token, _) = Self::reward_get_nft(campaign.trie_index, &who);
-								ensure!(reward.contains(&token) && !claimed.contains(&token), Error::<T>::NoRewardFound);
-								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
-								T::NFTHandler::transfer_nft(&campaign.creator, &who, &token)?;
+					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
+						RewardType::NftAssets(claimed) => {
+							let (token, _) = Self::reward_get_nft(campaign.trie_index, &who);
+							ensure!(
+								reward.contains(&token) && !claimed.contains(&token),
+								Error::<T>::NoRewardFound
+							);
+							T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
+							T::NFTHandler::transfer_nft(&campaign.creator, &who, &token)?;
 
-								let mut new_claimed = claimed.clone();
-								new_claimed.push(token);
-								campaign.claimed = RewardType::NftAssets(new_claimed);
+							let mut new_claimed = claimed.clone();
+							new_claimed.push(token);
+							campaign.claimed = RewardType::NftAssets(new_claimed);
 
-								Self::reward_kill(campaign.trie_index, &who);
+							Self::reward_kill(campaign.trie_index, &who);
 
-								Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, token));
-							}
-							_ => {}
+							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, token));
 						}
-					}
+						_ => {}
+					},
 					_ => {}
 				}
 				Ok(())
@@ -470,11 +468,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::set_nft_reward())]
-		pub fn set_nft_reward(
-			origin: OriginFor<T>,
-			id: CampaignId,
-			to: T::AccountId,
-		) -> DispatchResult {
+		pub fn set_nft_reward(origin: OriginFor<T>, id: CampaignId, to: T::AccountId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
@@ -555,7 +549,10 @@ pub mod pallet {
 			match campaign.reward {
 				RewardType::NftAssets(reward) => match campaign.claimed {
 					RewardType::NftAssets(claimed) => {
-						ensure!(reward.len() as u64 - claimed.len() as u64 == left_nfts, Error::<T>::InvalidLeftNftQuantity);
+						ensure!(
+							reward.len() as u64 - claimed.len() as u64 == left_nfts,
+							Error::<T>::InvalidLeftNftQuantity
+						);
 						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
 
 						for token in reward {
@@ -569,7 +566,7 @@ pub mod pallet {
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 					}
 					_ => {}
-				}
+				},
 				_ => {}
 			}
 			Ok(())
@@ -593,11 +590,32 @@ pub mod pallet {
 					Campaigns::<T>::remove(id);
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 				}
-				//RewardType::NftAssets(reward) => {
-				//	for token in reward {
-				//		T::NFTHandler::set_lock_nft((token.0, token.1), false)?
-				//	}
-				//}
+				_ => {}
+			}
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::cancel_campaign() * left_nfts)]
+		pub fn cancel_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
+			T::AdminOrigin::ensure_origin(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+
+			ensure!(campaign.end > now, Error::<T>::CampaignEnded);
+
+			let fund_account = Self::fund_account_id(id);
+
+			match campaign.reward {
+				RewardType::NftAssets(reward) => {
+					ensure!(reward.len() as u64 == left_nfts, Error::<T>::InvalidLeftNftQuantity);
+					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
+					for token in reward {
+						T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
+					}
+					Campaigns::<T>::remove(id);
+					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
+				}
 				_ => {}
 			}
 			Ok(())
