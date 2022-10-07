@@ -1436,9 +1436,9 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 43200; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 43200; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 300; // Minimum duration is 300 blocks
-	pub const MaxFinality: u32 = 100; // Maximum finalize auctions per block
+	pub const MaxFinality: u32 = 200; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum number of item per bundle
-	pub const NetworkFeeReserve: Balance = 10 * DOLLARS; // Network fee reserved when item is listed for auction
+	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
 	pub const MinimumListingPrice: Balance = DOLLARS;

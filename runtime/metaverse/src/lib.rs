@@ -523,8 +523,8 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub AssetMintingFee: Balance = 10 * CENTS;
-	pub ClassMintingFee: Balance = 1 * DOLLARS;
+	pub AssetMintingFee: Balance = 1 * DOLLARS;
+	pub ClassMintingFee: Balance = 10 * DOLLARS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -562,7 +562,7 @@ impl orml_nft::Config for Runtime {
 
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
-	pub MinContribution: Balance = 1 * DOLLARS;
+	pub MinContribution: Balance = 50 * DOLLARS;
 	pub MaxNumberOfStakerPerMetaverse: u32 = 512;
 }
 
@@ -586,9 +586,9 @@ parameter_types! {
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
 	pub const MinimumStake: Balance = 100 * DOLLARS;
-	pub const RewardPaymentDelay: u32 = 1;
+	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
-	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
+	pub const NetworkFee: Balance = 10 * DOLLARS; // Network fee
 	pub const MaxOffersPerEstate: u32 = 100;
 	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
 	pub const MaxLeasePeriod: u32 = 1000000;
@@ -623,7 +623,7 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
-	pub const MaxFinality: u32 = 500; // Maximum finalize auctions per block
+	pub const MaxFinality: u32 = 200; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
 	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
