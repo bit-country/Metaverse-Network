@@ -347,6 +347,8 @@ pub mod pallet {
 		NoPermissionToAcceptOffer,
 		/// Listing price is below the minimum.
 		ListingPriceIsBelowMinimum,
+		/// Only metaverse owner can participate
+		MetaverseOwnerOnly,
 	}
 
 	#[pallet::call]
@@ -1078,6 +1080,13 @@ pub mod pallet {
 			);
 			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
+			if matches!(auction_item.item_id, ItemId::UndeployedLandBlock(_)) {
+				ensure!(
+					T::MetaverseInfoSource::is_metaverse_owner(&from),
+					Error::<T>::MetaverseOwnerOnly
+				);
+			}
+
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
@@ -1247,6 +1256,13 @@ pub mod pallet {
 					T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from)
 						>= value.saturated_into(),
 					Error::<T>::InsufficientFreeBalance
+				);
+			}
+
+			if matches!(auction_item.item_id, ItemId::UndeployedLandBlock(_)) {
+				ensure!(
+					T::MetaverseInfoSource::is_metaverse_owner(&from),
+					Error::<T>::MetaverseOwnerOnly
 				);
 			}
 
