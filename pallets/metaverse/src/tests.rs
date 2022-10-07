@@ -70,9 +70,8 @@ fn verify_is_metaverse_owner_should_work() {
 		);
 		let event = Event::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
 		assert_eq!(last_event(), event);
-
-		assert_eq!(MetaverseModule::is_metaverse_owner(&ALICE), true);
-		assert_eq!(MetaverseModule::is_metaverse_owner(&BOB), false);
+		assert!(MetaverseModule::is_metaverse_owner(&ALICE));
+		assert!(!MetaverseModule::is_metaverse_owner(&BOB));
 	});
 }
 
