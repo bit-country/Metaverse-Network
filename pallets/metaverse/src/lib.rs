@@ -712,6 +712,12 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 
 		Ok(land_unit_total_issuance > 0 || estate_total_issuance > 0)
 	}
+
+	fn is_metaverse_owner(who: &T::AccountId) -> bool {
+		let number_of_own_metaverse = MetaverseOwner::<T>::iter_prefix_values(who).count() as u32;
+
+		number_of_own_metaverse > 0
+	}
 }
 
 impl<T: Config> MetaverseStakingTrait<BalanceOf<T>> for Pallet<T> {
