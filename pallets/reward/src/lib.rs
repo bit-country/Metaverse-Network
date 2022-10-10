@@ -218,6 +218,8 @@ pub mod pallet {
 		InvalidLeftNftQuantity,
 		/// Invalid campaign type
 		InvalidCampaignType,
+		/// Cannot use genesis nft for reward
+		CannotUseGenesisNftForReward,
 	}
 
 	#[pallet::call]
@@ -316,6 +318,11 @@ pub mod pallet {
 			);
 
 			ensure!(reward.len() > 0, Error::<T>::RewardPoolBelowMinimum);
+
+			ensure!(
+				!reward.contains(&(0u32.into(), 0u64.into())),
+				Error::<T>::CannotUseGenesisNftForReward
+			);
 
 			let trie_index = Self::next_trie_index();
 			let campaign_id = Self::next_campaign_id();
