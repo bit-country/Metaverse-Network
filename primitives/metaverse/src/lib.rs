@@ -169,9 +169,9 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 pub enum FungibleTokenId {
 	NativeToken(TokenId),
 	FungibleToken(TokenId),
+	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
 	Stable(TokenId),
-	Erc20(EvmAddress),
 }
 
 impl FungibleTokenId {
