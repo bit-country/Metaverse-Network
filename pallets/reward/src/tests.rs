@@ -398,6 +398,12 @@ fn set_reward_fails() {
 			Error::<Runtime>::InvalidSetRewardOrigin
 		);
 
+		run_to_block(2);
+		assert_noop!(
+			Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5),
+			Error::<Runtime>::AccountAlreadyRewarded
+		);
+
 		run_to_block(21);
 
 		assert_noop!(

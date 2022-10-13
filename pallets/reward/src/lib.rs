@@ -220,6 +220,8 @@ pub mod pallet {
 		InvalidCampaignType,
 		/// Cannot use genesis nft for reward
 		CannotUseGenesisNftForReward,
+		/// The account is already rewarded for this campaign
+		AccountAlreadyRewarded,
 	}
 
 	#[pallet::call]
@@ -465,6 +467,10 @@ pub mod pallet {
 					RewardType::FungibleTokens(c, b) => {
 						ensure!(amount <= b, Error::<T>::RewardExceedCap);
 						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(amount));
+
+						let (balance, _) = Self::reward_get(campaign.trie_index, &to);
+						ensure!(balance == Zero::zero(), Error::<T>::AccountAlreadyRewarded);
+
 						Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 						Self::deposit_event(Event::<T>::SetReward(id, to, amount));
 						Ok(())
