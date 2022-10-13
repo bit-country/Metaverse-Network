@@ -501,6 +501,10 @@ pub mod pallet {
 					RewardType::NftAssets(cap) => {
 						let mut new_cap = cap.clone();
 						let token = new_cap.pop().ok_or(Error::<T>::RewardExceedCap)?;
+
+						let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
+						ensure!(t == (0u32, 0u64), Error::<T>::AccountAlreadyRewarded);
+
 						Self::reward_put_nft(campaign.trie_index, &to, &token, &[]);
 						campaign.cap = RewardType::NftAssets(new_cap);
 						Self::deposit_event(Event::<T>::SetNftReward(id, to, token));
