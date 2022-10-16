@@ -218,10 +218,10 @@ pub mod pallet {
 		InvalidLeftNftQuantity,
 		/// Invalid campaign type
 		InvalidCampaignType,
-		/// Cannot use genesis nft for reward
-		CannotUseGenesisNftForReward,
 		/// The account is already rewarded for this campaign
 		AccountAlreadyRewarded,
+		// Cannot use genesis nft for reward
+		//CannotUseGenesisNftForReward,
 	}
 
 	#[pallet::call]
@@ -321,10 +321,10 @@ pub mod pallet {
 
 			ensure!(reward.len() > 0, Error::<T>::RewardPoolBelowMinimum);
 
-			ensure!(
-				!reward.contains(&(0u32.into(), 0u64.into())),
-				Error::<T>::CannotUseGenesisNftForReward
-			);
+			//ensure!(
+			//	!reward.contains(&(0u32.into(), 0u64.into())),
+			//	Error::<T>::CannotUseGenesisNftForReward
+			//);
 
 			let trie_index = Self::next_trie_index();
 			let campaign_id = Self::next_campaign_id();
@@ -419,6 +419,10 @@ pub mod pallet {
 					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
 						RewardType::NftAssets(claimed) => {
 							let (tokens, _) = Self::reward_get_nft(campaign.trie_index, &who);
+							ensure!(
+								!tokens.is_empty(),
+								Error::<T>::NoRewardFound
+							);
 
 							let mut new_claimed = claimed.clone();
 
