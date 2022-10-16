@@ -185,8 +185,8 @@ fn create_nft_campaign_fails() {
 		);
 
 		//assert_noop!(
-		//	Reward::create_nft_campaign(Origin::signed(ALICE), ALICE, vec![(0u32, 0u64)], 10, 10, vec![1]),
-		//	Error::<Runtime>::CannotUseGenesisNftForReward
+		//	Reward::create_nft_campaign(Origin::signed(ALICE), ALICE, vec![(0u32, 0u64)], 10, 10,
+		// vec![1]), 	Error::<Runtime>::CannotUseGenesisNftForReward
 		//);
 	});
 }
@@ -461,7 +461,7 @@ fn set_nft_reward_fails() {
 			Reward::set_nft_reward(Origin::signed(ALICE), 0, BOB, 3),
 			Error::<Runtime>::RewardExceedCap
 		);
-		
+
 		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 0, BOB, 1));
 
 		assert_noop!(
@@ -784,7 +784,6 @@ fn claim_nft_reward_fails() {
 		assert_noop!(
 			Reward::claim_nft_reward(Origin::signed(BOB), 0, 2),
 			Error::<Runtime>::InvalidNftQuantity
-
 		);
 
 		assert_ok!(Reward::claim_nft_reward(Origin::signed(BOB), 0, 1));

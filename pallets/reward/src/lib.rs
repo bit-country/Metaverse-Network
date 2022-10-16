@@ -419,14 +419,8 @@ pub mod pallet {
 					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
 						RewardType::NftAssets(claimed) => {
 							let (tokens, _) = Self::reward_get_nft(campaign.trie_index, &who);
-							ensure!(
-								!tokens.is_empty(),
-								Error::<T>::NoRewardFound
-							);
-							ensure!(
-								tokens.len() as u64 == amount,
-								Error::<T>::InvalidNftQuantity
-							);
+							ensure!(!tokens.is_empty(), Error::<T>::NoRewardFound);
+							ensure!(tokens.len() as u64 == amount, Error::<T>::InvalidNftQuantity);
 
 							let mut new_claimed = claimed.clone();
 
@@ -439,7 +433,7 @@ pub mod pallet {
 								T::NFTHandler::transfer_nft(&campaign.creator, &who, &token)?;
 								new_claimed.push(token);
 							}
-							
+
 							campaign.claimed = RewardType::NftAssets(new_claimed);
 							Self::reward_kill(campaign.trie_index, &who);
 							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, tokens));
@@ -521,7 +515,7 @@ pub mod pallet {
 							let token = new_cap.pop().ok_or(Error::<T>::RewardExceedCap)?;
 							tokens.push(token);
 						}
-						
+
 						Self::reward_put_nft(campaign.trie_index, &to, &tokens, &[]);
 						campaign.cap = RewardType::NftAssets(new_cap);
 						Self::deposit_event(Event::<T>::SetNftReward(id, to, tokens));
@@ -736,7 +730,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn reward_get_nft(index: TrieIndex, who: &T::AccountId) -> (Vec<(ClassId, TokenId)>, Vec<u8>) {
-		who.using_encoded(|b| child::get_or_default::<(Vec<(ClassId, TokenId)>, Vec<u8>)>(&Self::id_from_index(index), b))
+		who.using_encoded(|b| {
+			child::get_or_default::<(Vec<(ClassId, TokenId)>, Vec<u8>)>(&Self::id_from_index(index), b)
+		})
 	}
 
 	pub fn reward_kill(index: TrieIndex, who: &T::AccountId) {

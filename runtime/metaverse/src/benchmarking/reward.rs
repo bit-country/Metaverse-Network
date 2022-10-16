@@ -45,8 +45,7 @@ runtime_benchmarks! {
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		create_nft_group();
 		mint_NFT(&origin, 0u32.into());
-		mint_NFT(&origin, 0u32.into());
-	}: _(RawOrigin::Signed(origin.clone()), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1])
+	}: _(RawOrigin::Signed(origin.clone()), origin.clone(), vec![(0u32.into(), 0u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1])
 
 	//  claim reward
 	claim_reward{
@@ -82,12 +81,11 @@ runtime_benchmarks! {
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		create_nft_group();
 		mint_NFT(&origin, 0u32.into());
-		mint_NFT(&origin, 0u32.into());
-		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
-		Reward::set_nft_reward(RawOrigin::Signed(who.clone()).into(), 0u32.into(), claiming_account.clone());
+		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),0u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
+		Reward::set_nft_reward(RawOrigin::Signed(who.clone()).into(), 0u32.into(), claiming_account.clone(), 1);
 		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
 		run_to_block(claiming_block);
-	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into())
+	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), 1)
 
 	// set reward
 	set_reward{
@@ -121,10 +119,9 @@ runtime_benchmarks! {
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		create_nft_group();
 		mint_NFT(&origin, 0u32.into());
-		mint_NFT(&origin, 0u32.into());
 
-		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
-	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), claiming_account.clone())
+		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),0u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
+	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), claiming_account.clone(), 1)
 
 	// close_campaign
 	close_campaign{
