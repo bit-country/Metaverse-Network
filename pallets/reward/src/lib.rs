@@ -215,7 +215,7 @@ pub mod pallet {
 		/// Nft token reward is already assigned
 		NftTokenCannotBeRewarded,
 		/// Invalid left NFT quantity
-		InvalidLeftNftQuantity,
+		InvalidNftQuantity,
 		/// Invalid campaign type
 		InvalidCampaignType,
 		/// The account is already rewarded for this campaign
@@ -399,9 +399,9 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::claim_nft_reward())]
+		#[pallet::weight(T::WeightInfo::claim_nft_reward() * amount)]
 		#[transactional]
-		pub fn claim_nft_reward(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
+		pub fn claim_nft_reward(origin: OriginFor<T>, id: CampaignId, amount: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -422,6 +422,10 @@ pub mod pallet {
 							ensure!(
 								!tokens.is_empty(),
 								Error::<T>::NoRewardFound
+							);
+							ensure!(
+								tokens.len() as u64 == amount,
+								Error::<T>::InvalidNftQuantity
 							);
 
 							let mut new_claimed = claimed.clone();
@@ -488,7 +492,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::set_nft_reward())]
+		#[pallet::weight(T::WeightInfo::set_nft_reward() * amount)]
 		#[transactional]
 		pub fn set_nft_reward(origin: OriginFor<T>, id: CampaignId, to: T::AccountId, amount: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -582,7 +586,7 @@ pub mod pallet {
 					RewardType::NftAssets(claimed) => {
 						ensure!(
 							reward.len().saturating_sub(claimed.len()) as u64 == left_nfts,
-							Error::<T>::InvalidLeftNftQuantity
+							Error::<T>::InvalidNftQuantity
 						);
 						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
 
@@ -639,7 +643,7 @@ pub mod pallet {
 
 			match campaign.reward {
 				RewardType::NftAssets(reward) => {
-					ensure!(reward.len() as u64 == left_nfts, Error::<T>::InvalidLeftNftQuantity);
+					ensure!(reward.len() as u64 == left_nfts, Error::<T>::InvalidNftQuantity);
 					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
 					for token in reward {
 						T::NFTHandler::set_lock_nft((token.0, token.1), false)?;

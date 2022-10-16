@@ -586,7 +586,7 @@ fn claim_nft_reward_works() {
 
 		run_to_block(17);
 
-		assert_ok!(Reward::claim_nft_reward(Origin::signed(BOB), 0));
+		assert_ok!(Reward::claim_nft_reward(Origin::signed(BOB), 0, 1));
 
 		let campaign_info_after_claim = CampaignInfo {
 			creator: ALICE,
@@ -765,34 +765,39 @@ fn claim_nft_reward_fails() {
 		run_to_block(9);
 
 		assert_noop!(
-			Reward::claim_nft_reward(Origin::signed(BOB), 0),
+			Reward::claim_nft_reward(Origin::signed(BOB), 0, 1),
 			Error::<Runtime>::CampaignStillActive
 		);
 
 		run_to_block(17);
 
 		assert_noop!(
-			Reward::claim_nft_reward(Origin::signed(ALICE), 1),
+			Reward::claim_nft_reward(Origin::signed(ALICE), 1, 1),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		assert_noop!(
-			Reward::claim_nft_reward(Origin::signed(ALICE), 0),
+			Reward::claim_nft_reward(Origin::signed(ALICE), 0, 1),
 			Error::<Runtime>::NoRewardFound
 		);
-		// ! TEST SEEMS TO FAIL FOR TOKEN (0, 0)
-
-		assert_ok!(Reward::claim_nft_reward(Origin::signed(BOB), 0));
 
 		assert_noop!(
-			Reward::claim_nft_reward(Origin::signed(BOB), 0),
+			Reward::claim_nft_reward(Origin::signed(BOB), 0, 2),
+			Error::<Runtime>::InvalidNftQuantity
+
+		);
+
+		assert_ok!(Reward::claim_nft_reward(Origin::signed(BOB), 0, 1));
+
+		assert_noop!(
+			Reward::claim_nft_reward(Origin::signed(BOB), 0, 1),
 			Error::<Runtime>::NoRewardFound
 		);
 
 		run_to_block(23);
 
 		assert_noop!(
-			Reward::claim_nft_reward(Origin::signed(BOB), 0),
+			Reward::claim_nft_reward(Origin::signed(BOB), 0, 1),
 			Error::<Runtime>::CampaignExpired
 		);
 
@@ -811,7 +816,7 @@ fn claim_nft_reward_fails() {
 		run_to_block(37);
 
 		assert_noop!(
-			Reward::claim_nft_reward(Origin::signed(BOB), 1),
+			Reward::claim_nft_reward(Origin::signed(BOB), 1, 1),
 			Error::<Runtime>::InvalidCampaignType
 		);
 	});
@@ -1006,7 +1011,7 @@ fn close_nft_campaign_fails() {
 
 		assert_noop!(
 			Reward::close_nft_campaign(Origin::signed(ALICE), 0, 1),
-			Error::<Runtime>::InvalidLeftNftQuantity
+			Error::<Runtime>::InvalidNftQuantity
 		);
 
 		assert_ok!(Reward::create_campaign(
@@ -1148,7 +1153,7 @@ fn cancel_nft_campaign_fails() {
 
 		assert_noop!(
 			Reward::cancel_nft_campaign(Origin::signed(ALICE), 0, 1),
-			Error::<Runtime>::InvalidLeftNftQuantity
+			Error::<Runtime>::InvalidNftQuantity
 		);
 
 		run_to_block(11);
