@@ -161,11 +161,11 @@ pub mod pallet {
 		/// Reward claimed [campaign_id, account, balance]
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Reward claimed [campaign_id, account, asset]
-		NftRewardClaimed(CampaignId, T::AccountId, (ClassId, TokenId)),
+		NftRewardClaimed(CampaignId, T::AccountId, Vec<(ClassId, TokenId)>),
 		/// Set reward [campaign_id, account, balance]
 		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Set reward [campaign_id, account, asset]
-		SetNftReward(CampaignId, T::AccountId, (ClassId, TokenId)),
+		SetNftReward(CampaignId, T::AccountId, Vec<(ClassId, TokenId)>),
 		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
@@ -400,6 +400,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::claim_nft_reward())]
+		#[transactional]
 		pub fn claim_nft_reward(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
@@ -417,21 +418,23 @@ pub mod pallet {
 				match campaign.reward.clone() {
 					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
 						RewardType::NftAssets(claimed) => {
-							let (token, _) = Self::reward_get_nft(campaign.trie_index, &who);
-							ensure!(
-								reward.contains(&token) && !claimed.contains(&token),
-								Error::<T>::NoRewardFound
-							);
-							T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
-							T::NFTHandler::transfer_nft(&campaign.creator, &who, &token)?;
+							let (tokens, _) = Self::reward_get_nft(campaign.trie_index, &who);
 
 							let mut new_claimed = claimed.clone();
-							new_claimed.push(token);
+
+							for token in tokens.clone() {
+								ensure!(
+									reward.contains(&token) && !claimed.contains(&token),
+									Error::<T>::NoRewardFound
+								);
+								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
+								T::NFTHandler::transfer_nft(&campaign.creator, &who, &token)?;
+								new_claimed.push(token);
+							}
+							
 							campaign.claimed = RewardType::NftAssets(new_claimed);
-
 							Self::reward_kill(campaign.trie_index, &who);
-
-							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, token));
+							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, tokens));
 							Ok(())
 						}
 						_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -482,7 +485,8 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::set_nft_reward())]
-		pub fn set_nft_reward(origin: OriginFor<T>, id: CampaignId, to: T::AccountId) -> DispatchResult {
+		#[transactional]
+		pub fn set_nft_reward(origin: OriginFor<T>, id: CampaignId, to: T::AccountId, amount: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
@@ -500,14 +504,19 @@ pub mod pallet {
 				match campaign.cap.clone() {
 					RewardType::NftAssets(cap) => {
 						let mut new_cap = cap.clone();
-						let token = new_cap.pop().ok_or(Error::<T>::RewardExceedCap)?;
+						let mut tokens: Vec<(ClassId, NftId)> = Vec::new();
 
 						let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
-						ensure!(t == (0u32, 0u64), Error::<T>::AccountAlreadyRewarded);
+						ensure!(t.is_empty(), Error::<T>::AccountAlreadyRewarded);
 
-						Self::reward_put_nft(campaign.trie_index, &to, &token, &[]);
+						for l in 0..amount {
+							let token = new_cap.pop().ok_or(Error::<T>::RewardExceedCap)?;
+							tokens.push(token);
+						}
+						
+						Self::reward_put_nft(campaign.trie_index, &to, &tokens, &[]);
 						campaign.cap = RewardType::NftAssets(new_cap);
-						Self::deposit_event(Event::<T>::SetNftReward(id, to, token));
+						Self::deposit_event(Event::<T>::SetNftReward(id, to, tokens));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -710,16 +719,16 @@ impl<T: Config> Pallet<T> {
 		who.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(balance, memo)));
 	}
 
-	pub fn reward_put_nft(index: TrieIndex, who: &T::AccountId, token: &(ClassId, TokenId), memo: &[u8]) {
-		who.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(token, memo)));
+	pub fn reward_put_nft(index: TrieIndex, who: &T::AccountId, tokens: &Vec<(ClassId, TokenId)>, memo: &[u8]) {
+		who.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(tokens, memo)));
 	}
 
 	pub fn reward_get(index: TrieIndex, who: &T::AccountId) -> (BalanceOf<T>, Vec<u8>) {
 		who.using_encoded(|b| child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(&Self::id_from_index(index), b))
 	}
 
-	pub fn reward_get_nft(index: TrieIndex, who: &T::AccountId) -> ((ClassId, TokenId), Vec<u8>) {
-		who.using_encoded(|b| child::get_or_default::<((ClassId, TokenId), Vec<u8>)>(&Self::id_from_index(index), b))
+	pub fn reward_get_nft(index: TrieIndex, who: &T::AccountId) -> (Vec<(ClassId, TokenId)>, Vec<u8>) {
+		who.using_encoded(|b| child::get_or_default::<(Vec<(ClassId, TokenId)>, Vec<u8>)>(&Self::id_from_index(index), b))
 	}
 
 	pub fn reward_kill(index: TrieIndex, who: &T::AccountId) {
@@ -734,7 +743,7 @@ impl<T: Config> Pallet<T> {
 
 	pub fn campaign_nft_reward_iterator(
 		index: TrieIndex,
-	) -> ChildTriePrefixIterator<(T::AccountId, ((ClassId, TokenId), Vec<u8>))> {
+	) -> ChildTriePrefixIterator<(T::AccountId, (Vec<(ClassId, TokenId)>, Vec<u8>))> {
 		ChildTriePrefixIterator::<_>::with_prefix_over_key::<Identity>(&Self::id_from_index(index), &[])
 	}
 
