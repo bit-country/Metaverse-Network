@@ -194,6 +194,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 	fn check_if_metaverse_has_any_land(_metaverse_id: MetaverseId) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
+
+	fn is_metaverse_owner(who: &AccountId) -> bool {
+		true
+	}
 }
 
 pub struct MetaverseLandInfo {}

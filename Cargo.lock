@@ -5253,6 +5253,7 @@ dependencies = [
  "pallet-mining",
  "pallet-nft",
  "pallet-preimage",
+ "pallet-proxy",
  "pallet-randomness-collective-flip",
  "pallet-reward",
  "pallet-scheduler",
