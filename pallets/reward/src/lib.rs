@@ -163,8 +163,9 @@ pub mod pallet {
 		/// Reward claimed [campaign_id, account, asset]
 		NftRewardClaimed(CampaignId, T::AccountId, (ClassId, TokenId)),
 		/// Set reward [campaign_id, account, balance]
-		//SetReward(CampaignId, T::AccountId, BalanceOf<T>),
-		SetReward(CampaignId, BalanceOf<T>),
+		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
+		/// Set reward merkle root [campaign_id, balance]
+		SetRewardRoot(CampaignId, BalanceOf<T>),
 		/// Set reward [campaign_id, account, asset]
 		SetNftReward(CampaignId, T::AccountId, (ClassId, TokenId)),
 		/// Reward campaign ended [campaign_id]
@@ -447,9 +448,43 @@ pub mod pallet {
 		pub fn set_reward(
 			origin: OriginFor<T>,
 			id: CampaignId,
+			amount: BalanceOf<T>,
+			to: T::AccountId
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
+
+			let now = frame_system::Pallet::<T>::block_number();
+
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+
+				match campaign.cap {
+					RewardType::FungibleTokens(c, b) => {
+						ensure!(amount <= b, Error::<T>::RewardExceedCap);
+						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(amount));
+						Self::reward_put(campaign.trie_index, &to, &amount, &[]);
+						Self::deposit_event(Event::<T>::SetReward(id, to, amount));
+						Ok(())
+					}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
+			})?;
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::set_reward())]
+		pub fn set_reward_root(
+			origin: OriginFor<T>,
+			id: CampaignId,
 			total_amount: BalanceOf<T>,
 			merkle_root: Vec<u8>,
-			//to: T::AccountId
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -469,10 +504,8 @@ pub mod pallet {
 					RewardType::FungibleTokens(c, b) => {
 						ensure!(total_amount <= b, Error::<T>::RewardExceedCap);
 						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(total_amount));
-						//Self::reward_put(campaign.trie_index, &to, &amount, &[]);
-						//Self::deposit_event(Event::<T>::SetReward(id, to, total_amount));
 						Self::reward_put_root(campaign.trie_index, &merkle_root, &total_amount, &[]);
-						Self::deposit_event(Event::<T>::SetReward(id, total_amount));
+						Self::deposit_event(Event::<T>::SetRewardRoot(id, total_amount));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -480,6 +513,9 @@ pub mod pallet {
 			})?;
 			Ok(())
 		}
+
+
+
 
 		#[pallet::weight(T::WeightInfo::set_nft_reward())]
 		pub fn set_nft_reward(origin: OriginFor<T>, id: CampaignId, to: T::AccountId) -> DispatchResult {
