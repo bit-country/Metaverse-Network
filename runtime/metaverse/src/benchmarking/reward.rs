@@ -48,7 +48,7 @@ runtime_benchmarks! {
 		mint_NFT(&origin, 0u32.into());
 	}: _(RawOrigin::Signed(origin.clone()), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1])
 
-	//  claim reward
+	// claim reward
 	claim_reward{
 		System::set_block_number(1u32.into());
 		let origin: AccountId = whitelisted_caller();
@@ -67,7 +67,26 @@ runtime_benchmarks! {
 		run_to_block(claiming_block);
 	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into())
 
-	//  claim  NFT reward
+	// claim reward root
+	claim_reward_root{
+		System::set_block_number(1u32.into());
+		let origin: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &origin, dollar(1000));
+		let claiming_account: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &claiming_account, dollar(10));
+
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+		Reward::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+
+		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
+		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
+		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), vec![1u8]);
+		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
+		run_to_block(claiming_block);
+	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), 5u32.into(), vec![1u8])
+
+	// claim  NFT reward
 	claim_nft_reward{
 		System::set_block_number(1u32.into());
 		let origin: AccountId = whitelisted_caller();
@@ -104,6 +123,22 @@ runtime_benchmarks! {
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
 	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), claiming_account.clone(), 5u32.into())
+
+	// set reward root
+	set_reward_root{
+		System::set_block_number(1u32.into());
+		let origin: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &origin, dollar(1000));
+		let claiming_account: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &claiming_account, dollar(10));
+
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+		Reward::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+
+		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
+		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
+	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), 5u32.into(), vec![1u8])
 
 
 	// set nft reward
