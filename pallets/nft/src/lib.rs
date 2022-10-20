@@ -358,6 +358,7 @@ pub mod pallet {
 		///
 		/// Emits `NewNftCollectionCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_group())]
+		#[transactional]
 		pub fn create_group(
 			origin: OriginFor<T>,
 			name: NftMetadata,
@@ -399,6 +400,7 @@ pub mod pallet {
 		///
 		/// Emits `NewNftClassCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_class())]
+		#[transactional]
 		pub fn create_class(
 			origin: OriginFor<T>,
 			metadata: NftMetadata,
@@ -434,6 +436,7 @@ pub mod pallet {
 		///
 		/// Emits `NewNftMinted` if successful.
 		#[pallet::weight(< T as Config >::WeightInfo::mint() * * quantity as u64)]
+		#[transactional]
 		pub fn mint(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -456,6 +459,7 @@ pub mod pallet {
 		///
 		/// Emits `TransferedNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer())]
+		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -635,6 +639,7 @@ pub mod pallet {
 		///
 		/// Emits `ForceTransferredNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer())]
+		#[transactional]
 		pub fn force_transfer(
 			origin: OriginFor<T>,
 			from: T::AccountId,
