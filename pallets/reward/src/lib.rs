@@ -28,6 +28,7 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
+use sp_core::Encode as SPEncode;
 use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
@@ -118,6 +119,10 @@ pub mod pallet {
 		/// The minimum amount of blocks during which campaign rewards can be claimed.
 		#[pallet::constant]
 		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
+
+		/// The maximum amount of leaf nodes that could be passed when claiming reward
+		#[pallet::constant]
+		type MaxLeafNodes: Get<u64>;
 
 		/// Accounts that can set rewards
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
@@ -225,6 +230,8 @@ pub mod pallet {
 		CannotUseGenesisNftForReward,
 		/// Reward is already set
 		RewardAlreadySet,
+		/// Reward leaf amount is larger then maximum
+		InvalidRewardLeafAmount,
 	}
 
 	#[pallet::call]
@@ -815,35 +822,28 @@ impl<T: Config> Pallet<T> {
 	) -> ChildTriePrefixIterator<(T::AccountId, ((ClassId, TokenId), Vec<u8>))> {
 		ChildTriePrefixIterator::<_>::with_prefix_over_key::<Identity>(&Self::id_from_index(index), &[])
 	}
-/*
+
 	pub fn calculate_merkle_proof(
 		who: &T::AccountId,
 		balance: &BalanceOf<T>,
-		leaf_nodes: Vec<Vec<u8>>,
-	) -> Vec<u8> {
+		leaf_nodes: &Vec<Vec<u8>>,
+	) -> Result<Vec<u8>,DispatchError> {
+
+		ensure!( 
+			leaf_nodes.len() as u64 <= T::MaxLeafNodes::get(),
+			Error::<T>::InvalidRewardLeafAmount
+		);
 
 		// Hash the pair of AccountId and Balance
 		let mut leaf: Vec<u8> = who.encode();
 		leaf.extend(balance.encode());
 
-		let leaf_hash = keccak_256(leaf_hash);
+		let leaf_hash = keccak_256(&leaf).to_vec();
 
-		for leaf in leaf_nodes {
-			// Calculate the root using the relevant child hashes
-			merkle_root = keccak_256(data)
-		}
+		leaf_nodes.iter()
+			.fold(leaf_hash.clone(), |acc, hash| Self::sorted_hash_of(&acc.to_vec(), hash));
+		Ok(leaf_hash)
 	}
-
-
-	fn calculate_leaf(
-		who: &T::AccountId,
-		balance: &BalanceOf<T>,
-	) -> Vec<u8> {
-
-		// Hash the pair of AccountId and Balance
-		let start_leaf = *who as Vec<u8>;
-	}
- */	
 	  
 	fn end_campaign(campaign_id: CampaignId) -> DispatchResult {
 		Self::deposit_event(Event::<T>::RewardCampaignEnded(campaign_id));
@@ -853,6 +853,19 @@ impl<T: Config> Pallet<T> {
 	pub fn is_set_reward_origin(who: &T::AccountId) -> bool {
 		let set_reward_origin = Self::set_reward_origins(who);
 		set_reward_origin == Some(())
+	}
+
+	pub fn sorted_hash_of(a: &Vec<u8>, b: &Vec<u8>) -> Vec<u8> {
+		let mut h: Vec<u8> = Vec::with_capacity(64);
+		if a < b {
+			h.extend_from_slice(a.as_ref());
+			h.extend_from_slice(b.as_ref());
+		} else {
+			h.extend_from_slice(b.as_ref());
+			h.extend_from_slice(a.as_ref());
+		}
+
+		keccak_256(&h).to_vec()
 	}
 	/*
 		/// Internal update of campaign info to v2

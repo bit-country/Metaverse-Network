@@ -95,6 +95,7 @@ parameter_types! {
 	pub const MinimumRewardPool: Balance = 1;
 	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10;
 	pub const MinimumCampaignDuration: BlockNumber = 5;
+	pub const MaxLeafNodes: u64 = 30;
 }
 
 impl Config for Runtime {
@@ -109,6 +110,7 @@ impl Config for Runtime {
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type NFTHandler = NFTModule;
+	type MaxLeafNodes = MaxLeafNodes;
 	type WeightInfo = ();
 }
 
