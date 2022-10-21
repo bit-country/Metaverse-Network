@@ -165,7 +165,7 @@ pub mod pallet {
 		/// Set reward [campaign_id, accounts, balance]
 		SetReward(CampaignId, Vec<T::AccountId>, BalanceOf<T>),
 		/// Set reward [campaign_id, account, asset]
-		SetNftReward(CampaignId, T::AccountId, Vec<(ClassId, TokenId)>),
+		SetNftReward(CampaignId, Vec<T::AccountId>, Vec<(ClassId, TokenId)>),
 		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
@@ -220,8 +220,8 @@ pub mod pallet {
 		InvalidCampaignType,
 		/// The account is already rewarded for this campaign
 		AccountAlreadyRewarded,
-		// Cannot use genesis nft for reward
-		//CannotUseGenesisNftForReward,
+		/// Invalid total NFT rewards amount parameter
+		InvalidTotalNftRewardAmountParameter,
 	}
 
 	#[pallet::call]
@@ -475,12 +475,16 @@ pub mod pallet {
 						for (to, amount) in rewards {
 							total_amount += amount;
 							ensure!(total_amount <= b, Error::<T>::RewardExceedCap);
+
+							let (balance, _) = Self::reward_get(campaign.trie_index, &to);
+							ensure!(balance == Zero::zero(), Error::<T>::AccountAlreadyRewarded);
 							
 							Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 							accounts.push(to);
 						}
 						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(total_amount));
 						Self::deposit_event(Event::<T>::SetReward(id, accounts, total_amount));
+						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
 				}
@@ -488,9 +492,9 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::set_nft_reward() * amount)]
+		#[pallet::weight(T::WeightInfo::set_nft_reward() * total_nfts_amount)]
 		#[transactional]
-		pub fn set_nft_reward(origin: OriginFor<T>, id: CampaignId, to: T::AccountId, amount: u64) -> DispatchResult {
+		pub fn set_nft_reward(origin: OriginFor<T>, id: CampaignId, rewards: Vec<(T::AccountId, u64)>, total_nfts_amount: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
@@ -509,18 +513,24 @@ pub mod pallet {
 					RewardType::NftAssets(cap) => {
 						let mut new_cap = cap.clone();
 						let mut tokens: Vec<(ClassId, NftId)> = Vec::new();
+						let mut accounts: Vec<T::AccountId> = Vec::new();
+						let mut total_amount_left: u64 = total_nfts_amount;
+						for (to, amount) in rewards {
+							let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
+							ensure!(t.is_empty(), Error::<T>::AccountAlreadyRewarded);
+							
+							ensure!(total_amount_left  >= amount, Error::<T>::InvalidTotalNftRewardAmountParameter);
+							total_amount_left.saturating_sub(amount);
 
-						let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
-						ensure!(t.is_empty(), Error::<T>::AccountAlreadyRewarded);
-
-						for l in 0..amount {
-							let token = new_cap.pop().ok_or(Error::<T>::RewardExceedCap)?;
-							tokens.push(token);
+							for l in 0..amount {
+								let token = new_cap.pop().ok_or(Error::<T>::RewardExceedCap)?;
+								tokens.push(token);
+							}
+							Self::reward_put_nft(campaign.trie_index, &to, &tokens, &[]);
+							accounts.push(to);
 						}
-
-						Self::reward_put_nft(campaign.trie_index, &to, &tokens, &[]);
 						campaign.cap = RewardType::NftAssets(new_cap);
-						Self::deposit_event(Event::<T>::SetNftReward(id, to, tokens));
+						Self::deposit_event(Event::<T>::SetNftReward(id, accounts, tokens));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
