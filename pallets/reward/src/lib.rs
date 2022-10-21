@@ -59,7 +59,8 @@ pub mod weights;
 pub mod pallet {
 	use frame_support::traits::tokens::currency;
 	use frame_support::traits::ExistenceRequirement::AllowDeath;
-	use orml_traits::MultiCurrencyExtended;
+	//use orml_currencies::BalanceOf;
+use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
@@ -160,8 +161,8 @@ pub mod pallet {
 		NewRewardCampaignCreated(CampaignId, T::AccountId),
 		/// Reward claimed [campaign_id, account, balance]
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
-		/// Set reward [campaign_id, account, balance]
-		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
+		/// Set reward [campaign_id, accounts, balance]
+		SetReward(CampaignId, Vec<T::AccountId>, BalanceOf<T>),
 		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
@@ -314,12 +315,12 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::set_reward())]
+		#[pallet::weight(T::WeightInfo::set_reward() * rewards.len() as u64)]
+		#[transactional]
 		pub fn set_reward(
 			origin: OriginFor<T>,
 			id: CampaignId,
-			to: T::AccountId,
-			amount: BalanceOf<T>,
+			rewards: Vec<(T::AccountId, BalanceOf<T>)>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -337,10 +338,17 @@ pub mod pallet {
 
 				match campaign.cap {
 					RewardType::FungibleTokens(c, b) => {
-						ensure!(amount <= b, Error::<T>::RewardExceedCap);
-						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(amount));
-						Self::reward_put(campaign.trie_index, &to, &amount, &[]);
-						Self::deposit_event(Event::<T>::SetReward(id, to, amount));
+						let mut accounts: Vec<T::AccountId> = Vec::new();
+						let mut total_amount: BalanceOf<T> = Zero::zero(); 
+						for (to, amount) in rewards {
+							total_amount += amount;
+							ensure!(total_amount <= b, Error::<T>::RewardExceedCap);
+							
+							Self::reward_put(campaign.trie_index, &to, &amount, &[]);
+							accounts.push(to);
+						}
+						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(total_amount));
+						Self::deposit_event(Event::<T>::SetReward(id, accounts, total_amount));
 					}
 					_ => {}
 				};

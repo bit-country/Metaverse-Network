@@ -186,7 +186,7 @@ fn set_reward_works() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 5)]));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
@@ -200,7 +200,7 @@ fn set_reward_works() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		let event = mock::Event::Reward(crate::Event::SetReward(campaign_id, BOB, 5u32.into()));
+		let event = mock::Event::Reward(crate::Event::SetReward(campaign_id, vec![BOB], 5u32.into()));
 		assert_eq!(last_event(), event)
 	});
 }
@@ -233,31 +233,31 @@ fn set_reward_fails() {
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
 		assert_noop!(
-			Reward::set_reward(Origin::signed(ALICE), 1, BOB, 10),
+			Reward::set_reward(Origin::signed(ALICE), 1, vec![(BOB, 10)]),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		assert_noop!(
-			Reward::set_reward(Origin::signed(ALICE), 0, BOB, 11),
+			Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 11)]),
 			Error::<Runtime>::RewardExceedCap
 		);
 
-		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 5)]));
 
 		assert_noop!(
-			Reward::set_reward(Origin::signed(ALICE), 0, ALICE, 6),
+			Reward::set_reward(Origin::signed(ALICE), 0, vec![(ALICE, 6)]),
 			Error::<Runtime>::RewardExceedCap
 		);
 
 		assert_noop!(
-			Reward::set_reward(Origin::signed(3), 0, BOB, 5),
+			Reward::set_reward(Origin::signed(3), 0, vec![(BOB, 5)]),
 			Error::<Runtime>::InvalidSetRewardOrigin
 		);
 
 		run_to_block(21);
 
 		assert_noop!(
-			Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5),
+			Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 5)]),
 			Error::<Runtime>::CampaignExpired
 		);
 	});
@@ -289,7 +289,7 @@ fn claim_reward_works() {
 			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 5)]));
 
 		run_to_block(17);
 		//assert_eq!(last_event(), mock::Event::Reward(crate::Event::RewardCampaignEnded(0)));
@@ -340,7 +340,7 @@ fn claim_multicurrency_reward_works() {
 			cap: RewardType::FungibleTokens(FungibleTokenId::MiningResource(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 5)]));
 
 		run_to_block(17);
 		//assert_eq!(last_event(), mock::Event::Reward(crate::Event::RewardCampaignEnded(0)));
@@ -392,7 +392,7 @@ fn claim_reward_fails() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, BOB, 5));
+		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 5)]));
 
 		run_to_block(9);
 

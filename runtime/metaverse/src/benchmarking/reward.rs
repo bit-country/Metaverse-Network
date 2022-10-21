@@ -51,7 +51,7 @@ runtime_benchmarks! {
 
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
-		Reward::set_reward(RawOrigin::Signed(who.clone()).into(), 0u32.into(), claiming_account.clone(), 5u32.into());
+		Reward::set_reward(RawOrigin::Signed(who.clone()).into(), 0u32.into(), vec![(claiming_account.clone(),5u32.into())]);
 		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
 		run_to_block(claiming_block);
 	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into())
@@ -70,7 +70,7 @@ runtime_benchmarks! {
 
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
-	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), claiming_account.clone(), 5u32.into())
+	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), vec![(claiming_account.clone(),5u32.into())])
 
 	// close_campaign
 	close_campaign{
@@ -125,7 +125,7 @@ runtime_benchmarks! {
 
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
-		Reward::set_reward(RawOrigin::Root.into(), 0u32.into(), claiming_account.clone(), 5u32.into());
+		Reward::set_reward(RawOrigin::Root.into(), 0u32.into(), vec![(claiming_account.clone(),5u32.into())]);
 	}: {
 		Reward::on_finalize(campaign_end);
 	}
