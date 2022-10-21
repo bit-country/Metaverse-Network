@@ -53,6 +53,29 @@ fn create_metaverse_should_work() {
 }
 
 #[test]
+fn verify_is_metaverse_owner_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_eq!(
+			MetaverseModule::get_metaverse(&METAVERSE_ID),
+			Some(MetaverseInfo {
+				owner: ALICE,
+				metadata: vec![1],
+				currency_id: FungibleTokenId::NativeToken(0),
+				is_frozen: false,
+				land_class_id: 0u32,
+				estate_class_id: 0u32,
+				listing_fee: Perbill::from_percent(0u32)
+			})
+		);
+		let event = Event::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
+		assert_eq!(last_event(), event);
+		assert!(MetaverseModule::is_metaverse_owner(&ALICE));
+		assert!(!MetaverseModule::is_metaverse_owner(&BOB));
+	});
+}
+
+#[test]
 fn transfer_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));

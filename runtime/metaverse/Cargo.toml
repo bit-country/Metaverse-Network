@@ -53,6 +53,7 @@ pallet-preimage = { default-features = false, git = "https://github.com/parityte
 pallet-membership = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 pallet-treasury = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 pallet-collator-selection = { default-features = false, git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.26" }
+pallet-proxy = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 frame-try-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26", optional = true, default-features = false }
 try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.26", optional = true, default-features = false }
 
@@ -133,6 +134,7 @@ std = [
     "pallet-preimage/std",
     "pallet-membership/std",
     "pallet-treasury/std",
+    "pallet-proxy/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",
