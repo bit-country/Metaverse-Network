@@ -635,7 +635,12 @@ fn force_updating_total_issuance_should_work() {
 			Perbill::from_percent(0u32),
 			None
 		));
-		assert_ok!(Nft::force_update_total_issuance(Origin::root(), CLASS_ID, TOKEN_ID, TOKEN_ID_2));
+		assert_ok!(Nft::force_update_total_issuance(
+			Origin::root(),
+			CLASS_ID,
+			TOKEN_ID,
+			TOKEN_ID_2
+		));
 		assert_eq!(
 			NftModule::<Runtime>::classes(CLASS_ID).unwrap().total_issuance,
 			TOKEN_ID_2

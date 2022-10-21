@@ -262,10 +262,7 @@ pub mod pallet {
 			(ClassIdOf<T>, TokenIdOf<T>),
 		),
 		/// Successfully updated class total issuance
-		ClassTotalIssuanceUpdated(
-			ClassIdOf<T>, 
-			TokenIdOf<T>,
-		),
+		ClassTotalIssuanceUpdated(ClassIdOf<T>, TokenIdOf<T>),
 		/// Signed on NFT
 		SignedNft(TokenIdOf<T>, <T as frame_system::Config>::AccountId),
 		/// Promotion enabled
@@ -752,7 +749,7 @@ pub mod pallet {
 			})
 		}
 
-		/// Force update the total issuance of a given class 
+		/// Force update the total issuance of a given class
 		///
 		/// The dispatch origin for this call must be _Root_.
 		/// - `class_id`: the class ID of the collection
@@ -761,17 +758,25 @@ pub mod pallet {
 		///
 		/// Emits `ClassTotalIssuanceUpdated` if successful.
 		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
-		pub fn force_update_total_issuance(origin: OriginFor<T>, class_id: ClassIdOf<T>, current_total_issuance: TokenIdOf<T>, new_total_issuance: TokenIdOf<T>) -> DispatchResult {
+		pub fn force_update_total_issuance(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+			current_total_issuance: TokenIdOf<T>,
+			new_total_issuance: TokenIdOf<T>,
+		) -> DispatchResult {
 			ensure_root(origin)?;
 
 			// update class total issuance
 			Classes::<T>::try_mutate(class_id.clone(), |class_info| -> DispatchResult {
 				let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
-				ensure!(current_total_issuance == info.total_issuance, Error::<T>::InvalidCurrentTotalIssuance);
-				
+				ensure!(
+					current_total_issuance == info.total_issuance,
+					Error::<T>::InvalidCurrentTotalIssuance
+				);
+
 				info.total_issuance = new_total_issuance;
 				Self::deposit_event(Event::<T>::ClassTotalIssuanceUpdated(class_id, new_total_issuance));
-				
+
 				Ok(())
 			})
 		}

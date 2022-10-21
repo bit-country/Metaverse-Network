@@ -29,7 +29,7 @@ impl<T: frame_system::Config> nft::WeightInfo for WeightInfo<T> {
 	fn transfer() -> Weight {
 		(28_845_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))	
+			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 	fn transfer_batch() -> Weight {
 		(46_555_000 as Weight)
