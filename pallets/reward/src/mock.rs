@@ -28,6 +28,9 @@ pub const FREEDY: AccountId = 3;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const FREE_BALANCE: Balance = 9010;
 
+pub const COLLECTION_ID: u64 = 0;
+pub const CLASS_ID: u32 = 0;
+
 // Configure a mock runtime to test the pallet.
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;

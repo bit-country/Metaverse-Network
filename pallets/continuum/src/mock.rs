@@ -293,6 +293,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 			_ => Ok(false),
 		}
 	}
+
+	fn is_metaverse_owner(who: &AccountId) -> bool {
+		true
+	}
 }
 
 impl Config for Runtime {

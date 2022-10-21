@@ -1526,6 +1526,47 @@ fn create_new_auction_for_undeployed_land_block_should_work() {
 }
 
 #[test]
+// Bidding for undeployed land block should work
+fn bidding_for_undeployed_land_block_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0),
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST)),
+			Some(true)
+		);
+
+		// bidding should work
+		assert_ok!(AuctionModule::bid(Origin::signed(BOB.clone()), 0, 200));
+
+		// bidding should fail if not metaverse owner
+		assert_noop!(
+			AuctionModule::bid(Origin::signed(NO_METAVERSE_OWNER.clone()), 0, 300),
+			Error::<Runtime>::MetaverseOwnerOnly
+		);
+	});
+}
+
+#[test]
 // Creating buy now for undeployed land block should work
 fn create_buy_now_for_undeployed_land_block_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -1553,6 +1594,44 @@ fn create_buy_now_for_undeployed_land_block_should_work() {
 		assert_eq!(
 			AuctionModule::items_in_auction(ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST)),
 			Some(true)
+		);
+	});
+}
+
+#[test]
+// Buy now for undeployed land block should fail if not metaverse owner
+fn buy_now_for_undeployed_land_block_should_fail_if_not_metaverse_owner() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST),
+			None,
+			ALICE,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0),
+		));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+
+		assert_eq!(
+			AuctionModule::items_in_auction(ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST)),
+			Some(true)
+		);
+
+		// bidding should fail if not metaverse owner
+		assert_noop!(
+			AuctionModule::buy_now(Origin::signed(NO_METAVERSE_OWNER.clone()), 0, 100),
+			Error::<Runtime>::MetaverseOwnerOnly
 		);
 	});
 }

@@ -333,21 +333,42 @@ fn withdraw_unstake_should_work() {
 }
 
 #[test]
-fn unstake_should_work_with_more_operation() {
+fn unstake_should_work_with_single_round() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
 
 		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None));
 
-		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None));
-
 		assert_ok!(EconomyModule::stake(Origin::signed(BOB), 200, None));
 
-		let alice_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT - UNSTAKE_AMOUNT;
+		let alice_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
 
 		assert_eq!(EconomyModule::get_staking_info(ALICE), alice_staked_balance);
 
 		let total_staked_balance = alice_staked_balance + 200;
 		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+	});
+}
+
+#[test]
+fn unstake_should_fail_with_existing_queue() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
+
+		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None));
+
+		assert_ok!(EconomyModule::stake(Origin::signed(BOB), 200, None));
+
+		let alice_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
+
+		assert_eq!(EconomyModule::get_staking_info(ALICE), alice_staked_balance);
+
+		let total_staked_balance = alice_staked_balance + 200;
+		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+
+		assert_noop!(
+			EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None),
+			Error::<Runtime>::ExitQueueAlreadyScheduled
+		);
 	});
 }
