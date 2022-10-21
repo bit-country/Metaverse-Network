@@ -386,6 +386,11 @@ fn set_reward_fails() {
 			Error::<Runtime>::RewardExceedCap
 		);
 
+		assert_noop!(
+			Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 3), (100, 3), (102, 3)]),
+			Error::<Runtime>::RewardsListSizeAboveMaximum
+		);
+
 		assert_ok!(Reward::set_reward(Origin::signed(ALICE), 0, vec![(BOB, 5)]));
 
 		assert_noop!(
@@ -441,7 +446,7 @@ fn set_nft_reward_fails() {
 		assert_ok!(Reward::create_nft_campaign(
 			Origin::signed(ALICE),
 			ALICE,
-			vec![(0u32, 1u64), (0u32, 2u64)],
+			vec![(0u32, 0u64), (0u32, 1u64), (0u32, 2u64)],
 			10,
 			10,
 			vec![1],
@@ -453,12 +458,17 @@ fn set_nft_reward_fails() {
 		);
 
 		assert_noop!(
+			Reward::set_nft_reward(Origin::signed(ALICE), 0, vec![(BOB, 1), (102, 1), (100, 1)], 3),
+			Error::<Runtime>::RewardsListSizeAboveMaximum
+		);
+
+		assert_noop!(
 			Reward::set_nft_reward(Origin::signed(ALICE), 1, vec![(BOB, 1)], 1),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		assert_noop!(
-			Reward::set_nft_reward(Origin::signed(ALICE), 0, vec![(BOB, 3)], 3),
+			Reward::set_nft_reward(Origin::signed(ALICE), 0, vec![(BOB, 4)], 4),
 			Error::<Runtime>::RewardExceedCap
 		);
 
@@ -474,7 +484,7 @@ fn set_nft_reward_fails() {
 			Error::<Runtime>::AccountAlreadyRewarded
 		);
 
-		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 0, vec![(3, 1)], 1));
+		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 0, vec![(106, 2)], 2));
 
 		assert_noop!(
 			Reward::set_nft_reward(Origin::signed(ALICE), 0, vec![(100, 1)], 1),

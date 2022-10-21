@@ -118,6 +118,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
 
+		/// The max number of accounts that could be rewarded per extrinsic
+		#[pallet::constant]
+		type MaxSetRewardsListLength: Get<u64>;
+
 		/// Accounts that can set rewards
 		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 
@@ -222,6 +226,8 @@ pub mod pallet {
 		AccountAlreadyRewarded,
 		/// Invalid total NFT rewards amount parameter
 		InvalidTotalNftRewardAmountParameter,
+		/// Rewards list size is above maximum permited size
+		RewardsListSizeAboveMaximum,
 	}
 
 	#[pallet::call]
@@ -457,6 +463,10 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
+			ensure!(
+				T::MaxSetRewardsListLength::get() >= rewards.len() as u64,
+				Error::<T>::RewardsListSizeAboveMaximum
+			);
 
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -471,14 +481,14 @@ pub mod pallet {
 				match campaign.cap {
 					RewardType::FungibleTokens(c, b) => {
 						let mut accounts: Vec<T::AccountId> = Vec::new();
-						let mut total_amount: BalanceOf<T> = Zero::zero(); 
+						let mut total_amount: BalanceOf<T> = Zero::zero();
 						for (to, amount) in rewards {
 							total_amount += amount;
 							ensure!(total_amount <= b, Error::<T>::RewardExceedCap);
 
 							let (balance, _) = Self::reward_get(campaign.trie_index, &to);
 							ensure!(balance == Zero::zero(), Error::<T>::AccountAlreadyRewarded);
-							
+
 							Self::reward_put(campaign.trie_index, &to, &amount, &[]);
 							accounts.push(to);
 						}
@@ -494,10 +504,19 @@ pub mod pallet {
 
 		#[pallet::weight(T::WeightInfo::set_nft_reward() * total_nfts_amount)]
 		#[transactional]
-		pub fn set_nft_reward(origin: OriginFor<T>, id: CampaignId, rewards: Vec<(T::AccountId, u64)>, total_nfts_amount: u64) -> DispatchResult {
+		pub fn set_nft_reward(
+			origin: OriginFor<T>,
+			id: CampaignId,
+			rewards: Vec<(T::AccountId, u64)>,
+			total_nfts_amount: u64,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
+			ensure!(
+				T::MaxSetRewardsListLength::get() >= rewards.len() as u64,
+				Error::<T>::RewardsListSizeAboveMaximum
+			);
 
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -518,8 +537,11 @@ pub mod pallet {
 						for (to, amount) in rewards {
 							let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
 							ensure!(t.is_empty(), Error::<T>::AccountAlreadyRewarded);
-							
-							ensure!(total_amount_left  >= amount, Error::<T>::InvalidTotalNftRewardAmountParameter);
+
+							ensure!(
+								total_amount_left >= amount,
+								Error::<T>::InvalidTotalNftRewardAmountParameter
+							);
 							total_amount_left.saturating_sub(amount);
 
 							for l in 0..amount {
