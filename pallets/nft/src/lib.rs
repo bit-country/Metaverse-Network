@@ -261,6 +261,11 @@ pub mod pallet {
 			TokenIdOf<T>,
 			(ClassIdOf<T>, TokenIdOf<T>),
 		),
+		/// Successfully updated class total issuance
+		ClassTotalIssuanceUpdated(
+			ClassIdOf<T>, 
+			TokenIdOf<T>,
+		),
 		/// Signed on NFT
 		SignedNft(TokenIdOf<T>, <T as frame_system::Config>::AccountId),
 		/// Promotion enabled
@@ -345,6 +350,8 @@ pub mod pallet {
 		TotalMintedAssetsForClassExceededProposedLimit,
 		/// Hard limit is already set
 		HardLimitIsAlreadySet,
+		/// Invalid current total issuance
+		InvalidCurrentTotalIssuance,
 	}
 
 	#[pallet::call]
@@ -729,7 +736,7 @@ pub mod pallet {
 		/// Unlock the provided NFT by governance if already locked
 		///
 		/// The dispatch origin for this call must be _Root_.
-		/// - `class_id`: the class ID of the collection
+		/// - `token_id`: the class ID nad token ID of the asset
 		///
 		/// Emits `NftUnlocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
@@ -741,6 +748,30 @@ pub mod pallet {
 				token_info_result.data.is_locked = false;
 				Self::deposit_event(Event::<T>::NftUnlocked(token_id.0, token_id.1));
 
+				Ok(())
+			})
+		}
+
+		/// Force update the total issuance of a given class 
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `class_id`: the class ID of the collection
+		/// - `current_total_issuance`: the current total issuance of the collection
+		/// - `new_total_issuance`: the new total issuance of the collection
+		///
+		/// Emits `ClassTotalIssuanceUpdated` if successful.
+		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
+		pub fn force_update_total_issuance(origin: OriginFor<T>, class_id: ClassIdOf<T>, current_total_issuance: TokenIdOf<T>, new_total_issuance: TokenIdOf<T>) -> DispatchResult {
+			ensure_root(origin)?;
+
+			// update class total issuance
+			Classes::<T>::try_mutate(class_id.clone(), |class_info| -> DispatchResult {
+				let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+				ensure!(current_total_issuance == info.total_issuance, Error::<T>::InvalidCurrentTotalIssuance);
+				
+				info.total_issuance = new_total_issuance;
+				Self::deposit_event(Event::<T>::ClassTotalIssuanceUpdated(class_id, new_total_issuance));
+				
 				Ok(())
 			})
 		}

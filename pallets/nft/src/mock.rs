@@ -32,6 +32,8 @@ pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
 pub const CLASS_ID_1: <Runtime as orml_nft::Config>::ClassId = 1;
 pub const NON_EXISTING_CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 1000;
 pub const TOKEN_ID: <Runtime as orml_nft::Config>::TokenId = 0;
+pub const TOKEN_ID_1: <Runtime as orml_nft::Config>::TokenId = 1;
+pub const TOKEN_ID_2: <Runtime as orml_nft::Config>::TokenId = 2;
 pub const COLLECTION_ID: u64 = 0;
 
 impl frame_system::Config for Runtime {
