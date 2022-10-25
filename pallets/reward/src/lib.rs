@@ -312,7 +312,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::create_campaign() * reward.len() as u64)]
+		#[pallet::weight(T::WeightInfo::create_campaign() * (1u64 + reward.len() as u64))]
 		#[transactional]
 		pub fn create_nft_campaign(
 			origin: OriginFor<T>,
@@ -417,7 +417,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::claim_reward_root())] //* leaf_nodes.len() as u64)]
+		#[pallet::weight(T::WeightInfo::claim_reward_root()  * (1u64 + leaf_nodes.len() as u64))]
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
@@ -442,7 +442,8 @@ pub mod pallet {
 						let fund_account = Self::fund_account_id(id);
 						let merkle_root = Self::calculate_merkle_proof(&who, &balance, &leaf_nodes)?;
 						ensure!(
-							Self::campaign_merkle_roots(id).is_some() && Self::campaign_merkle_roots(id).unwrap().contains(&merkle_root),
+							Self::campaign_merkle_roots(id).is_some()
+								&& Self::campaign_merkle_roots(id).unwrap().contains(&merkle_root),
 							Error::<T>::MerkleRootNotRelatedToCampaign
 						);
 						let (root_balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
@@ -568,7 +569,6 @@ pub mod pallet {
 						let (balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
 						ensure!(balance == Zero::zero(), Error::<T>::RewardAlreadySet);
 
-						
 						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(total_amount));
 
 						<CampaignMerkleRoots<T>>::try_mutate_exists(id, |campaign_roots| -> DispatchResult {
@@ -653,7 +653,7 @@ pub mod pallet {
 			}
 		}
 
-		#[pallet::weight(T::WeightInfo::close_nft_campaign() * left_nfts)]
+		#[pallet::weight(T::WeightInfo::close_nft_campaign() * (1u64 + left_nfts))]
 		pub fn close_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
@@ -718,7 +718,7 @@ pub mod pallet {
 			}
 		}
 
-		#[pallet::weight(T::WeightInfo::cancel_nft_campaign() * left_nfts)]
+		#[pallet::weight(T::WeightInfo::cancel_nft_campaign() * (1u64 + left_nfts))]
 		pub fn cancel_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();

@@ -5,8 +5,8 @@ use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
 use primitives::{AccountId, Balance, BlockNumber, FungibleTokenId, Hash};
-use sp_io::hashing::keccak_256;
 use sp_core::Encode;
+use sp_io::hashing::keccak_256;
 use sp_std::vec::Vec;
 
 use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance};
