@@ -4,7 +4,7 @@ use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
-use primitives::{AccountId, Balance, BlockNumber, FungibleTokenId};
+use primitives::{AccountId, Balance, BlockNumber, FungibleTokenId, Hash};
 
 use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance};
 
@@ -24,6 +24,10 @@ pub fn run_to_block(n: u32) {
 	while System::block_number() < n {
 		next_block();
 	}
+}
+
+pub fn get_hash(value: u64) -> Hash {
+	Hash::from_low_u64_be(value)
 }
 
 runtime_benchmarks! {
@@ -81,10 +85,10 @@ runtime_benchmarks! {
 
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
-		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), vec![1u8]);
+		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), get_hash(1u64));
 		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
 		run_to_block(claiming_block);
-	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), 5u32.into(), vec![1u8])
+	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), 5u32.into(), get_hash(1u64))
 
 	// claim  NFT reward
 	claim_nft_reward{
@@ -138,7 +142,7 @@ runtime_benchmarks! {
 
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
-	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), 5u32.into(), vec![1u8])
+	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), 5u32.into(), get_hash(1u64))
 
 
 	// set nft reward

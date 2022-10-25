@@ -20,6 +20,7 @@ use super::*;
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
+pub type Hash = H256;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;

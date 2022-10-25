@@ -24,7 +24,7 @@ use sp_std::default::Default;
 use super::*;
 use core_primitives::Attributes;
 use mock::{Event, *};
-use primitives::{CampaignInfo, FungibleTokenId};
+use primitives::{CampaignInfo, FungibleTokenId, Hash};
 
 fn init_test_nft(owner: Origin) {
 	//Create group collection before class
@@ -48,6 +48,10 @@ fn test_attributes(x: u8) -> Attributes {
 	let mut attr: Attributes = BTreeMap::new();
 	attr.insert(vec![x, x + 5], vec![x, x + 10]);
 	attr
+}
+
+fn test_hash(value: u64) -> Hash {
+	Hash::from_low_u64_be(value)
 }
 
 #[test]
@@ -326,7 +330,7 @@ fn set_reward_root_works() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, vec![1u8]));
+		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64)));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
@@ -340,7 +344,7 @@ fn set_reward_root_works() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		let event = mock::Event::Reward(crate::Event::SetRewardRoot(campaign_id, 5u32.into(), vec![1u8]));
+		let event = mock::Event::Reward(crate::Event::SetRewardRoot(campaign_id, 5u32.into(), test_hash(1u64)));
 		assert_eq!(last_event(), event)
 	});
 }
@@ -498,36 +502,36 @@ fn set_reward_root_fails() {
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
 		assert_noop!(
-			Reward::set_reward_root(Origin::signed(ALICE), 1, 10, vec![1u8]),
+			Reward::set_reward_root(Origin::signed(ALICE), 1, 10, test_hash(1u64)),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		assert_noop!(
-			Reward::set_reward_root(Origin::signed(ALICE), 0, 11, vec![1u8]),
+			Reward::set_reward_root(Origin::signed(ALICE), 0, 11, test_hash(1u64)),
 			Error::<Runtime>::RewardExceedCap
 		);
 
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, vec![1u8]));
+		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64)));
 
 		assert_noop!(
-			Reward::set_reward_root(Origin::signed(ALICE), 0, 5, vec![1u8]),
+			Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64)),
 			Error::<Runtime>::RewardAlreadySet
 		);
 
 		assert_noop!(
-			Reward::set_reward_root(Origin::signed(ALICE), 0, 6, vec![2u8]),
+			Reward::set_reward_root(Origin::signed(ALICE), 0, 6, test_hash(2u64)),
 			Error::<Runtime>::RewardExceedCap
 		);
 
 		assert_noop!(
-			Reward::set_reward_root(Origin::signed(3), 0, 5, vec![2u8]),
+			Reward::set_reward_root(Origin::signed(3), 0, 5, test_hash(2u64)),
 			Error::<Runtime>::InvalidSetRewardOrigin
 		);
 
 		run_to_block(21);
 
 		assert_noop!(
-			Reward::set_reward_root(Origin::signed(ALICE), 0, 5, vec![2u8]),
+			Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(2u64)),
 			Error::<Runtime>::CampaignExpired
 		);
 
@@ -543,7 +547,7 @@ fn set_reward_root_fails() {
 		));
 
 		assert_noop!(
-			Reward::set_reward_root(Origin::signed(ALICE), 1, 5, vec![1u8]),
+			Reward::set_reward_root(Origin::signed(ALICE), 1, 5, test_hash(1u64)),
 			Error::<Runtime>::InvalidCampaignType
 		);
 	});
@@ -684,12 +688,12 @@ fn claim_reward_root_works() {
 			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, vec![1u8]));
+		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64)));
 
 		run_to_block(17);
 		//assert_eq!(last_event(), mock::Event::Reward(crate::Event::RewardCampaignEnded(0)));
 
-		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![1u8]));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)));
 		assert_eq!(Balances::free_balance(BOB), 20005);
 
 		let campaign_info_after_claim = CampaignInfo {
@@ -928,38 +932,38 @@ fn claim_reward_root_fails() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, vec![1u8]));
+		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64)));
 
 		run_to_block(9);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![1u8]),
+			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)),
 			Error::<Runtime>::CampaignStillActive
 		);
 
 		run_to_block(17);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, vec![1u8]),
+			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, test_hash(1u64)),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
-		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![2u8]),
-			Error::<Runtime>::NoRewardFound
-		);
-
-		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![1u8]));
+	//	assert_noop!(
+	//		Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(2u64)),
+	//		Error::<Runtime>::NoRewardFound
+	//	);
+	
+	assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)));
 
 		//assert_noop!(
-		//	Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![1u8]),
+		//	Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)),
 		//	Error::<Runtime>::NoRewardFound
 		//);
 
 		run_to_block(23);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![1u8]),
+			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)),
 			Error::<Runtime>::CampaignExpired
 		);
 
@@ -980,8 +984,33 @@ fn claim_reward_root_fails() {
 		run_to_block(37);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, vec![1u8]),
+			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, test_hash(1u64)),
 			Error::<Runtime>::InvalidCampaignType
+		);
+
+
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			20,
+			50,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0),
+		));
+
+		run_to_block(51);
+
+		assert_noop!(
+			Reward::claim_reward_root(Origin::signed(BOB), 2, 5, test_hash(1u64)),
+			Error::<Runtime>::MerkleRootNotRelatedToCampaign
+		);
+
+		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 2, 5, test_hash(3u64)));
+		
+		assert_noop!(
+			Reward::claim_reward_root(Origin::signed(BOB), 2, 5, test_hash(1u64)),
+			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 	});
 }

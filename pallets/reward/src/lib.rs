@@ -29,19 +29,19 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
 use sp_core::Encode as SPEncode;
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash, Saturating};
+use sp_io::hashing::keccak_256;
+use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash as Hasher, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
-use sp_io::hashing::keccak_256;
 
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
 use primitives::{
-	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, RewardType, TrieIndex,
+	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, Hash, RewardType, TrieIndex,
 };
 use primitives::{Balance, ClassId, FungibleTokenId, NftId};
 pub use weights::WeightInfo;
@@ -144,6 +144,11 @@ pub mod pallet {
 		CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId>,
 	>;
 
+	/// List of merkle roots for each campaign
+	#[pallet::storage]
+	#[pallet::getter(fn campaign_merkle_roots)]
+	pub(super) type CampaignMerkleRoots<T: Config> = StorageMap<_, Twox64Concat, CampaignId, Vec<Hash>>;
+
 	/// Tracker for the next available trie index
 	#[pallet::storage]
 	#[pallet::getter(fn next_trie_index)]
@@ -171,7 +176,7 @@ pub mod pallet {
 		/// Set reward [campaign_id, account, balance]
 		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Set reward merkle root [campaign_id, balance]
-		SetRewardRoot(CampaignId, BalanceOf<T>, Vec<u8>),
+		SetRewardRoot(CampaignId, BalanceOf<T>, Hash),
 		/// Set reward [campaign_id, account, asset]
 		SetNftReward(CampaignId, T::AccountId, (ClassId, TokenId)),
 		/// Reward campaign ended [campaign_id]
@@ -232,6 +237,8 @@ pub mod pallet {
 		RewardAlreadySet,
 		/// Reward leaf amount is larger then maximum
 		InvalidRewardLeafAmount,
+		/// Merkle root is not related to a campaign
+		MerkleRootNotRelatedToCampaign,
 	}
 
 	#[pallet::call]
@@ -410,8 +417,13 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::claim_reward_root())]//* leaf_nodes.len() as u64)]
-		pub fn claim_reward_root(origin: OriginFor<T>, id: CampaignId, balance: BalanceOf<T>, merkle_root: Vec<u8>) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::claim_reward_root())] //* leaf_nodes.len() as u64)]
+		pub fn claim_reward_root(
+			origin: OriginFor<T>,
+			id: CampaignId,
+			balance: BalanceOf<T>,
+			merkle_root: Hash,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -429,7 +441,12 @@ pub mod pallet {
 					RewardType::FungibleTokens(c, r) => {
 						let fund_account = Self::fund_account_id(id);
 						//let merkle_root = Self::calculate_merkle_proof(&who, &balance, leaf_nodes);
+						ensure!(
+							Self::campaign_merkle_roots(id).is_some() && Self::campaign_merkle_roots(id).unwrap().contains(&merkle_root),
+							Error::<T>::MerkleRootNotRelatedToCampaign
+						);
 						let (root_balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
+						// extra check in case the CampaignMerkleRoots storage is corrupted
 						ensure!(root_balance > Zero::zero(), Error::<T>::NoRewardFound);
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
 
@@ -528,7 +545,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			id: CampaignId,
 			total_amount: BalanceOf<T>,
-			merkle_root: Vec<u8>,
+			merkle_root: Hash,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -551,7 +568,16 @@ pub mod pallet {
 						let (balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
 						ensure!(balance == Zero::zero(), Error::<T>::RewardAlreadySet);
 
+						
 						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(total_amount));
+
+						<CampaignMerkleRoots<T>>::try_mutate_exists(id, |campaign_roots| -> DispatchResult {
+							let mut campaign_roots_vec: Vec<Hash> = campaign_roots.clone().unwrap_or(Vec::new());
+							campaign_roots_vec.push(merkle_root);
+							campaign_roots.replace(campaign_roots_vec);
+							Ok(())
+						});
+
 						Self::reward_put_root(campaign.trie_index, merkle_root.clone(), &total_amount, &[]);
 						Self::deposit_event(Event::<T>::SetRewardRoot(id, total_amount, merkle_root));
 						Ok(())
@@ -617,6 +643,7 @@ pub mod pallet {
 
 						Self::reward_kill(campaign.trie_index, &who);
 						Campaigns::<T>::remove(id);
+						CampaignMerkleRoots::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 						Ok(())
 					}
@@ -658,6 +685,7 @@ pub mod pallet {
 
 						Self::reward_kill(campaign.trie_index, &who);
 						Campaigns::<T>::remove(id);
+						CampaignMerkleRoots::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 						Ok(())
 					}
@@ -787,7 +815,7 @@ impl<T: Config> Pallet<T> {
 		who.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(balance, memo)));
 	}
 
-	pub fn reward_put_root(index: TrieIndex, merkle_root: Vec<u8>, balance: &BalanceOf<T>, memo: &[u8]) {
+	pub fn reward_put_root(index: TrieIndex, merkle_root: Hash, balance: &BalanceOf<T>, memo: &[u8]) {
 		merkle_root.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(balance, memo)));
 	}
 
@@ -799,7 +827,7 @@ impl<T: Config> Pallet<T> {
 		who.using_encoded(|b| child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(&Self::id_from_index(index), b))
 	}
 
-	pub fn reward_get_root(index: TrieIndex, merkle_root: Vec<u8>) -> (BalanceOf<T>, Vec<u8>) {
+	pub fn reward_get_root(index: TrieIndex, merkle_root: Hash) -> (BalanceOf<T>, Vec<u8>) {
 		merkle_root.using_encoded(|b| child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(&Self::id_from_index(index), b))
 	}
 
@@ -826,10 +854,9 @@ impl<T: Config> Pallet<T> {
 	pub fn calculate_merkle_proof(
 		who: &T::AccountId,
 		balance: &BalanceOf<T>,
-		leaf_nodes: &Vec<Vec<u8>>,
-	) -> Result<Vec<u8>,DispatchError> {
-
-		ensure!( 
+		leaf_nodes: &Vec<Hash>,
+	) -> Result<Vec<u8>, DispatchError> {
+		ensure!(
 			leaf_nodes.len() as u64 <= T::MaxLeafNodes::get(),
 			Error::<T>::InvalidRewardLeafAmount
 		);
@@ -840,11 +867,12 @@ impl<T: Config> Pallet<T> {
 
 		let leaf_hash = keccak_256(&leaf).to_vec();
 
-		leaf_nodes.iter()
-			.fold(leaf_hash.clone(), |acc, hash| Self::sorted_hash_of(&acc.to_vec(), hash));
+		leaf_nodes.iter().fold(leaf_hash.clone(), |acc, hash| {
+			Self::sorted_hash_of(&Hash::from_slice(acc.as_ref()), hash)
+		});
 		Ok(leaf_hash)
 	}
-	  
+
 	fn end_campaign(campaign_id: CampaignId) -> DispatchResult {
 		Self::deposit_event(Event::<T>::RewardCampaignEnded(campaign_id));
 		Ok(())
@@ -855,7 +883,7 @@ impl<T: Config> Pallet<T> {
 		set_reward_origin == Some(())
 	}
 
-	pub fn sorted_hash_of(a: &Vec<u8>, b: &Vec<u8>) -> Vec<u8> {
+	pub fn sorted_hash_of(a: &Hash, b: &Hash) -> Vec<u8> {
 		let mut h: Vec<u8> = Vec::with_capacity(64);
 		if a < b {
 			h.extend_from_slice(a.as_ref());
