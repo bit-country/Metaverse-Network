@@ -422,7 +422,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			id: CampaignId,
 			balance: BalanceOf<T>,
-			merkle_root: Hash,
+			leaf_nodes: Vec<Hash>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
@@ -440,7 +440,7 @@ pub mod pallet {
 				match campaign.claimed {
 					RewardType::FungibleTokens(c, r) => {
 						let fund_account = Self::fund_account_id(id);
-						//let merkle_root = Self::calculate_merkle_proof(&who, &balance, leaf_nodes);
+						let merkle_root = Self::calculate_merkle_proof(&who, &balance, &leaf_nodes)?;
 						ensure!(
 							Self::campaign_merkle_roots(id).is_some() && Self::campaign_merkle_roots(id).unwrap().contains(&merkle_root),
 							Error::<T>::MerkleRootNotRelatedToCampaign
@@ -855,7 +855,7 @@ impl<T: Config> Pallet<T> {
 		who: &T::AccountId,
 		balance: &BalanceOf<T>,
 		leaf_nodes: &Vec<Hash>,
-	) -> Result<Vec<u8>, DispatchError> {
+	) -> Result<Hash, DispatchError> {
 		ensure!(
 			leaf_nodes.len() as u64 <= T::MaxLeafNodes::get(),
 			Error::<T>::InvalidRewardLeafAmount
@@ -865,7 +865,7 @@ impl<T: Config> Pallet<T> {
 		let mut leaf: Vec<u8> = who.encode();
 		leaf.extend(balance.encode());
 
-		let leaf_hash = keccak_256(&leaf).to_vec();
+		let leaf_hash: Hash = keccak_256(&leaf).into();
 
 		leaf_nodes.iter().fold(leaf_hash.clone(), |acc, hash| {
 			Self::sorted_hash_of(&Hash::from_slice(acc.as_ref()), hash)
@@ -883,7 +883,7 @@ impl<T: Config> Pallet<T> {
 		set_reward_origin == Some(())
 	}
 
-	pub fn sorted_hash_of(a: &Hash, b: &Hash) -> Vec<u8> {
+	pub fn sorted_hash_of(a: &Hash, b: &Hash) -> Hash {
 		let mut h: Vec<u8> = Vec::with_capacity(64);
 		if a < b {
 			h.extend_from_slice(a.as_ref());
@@ -893,7 +893,7 @@ impl<T: Config> Pallet<T> {
 			h.extend_from_slice(a.as_ref());
 		}
 
-		keccak_256(&h).to_vec()
+		keccak_256(&h).into()
 	}
 	/*
 		/// Internal update of campaign info to v2
