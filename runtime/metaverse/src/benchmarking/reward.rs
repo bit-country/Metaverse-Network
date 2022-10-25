@@ -5,6 +5,9 @@ use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
 use primitives::{AccountId, Balance, BlockNumber, FungibleTokenId, Hash};
+use sp_io::hashing::keccak_256;
+use sp_core::Encode;
+use sp_std::vec::Vec;
 
 use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance};
 
@@ -28,6 +31,12 @@ pub fn run_to_block(n: u32) {
 
 pub fn get_hash(value: u64) -> Hash {
 	Hash::from_low_u64_be(value)
+}
+
+pub fn get_claim_hash(who: AccountId, balance: Balance) -> Hash {
+	let mut leaf: Vec<u8> = who.encode();
+	leaf.extend(balance.encode());
+	keccak_256(&leaf).into()
 }
 
 runtime_benchmarks! {
@@ -85,10 +94,10 @@ runtime_benchmarks! {
 
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
-		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), get_hash(1u64));
+		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), get_claim_hash(claiming_account.clone(), 5u32.into()));
 		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
 		run_to_block(claiming_block);
-	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), 5u32.into(), get_hash(1u64))
+	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), 5u32.into(), vec![])
 
 	// claim  NFT reward
 	claim_nft_reward{

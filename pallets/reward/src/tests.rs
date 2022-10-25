@@ -23,7 +23,7 @@ use sp_std::default::Default;
 
 use super::*;
 use core_primitives::Attributes;
-use mock::{Event, *};
+use mock::{Event, Balance, *};
 use primitives::{CampaignInfo, FungibleTokenId, Hash};
 
 fn init_test_nft(owner: Origin) {
@@ -52,6 +52,12 @@ fn test_attributes(x: u8) -> Attributes {
 
 fn test_hash(value: u64) -> Hash {
 	Hash::from_low_u64_be(value)
+}
+
+fn test_claim_hash(who: AccountId, balance: Balance) -> Hash {
+	let mut leaf: Vec<u8> = who.encode();
+	leaf.extend(balance.encode());
+	keccak_256(&leaf).into()
 }
 
 #[test]
@@ -688,12 +694,12 @@ fn claim_reward_root_works() {
 			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64)));
+		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_claim_hash(BOB, 5)));
 
 		run_to_block(17);
 		//assert_eq!(last_event(), mock::Event::Reward(crate::Event::RewardCampaignEnded(0)));
 
-		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]));
 		assert_eq!(Balances::free_balance(BOB), 20005);
 
 		let campaign_info_after_claim = CampaignInfo {
@@ -932,28 +938,28 @@ fn claim_reward_root_fails() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64)));
+		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_claim_hash(BOB, 5)));
 
 		run_to_block(9);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)),
+			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]),
 			Error::<Runtime>::CampaignStillActive
 		);
 
 		run_to_block(17);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, test_hash(1u64)),
+			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, vec![]),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 	//	assert_noop!(
-	//		Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(2u64)),
+	//		Reward::claim_reward_root(Origin::signed(BOB), 0, 5,vec![]),
 	//		Error::<Runtime>::NoRewardFound
 	//	);
 	
-	assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)));
+	assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]));
 
 		//assert_noop!(
 		//	Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)),
@@ -963,7 +969,7 @@ fn claim_reward_root_fails() {
 		run_to_block(23);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)),
+			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]),
 			Error::<Runtime>::CampaignExpired
 		);
 
@@ -984,7 +990,7 @@ fn claim_reward_root_fails() {
 		run_to_block(37);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, test_hash(1u64)),
+			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, vec![]),
 			Error::<Runtime>::InvalidCampaignType
 		);
 
@@ -1002,14 +1008,14 @@ fn claim_reward_root_fails() {
 		run_to_block(51);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 2, 5, test_hash(1u64)),
+			Reward::claim_reward_root(Origin::signed(BOB), 2, 5, vec![]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 2, 5, test_hash(3u64)));
+		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 2, 10, test_claim_hash(BOB, 5)));
 		
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 2, 5, test_hash(1u64)),
+			Reward::claim_reward_root(Origin::signed(BOB), 2, 10, vec![]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 	});
