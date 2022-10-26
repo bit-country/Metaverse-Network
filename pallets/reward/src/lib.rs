@@ -228,6 +228,8 @@ pub mod pallet {
 		InvalidTotalNftRewardAmountParameter,
 		/// Rewards list size is above maximum permited size
 		RewardsListSizeAboveMaximum,
+		/// Artimetic operation overflow
+		ArithmeticOverflow,
 	}
 
 	#[pallet::call]
@@ -483,7 +485,7 @@ pub mod pallet {
 						let mut accounts: Vec<T::AccountId> = Vec::new();
 						let mut total_amount: BalanceOf<T> = Zero::zero();
 						for (to, amount) in rewards {
-							total_amount.saturating_add(amount);
+							total_amount = total_amount.saturating_add(amount);
 							ensure!(total_amount <= b, Error::<T>::RewardExceedCap);
 
 							let (balance, _) = Self::reward_get(campaign.trie_index, &to);
