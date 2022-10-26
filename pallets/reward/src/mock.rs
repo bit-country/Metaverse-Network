@@ -95,6 +95,7 @@ parameter_types! {
 	pub const MinimumRewardPool: Balance = 1;
 	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10;
 	pub const MinimumCampaignDuration: BlockNumber = 5;
+	pub const MaxSetRewardsListLength: u64 = 2;
 }
 
 impl Config for Runtime {
@@ -107,6 +108,7 @@ impl Config for Runtime {
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type MaxSetRewardsListLength = MaxSetRewardsListLength;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type NFTHandler = NFTModule;
 	type WeightInfo = ();
