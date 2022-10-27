@@ -166,10 +166,10 @@ pub mod pallet {
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Reward claimed [campaign_id, account, asset]
 		NftRewardClaimed(CampaignId, T::AccountId, Vec<(ClassId, TokenId)>),
-		/// Set reward [campaign_id, accounts, balance]
-		SetReward(CampaignId, Vec<T::AccountId>, BalanceOf<T>),
-		/// Set reward [campaign_id, account, asset]
-		SetNftReward(CampaignId, Vec<T::AccountId>, Vec<(ClassId, TokenId)>),
+		/// Set reward [campaign_id, rewards_list]
+		SetReward(CampaignId, Vec<(T::AccountId, BalanceOf<T>)>),
+		/// Set reward [campaign_id, rewards_list]
+		SetNftReward(CampaignId, Vec<(T::AccountId, Vec<(ClassId, TokenId)>)>),
 		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
@@ -303,7 +303,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::create_campaign() * reward.len() as u64)]
+		#[pallet::weight(T::WeightInfo::create_campaign() * (1u64 + reward.len() as u64))]
 		#[transactional]
 		pub fn create_nft_campaign(
 			origin: OriginFor<T>,
@@ -407,7 +407,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::claim_nft_reward() * amount)]
+		#[pallet::weight(T::WeightInfo::claim_nft_reward() * (1u64 + amount))]
 		#[transactional]
 		pub fn claim_nft_reward(origin: OriginFor<T>, id: CampaignId, amount: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -482,7 +482,7 @@ pub mod pallet {
 
 				match campaign.cap {
 					RewardType::FungibleTokens(c, b) => {
-						let mut accounts: Vec<T::AccountId> = Vec::new();
+						let mut rewards_list: Vec<(T::AccountId, BalanceOf<T>)> = Vec::new();
 						let mut total_amount: BalanceOf<T> = Zero::zero();
 						for (to, amount) in rewards {
 							total_amount = total_amount.saturating_add(amount);
@@ -492,10 +492,10 @@ pub mod pallet {
 							ensure!(balance == Zero::zero(), Error::<T>::AccountAlreadyRewarded);
 
 							Self::reward_put(campaign.trie_index, &to, &amount, &[]);
-							accounts.push(to);
+							rewards_list.push((to, amount));
 						}
 						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(total_amount));
-						Self::deposit_event(Event::<T>::SetReward(id, accounts, total_amount));
+						Self::deposit_event(Event::<T>::SetReward(id, rewards_list));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -533,8 +533,8 @@ pub mod pallet {
 				match campaign.cap.clone() {
 					RewardType::NftAssets(cap) => {
 						let mut new_cap = cap.clone();
-						let mut tokens: Vec<(ClassId, NftId)> = Vec::new();
-						let mut accounts: Vec<T::AccountId> = Vec::new();
+						let mut rewards_list: Vec<(T::AccountId, Vec<(ClassId, NftId)>)> = Vec::new();
+						let mut tokens: Vec<(ClassId, TokenId)> = Vec::new();
 						let mut total_amount_left: u64 = total_nfts_amount;
 						for (to, amount) in rewards {
 							let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
@@ -551,10 +551,11 @@ pub mod pallet {
 								tokens.push(token);
 							}
 							Self::reward_put_nft(campaign.trie_index, &to, &tokens, &[]);
-							accounts.push(to);
+							rewards_list.push((to, tokens));
+							tokens = Vec::new();
 						}
 						campaign.cap = RewardType::NftAssets(new_cap);
-						Self::deposit_event(Event::<T>::SetNftReward(id, accounts, tokens));
+						Self::deposit_event(Event::<T>::SetNftReward(id, rewards_list));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -596,7 +597,7 @@ pub mod pallet {
 			}
 		}
 
-		#[pallet::weight(T::WeightInfo::close_nft_campaign() * left_nfts)]
+		#[pallet::weight(T::WeightInfo::close_nft_campaign() * (1u64 + left_nfts))]
 		pub fn close_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
