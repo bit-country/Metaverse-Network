@@ -4,7 +4,7 @@ use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
-use primitives::{AccountId, Balance, BlockNumber, FungibleTokenId, Hash};
+use primitives::{AccountId, Balance, BlockNumber, ClassId, FungibleTokenId, Hash, TokenId};
 use sp_core::Encode;
 use sp_io::hashing::keccak_256;
 use sp_std::vec::Vec;
@@ -36,6 +36,12 @@ pub fn get_hash(value: u64) -> Hash {
 pub fn get_claim_hash(who: AccountId, balance: Balance) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
 	leaf.extend(balance.encode());
+	keccak_256(&leaf).into()
+}
+
+pub fn get_claim_nft_hash(who: AccountId, token: (ClassId, TokenId)) -> Hash {
+	let mut leaf: Vec<u8> = who.encode();
+	leaf.extend(token.encode());
 	keccak_256(&leaf).into()
 }
 
@@ -121,6 +127,28 @@ runtime_benchmarks! {
 		run_to_block(claiming_block);
 	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into())
 
+	// claim  NFT reward using merkle root
+	claim_nft_reward_root{
+		System::set_block_number(1u32.into());
+		let origin: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &origin, dollar(1000));
+		let claiming_account: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &claiming_account, dollar(10));
+
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+		Reward::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+
+		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
+		create_nft_group();
+		mint_NFT(&origin, 0u32.into());
+		mint_NFT(&origin, 0u32.into());
+		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
+		Reward::set_nft_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), get_claim_nft_hash(claiming_account.clone(), (0u32, 1u64)));
+		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
+		run_to_block(claiming_block);
+	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), vec![(0u32, 1u64)], vec![])
+
 	// set reward
 	set_reward{
 		System::set_block_number(1u32.into());
@@ -173,6 +201,26 @@ runtime_benchmarks! {
 
 		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
 	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), claiming_account.clone())
+
+	// set nft reward using merkle root
+	set_nft_reward_root {
+		System::set_block_number(1u32.into());
+		let origin: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &origin, dollar(1000));
+		let claiming_account: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &claiming_account, dollar(10));
+
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+		Reward::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+
+		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
+		create_nft_group();
+		mint_NFT(&origin, 0u32.into());
+		mint_NFT(&origin, 0u32.into());
+
+		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
+	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), get_hash(1u64))
 
 	// close_campaign
 	close_campaign{

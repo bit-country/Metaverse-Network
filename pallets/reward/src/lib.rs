@@ -171,14 +171,16 @@ pub mod pallet {
 		NewRewardCampaignCreated(CampaignId, T::AccountId),
 		/// Reward claimed [campaign_id, account, balance]
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
-		/// Reward claimed [campaign_id, account, asset]
-		NftRewardClaimed(CampaignId, T::AccountId, (ClassId, TokenId)),
+		/// Reward claimed [campaign_id, account, assets]
+		NftRewardClaimed(CampaignId, T::AccountId, Vec<(ClassId, TokenId)>),
 		/// Set reward [campaign_id, account, balance]
 		SetReward(CampaignId, T::AccountId, BalanceOf<T>),
-		/// Set reward merkle root [campaign_id, balance]
+		/// Set reward using merkle root [campaign_id, balance, hash]
 		SetRewardRoot(CampaignId, BalanceOf<T>, Hash),
-		/// Set reward [campaign_id, account, asset]
+		/// Set NFT reward [campaign_id, account, asset]
 		SetNftReward(CampaignId, T::AccountId, (ClassId, TokenId)),
+		/// Set NFT rewards using merkle root[campaign_id, hash]
+		SetNftRewardRoot(CampaignId, Hash),
 		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
@@ -495,7 +497,70 @@ pub mod pallet {
 
 							Self::reward_kill(campaign.trie_index, &who);
 
-							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, token));
+							let mut token_vec: Vec<(ClassId, TokenId)> = Vec::new();
+							token_vec.push(token);
+							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, token_vec));
+							Ok(())
+						}
+						_ => Err(Error::<T>::InvalidCampaignType.into()),
+					},
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
+			})?;
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::claim_nft_reward_root() * (1u64 + tokens.len() as u64))]
+		#[transactional]
+		pub fn claim_nft_reward_root(
+			origin: OriginFor<T>,
+			id: CampaignId,
+			tokens: Vec<(ClassId, TokenId)>,
+			leaf_nodes: Vec<Hash>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+
+				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+
+				match campaign.reward.clone() {
+					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
+						RewardType::NftAssets(claimed) => {
+							let merkle_proof: Hash =
+								Self::calculate_nft_rewards_merkle_proof(&who, &tokens, &leaf_nodes)?;
+
+							ensure!(
+								Self::campaign_merkle_roots(id).is_some()
+									&& Self::campaign_merkle_roots(id).unwrap().contains(&merkle_proof),
+								Error::<T>::MerkleRootNotRelatedToCampaign
+							);
+
+							let (tokens, _) = Self::reward_get_nft_root(campaign.trie_index, merkle_proof);
+							ensure!(!tokens.is_empty(), Error::<T>::NoRewardFound);
+
+							let mut new_claimed = claimed;
+							for token in tokens.clone() {
+								ensure!(
+									reward.contains(&token) && !new_claimed.contains(&token),
+									Error::<T>::NoRewardFound
+								);
+
+								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
+								T::NFTHandler::transfer_nft(&campaign.creator, &who, &token)?;
+								new_claimed.push(token);
+							}
+
+							campaign.claimed = RewardType::NftAssets(new_claimed);
+
+							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, tokens));
 							Ok(())
 						}
 						_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -611,6 +676,44 @@ pub mod pallet {
 						Self::reward_put_nft(campaign.trie_index, &to, &token, &[]);
 						campaign.cap = RewardType::NftAssets(new_cap);
 						Self::deposit_event(Event::<T>::SetNftReward(id, to, token));
+						Ok(())
+					}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
+			})?;
+			Ok(())
+		}
+
+		#[pallet::weight(T::WeightInfo::set_nft_reward_root())]
+		pub fn set_nft_reward_root(origin: OriginFor<T>, id: CampaignId, merkle_root: Hash) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
+
+			let now = frame_system::Pallet::<T>::block_number();
+
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+
+				match campaign.cap.clone() {
+					RewardType::NftAssets(cap) => {
+						ensure!(Self::campaign_merkle_roots(id) == None, Error::<T>::RewardAlreadySet);
+
+						ensure!(!cap.is_empty(), Error::<T>::RewardExceedCap);
+
+						Self::reward_put_nft_root(campaign.trie_index, merkle_root, &cap, &[]);
+
+						let mut merkle_roots_vec: Vec<Hash> = Vec::new();
+						merkle_roots_vec.push(merkle_root);
+						<CampaignMerkleRoots<T>>::insert(id, merkle_roots_vec);
+
+						campaign.cap = RewardType::NftAssets(Vec::new());
+						Self::deposit_event(Event::<T>::SetNftRewardRoot(id, merkle_root));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -823,6 +926,10 @@ impl<T: Config> Pallet<T> {
 		who.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(token, memo)));
 	}
 
+	pub fn reward_put_nft_root(index: TrieIndex, merkle_root: Hash, tokens: &Vec<(ClassId, TokenId)>, memo: &[u8]) {
+		merkle_root.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(tokens, memo)));
+	}
+
 	pub fn reward_get(index: TrieIndex, who: &T::AccountId) -> (BalanceOf<T>, Vec<u8>) {
 		who.using_encoded(|b| child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(&Self::id_from_index(index), b))
 	}
@@ -835,8 +942,18 @@ impl<T: Config> Pallet<T> {
 		who.using_encoded(|b| child::get_or_default::<((ClassId, TokenId), Vec<u8>)>(&Self::id_from_index(index), b))
 	}
 
+	pub fn reward_get_nft_root(index: TrieIndex, merkle_root: Hash) -> (Vec<(ClassId, TokenId)>, Vec<u8>) {
+		merkle_root.using_encoded(|b| {
+			child::get_or_default::<(Vec<(ClassId, TokenId)>, Vec<u8>)>(&Self::id_from_index(index), b)
+		})
+	}
+
 	pub fn reward_kill(index: TrieIndex, who: &T::AccountId) {
 		who.using_encoded(|b| child::kill(&Self::id_from_index(index), b));
+	}
+
+	pub fn reward_kill_root(index: TrieIndex, merkle_root: Hash) {
+		merkle_root.using_encoded(|b| child::kill(&Self::id_from_index(index), b));
 	}
 
 	pub fn campaign_reward_iterator(
@@ -864,6 +981,31 @@ impl<T: Config> Pallet<T> {
 		// Hash the pair of AccountId and Balance
 		let mut leaf: Vec<u8> = who.encode();
 		leaf.extend(balance.encode());
+
+		let leaf_hash: Hash = keccak_256(&leaf).into();
+
+		leaf_nodes.iter().fold(leaf_hash.clone(), |acc, hash| {
+			Self::sorted_hash_of(&Hash::from_slice(acc.as_ref()), hash)
+		});
+		Ok(leaf_hash)
+	}
+
+	pub fn calculate_nft_rewards_merkle_proof(
+		who: &T::AccountId,
+		tokens: &Vec<(ClassId, TokenId)>,
+		leaf_nodes: &Vec<Hash>,
+	) -> Result<Hash, DispatchError> {
+		ensure!(
+			leaf_nodes.len() as u64 <= T::MaxLeafNodes::get(),
+			Error::<T>::InvalidRewardLeafAmount
+		);
+
+		// Hash the pair of AccountId and list of (ClassId, TokenId)
+		let mut leaf: Vec<u8> = who.encode();
+		for token in tokens.clone() {
+			leaf.extend(token.0.encode());
+			leaf.extend(token.1.encode());
+		}
 
 		let leaf_hash: Hash = keccak_256(&leaf).into();
 
