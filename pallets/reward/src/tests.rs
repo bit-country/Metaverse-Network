@@ -344,7 +344,7 @@ fn set_nft_reward_works() {
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_2));
 
-		let event = mock::Event::Reward(crate::Event::SetNftReward(campaign_id, vec![BOB], vec![(0u32, 1u64)]));
+		let event = mock::Event::Reward(crate::Event::SetNftReward(campaign_id, vec![(BOB, vec![(0u32, 1u64)])]));
 		assert_eq!(last_event(), event)
 	});
 }

@@ -166,10 +166,10 @@ pub mod pallet {
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Reward claimed [campaign_id, account, asset]
 		NftRewardClaimed(CampaignId, T::AccountId, Vec<(ClassId, TokenId)>),
-		/// Set reward [campaign_id, rewards]
+		/// Set reward [campaign_id, rewards_list]
 		SetReward(CampaignId, Vec<(T::AccountId, BalanceOf<T>)>),
-		/// Set reward [campaign_id, account, asset]
-		SetNftReward(CampaignId, Vec<T::AccountId>, Vec<(ClassId, TokenId)>),
+		/// Set reward [campaign_id, rewards_list]
+		SetNftReward(CampaignId, Vec<(T::AccountId, Vec<(ClassId, TokenId)>)>),
 		/// Reward campaign ended [campaign_id]
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
@@ -533,8 +533,8 @@ pub mod pallet {
 				match campaign.cap.clone() {
 					RewardType::NftAssets(cap) => {
 						let mut new_cap = cap.clone();
-						let mut tokens: Vec<(ClassId, NftId)> = Vec::new();
-						let mut accounts: Vec<T::AccountId> = Vec::new();
+						let mut rewards_list: Vec<(T::AccountId, Vec<(ClassId, NftId)>)> = Vec::new();
+						let mut tokens: Vec<(ClassId, TokenId)> = Vec::new();
 						let mut total_amount_left: u64 = total_nfts_amount;
 						for (to, amount) in rewards {
 							let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
@@ -551,10 +551,11 @@ pub mod pallet {
 								tokens.push(token);
 							}
 							Self::reward_put_nft(campaign.trie_index, &to, &tokens, &[]);
-							accounts.push(to);
+							rewards_list.push((to, tokens));
+							tokens = Vec::new();
 						}
 						campaign.cap = RewardType::NftAssets(new_cap);
-						Self::deposit_event(Event::<T>::SetNftReward(id, accounts, tokens));
+						Self::deposit_event(Event::<T>::SetNftReward(id, rewards_list));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
