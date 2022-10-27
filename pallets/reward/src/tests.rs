@@ -293,7 +293,7 @@ fn set_reward_works() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		let event = mock::Event::Reward(crate::Event::SetReward(campaign_id, vec![BOB], 5u32.into()));
+		let event = mock::Event::Reward(crate::Event::SetReward(campaign_id, vec![(BOB, 5u32.into())]));
 		assert_eq!(last_event(), event)
 	});
 }

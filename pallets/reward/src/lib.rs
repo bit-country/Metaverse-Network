@@ -166,8 +166,8 @@ pub mod pallet {
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
 		/// Reward claimed [campaign_id, account, asset]
 		NftRewardClaimed(CampaignId, T::AccountId, Vec<(ClassId, TokenId)>),
-		/// Set reward [campaign_id, accounts, balance]
-		SetReward(CampaignId, Vec<T::AccountId>, BalanceOf<T>),
+		/// Set reward [campaign_id, rewards]
+		SetReward(CampaignId, Vec<(T::AccountId, BalanceOf<T>)>),
 		/// Set reward [campaign_id, account, asset]
 		SetNftReward(CampaignId, Vec<T::AccountId>, Vec<(ClassId, TokenId)>),
 		/// Reward campaign ended [campaign_id]
@@ -482,7 +482,7 @@ pub mod pallet {
 
 				match campaign.cap {
 					RewardType::FungibleTokens(c, b) => {
-						let mut accounts: Vec<T::AccountId> = Vec::new();
+						let mut rewards_list: Vec<(T::AccountId, BalanceOf<T>)> = Vec::new();
 						let mut total_amount: BalanceOf<T> = Zero::zero();
 						for (to, amount) in rewards {
 							total_amount = total_amount.saturating_add(amount);
@@ -492,10 +492,10 @@ pub mod pallet {
 							ensure!(balance == Zero::zero(), Error::<T>::AccountAlreadyRewarded);
 
 							Self::reward_put(campaign.trie_index, &to, &amount, &[]);
-							accounts.push(to);
+							rewards_list.push((to, amount));
 						}
 						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(total_amount));
-						Self::deposit_event(Event::<T>::SetReward(id, accounts, total_amount));
+						Self::deposit_event(Event::<T>::SetReward(id, rewards_list));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
