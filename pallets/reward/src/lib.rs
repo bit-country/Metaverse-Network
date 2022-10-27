@@ -241,6 +241,10 @@ pub mod pallet {
 		InvalidRewardLeafAmount,
 		/// Merkle root is not related to a campaign
 		MerkleRootNotRelatedToCampaign,
+		/// No merkle roots found
+		NoMerkleRootsFound,
+		/// Invalid merkle roots quantity
+		InvalidMerkleRootsQuantity,
 	}
 
 	#[pallet::call]
@@ -745,6 +749,7 @@ pub mod pallet {
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
 
 						Self::reward_kill(campaign.trie_index, &who);
+
 						Campaigns::<T>::remove(id);
 						CampaignMerkleRoots::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
@@ -755,6 +760,51 @@ pub mod pallet {
 				_ => Err(Error::<T>::InvalidCampaignType.into()),
 			}
 		}
+
+		#[pallet::weight(T::WeightInfo::close_campaign_root() * (1u64 + merkle_roots_quantity))]
+		#[transactional]
+		pub fn close_campaign_root(origin: OriginFor<T>, id: CampaignId, merkle_roots_quantity: u64) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+
+			ensure!(who == campaign.creator, Error::<T>::NotCampaignCreator);
+
+			ensure!(
+				campaign.end + campaign.cooling_off_duration < now,
+				Error::<T>::CampaignStillActive
+			);
+
+			let fund_account = Self::fund_account_id(id);
+			match campaign.reward {
+				RewardType::FungibleTokens(_, r) => match campaign.claimed {
+					RewardType::FungibleTokens(c, b) => {
+						let unclaimed_balance = r.saturating_sub(b);
+						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
+						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
+
+						let merkle_roots: Vec<Hash> = Self::campaign_merkle_roots(id).ok_or(Error::<T>::NoMerkleRootsFound)?;
+						ensure!(
+							merkle_roots.len() as u64 == merkle_roots_quantity,
+							Error::<T>::InvalidMerkleRootsQuantity
+						);
+
+						for root in merkle_roots {
+							Self::reward_kill_root(campaign.trie_index, &root);
+						}
+						
+						Campaigns::<T>::remove(id);
+						CampaignMerkleRoots::<T>::remove(id);
+						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
+						Ok(())
+					}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				},
+				_ => Err(Error::<T>::InvalidCampaignType.into()),
+			}
+		}
+
 
 		#[pallet::weight(T::WeightInfo::close_nft_campaign() * (1u64 + left_nfts))]
 		pub fn close_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
@@ -952,7 +1002,7 @@ impl<T: Config> Pallet<T> {
 		who.using_encoded(|b| child::kill(&Self::id_from_index(index), b));
 	}
 
-	pub fn reward_kill_root(index: TrieIndex, merkle_root: Hash) {
+	pub fn reward_kill_root(index: TrieIndex, merkle_root: &Hash) {
 		merkle_root.using_encoded(|b| child::kill(&Self::id_from_index(index), b));
 	}
 

@@ -62,7 +62,8 @@ fn test_claim_hash(who: AccountId, balance: Balance) -> Hash {
 
 fn test_claim_nft_hash(who: AccountId, token: (ClassId, TokenId)) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
-	leaf.extend(token.encode());
+	leaf.extend(token.0.encode());
+	leaf.extend(token.1.encode());
 	keccak_256(&leaf).into()
 }
 
@@ -1425,7 +1426,7 @@ fn claim_nft_reward_root_fails() {
 		));
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, vec![(0u32, 3u64)], vec![test_claim_nft_hash(BOB, (0u32, 5u64))]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, vec![(0u32, 3u64)], vec![test_claim_nft_hash(ALICE, (0u32, 3u64))]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 	});
@@ -1484,6 +1485,50 @@ fn close_campaign_works() {
 		run_to_block(100);
 
 		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0));
+
+		assert_eq!(Balances::free_balance(ALICE), 9989);
+		assert_eq!(Balances::free_balance(BOB), 20011);
+
+		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+
+		let event = mock::Event::Reward(crate::Event::RewardCampaignClosed(campaign_id));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
+fn close_campaign_root_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 9989);
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			5,
+			test_claim_hash(BOB, 5)
+		));
+
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			4,
+			test_claim_hash(3, 3)
+		));
+
+		run_to_block(100);
+
+		assert_ok!(Reward::close_campaign_root(Origin::signed(BOB), 0, 2));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 		assert_eq!(Balances::free_balance(BOB), 20011);
@@ -1577,6 +1622,112 @@ fn close_campaign_fails() {
 		assert_noop!(
 			Reward::close_campaign(Origin::signed(ALICE), 1),
 			Error::<Runtime>::InvalidCampaignType
+		);
+	});
+}
+
+#[test]
+fn close_campaign_root_fails() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			5,
+			test_claim_hash(BOB, 5)
+		));
+
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			4,
+			test_claim_hash(3, 3)
+		));
+
+		run_to_block(17);
+
+		assert_noop!(
+			Reward::close_campaign_root(Origin::signed(ALICE), 1, 2),
+			Error::<Runtime>::CampaignIsNotFound
+		);
+
+		assert_noop!(
+			Reward::close_campaign_root(Origin::signed(ALICE), 0, 2),
+			Error::<Runtime>::NotCampaignCreator
+		);
+
+		assert_noop!(
+			Reward::close_campaign_root(Origin::signed(BOB), 0, 2),
+			Error::<Runtime>::CampaignStillActive
+		);
+
+		run_to_block(100);
+
+		assert_noop!(
+			Reward::close_campaign_root(Origin::signed(BOB), 0, 1),
+			Error::<Runtime>::InvalidMerkleRootsQuantity
+		);
+
+		assert_ok!(Reward::close_campaign_root(Origin::signed(BOB), 0, 2));
+
+		assert_noop!(
+			Reward::close_campaign_root(Origin::signed(BOB), 0, 2),
+			Error::<Runtime>::CampaignIsNotFound
+		);
+
+		init_test_nft(Origin::signed(ALICE));
+		init_test_nft(Origin::signed(ALICE));
+		init_test_nft(Origin::signed(ALICE));
+
+		assert_ok!(Reward::create_nft_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			vec![(0u32, 1u64), (0u32, 2u64)],
+			110,
+			10,
+			vec![1],
+		));
+
+		run_to_block(150);
+
+		assert_noop!(
+			Reward::close_campaign_root(Origin::signed(ALICE), 1, 1),
+			Error::<Runtime>::InvalidCampaignType
+		);
+
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			160,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_ok!(Reward::set_reward(
+			Origin::signed(ALICE),
+			2,
+			BOB,
+			5,
+		)); 
+
+		run_to_block(171);
+
+		assert_noop!(
+			Reward::close_campaign_root(Origin::signed(BOB), 2, 1),
+			Error::<Runtime>::NoMerkleRootsFound
 		);
 	});
 }
