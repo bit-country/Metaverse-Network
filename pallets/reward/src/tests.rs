@@ -1535,7 +1535,7 @@ fn close_campaign_root_works() {
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
 
-		let event = mock::Event::Reward(crate::Event::RewardCampaignClosed(campaign_id));
+		let event = mock::Event::Reward(crate::Event::RewardCampaignRootClosed(campaign_id));
 		assert_eq!(last_event(), event)
 	});
 }

@@ -185,6 +185,8 @@ pub mod pallet {
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
 		RewardCampaignClosed(CampaignId),
+		/// Reward campaign  root closed [campaign_id]
+		RewardCampaignRootClosed(CampaignId),
 		/// Reward campaign canceled [campaign_id]
 		RewardCampaignCanceled(CampaignId),
 		/// Set reward origin added [account]
@@ -751,7 +753,6 @@ pub mod pallet {
 						Self::reward_kill(campaign.trie_index, &who);
 
 						Campaigns::<T>::remove(id);
-						CampaignMerkleRoots::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 						Ok(())
 					}
@@ -805,8 +806,8 @@ pub mod pallet {
 			}
 		}
 
-
 		#[pallet::weight(T::WeightInfo::close_nft_campaign() * (1u64 + left_nfts))]
+		#[transactional]
 		pub fn close_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
@@ -838,8 +839,21 @@ pub mod pallet {
 
 						Self::reward_kill(campaign.trie_index, &who);
 						Campaigns::<T>::remove(id);
-						CampaignMerkleRoots::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
+						let campaign_roots = Self::campaign_merkle_roots(id);
+						match campaign_roots {
+							Some(roots_vec) => {
+								CampaignMerkleRoots::<T>::remove(id);
+								match roots_vec.get(0) {
+									Some(mekrle_root_ref) => {
+										Self::reward_kill_root(campaign.trie_index, mekrle_root_ref);
+										Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
+									}
+									_ => {}
+								}
+							}
+							_ => {}
+						}
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
