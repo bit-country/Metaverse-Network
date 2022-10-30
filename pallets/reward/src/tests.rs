@@ -184,10 +184,12 @@ fn create_nft_campaign_fails() {
 			Error::<Runtime>::NoPermissionToUseNftInRewardPool
 		);
 
-		//assert_noop!(
-		//	Reward::create_nft_campaign(Origin::signed(ALICE), ALICE, vec![(0u32, 0u64)], 10, 10,
-		// vec![1]), 	Error::<Runtime>::CannotUseGenesisNftForReward
-		//);
+		NFTModule::set_lock_nft((0u32, 1u64), true);
+
+		assert_noop!(
+			Reward::create_nft_campaign(Origin::signed(ALICE), ALICE, vec![(0u32, 1u64)], 10, 10, vec![1],),
+			Error::<Runtime>::NoPermissionToUseNftInRewardPool
+		);
 	});
 }
 

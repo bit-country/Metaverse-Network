@@ -340,7 +340,8 @@ pub mod pallet {
 
 			for token in reward.clone() {
 				ensure!(
-					T::NFTHandler::check_ownership(&creator, &(token.0, token.1))?,
+					T::NFTHandler::check_ownership(&creator, &(token.0, token.1))?
+						&& T::NFTHandler::is_transferable(&(token.0, token.1))?,
 					Error::<T>::NoPermissionToUseNftInRewardPool
 				);
 				T::NFTHandler::set_lock_nft((token.0, token.1), true)?
