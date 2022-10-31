@@ -821,12 +821,11 @@ pub mod pallet {
 									merkle_roots.len() as u64 == merkle_roots_quantity,
 									Error::<T>::InvalidMerkleRootsQuantity
 								);
-		
-								
+
 								for root in merkle_roots {
 									Self::reward_kill_root(campaign.trie_index, &root);
 								}
-			
+
 								CampaignMerkleRoots::<T>::remove(id);
 								Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
 							}
@@ -1109,9 +1108,9 @@ impl<T: Config> Pallet<T> {
 
 		let leaf_hash: Hash = keccak_256(&leaf).into();
 
-		leaf_nodes.iter().fold(leaf_hash.clone(), |acc, hash| {
-			Self::sorted_hash_of(&acc, hash)
-		});
+		leaf_nodes
+			.iter()
+			.fold(leaf_hash.clone(), |acc, hash| Self::sorted_hash_of(&acc, hash));
 		Ok(leaf_hash)
 	}
 
