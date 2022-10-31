@@ -1191,12 +1191,13 @@ fn claim_reward_root_fails() {
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
-		//	assert_noop!(
-		//		Reward::claim_reward_root(Origin::signed(BOB), 0, 5,vec![]),
-		//		Error::<Runtime>::NoRewardFound
-		//	);
 
 		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]));
+
+		assert_noop!(
+				Reward::claim_reward_root(Origin::signed(BOB), 0, 5,vec![]),
+				Error::<Runtime>::NoRewardFound
+		);
 
 		//assert_noop!(
 		//	Reward::claim_reward_root(Origin::signed(BOB), 0, 5, test_hash(1u64)),
