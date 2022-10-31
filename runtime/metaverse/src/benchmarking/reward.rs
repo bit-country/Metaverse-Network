@@ -219,19 +219,8 @@ runtime_benchmarks! {
 		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
 	}: _(RawOrigin::Signed(who.clone()), 0u32.into(), get_hash(1u64))
 
-	// close_campaign
+	// close campaign
 	close_campaign{
-		System::set_block_number(1u32.into());
-		let origin: AccountId = whitelisted_caller();
-		set_balance(CURRENCY_ID, &origin, dollar(1000));
-
-		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
-		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
-		run_to_block(2 * (campaign_end + MinimumCampaignCoolingOffPeriod::get()));
-	}: _(RawOrigin::Signed(origin.clone()), 0u32.into())
-
-	// close_campaign using merkle roots
-	close_campaign_root{
 		System::set_block_number(1u32.into());
 		let origin: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &origin, dollar(1000));
@@ -254,10 +243,18 @@ runtime_benchmarks! {
 		let origin: AccountId = whitelisted_caller();
 		set_balance(CURRENCY_ID, &origin, dollar(1000));
 
+		let claiming_account: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &claiming_account, dollar(10));
+
+		let who: AccountId = whitelisted_caller();
+		set_balance(CURRENCY_ID, &who, dollar(1000));
+		Reward::add_set_reward_origin(RawOrigin::Root.into(), who.clone());
+
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		create_nft_group();
 		mint_NFT(&origin, 0u32.into());
 		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(), 0u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
+		Reward::set_nft_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), get_claim_nft_hash(claiming_account.clone(), (0u32, 0u64)));
 		run_to_block(2 * (campaign_end + MinimumCampaignCoolingOffPeriod::get()));
 	}: _(RawOrigin::Signed(origin.clone()), 0u32.into(), 1u64)
 

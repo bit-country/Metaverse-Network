@@ -1222,7 +1222,7 @@ fn claim_reward_root_fails() {
 			vec![1],
 		));
 
-		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 1, BOB));
+		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 1, vec![(BOB, 1)], 1));
 
 		run_to_block(37);
 
@@ -1466,7 +1466,7 @@ fn claim_nft_reward_root_fails() {
 		));
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, vec![(0u32, 3u64)], vec![test_claim_nft_hash(ALICE, (0u32, 3u64))]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, vec![(0u32, 3u64)], vec![test_claim_nft_hash(ALICE, (0u32, 2u64)), test_claim_nft_hash(ALICE, (0u32, 3u64))]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 	});
@@ -1507,6 +1507,44 @@ fn close_nft_campaign_works() {
 }
 
 #[test]
+fn close_nft_campaign_with_merkle_root_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+
+		init_test_nft(Origin::signed(ALICE));
+		init_test_nft(Origin::signed(ALICE));
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+
+		assert_ok!(Reward::create_nft_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			vec![(0u32, 1u64)],
+			10,
+			10,
+			vec![1],
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
+		assert_ok!(Reward::set_nft_reward_root(Origin::signed(ALICE), 0, test_hash(1u64)));
+		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), Some(vec![test_hash(1u64)]));
+
+		run_to_block(100);
+
+		assert_ok!(Reward::close_nft_campaign(Origin::signed(ALICE), 0, 1));
+
+		assert_eq!(Balances::free_balance(ALICE), 9994);
+		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, false);
+
+		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), None);
+
+		let event = mock::Event::Reward(crate::Event::RewardCampaignRootClosed(campaign_id));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
 fn close_campaign_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
@@ -1524,7 +1562,7 @@ fn close_campaign_works() {
 
 		run_to_block(100);
 
-		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0));
+		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0, 0));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 		assert_eq!(Balances::free_balance(BOB), 20011);
@@ -1537,7 +1575,7 @@ fn close_campaign_works() {
 }
 
 #[test]
-fn close_campaign_root_works() {
+fn close_campaign_using_merkle_root_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
@@ -1568,7 +1606,7 @@ fn close_campaign_root_works() {
 
 		run_to_block(100);
 
-		assert_ok!(Reward::close_campaign_root(Origin::signed(BOB), 0, 2));
+		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0, 2));
 
 		assert_eq!(Balances::free_balance(ALICE), 9989);
 		assert_eq!(Balances::free_balance(BOB), 20011);
@@ -1599,7 +1637,7 @@ fn close_multicurrency_campaign_works() {
 
 		run_to_block(100);
 
-		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0));
+		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0, 0));
 
 		assert_eq!(Balances::free_balance(ALICE), 9999);
 		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9990);
@@ -1630,17 +1668,17 @@ fn close_campaign_fails() {
 		run_to_block(17);
 
 		assert_noop!(
-			Reward::close_campaign(Origin::signed(ALICE), 1),
+			Reward::close_campaign(Origin::signed(ALICE), 1, 0),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		assert_noop!(
-			Reward::close_campaign(Origin::signed(ALICE), 0),
+			Reward::close_campaign(Origin::signed(ALICE), 0, 0),
 			Error::<Runtime>::NotCampaignCreator
 		);
 
 		assert_noop!(
-			Reward::close_campaign(Origin::signed(BOB), 0),
+			Reward::close_campaign(Origin::signed(BOB), 0, 0),
 			Error::<Runtime>::CampaignStillActive
 		);
 
@@ -1660,14 +1698,14 @@ fn close_campaign_fails() {
 		run_to_block(117);
 
 		assert_noop!(
-			Reward::close_campaign(Origin::signed(ALICE), 1),
+			Reward::close_campaign(Origin::signed(ALICE), 1, 0),
 			Error::<Runtime>::InvalidCampaignType
 		);
 	});
 }
 
 #[test]
-fn close_campaign_root_fails() {
+fn close_campaign_using_merkle_root_fails() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
@@ -1698,31 +1736,31 @@ fn close_campaign_root_fails() {
 		run_to_block(17);
 
 		assert_noop!(
-			Reward::close_campaign_root(Origin::signed(ALICE), 1, 2),
+			Reward::close_campaign(Origin::signed(ALICE), 1, 2),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		assert_noop!(
-			Reward::close_campaign_root(Origin::signed(ALICE), 0, 2),
+			Reward::close_campaign(Origin::signed(ALICE), 0, 2),
 			Error::<Runtime>::NotCampaignCreator
 		);
 
 		assert_noop!(
-			Reward::close_campaign_root(Origin::signed(BOB), 0, 2),
+			Reward::close_campaign(Origin::signed(BOB), 0, 2),
 			Error::<Runtime>::CampaignStillActive
 		);
 
 		run_to_block(100);
 
 		assert_noop!(
-			Reward::close_campaign_root(Origin::signed(BOB), 0, 1),
+			Reward::close_campaign(Origin::signed(BOB), 0, 1),
 			Error::<Runtime>::InvalidMerkleRootsQuantity
 		);
 
-		assert_ok!(Reward::close_campaign_root(Origin::signed(BOB), 0, 2));
+		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0, 2));
 
 		assert_noop!(
-			Reward::close_campaign_root(Origin::signed(BOB), 0, 2),
+			Reward::close_campaign(Origin::signed(BOB), 0, 2),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
@@ -1742,32 +1780,8 @@ fn close_campaign_root_fails() {
 		run_to_block(150);
 
 		assert_noop!(
-			Reward::close_campaign_root(Origin::signed(ALICE), 1, 1),
+			Reward::close_campaign(Origin::signed(ALICE), 1, 1),
 			Error::<Runtime>::InvalidCampaignType
-		);
-
-		assert_ok!(Reward::create_campaign(
-			Origin::signed(ALICE),
-			BOB,
-			10,
-			160,
-			10,
-			vec![1],
-			FungibleTokenId::NativeToken(0)
-		));
-
-		assert_ok!(Reward::set_reward(
-			Origin::signed(ALICE),
-			2,
-			BOB,
-			5,
-		)); 
-
-		run_to_block(171);
-
-		assert_noop!(
-			Reward::close_campaign_root(Origin::signed(BOB), 2, 1),
-			Error::<Runtime>::NoMerkleRootsFound
 		);
 	});
 }

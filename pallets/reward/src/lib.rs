@@ -519,9 +519,7 @@ pub mod pallet {
 							campaign.claimed = RewardType::NftAssets(new_claimed);
 							Self::reward_kill(campaign.trie_index, &who);
 
-							let mut token_vec: Vec<(ClassId, TokenId)> = Vec::new();
-							token_vec.push(token);
-							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, token_vec));
+							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, tokens));
 							Ok(())
 						}
 						_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -787,8 +785,9 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::close_campaign())]
-		pub fn close_campaign(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
+		#[pallet::weight(T::WeightInfo::close_campaign() * (1u64 + merkle_roots_quantity))]
+		#[transactional]
+		pub fn close_campaign(origin: OriginFor<T>, id: CampaignId, merkle_roots_quantity: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -813,50 +812,26 @@ pub mod pallet {
 
 						Campaigns::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
-						Ok(())
-					}
-					_ => Err(Error::<T>::InvalidCampaignType.into()),
-				},
-				_ => Err(Error::<T>::InvalidCampaignType.into()),
-			}
-		}
 
-		#[pallet::weight(T::WeightInfo::close_campaign_root() * (1u64 + merkle_roots_quantity))]
-		#[transactional]
-		pub fn close_campaign_root(origin: OriginFor<T>, id: CampaignId, merkle_roots_quantity: u64) -> DispatchResult {
-			let who = ensure_signed(origin)?;
-			let now = frame_system::Pallet::<T>::block_number();
+						let merkle_roots_store = Self::campaign_merkle_roots(id);
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
-
-			ensure!(who == campaign.creator, Error::<T>::NotCampaignCreator);
-
-			ensure!(
-				campaign.end + campaign.cooling_off_duration < now,
-				Error::<T>::CampaignStillActive
-			);
-
-			let fund_account = Self::fund_account_id(id);
-			match campaign.reward {
-				RewardType::FungibleTokens(_, r) => match campaign.claimed {
-					RewardType::FungibleTokens(c, b) => {
-						let unclaimed_balance = r.saturating_sub(b);
-						T::Currency::transfer(&fund_account, &who, T::CampaignDeposit::get(), AllowDeath)?;
-						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
-
-						let merkle_roots: Vec<Hash> = Self::campaign_merkle_roots(id).ok_or(Error::<T>::NoMerkleRootsFound)?;
-						ensure!(
-							merkle_roots.len() as u64 == merkle_roots_quantity,
-							Error::<T>::InvalidMerkleRootsQuantity
-						);
-
-						for root in merkle_roots {
-							Self::reward_kill_root(campaign.trie_index, &root);
+						match merkle_roots_store {
+							Some(merkle_roots) => {
+								ensure!(
+									merkle_roots.len() as u64 == merkle_roots_quantity,
+									Error::<T>::InvalidMerkleRootsQuantity
+								);
+		
+								
+								for root in merkle_roots {
+									Self::reward_kill_root(campaign.trie_index, &root);
+								}
+			
+								CampaignMerkleRoots::<T>::remove(id);
+								Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
+							}
+							_ => {}
 						}
-						
-						Campaigns::<T>::remove(id);
-						CampaignMerkleRoots::<T>::remove(id);
-						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -1135,7 +1110,7 @@ impl<T: Config> Pallet<T> {
 		let leaf_hash: Hash = keccak_256(&leaf).into();
 
 		leaf_nodes.iter().fold(leaf_hash.clone(), |acc, hash| {
-			Self::sorted_hash_of(&Hash::from_slice(acc.as_ref()), hash)
+			Self::sorted_hash_of(&acc, hash)
 		});
 		Ok(leaf_hash)
 	}
