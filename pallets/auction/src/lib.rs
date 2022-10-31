@@ -1095,9 +1095,9 @@ pub mod pallet {
 				// make sure auction is started
 				ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 
-				let auction_end: Option<T::BlockNumber> = auction.end;
+				let auction_end = auction.end.ok_or(Error::<T>::AuctionIsExpired)?;
 
-				ensure!(block_number < auction_end.unwrap(), Error::<T>::AuctionIsExpired);
+				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
 
 				if let Some(ref current_bid) = auction.bid {
 					ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
@@ -1241,7 +1241,7 @@ pub mod pallet {
 			let block_number = <system::Pallet<T>>::block_number();
 			ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 			if !(auction.end.is_none()) {
-				let auction_end: T::BlockNumber = auction.end.unwrap();
+				let auction_end: T::BlockNumber = auction.end.ok_or(Error::<T>::AuctionIsExpired)?;
 				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
 			}
 

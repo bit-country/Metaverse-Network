@@ -97,6 +97,7 @@ parameter_types! {
 	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10;
 	pub const MinimumCampaignDuration: BlockNumber = 5;
 	pub const MaxLeafNodes: u64 = 30;
+	pub const MaxSetRewardsListLength: u64 = 2;
 }
 
 impl Config for Runtime {
@@ -109,6 +110,7 @@ impl Config for Runtime {
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type MaxSetRewardsListLength = MaxSetRewardsListLength;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type NFTHandler = NFTModule;
 	type MaxLeafNodes = MaxLeafNodes;

@@ -1257,6 +1257,7 @@ parameter_types! {
 	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 2; //  4 * 30 * 7200 Around 4 months in blocktime
 	pub const MinimumCampaignDuration: BlockNumber = 1; // 7 * 7200 Around a week in blocktime
 	pub const MaxLeafNodes: u64 = 30;
+	pub const MaxSetRewardsListLength: u64 = 500;
 }
 
 impl reward::Config for Runtime {
@@ -1269,6 +1270,7 @@ impl reward::Config for Runtime {
 	type CampaignDeposit = CampaignDeposit;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type MaxSetRewardsListLength = MaxSetRewardsListLength;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
 	type MaxLeafNodes = MaxLeafNodes;
