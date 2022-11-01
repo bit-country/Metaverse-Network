@@ -880,6 +880,7 @@ fn claim_reward_root_works() {
 			trie_index: 0,
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim));
+		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB]);
 
 		let event = mock::Event::Reward(crate::Event::RewardClaimed(campaign_id, BOB, 5u32.into()));
 		assert_eq!(last_event(), event)
@@ -1535,10 +1536,7 @@ fn close_nft_campaign_with_merkle_root_works() {
 		assert_eq!(Balances::free_balance(ALICE), 9993);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 		assert_ok!(Reward::set_nft_reward_root(Origin::signed(ALICE), 0, test_hash(1u64)));
-		assert_eq!(
-			CampaignMerkleRoots::<Runtime>::get(campaign_id),
-			Some(vec![test_hash(1u64)])
-		);
+		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), vec![test_hash(1u64)]);
 
 		run_to_block(100);
 
@@ -1548,7 +1546,7 @@ fn close_nft_campaign_with_merkle_root_works() {
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, false);
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
-		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), None);
+		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), vec![]);
 
 		let event = mock::Event::Reward(crate::Event::RewardCampaignRootClosed(campaign_id));
 		assert_eq!(last_event(), event)
@@ -1623,6 +1621,8 @@ fn close_campaign_using_merkle_root_works() {
 		assert_eq!(Balances::free_balance(BOB), 20011);
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), vec![]);
+		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![]);
 
 		let event = mock::Event::Reward(crate::Event::RewardCampaignRootClosed(campaign_id));
 		assert_eq!(last_event(), event)

@@ -150,7 +150,13 @@ pub mod pallet {
 	/// List of merkle roots for each campaign
 	#[pallet::storage]
 	#[pallet::getter(fn campaign_merkle_roots)]
-	pub(super) type CampaignMerkleRoots<T: Config> = StorageMap<_, Twox64Concat, CampaignId, Vec<Hash>>;
+	pub(super) type CampaignMerkleRoots<T: Config> = StorageMap<_, Twox64Concat, CampaignId, Vec<Hash>, ValueQuery>;
+
+	/// List of claimed account for each mekrle tree-based campaign
+	#[pallet::storage]
+	#[pallet::getter(fn campaign_claimed_accounts_list)]
+	pub(super) type CampaignClaimedAccounts<T: Config> =
+		StorageMap<_, Twox64Concat, CampaignId, Vec<T::AccountId>, ValueQuery>;
 
 	/// Tracker for the next available trie index
 	#[pallet::storage]
@@ -321,6 +327,11 @@ pub mod pallet {
 				},
 			);
 
+			let empty_root_vec: Vec<Hash> = Vec::new();
+			let empty_acc_vec: Vec<T::AccountId> = Vec::new();
+			CampaignMerkleRoots::<T>::insert(campaign_id, empty_root_vec);
+			CampaignClaimedAccounts::<T>::insert(campaign_id, empty_acc_vec);
+
 			NextTrieIndex::<T>::put(next_trie_index);
 			NextCampaignId::<T>::put(next_campaign_id);
 
@@ -392,6 +403,11 @@ pub mod pallet {
 				},
 			);
 
+			let empty_root_vec: Vec<Hash> = Vec::new();
+			let empty_acc_vec: Vec<T::AccountId> = Vec::new();
+			CampaignMerkleRoots::<T>::insert(campaign_id, empty_root_vec);
+			CampaignClaimedAccounts::<T>::insert(campaign_id, empty_acc_vec);
+
 			NextTrieIndex::<T>::put(next_trie_index);
 			NextCampaignId::<T>::put(next_campaign_id);
 
@@ -436,6 +452,7 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::claim_reward_root()  * (1u64 + leaf_nodes.len() as u64))]
+		#[transactional]
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
@@ -459,20 +476,29 @@ pub mod pallet {
 					RewardType::FungibleTokens(c, r) => {
 						let fund_account = Self::fund_account_id(id);
 						let merkle_root = Self::calculate_merkle_proof(&who, &balance, &leaf_nodes)?;
+
 						ensure!(
-							Self::campaign_merkle_roots(id).is_some()
-								&& Self::campaign_merkle_roots(id).unwrap().contains(&merkle_root),
+							Self::campaign_merkle_roots(id).contains(&merkle_root),
 							Error::<T>::MerkleRootNotRelatedToCampaign
 						);
+						ensure!(
+							!Self::campaign_claimed_accounts_list(id).contains(&who),
+							Error::<T>::NoRewardFound
+						);
+
+						<CampaignClaimedAccounts<T>>::try_mutate(id, |claimed_accounts_list| -> DispatchResult {
+							claimed_accounts_list.push(who.clone());
+							Ok(())
+						});
+
 						let (root_balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
 						// extra check in case the CampaignMerkleRoots storage is corrupted
 						ensure!(root_balance > Zero::zero(), Error::<T>::NoRewardFound);
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
 
-						Self::reward_kill(campaign.trie_index, &who);
-
 						campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
 						Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
+
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -558,8 +584,7 @@ pub mod pallet {
 								Self::calculate_nft_rewards_merkle_proof(&who, &tokens, &leaf_nodes)?;
 
 							ensure!(
-								Self::campaign_merkle_roots(id).is_some()
-									&& Self::campaign_merkle_roots(id).unwrap().contains(&merkle_proof),
+								Self::campaign_merkle_roots(id).contains(&merkle_proof),
 								Error::<T>::MerkleRootNotRelatedToCampaign
 							);
 
@@ -765,7 +790,7 @@ pub mod pallet {
 
 				match campaign.cap.clone() {
 					RewardType::NftAssets(cap) => {
-						ensure!(Self::campaign_merkle_roots(id) == None, Error::<T>::RewardAlreadySet);
+						ensure!(Self::campaign_merkle_roots(id).is_empty(), Error::<T>::RewardAlreadySet);
 
 						ensure!(!cap.is_empty(), Error::<T>::RewardExceedCap);
 
@@ -813,24 +838,22 @@ pub mod pallet {
 						Campaigns::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
 
-						let merkle_roots_store = Self::campaign_merkle_roots(id);
+						let merkle_roots = Self::campaign_merkle_roots(id);
 
-						match merkle_roots_store {
-							Some(merkle_roots) => {
-								ensure!(
-									merkle_roots.len() as u64 == merkle_roots_quantity,
-									Error::<T>::InvalidMerkleRootsQuantity
-								);
+						ensure!(
+							merkle_roots.len() as u64 == merkle_roots_quantity,
+							Error::<T>::InvalidMerkleRootsQuantity
+						);
 
-								for root in merkle_roots {
-									Self::reward_kill_root(campaign.trie_index, &root);
-								}
-
-								CampaignMerkleRoots::<T>::remove(id);
-								Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
-							}
-							_ => {}
+						for root in merkle_roots.clone() {
+							Self::reward_kill_root(campaign.trie_index, &root);
 						}
+
+						if merkle_roots.len() as u64 > 0 {
+							CampaignMerkleRoots::<T>::remove(id);
+							Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
+						}
+
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -873,17 +896,12 @@ pub mod pallet {
 						Self::reward_kill(campaign.trie_index, &who);
 						Campaigns::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
-						let campaign_roots = Self::campaign_merkle_roots(id);
-						match campaign_roots {
-							Some(roots_vec) => {
-								CampaignMerkleRoots::<T>::remove(id);
-								match roots_vec.get(0) {
-									Some(mekrle_root_ref) => {
-										Self::reward_kill_root(campaign.trie_index, mekrle_root_ref);
-										Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
-									}
-									_ => {}
-								}
+						let roots_vec = Self::campaign_merkle_roots(id);
+						CampaignMerkleRoots::<T>::remove(id);
+						match roots_vec.get(0) {
+							Some(mekrle_root_ref) => {
+								Self::reward_kill_root(campaign.trie_index, mekrle_root_ref);
+								Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
 							}
 							_ => {}
 						}
