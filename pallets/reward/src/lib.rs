@@ -851,6 +851,7 @@ pub mod pallet {
 
 						if merkle_roots.len() as u64 > 0 {
 							CampaignMerkleRoots::<T>::remove(id);
+							CampaignClaimedAccounts::<T>::remove(id);
 							Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
 						}
 

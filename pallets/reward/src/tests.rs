@@ -1613,6 +1613,8 @@ fn close_campaign_using_merkle_root_works() {
 			test_claim_hash(3, 3)
 		));
 
+		run_to_block(11);
+		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]));
 		run_to_block(100);
 
 		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0, 2));
