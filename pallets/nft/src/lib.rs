@@ -185,6 +185,12 @@ pub mod pallet {
 	/// Index locked collections by class ID
 	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn get_stackable_collections)]
+	/// Index stackable collections
+	pub(super) type StackableCollectionsByOwner<T: Config> = StorageNMap<_,(NMapKey<Blake2_128Concat, T::AccountId>, NMapKey<Blake2_128Concat, T::ClassId>,
+		NMapKey<Blake2_128Concat, T::TokenId>), BalanceOf<T>, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {}
 
