@@ -1472,15 +1472,7 @@ fn claim_nft_reward_root_fails() {
 		));
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(
-				Origin::signed(BOB),
-				3,
-				vec![(0u32, 2u64)],
-				vec![
-					test_claim_nft_hash(ALICE, (0u32, 2u64)),
-					test_claim_nft_hash(ALICE, (0u32, 3u64))
-				]
-			),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, vec![(0u32, 2u64)], vec![]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 
@@ -1489,10 +1481,7 @@ fn claim_nft_reward_root_fails() {
 				Origin::signed(BOB),
 				3,
 				vec![(0u32, 3u64)],
-				vec![
-					test_claim_nft_hash(ALICE, (0u32, 2u64)),
-					test_claim_nft_hash(ALICE, (0u32, 3u64))
-				]
+				vec![test_claim_nft_hash(ALICE, (0u32, 3u64))]
 			),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);

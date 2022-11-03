@@ -1100,12 +1100,7 @@ impl<T: Config> Pallet<T> {
 		let mut leaf: Vec<u8> = who.encode();
 		leaf.extend(balance.encode());
 
-		let leaf_hash: Hash = keccak_256(&leaf).into();
-
-		leaf_nodes.iter().fold(leaf_hash.clone(), |acc, hash| {
-			Self::sorted_hash_of(&Hash::from_slice(acc.as_ref()), hash)
-		});
-		Ok(leaf_hash)
+		Self::build_merkle_proof(leaf, leaf_nodes)
 	}
 
 	pub fn calculate_nft_rewards_merkle_proof(
@@ -1121,16 +1116,20 @@ impl<T: Config> Pallet<T> {
 		// Hash the pair of AccountId and list of (ClassId, TokenId)
 		let mut leaf: Vec<u8> = who.encode();
 		for token in tokens.clone() {
-			leaf.extend(token.0.encode());
-			leaf.extend(token.1.encode());
+			leaf.extend(token.encode());
 		}
 
-		let leaf_hash: Hash = keccak_256(&leaf).into();
+		Self::build_merkle_proof(leaf, leaf_nodes)
+	}
 
-		leaf_nodes
-			.iter()
-			.fold(leaf_hash.clone(), |acc, hash| Self::sorted_hash_of(&acc, hash));
-		Ok(leaf_hash)
+	fn build_merkle_proof(raw_leaf: Vec<u8>, proof_nodes: &Vec<Hash>) -> Result<Hash, DispatchError> {
+		let mut proof: Hash = keccak_256(&raw_leaf).into();
+
+		for leaf_node in proof_nodes {
+			proof = Self::sorted_hash_of(&proof, leaf_node);
+		}
+
+		Ok(proof)
 	}
 
 	fn end_campaign(campaign_id: CampaignId) -> DispatchResult {
