@@ -367,6 +367,8 @@ pub mod pallet {
 		HardLimitIsAlreadySet,
 		/// Extrisic is called using invalid NFT type
 		InvalidAssetType,
+		/// Invalid transfer balance when using stackable NFTs
+		InvalidTransferBalance,
 	}
 
 	#[pallet::call]
@@ -471,26 +473,34 @@ pub mod pallet {
 		}
 
 		/// Minting new stackable NFTs using provided class ID, metadata,
-		/// attributes, and quantity
+		/// attributes, and amount
 		///
 		/// The dispatch origin for this call must be _Signed_.
 		/// - `class_id`: class ID of the collection the NFT will be part of
 		/// - `metadata`: NFT assets metadata as NFT metadata
 		/// - `attributes`: NFTs' attributes
-		/// - `quantity`: the balance of the minted stackable NFTs
+		/// - `amount`: the balance of the minted stackable NFTs
 		///
 		/// Emits `NewStackableNftMinted` if successful.
 		#[pallet::weight(< T as Config >::WeightInfo::mint())]
-		pub fn mint_stackable(
+		pub fn mint_stackable_nft(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
 			metadata: NftMetadata,
 			attributes: Attributes,
-			quantity: BalanceOf<T>,
+			amount: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			//Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
+			let result = Self::do_mint_nfts(&sender, class_id, metadata, attributes, 1)?;
+			StackableCollectionsByOwner::<T>::insert((sender.clone(), class_id, result.1), amount);
+
+			Self::deposit_event(Event::<T>::NewStackableNftMinted(
+				sender,
+				class_id,
+				result.1,
+				amount,
+			));
 
 			Ok(().into())
 		}
@@ -537,6 +547,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			to: T::AccountId,
 			asset_id: (ClassIdOf<T>, TokenIdOf<T>),
+			amount: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
@@ -545,12 +556,28 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			ensure!(
-				!(Self::get_stackable_collections((sender, asset_id.0, asset_id.1)) == Zero::zero()),
-				Error::<T>::InvalidAssetType
-			);
+			StackableCollectionsByOwner::<T>::try_mutate((sender.clone(), asset_id.0, asset_id.1), |balance| -> DispatchResult { 
+				ensure!(
+					amount <= *balance,
+					Error::<T>::InvalidTransferBalance
+				);
 
-			//Self::do_transfer(sender, to, asset_id)?;
+				balance.saturating_sub(amount);
+
+				StackableCollectionsByOwner::<T>::try_mutate((to.clone(), asset_id.0, asset_id.1), |receiver_balance| -> DispatchResult { 
+					receiver_balance.saturating_add(amount);
+					Ok(())
+				});
+
+				Ok(())
+			});
+
+			Self::deposit_event(Event::<T>::TransferedStackableNft(
+				sender,
+				to,
+				asset_id,
+				amount,
+			));
 
 			Ok(().into())
 		}
@@ -576,6 +603,7 @@ pub mod pallet {
 				Error::<T>::ExceedMaximumBatchTransfer
 			);
 
+
 			for (_i, x) in tos.iter().enumerate() {
 				let item = x.clone();
 				let owner = sender.clone();
@@ -583,6 +611,11 @@ pub mod pallet {
 				ensure!(
 					Self::check_item_on_listing(item.1 .0, item.1 .1)? == false,
 					Error::<T>::AssetAlreadyInAuction
+				);
+
+				ensure!(
+					Self::get_stackable_collections((sender.clone(), item.1.0, item.1.1)) == Zero::zero(),
+					Error::<T>::InvalidAssetType
 				);
 
 				Self::do_transfer(owner, item.0, (item.1 .0, item.1 .1))?;
@@ -731,6 +764,11 @@ pub mod pallet {
 			ensure!(
 				Self::check_item_on_listing(asset_id.0, asset_id.1)? == false,
 				Error::<T>::AssetAlreadyInAuction
+			);
+
+			ensure!(
+				Self::get_stackable_collections((from.clone(), asset_id.0, asset_id.1)) == Zero::zero(),
+				Error::<T>::InvalidAssetType
 			);
 
 			let token_id = Self::do_force_transfer(&from, &to, asset_id)?;
