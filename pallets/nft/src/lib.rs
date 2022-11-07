@@ -45,7 +45,7 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::traits::Saturating;
 use sp_runtime::{
-	traits::{AccountIdConversion, Dispatchable, One},
+	traits::{AccountIdConversion, Dispatchable, One, Zero},
 	DispatchError,
 };
 use sp_runtime::{Perbill, RuntimeDebug};
@@ -244,6 +244,13 @@ pub mod pallet {
 			u32,
 			TokenIdOf<T>,
 		),
+		/// Emit event when new nft minted - show the first and last asset mint
+		NewStackableNftMinted(
+			<T as frame_system::Config>::AccountId,
+			ClassIdOf<T>,
+			TokenIdOf<T>,
+			BalanceOf<T>,
+		),
 		/// Emit event when new time capsule minted
 		NewTimeCapsuleMinted(
 			(ClassIdOf<T>, TokenIdOf<T>),
@@ -259,6 +266,13 @@ pub mod pallet {
 			<T as frame_system::Config>::AccountId,
 			TokenIdOf<T>,
 			(ClassIdOf<T>, TokenIdOf<T>),
+		),
+		/// Successfully transfer NFT
+		TransferedStackableNft(
+			<T as frame_system::Config>::AccountId,
+			<T as frame_system::Config>::AccountId,
+			(ClassIdOf<T>, TokenIdOf<T>),
+			BalanceOf<T>,
 		),
 		/// Successfully force transfer NFT
 		ForceTransferredNft(
@@ -351,6 +365,8 @@ pub mod pallet {
 		TotalMintedAssetsForClassExceededProposedLimit,
 		/// Hard limit is already set
 		HardLimitIsAlreadySet,
+		/// Extrisic is called using invalid NFT type
+		InvalidAssetType,
 	}
 
 	#[pallet::call]
@@ -454,6 +470,31 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Minting new stackable NFTs using provided class ID, metadata,
+		/// attributes, and quantity
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `class_id`: class ID of the collection the NFT will be part of
+		/// - `metadata`: NFT assets metadata as NFT metadata
+		/// - `attributes`: NFTs' attributes
+		/// - `quantity`: the balance of the minted stackable NFTs
+		///
+		/// Emits `NewStackableNftMinted` if successful.
+		#[pallet::weight(< T as Config >::WeightInfo::mint())]
+		pub fn mint_stackable(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+			metadata: NftMetadata,
+			attributes: Attributes,
+			quantity: BalanceOf<T>,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+
+			//Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
+
+			Ok(().into())
+		}
+
 		/// Transfer an existing NFT asset if it is not listed in an auction
 		///
 		/// The dispatch origin for this call must be _Signed_.
@@ -474,7 +515,42 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
+			ensure!(
+				Self::get_stackable_collections((sender.clone(), asset_id.0, asset_id.1)) == Zero::zero(),
+				Error::<T>::InvalidAssetType
+			);
+
 			Self::do_transfer(sender, to, asset_id)?;
+
+			Ok(().into())
+		}
+
+		/// Transfer an existing NFT asset if it is not listed in an auction
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `to`: account to transfer the NFT asset to
+		/// - `asset_id`: the asset (class ID, token ID) that will be transferred
+		///
+		/// Emits `TransferedStakcableNft` if successful.
+		#[pallet::weight(T::WeightInfo::transfer())]
+		pub fn transfer_stackable(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			asset_id: (ClassIdOf<T>, TokenIdOf<T>),
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+
+			ensure!(
+				Self::check_item_on_listing(asset_id.0, asset_id.1)? == false,
+				Error::<T>::AssetAlreadyInAuction
+			);
+
+			ensure!(
+				!(Self::get_stackable_collections((sender, asset_id.0, asset_id.1)) == Zero::zero()),
+				Error::<T>::InvalidAssetType
+			);
+
+			//Self::do_transfer(sender, to, asset_id)?;
 
 			Ok(().into())
 		}
@@ -586,6 +662,10 @@ pub mod pallet {
 		#[transactional]
 		pub fn burn(origin: OriginFor<T>, asset_id: (ClassIdOf<T>, TokenIdOf<T>)) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			ensure!(
+				Self::get_stackable_collections((sender.clone(), asset_id.0, asset_id.1)) == Zero::zero(),
+				Error::<T>::InvalidAssetType
+			);
 			Self::do_burn(&sender, &asset_id)?;
 			Self::deposit_event(Event::<T>::BurnedNft(asset_id));
 			Ok(().into())
