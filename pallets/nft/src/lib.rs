@@ -367,8 +367,10 @@ pub mod pallet {
 		HardLimitIsAlreadySet,
 		/// Extrisic is called using invalid NFT type
 		InvalidAssetType,
-		/// Invalid transfer balance when using stackable NFTs
-		InvalidTransferBalance,
+		/// Invalid stackable NFT transfer (stored value is equal to zero)
+		InvalidStackableNftTransfer,
+		/// Invalid stackable NFT balance
+		InvalidStackableNftAmount,	
 	}
 
 	#[pallet::call]
@@ -467,6 +469,8 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
+			ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
+
 			Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
 
 			Ok(().into())
@@ -491,6 +495,11 @@ pub mod pallet {
 			amount: BalanceOf<T>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
+			
+			ensure!(
+				amount > Zero::zero(),
+				Error::<T>::InvalidStackableNftAmount
+			);
 
 			let result = Self::do_mint_nfts(&sender, class_id, metadata, attributes, 1)?;
 			StackableCollectionsByOwner::<T>::insert((sender.clone(), class_id, result.1), amount);
@@ -525,11 +534,6 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			ensure!(
-				Self::get_stackable_collections((sender.clone(), asset_id.0, asset_id.1)) == Zero::zero(),
-				Error::<T>::InvalidAssetType
-			);
-
 			Self::do_transfer(sender, to, asset_id)?;
 
 			Ok(().into())
@@ -543,7 +547,8 @@ pub mod pallet {
 		///
 		/// Emits `TransferedStakcableNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer())]
-		pub fn transfer_stackable(
+		#[transactional]
+		pub fn transfer_stackable_nft(
 			origin: OriginFor<T>,
 			to: T::AccountId,
 			asset_id: (ClassIdOf<T>, TokenIdOf<T>),
@@ -556,29 +561,29 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			StackableCollectionsByOwner::<T>::try_mutate((sender.clone(), asset_id.0, asset_id.1), |balance| -> DispatchResult { 
+			StackableCollectionsByOwner::<T>::try_mutate((sender.clone(), asset_id.0, asset_id.1), |sender_balance| -> DispatchResult { 
+
 				ensure!(
-					amount <= *balance,
-					Error::<T>::InvalidTransferBalance
+					amount <= *sender_balance,
+					Error::<T>::InvalidStackableNftTransfer
 				);
 
-				balance.saturating_sub(amount);
+				*sender_balance = sender_balance.saturating_sub(amount);
 
 				StackableCollectionsByOwner::<T>::try_mutate((to.clone(), asset_id.0, asset_id.1), |receiver_balance| -> DispatchResult { 
-					receiver_balance.saturating_add(amount);
+					*receiver_balance =  receiver_balance.saturating_add(amount);
+
+
+					Self::deposit_event(Event::<T>::TransferedStackableNft(
+						sender,
+						to,
+						asset_id,
+						amount,
+					));
 					Ok(())
 				});
-
 				Ok(())
 			});
-
-			Self::deposit_event(Event::<T>::TransferedStackableNft(
-				sender,
-				to,
-				asset_id,
-				amount,
-			));
-
 			Ok(().into())
 		}
 
@@ -611,11 +616,6 @@ pub mod pallet {
 				ensure!(
 					Self::check_item_on_listing(item.1 .0, item.1 .1)? == false,
 					Error::<T>::AssetAlreadyInAuction
-				);
-
-				ensure!(
-					Self::get_stackable_collections((sender.clone(), item.1.0, item.1.1)) == Zero::zero(),
-					Error::<T>::InvalidAssetType
 				);
 
 				Self::do_transfer(owner, item.0, (item.1 .0, item.1 .1))?;
@@ -913,6 +913,11 @@ impl<T: Config> Pallet<T> {
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		ensure!(!Self::is_collection_locked(&asset_id.0), Error::<T>::CollectionIsLocked);
 
+		ensure!(
+			Self::get_stackable_collections((sender.clone(), asset_id.0, asset_id.1)) == Zero::zero(),
+			Error::<T>::InvalidAssetType
+		);
+
 		let class_info = NftModule::<T>::classes(asset_id.0).ok_or(Error::<T>::ClassIdNotFound)?;
 		let data = class_info.data;
 		let token_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
@@ -989,7 +994,6 @@ impl<T: Config> Pallet<T> {
 		quantity: u32,
 	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
 		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
-		ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
 		ensure!(
 			quantity <= T::MaxBatchMinting::get(),
 			Error::<T>::ExceedMaximumBatchMinting

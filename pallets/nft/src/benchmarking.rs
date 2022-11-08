@@ -87,6 +87,15 @@ benchmarks! {
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32),None);
 	}: _(RawOrigin::Signed(caller), 0u32.into(), vec![1], test_attributes(1), 3 )
 
+	mint_stackable_nft{
+		let caller = funded_account::<T>("caller", 0);
+		let initial_balance = dollar(1000);
+
+		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32),None);
+	}: _(RawOrigin::Signed(caller), 0u32.into(), vec![1], test_attributes(1), 100u32.into())
+
 	transfer{
 		let caller = funded_account::<T>("caller", 0);
 		let target = funded_account::<T>("target", 0);
@@ -97,6 +106,17 @@ benchmarks! {
 		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32),None);
 		crate::Pallet::<T>::mint(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 3);
 	}: _(RawOrigin::Signed(caller), target.clone(), (0u32.into(), 0u32.into()))
+
+	transfer_stackable_nft{
+		let caller = funded_account::<T>("caller", 0);
+		let target = funded_account::<T>("target", 0);
+		let initial_balance = dollar(1000);
+
+		<T as pallet::Config>::Currency::make_free_balance_be(&caller, initial_balance.unique_saturated_into());
+		crate::Pallet::<T>::create_group(RawOrigin::Root.into(), vec![1], vec![1]);
+		crate::Pallet::<T>::create_class(RawOrigin::Signed(caller.clone()).into(), vec![1], test_attributes(1), 0u32.into(), TokenType::Transferable, CollectionType::Collectable, Perbill::from_percent(0u32),None);
+		crate::Pallet::<T>::mint_stackable_nft(RawOrigin::Signed(caller.clone()).into(), 0u32.into(), vec![1], test_attributes(1), 100u32.into());
+	}: _(RawOrigin::Signed(caller), target.clone(), (0u32.into(), 0u32.into()), 50u32.into())
 
 	transfer_batch{
 		let caller = funded_account::<T>("caller", 0);
