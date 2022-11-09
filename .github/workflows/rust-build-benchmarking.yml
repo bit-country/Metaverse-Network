@@ -37,7 +37,4 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Check Build
         run: |
-          SKIP_WASM_BUILD=1 cargo check --release --features with-pioneer-runtime,with-metaverse-runtime
-      - name: Run all test cases
-        run: |
-          SKIP_WASM_BUILD= cargo test --all --features with-pioneer-runtime
+          SKIP_WASM_BUILD=1 cargo build --release --features runtime-benchmarks
