@@ -1,4 +1,4 @@
-name: Metaverse Build & Test
+name: Metaverse Build
 
 on:
   pull_request:
