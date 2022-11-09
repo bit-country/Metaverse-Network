@@ -35,6 +35,6 @@ jobs:
         run: rustup show      
       - name: Check Format
         run: cargo fmt --all -- --check
-      - name: Check Build
+      - name: Build Benchmarking
         run: |
           SKIP_WASM_BUILD=1 cargo build --release --features runtime-benchmarks
