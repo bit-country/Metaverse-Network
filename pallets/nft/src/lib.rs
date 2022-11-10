@@ -496,7 +496,7 @@ pub mod pallet {
 		/// - `amount`: the balance of the minted stackable NFTs
 		///
 		/// Emits `NewStackableNftMinted` if successful.
-		#[pallet::weight(< T as Config >::WeightInfo::mint())]
+		#[pallet::weight(< T as Config >::WeightInfo::mint_stackable_nft())]
 		pub fn mint_stackable_nft(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -548,7 +548,7 @@ pub mod pallet {
 		/// - `asset_id`: the asset (class ID, token ID) that will be transferred
 		///
 		/// Emits `TransferedStakcableNft` if successful.
-		#[pallet::weight(T::WeightInfo::transfer())]
+		#[pallet::weight(T::WeightInfo::transfer_stackable_nft())]
 		#[transactional]
 		pub fn transfer_stackable_nft(
 			origin: OriginFor<T>,
@@ -563,19 +563,22 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
+			ensure!(
+				amount > Zero::zero()
+					&& Self::get_stackable_collections((asset_id.0, asset_id.1, sender.clone())) >= amount,
+				Error::<T>::InvalidStackableNftTransfer
+			);
+
 			StackableCollections::<T>::try_mutate(
 				(asset_id.0, asset_id.1, sender.clone()),
 				|sender_balance| -> DispatchResult {
-					ensure!(amount <= *sender_balance, Error::<T>::InvalidStackableNftTransfer);
-
-					*sender_balance = sender_balance.saturating_sub(amount);
-
 					StackableCollections::<T>::try_mutate(
 						(asset_id.0, asset_id.1, to.clone()),
 						|receiver_balance| -> DispatchResult {
 							*receiver_balance = receiver_balance.saturating_add(amount);
-
+							*sender_balance = sender_balance.saturating_sub(amount);
 							Self::deposit_event(Event::<T>::TransferedStackableNft(sender, to, asset_id, amount));
+
 							Ok(())
 						},
 					);
@@ -759,8 +762,6 @@ pub mod pallet {
 				Self::check_item_on_listing(asset_id.0, asset_id.1)? == false,
 				Error::<T>::AssetAlreadyInAuction
 			);
-
-			ensure!(!Self::is_stackable(asset_id)?, Error::<T>::InvalidAssetType);
 
 			let token_id = Self::do_force_transfer(&from, &to, asset_id)?;
 
@@ -968,6 +969,7 @@ impl<T: Config> Pallet<T> {
 		asset_id: (ClassIdOf<T>, TokenIdOf<T>),
 	) -> Result<<T as orml_nft::Config>::TokenId, DispatchError> {
 		ensure!(!Self::is_collection_locked(&asset_id.0), Error::<T>::CollectionIsLocked);
+		ensure!(!Self::is_stackable(asset_id)?, Error::<T>::InvalidAssetType);
 
 		NftModule::<T>::transfer(&sender, &to, asset_id.clone())?;
 		Ok(asset_id.1)
@@ -1233,13 +1235,12 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	}
 
 	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		let mut result: BalanceOf<T> = Zero::zero();
 		for item in StackableCollections::<T>::iter() {
-			if item.0 .0 == asset_id.0 && item.0 .1 == asset_id.1 {
-				result.saturating_add(item.1);
+			if item.0 .0 == asset_id.0 && item.0 .1 == asset_id.1 && item.1 > Zero::zero() {
+				return Ok(true);
 			}
 		}
-		Ok(result == Zero::zero())
+		Ok(false)
 	}
 
 	fn create_token_class(
