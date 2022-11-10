@@ -188,6 +188,8 @@ pub trait MetaverseTrait<AccountId> {
 	fn check_if_metaverse_estate(metaverse_id: MetaverseId, class_id: &ClassId) -> Result<bool, DispatchError>;
 	/// Check if metaverse has any estate or land
 	fn check_if_metaverse_has_any_land(metaverse_id: MetaverseId) -> Result<bool, DispatchError>;
+	/// Check if account own any metaverse
+	fn is_metaverse_owner(who: &AccountId) -> bool;
 }
 
 pub trait MetaverseLandTrait<AccountId> {

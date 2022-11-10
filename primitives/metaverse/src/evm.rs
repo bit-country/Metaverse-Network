@@ -89,9 +89,9 @@ impl TryFrom<FungibleTokenId> for EvmAddress {
 				address[H160_POSITION_CURRENCY_ID_TYPE] = CurrencyIdType::NativeToken.into();
 				address[H160_POSITION_TOKEN] = token_id as u8;
 			}
-			FungibleTokenId::Erc20(erc20) => {
-				address[..].copy_from_slice(erc20.as_bytes());
-			}
+			//			FungibleTokenId::Dex(erc20) => {
+			//				address[..].copy_from_slice(erc20.as_bytes());
+			//			}
 			FungibleTokenId::FungibleToken(token_id) => {
 				address[H160_POSITION_CURRENCY_ID_TYPE] = CurrencyIdType::FungibleToken.into();
 				address[H160_POSITION_TOKEN] = token_id as u8;
@@ -104,6 +104,7 @@ impl TryFrom<FungibleTokenId> for EvmAddress {
 				address[H160_POSITION_CURRENCY_ID_TYPE] = CurrencyIdType::FungibleToken.into();
 				address[H160_POSITION_TOKEN] = token_id as u8;
 			}
+			_ => {}
 		};
 
 		Ok(EvmAddress::from_slice(&address))

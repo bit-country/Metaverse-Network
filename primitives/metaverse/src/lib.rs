@@ -169,9 +169,9 @@ impl<Balance: AtLeast32Bit + Copy> ItemId<Balance> {
 pub enum FungibleTokenId {
 	NativeToken(TokenId),
 	FungibleToken(TokenId),
+	DEXShare(TokenId, TokenId),
 	MiningResource(TokenId),
 	Stable(TokenId),
-	Erc20(EvmAddress),
 }
 
 impl FungibleTokenId {
@@ -388,6 +388,11 @@ pub trait ForeignAssetIdMapping<ForeignAssetId, MultiLocation, AssetMetadata> {
 	/// Returns the CurrencyId associated with a given MultiLocation.
 	fn get_currency_id(multi_location: MultiLocation) -> Option<FungibleTokenId>;
 }
+#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub enum RewardType<FungibleTokenId, Balance, ClassId, TokenId> {
+	FungibleTokens(FungibleTokenId, Balance),
+	NftAssets(Vec<(ClassId, TokenId)>),
+}
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[codec(dumb_trait_bound)]
@@ -412,7 +417,7 @@ pub struct CampaignInfoV1<AccountId, Balance, BlockNumber> {
 /// is known as it's used for the key of the storage item for which this is the value (`Funds`).
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[codec(dumb_trait_bound)]
-pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
+pub struct CampaignInfoV2<AccountId, Balance, BlockNumber> {
 	/// The creator account who created this campaign.
 	pub creator: AccountId,
 	/// The campaign info properties.
@@ -429,4 +434,27 @@ pub struct CampaignInfo<AccountId, Balance, BlockNumber> {
 	pub cooling_off_duration: BlockNumber,
 	/// Index used for the child trie of this fund
 	pub trie_index: TrieIndex,
+}
+
+/// Information on a funding effort for a pre-existing parachain. We assume that the parachain ID
+/// is known as it's used for the key of the storage item for which this is the value (`Funds`).
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[codec(dumb_trait_bound)]
+pub struct CampaignInfo<AccountId, Balance, BlockNumber, FungibleTokenId, ClassId, TokenId> {
+	/// The creator account who created this campaign.
+	pub creator: AccountId,
+	/// The campaign info properties.
+	pub properties: Vec<u8>,
+	/// Block number this campaign need to end
+	pub end: BlockNumber,
+	/// Duration of the period during which rewards can be claimed.
+	pub cooling_off_duration: BlockNumber,
+	/// Index used for the child trie of this fund
+	pub trie_index: TrieIndex,
+	/// The total reward amount.
+	pub reward: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
+	/// The total claimed amount.
+	pub claimed: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
+	/// A hard-cap on the each reward amount that may be contributed.
+	pub cap: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
 }

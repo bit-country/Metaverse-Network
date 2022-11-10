@@ -23,7 +23,7 @@
 #[macro_use]
 extern crate orml_benchmarking;
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 // pub use this so we can import it in the chain spec.
 #[cfg(feature = "std")]
 pub use fp_evm::GenesisAccount;
@@ -175,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 45,
+	spec_version: 47,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -523,8 +523,8 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub AssetMintingFee: Balance = 10 * CENTS;
-	pub ClassMintingFee: Balance = 1 * DOLLARS;
+	pub AssetMintingFee: Balance = 1 * DOLLARS;
+	pub ClassMintingFee: Balance = 10 * DOLLARS;
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
@@ -562,7 +562,7 @@ impl orml_nft::Config for Runtime {
 
 parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
-	pub MinContribution: Balance = 1 * DOLLARS;
+	pub MinContribution: Balance = 50 * DOLLARS;
 	pub MaxNumberOfStakerPerMetaverse: u32 = 512;
 }
 
@@ -586,9 +586,9 @@ parameter_types! {
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
 	pub const MinimumStake: Balance = 100 * DOLLARS;
-	pub const RewardPaymentDelay: u32 = 1;
+	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
-	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
+	pub const NetworkFee: Balance = 10 * DOLLARS; // Network fee
 	pub const MaxOffersPerEstate: u32 = 100;
 	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
 	pub const MaxLeasePeriod: u32 = 1000000;
@@ -623,7 +623,7 @@ parameter_types! {
 	pub const ContinuumSessionDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 100; // Default 43200 Blocks
 	pub const MinimumAuctionDuration: BlockNumber = 30; // Minimum duration is 300 blocks
-	pub const MaxFinality: u32 = 500; // Maximum finalize auctions per block
+	pub const MaxFinality: u32 = 200; // Maximum finalize auctions per block
 	pub const MaxBundleItem: u32 = 100; // Maximum finalize auctions per block
 	pub const NetworkFeeReserve: Balance = 1 * DOLLARS; // Network fee reserved when item is listed for auction
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
@@ -887,6 +887,81 @@ impl pallet_democracy::Config for Runtime {
 	type MaxProposals = MaxProposals;
 }
 
+parameter_types! {
+	// One storage item; key size 32, value size 8; .
+	pub ProxyDepositBase: Balance = deposit(1, 8);
+	// Additional storage item size of 33 bytes.
+	pub ProxyDepositFactor: Balance = deposit(0, 33);
+	pub AnnouncementDepositBase: Balance = deposit(1, 8);
+	pub AnnouncementDepositFactor: Balance = deposit(0, 66);
+}
+
+/// The type used to represent the kinds of proxying allowed.
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+pub enum ProxyType {
+	Any,
+	CancelProxy,
+	Governance,
+	Auction,
+	Economy,
+	Nft,
+}
+
+impl Default for ProxyType {
+	fn default() -> Self {
+		Self::Any
+	}
+}
+
+impl InstanceFilter<Call> for ProxyType {
+	fn filter(&self, c: &Call) -> bool {
+		match self {
+			_ if matches!(c, Call::Utility(..)) => true,
+			ProxyType::Any => true,
+			ProxyType::CancelProxy => matches!(c, Call::Proxy(pallet_proxy::Call::reject_announcement { .. })),
+			ProxyType::Governance => matches!(
+				c,
+				Call::Democracy(..) | Call::Council(..) | Call::TechnicalCommittee(..)
+			),
+			ProxyType::Auction => matches!(
+				c,
+				Call::Auction(auction::Call::bid { .. }) | Call::Auction(auction::Call::buy_now { .. })
+			),
+			ProxyType::Economy => matches!(
+				c,
+				Call::Economy(economy::Call::stake { .. }) | Call::Economy(economy::Call::unstake { .. })
+			),
+			ProxyType::Nft => matches!(
+				c,
+				Call::Nft(nft::Call::transfer { .. }) | Call::Nft(nft::Call::transfer_batch { .. })
+			),
+		}
+	}
+
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(ProxyType::Any, _) => true,
+			(_, ProxyType::Any) => false,
+			_ => false,
+		}
+	}
+}
+
+impl pallet_proxy::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ProxyDepositBase;
+	type ProxyDepositFactor = ProxyDepositFactor;
+	type MaxProxies = ConstU32<32>;
+	type WeightInfo = ();
+	type MaxPending = ConstU32<32>;
+	type CallHasher = BlakeTwo256;
+	type AnnouncementDepositBase = AnnouncementDepositBase;
+	type AnnouncementDepositFactor = AnnouncementDepositFactor;
+}
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ProposalType {
 	Any,
@@ -1179,8 +1254,9 @@ impl pallet_treasury::Config for Runtime {
 parameter_types! {
 	pub const CampaignDeposit: Balance = 1 * DOLLARS;
 	pub const MinimumRewardPool: Balance = 100 * DOLLARS;
-	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 1; //  4 * 30 * 7200 Around 4 months in blocktime
+	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 2; //  4 * 30 * 7200 Around 4 months in blocktime
 	pub const MinimumCampaignDuration: BlockNumber = 1; // 7 * 7200 Around a week in blocktime
+	pub const MaxSetRewardsListLength: u64 = 500;
 }
 
 impl reward::Config for Runtime {
@@ -1193,7 +1269,9 @@ impl reward::Config for Runtime {
 	type CampaignDeposit = CampaignDeposit;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
-	type SetRewardOrigin = EnsureRootOrMetaverseTreasury;
+	type MaxSetRewardsListLength = MaxSetRewardsListLength;
+	type AdminOrigin = EnsureRootOrMetaverseTreasury;
+	type NFTHandler = Nft;
 	type WeightInfo = ();
 }
 
@@ -1269,6 +1347,8 @@ construct_runtime!(
 		// Asset manager
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
 
+		// Proxy
+		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>}
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}

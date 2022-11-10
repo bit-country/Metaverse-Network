@@ -28,6 +28,9 @@ pub const FREEDY: AccountId = 3;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
 pub const FREE_BALANCE: Balance = 9010;
 
+pub const COLLECTION_ID: u64 = 0;
+pub const CLASS_ID: u32 = 0;
+
 // Configure a mock runtime to test the pallet.
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -92,6 +95,7 @@ parameter_types! {
 	pub const MinimumRewardPool: Balance = 1;
 	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10;
 	pub const MinimumCampaignDuration: BlockNumber = 5;
+	pub const MaxSetRewardsListLength: u64 = 2;
 }
 
 impl Config for Runtime {
@@ -104,7 +108,9 @@ impl Config for Runtime {
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumCampaignDuration = MinimumCampaignDuration;
 	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
-	type SetRewardOrigin = EnsureSignedBy<One, AccountId>;
+	type MaxSetRewardsListLength = MaxSetRewardsListLength;
+	type AdminOrigin = EnsureSignedBy<One, AccountId>;
+	type NFTHandler = NFTModule;
 	type WeightInfo = ();
 }
 
@@ -143,7 +149,7 @@ parameter_types! {
 
 impl currencies::Config for Runtime {
 	type Event = Event;
-	type MultiSocialCurrency = OrmlTokens;
+	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
 	type WeightInfo = ();
@@ -282,7 +288,7 @@ construct_runtime!(
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
-		OrmlTokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
 		Reward: reward::{Pallet, Storage ,Call, Event<T>},
@@ -317,7 +323,10 @@ impl ExtBuilder {
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
-			balances: self.balances, //vec![(ALICE, MiningCurrencyId, 1000000)],
+			balances: vec![
+				(ALICE, FungibleTokenId::MiningResource(0), 10000),
+				(BOB, FungibleTokenId::MiningResource(0), 5000),
+			],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

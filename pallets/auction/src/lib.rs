@@ -347,6 +347,8 @@ pub mod pallet {
 		NoPermissionToAcceptOffer,
 		/// Listing price is below the minimum.
 		ListingPriceIsBelowMinimum,
+		/// Only metaverse owner can participate
+		MetaverseOwnerOnly,
 	}
 
 	#[pallet::call]
@@ -1078,6 +1080,13 @@ pub mod pallet {
 			);
 			ensure!(auction_item.recipient != from, Error::<T>::CannotBidOnOwnAuction);
 
+			if matches!(auction_item.item_id, ItemId::UndeployedLandBlock(_)) {
+				ensure!(
+					T::MetaverseInfoSource::is_metaverse_owner(&from),
+					Error::<T>::MetaverseOwnerOnly
+				);
+			}
+
 			<Auctions<T>>::try_mutate_exists(id, |auction| -> DispatchResult {
 				let mut auction = auction.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
 
@@ -1086,9 +1095,9 @@ pub mod pallet {
 				// make sure auction is started
 				ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 
-				let auction_end: Option<T::BlockNumber> = auction.end;
+				let auction_end = auction.end.ok_or(Error::<T>::AuctionIsExpired)?;
 
-				ensure!(block_number < auction_end.unwrap(), Error::<T>::AuctionIsExpired);
+				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
 
 				if let Some(ref current_bid) = auction.bid {
 					ensure!(value > current_bid.1, Error::<T>::InvalidBidPrice);
@@ -1232,7 +1241,7 @@ pub mod pallet {
 			let block_number = <system::Pallet<T>>::block_number();
 			ensure!(block_number >= auction.start, Error::<T>::AuctionHasNotStarted);
 			if !(auction.end.is_none()) {
-				let auction_end: T::BlockNumber = auction.end.unwrap();
+				let auction_end: T::BlockNumber = auction.end.ok_or(Error::<T>::AuctionIsExpired)?;
 				ensure!(block_number < auction_end, Error::<T>::AuctionIsExpired);
 			}
 
@@ -1247,6 +1256,13 @@ pub mod pallet {
 					T::FungibleTokenCurrency::free_balance(auction_item.currency_id.clone(), &from)
 						>= value.saturated_into(),
 					Error::<T>::InsufficientFreeBalance
+				);
+			}
+
+			if matches!(auction_item.item_id, ItemId::UndeployedLandBlock(_)) {
+				ensure!(
+					T::MetaverseInfoSource::is_metaverse_owner(&from),
+					Error::<T>::MetaverseOwnerOnly
 				);
 			}
 

@@ -55,10 +55,11 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
-	use primitives::staking::RoundInfo;
-	use primitives::{ClassId, GroupCollectionId, NftId};
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
+
+	use primitives::staking::RoundInfo;
+	use primitives::{ClassId, GroupCollectionId, NftId};
 
 	use super::*;
 
@@ -387,6 +388,12 @@ pub mod pallet {
 
 					let current_round = T::RoundHandler::get_current_round_info();
 					let next_round = current_round.current.saturating_add(One::one());
+
+					// Check if user already in exit queue of the current
+					ensure!(
+						!ExitQueue::<T>::contains_key(&who, next_round),
+						Error::<T>::ExitQueueAlreadyScheduled
+					);
 
 					// This exit queue will be executed by exit_staking extrinsics to unreserved token
 					ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);

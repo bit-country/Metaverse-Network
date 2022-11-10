@@ -30,6 +30,7 @@ pub type MetaverseId = u64;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const NO_METAVERSE_OWNER: AccountId = 3;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
@@ -300,6 +301,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn check_if_metaverse_has_any_land(_metaverse_id: primitives::MetaverseId) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
+
+	fn is_metaverse_owner(who: &AccountId) -> bool {
+		who != &NO_METAVERSE_OWNER
+	}
 }
 
 impl Config for Runtime {
@@ -434,7 +439,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 500)],
+			balances: vec![(ALICE, 100000), (BOB, 500), (NO_METAVERSE_OWNER, 500)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
