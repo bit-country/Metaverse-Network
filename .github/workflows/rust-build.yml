@@ -1,0 +1,40 @@
+name: Metaverse Build
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  check:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-20.04
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      - name: Set-Up
+        run: sudo apt install -y cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
+
+      - name: Install Rustup
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          source ~/.cargo/env
+          rustup default nightly && rustup update
+          rustup default nightly-2022-05-11
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2022-05-11
+      - name: Check Rust version
+        run: rustup show      
+      - name: Check Format
+        run: cargo fmt --all -- --check
+      - name: Check Build
+        run: |
+          SKIP_WASM_BUILD=1 cargo check --release --features with-pioneer-runtime,with-metaverse-runtime
