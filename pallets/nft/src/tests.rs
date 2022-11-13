@@ -767,3 +767,62 @@ fn setting_hard_limit_should_work() {
 		assert_eq!(last_event(), event);
 	})
 }
+
+#[test]
+fn force_updating_total_issuance_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(0u32),
+			None
+		));
+		assert_ok!(Nft::force_update_total_issuance(
+			Origin::root(),
+			CLASS_ID,
+			TOKEN_ID,
+			TOKEN_ID_2
+		));
+		assert_eq!(
+			NftModule::<Runtime>::classes(CLASS_ID).unwrap().total_issuance,
+			TOKEN_ID_2
+		);
+		let event = mock::Event::Nft(crate::Event::ClassTotalIssuanceUpdated(CLASS_ID, TOKEN_ID_2));
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn force_updating_total_issuance_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(0u32),
+			None
+		));
+		assert_noop!(
+			Nft::force_update_total_issuance(Origin::root(), NON_EXISTING_CLASS_ID, TOKEN_ID, TOKEN_ID_2),
+			Error::<Runtime>::ClassIdNotFound
+		);
+
+		assert_noop!(
+			Nft::force_update_total_issuance(Origin::root(), CLASS_ID, TOKEN_ID_1, TOKEN_ID_2),
+			Error::<Runtime>::InvalidCurrentTotalIssuance
+		);
+	})
+}

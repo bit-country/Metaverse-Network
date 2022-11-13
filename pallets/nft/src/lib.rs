@@ -291,6 +291,8 @@ pub mod pallet {
 			TokenIdOf<T>,
 			(ClassIdOf<T>, TokenIdOf<T>),
 		),
+		/// Successfully updated class total issuance
+		ClassTotalIssuanceUpdated(ClassIdOf<T>, TokenIdOf<T>),
 		/// Signed on NFT
 		SignedNft(TokenIdOf<T>, <T as frame_system::Config>::AccountId),
 		/// Promotion enabled
@@ -381,6 +383,8 @@ pub mod pallet {
 		InvalidStackableNftTransfer,
 		/// Invalid stackable NFT balance
 		InvalidStackableNftAmount,
+		/// Invalid current total issuance
+		InvalidCurrentTotalIssuance,
 	}
 
 	#[pallet::call]
@@ -394,6 +398,7 @@ pub mod pallet {
 		///
 		/// Emits `NewNftCollectionCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_group())]
+		#[transactional]
 		pub fn create_group(
 			origin: OriginFor<T>,
 			name: NftMetadata,
@@ -435,6 +440,7 @@ pub mod pallet {
 		///
 		/// Emits `NewNftClassCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_class())]
+		#[transactional]
 		pub fn create_class(
 			origin: OriginFor<T>,
 			metadata: NftMetadata,
@@ -470,6 +476,7 @@ pub mod pallet {
 		///
 		/// Emits `NewNftMinted` if successful.
 		#[pallet::weight(< T as Config >::WeightInfo::mint() * * quantity as u64)]
+		#[transactional]
 		pub fn mint(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -524,6 +531,7 @@ pub mod pallet {
 		///
 		/// Emits `TransferedNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer())]
+		#[transactional]
 		pub fn transfer(
 			origin: OriginFor<T>,
 			to: T::AccountId,
@@ -751,6 +759,7 @@ pub mod pallet {
 		///
 		/// Emits `ForceTransferredNft` if successful.
 		#[pallet::weight(T::WeightInfo::transfer())]
+		#[transactional]
 		pub fn force_transfer(
 			origin: OriginFor<T>,
 			from: T::AccountId,
@@ -840,7 +849,7 @@ pub mod pallet {
 		/// Unlock the provided NFT by governance if already locked
 		///
 		/// The dispatch origin for this call must be _Root_.
-		/// - `class_id`: the class ID of the collection
+		/// - `token_id`: the class ID nad token ID of the asset
 		///
 		/// Emits `NftUnlocked` if successful.
 		#[pallet::weight(T::WeightInfo::sign_asset())]
@@ -851,6 +860,38 @@ pub mod pallet {
 				let mut token_info_result = maybe_token_info.as_mut().ok_or(Error::<T>::AssetInfoNotFound)?;
 				token_info_result.data.is_locked = false;
 				Self::deposit_event(Event::<T>::NftUnlocked(token_id.0, token_id.1));
+
+				Ok(())
+			})
+		}
+
+		/// Force update the total issuance of a given class
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `class_id`: the class ID of the collection
+		/// - `current_total_issuance`: the current total issuance of the collection
+		/// - `new_total_issuance`: the new total issuance of the collection
+		///
+		/// Emits `ClassTotalIssuanceUpdated` if successful.
+		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
+		pub fn force_update_total_issuance(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+			current_total_issuance: TokenIdOf<T>,
+			new_total_issuance: TokenIdOf<T>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			// update class total issuance
+			Classes::<T>::try_mutate(class_id.clone(), |class_info| -> DispatchResult {
+				let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+				ensure!(
+					current_total_issuance == info.total_issuance,
+					Error::<T>::InvalidCurrentTotalIssuance
+				);
+
+				info.total_issuance = new_total_issuance;
+				Self::deposit_event(Event::<T>::ClassTotalIssuanceUpdated(class_id, new_total_issuance));
 
 				Ok(())
 			})
