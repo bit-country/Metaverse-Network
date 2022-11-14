@@ -37,7 +37,7 @@ jobs:
         run: cargo fmt --all -- --check
       - name: Build Benchmarking
         run: |
-          SKIP_WASM_BUILD=1 cargo build --release --features runtime-benchmarks
+          cargo build --release --features runtime-benchmarks
       - name: Run Benchmarking
         run: |
           ./target/release/metaverse-node benchmark pallet \
