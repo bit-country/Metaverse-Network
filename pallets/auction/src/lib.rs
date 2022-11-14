@@ -192,6 +192,10 @@ pub mod pallet {
 		/// Minimum listing price
 		#[pallet::constant]
 		type MinimumListingPrice: Get<BalanceOf<Self>>;
+
+		/// Anti-snipe duration
+		#[pallet::constant]
+		type AntiSnipeDuration: Get<Self::BlockNumber>;
 	}
 
 	#[pallet::storage]
@@ -1124,6 +1128,10 @@ pub mod pallet {
 
 				Self::swap_new_bid(id, (from.clone(), value), auction.bid.clone())?;
 
+				if auction_item.end_time.saturating_sub(<system::Pallet<T>>::block_number()) == T::AntiSnipeDuration::get() {
+					auction_item.end_time.saturating_add(T::AntiSnipeDuration::get());
+				}
+
 				auction.bid = Some((from.clone(), value));
 				Self::deposit_event(Event::Bid(id, from, value));
 
@@ -1166,6 +1174,9 @@ pub mod pallet {
 				// Reserve balance
 				T::FungibleTokenCurrency::reserve(social_currency_id, &new_bidder, new_bid_price.saturated_into())?;
 				auction_item.amount = new_bid_price.clone();
+				if auction_item.end_time.saturating_sub(<system::Pallet<T>>::block_number()) == T::AntiSnipeDuration::get() {
+					auction_item.end_time.saturating_add(T::AntiSnipeDuration::get());
+				}
 
 				Ok(())
 			})
