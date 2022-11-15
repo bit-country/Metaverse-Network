@@ -555,8 +555,16 @@ fn bid_works() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0),
 		));
-
+		run_to_block(95);
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: Some((1, 200)),
+				start: 1,
+				end: Some(101),
+			})
+		);
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
 	});
@@ -581,18 +589,27 @@ fn bid_anti_snipe_duration_works() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0),
 		));
+		let old_auction_item = AuctionModule::get_auction_item(0);
 
-		run_to_block(95);
+		run_to_block(96);
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
 
 		assert_eq!(
 			AuctionModule::auctions(0),
 			Some(AuctionInfo {
-				bid: None,
+				bid: Some((1, 200)),
 				start: 1,
 				end: Some(106),
 			})
+		);
+		assert_eq!(
+			AuctionModule::auction_end_time(106, 0),
+			Some(())
+		);
+		assert_eq!(
+			AuctionModule::auction_end_time(101, 0),
+			None
 		);
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
 		assert_eq!(Balances::reserved_balance(ALICE), 200);

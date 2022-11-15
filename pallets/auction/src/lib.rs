@@ -1076,7 +1076,7 @@ pub mod pallet {
 
 		/// Internal auction bid handler
 		fn auction_bid_handler(from: T::AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
-			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+			let mut auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
 				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			ensure!(
 				auction_item.auction_type == AuctionType::Auction,
@@ -1128,8 +1128,14 @@ pub mod pallet {
 
 				Self::swap_new_bid(id, (from.clone(), value), auction.bid.clone())?;
 
-				if auction_item.end_time.saturating_sub(<system::Pallet<T>>::block_number()) == T::AntiSnipeDuration::get() {
-					auction_item.end_time.saturating_add(T::AntiSnipeDuration::get());
+				if auction_item.end_time.saturating_sub(<system::Pallet<T>>::block_number()) <= T::AntiSnipeDuration::get() {
+					AuctionEndTime::<T>::remove(auction_end, id);
+					let new_auction_end = auction_end.saturating_add(T::AntiSnipeDuration::get());				
+					auction_item.end_time = new_auction_end;
+					AuctionItems::<T>::insert(id, auction_item);
+					AuctionEndTime::<T>::insert(new_auction_end, id, ());
+					auction.end = Some(new_auction_end);
+					
 				}
 
 				auction.bid = Some((from.clone(), value));
@@ -1174,8 +1180,16 @@ pub mod pallet {
 				// Reserve balance
 				T::FungibleTokenCurrency::reserve(social_currency_id, &new_bidder, new_bid_price.saturated_into())?;
 				auction_item.amount = new_bid_price.clone();
-				if auction_item.end_time.saturating_sub(<system::Pallet<T>>::block_number()) == T::AntiSnipeDuration::get() {
-					auction_item.end_time.saturating_add(T::AntiSnipeDuration::get());
+				if auction_item.end_time.saturating_sub(<system::Pallet<T>>::block_number()) <= T::AntiSnipeDuration::get() {
+					let new_end = auction_item.end_time.saturating_add(T::AntiSnipeDuration::get());
+					if let Some(auction_info) = Self::auctions(id) {
+						let mut new_auction_info = auction_info;
+						new_auction_info.end = Some(new_end);
+						Auctions::<T>::insert(id, new_auction_info);
+					}
+					AuctionEndTime::<T>::remove(auction_item.end_time, id);
+					AuctionEndTime::<T>::insert(new_end, id, ());
+					auction_item.end_time = new_end;
 				}
 
 				Ok(())
