@@ -603,14 +603,8 @@ fn bid_anti_snipe_duration_works() {
 				end: Some(106),
 			})
 		);
-		assert_eq!(
-			AuctionModule::auction_end_time(106, 0),
-			Some(())
-		);
-		assert_eq!(
-			AuctionModule::auction_end_time(101, 0),
-			None
-		);
+		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
+		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
 	});
