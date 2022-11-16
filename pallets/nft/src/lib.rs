@@ -581,29 +581,28 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			ensure!(
-				amount > Zero::zero()
-					&& Self::get_stackable_collections((asset_id.0, asset_id.1, sender.clone())) >= amount,
-				Error::<T>::InvalidStackableNftTransfer
-			);
-
 			StackableCollections::<T>::try_mutate(
 				(asset_id.0, asset_id.1, sender.clone()),
-				|sender_balance| -> DispatchResult {
+				|sender_balance| -> DispatchResultWithPostInfo {
 					StackableCollections::<T>::try_mutate(
 						(asset_id.0, asset_id.1, to.clone()),
-						|receiver_balance| -> DispatchResult {
+						|receiver_balance| -> DispatchResultWithPostInfo {
+							ensure!(
+								amount > Zero::zero()
+									&& Self::get_stackable_collections((asset_id.0, asset_id.1, sender.clone()))
+										>= amount,
+								Error::<T>::InvalidStackableNftTransfer
+							);
+
 							*receiver_balance = receiver_balance.saturating_add(amount);
 							*sender_balance = sender_balance.saturating_sub(amount);
 							Self::deposit_event(Event::<T>::TransferedStackableNft(sender, to, asset_id, amount));
 
-							Ok(())
+							Ok(().into())
 						},
-					);
-					Ok(())
+					)
 				},
-			);
-			Ok(().into())
+			)
 		}
 
 		/// Transfer a batch of existing NFT assets if the batch size no more

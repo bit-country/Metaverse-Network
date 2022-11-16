@@ -1,6 +1,9 @@
 use super::utils::{create_nft_group, dollar, set_balance, set_metaverse_treasury_initial_balance};
 #[allow(unused)]
-use crate::{Balances, Event, LocalMetaverseFundPalletId, Metaverse, MetaverseNetworkTreasuryPalletId, MinContribution, Nft, Runtime};
+use crate::{
+	Balances, Event, LocalMetaverseFundPalletId, Metaverse, MetaverseNetworkTreasuryPalletId, MinContribution, Nft,
+	Runtime,
+};
 use core_primitives::MetaverseInfo;
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::assert_ok;
@@ -154,7 +157,7 @@ runtime_benchmarks! {
 			}
 		}
 	}
- 
+
 	withdraw_from_metaverse_fund{
 		let caller: AccountId = account("caller", 0, SEED);
 		set_balance(CURRENCY_ID, &caller, dollar(1000));
@@ -167,7 +170,7 @@ runtime_benchmarks! {
 	verify {
 		assert_eq!(Balances::free_balance(&metaverse_fund), 1u32.into());
 	}
-	
+
 }
 
 #[cfg(test)]
