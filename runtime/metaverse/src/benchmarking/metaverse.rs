@@ -1,6 +1,6 @@
 use super::utils::{create_nft_group, dollar, set_balance, set_metaverse_treasury_initial_balance};
 #[allow(unused)]
-use crate::{Balances, Event, Metaverse, MetaverseNetworkTreasuryPalletId, MinContribution, Nft, Runtime};
+use crate::{Balances, Event, LocalMetaverseFundPalletId, Metaverse, MetaverseNetworkTreasuryPalletId, MinContribution, Nft, Runtime};
 use core_primitives::MetaverseInfo;
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::assert_ok;
@@ -22,7 +22,7 @@ const COORDINATE_OUT: (i32, i32) = (0, 101);
 const COORDINATE_IN_AUCTION: (i32, i32) = (99, 99);
 
 fn get_metaverse_fund(metaverse_id: MetaverseId) -> AccountId {
-	MetaverseNetworkTreasuryPalletId::get().into_sub_account_truncating(metaverse_id)
+	LocalMetaverseFundPalletId::get().into_sub_account_truncating(metaverse_id)
 }
 
 runtime_benchmarks! {
@@ -51,9 +51,9 @@ runtime_benchmarks! {
 
 	transfer_metaverse{
 		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		let target: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+		let target: AccountId = account("target", 1, SEED);
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -76,9 +76,9 @@ runtime_benchmarks! {
 
 	freeze_metaverse{
 		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		let target: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+		let target: AccountId = account("target", 1, SEED);
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
@@ -98,9 +98,9 @@ runtime_benchmarks! {
 
 	unfreeze_metaverse{
 		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		let target: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+		let target: AccountId = account("target", 1, SEED);
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -123,9 +123,9 @@ runtime_benchmarks! {
 
 	destroy_metaverse{
 		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-		let target: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &target, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+		let target: AccountId = account("target", 1, SEED);
+		set_balance(CURRENCY_ID, &target, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -138,7 +138,7 @@ runtime_benchmarks! {
 
 	update_metaverse_listing_fee {
 		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
@@ -154,19 +154,20 @@ runtime_benchmarks! {
 			}
 		}
 	}
-
+ 
 	withdraw_from_metaverse_fund{
 		let caller: AccountId = account("caller", 0, SEED);
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1]);
 		let metaverse_fund: AccountId = get_metaverse_fund(0u32.into());
-		Balances::make_free_balance_be(&metaverse_fund, dollar(100).unique_saturated_into());
+		set_balance(CURRENCY_ID, &metaverse_fund, dollar(1000));
 	}: _(RawOrigin::Signed(caller), 0u32.into())
 	verify {
 		assert_eq!(Balances::free_balance(&metaverse_fund), 1u32.into());
 	}
+	
 }
 
 #[cfg(test)]

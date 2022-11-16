@@ -385,6 +385,8 @@ pub mod pallet {
 		InvalidStackableNftAmount,
 		/// Invalid current total issuance
 		InvalidCurrentTotalIssuance,
+		/// The stackable collection already exists
+		StackableCollectionAlreadyExists,
 	}
 
 	#[pallet::call]
@@ -504,6 +506,7 @@ pub mod pallet {
 		///
 		/// Emits `NewStackableNftMinted` if successful.
 		#[pallet::weight(< T as Config >::WeightInfo::mint_stackable_nft())]
+		#[transactional]
 		pub fn mint_stackable_nft(
 			origin: OriginFor<T>,
 			class_id: ClassIdOf<T>,
@@ -516,6 +519,13 @@ pub mod pallet {
 			ensure!(amount > Zero::zero(), Error::<T>::InvalidStackableNftAmount);
 
 			let result = Self::do_mint_nfts(&sender, class_id, metadata, attributes, 1)?;
+
+			// Not likely to happen but ensure that the stackable collection balance is not already set
+			ensure!(
+				Self::get_stackable_collections((class_id, result.1, sender.clone())) == Zero::zero(),
+				Error::<T>::StackableCollectionAlreadyExists
+			);
+
 			StackableCollections::<T>::insert((class_id, result.1, sender.clone()), amount);
 
 			Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, result.1, amount));

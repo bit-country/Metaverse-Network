@@ -49,7 +49,7 @@ runtime_benchmarks! {
 	mint_land {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -63,7 +63,7 @@ runtime_benchmarks! {
 	mint_lands {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -78,7 +78,7 @@ runtime_benchmarks! {
 	transfer_land {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
@@ -99,7 +99,7 @@ runtime_benchmarks! {
 	mint_estate {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -117,7 +117,7 @@ runtime_benchmarks! {
 	dissolve_estate {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -132,7 +132,7 @@ runtime_benchmarks! {
 	add_land_unit_to_estate {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -151,7 +151,7 @@ runtime_benchmarks! {
 	remove_land_unit_from_estate {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -169,7 +169,7 @@ runtime_benchmarks! {
 	create_estate {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
@@ -188,7 +188,7 @@ runtime_benchmarks! {
 	transfer_estate {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
@@ -206,7 +206,7 @@ runtime_benchmarks! {
 	issue_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
 	}: _(RawOrigin::Root, caller.clone(), 20, 100, UndeployedLandBlockType::BoundToAddress)
@@ -231,7 +231,7 @@ runtime_benchmarks! {
 	freeze_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
 		issue_new_undeployed_land_block(5)?;
 	}: _(RawOrigin::Root, Default::default())
@@ -253,7 +253,7 @@ runtime_benchmarks! {
 	unfreeze_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
 		issue_new_undeployed_land_block(5)?;
 		Estate::freeze_undeployed_land_blocks(RawOrigin::Root.into(), Default::default());
@@ -276,11 +276,11 @@ runtime_benchmarks! {
 	approve_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &target, dollar(10));
 		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::BoundToAddress);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
@@ -302,7 +302,7 @@ runtime_benchmarks! {
 	unapprove_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
 		set_balance(CURRENCY_ID, &target, dollar(10));
@@ -328,10 +328,12 @@ runtime_benchmarks! {
 	transfer_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = account("target", 0, SEED);
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
+		set_balance(CURRENCY_ID, &target, dollar(10));
+
 		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 5, 100, UndeployedLandBlockType::Transferable);
 	}: _(RawOrigin::Signed(caller.clone()), target.clone(), Default::default())
@@ -353,7 +355,7 @@ runtime_benchmarks! {
 	deploy_land_block {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
 		set_metaverse_treasury_initial_balance();
 		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
@@ -368,7 +370,7 @@ runtime_benchmarks! {
 	burn_undeployed_land_blocks {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 		create_nft_group();
 		Estate::issue_undeployed_land_blocks(RawOrigin::Root.into(), caller.clone(), 1, 2, UndeployedLandBlockType::Transferable);
 	}: _(RawOrigin::Root, Default::default())
@@ -380,7 +382,7 @@ runtime_benchmarks! {
 	create_lease_offer {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
@@ -396,7 +398,7 @@ runtime_benchmarks! {
 	accept_lease_offer {
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
@@ -414,7 +416,7 @@ runtime_benchmarks! {
 		System::set_block_number(1u32.into());
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
@@ -434,7 +436,7 @@ runtime_benchmarks! {
 		System::set_block_number(1u32.into());
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
@@ -454,7 +456,7 @@ runtime_benchmarks! {
 		System::set_block_number(1u32.into());
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
@@ -473,7 +475,7 @@ runtime_benchmarks! {
 		System::set_block_number(1u32.into());
 		let caller: AccountId = whitelisted_caller();
 		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
 
 		let target: AccountId = whitelisted_caller();
 		let target_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(target.clone());
