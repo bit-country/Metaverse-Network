@@ -188,9 +188,15 @@ pub mod pallet {
 	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn get_stackable_collections)]
-	/// Index stackable collections
-	pub(super) type StackableCollections<T: Config> = StorageNMap<
+	#[pallet::getter(fn get_stackable_collection)]
+	/// Index stackable collections by (class ID, token ID)
+	pub(super) type StackableCollection<T: Config> =
+		StorageMap<_, Blake2_128Concat, (ClassIdOf<T>, TokenIdOf<T>), (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn get_stackable_collections_balances)]
+	/// Index stackable collections balances
+	pub(super) type StackableCollectionsBalances<T: Config> = StorageNMap<
 		_,
 		(
 			NMapKey<Blake2_128Concat, T::ClassId>,
@@ -522,11 +528,12 @@ pub mod pallet {
 
 			// Not likely to happen but ensure that the stackable collection balance is not already set
 			ensure!(
-				Self::get_stackable_collections((class_id, result.1, sender.clone())) == Zero::zero(),
+				Self::get_stackable_collections_balances((class_id, result.1, sender.clone())) == Zero::zero(),
 				Error::<T>::StackableCollectionAlreadyExists
 			);
 
-			StackableCollections::<T>::insert((class_id, result.1, sender.clone()), amount);
+			StackableCollectionsBalances::<T>::insert((class_id, result.1, sender.clone()), amount);
+			StackableCollection::<T>::insert((class_id, result.1), ());
 
 			Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, result.1, amount));
 
@@ -581,16 +588,19 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			StackableCollections::<T>::try_mutate(
+			StackableCollectionsBalances::<T>::try_mutate(
 				(asset_id.0, asset_id.1, sender.clone()),
 				|sender_balance| -> DispatchResultWithPostInfo {
-					StackableCollections::<T>::try_mutate(
+					StackableCollectionsBalances::<T>::try_mutate(
 						(asset_id.0, asset_id.1, to.clone()),
 						|receiver_balance| -> DispatchResultWithPostInfo {
 							ensure!(
 								amount > Zero::zero()
-									&& Self::get_stackable_collections((asset_id.0, asset_id.1, sender.clone()))
-										>= amount,
+									&& Self::get_stackable_collections_balances((
+										asset_id.0,
+										asset_id.1,
+										sender.clone()
+									)) >= amount,
 								Error::<T>::InvalidStackableNftTransfer
 							);
 
@@ -1285,12 +1295,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	}
 
 	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		for item in StackableCollections::<T>::iter() {
-			if item.0 .0 == asset_id.0 && item.0 .1 == asset_id.1 && item.1 > Zero::zero() {
-				return Ok(true);
-			}
-		}
-		Ok(false)
+		Ok(Self::get_stackable_collection(asset_id).is_some())
 	}
 
 	fn create_token_class(
