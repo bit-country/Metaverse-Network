@@ -496,7 +496,7 @@ pub mod pallet {
 
 			ensure!(quantity >= 1, Error::<T>::InvalidQuantity);
 
-			Self::do_mint_nfts(&sender, class_id, metadata, attributes, quantity)?;
+			Self::do_mint_nfts(&sender, class_id, metadata, attributes, false, quantity)?;
 
 			Ok(().into())
 		}
@@ -524,7 +524,7 @@ pub mod pallet {
 
 			ensure!(amount > Zero::zero(), Error::<T>::InvalidStackableNftAmount);
 
-			let result = Self::do_mint_nfts(&sender, class_id, metadata, attributes, 1)?;
+			let result = Self::do_mint_nfts(&sender, class_id, metadata, attributes, true, 1)?;
 
 			// Not likely to happen but ensure that the stackable collection balance is not already set
 			ensure!(
@@ -1041,6 +1041,7 @@ impl<T: Config> Pallet<T> {
 		class_id: ClassIdOf<T>,
 		metadata: NftMetadata,
 		attributes: Attributes,
+		are_locked: bool,
 		quantity: u32,
 	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
 		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
@@ -1063,7 +1064,7 @@ impl<T: Config> Pallet<T> {
 		let new_nft_data = NftAssetData {
 			deposit,
 			attributes: attributes,
-			is_locked: false,
+			is_locked: are_locked,
 		};
 
 		let mut new_asset_ids: Vec<(ClassIdOf<T>, TokenIdOf<T>)> = Vec::new();
