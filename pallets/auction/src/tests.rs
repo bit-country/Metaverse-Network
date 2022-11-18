@@ -1726,3 +1726,43 @@ fn withdraw_offer_should_work() {
 		assert_eq!(Balances::free_balance(BOB), 500);
 	});
 }
+
+#[test]
+fn finalize_auction_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let bidder = Origin::signed(ALICE);
+		init_test_nft(owner.clone());
+		init_test_nft(owner.clone());
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+
+		run_to_block(10);
+
+		assert_noop!(
+			AuctionModule::finalize_auction(Origin::signed(BOB), 100),
+			Error::<Runtime>::AuctionDoesNotExist
+		);
+
+		assert_noop!(
+			AuctionModule::finalize_auction(Origin::signed(BOB), 0),
+			Error::<Runtime>::AuctionIsNotExpired
+		);
+
+		run_to_block(102);
+
+		assert_noop!(
+			AuctionModule::finalize_auction(Origin::signed(BOB), 0),
+			Error::<Runtime>::AuctionDoesNotExist
+		);
+	});
+}

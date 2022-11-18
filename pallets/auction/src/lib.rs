@@ -293,6 +293,8 @@ pub mod pallet {
 		AuctionHasNotStarted,
 		/// Auction is expired
 		AuctionIsExpired,
+		/// Auction is  not expired
+		AuctionIsNotExpired,
 		/// Auction type is supported for listing
 		AuctionTypeIsNotSupported,
 		/// Bid is not accepted e.g owner == bidder, listing stop accepting bid
@@ -349,6 +351,8 @@ pub mod pallet {
 		NoPermissionToMakeOffer,
 		/// No permission to accept offer for a NFT.
 		NoPermissionToAcceptOffer,
+		/// No permission to finalize auction
+		NoPermissionToFinalizeAuction,
 		/// Listing price is below the minimum.
 		ListingPriceIsBelowMinimum,
 		/// Only metaverse owner can participate
@@ -758,6 +762,27 @@ pub mod pallet {
 			Offers::<T>::remove(asset, offeror.clone());
 
 			Self::deposit_event(Event::<T>::NftOfferWithdrawn(asset.0, asset.1, offeror));
+			Ok(().into())
+		}
+
+		/// Manually finalize ended auction.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `auction_id`: the ID of the auction that will be finalized.
+		///
+		/// Emits `AuctionFinalized` or `AuctionFinalizedNoBid` if successful.
+		#[pallet::weight(T::WeightInfo::on_finalize())]
+		pub fn finalize_auction(origin: OriginFor<T>, auction_id: AuctionId) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			let auction = <Auctions<T>>::get(&auction_id).ok_or(Error::<T>::AuctionDoesNotExist)?;
+			ensure!(
+				auction.end.ok_or(Error::<T>::AuctionIsNotExpired)? < <system::Pallet<T>>::block_number(),
+				Error::<T>::AuctionIsNotExpired
+			);
+
+			T::Handler::on_auction_ended(auction_id, auction.bid);
+
 			Ok(().into())
 		}
 	}
