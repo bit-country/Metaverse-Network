@@ -105,6 +105,24 @@ runtime_benchmarks! {
 		next_block();
 	}: _(RawOrigin::Signed(bidder.clone()), 0u32.into(), dollar(1))
 
+	// cancel listingg
+	cancel_listing{
+		System::set_block_number(1u32.into());
+		let caller: AccountId = account("caller", 0, SEED);
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+		let bidder: AccountId = account("bidder", 0, SEED);
+		set_balance(CURRENCY_ID, &bidder, dollar(20));
+		set_balance(MINING_CURRENCY_ID, &bidder, dollar(2000));
+		create_nft_group();
+		mint_NFT(&caller, 0u32);
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
+		Metaverse::create_metaverse(RawOrigin::Signed(caller.clone()).into(), vec![1u8]);
+		next_block();
+		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), dollar(1), 500u32.into(), ListingLevel::Local(METAVERSE_ID), MINING_CURRENCY_ID);
+		next_block();
+	}: _(RawOrigin::Signed(caller.clone()), caller.clone(), 0u32.into())
+
 	authorise_metaverse_collection{
 		let alice: AccountId = account("alice", 0, SEED);
 		set_balance(CURRENCY_ID, &alice, dollar(1000));

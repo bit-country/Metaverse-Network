@@ -607,15 +607,18 @@ pub mod pallet {
 		/// - `from`: the listing owner who created this listing
 		/// - `auction_id`: the auction id that wish to cancel
 		///
-		/// Emits `CollectionAuthorizationRemoveInMetaverse` if successful.
-		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		/// Emits `AuctionCancelled` and  `AuctionFinalizedNoBid` if successful.
+		#[pallet::weight(T::WeightInfo::cancel_listing())]
 		#[transactional]
 		pub fn cancel_listing(
 			origin: OriginFor<T>,
 			from: T::AccountId,
 			auction_id: AuctionId,
 		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
+			ensure!(
+				ensure_root(origin.clone()).is_ok() || ensure_signed(origin)? == from,
+				Error::<T>::NoPermissionToCancelAuction
+			);
 
 			ensure!(Auctions::<T>::contains_key(auction_id), Error::<T>::AuctionDoesNotExist);
 			let auction_item = AuctionItems::<T>::get(auction_id).ok_or(Error::<T>::AuctionDoesNotExist)?;
