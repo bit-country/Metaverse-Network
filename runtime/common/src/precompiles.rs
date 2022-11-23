@@ -11,6 +11,7 @@ use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
 
 use crate::currencies::MultiCurrencyPrecompile;
+//use crate::currencies::MetaversePrecompile;
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile

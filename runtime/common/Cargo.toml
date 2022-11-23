@@ -44,6 +44,7 @@ primitives = { package = "bit-country-primitives", path = "../../primitives/meta
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 precompile-utils = { path = "../../primitives/precompiles", default-features = false }
 precompile-utils-macro = { path = "../../primitives/precompiles/macro" }
+metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
 
 [build-dependencies]

@@ -5306,6 +5306,7 @@ dependencies = [
  "pallet-evm-precompile-modexp",
  "pallet-evm-precompile-sha3fips",
  "pallet-evm-precompile-simple",
+ "pallet-metaverse",
  "parity-scale-codec",
  "polkadot-parachain",
  "precompile-utils",
