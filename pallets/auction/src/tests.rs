@@ -589,11 +589,10 @@ fn bid_anti_snipe_duration_works() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0),
 		));
-		let old_auction_item = AuctionModule::get_auction_item(0);
 
 		run_to_block(96);
 
-		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		assert_ok!(AuctionModule::bid(bidder.clone(), 0, 200));
 
 		assert_eq!(
 			AuctionModule::auctions(0),
@@ -606,7 +605,20 @@ fn bid_anti_snipe_duration_works() {
 		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
 		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
-		assert_eq!(Balances::reserved_balance(ALICE), 200);
+
+		// Move to the next block, test if auction keeps extending
+		run_to_block(97);
+		// Ensure another bid doesn't increase the end time
+		assert_ok!(AuctionModule::bid(bidder.clone(), 0, 201));
+		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
+		assert_eq!(Balances::reserved_balance(ALICE), 201);
+
+		run_to_block(107);
+		// Verify if auction finalized with new end time.
+		assert_eq!(
+			last_event(),
+			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 201))
+		);
 	});
 }
 
