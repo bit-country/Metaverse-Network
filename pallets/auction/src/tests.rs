@@ -1808,7 +1808,7 @@ fn cancel_listing_should_work() {
 		);
 
 		run_to_block(2);
-		assert_ok!(AuctionModule::cancel_listing(Origin::signed(BOB), BOB, 0));
+		assert_ok!(AuctionModule::cancel_listing(Origin::signed(BOB), 0));
 		assert_eq!(Balances::free_balance(BOB), 497);
 
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
@@ -1841,32 +1841,13 @@ fn cancel_listing_should_fail() {
 		run_to_block(10);
 
 		assert_noop!(
-			AuctionModule::cancel_listing(Origin::signed(BOB), ALICE, 0),
+			AuctionModule::cancel_listing(Origin::signed(ALICE), 0),
 			Error::<Runtime>::NoPermissionToCancelAuction
 		);
 
 		assert_noop!(
-			AuctionModule::cancel_listing(Origin::signed(BOB), BOB, 1),
+			AuctionModule::cancel_listing(Origin::signed(BOB), 1),
 			Error::<Runtime>::AuctionDoesNotExist
 		);
-
-		assert_noop!(
-			AuctionModule::cancel_listing(Origin::root(), ALICE, 0),
-			Error::<Runtime>::NoPermissionToCancelAuction
-		);
-
-		assert_noop!(
-			AuctionModule::cancel_listing(Origin::signed(ALICE), ALICE, 0),
-			Error::<Runtime>::NoPermissionToCancelAuction
-		);
-
-		//assert_ok!(AuctionModule::bid(Origin::signed(ALICE.clone()), 0, 200));
-
-		//run_to_block(11);
-
-		//assert_noop!(
-		//	AuctionModule::cancel_listing(Origin::signed(BOB), BOB, 0),
-		//	Error::<Runtime>::AuctionAlreadyStartedOrBid
-		//);
 	});
 }
