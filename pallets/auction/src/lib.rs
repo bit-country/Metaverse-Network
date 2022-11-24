@@ -280,6 +280,8 @@ pub mod pallet {
 		NftOfferAccepted(ClassId, TokenId, T::AccountId),
 		/// Nft offer is withdrawn [class_id, token_id, account_id]
 		NftOfferWithdrawn(ClassId, TokenId, T::AccountId),
+		/// Auction extended. [auction_id, end_block]
+		AuctionExtended(AuctionId, T::BlockNumber),
 	}
 
 	/// Errors inform users that something went wrong.
@@ -768,7 +770,7 @@ pub mod pallet {
 		/// Emits `AuctionFinalized` or `AuctionFinalizedNoBid` if successful.
 		#[pallet::weight(T::WeightInfo::on_finalize())]
 		pub fn finalize_auction(origin: OriginFor<T>, auction_id: AuctionId) -> DispatchResultWithPostInfo {
-			let who = ensure_signed(origin)?;
+			ensure_signed(origin)?;
 
 			let auction = <Auctions<T>>::get(&auction_id).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			ensure!(
@@ -1166,6 +1168,7 @@ pub mod pallet {
 					AuctionEndTime::<T>::insert(new_auction_end, id, ());
 					// Update auction struct
 					auction.end = Some(new_auction_end);
+					Self::deposit_event(Event::AuctionExtended(id, new_auction_end));
 				}
 
 				auction.bid = Some((from.clone(), value));
