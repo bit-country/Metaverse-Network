@@ -1161,11 +1161,18 @@ pub mod pallet {
 					.saturating_sub(<system::Pallet<T>>::block_number())
 					<= T::AntiSnipeDuration::get()
 				{
+					// Trigger anti-snipe
+					// Remove existing auction end
 					AuctionEndTime::<T>::remove(auction_end, id);
+					// Extend auction end time
 					let new_auction_end = auction_end.saturating_add(T::AntiSnipeDuration::get());
+					// Update new auction item end time
 					auction_item.end_time = new_auction_end;
+					// Update storage key of auction item
 					AuctionItems::<T>::insert(id, auction_item);
+					// Update new auction end time
 					AuctionEndTime::<T>::insert(new_auction_end, id, ());
+					// Update auction struct
 					auction.end = Some(new_auction_end);
 				}
 
