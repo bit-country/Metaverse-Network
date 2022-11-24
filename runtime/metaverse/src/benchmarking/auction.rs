@@ -1,22 +1,26 @@
 #![cfg(feature = "runtime-benchmarks")]
-use super::utils::{
-	create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance, test_attributes,
-};
-use crate::{Auction, Balances, Call, Currencies, Event, Metaverse, MinimumAuctionDuration, Nft, Runtime, System};
-use auction::Config;
-use auction_manager::{CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{Attributes, CollectionType, MetaverseInfo, MetaverseTrait, NftMetadata, TokenType};
+
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::assert_ok;
 use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
-use primitives::{
-	AccountId, FungibleTokenId, ItemId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
-};
 use sp_runtime::traits::{AccountIdConversion, StaticLookup, UniqueSaturatedInto};
 use sp_runtime::Perbill;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec};
+
+use auction::Config;
+use auction_manager::{CheckAuctionItemHandler, ListingLevel};
+use core_primitives::{Attributes, CollectionType, MetaverseInfo, MetaverseTrait, NftMetadata, TokenType};
+use primitives::{
+	AccountId, FungibleTokenId, ItemId, UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
+};
+
+use crate::{Auction, Balances, Call, Currencies, Event, Metaverse, MinimumAuctionDuration, Nft, Runtime, System};
+
+use super::utils::{
+	create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance, test_attributes,
+};
 
 //pub type AccountId = u128;
 pub type LandId = u64;
@@ -121,7 +125,7 @@ runtime_benchmarks! {
 		next_block();
 		Auction::create_new_auction(RawOrigin::Signed(caller.clone()).into(), ItemId::NFT(0,0), dollar(1), 500u32.into(), ListingLevel::Local(METAVERSE_ID), MINING_CURRENCY_ID);
 		next_block();
-	}: _(RawOrigin::Signed(caller.clone()), caller.clone(), 0u32.into())
+	}: _(RawOrigin::Signed(caller.clone()), 0u32.into())
 
 	authorise_metaverse_collection{
 		let alice: AccountId = account("alice", 0, SEED);
