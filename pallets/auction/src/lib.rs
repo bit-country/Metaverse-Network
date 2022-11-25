@@ -192,6 +192,10 @@ pub mod pallet {
 		/// Minimum listing price
 		#[pallet::constant]
 		type MinimumListingPrice: Get<BalanceOf<Self>>;
+
+		/// Anti-snipe duration
+		#[pallet::constant]
+		type AntiSnipeDuration: Get<Self::BlockNumber>;
 	}
 
 	#[pallet::storage]
@@ -276,6 +280,8 @@ pub mod pallet {
 		NftOfferAccepted(ClassId, TokenId, T::AccountId),
 		/// Nft offer is withdrawn [class_id, token_id, account_id]
 		NftOfferWithdrawn(ClassId, TokenId, T::AccountId),
+		/// Auction extended. [auction_id, end_block]
+		AuctionExtended(AuctionId, T::BlockNumber),
 	}
 
 	/// Errors inform users that something went wrong.
@@ -289,6 +295,8 @@ pub mod pallet {
 		AuctionHasNotStarted,
 		/// Auction is expired
 		AuctionIsExpired,
+		/// Auction is  not expired
+		AuctionIsNotExpired,
 		/// Auction type is supported for listing
 		AuctionTypeIsNotSupported,
 		/// Bid is not accepted e.g owner == bidder, listing stop accepting bid
@@ -345,6 +353,8 @@ pub mod pallet {
 		NoPermissionToMakeOffer,
 		/// No permission to accept offer for a NFT.
 		NoPermissionToAcceptOffer,
+		/// No permission to finalize auction
+		NoPermissionToFinalizeAuction,
 		/// Listing price is below the minimum.
 		ListingPriceIsBelowMinimum,
 		/// Only metaverse owner can participate
@@ -596,18 +606,13 @@ pub mod pallet {
 		///
 		/// The dispatch origin for this call must be _Root_.
 		/// this call
-		/// - `from`: the listing owner who created this listing
 		/// - `auction_id`: the auction id that wish to cancel
 		///
-		/// Emits `CollectionAuthorizationRemoveInMetaverse` if successful.
-		#[pallet::weight(T::WeightInfo::remove_authorise_metaverse_collection())]
+		/// Emits `AuctionCancelled` and  `AuctionFinalizedNoBid` if successful.
+		#[pallet::weight(T::WeightInfo::cancel_listing())]
 		#[transactional]
-		pub fn cancel_listing(
-			origin: OriginFor<T>,
-			from: T::AccountId,
-			auction_id: AuctionId,
-		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
+		pub fn cancel_listing(origin: OriginFor<T>, auction_id: AuctionId) -> DispatchResultWithPostInfo {
+			let from = ensure_signed(origin)?;
 
 			ensure!(Auctions::<T>::contains_key(auction_id), Error::<T>::AuctionDoesNotExist);
 			let auction_item = AuctionItems::<T>::get(auction_id).ok_or(Error::<T>::AuctionDoesNotExist)?;
@@ -754,6 +759,27 @@ pub mod pallet {
 			Offers::<T>::remove(asset, offeror.clone());
 
 			Self::deposit_event(Event::<T>::NftOfferWithdrawn(asset.0, asset.1, offeror));
+			Ok(().into())
+		}
+
+		/// Manually finalize ended auction.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `auction_id`: the ID of the auction that will be finalized.
+		///
+		/// Emits `AuctionFinalized` or `AuctionFinalizedNoBid` if successful.
+		#[pallet::weight(T::WeightInfo::on_finalize())]
+		pub fn finalize_auction(origin: OriginFor<T>, auction_id: AuctionId) -> DispatchResultWithPostInfo {
+			ensure_signed(origin)?;
+
+			let auction = <Auctions<T>>::get(&auction_id).ok_or(Error::<T>::AuctionDoesNotExist)?;
+			ensure!(
+				auction.end.ok_or(Error::<T>::AuctionIsNotExpired)? < <system::Pallet<T>>::block_number(),
+				Error::<T>::AuctionIsNotExpired
+			);
+
+			T::Handler::on_auction_ended(auction_id, auction.bid);
+
 			Ok(().into())
 		}
 	}
@@ -1072,7 +1098,7 @@ pub mod pallet {
 
 		/// Internal auction bid handler
 		fn auction_bid_handler(from: T::AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
-			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+			let mut auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
 				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			ensure!(
 				auction_item.auction_type == AuctionType::Auction,
@@ -1124,6 +1150,27 @@ pub mod pallet {
 
 				Self::swap_new_bid(id, (from.clone(), value), auction.bid.clone())?;
 
+				if auction_item
+					.end_time
+					.saturating_sub(<system::Pallet<T>>::block_number())
+					<= T::AntiSnipeDuration::get()
+				{
+					// Trigger anti-snipe
+					// Remove existing auction end
+					AuctionEndTime::<T>::remove(auction_end, id);
+					// Extend auction end time
+					let new_auction_end = auction_end.saturating_add(T::AntiSnipeDuration::get());
+					// Update new auction item end time
+					auction_item.end_time = new_auction_end;
+					// Update storage key of auction item
+					AuctionItems::<T>::insert(id, auction_item);
+					// Update new auction end time
+					AuctionEndTime::<T>::insert(new_auction_end, id, ());
+					// Update auction struct
+					auction.end = Some(new_auction_end);
+					Self::deposit_event(Event::AuctionExtended(id, new_auction_end));
+				}
+
 				auction.bid = Some((from.clone(), value));
 				Self::deposit_event(Event::Bid(id, from, value));
 
@@ -1166,6 +1213,21 @@ pub mod pallet {
 				// Reserve balance
 				T::FungibleTokenCurrency::reserve(social_currency_id, &new_bidder, new_bid_price.saturated_into())?;
 				auction_item.amount = new_bid_price.clone();
+				if auction_item
+					.end_time
+					.saturating_sub(<system::Pallet<T>>::block_number())
+					<= T::AntiSnipeDuration::get()
+				{
+					let new_end = auction_item.end_time.saturating_add(T::AntiSnipeDuration::get());
+					if let Some(auction_info) = Self::auctions(id) {
+						let mut new_auction_info = auction_info;
+						new_auction_info.end = Some(new_end);
+						Auctions::<T>::insert(id, new_auction_info);
+					}
+					AuctionEndTime::<T>::remove(auction_item.end_time, id);
+					AuctionEndTime::<T>::insert(new_end, id, ());
+					auction_item.end_time = new_end;
+				}
 
 				Ok(())
 			})
