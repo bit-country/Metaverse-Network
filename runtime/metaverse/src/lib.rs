@@ -175,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 47,
+	spec_version: 48,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -629,6 +629,7 @@ parameter_types! {
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
 	pub const MinimumListingPrice: Balance = DOLLARS;
+	pub const AntiSnipeDuration: BlockNumber = 50; // Minimum anti snipe duration is 50 blocks
 }
 
 impl auction::Config for Runtime {
@@ -649,6 +650,7 @@ impl auction::Config for Runtime {
 	type WeightInfo = weights::module_auction::WeightInfo<Runtime>;
 	type OfferDuration = OfferDuration;
 	type MinimumListingPrice = MinimumListingPrice;
+	type AntiSnipeDuration = AntiSnipeDuration;
 }
 
 impl continuum::Config for Runtime {
