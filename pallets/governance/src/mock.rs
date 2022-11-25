@@ -198,6 +198,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfo {
 	fn is_metaverse_owner(who: &AccountId) -> bool {
 		true
 	}
+
+	fn withdraw_metaverse_treasury_funds(who: &AccountId, metaverse_id: &MetaverseId) -> Result<(), DispatchError> {
+		Ok(())
+	}
 }
 
 pub struct MetaverseLandInfo {}

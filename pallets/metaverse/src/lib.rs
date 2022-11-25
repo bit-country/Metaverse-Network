@@ -30,8 +30,9 @@ use orml_traits::MultiCurrency;
 use sp_runtime::traits::{CheckedSub, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	DispatchError, Perbill,
+	ArithmeticError, DispatchError, Perbill,
 };
+
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use core_primitives::*;
@@ -81,7 +82,6 @@ pub struct MetaverseStakingPoints<AccountId: Ord, Balance: HasCompact> {
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, Saturating};
-	use sp_runtime::ArithmeticError;
 
 	use primitives::staking::RoundInfo;
 	use primitives::RoundIndex;
@@ -423,19 +423,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			ensure!(Self::check_ownership(&who, &metaverse_id), Error::<T>::NoPermission);
-			let metaverse_fund_account = T::MetaverseTreasury::get().into_sub_account_truncating(metaverse_id);
-
-			// Balance minus existential deposit
-			let metaverse_fund_balance = <T as Config>::Currency::free_balance(&metaverse_fund_account)
-				.checked_sub(&<T as Config>::Currency::minimum_balance())
-				.ok_or(ArithmeticError::Underflow)?;
-			<T as Config>::Currency::transfer(
-				&metaverse_fund_account,
-				&who,
-				metaverse_fund_balance,
-				ExistenceRequirement::KeepAlive,
-			)?;
+			Self::do_withdraw_from_metaverse_fund(&who, &metaverse_id);
 
 			Self::deposit_event(Event::<T>::MetaverseTreasuryFundsWithdrawn(metaverse_id));
 
@@ -501,6 +489,26 @@ impl<T: Config> Pallet<T> {
 		AllMetaversesCount::<T>::put(new_total_metaverse_count);
 		//log::info!("Created Metaverse  with Id {:?}", metaverse_id);
 		Ok(metaverse_id)
+	}
+
+	/// Internal withdraw from metaverse fund
+	fn do_withdraw_from_metaverse_fund(who: &T::AccountId, metaverse_id: &MetaverseId) -> Result<(), DispatchError> {
+
+		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
+		let metaverse_fund_account = T::MetaverseTreasury::get().into_sub_account_truncating(*metaverse_id);
+
+		// Balance minus existential deposit
+		let metaverse_fund_balance = <T as Config>::Currency::free_balance(&metaverse_fund_account)
+			.checked_sub(&<T as Config>::Currency::minimum_balance())
+			.ok_or(ArithmeticError::Underflow)?;
+		<T as Config>::Currency::transfer(
+			&metaverse_fund_account,
+			who,
+			metaverse_fund_balance,
+			ExistenceRequirement::KeepAlive,
+		)?;
+
+		Ok(())
 	}
 
 	/// The account ID of the treasury pot.
@@ -717,6 +725,10 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 		let number_of_own_metaverse = MetaverseOwner::<T>::iter_prefix_values(who).count() as u32;
 
 		number_of_own_metaverse > 0
+	}
+
+	fn withdraw_metaverse_treasury_funds(who: &T::AccountId, metaverse_id: &MetaverseId) -> Result<(), DispatchError> {
+		Self::do_withdraw_from_metaverse_fund(who, metaverse_id)
 	}
 }
 

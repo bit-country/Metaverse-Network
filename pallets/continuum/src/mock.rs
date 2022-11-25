@@ -297,6 +297,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	fn is_metaverse_owner(who: &AccountId) -> bool {
 		true
 	}
+
+	fn withdraw_metaverse_treasury_funds(who: &AccountId, metaverse_id: &MetaverseId) -> Result<(), DispatchError> {
+		Ok(())
+	}
 }
 
 impl Config for Runtime {

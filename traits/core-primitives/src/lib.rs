@@ -190,6 +190,8 @@ pub trait MetaverseTrait<AccountId> {
 	fn check_if_metaverse_has_any_land(metaverse_id: MetaverseId) -> Result<bool, DispatchError>;
 	/// Check if account own any metaverse
 	fn is_metaverse_owner(who: &AccountId) -> bool;
+	/// Withdraw funds from metaverse treasury if owner
+	fn withdraw_metaverse_treasury_funds(who: &AccountId, metaverse_id: &MetaverseId) -> Result<(), DispatchError>;
 }
 
 pub trait MetaverseLandTrait<AccountId> {

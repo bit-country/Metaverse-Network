@@ -9,6 +9,7 @@ use pallet_evm::{
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
 use sp_std::{marker::PhantomData, prelude::*};
+use core_primitives::MetaverseMetadata;
 
 use precompile_utils::data::{Address, EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
@@ -18,19 +19,20 @@ use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, FungibleTokenId, MetaverseId}; 
 
-use core_primitives::MetaverseMetadata;
-
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
 pub enum Action {
-    GetMetaverse = "getMetaverse(uint256)",
-    GetMetaverseOwner = "getMetaverseOwner(uint256)",
-    GetMetaverseFundBalance = "getMetaverseFundBalance(uint256)",
-	CreateMetaverse = "createMetaverse(address)",
-    //TransferMetaverse = "transferMetaverse(address,uint256)",
-    //WithdrawFromMetaverseFund = "withdrawFromMetaverseFund(uint256)",
-    //UpdateMetaverseListingFee = "updateMetaverseListingFee(uint256,uint256)",
+    GetMetaverse = "getMetaverse()",
+    GetMetaverseOwner = "getMetaverseOwner()",
+    GetMetaverseFundBalance = "getMetaverseFundBalance()",
+	CreateMetaverse = "createMetaverse()",
+	WithdrawFromMetaverseFund = "withdrawFromMetaverseFund()",
+    //TransferMetaverse = "transferMetaverse()",
+    //UpdateMetaverseListingFee = "updateMetaverseListingFee()",
 }
+
+//Alias for the Balance type for the provided Runtime and Instance.
+//pub type BalanceOf<Runtime> = <<Runtime as metaverse::Config>::Currency as Trait>::Balance;
 
 /// The `Metaverse` impl precompile.
 ///
@@ -51,18 +53,14 @@ impl<Runtime> Precompile for MetaversePrecompile<Runtime>
 where
 	Runtime: metaverse::Config + pallet_evm::Config + frame_system::Config,
 	Runtime: Erc20Mapping,
-	metaverse::Pallet<Runtime>:
-		MetaverseTrait<Runtime::AccountId>,
-	U256: From<
-		<<Runtime as metaverse::Config>::MetaverseTrait<
-			<Runtime as frame_system::Config>::AccountId,
-		>>,
-	>,
-	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	metaverse::Pallet<Runtime>: MetaverseTrait<Runtime::AccountId>,
+	U256: From<<<Runtime as metaverse::Config>::Currency as frame_support::traits::Currency<<Runtime as frame_system::Config>::AccountId>>::Balance>,
+	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
     fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
 		let address = handle.code_address();
+		let input = handle.input();
 
 		if let Some(metaverse_id) = Runtime::decode_evm_address(address) {
 			log::debug!(target: "evm", "meatverse: meatevrse id: {:?}", metaverse_id);
@@ -73,21 +71,21 @@ where
 					Err(e) => return Err(e),
 				};
 
-				//if let Err(err) = handle.check_function_modifier(match selector {
-				//	Action::Approve | Action::Transfer | Action::TransferFrom => FunctionModifier::NonPayable,
-				//	_ => FunctionModifier::View,
-				//}) {
-				//	return Err(err);
-				//}
+				if let Err(err) = handle.check_function_modifier(match selector {
+					Action::CreateMetaverse| Action::WithdrawFromMetaverseFund => FunctionModifier::NonPayable,
+					_ => FunctionModifier::View,
+				}) {
+					return Err(err);
+				}
 
 				match selector {
 					// Local and Foreign common
-					Action::GetMetaverse => Self::metaverse_info(metaverse_id, handle),
-                    Action::GetMetaverseOwner => Self::metaverse_info(metaverse_id, handle),
-                    Action::GetMetaverseFundBalance => Self::fund_balance(metaverse_id, handle),
+					Action::GetMetaverse => Self::metaverse_info(handle),
+                    Action::GetMetaverseOwner => Self::metaverse_info(handle),
+                    Action::GetMetaverseFundBalance => Self::fund_balance(handle),
                     Action::CreateMetaverse => Self::create_metaverse(handle),
+					Action::WithdrawFromMetaverseFund => Self::withdraw_funds(handle),
 					//Action::TransferMetaverse => Self::transfer(metaverse_id, handle),
-                    //Action::WithdrawFromMetaverseFund => Self::transfer(metaverse_id, handle),
                     //Action::UpdateMetaverseListingFee => Self::transfer(metaverse_id, handle),
 				}
 			};
@@ -99,24 +97,21 @@ where
     }
 }
 
-impl<Runtime> MeatversePrecompile<Runtime>
+impl<Runtime> MetaversePrecompile<Runtime>
 where
-	Runtime: me::Config + pallet_evm::Config + frame_system::Config,
-	metaverse::Pallet<Runtime>:
-		MetaverseTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
-	U256: From<
-        <<Runtime as metaverse::Config>::MetaverseTrait<
-            <Runtime as frame_system::Config>::AccountId,
-        >>,
-    >,
-    BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	Runtime: metaverse::Config + pallet_evm::Config + frame_system::Config,
+	metaverse::Pallet<Runtime>: MetaverseTrait<Runtime::AccountId>,
+	U256: From<<<Runtime as metaverse::Config>::Currency as frame_support::traits::Currency<<Runtime as frame_system::Config>::AccountId>>::Balance>,
+   // BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
-	fn metaverse_info(metaverse_id: MetaverseId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+	fn metaverse_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
-		// Parse input
+		// Parse input of 1 (metaverse_id)
 		let input = handle.read_input()?;
-		input.expect_arguments(0)?;
+		input.expect_arguments(1)?;
+
+		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
 
 		// Fetch info
 		let metaverse_info = <metaverse::Pallet<Runtime> as MetaverseTrait<Runtime::AccountId>>::get_metaverse(metaverse_id);
@@ -128,12 +123,14 @@ where
 		Ok(succeed(encoded))
 	}
 
-	fn fund_balance(metaverse_id: MetaverseId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+	fn fund_balance(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
-		// Parse input of index 1 (owner)
+		// Parse input of index 1 (metaverse_id)
 		let mut input = handle.read_input()?;
-		input.expect_arguments(1)?;
+		input.expect_arguments(2)?;
+
+		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
 
 		let owner: H160 = input.read::<Address>()?.into();
 		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
@@ -160,13 +157,41 @@ where
         // Build call info
         let owner: H160 = input.read::<Address>()?.into();
 		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
-        let metaverse_metadata: MetaverseMetadata = [u8; 5].to_vec();
+		let metaverse_metadata: MetaverseMetadata = input.read::<MetaverseMetadata>()?.into();
 
         log::debug!(target: "evm", "create metaverse for: {:?}", who);
 
         <metaverse::Pallet<Runtime> as MetaverseTrait<Runtime::AccountId>>::create_metaverse(
 			&who,
-			metaverse_metadata,
+			metaverse_metadata
+		)
+		.map_err(|e| PrecompileFailure::Revert {
+			exit_status: ExitRevert::Reverted,
+			output: Into::<&str>::into(e).as_bytes().to_vec(),
+		})?;
+
+		// Build output.
+		Ok(succeed(EvmDataWriter::new().write(true).build()))
+	}
+
+	fn withdraw_funds(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input of index 1 (metaverse_id)
+		let mut input = handle.read_input()?;
+		input.expect_arguments(2)?;
+
+		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
+
+        // Build call info
+        let owner: H160 = input.read::<Address>()?.into();
+		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+
+        log::debug!(target: "evm", "withdraw funds from {:?} treasury", metaverse_id);
+
+		<metaverse::Pallet<Runtime> as MetaverseTrait<Runtime::AccountId>>::withdraw_metaverse_treasury_funds(
+			&who,
+			metaverse_id,
 		)
 		.map_err(|e| PrecompileFailure::Revert {
 			exit_status: ExitRevert::Reverted,
