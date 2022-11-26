@@ -624,6 +624,59 @@ fn bid_anti_snipe_duration_works() {
 
 #[test]
 // Walk the happy path
+fn bid_anti_snipe_duration_works_with_local_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(ALICE);
+		let bidder = Origin::signed(BOB);
+
+		init_test_nft(owner.clone());
+
+		assert_ok!(AuctionModule::create_new_auction(
+			owner,
+			ItemId::NFT(0, 0),
+			100,
+			101,
+			ListingLevel::Local(ALICE_METAVERSE_ID),
+			FungibleTokenId::NativeToken(0),
+		));
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+
+		run_to_block(96);
+
+		assert_ok!(AuctionModule::bid(bidder.clone(), 0, 200));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: Some((BOB, 200)),
+				start: 1,
+				end: Some(106),
+			})
+		);
+		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
+		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
+		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, BOB, 200)));
+
+		// Move to the next block, test if auction keeps extending
+		run_to_block(97);
+		// Ensure another bid doesn't increase the end time
+		assert_ok!(AuctionModule::bid(bidder.clone(), 0, 201));
+		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
+		assert_eq!(Balances::reserved_balance(BOB), 201);
+
+		let auction_item = AuctionModule::get_auction_item(0).unwrap();
+		assert_eq!(auction_item.amount, 201);
+		run_to_block(107);
+		// Verify if auction finalized with new end time.
+		assert_eq!(
+			last_event(),
+			Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 201))
+		);
+	});
+}
+
+#[test]
+// Walk the happy path
 fn bid_multicurrency_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = Origin::signed(BOB);
