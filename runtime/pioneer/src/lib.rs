@@ -47,6 +47,7 @@ use orml_xcm_support::DepositToAlternative;
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use scale_info::prelude::vec;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -80,12 +81,13 @@ pub use constants::{currency::*, time::*};
 use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
+use metaverse_runtime_common::FixedRateOfAsset;
+use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
+
 // XCM Imports
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
-use metaverse_runtime_common::FixedRateOfAsset;
-use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
-use scale_info::prelude::vec;
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -223,7 +225,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 12,
+	spec_version: 13,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
