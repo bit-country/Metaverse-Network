@@ -11,6 +11,7 @@ use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
 
 use crate::currencies::MultiCurrencyPrecompile;
+use crate::nft::NftPrecompile;
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
@@ -32,6 +33,7 @@ impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
 	R: pallet_evm::Config + currencies::Config,
 	MultiCurrencyPrecompile<R>: Precompile,
+	NftPrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
