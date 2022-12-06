@@ -39,13 +39,16 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "releas
 # external crates - orml packages
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 precompile-utils = { path = "../../primitives/precompiles", default-features = false }
 precompile-utils-macro = { path = "../../primitives/precompiles/macro" }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
-nft = { package = "nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
+nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
+
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
@@ -72,10 +75,12 @@ std = [
     "pallet-evm-precompile-sha3fips/std",
     "orml-currencies/std",
     "orml-traits/std",
+    "orml-nft/std",
     "primitives/std",
     "core-primitives/std",
     "precompile-utils/std",
     "currencies/std",
+    "nft/std",
     "xcm/std",
     "xcm-executor/std",
     "xcm-builder/std",

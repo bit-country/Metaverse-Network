@@ -16,6 +16,9 @@ use crate::nft::NftPrecompile;
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
 pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
+/// The NFT precompile address prefix. Addresses that match against this prefix will be routed
+/// to NftPrecompile
+pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
 /// The PrecompileSet installed in the Metaverse runtime.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MetaverseNetworkPrecompiles<R>(PhantomData<(R)>);
@@ -66,6 +69,9 @@ where
 			// If the address matches asset prefix, the we route through the asset precompile set
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
 				Some(MultiCurrencyPrecompile::<R>::execute(handle))
+			}
+			a if &a.to_fixed_bytes()[0..9] == NFT_PRECOMPILE_ADDRESS_PREFIX => {
+				Some(NftPrecompile::<R>::execute(handle))
 			}
 			// Default
 			_ => None,
