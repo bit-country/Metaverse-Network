@@ -21,7 +21,7 @@ pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
 pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
 /// The PrecompileSet installed in the Metaverse runtime.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct MetaverseNetworkPrecompiles<R>(PhantomData<(R)>);
+pub struct MetaverseNetworkPrecompiles<R>(PhantomData<R>);
 
 impl<R> MetaverseNetworkPrecompiles<R> {
 	pub fn new() -> Self {

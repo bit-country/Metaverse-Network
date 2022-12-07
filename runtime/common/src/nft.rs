@@ -12,7 +12,7 @@ use sp_runtime::traits::{AccountIdConversion, Dispatchable};
 use sp_runtime::Perbill;
 use sp_std::{marker::PhantomData, prelude::*};
 
-use codec::{Encode, DecodeAll};
+use codec::{DecodeAll, Encode};
 use precompile_utils::data::{Address, EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
 use precompile_utils::modifier::FunctionModifier;
@@ -71,7 +71,7 @@ where
 		>>::Balance,
 	>,
 	ClassIdOf<Runtime>: TryFrom<U256> + Into<ClassId> + EvmData,
-	TokenIdOf<Runtime>: TryFrom<U256> + Into<TokenId> + EvmData,
+	TokenIdOf<Runtime>: TryFrom<U256> + Into<<Runtime as orml_nft::Config>::TokenId> + EvmData,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
@@ -114,79 +114,79 @@ where
 
 impl<Runtime> NftPrecompile<Runtime>
 where
-Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config,
 	U256: From<
 		<<Runtime as nft::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
 	ClassIdOf<Runtime>: TryFrom<U256> + Into<ClassId> + EvmData,
-	TokenIdOf<Runtime>: TryFrom<U256> + Into<TokenId> + EvmData,
+	TokenIdOf<Runtime>: TryFrom<U256> + Into<<Runtime as orml_nft::Config>::TokenId> + EvmData,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
-/*
-	fn nft_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
-		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	/*
+		fn nft_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+			handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
-		// Parse input of 2 (class_id, token_id)
-		let mut input = handle.read_input()?;
-		input.expect_arguments(2)?;
+			// Parse input of 2 (class_id, token_id)
+			let mut input = handle.read_input()?;
+			input.expect_arguments(2)?;
 
-		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
-		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
+			let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
+			let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
 
-		// Fetch info
-		let nft_info_result = <orml_nft::Pallet<Runtime>>::tokens(class_id.into(), token_id.into());
+			// Fetch info
+			let nft_info_result = <orml_nft::Pallet<Runtime>>::tokens(class_id.into(), token_id.into());
 
-		match nft_info_result
-		{
-			Some(nft_info) =>  {
-				log::debug!(target: "evm", "Nft asset info: {:?}", nft_info);
-				let encoded = Output::encode_uint_array(nft_info.data.to_vec());
-				// Build output.
-				Ok(succeed(encoded))
-			}
-			None => {
-				Err(PrecompileFailure::Revert {
-					exit_status: ExitRevert::Reverted,
-					output: "invalid nft asset".into(),
-				})
-			}
-		}
-	}
-*/
-/* 	
-	fn nft_owner(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
-		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
-
-		// Parse input of 2 (class_id, token_id)
-		let mut input = handle.read_input()?;
-		input.expect_arguments(2)?;
-
-		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
-		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
-
-		// Fetch info
-		let nft_info_result = <orml_nft::Pallet<Runtime>>::tokens(class_id.into(), token_id.into());
-
-		match nft_info_result
-		{
-			Some(nft_info) =>  {
-				log::debug!(target: "evm", "Nft asset info: {:?}", nft_info);
-				// TO DO: Map Substrate Address to EVM one
-				let encoded = Output::encode_address(nft_info.owner.encode());
-				// Build output.
-				Ok(succeed(encoded))
-			}
-			None => {
-				Err(PrecompileFailure::Revert {
-					exit_status: ExitRevert::Reverted,
-					output: "invalid nft asset".into(),
-				})
+			match nft_info_result
+			{
+				Some(nft_info) =>  {
+					log::debug!(target: "evm", "Nft asset info: {:?}", nft_info);
+					let encoded = Output::encode_uint_array(nft_info.data.to_vec());
+					// Build output.
+					Ok(succeed(encoded))
+				}
+				None => {
+					Err(PrecompileFailure::Revert {
+						exit_status: ExitRevert::Reverted,
+						output: "invalid nft asset".into(),
+					})
+				}
 			}
 		}
-	}
-*/
+	*/
+	/*
+		fn nft_owner(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+			handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+			// Parse input of 2 (class_id, token_id)
+			let mut input = handle.read_input()?;
+			input.expect_arguments(2)?;
+
+			let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
+			let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
+
+			// Fetch info
+			let nft_info_result = <orml_nft::Pallet<Runtime>>::tokens(class_id.into(), token_id.into());
+
+			match nft_info_result
+			{
+				Some(nft_info) =>  {
+					log::debug!(target: "evm", "Nft asset info: {:?}", nft_info);
+					// TO DO: Map Substrate Address to EVM one
+					let encoded = Output::encode_address(nft_info.owner.encode());
+					// Build output.
+					Ok(succeed(encoded))
+				}
+				None => {
+					Err(PrecompileFailure::Revert {
+						exit_status: ExitRevert::Reverted,
+						output: "invalid nft asset".into(),
+					})
+				}
+			}
+		}
+	*/
 	fn class_fund_balance(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
@@ -270,7 +270,7 @@ Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Con
 
 		let nft_class_id = input.read::<ClassIdOf<Runtime>>()?.into();
 		let nft_metadata: NftMetadata = input.read::<NftMetadata>()?.into();
-		let nft_attributes: Attributes = Attributes::new();
+		let mut nft_attributes: Attributes = Attributes::new();
 		nft_attributes.insert("Chain:".as_bytes().to_vec(), "EVM".as_bytes().to_vec());
 		nft_attributes.insert("Metadata:".as_bytes().to_vec(), nft_metadata.clone());
 		let nft_quantity: u32 = input.read::<u32>()?.into();
@@ -311,11 +311,12 @@ Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Con
 
 		log::debug!(target: "evm", "nft transfer from: {:?}, to: {:?}, token: ({:?}, {:?})", origin, to, class_id, token_id);
 
-		<nft::Pallet<Runtime>>::transfer(RawOrigin::Signed(origin).into(), to, (class_id.into(), token_id))
-			.map_err(|e| PrecompileFailure::Revert {
+		<nft::Pallet<Runtime>>::transfer(RawOrigin::Signed(origin).into(), to, (class_id.into(), token_id)).map_err(
+			|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			})?;
+			},
+		)?;
 
 		// Build output.
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
@@ -332,16 +333,16 @@ Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Con
 		let owner: H160 = input.read::<Address>()?.into();
 		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
 		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
-		let token_id: TokenIdOf<Runtime> = input.read::<u64>()?.into();
+		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
 
 		log::debug!(target: "evm", "burn nft asset: ({:?}, {:?})", class_id, token_id);
 
-		<nft::Pallet<Runtime>>::burn(RawOrigin::Signed(who).into(), (class_id.into(), token_id)).map_err(
-			|e| PrecompileFailure::Revert {
+		<nft::Pallet<Runtime>>::burn(RawOrigin::Signed(who).into(), (class_id.into(), token_id)).map_err(|e| {
+			PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			},
-		)?;
+			}
+		})?;
 
 		// Build output.
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
