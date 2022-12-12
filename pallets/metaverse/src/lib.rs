@@ -493,7 +493,6 @@ impl<T: Config> Pallet<T> {
 
 	/// Internal withdraw from metaverse fund
 	fn do_withdraw_from_metaverse_fund(who: &T::AccountId, metaverse_id: &MetaverseId) -> Result<(), DispatchError> {
-
 		ensure!(Self::check_ownership(who, metaverse_id), Error::<T>::NoPermission);
 		let metaverse_fund_account = T::MetaverseTreasury::get().into_sub_account_truncating(*metaverse_id);
 

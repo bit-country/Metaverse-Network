@@ -78,7 +78,7 @@ where
 			// If the address matches asset prefix, the we route through the asset precompile set
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
 				Some(MultiCurrencyPrecompile::<R>::execute(handle))
-			},
+			}
 			a if &a.to_fixed_bytes()[0..9] == METAVERSE_ADDRESS_PREFIX => {
 				Some(MetaversePrecompile::<R>::execute(handle))
 			}
