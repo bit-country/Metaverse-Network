@@ -423,7 +423,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 
-			Self::do_withdraw_from_metaverse_fund(&who, &metaverse_id);
+			Self::do_withdraw_from_metaverse_fund(&who, &metaverse_id)?;
 
 			Self::deposit_event(Event::<T>::MetaverseTreasuryFundsWithdrawn(metaverse_id));
 
@@ -651,7 +651,7 @@ impl<T: Config> MetaverseTrait<T::AccountId> for Pallet<T> {
 	}
 
 	fn check_ownership(who: &T::AccountId, metaverse_id: &MetaverseId) -> bool {
-		Self::get_metaverse_owner(who, metaverse_id) == Some(())
+		Self::get_metaverse_owner(who, metaverse_id).is_some()
 	}
 
 	fn get_metaverse(metaverse_id: MetaverseId) -> Option<MetaverseInfo<T::AccountId>> {

@@ -22,11 +22,11 @@ use primitives::{evm, Balance, MetaverseId};
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
 pub enum Action {
-	GetMetaverse = "getMetaverse()",
+	GetMetaverse = "getMetaverse(uint256)",
 	//GetMetaverseOwner = "getMetaverseOwner()",
-	GetMetaverseFundBalance = "getMetaverseFundBalance()",
-	CreateMetaverse = "createMetaverse()",
-	WithdrawFromMetaverseFund = "withdrawFromMetaverseFund()",
+	GetMetaverseFundBalance = "getMetaverseFundBalance(uint256)",
+	CreateMetaverse = "createMetaverse(address,bytes)",
+	WithdrawFromMetaverseFund = "withdrawFromMetaverseFund(address,uint256)",
 	//TransferMetaverse = "transferMetaverse()",
 	//UpdateMetaverseListingFee = "updateMetaverseListingFee()",
 }
@@ -134,12 +134,9 @@ where
 
 		// Parse input of index 1 (metaverse_id)
 		let mut input = handle.read_input()?;
-		input.expect_arguments(2)?;
+		input.expect_arguments(1)?;
 
 		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
-
-		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
 
 		let metaverse_treasury =
 			<Runtime as metaverse::Config>::MetaverseTreasury::get().into_sub_account_truncating(metaverse_id);
