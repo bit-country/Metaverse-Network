@@ -26,12 +26,12 @@ use primitives::{evm, Balance, ClassId, GroupCollectionId, TokenId};
 pub enum Action {
 	//GetNftAssetInfo = "getNftAssetInfo()",
 	//GetAssetOwner = "getAssetOwner()",
-	GetClassFundBalance = "getClassFundBalance()",
-	CreateClass = "createClass()",
-	MintNfts = "mintNfts()",
-	TransferNft = "transferNft()",
-	BurnNft = "burnNft()",
-	WithdrawFromClassFund = "withdrawFromClassFund()",
+	GetClassFundBalance = "getClassFundBalance(address,uint256)",
+	CreateClass = "createClass(address,bytes,uint256,unit256,uint256)",
+	MintNfts = "mintNfts(address,uint256,bytes,uint256)",
+	TransferNft = "transferNft(address,uint256,uint256)",
+	BurnNft = "burnNft(address,uint256,uint256)",
+	WithdrawFromClassFund = "withdrawFromClassFund(address,uint256)",
 }
 
 //Alias for the Balance type for the provided Runtime and Instance.

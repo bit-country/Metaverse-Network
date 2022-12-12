@@ -90,9 +90,9 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
+use evm_mapping::EvmAddressMapping;
 use metaverse_runtime_common::precompiles::MetaverseNetworkPrecompiles;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
-use evm_mapping::EvmAddressMapping;
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
