@@ -5,23 +5,21 @@ pragma solidity >=0.8.3;
 address constant METAVERSE_PRECOMPILE_ADDRESS = 0x1111111110000000000000000000000000000000;
 
 /// @dev The Metaverse Precompile contract's instance.
-Metaverse constant METAVERSE_CONTRACT = Meatverse(METAVERSE_PRECOMPILE_ADDRESS);
+Metaverse constant METAVERSE_CONTRACT = Metaverse(METAVERSE_PRECOMPILE_ADDRESS);
 
 /// @title  The Metaverse Precompile Interface
 /// @dev The interface through which solidity contracts will interact with pallet-meatverse.
 /// @custom:address 0x1111111110000000000000000000000000000000
 interface Metaverse {
     /// @dev Gets the metadata of the specified meatverse fund addreess.
-    /// @custom:selector 70a08231
-    /// @param owner The address that owns the token class.
-    /// @param meatverse_id uint256 The ID of the metaverse.
+    /// @custom:selector 80a08231
+    /// @param metaverse_id uint256 The ID of the metaverse.
     /// @return A bytes array representing the meatverse metadata.
     function getMetaverse(uint256 metaverse_id) external view returns (bytes);
     
     /// @dev Gets the balance of the specified meatverse fund addreess.
-    /// @custom:selector 80a08231
-    /// @param owner The address that owns the token class.
-    /// @param meatverse_id uint256 The ID of the metaverse.
+    /// @custom:selector 80a08232
+    /// @param metaverse_id uint256 The ID of the metaverse.
     /// @return An uint256 representing the class fund balance.
     function getMetaverseFundBalance(uint256 metaverse_id) external view returns (uint256);
     
@@ -35,7 +33,7 @@ interface Metaverse {
     /// @dev Withdraw from metaverse fund
     /// @custom:selector b1059cbb
     /// @param owner The meatverse owner address.
-    /// @param meatverse_id uint256 The ID of the metaverse.
+    /// @param metaverse_id uint256 The ID of the metaverse.
     /// @return true if the withdraw was succesful, revert otherwise.
     function withdrawFromMetaverseFund(address owner, uint256 metaverse_id) external returns (bool);
     
@@ -52,5 +50,3 @@ interface Metaverse {
     /// @param balance uint256 The amount of tokens transfered.
     event MeatverseFundWithdraw(address indexed owner, uint256 meatverse_id, uint256 balance);
 }
-
-
