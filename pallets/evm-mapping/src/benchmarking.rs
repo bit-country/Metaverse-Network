@@ -12,8 +12,8 @@ use frame_benchmarking::{account, benchmarks, impl_benchmark_test_suite, whiteli
 //use frame_support::traits::{Currency as PalletCurrency, Get};
 use frame_system::{Pallet as System, RawOrigin};
 use primitives::{Balance, EvmAddress};
-use sp_runtime::traits::{AccountIdConversion, Lookup, StaticLookup, UniqueSaturatedInto};
 use sp_io::hashing::keccak_256;
+use sp_runtime::traits::{AccountIdConversion, Lookup, StaticLookup, UniqueSaturatedInto};
 
 pub type AccountId = u128;
 
@@ -37,7 +37,7 @@ fn alice() -> libsecp256k1::SecretKey {
 fn bob() -> libsecp256k1::SecretKey {
 	libsecp256k1::SecretKey::parse(&keccak_256(b"Bob")).unwrap()
 }
-/* 
+/*
 fn bob_account_id() -> T::AccountId {
 	let address = crate::Pallet::<T>::eth_address(&bob());
 	let mut data = [0u8; 32];
