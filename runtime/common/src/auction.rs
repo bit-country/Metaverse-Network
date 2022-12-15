@@ -20,17 +20,20 @@ use primitives::{evm, Balance, FungibleTokenId, ItemId, AuctionId};
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
 pub enum Action {
-	AuctionInfo = "getAuctionInfo(uint256)",
-    AuctionItem = "getAuctionItem(uint256)",
-    CreateNftAuction = "createNftAuction(uint256,uint256,uint256,uint256,uint256,uint256)",
-    Bid = "bid(uint256,uint256)",
+    ListingItem = "getListingItem(uint256)",
+    ListingMetaverse = "getListingMetaverse(uint256)",
+    ListingPrice = "getListingEnd(uint256)",
+	ListingEnd = "getListingEnd(uint256)",
+    ListingHighestBidder = "getListingHighestBidder(uint256)",
+    CreateNftAuction = "createNftAuction(account,uint256,uint256,uint256,uint256,uint256,uint256)",
+    Bid = "bid(account,uint256,uint256)",
     FinalizeAuction = "finalizeAuction(uint256)",
-    CreateNftBuyNow = "createNftBuyNow(uint256,uint256,uint256,uint256,uint256,uint256)",
-    BuyNow = "buyNow(uint256,uint256)",
-    CancelListing = "cancelListing(uint256)",
-    MakeOffer = "makeOffer(uint256,uint256,uint256)",
-    AcceptOffer = "acceptOffer(uint256,uint256,account)",
-    WithdrawOffer = "withrawOffer(uint256,uint256)",
+    CreateNftBuyNow = "createNftBuyNow(account,uint256,uint256,uint256,uint256,uint256,uint256)",
+    BuyNow = "buyNow(account,uint256,uint256)",
+    CancelListing = "cancelListing(account,uint256)",
+    MakeOffer = "makeOffer(account,uint256,uint256,uint256)",
+    AcceptOffer = "acceptOffer(account,account,uint256,uint256)",
+    WithdrawOffer = "withrawOffer(account,uint256,uint256)",
 }
 
 /// Alias for the Balance type for the provided Runtime and Instance.
@@ -42,14 +45,17 @@ pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurren
 ///
 ///
 /// Actions
-/// - Query auction info. Rest `input` bytes: `auction_id`.
-/// - Query auction item. Rest `input` bytes: `auction_id`.
+/// - Query listing's NFT. Rest `input` bytes: `listing_id`.
+/// - Query listing's metaverse. Rest `input` bytes: `listing_id`.
+/// - Query listing's currency and, current price. Rest `input` bytes: `listing_id`.
+/// - Query listing's current end block. Rest `input` bytes: `listing_id`.
+/// - Query listing's current highest bidder. Rest `input` bytes: `listing_id`.
 /// - Create auction for an NFT. Rest `input` bytes: `class_id`, `token_id`, `value`, `end_time`, `metaverse_id`, `currency_id`.
-/// - Bid on auction. Rest `input` bytes: `auction_id`, `value`.
-/// - Finalize auction. Rest `input` bytes: `auction_id`.
+/// - Bid on auction. Rest `input` bytes: `listing_id`, `value`.
+/// - Finalize auction. Rest `input` bytes: `listing_id`.
 /// - Create buy now for an NFT. Rest `input` bytes: `class_id`, `token_id`, `value`, `end_time`, `metaverse_id`, `currency_id`.
-/// - Buy a buy now listing. Rest `input` bytes: `auction_id`, `value`.
-/// - Cancel auction or buy now listing. Rest `input` bytes: `auction_id`.
+/// - Buy a buy now listing. Rest `input` bytes: `listing_id`, `value`.
+/// - Cancel auction or buy now listing. Rest `input` bytes: `listing_id`.
 /// - Make offer for an NFT. Rest `input` bytes: `class_id`, `token_id`, `value`.
 /// - Accept offer for an NFT. Rest `input` bytes: `class_id`, `token_id`, `account_id`.
 /// - Withdraw offer for an NFT. Rest `input` bytes: `class_id`, `token_id`.
