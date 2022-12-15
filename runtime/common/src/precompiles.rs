@@ -10,8 +10,8 @@ use sp_core::H160;
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
 
-use crate::currencies::MultiCurrencyPrecompile;
 use crate::auction::AuctionPrecompile;
+use crate::currencies::MultiCurrencyPrecompile;
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
@@ -70,9 +70,7 @@ where
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
 				Some(MultiCurrencyPrecompile::<R>::execute(handle))
 			}
-			a if &a.to_fixed_bytes()[0..9] == AUCTION_ADDRESS_PREFIX => {
-				Some(AuctionPrecompile::<R>::execute(handle))
-			}
+			a if &a.to_fixed_bytes()[0..9] == AUCTION_ADDRESS_PREFIX => Some(AuctionPrecompile::<R>::execute(handle)),
 			// Default
 			_ => None,
 		}

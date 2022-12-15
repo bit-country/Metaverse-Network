@@ -60,3 +60,54 @@ pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurren
 /// - Accept offer for an NFT. Rest `input` bytes: `class_id`, `token_id`, `account_id`.
 /// - Withdraw offer for an NFT. Rest `input` bytes: `class_id`, `token_id`.
 pub struct AuctionPrecompile<Runtime>(PhantomData<Runtime>);
+
+impl<Runtime> Precompile for AuctionPrecompile<Runtime>
+where
+	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: Erc20Maping,
+	U256: From<
+		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
+            <Runtime as frame_system::Config>::AccountId,
+        >>::Balance,
+	>,
+	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+{
+	fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
+		let result = {
+			let selector = match handle.read_selector() {
+				Ok(selector) => selector,
+				Err(e) => return Err(e),
+			};
+
+			if let Err(err) = handle.check_function_modifier(match selector {
+				Action::CreateNftAuction | Action::CreateNftBuyNow | Action::Bid | Action::BuyNow | Action::CancelListing | Action::FinalizeAuction | Action::MakeOffer | Action::AcceptOffer | Action::WithdrawOffer => FunctionModifier::NonPayable,
+				_ => FunctionModifier::View,
+			}) {
+				return Err(err);
+			}
+
+			match selector {
+				// Local and Foreign common
+                ListingItem => Self::auction_info(handle),
+                ListingMetaverse => Self::auction_info(handle),
+                ListingPrice => Self::auction_info(handle),
+                ListingEnd => Self::auction_info(handle),
+                ListingHighestBidder => Self::auction_info(handle),
+                CreateNftAuction => Self::create_auction(handle),
+                Bid => Self::bid(handle),
+                FinalizeAuction => Self::finalize_auction(handle),
+                CreateNftBuyNow => Self::create_buy_now(handle),
+                BuyNow => Self::buy_now(handle),
+                CancelListing => Self::cancel_listing(handle),
+                MakeOffer => Self::make_offer(handle),
+                AcceptOffer => Self::accept_offer(handle),
+                WithdrawOffer => Self::withdraw_offer(handle),
+			}
+		};
+		Err(PrecompileFailure::Revert {
+			exit_status: ExitRevert::Reverted,
+			output: "invalid marketplace action".into(),
+		})
+	}
+}
