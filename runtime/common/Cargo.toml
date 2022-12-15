@@ -45,6 +45,8 @@ core-primitives = { path = "../../traits/core-primitives", default-features = fa
 precompile-utils = { path = "../../primitives/precompiles", default-features = false }
 precompile-utils-macro = { path = "../../primitives/precompiles/macro" }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
+auction = { package = "pallet-auction", path = "../../pallets/auction", version = "2.0.0-rc6", default-features = false }
+auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
@@ -75,6 +77,8 @@ std = [
     "core-primitives/std",
     "precompile-utils/std",
     "currencies/std",
+    "auction/std",
+    "auction-manager/std",
     "xcm/std",
     "xcm-executor/std",
     "xcm-builder/std",
