@@ -68,7 +68,7 @@ where
 	U256: From<
 		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
             <Runtime as frame_system::Config>::AccountId,
-        >>::Balance,
+        >::Balance,
 	>,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
@@ -109,5 +109,58 @@ where
 			exit_status: ExitRevert::Reverted,
 			output: "invalid marketplace action".into(),
 		})
+	}
+}
+
+impl<Runtime> AuctionPrecompile<Runtime>
+where
+	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: Erc20Maping,
+	U256: From<
+		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
+            <Runtime as frame_system::Config>::AccountId,
+        >::Balance,
+	>,
+	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+{
+	fn auction_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn create_auction(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn bid(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn finalize_auction(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn create_buy_now(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn buy_now(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn cancel_listing(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn make_offer(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn accept_offer(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+	}
+
+	fn withdraw_offer(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 	}
 }
