@@ -522,19 +522,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			ensure!(amount > Zero::zero(), Error::<T>::InvalidStackableNftAmount);
-
-			let result = Self::do_mint_nfts(&sender, class_id, metadata, attributes, true, 1)?;
-
-			// Not likely to happen but ensure that the stackable collection balance is not already set
-			ensure!(
-				Self::get_stackable_collections_balances((class_id, result.1, sender.clone())) == Zero::zero(),
-				Error::<T>::StackableCollectionAlreadyExists
-			);
-
-			StackableCollectionsBalances::<T>::insert((class_id, result.1, sender.clone()), amount);
-			StackableCollection::<T>::insert((class_id, result.1), ());
-
+			let result = NftModule::mint_stackable_nft(&sender, class_id, metadata, attributes, balance)?;
 			Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, result.1, amount));
 
 			Ok(().into())
@@ -588,31 +576,10 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			StackableCollectionsBalances::<T>::try_mutate(
-				(asset_id.0, asset_id.1, sender.clone()),
-				|sender_balance| -> DispatchResultWithPostInfo {
-					StackableCollectionsBalances::<T>::try_mutate(
-						(asset_id.0, asset_id.1, to.clone()),
-						|receiver_balance| -> DispatchResultWithPostInfo {
-							ensure!(
-								amount > Zero::zero()
-									&& Self::get_stackable_collections_balances((
-										asset_id.0,
-										asset_id.1,
-										sender.clone()
-									)) >= amount,
-								Error::<T>::InvalidStackableNftTransfer
-							);
+			NftModule::transfer_stackable_nft(&sender, &to, asset_id, amount)?;
 
-							*receiver_balance = receiver_balance.saturating_add(amount);
-							*sender_balance = sender_balance.saturating_sub(amount);
-							Self::deposit_event(Event::<T>::TransferedStackableNft(sender, to, asset_id, amount));
-
-							Ok(().into())
-						},
-					)
-				},
-			)
+			Self::deposit_event(Event::<T>::TransferedStackableNft(sender, to, asset_id, amount));
+			Ok(().into())
 		}
 
 		/// Transfer a batch of existing NFT assets if the batch size no more
@@ -1265,9 +1232,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	type ClassId = ClassIdOf<T>;
 
 	fn check_ownership(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		let asset_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
-
-		Ok(who == &asset_info.owner)
+		NftModule::is_owner(who, *asset_id)
 	}
 
 	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<BalanceOf<T>>, DispatchError> {
