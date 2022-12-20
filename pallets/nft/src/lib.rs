@@ -522,7 +522,7 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			let result = NftModule::mint_stackable_nft(&sender, class_id, metadata, attributes, balance)?;
+			let result = NftModule::mint_stackable_nft(&sender, class_id, metadata, attributes, amount)?;
 			Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, result.1, amount));
 
 			Ok(().into())
@@ -1232,7 +1232,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	type ClassId = ClassIdOf<T>;
 
 	fn check_ownership(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		NftModule::is_owner(who, *asset_id)
+		Ok(NftModule::is_owner(who, *asset_id))
 	}
 
 	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<BalanceOf<T>>, DispatchError> {
