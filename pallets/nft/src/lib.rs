@@ -502,8 +502,15 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
-			let result = NftModule::mint_stackable_nft(&sender, class_id, metadata, attributes, amount)?;
-			Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, result.1, amount));
+			let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
+			let new_stackable_nft_data = NftAssetData {
+				deposit,
+				attributes: attributes,
+				is_locked: true,
+			};
+
+			let result = NftModule::<T>::mint_stackable_nft(&sender, class_id, metadata, new_stackable_nft_data, amount)?;
+			Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, result.0, amount));
 
 			Ok(().into())
 		}
@@ -556,9 +563,9 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			NftModule::transfer_stackable_nft(&sender, &to, asset_id, amount)?;
+			NftModule::<T>::transfer_stackable_nft(&sender, &to, asset_id, amount)?;
 
-			Self::deposit_event(Event::<T>::TransferedStackableNft(sender, to, asset_id, amount));
+			Self::deposit_event(Event::<T>::TransferedStackableNft(sender, to, asset_id, amount.into()));
 			Ok(().into())
 		}
 
@@ -1243,7 +1250,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	}
 
 	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		NftModule::is_stackable(asset_id)
+		NftModule::<T>::is_stackable(asset_id)
 	}
 
 	fn create_token_class(
