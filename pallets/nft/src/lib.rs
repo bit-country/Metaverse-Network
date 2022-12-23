@@ -1243,7 +1243,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	}
 
 	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
-		Ok(Self::get_stackable_collection(asset_id).is_some())
+		NftModule::is_stackable(asset_id)
 	}
 
 	fn create_token_class(
