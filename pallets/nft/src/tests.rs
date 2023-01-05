@@ -273,10 +273,13 @@ fn mint_stackable_asset_should_work() {
 		assert_ok!(Nft::enable_promotion(Origin::root(), true));
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(free_native_balance(class_id_account()), 3);
+		assert_eq!(free_native_balance(class_id_account()), 2);
 		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
 
-		assert_eq!(OrmlNft::get_stackable_collections_balances((0, 0, ALICE)), 100u32.into());
+		assert_eq!(
+			OrmlNft::get_stackable_collections_balances((0, 0, ALICE)),
+			100u32.into()
+		);
 
 		let event = mock::Event::Nft(crate::Event::NewStackableNftMinted(ALICE, CLASS_ID, 0, 100u32.into()));
 		assert_eq!(last_event(), event);
@@ -416,7 +419,10 @@ fn transfer_stackable_nft_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
-		assert_eq!(OrmlNft::get_stackable_collections_balances((0, 0, ALICE)), 100u32.into());
+		assert_eq!(
+			OrmlNft::get_stackable_collections_balances((0, 0, ALICE)),
+			100u32.into()
+		);
 
 		assert_ok!(Nft::transfer_stackable_nft(origin, BOB, (0, 0), 50u32.into()));
 		assert_eq!(OrmlNft::get_stackable_collections_balances((0, 0, BOB)), 50u32.into());

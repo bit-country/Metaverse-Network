@@ -142,7 +142,8 @@ pub mod pallet {
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 	pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
-	pub type BalanceOf<T> = <<T as orml_nft::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	pub type BalanceOf<T> =
+		<<T as orml_nft::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
@@ -509,7 +510,8 @@ pub mod pallet {
 				is_locked: true,
 			};
 
-			let result = NftModule::<T>::mint_stackable_nft(&sender, class_id, metadata, new_stackable_nft_data, amount)?;
+			let result =
+				NftModule::<T>::mint_stackable_nft(&sender, class_id, metadata, new_stackable_nft_data, amount)?;
 			Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, result.0, amount));
 
 			Ok(().into())
@@ -633,7 +635,12 @@ pub mod pallet {
 				Error::<T>::InsufficientBalance
 			);
 			// Transfer contribution to class fund pot
-			<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, contribution, ExistenceRequirement::KeepAlive)?;
+			<T as orml_nft::Config>::Currency::transfer(
+				&sender,
+				&class_fund,
+				contribution,
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
@@ -1075,7 +1082,12 @@ impl<T: Config> Pallet<T> {
 		// Secure deposit of token class owner
 		let class_deposit = T::ClassMintingFee::get();
 		// Transfer fund to pot
-		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
+		<T as orml_nft::Config>::Currency::transfer(
+			&sender,
+			&class_fund,
+			class_deposit,
+			ExistenceRequirement::KeepAlive,
+		)?;
 
 		let class_data = NftClassData {
 			deposit: class_deposit,
