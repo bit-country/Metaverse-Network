@@ -8,16 +8,16 @@ address constant METAVERSE_PRECOMPILE_ADDRESS = 0x111111111000000000000000000000
 Metaverse constant METAVERSE_CONTRACT = Metaverse(METAVERSE_PRECOMPILE_ADDRESS);
 
 /// @title  The Metaverse Precompile Interface
-/// @dev The interface through which solidity contracts will interact with pallet-meatverse.
+/// @dev The interface through which solidity contracts will interact with pallet-metaverse.
 /// @custom:address 0x1111111110000000000000000000000000000000
 interface Metaverse {
-    /// @dev Gets the metadata of the specified meatverse fund addreess.
+    /// @dev Gets the metadata of the specified metaverse fund address.
     /// @custom:selector 80a08231
     /// @param metaverse_id uint256 The ID of the metaverse.
-    /// @return A bytes array representing the meatverse metadata.
-    function getMetaverse(uint256 metaverse_id) external view returns (bytes);
+    /// @return A bytes array representing the metaverse metadata.
+    function getMetaverse(uint256 metaverse_id) external view returns (bytes32);
     
-    /// @dev Gets the balance of the specified meatverse fund addreess.
+    /// @dev Gets the balance of the specified metaverse fund address.
     /// @custom:selector 80a08232
     /// @param metaverse_id uint256 The ID of the metaverse.
     /// @return An uint256 representing the class fund balance.
@@ -26,27 +26,27 @@ interface Metaverse {
     /// @dev Create metaverse for a specified address
     /// @custom:selector b9059cba
     /// @param owner address The address that will own the metaverse.
-    /// @param metadata bytes The metadata of the meatverse.
-    /// @return true if the mint was succesful, revert otherwise.
-    function createMetaverse(address owner, bytes metadata) external returns (bool);
+    /// @param metadata bytes The metadata of the metaverse.
+    /// @return true if the mint was successful, revert otherwise.
+    function createMetaverse(address owner, bytes32 metadata) external returns (bool);
     
     /// @dev Withdraw from metaverse fund
     /// @custom:selector b1059cbb
-    /// @param owner The meatverse owner address.
+    /// @param owner The metaverse owner address.
     /// @param metaverse_id uint256 The ID of the metaverse.
-    /// @return true if the withdraw was succesful, revert otherwise.
+    /// @return true if the withdraw was successful, revert otherwise.
     function withdrawFromMetaverseFund(address owner, uint256 metaverse_id) external returns (bool);
     
-    /// @dev Event emited when a meatverse is created.
+    /// @dev Event emitted when a metaverse is created.
     /// @custom:selector edf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ff
     /// @param owner address The address that will own the metaverse.
-    /// @param meatverse_id uint256 The ID of the metaverse.
-    event MeatverseCreated(address indexed owner, uint256 meatverse_id);
+    /// @param metaverse_id uint256 The ID of the metaverse.
+    event metaverseCreated(address indexed owner, uint256 metaverse_id);
     
-    /// @dev Event emited when withdraw from meatverse fund is successful.
+    /// @dev Event emitted when withdraw from metaverse fund is successful.
     /// @custom:selector bdf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3cf
     /// @param owner The address sending the tokens
-    /// @param meatverse_id uint256 The ID of the metaverse.
-    /// @param balance uint256 The amount of tokens transfered.
-    event MeatverseFundWithdraw(address indexed owner, uint256 meatverse_id, uint256 balance);
+    /// @param metaverse_id uint256 The ID of the metaverse.
+    /// @param balance uint256 The amount of tokens transferred.
+    event metaverseFundWithdraw(address indexed owner, uint256 metaverse_id, uint256 balance);
 }
