@@ -273,7 +273,7 @@ fn mint_stackable_asset_should_work() {
 		assert_ok!(Nft::enable_promotion(Origin::root(), true));
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(free_native_balance(class_id_account()), 2);
+		assert_eq!(free_native_balance(class_id_account()), 3);
 		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
 
 		assert_eq!(
