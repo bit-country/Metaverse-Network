@@ -154,6 +154,11 @@ pub mod pallet {
 	#[pallet::getter(fn total_stake)]
 	type TotalStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+	/// Total native token locked estate staking pallet
+	#[pallet::storage]
+	#[pallet::getter(fn total_estate_stake)]
+	type TotalEstateStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -335,8 +340,8 @@ pub mod pallet {
 
 					EstateStakingInfo::<T>::insert(&estate_id, total);
 
-					let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
-					<TotalStake<T>>::put(new_total_staked);
+					let new_total_staked = TotalEstateStake::<T>::get().saturating_add(amount);
+					<TotalEstateStake<T>>::put(new_total_staked);
 
 					let current_round = T::RoundHandler::get_current_round_info();
 					Self::deposit_event(Event::EstateStakedToEconomy101(who, estate_id, amount));
@@ -447,8 +452,8 @@ pub mod pallet {
 						EstateStakingInfo::<T>::insert(&estate_id, remaining);
 					}
 
-					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
-					<TotalStake<T>>::put(new_total_staked);
+					let new_total_staked = TotalEstateStake::<T>::get().saturating_sub(amount_to_unstake);
+					<TotalEstateStake<T>>::put(new_total_staked);
 
 					Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(who, estate_id, amount));
 				}
