@@ -268,6 +268,7 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = u32;
 	type TokenId = u64;
+	type Currency = Balances;
 	type ClassData = pallet_nft::NftClassData<Balance>;
 	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
