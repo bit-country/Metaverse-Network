@@ -142,7 +142,7 @@ pub mod pallet {
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
 	pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
-	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	pub type BalanceOf<T> = <<T as orml_nft::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
@@ -629,11 +629,11 @@ pub mod pallet {
 			let class_fund = Self::get_class_fund(&asset_id.0);
 
 			ensure!(
-				<T as Config>::Currency::free_balance(&sender) > contribution,
+				<T as orml_nft::Config>::Currency::free_balance(&sender) > contribution,
 				Error::<T>::InsufficientBalance
 			);
 			// Transfer contribution to class fund pot
-			<T as Config>::Currency::transfer(&sender, &class_fund, contribution, ExistenceRequirement::KeepAlive)?;
+			<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, contribution, ExistenceRequirement::KeepAlive)?;
 
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
@@ -1013,7 +1013,7 @@ impl<T: Config> Pallet<T> {
 
 		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(quantity));
-		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
 
 		let new_nft_data = NftAssetData {
 			deposit,
@@ -1075,7 +1075,7 @@ impl<T: Config> Pallet<T> {
 		// Secure deposit of token class owner
 		let class_deposit = T::ClassMintingFee::get();
 		// Transfer fund to pot
-		<T as Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
+		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, class_deposit, ExistenceRequirement::KeepAlive)?;
 
 		let class_data = NftClassData {
 			deposit: class_deposit,
@@ -1291,7 +1291,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 
 		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
-		<T as Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
 
 		let new_nft_data = NftAssetData {
 			deposit,
