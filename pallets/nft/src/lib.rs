@@ -368,12 +368,10 @@ pub mod pallet {
 		InvalidAssetType,
 		/// Invalid stackable NFT transfer (stored value is equal to zero)
 		InvalidStackableNftTransfer,
-		/// Invalid stackable NFT balance
-		InvalidStackableNftAmount,
+		/// Invalid stackable NFT minting (invalid owner, class ID, or amount)
+		InvalidStackableNftMinting,
 		/// Invalid current total issuance
 		InvalidCurrentTotalIssuance,
-		/// The stackable collection already exists
-		StackableCollectionAlreadyExists,
 	}
 
 	#[pallet::call]
@@ -511,10 +509,14 @@ pub mod pallet {
 			};
 
 			let result =
-				NftModule::<T>::mint_stackable_nft(&sender, class_id, metadata, new_stackable_nft_data, amount)?;
-			Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, result.0, amount));
-
-			Ok(().into())
+				NftModule::<T>::mint_stackable_nft(&sender, class_id, metadata, new_stackable_nft_data, amount);
+			match result {
+				Ok((token_id, balance)) => {
+					Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, token_id, amount));
+					Ok(().into())
+				}
+				Err(_) => Err(Error::<T>::InvalidStackableNftMinting.into()),
+			}
 		}
 
 		/// Transfer an existing NFT asset if it is not listed in an auction
@@ -565,7 +567,9 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
-			NftModule::<T>::transfer_stackable_nft(&sender, &to, asset_id, amount)?;
+			let transfer_result = NftModule::<T>::transfer_stackable_nft(&sender, &to, asset_id, amount);
+
+			ensure!(transfer_result.is_ok(), Error::<T>::InvalidStackableNftTransfer);
 
 			Self::deposit_event(Event::<T>::TransferedStackableNft(sender, to, asset_id, amount.into()));
 			Ok(().into())
