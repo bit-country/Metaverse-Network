@@ -368,8 +368,8 @@ pub mod pallet {
 		InvalidAssetType,
 		/// Invalid stackable NFT transfer (stored value is equal to zero)
 		InvalidStackableNftTransfer,
-		/// Invalid stackable NFT minting (invalid owner, class ID, or amount)
-		InvalidStackableNftMinting,
+		/// Invalid stackable NFT amount
+		InvalidStackableNftAmount,
 		/// Invalid current total issuance
 		InvalidCurrentTotalIssuance,
 	}
@@ -501,7 +501,17 @@ pub mod pallet {
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
 
+			Self::update_class_total_issuance(&sender, &class_id, 1u32)?;
+			// Collect minting deposit
+			let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 			let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
+			<T as orml_nft::Config>::Currency::transfer(
+				&sender,
+				&class_fund,
+				deposit,
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			let new_stackable_nft_data = NftAssetData {
 				deposit,
 				attributes: attributes,
@@ -515,7 +525,7 @@ pub mod pallet {
 					Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, token_id, amount));
 					Ok(().into())
 				}
-				Err(_) => Err(Error::<T>::InvalidStackableNftMinting.into()),
+				Err(_) => Err(Error::<T>::InvalidStackableNftAmount.into()),
 			}
 		}
 

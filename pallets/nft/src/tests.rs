@@ -273,7 +273,7 @@ fn mint_stackable_asset_should_work() {
 		assert_ok!(Nft::enable_promotion(Origin::root(), true));
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(free_native_balance(class_id_account()), 2);
+		assert_eq!(free_native_balance(class_id_account()), 3);
 		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
 
 		assert_eq!(
@@ -362,11 +362,11 @@ fn mint_stackable_asset_should_fail() {
 		));
 		assert_noop!(
 			Nft::mint_stackable_nft(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 0u32.into()),
-			Error::<Runtime>::InvalidStackableNftMinting
+			Error::<Runtime>::InvalidStackableNftAmount
 		);
 		assert_noop!(
 			Nft::mint_stackable_nft(origin.clone(), 1, vec![1], test_attributes(1), 1u32.into()),
-			Error::<Runtime>::InvalidStackableNftMinting
+			Error::<Runtime>::ClassIdNotFound
 		);
 		assert_noop!(
 			Nft::mint_stackable_nft(
