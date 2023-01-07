@@ -7819,6 +7819,7 @@ dependencies = [
  "pallet-multisig",
  "pallet-nft",
  "pallet-preimage",
+ "pallet-proxy",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
  "pallet-session",

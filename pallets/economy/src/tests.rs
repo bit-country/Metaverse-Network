@@ -176,7 +176,7 @@ fn stake_should_work_for_estate() {
 
 		assert_eq!(EconomyModule::get_estate_staking_info(OWNED_ESTATE_ID), STAKE_BALANCE);
 
-		assert_eq!(EconomyModule::total_stake(), STAKE_BALANCE);
+		assert_eq!(EconomyModule::total_estate_stake(), STAKE_BALANCE);
 	});
 }
 
@@ -293,7 +293,7 @@ fn unstake_should_work_for_estate() {
 			EconomyModule::get_estate_staking_info(OWNED_ESTATE_ID),
 			total_staked_balance
 		);
-		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
+		assert_eq!(EconomyModule::total_estate_stake(), total_staked_balance);
 		let next_round: RoundIndex = CURRENT_ROUND.saturating_add(1);
 		assert_eq!(
 			EconomyModule::staking_exit_queue(ALICE, next_round),
