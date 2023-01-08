@@ -1160,14 +1160,13 @@ pub mod pallet {
 					AuctionEndTime::<T>::remove(auction_end, id);
 					// Extend auction end time
 					let new_auction_end = auction_end.saturating_add(T::AntiSnipeDuration::get());
-					// Update new auction item end time
-					auction_item.end_time = new_auction_end;
-					// Update storage key of auction item
-					AuctionItems::<T>::insert(id, auction_item);
+					// Update storage key of auction item end time
+					Self::extend_auction_end_time(id, new_auction_end)?;
 					// Update new auction end time
 					AuctionEndTime::<T>::insert(new_auction_end, id, ());
 					// Update auction struct
 					auction.end = Some(new_auction_end);
+
 					Self::deposit_event(Event::AuctionExtended(id, new_auction_end));
 				}
 
@@ -1819,6 +1818,14 @@ pub mod pallet {
 
 				auction_item.amount = new_bid_price.clone();
 
+				Ok(())
+			})
+		}
+
+		fn extend_auction_end_time(id: AuctionId, new_end_block: T::BlockNumber) -> DispatchResult {
+			<AuctionItems<T>>::try_mutate_exists(id, |auction_item| -> DispatchResult {
+				let mut auction_item = auction_item.as_mut().ok_or(Error::<T>::AuctionDoesNotExist)?;
+				auction_item.end_time = new_end_block;
 				Ok(())
 			})
 		}
