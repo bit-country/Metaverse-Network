@@ -1380,6 +1380,7 @@ construct_runtime!(
 
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>}
+
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
