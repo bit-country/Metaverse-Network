@@ -239,6 +239,7 @@ parameter_types! {
 	pub const NetworkFeeCommission: Perbill = Perbill::from_percent(1); // Network fee collected after an auction is over
 	pub const OfferDuration: BlockNumber = 10; // Default 10
 	pub const MinimumListingPrice: Balance = 1;
+	pub const AntiSnipeDuration: BlockNumber = 5; // Default 5
 }
 
 pub struct MetaverseInfoSource {}
@@ -325,6 +326,7 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type OfferDuration = OfferDuration;
 	type MinimumListingPrice = MinimumListingPrice;
+	type AntiSnipeDuration = AntiSnipeDuration;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;

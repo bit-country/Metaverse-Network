@@ -308,106 +308,6 @@ fn create_new_multicurrency_buy_now_bundle_work() {
 	});
 }
 
-/*
-#[test]
-// Creating auction should work
-fn create_new_auction_should_work_for_valid_estate() {
-	ExtBuilder::default().build().execute_with(|| {
-		let item_id: ItemId<Balance> = ItemId::Estate(ESTATE_ID_EXIST);
-		assert_ok!(AuctionModule::create_auction(
-			AuctionType::Auction,
-			item_id.clone(),
-			None,
-			ALICE,
-			100,
-			0,
-			ListingLevel::Global,
-			Perbill::from_percent(0u32)
-		));
-		assert_eq!(
-			AuctionModule::auctions(0),
-			Some(AuctionInfo {
-				bid: None,
-				start: 1,
-				end: Some(101),
-			})
-		);
-		assert_eq!(AuctionModule::items_in_auction(item_id.clone()), Some(true));
-		assert_eq!(Balances::free_balance(ALICE), 99999);
-	});
-}
-
-#[test]
-// Creating auction should work
-fn create_new_auction_should_fail_for_non_exist_estate() {
-	ExtBuilder::default().build().execute_with(|| {
-		let item_id: ItemId<Balance> = ItemId::Estate(ESTATE_ID_NOT_EXIST);
-		assert_noop!(
-			AuctionModule::create_auction(
-				AuctionType::Auction,
-				item_id,
-				None,
-				ALICE,
-				100,
-				0,
-				ListingLevel::Global,
-				Perbill::from_percent(0u32),
-			),
-			Error::<Runtime>::EstateDoesNotExist
-		);
-	});
-}
-
-
-#[test]
-// Creating auction should work
-fn create_new_auction_should_work_for_valid_landunit() {
-	ExtBuilder::default().build().execute_with(|| {
-		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_EXIST, ALICE_METAVERSE_ID);
-		assert_ok!(AuctionModule::create_auction(
-			AuctionType::Auction,
-			item_id.clone(),
-			None,
-			ALICE,
-			100,
-			0,
-			ListingLevel::Global,
-			Perbill::from_percent(0u32),
-		));
-		assert_eq!(
-			AuctionModule::auctions(0),
-			Some(AuctionInfo {
-				bid: None,
-				start: 1,
-				end: Some(101),
-			})
-		);
-		assert_eq!(AuctionModule::items_in_auction(item_id), Some(true));
-		assert_eq!(Balances::free_balance(ALICE), 99999);
-	});
-}
-
-#[test]
-// Creating auction should fail
-fn create_new_auction_should_fail_for_non_exist_landunit() {
-	ExtBuilder::default().build().execute_with(|| {
-		let item_id: ItemId<Balance> = ItemId::LandUnit(LAND_UNIT_NOT_EXIST, ALICE_METAVERSE_ID);
-		assert_noop!(
-			AuctionModule::create_auction(
-				AuctionType::Auction,
-				item_id,
-				None,
-				ALICE,
-				100,
-				0,
-				ListingLevel::Global,
-				Perbill::from_percent(0u32),
-			),
-			Error::<Runtime>::LandUnitDoesNotExist
-		);
-	});
-}
-*/
 #[test]
 // Private create_auction should work
 fn create_auction_fail() {
@@ -655,10 +555,123 @@ fn bid_works() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0),
 		));
-
+		run_to_block(95);
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: Some((1, 200)),
+				start: 1,
+				end: Some(101),
+			})
+		);
 		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
+	});
+}
+
+#[test]
+// Walk the happy path
+fn bid_anti_snipe_duration_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let bidder = Origin::signed(ALICE);
+
+		init_test_nft(owner.clone());
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0),
+		));
+
+		run_to_block(96);
+
+		assert_ok!(AuctionModule::bid(bidder.clone(), 0, 200));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: Some((1, 200)),
+				start: 1,
+				end: Some(106),
+			})
+		);
+		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
+		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
+		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+
+		// Move to the next block, test if auction keeps extending
+		run_to_block(97);
+		// Ensure another bid doesn't increase the end time
+		assert_ok!(AuctionModule::bid(bidder.clone(), 0, 201));
+		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
+		assert_eq!(Balances::reserved_balance(ALICE), 201);
+
+		run_to_block(107);
+		// Verify if auction finalized with new end time.
+		assert_eq!(
+			last_event(),
+			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 201))
+		);
+	});
+}
+
+#[test]
+// Walk the happy path
+fn bid_anti_snipe_duration_works_with_local_auction() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(ALICE);
+		let bidder = Origin::signed(BOB);
+
+		init_test_nft(owner.clone());
+
+		assert_ok!(AuctionModule::create_new_auction(
+			owner,
+			ItemId::NFT(0, 0),
+			100,
+			101,
+			ListingLevel::Local(ALICE_METAVERSE_ID),
+			FungibleTokenId::NativeToken(0),
+		));
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+
+		run_to_block(96);
+
+		assert_ok!(AuctionModule::bid(bidder.clone(), 0, 200));
+
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: Some((BOB, 200)),
+				start: 1,
+				end: Some(106),
+			})
+		);
+		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
+		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
+		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, BOB, 200)));
+
+		// Move to the next block, test if auction keeps extending
+		run_to_block(97);
+		// Ensure another bid doesn't increase the end time
+		assert_ok!(AuctionModule::bid(bidder.clone(), 0, 201));
+		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
+		assert_eq!(Balances::reserved_balance(BOB), 201);
+
+		let auction_item = AuctionModule::get_auction_item(0).unwrap();
+		assert_eq!(auction_item.amount, 201);
+		run_to_block(107);
+		// Verify if auction finalized with new end time.
+		assert_eq!(
+			last_event(),
+			Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 201))
+		);
 	});
 }
 
@@ -1776,5 +1789,118 @@ fn withdraw_offer_should_work() {
 
 		assert_eq!(Offers::<Runtime>::get((0, 0), BOB), None);
 		assert_eq!(Balances::free_balance(BOB), 500);
+	});
+}
+
+#[test]
+fn finalize_auction_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let bidder = Origin::signed(ALICE);
+		init_test_nft(owner.clone());
+		init_test_nft(owner.clone());
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+
+		run_to_block(10);
+
+		assert_noop!(
+			AuctionModule::finalize_auction(Origin::signed(BOB), 100),
+			Error::<Runtime>::AuctionDoesNotExist
+		);
+
+		assert_noop!(
+			AuctionModule::finalize_auction(Origin::signed(BOB), 0),
+			Error::<Runtime>::AuctionIsNotExpired
+		);
+
+		run_to_block(102);
+
+		assert_noop!(
+			AuctionModule::finalize_auction(Origin::signed(BOB), 0),
+			Error::<Runtime>::AuctionDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn cancel_listing_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let bidder = Origin::signed(ALICE);
+		init_test_nft(owner.clone());
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+		assert_eq!(Balances::free_balance(BOB), 496);
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), Some(true));
+		assert_eq!(
+			AuctionModule::auctions(0),
+			Some(AuctionInfo {
+				bid: None,
+				start: 1,
+				end: Some(101),
+			})
+		);
+
+		run_to_block(2);
+		assert_ok!(AuctionModule::cancel_listing(Origin::signed(BOB), 0));
+		assert_eq!(Balances::free_balance(BOB), 497);
+
+		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
+		assert_eq!(AuctionModule::auctions(0), None);
+
+		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalizedNoBid(0));
+		assert_eq!(last_event(), event);
+	});
+}
+
+#[test]
+fn cancel_listing_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let bidder = Origin::signed(ALICE);
+		init_test_nft(owner.clone());
+		init_test_nft(owner.clone());
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::NFT(0, 0),
+			None,
+			BOB,
+			100,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+
+		run_to_block(10);
+
+		assert_noop!(
+			AuctionModule::cancel_listing(Origin::signed(ALICE), 0),
+			Error::<Runtime>::NoPermissionToCancelAuction
+		);
+
+		assert_noop!(
+			AuctionModule::cancel_listing(Origin::signed(BOB), 1),
+			Error::<Runtime>::AuctionDoesNotExist
+		);
 	});
 }
