@@ -147,9 +147,9 @@ where
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 
-		let auction_info = <auction::Pallet<Runtime>>::auctions(auction_id)?;
+		let auction_item = <auction::Pallet<Runtime>>::get_auction_item(auction_id)?;
 
-		let encoded = Output::encode_uint(auction_info.end.unwrap_or_default(0.into()).into());
+		let encoded = Output::encode_uint(auction_info.end.into());
 		// Build output.
 		Ok(succeed(encoded))
 	}
