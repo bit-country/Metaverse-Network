@@ -15,11 +15,11 @@ interface NFT {
     /// @custom:selector 70a08231
     /// @param class_id The class ID of the NFT.
     /// @param token_id The token ID of the NFT.
-    /// @return An address representing the class fund balance.
+    /// @return An address representing the NFT owner.
     function getAssetOwner(uint256 class_id, uint256 token_id) external view returns (address);
 
     /// @dev Gets the balance of the specified class fund addreess.
-    /// @custom:selector 71a08231
+    /// @custom:selector 70a08231
     /// @param class_owner The address that owns the token class.
     /// @param class_id The class ID of the class fund.
     /// @return An uint256 representing the class fund balance.
@@ -33,7 +33,7 @@ interface NFT {
     /// @param royalty_fee unit256 The royalty fee for the new token class. 
     /// @param mint_limit unit256 The maximum number of tokens that can be minted for this class.
     /// @return true if the mint was succesful, revert otherwise.
-    function createClass(address owner, bytes metadata, uint256 collection_id, uint256 royalty_fee, uint256 mint_limit) external returns (bool);
+    function createClass(address owner, bytes32 metadata, uint256 collection_id, uint256 royalty_fee, uint256 mint_limit) external returns (bool);
     
     /// @dev Mint token for a specified address
     /// @custom:selector a9059cbc
@@ -42,7 +42,7 @@ interface NFT {
     /// @param metadata bytes The metadata of tokens.
     /// @param quantity unit256 The amount of tokens that will be minted.
     /// @return true if the mint was succesful, revert otherwise.
-    function mintNfts(address owner, uint256 class_id, bytes metadata, uint256 quantity) external returns (bool);
+    function mintNfts(address owner, uint256 class_id, bytes32 metadata, uint256 quantity) external returns (bool);
 
     /// @dev Transfer token for a specified address
     /// @custom:selector a0059cdb
