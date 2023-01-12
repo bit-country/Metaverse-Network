@@ -1,3 +1,4 @@
+use auction::migration_v2::AuctionItem;
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
@@ -6,7 +7,7 @@ use pallet_evm::{
 	PrecompileResult, PrecompileSet,
 };
 
-use auction_manager::ListingLevel;
+use auction_manager::{AuctionInfo, ListingLevel};
 
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
@@ -18,9 +19,7 @@ use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
-use primitives::{
-	evm, AuctionId, Balance, BlockNumber, ClassId, FungibleTokenId, FungibleTokenId, ItemId, MetaverseId, TokenId,
-};
+use primitives::{evm, AuctionId, Balance, BlockNumber, ClassId, FungibleTokenId, ItemId, MetaverseId, TokenId};
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -148,7 +147,9 @@ where
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 
-		let encoded = Output::encode_uint(0.into());
+		let auction_info = <auction::Pallet<Runtime>>::auctions(auction_id)?;
+
+		let encoded = Output::encode_uint(auction_info.end.unwrap_or_default(0.into()).into());
 		// Build output.
 		Ok(succeed(encoded))
 	}
