@@ -47,6 +47,7 @@ core-primitives = { path = "../../traits/core-primitives", default-features = fa
 precompile-utils = { path = "../../primitives/precompiles", default-features = false }
 precompile-utils-macro = { path = "../../primitives/precompiles/macro" }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
+evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", version = "2.0.0-rc6", default-features = false }
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
 
 
@@ -81,6 +82,7 @@ std = [
     "precompile-utils/std",
     "currencies/std",
     "nft/std",
+    "evm-mapping/std",
     "xcm/std",
     "xcm-executor/std",
     "xcm-builder/std",
