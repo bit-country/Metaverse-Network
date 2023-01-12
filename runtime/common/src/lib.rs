@@ -34,6 +34,7 @@ use xcm_executor::{
 
 use primitives::BuyWeightRate;
 
+pub mod auction;
 pub mod currencies;
 pub mod precompiles;
 
