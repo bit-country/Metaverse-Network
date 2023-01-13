@@ -1,6 +1,7 @@
 use auction::migration_v2::AuctionItem;
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
+use frame_system::RawOrigin;
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
@@ -41,9 +42,9 @@ pub enum Action {
 }
 
 /// Alias for the Balance type for the provided Runtime and Instance.
-pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
-	<Runtime as frame_system::Config>::AccountId,
->>::Balance;
+//pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
+//	<Runtime as frame_system::Config>::AccountId,
+//>>::Balance;
 
 /// The `Auction` impl precompile.
 ///
@@ -147,11 +148,21 @@ where
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 
-		let auction_item = <auction::Pallet<Runtime>>::get_auction_item(auction_id)?;
+		let auction_item_output = <auction::Pallet<Runtime>>::get_auction_item(auction_id);
 
-		let encoded = Output::encode_uint(auction_info.end.into());
-		// Build output.
-		Ok(succeed(encoded))
+		match auction_item_output {
+			Some(auction_item) => {
+				let encoded = Output::encode_uint(auction_item.end_time);
+				// Build output.
+				Ok(succeed(encoded))
+			}
+			None => {
+				Err(PrecompileFailure::Revert {
+					exit_status: ExitRevert::Reverted,
+					output: "invalid auction id".into(),
+				})
+			}
+		}
 	}
 
 	fn create_auction(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
@@ -173,8 +184,8 @@ where
 		<auction::Pallet<Runtime>>::create_new_auction(
 			RawOrigin::Signed(who).into(),
 			ItemId::NFT(class_id.into(), token_id),
-			value,
-			end_time,
+			value.into(),
+			end_block.into(),
 			ListingLevel::Local(metaverse_id),
 			FungibleTokenId::NativeToken(0),
 		)
@@ -200,7 +211,7 @@ where
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 		let value: Balance = input.read::<Balance>()?.into();
 
-		<auction::Pallet<Runtime>>::bid(RawOrigin::Signed(who).into(), auction_id, value).map_err(|e| {
+		<auction::Pallet<Runtime>>::bid(RawOrigin::Signed(who).into(), auction_id, value.into()).map_err(|e| {
 			PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -215,9 +226,20 @@ where
 
 		// Parse input
 		let input = handle.read_input()?;
-		input.expect_arguments(1)?;
+		input.expect_arguments(2)?;
+
+		// Build call info
+		let caller: H160 = input.read::<Address>()?.into();
+		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(caller);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
+
+		<auction::Pallet<Runtime>>::finalize_auction(RawOrigin::Signed(who).into(), auction_id).map_err(|e| {
+			PrecompileFailure::Revert {
+				exit_status: ExitRevert::Reverted,
+				output: Into::<&str>::into(e).as_bytes().to_vec(),
+			}
+		})?;		
 
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
 	}
@@ -242,8 +264,8 @@ where
 		<auction::Pallet<Runtime>>::create_new_buy_now(
 			RawOrigin::Signed(who).into(),
 			ItemId::NFT(class_id.into(), token_id),
-			value,
-			end_time,
+			value.into(),
+			end_block.into(),
 			ListingLevel::Local(metaverse_id),
 			FungibleTokenId::NativeToken(0),
 		)
@@ -269,7 +291,7 @@ where
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 		let value: Balance = input.read::<Balance>()?.into();
 
-		<auction::Pallet<Runtime>>::buy_now(RawOrigin::Signed(who).into(), auction_id, value).map_err(|e| {
+		<auction::Pallet<Runtime>>::buy_now(RawOrigin::Signed(who).into(), auction_id, value.into()).map_err(|e| {
 			PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -317,7 +339,7 @@ where
 		let token_id: TokenId = input.read::<TokenId>()?.into();
 		let value: Balance = input.read::<Balance>()?.into();
 
-		<auction::Pallet<Runtime>>::make_offer(RawOrigin::Signed(who).into(), (class_id, token_id), value).map_err(
+		<auction::Pallet<Runtime>>::make_offer(RawOrigin::Signed(who).into(), (class_id, token_id), value.into()).map_err(
 			|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -371,7 +393,7 @@ where
 		let class_id: ClassId = input.read::<ClassId>()?.into();
 		let token_id: TokenId = input.read::<TokenId>()?.into();
 
-		<auction::Pallet<Runtime>>::withdraw_offer(RawOrigin::Signed(who_owner).into(), (class_id, token_id)).map_err(
+		<auction::Pallet<Runtime>>::withdraw_offer(RawOrigin::Signed(who).into(), (class_id, token_id)).map_err(
 			|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
