@@ -407,6 +407,9 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	}
 
 	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError> {
+		if class_id == 15 && token_id == 101 {
+			return Ok(false);
+		}
 		Ok(true)
 	}
 

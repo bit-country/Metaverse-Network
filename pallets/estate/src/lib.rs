@@ -1549,28 +1549,27 @@ impl<T: Config> Pallet<T> {
 				);
 
 				let existing_owner_value = Self::get_land_units(metaverse_id, coordinate);
-				match existing_owner_value {
-					Some(owner_value) => match owner_value {
-						OwnerId::Token(class_id, token_id) => {
-							// Implement check if user own nft
-							ensure!(
-								T::NFTTokenizationSource::check_ownership(&a, &(class_id, token_id))?,
-								Error::<T>::NoPermission
-							);
+				if let Some(owner_value) = existing_owner_value {
+					if let OwnerId::Token(class_id, token_id) = owner_value {
+						// Implement check if user own nft
+						ensure!(
+							T::NFTTokenizationSource::check_ownership(&a, &(class_id, token_id))?
+								&& !T::NFTTokenizationSource::check_item_on_listing(
+									class_id.clone(),
+									token_id.clone()
+								)?,
+							Error::<T>::NoPermission
+						);
 
-							if let OwnerId::Token(owner_class_id, owner_token_id) = token_owner {
-								ensure!(owner_class_id != class_id, Error::<T>::LandUnitAlreadyInEstate)
-							}
-
-							// Ensure not locked
-							T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
-							T::NFTTokenizationSource::burn_nft(&a, &(class_id, token_id));
-							LandUnits::<T>::insert(metaverse_id, coordinate, token_owner.clone());
+						if let OwnerId::Token(owner_class_id, owner_token_id) = token_owner {
+							ensure!(owner_class_id != class_id, Error::<T>::LandUnitAlreadyInEstate)
 						}
-						_ => (),
-					},
-					/* It doesn't make sense to mint existing land unit when ownership doesn't exists */
-					_ => (),
+
+						// Ensure not locked
+						T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
+						T::NFTTokenizationSource::burn_nft(&a, &(class_id, token_id));
+						LandUnits::<T>::insert(metaverse_id, coordinate, token_owner.clone());
+					}
 				}
 			}
 			LandUnitStatus::NonExisting => {
