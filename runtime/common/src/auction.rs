@@ -27,7 +27,7 @@ use primitives::{evm, AuctionId, Balance, BlockNumber, ClassId, FungibleTokenId,
 pub enum Action {
 	ListingItem = "getListingItem(uint256)",
 	ListingMetaverse = "getListingMetaverse(uint256)",
-	ListingPrice = "getListingEnd(uint256)",
+	ListingPrice = "getListingPrice(uint256)",
 	ListingEnd = "getListingEnd(uint256)",
 	ListingHighestBidder = "getListingHighestBidder(uint256)",
 	CreateNftAuction = "createNftAuction(account,uint256,uint256,uint256,uint256,uint256,uint256)",
@@ -38,7 +38,7 @@ pub enum Action {
 	CancelListing = "cancelListing(account,uint256)",
 	MakeOffer = "makeOffer(account,uint256,uint256,uint256)",
 	AcceptOffer = "acceptOffer(account,account,uint256,uint256)",
-	WithdrawOffer = "withrawOffer(account,uint256,uint256)",
+	WithdrawOffer = "withdrawOffer(account,uint256,uint256)",
 }
 
 /// Alias for the Balance type for the provided Runtime and Instance.
@@ -77,7 +77,7 @@ where
 		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
-	>,
+	> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
@@ -137,14 +137,15 @@ where
 		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
-	>,
+	> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
+	
 	fn auction_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(1)?;
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
@@ -168,7 +169,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(6)?;
 		// Build call info
 		let owner: H160 = input.read::<Address>()?.into();
@@ -200,7 +201,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(3)?;
 
 		// Build call info
@@ -224,7 +225,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(2)?;
 
 		// Build call info
@@ -247,7 +248,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(6)?;
 
 		// Build call info
@@ -280,7 +281,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(3)?;
 
 		// Build call info
@@ -304,7 +305,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(2)?;
 
 		// Build call info
@@ -327,7 +328,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(4)?;
 
 		// Build call info
@@ -351,7 +352,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(4)?;
 
 		// Build call info
@@ -381,7 +382,7 @@ where
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
-		let input = handle.read_input()?;
+		let mut input = handle.read_input()?;
 		input.expect_arguments(3)?;
 
 		// Build call info
