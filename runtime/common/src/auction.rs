@@ -42,9 +42,9 @@ pub enum Action {
 }
 
 /// Alias for the Balance type for the provided Runtime and Instance.
-//pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
-//	<Runtime as frame_system::Config>::AccountId,
-//>>::Balance;
+pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
+	<Runtime as frame_system::Config>::AccountId,
+>>::Balance;
 
 /// The `Auction` impl precompile.
 ///
@@ -72,12 +72,13 @@ impl<Runtime> Precompile for AuctionPrecompile<Runtime>
 where
 	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
 	Runtime: Erc20Mapping,
+	auction::Pallet<Runtime>: MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 	U256: From<
-		<<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
+		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
-	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
 	fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
@@ -131,13 +132,13 @@ impl<Runtime> AuctionPrecompile<Runtime>
 where
 	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
 	Runtime: Erc20Mapping,
+	auction::Pallet<Runtime>: MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 	U256: From<
-		<<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
+		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
-	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
-	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
 	fn auction_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
@@ -156,12 +157,10 @@ where
 				// Build output.
 				Ok(succeed(encoded))
 			}
-			None => {
-				Err(PrecompileFailure::Revert {
-					exit_status: ExitRevert::Reverted,
-					output: "invalid auction id".into(),
-				})
-			}
+			None => Err(PrecompileFailure::Revert {
+				exit_status: ExitRevert::Reverted,
+				output: "invalid auction id".into(),
+			}),
 		}
 	}
 
@@ -179,12 +178,12 @@ where
 		let token_id: TokenId = input.read::<TokenId>()?.into();
 		let end_block: BlockNumber = input.read::<BlockNumber>()?.into();
 		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
-		let value: Balance = input.read::<Balance>()?.into();
+		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
 
 		<auction::Pallet<Runtime>>::create_new_auction(
 			RawOrigin::Signed(who).into(),
 			ItemId::NFT(class_id.into(), token_id),
-			value.into(),
+			value.try_into().ok().unwrap(),
 			end_block.into(),
 			ListingLevel::Local(metaverse_id),
 			FungibleTokenId::NativeToken(0),
@@ -209,9 +208,9 @@ where
 		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(bidder);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
-		let value: Balance = input.read::<Balance>()?.into();
+		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
 
-		<auction::Pallet<Runtime>>::bid(RawOrigin::Signed(who).into(), auction_id, value.into()).map_err(|e| {
+		<auction::Pallet<Runtime>>::bid(RawOrigin::Signed(who).into(), auction_id, value.try_into().ok().unwrap()).map_err(|e| {
 			PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -239,7 +238,7 @@ where
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
 			}
-		})?;		
+		})?;
 
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
 	}
@@ -259,12 +258,12 @@ where
 		let token_id: TokenId = input.read::<TokenId>()?.into();
 		let end_block: BlockNumber = input.read::<BlockNumber>()?.into();
 		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
-		let value: Balance = input.read::<Balance>()?.into();
+		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
 
 		<auction::Pallet<Runtime>>::create_new_buy_now(
 			RawOrigin::Signed(who).into(),
 			ItemId::NFT(class_id.into(), token_id),
-			value.into(),
+			value.try_into().ok().unwrap(),
 			end_block.into(),
 			ListingLevel::Local(metaverse_id),
 			FungibleTokenId::NativeToken(0),
@@ -289,9 +288,9 @@ where
 		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(buyer);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
-		let value: Balance = input.read::<Balance>()?.into();
+		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
 
-		<auction::Pallet<Runtime>>::buy_now(RawOrigin::Signed(who).into(), auction_id, value.into()).map_err(|e| {
+		<auction::Pallet<Runtime>>::buy_now(RawOrigin::Signed(who).into(), auction_id, value.try_into().ok().unwrap()).map_err(|e| {
 			PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -337,14 +336,13 @@ where
 
 		let class_id: ClassId = input.read::<ClassId>()?.into();
 		let token_id: TokenId = input.read::<TokenId>()?.into();
-		let value: Balance = input.read::<Balance>()?.into();
+		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
 
-		<auction::Pallet<Runtime>>::make_offer(RawOrigin::Signed(who).into(), (class_id, token_id), value.into()).map_err(
-			|e| PrecompileFailure::Revert {
+		<auction::Pallet<Runtime>>::make_offer(RawOrigin::Signed(who).into(), (class_id, token_id), value.try_into().ok().unwrap())
+			.map_err(|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			},
-		)?;
+			})?;
 
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
 	}
