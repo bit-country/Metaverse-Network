@@ -43,7 +43,7 @@ pub enum Action {
 
 /// Alias for the Balance type for the provided Runtime and Instance.
 //pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurrency as MultiReservableCurrency<
-//	<Runtime as frame_system::Config>::AccountId, 
+//	<Runtime as frame_system::Config>::AccountId,
 //>>::Balance;
 
 //pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
@@ -76,17 +76,17 @@ pub struct AuctionPrecompile<Runtime>(PhantomData<Runtime>);
 impl<Runtime> Precompile for AuctionPrecompile<Runtime>
 where
 	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
-	//auction::Pallet<Runtime>: MultiReservableCurrency<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
-	//U256: From<
+	//auction::Pallet<Runtime>: MultiReservableCurrency<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance =
+	// Balance>, U256: From<
 	//	<<Runtime as auction::Config>::FungibleTokenCurrency as MultiReservableCurrency<
 	//		<Runtime as frame_system::Config>::AccountId,
 	//	>>::Balance,//::Balance,
 	//> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	U256: From<
-		<<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
-			<Runtime as frame_system::Config>::AccountId,
-		>>::Balance,
-	> + From<<Runtime as frame_system::Config>::BlockNumber>,
+			<<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
+				<Runtime as frame_system::Config>::AccountId,
+			>>::Balance,
+		> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
@@ -98,9 +98,9 @@ where
 			};
 
 			if let Err(err) = handle.check_function_modifier(match selector {
-				Action::FinalizeAuction 
-				| Action::CancelListing 
-				| Action::CreateNftAuction 
+				Action::FinalizeAuction
+				| Action::CancelListing
+				| Action::CreateNftAuction
 				| Action::CreateNftBuyNow
 				| Action::Bid
 				| Action::BuyNow
@@ -140,20 +140,19 @@ where
 impl<Runtime> AuctionPrecompile<Runtime>
 where
 	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
-	//auction::Pallet<Runtime>: MultiReservableCurrency<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
-	//U256: From<
+	//auction::Pallet<Runtime>: MultiReservableCurrency<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance =
+	// Balance>, U256: From<
 	//	<<Runtime as auction::Config>::FungibleTokenCurrency as MultiReservableCurrency<
 	//		<Runtime as frame_system::Config>::AccountId,
 	//	>>::Balance,//::Balance,
 	//> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	U256: From<
-		<<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
-			<Runtime as frame_system::Config>::AccountId,
-		>>::Balance,
-	> + From<<Runtime as frame_system::Config>::BlockNumber>,
+			<<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
+				<Runtime as frame_system::Config>::AccountId,
+			>>::Balance,
+		> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
-	
 	fn auction_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
@@ -171,12 +170,12 @@ where
 				// Build output.
 				Ok(succeed(encoded))
 			}
-			None => {Err(PrecompileFailure::Error {
+			None => Err(PrecompileFailure::Error {
 				exit_status: pallet_evm::ExitError::InvalidCode,
-			})},
+			}),
 		}
 	}
- 
+
 	fn create_auction(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
@@ -223,11 +222,14 @@ where
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 		let value: Balance = input.read::<Balance>()?.into();
 
-		<auction::Pallet<Runtime>>::bid(RawOrigin::Signed(who).into(), auction_id, value.try_into().ok().unwrap()).map_err(|e| {
-			PrecompileFailure::Revert {
-				exit_status: ExitRevert::Reverted,
-				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			}
+		<auction::Pallet<Runtime>>::bid(
+			RawOrigin::Signed(who).into(),
+			auction_id,
+			value.try_into().ok().unwrap(),
+		)
+		.map_err(|e| PrecompileFailure::Revert {
+			exit_status: ExitRevert::Reverted,
+			output: Into::<&str>::into(e).as_bytes().to_vec(),
 		})?;
 
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
@@ -303,11 +305,14 @@ where
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 		let value: Balance = input.read::<Balance>()?.into();
 
-		<auction::Pallet<Runtime>>::buy_now(RawOrigin::Signed(who).into(), auction_id, value.try_into().ok().unwrap()).map_err(|e| {
-			PrecompileFailure::Revert {
-				exit_status: ExitRevert::Reverted,
-				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			}
+		<auction::Pallet<Runtime>>::buy_now(
+			RawOrigin::Signed(who).into(),
+			auction_id,
+			value.try_into().ok().unwrap(),
+		)
+		.map_err(|e| PrecompileFailure::Revert {
+			exit_status: ExitRevert::Reverted,
+			output: Into::<&str>::into(e).as_bytes().to_vec(),
 		})?;
 
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
@@ -351,11 +356,15 @@ where
 		let token_id: TokenId = input.read::<TokenId>()?.into();
 		let value: Balance = input.read::<Balance>()?.into();
 
-		<auction::Pallet<Runtime>>::make_offer(RawOrigin::Signed(who).into(), (class_id, token_id), value.try_into().ok().unwrap())
-			.map_err(|e| PrecompileFailure::Revert {
-				exit_status: ExitRevert::Reverted,
-				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			})?;
+		<auction::Pallet<Runtime>>::make_offer(
+			RawOrigin::Signed(who).into(),
+			(class_id, token_id),
+			value.try_into().ok().unwrap(),
+		)
+		.map_err(|e| PrecompileFailure::Revert {
+			exit_status: ExitRevert::Reverted,
+			output: Into::<&str>::into(e).as_bytes().to_vec(),
+		})?;
 
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
 	}
