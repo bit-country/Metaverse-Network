@@ -34,9 +34,9 @@ impl<R> MetaverseNetworkPrecompiles<R> {
 /// 1024-2047 Precompiles that are not in Ethereum Mainnet
 impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
-	R: pallet_evm::Config + currencies::Config,
-	MultiCurrencyPrecompile<R>: Precompile,
+	R: pallet_evm::Config + currencies::Config + auction::Config,
 	AuctionPrecompile<R>: Precompile,
+	MultiCurrencyPrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {

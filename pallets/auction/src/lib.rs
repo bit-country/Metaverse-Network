@@ -36,6 +36,7 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
+
 use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
 use core_primitives::UndeployedLandBlocksTrait;
 pub use pallet::*;
@@ -107,7 +108,7 @@ pub mod pallet {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::tokens::currency};
 	use frame_system::ensure_root;
 	use frame_system::pallet_prelude::OriginFor;
-	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use orml_traits::{MultiCurrency, MultiReservableCurrency, MultiCurrencyExtended, MultiLockableCurrency, currency::TransferAll};
 	use sp_runtime::traits::CheckedAdd;
 	use sp_runtime::ArithmeticError;
 

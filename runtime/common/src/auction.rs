@@ -2,7 +2,7 @@ use auction::migration_v2::AuctionItem;
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use frame_system::RawOrigin;
-use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
+use orml_traits::{BasicCurrency, MultiReservableCurrency};
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 	PrecompileResult, PrecompileSet,
@@ -42,9 +42,13 @@ pub enum Action {
 }
 
 /// Alias for the Balance type for the provided Runtime and Instance.
-pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
-	<Runtime as frame_system::Config>::AccountId,
->>::Balance;
+//pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurrency as MultiReservableCurrency<
+//	<Runtime as frame_system::Config>::AccountId, 
+//>>::Balance;
+
+//pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
+//<Runtime as frame_system::Config>::AccountId,
+//>>::Balance;
 
 /// The `Auction` impl precompile.
 ///
@@ -57,7 +61,8 @@ pub type BalanceOf<Runtime> = <<Runtime as auction::Config>::FungibleTokenCurren
 /// - Query listing's current highest bidder. Rest `input` bytes: `listing_id`.
 /// - Create auction for an NFT. Rest `input` bytes: `class_id`, `token_id`, `value`, `end_time`,
 ///   `metaverse_id`, `currency_id`.
-/// - Bid on auction. Rest `input` bytes: `listing_id`, `value`.
+/// - Bid on auction. Rest `input` bytes: `
+/// listing_id`, `value`.
 /// - Finalize auction. Rest `input` bytes: `listing_id`.
 /// - Create buy now for an NFT. Rest `input` bytes: `class_id`, `token_id`, `value`, `end_time`,
 ///   `metaverse_id`, `currency_id`.
@@ -71,14 +76,18 @@ pub struct AuctionPrecompile<Runtime>(PhantomData<Runtime>);
 impl<Runtime> Precompile for AuctionPrecompile<Runtime>
 where
 	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
-	Runtime: Erc20Mapping,
-	auction::Pallet<Runtime>: MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
+	//auction::Pallet<Runtime>: MultiReservableCurrency<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
+	//U256: From<
+	//	<<Runtime as auction::Config>::FungibleTokenCurrency as MultiReservableCurrency<
+	//		<Runtime as frame_system::Config>::AccountId,
+	//	>>::Balance,//::Balance,
+	//> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	U256: From<
-		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
+		<<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	> + From<<Runtime as frame_system::Config>::BlockNumber>,
-	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
 	fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
@@ -89,12 +98,12 @@ where
 			};
 
 			if let Err(err) = handle.check_function_modifier(match selector {
-				Action::CreateNftAuction
+				Action::FinalizeAuction 
+				| Action::CancelListing 
+				| Action::CreateNftAuction 
 				| Action::CreateNftBuyNow
 				| Action::Bid
 				| Action::BuyNow
-				| Action::CancelListing
-				| Action::FinalizeAuction
 				| Action::MakeOffer
 				| Action::AcceptOffer
 				| Action::WithdrawOffer => FunctionModifier::NonPayable,
@@ -131,14 +140,18 @@ where
 impl<Runtime> AuctionPrecompile<Runtime>
 where
 	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
-	Runtime: Erc20Mapping,
-	auction::Pallet<Runtime>: MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
+	//auction::Pallet<Runtime>: MultiReservableCurrency<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
+	//U256: From<
+	//	<<Runtime as auction::Config>::FungibleTokenCurrency as MultiReservableCurrency<
+	//		<Runtime as frame_system::Config>::AccountId,
+	//	>>::Balance,//::Balance,
+	//> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	U256: From<
-		<<Runtime as auction::Config>::FungibleTokenCurrency as MultiCurrencyTrait<
+		<<Runtime as auction::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	> + From<<Runtime as frame_system::Config>::BlockNumber>,
-	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
 	
 	fn auction_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
@@ -158,13 +171,12 @@ where
 				// Build output.
 				Ok(succeed(encoded))
 			}
-			None => Err(PrecompileFailure::Revert {
-				exit_status: ExitRevert::Reverted,
-				output: "invalid auction id".into(),
-			}),
+			None => {Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::InvalidCode,
+			})},
 		}
 	}
-
+ 
 	fn create_auction(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
@@ -179,7 +191,7 @@ where
 		let token_id: TokenId = input.read::<TokenId>()?.into();
 		let end_block: BlockNumber = input.read::<BlockNumber>()?.into();
 		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
-		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
+		let value: Balance = input.read::<Balance>()?.into();
 
 		<auction::Pallet<Runtime>>::create_new_auction(
 			RawOrigin::Signed(who).into(),
@@ -209,7 +221,7 @@ where
 		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(bidder);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
-		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
+		let value: Balance = input.read::<Balance>()?.into();
 
 		<auction::Pallet<Runtime>>::bid(RawOrigin::Signed(who).into(), auction_id, value.try_into().ok().unwrap()).map_err(|e| {
 			PrecompileFailure::Revert {
@@ -259,7 +271,7 @@ where
 		let token_id: TokenId = input.read::<TokenId>()?.into();
 		let end_block: BlockNumber = input.read::<BlockNumber>()?.into();
 		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
-		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
+		let value: Balance = input.read::<Balance>()?.into();
 
 		<auction::Pallet<Runtime>>::create_new_buy_now(
 			RawOrigin::Signed(who).into(),
@@ -289,7 +301,7 @@ where
 		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(buyer);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
-		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
+		let value: Balance = input.read::<Balance>()?.into();
 
 		<auction::Pallet<Runtime>>::buy_now(RawOrigin::Signed(who).into(), auction_id, value.try_into().ok().unwrap()).map_err(|e| {
 			PrecompileFailure::Revert {
@@ -337,7 +349,7 @@ where
 
 		let class_id: ClassId = input.read::<ClassId>()?.into();
 		let token_id: TokenId = input.read::<TokenId>()?.into();
-		let value: BalanceOf<Runtime> = input.read::<BalanceOf<Runtime>>()?.into();
+		let value: Balance = input.read::<Balance>()?.into();
 
 		<auction::Pallet<Runtime>>::make_offer(RawOrigin::Signed(who).into(), (class_id, token_id), value.try_into().ok().unwrap())
 			.map_err(|e| PrecompileFailure::Revert {
