@@ -23,7 +23,7 @@ use primitives::{evm, Balance, MetaverseId};
 #[derive(Debug, PartialEq)]
 pub enum Action {
 	GetMetaverse = "getMetaverse(uint256)",
-	//GetMetaverseOwner = "getMetaverseOwner()",
+	//GetMetaverseOwner = "getMetaverseOwner(uint256)",
 	GetMetaverseFundBalance = "getMetaverseFundBalance(uint256)",
 	CreateMetaverse = "createMetaverse(address,bytes)",
 	WithdrawFromMetaverseFund = "withdrawFromMetaverseFund(address,uint256)",
@@ -51,7 +51,7 @@ pub struct MetaversePrecompile<Runtime>(PhantomData<Runtime>);
 
 impl<Runtime> Precompile for MetaversePrecompile<Runtime>
 where
-	Runtime: metaverse::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: metaverse::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
 	Runtime: Erc20Mapping,
 	U256: From<
 		<<Runtime as metaverse::Config>::Currency as frame_support::traits::Currency<
@@ -78,7 +78,7 @@ where
 			match selector {
 				// Local and Foreign common
 				Action::GetMetaverse => Self::metaverse_info(handle),
-				//Action::GetMetaverseOwner => Self::metaverse_info(handle),
+				//Action::GetMetaverseOwner => Self::metaverse_owner(handle),
 				Action::GetMetaverseFundBalance => Self::fund_balance(handle),
 				Action::CreateMetaverse => Self::create_metaverse(handle),
 				Action::WithdrawFromMetaverseFund => Self::withdraw_funds(handle),
@@ -95,7 +95,7 @@ where
 
 impl<Runtime> MetaversePrecompile<Runtime>
 where
-	Runtime: metaverse::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: metaverse::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
 	U256: From<
 		<<Runtime as metaverse::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
@@ -103,6 +103,44 @@ where
 	>,
 	// BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
+	/*
+		fn metaverse_owner(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+			handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+			// Parse input of 1 (metaverse_id)
+			let mut input = handle.read_input()?;
+			input.expect_arguments(1)?;
+
+			let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
+
+			// Fetch info
+			let metaverse_info_result = <metaverse::Pallet<Runtime>>::get_metaverse(metaverse_id);
+
+			match metaverse_info_result {
+				Some(metaverse_info) => {
+					log::debug!(target: "evm", "metaverse_info: {:?}", metaverse_info);
+					let evm_address_output = <evm_mapping::Pallet<Runtime>>::evm_addresses(meatverse_info.owner);
+
+					match evm_address_output
+					{
+						Some(evm_address) => {
+							let encoded = Output::encode_address(evm_address);
+							// Build output.
+							Ok(succeed(encoded))
+						}
+						None => {
+							Err(PrecompileFailure::Error {
+								exit_status: pallet_evm::ExitError::Other("Non-existing owner EVM address.".into()),
+							})
+						}
+					}
+				}
+				None => Err(PrecompileFailure::Error {
+					exit_status: pallet_evm::ExitError::Other("Non-existing metaverse.".into()),
+				}),
+			}
+		}
+	*/
 	fn metaverse_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
@@ -122,9 +160,8 @@ where
 				// Build output.
 				Ok(succeed(encoded))
 			}
-			None => Err(PrecompileFailure::Revert {
-				exit_status: ExitRevert::Reverted,
-				output: "invalid metaverse id".into(),
+			None => Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::Other("Non-existing metaverse.".into()),
 			}),
 		}
 	}
@@ -160,7 +197,7 @@ where
 
 		// Build call info
 		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
 		let metaverse_metadata: MetaverseMetadata = input.read::<MetaverseMetadata>()?.into();
 
 		log::debug!(target: "evm", "create metaverse for: {:?}", who);
@@ -187,7 +224,7 @@ where
 
 		// Build call info
 		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
 
 		log::debug!(target: "evm", "withdraw funds from {:?} treasury", metaverse_id);
 
@@ -213,8 +250,8 @@ where
 			let amount = input.read::<BalanceOf<Runtime>>()?;
 
 			// Build call info
-			let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
-			let to = Runtime::AddressMapping::into_account_id(to);
+			let origin = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
+			let to = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(to);
 
 			log::debug!(target: "evm", "meatverse: transfer from: {:?}, to: {:?}, amount: {:?}", origin, to, amount);
 

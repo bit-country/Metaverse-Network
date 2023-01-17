@@ -11,6 +11,12 @@ Metaverse constant METAVERSE_CONTRACT = Metaverse(METAVERSE_PRECOMPILE_ADDRESS);
 /// @dev The interface through which solidity contracts will interact with pallet-metaverse.
 /// @custom:address 0x1111111110000000000000000000000000000000
 interface Metaverse {
+    /// @dev Gets the owner of the specified metaverse fund address.
+    /// @custom:selector 80a08230
+    /// @param metaverse_id uint256 The ID of the metaverse.
+    /// @return The address of the metaverse owner.
+    function getMetaverseOwner(uint256 metaverse_id) external view returns (address);
+
     /// @dev Gets the metadata of the specified metaverse fund address.
     /// @custom:selector 80a08231
     /// @param metaverse_id uint256 The ID of the metaverse.

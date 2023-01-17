@@ -5299,6 +5299,7 @@ dependencies = [
  "orml-currencies",
  "orml-traits",
  "pallet-evm",
+ "pallet-evm-mapping",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
  "pallet-evm-precompile-dispatch",
