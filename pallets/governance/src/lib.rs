@@ -150,7 +150,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn offchain_preimages)]
-	/// Indexes local governance preimages status by metaverse ID and preimage hash.
+	/// Indexes local governance preimages status by metaverse ID and offchain preimages hash.
 	pub type OffchainPreimages<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
@@ -395,6 +395,7 @@ pub mod pallet {
 			balance: BalanceOf<T>,
 			preimage_hash: T::Hash,
 			proposal_description: Vec<u8>,
+			proposal_type: ProposalType,
 		) -> DispatchResultWithPostInfo {
 			let from = ensure_signed(origin)?;
 			ensure!(
@@ -406,81 +407,97 @@ pub mod pallet {
 				T::Currency::free_balance(&from) >= balance,
 				Error::<T>::InsufficientBalance
 			);
-			ensure!(
-				<Preimages<T>>::contains_key(metaverse_id, preimage_hash),
-				Error::<T>::PreimageInvalid
-			);
-			let preimage = Self::preimages(metaverse_id, preimage_hash);
-			if let Some(PreimageStatus::Available {
-				data,
-				provider,
-				deposit,
-				..
-			}) = preimage
-			{
-				if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
-					let proposal_type = T::ProposalType::default();
-					if !proposal_type.filter(&proposal) {
-						T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
-						Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
-						Err(Error::<T>::PreimageInvalid.into())
+
+			match proposal_type {
+				ProposalType::Onchain => {
+					ensure!(
+						LocalPreimages::<T>::contains_key(metaverse_id, preimage_hash),
+						Error::<T>::PreimageInvalid
+					);
+
+					let preimage = Self::local_preimages(metaverse_id, preimage_hash);
+					if let Some(PreimageStatus::Available {
+						data,
+						provider,
+						deposit,
+						..
+					}) = preimage
+					{
+						if let Ok(proposal) = T::Proposal::decode(&mut &data[..]) {
+							let proposal_filter = T::ProposalType::default();
+							if !proposal_filter.filter(&proposal) {
+								T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
+								Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
+								Err(Error::<T>::PreimageInvalid.into())
+							} else {
+								let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
+								let proposal_info = ProposalInfo {
+									proposed_by: from.clone(),
+									proposal_type,
+									hash: preimage_hash,
+									title: proposal_description.clone(),
+									referendum_launch_block: launch_block,
+								};
+
+								let proposal_id = Self::get_next_proposal_id()?;
+								<Proposals<T>>::insert(metaverse_id, proposal_id, proposal_info);
+
+								Self::update_proposals_per_metaverse_number(metaverse_id, true);
+								T::Currency::reserve(&from, balance);
+								<DepositOf<T>>::insert(proposal_id, (&[&from][..], balance));
+
+								Self::deposit_event(Event::ProposalSubmitted(from, metaverse_id, proposal_id));
+
+								let mut metaverse_has_referendum_running: bool = false;
+								for (_, referendum_info) in ReferendumInfoOf::<T>::iter_prefix(metaverse_id) {
+									match referendum_info {
+										ReferendumInfo::Ongoing(status) => {
+											metaverse_has_referendum_running = true;
+											break;
+										}
+										_ => (),
+									}
+								}
+								if !metaverse_has_referendum_running {
+									if let Some((depositors, deposit)) = <DepositOf<T>>::take(proposal_id) {
+										<Proposals<T>>::remove(metaverse_id, proposal_id);
+										Self::update_proposals_per_metaverse_number(metaverse_id, false);
+										// refund depositors
+										for d in &depositors {
+											T::Currency::unreserve(d, deposit);
+										}
+										Self::deposit_event(Event::Tabled(proposal_id, deposit, depositors));
+										Self::start_referendum(
+											metaverse_id,
+											proposal_id,
+											preimage_hash,
+											proposal_description,
+											launch_block,
+											proposal_type,
+										);
+									}
+								}
+
+								Ok(().into())
+							}
+						} else {
+							T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
+							Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
+							Err(Error::<T>::PreimageInvalid.into())
+						}
 					} else {
-						let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
-						let proposal_info = ProposalInfo {
-							proposed_by: from.clone(),
-							hash: preimage_hash,
-							title: proposal_description.clone(),
-							referendum_launch_block: launch_block,
-						};
-
-						let proposal_id = Self::get_next_proposal_id()?;
-						<Proposals<T>>::insert(metaverse_id, proposal_id, proposal_info);
-
-						Self::update_proposals_per_metaverse_number(metaverse_id, true);
-						T::Currency::reserve(&from, balance);
-						<DepositOf<T>>::insert(proposal_id, (&[&from][..], balance));
-
-						Self::deposit_event(Event::ProposalSubmitted(from, metaverse_id, proposal_id));
-
-						let mut metaverse_has_referendum_running: bool = false;
-						for (_, referendum_info) in ReferendumInfoOf::<T>::iter_prefix(metaverse_id) {
-							match referendum_info {
-								ReferendumInfo::Ongoing(status) => {
-									metaverse_has_referendum_running = true;
-									break;
-								}
-								_ => (),
-							}
-						}
-						if !metaverse_has_referendum_running {
-							if let Some((depositors, deposit)) = <DepositOf<T>>::take(proposal_id) {
-								<Proposals<T>>::remove(metaverse_id, proposal_id);
-								Self::update_proposals_per_metaverse_number(metaverse_id, false);
-								// refund depositors
-								for d in &depositors {
-									T::Currency::unreserve(d, deposit);
-								}
-								Self::deposit_event(Event::Tabled(proposal_id, deposit, depositors));
-								Self::start_referendum(
-									metaverse_id,
-									proposal_id,
-									preimage_hash,
-									proposal_description,
-									launch_block,
-								);
-							}
-						}
-
-						Ok(().into())
+						Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
+						Err(Error::<T>::PreimageMissing.into())
 					}
-				} else {
-					T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
-					Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
-					Err(Error::<T>::PreimageInvalid.into())
 				}
-			} else {
-				Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
-				Err(Error::<T>::PreimageMissing.into())
+				ProposalType::Offchain => {
+					ensure!(
+						OffchainPreimages::<T>::contains_key(metaverse_id, preimage_hash),
+						Error::<T>::PreimageInvalid
+					);
+
+					Ok(().into())
+				}
 			}
 		}
 
@@ -819,6 +836,7 @@ impl<T: Config> Pallet<T> {
 		proposal_hash: T::Hash,
 		proposal_description: Vec<u8>,
 		current_block: T::BlockNumber,
+		proposal_type: ProposalType,
 	) -> Result<u64, DispatchError> {
 		let referendum_id = Self::get_next_referendum_id()?;
 
@@ -889,6 +907,7 @@ impl<T: Config> Pallet<T> {
 					proposal_hash,
 					proposal.1.title,
 					launch_block,
+					proposal.1.proposal_type,
 				);
 			}
 			Ok(())
