@@ -11,15 +11,22 @@ NFT constant NFT_CONTRACT = NFT(NFT_PRECOMPILE_ADDRESS);
 /// @dev The interface through which solidity contracts will interact with pallet-nft.
 /// @custom:address 0x2222222220000000000000000000000000000000
 interface NFT {
+    /// @dev Gets the NFT token metadata.
+    /// @custom:selector 70a08230
+    /// @param class_id The class ID of the NFT.
+    /// @param token_id The token ID of the NFT.
+    /// @return A bytes array representing the NFT metadata.
+    function getAssetMetadata(uint256 class_id, uint256 token_id) external view returns (bytes32);
+
     /// @dev Gets the NFT token owner.
-    /// @custom:selector 70a08231
+    /// @custom:selector 70a08233
     /// @param class_id The class ID of the NFT.
     /// @param token_id The token ID of the NFT.
     /// @return An address representing the NFT owner.
     function getAssetOwner(uint256 class_id, uint256 token_id) external view returns (address);
 
     /// @dev Gets the balance of the specified class fund addreess.
-    /// @custom:selector 70a08231
+    /// @custom:selector 70a08234
     /// @param class_owner The address that owns the token class.
     /// @param class_id The class ID of the class fund.
     /// @return An uint256 representing the class fund balance.

@@ -28,7 +28,7 @@ use sp_core::{H160, U256};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
-use crate::FungibleTokenId;
+use crate::{FungibleTokenId,ClassId,TokenId};
 
 /// Evm Address.
 pub type EvmAddress = sp_core::H160;
@@ -51,6 +51,11 @@ pub trait Erc20Mapping {
 	fn encode_evm_address(v: FungibleTokenId) -> Option<EvmAddress>;
 	/// Decode the FungibleTokenId from EvmAddress.
 	fn decode_evm_address(v: EvmAddress) -> Option<FungibleTokenId>;
+}
+
+pub trait Erc20Mapping { 
+	/// Encode the FungibleTokenId to EvmAddress.
+	fn encode_evm_address(v: (ClassId, TokenId)) -> Option<EvmAddress>;
 }
 
 #[rustfmt::skip]
