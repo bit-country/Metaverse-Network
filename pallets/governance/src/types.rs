@@ -323,6 +323,7 @@ impl<Balance: Saturating + Ord + Zero + Copy, BlockNumber: Ord + Copy + Zero> Vo
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
 	pub(crate) proposed_by: AccountId,
+	pub(crate) proposal_type: ProposalType,
 	pub(crate) hash: Hash,
 	pub(crate) title: Vec<u8>,
 	pub(crate) referendum_launch_block: BlockNumber,
@@ -347,4 +348,10 @@ pub enum ReferendumInfo<BlockNumber, Balance, Hash> {
 		passed: bool,
 		end: BlockNumber,
 	},
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub enum ProposalType {
+	Onchain,
+	Offchain,
 }
