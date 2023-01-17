@@ -29,7 +29,7 @@ pub enum Action {
 	ListingMetaverse = "getListingMetaverse(uint256)",
 	ListingPrice = "getListingPrice(uint256)",
 	ListingEnd = "getListingEnd(uint256)",
-	ListingHighestBidder = "getListingHighestBidder(uint256)",
+	//ListingHighestBidder = "getListingHighestBidder(uint256)",
 	CreateNftAuction = "createNftAuction(account,uint256,uint256,uint256,uint256,uint256,uint256)",
 	Bid = "bid(account,uint256,uint256)",
 	FinalizeAuction = "finalizeAuction(uint256)",
@@ -75,7 +75,7 @@ pub struct AuctionPrecompile<Runtime>(PhantomData<Runtime>);
 
 impl<Runtime> Precompile for AuctionPrecompile<Runtime>
 where
-	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: auction::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
 	//auction::Pallet<Runtime>: MultiReservableCurrency<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance =
 	// Balance>, U256: From<
 	//	<<Runtime as auction::Config>::FungibleTokenCurrency as MultiReservableCurrency<
@@ -114,11 +114,11 @@ where
 
 			match selector {
 				// Local and Foreign common
-				ListingItem => Self::auction_info(handle),
-				ListingMetaverse => Self::auction_info(handle),
-				ListingPrice => Self::auction_info(handle),
-				ListingEnd => Self::auction_info(handle),
-				ListingHighestBidder => Self::auction_info(handle),
+				ListingItem => Self::get_listing_item(handle),
+				ListingMetaverse => Self::get_listing_metaverse(handle),
+				ListingPrice => Self::get_listing_price(handle),
+				ListingEnd => Self::get_listing_end(handle),
+				//ListingHighestBidder => Self::get_listing_highest_bidder(handle),
 				CreateNftAuction => Self::create_auction(handle),
 				Bid => Self::bid(handle),
 				FinalizeAuction => Self::finalize_auction(handle),
@@ -139,7 +139,7 @@ where
 
 impl<Runtime> AuctionPrecompile<Runtime>
 where
-	Runtime: auction::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: auction::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
 	//auction::Pallet<Runtime>: MultiReservableCurrency<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance =
 	// Balance>, U256: From<
 	//	<<Runtime as auction::Config>::FungibleTokenCurrency as MultiReservableCurrency<
@@ -153,7 +153,139 @@ where
 		> + From<<Runtime as frame_system::Config>::BlockNumber>,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
-	fn auction_info(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+	/*
+	fn get_listing_highest_bidder(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input
+		let mut input = handle.read_input()?;
+		input.expect_arguments(1)?;
+
+		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
+
+		let auction_info_output = <auction::Pallet<Runtime>>::auctions(auction_id);
+
+		match auction_info_output {
+			Some(auction_info) => {
+				match auction_info.bid {
+					Some((highest_bidder, _)) => {
+						let evm_address_output = <evm_mapping::Pallet<Runtime>>::evm_addresses(highest_bidder);
+						match evm_address_output {
+							Some(bidder_evm_address) => {
+								let encoded = Output::encode_address(bidder_evm_address);
+								// Build output.
+								Ok(succeed(encoded))
+							}
+							None => Err(PrecompileFailure::Error {
+								exit_status: pallet_evm::ExitError::Other("Non-existing bidder EVM address".into()),
+							})
+						}
+
+					}
+					None => Err(PrecompileFailure::Error {
+						exit_status: pallet_evm::ExitError::Other("Non-existing bid".into()),
+					})
+				}
+				
+			}
+			None => Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::Other("Non-existing auction".into()),
+			}),
+		}
+	}
+*/
+	fn get_listing_item(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input
+		let mut input = handle.read_input()?;
+		input.expect_arguments(1)?;
+
+		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
+
+		let auction_item_output = <auction::Pallet<Runtime>>::get_auction_item(auction_id);
+
+		match auction_item_output {
+			Some(auction_item) => {
+				match auction_item.item_id {
+					ItemId::NFT(class_id,token_id) => {
+						let mut item_vec: Vec<u64> = Vec::new();
+						item_vec.push(class_id as u64);
+						item_vec.push(token_id);
+						let encoded = Output::encode_uint_tuple(item_vec);
+					
+						// Build output.
+						Ok(succeed(encoded))
+					}
+					_=> {
+						Err(PrecompileFailure::Error {
+							exit_status: pallet_evm::ExitError::Other("Auction item is not NFT".into()),
+						})
+					}
+				}
+			}
+			None => Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::Other("Non-existing auction".into()),
+			}),
+		}
+	}
+
+	fn get_listing_metaverse(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input
+		let mut input = handle.read_input()?;
+		input.expect_arguments(1)?;
+
+		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
+
+		let auction_item_output = <auction::Pallet<Runtime>>::get_auction_item(auction_id);
+
+		match auction_item_output {
+			Some(auction_item) => {
+				match auction_item.listing_level {
+					ListingLevel::Local(metaverse_id) => {
+						let encoded = Output::encode_uint(metaverse_id);
+						// Build output.
+						Ok(succeed(encoded))
+					}
+					_ => {
+						Err(PrecompileFailure::Error {
+							exit_status: pallet_evm::ExitError::Other("Non-local listing".into()),
+						})
+					}
+				}
+			}
+			None => Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::Other("Non-existing auction".into())
+			}),
+		}
+	}
+
+	fn get_listing_price(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input
+		let mut input = handle.read_input()?;
+		input.expect_arguments(1)?;
+
+		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
+
+		let auction_item_output = <auction::Pallet<Runtime>>::get_auction_item(auction_id);
+
+		match auction_item_output {
+			Some(auction_item) => {
+				let encoded = Output::encode_uint(auction_item.amount);
+				// Build output.
+				Ok(succeed(encoded))
+			}
+			None => Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::Other("Non-existing auction".into()),
+			}),
+		}
+	}
+
+	fn get_listing_end(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input
@@ -171,7 +303,7 @@ where
 				Ok(succeed(encoded))
 			}
 			None => Err(PrecompileFailure::Error {
-				exit_status: pallet_evm::ExitError::InvalidCode,
+				exit_status: pallet_evm::ExitError::Other("Non-existing auction".into()),
 			}),
 		}
 	}
@@ -184,7 +316,7 @@ where
 		input.expect_arguments(6)?;
 		// Build call info
 		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
 
 		let class_id: ClassId = input.read::<ClassId>()?.into();
 		let token_id: TokenId = input.read::<TokenId>()?.into();
@@ -217,7 +349,7 @@ where
 
 		// Build call info
 		let bidder: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(bidder);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(bidder);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 		let value: Balance = input.read::<Balance>()?.into();
@@ -244,7 +376,7 @@ where
 
 		// Build call info
 		let caller: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(caller);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(caller);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 
@@ -267,7 +399,7 @@ where
 
 		// Build call info
 		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
 
 		let class_id: ClassId = input.read::<ClassId>()?.into();
 		let token_id: TokenId = input.read::<TokenId>()?.into();
@@ -300,7 +432,7 @@ where
 
 		// Build call info
 		let buyer: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(buyer);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(buyer);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 		let value: Balance = input.read::<Balance>()?.into();
@@ -327,7 +459,7 @@ where
 
 		// Build call info
 		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
 
 		let auction_id: AuctionId = input.read::<AuctionId>()?.into();
 
@@ -350,7 +482,7 @@ where
 
 		// Build call info
 		let offeror: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(offeror);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(offeror);
 
 		let class_id: ClassId = input.read::<ClassId>()?.into();
 		let token_id: TokenId = input.read::<TokenId>()?.into();
@@ -378,10 +510,10 @@ where
 
 		// Build call info
 		let owner: H160 = input.read::<Address>()?.into();
-		let who_owner: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+		let who_owner: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
 
 		let offeror: H160 = input.read::<Address>()?.into();
-		let who_offeror: Runtime::AccountId = Runtime::AddressMapping::into_account_id(offeror);
+		let who_offeror: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(offeror);
 
 		let class_id: ClassId = input.read::<ClassId>()?.into();
 		let token_id: TokenId = input.read::<TokenId>()?.into();
@@ -408,7 +540,7 @@ where
 
 		// Build call info
 		let offeror: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(offeror);
+		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(offeror);
 
 		let class_id: ClassId = input.read::<ClassId>()?.into();
 		let token_id: TokenId = input.read::<TokenId>()?.into();
