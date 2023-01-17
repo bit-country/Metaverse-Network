@@ -136,9 +136,22 @@ pub mod pallet {
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::storage]
-	#[pallet::getter(fn preimages)]
+	#[pallet::getter(fn local_preimages)]
 	/// Indexes local governance preimages status by metaverse ID and preimage hash.
-	pub type Preimages<T: Config> = StorageDoubleMap<
+	pub type LocalPreimages<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		MetaverseId,
+		Identity,
+		T::Hash,
+		PreimageStatus<T::AccountId, BalanceOf<T>, T::BlockNumber>,
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn offchain_preimages)]
+	/// Indexes local governance preimages status by metaverse ID and preimage hash.
+	pub type OffchainPreimages<T: Config> = StorageDoubleMap<
 		_,
 		Twox64Concat,
 		MetaverseId,
