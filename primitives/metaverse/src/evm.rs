@@ -28,7 +28,7 @@ use sp_core::{H160, U256};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
 
-use crate::{FungibleTokenId,ClassId,TokenId};
+use crate::{ClassId, FungibleTokenId, TokenId};
 
 /// Evm Address.
 pub type EvmAddress = sp_core::H160;
@@ -59,7 +59,6 @@ pub trait Erc20Mapping {
 	/// Decode the NFT token from EvmAddress.
 	fn decode_nft_evm_address(v: EvmAddress) -> Option<(ClassId, TokenId)>;
 }
-
 
 #[rustfmt::skip]
 /// FungibleCurrencyId to H160([u8; 20]) bit encoding rule.

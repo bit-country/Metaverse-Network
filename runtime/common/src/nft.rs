@@ -1,9 +1,9 @@
 use core_primitives::{Attributes, CollectionType, NftMetadata, TokenType};
+use evm_mapping::EvmAddressMapping;
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use frame_system::RawOrigin;
 use orml_traits::{BasicCurrency, MultiCurrency};
-use evm_mapping::EvmAddressMapping;
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 	PrecompileResult, PrecompileSet,
@@ -25,8 +25,8 @@ use primitives::{evm, Balance, ClassId, GroupCollectionId, TokenId};
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
 pub enum Action {
-	GetNftMetadata = "getAssetMetadata(uint256,uint256)",
-	//GetNftAddress = "getNftAddress(uint256,uint256)",
+	GetNftMetadata = "getNftMetadata(uint256,uint256)",
+	GetNftAddress = "getNftAddress(uint256,uint256)",
 	GetAssetOwner = "getAssetOwner(uint256,uint256)",
 	GetClassFundBalance = "getClassFundBalance(address,uint256)",
 	CreateClass = "createClass(address,bytes,uint256,unit256,uint256)",
@@ -98,7 +98,7 @@ where
 			match selector {
 				// Local and Foreign common
 				Action::GetNftMetadata => Self::nft_metadata(handle),
-				//Action::GetNftAddress => Self::nft_address(handle),
+				Action::GetNftAddress => Self::nft_address(handle),
 				Action::GetAssetOwner => Self::nft_owner(handle),
 				Action::GetClassFundBalance => Self::class_fund_balance(handle),
 				Action::CreateClass => Self::create_class(handle),
@@ -139,11 +139,13 @@ where
 		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
 
 		// Fetch info
-		let nft_info_result = <orml_nft::Pallet<Runtime>>::tokens::<ClassIdOf<Runtime>, TokenIdOf<Runtime>>(class_id.into(), token_id.into());
+		let nft_info_result = <orml_nft::Pallet<Runtime>>::tokens::<ClassIdOf<Runtime>, TokenIdOf<Runtime>>(
+			class_id.into(),
+			token_id.into(),
+		);
 
-		match nft_info_result
-		{
-			Some(nft_info) =>  {
+		match nft_info_result {
+			Some(nft_info) => {
 				log::debug!(target: "evm", "NFT asset metadata: {:?}", nft_info);
 				let encoded = Output::encode_bytes(&nft_info.metadata);
 				// Build output.
@@ -168,9 +170,8 @@ where
 		// Fetch info
 		let nft_address_result = Runtime::encode_nft_evm_address((class_id, token_id));
 
-		match nft_address_result
-		{
-			Some(nft_address) =>  {
+		match nft_address_result {
+			Some(nft_address) => {
 				log::debug!(target: "evm", "NFT asset address: {:?}", nft_address);
 				let encoded = Output::encode_address(nft_address);
 				// Build output.
@@ -181,7 +182,7 @@ where
 			}),
 		}
 	}
-	
+
 	fn nft_owner(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
@@ -193,27 +194,26 @@ where
 		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
 
 		// Fetch info
-		let nft_info_result = <orml_nft::Pallet<Runtime>>::tokens::<ClassIdOf<Runtime>, TokenIdOf<Runtime>>(class_id.into(), token_id.into());
+		let nft_info_result = <orml_nft::Pallet<Runtime>>::tokens::<ClassIdOf<Runtime>, TokenIdOf<Runtime>>(
+			class_id.into(),
+			token_id.into(),
+		);
 
-		match nft_info_result
-		{
-			Some(nft_info) =>  {
+		match nft_info_result {
+			Some(nft_info) => {
 				log::debug!(target: "evm", "Nft asset info: {:?}", nft_info);
 
 				let evm_address_output = <evm_mapping::Pallet<Runtime>>::evm_addresses(nft_info.owner);
 
-				match evm_address_output
-				{
+				match evm_address_output {
 					Some(evm_address) => {
 						let encoded = Output::encode_address(evm_address);
 						// Build output.
 						Ok(succeed(encoded))
 					}
-					None => {
-						Err(PrecompileFailure::Error {
-							exit_status: pallet_evm::ExitError::Other("Invalid nft asset owner EVM address".into()),
-						})				
-					}
+					None => Err(PrecompileFailure::Error {
+						exit_status: pallet_evm::ExitError::Other("Invalid nft asset owner EVM address".into()),
+					}),
 				}
 			}
 			None => Err(PrecompileFailure::Error {

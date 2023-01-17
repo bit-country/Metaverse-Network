@@ -12,11 +12,18 @@ NFT constant NFT_CONTRACT = NFT(NFT_PRECOMPILE_ADDRESS);
 /// @custom:address 0x2222222220000000000000000000000000000000
 interface NFT {
     /// @dev Gets the NFT token metadata.
-    /// @custom:selector 70a08230
+    /// @custom:selector 70a08231
     /// @param class_id The class ID of the NFT.
     /// @param token_id The token ID of the NFT.
     /// @return A bytes array representing the NFT metadata.
-    function getAssetMetadata(uint256 class_id, uint256 token_id) external view returns (bytes32);
+    function getNftMetadata(uint256 class_id, uint256 token_id) external view returns (bytes32);
+
+    /// @dev Gets the NFT token address.
+    /// @custom:selector 70a08232
+    /// @param class_id The class ID of the NFT.
+    /// @param token_id The token ID of the NFT.
+    /// @return An address representing the NFT token address.
+    function getNftMetadata(uint256 class_id, uint256 token_id) external view returns (addreess);
 
     /// @dev Gets the NFT token owner.
     /// @custom:selector 70a08233
