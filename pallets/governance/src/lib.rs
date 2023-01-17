@@ -430,54 +430,14 @@ pub mod pallet {
 								Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
 								Err(Error::<T>::PreimageInvalid.into())
 							} else {
-								let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
-								let proposal_info = ProposalInfo {
-									proposed_by: from.clone(),
+								Self::launch_public_referendum(
+									metaverse_id,
+									from,
 									proposal_type,
-									hash: preimage_hash,
-									title: proposal_description.clone(),
-									referendum_launch_block: launch_block,
-								};
-
-								let proposal_id = Self::get_next_proposal_id()?;
-								<Proposals<T>>::insert(metaverse_id, proposal_id, proposal_info);
-
-								Self::update_proposals_per_metaverse_number(metaverse_id, true);
-								T::Currency::reserve(&from, balance);
-								<DepositOf<T>>::insert(proposal_id, (&[&from][..], balance));
-
-								Self::deposit_event(Event::ProposalSubmitted(from, metaverse_id, proposal_id));
-
-								let mut metaverse_has_referendum_running: bool = false;
-								for (_, referendum_info) in ReferendumInfoOf::<T>::iter_prefix(metaverse_id) {
-									match referendum_info {
-										ReferendumInfo::Ongoing(status) => {
-											metaverse_has_referendum_running = true;
-											break;
-										}
-										_ => (),
-									}
-								}
-								if !metaverse_has_referendum_running {
-									if let Some((depositors, deposit)) = <DepositOf<T>>::take(proposal_id) {
-										<Proposals<T>>::remove(metaverse_id, proposal_id);
-										Self::update_proposals_per_metaverse_number(metaverse_id, false);
-										// refund depositors
-										for d in &depositors {
-											T::Currency::unreserve(d, deposit);
-										}
-										Self::deposit_event(Event::Tabled(proposal_id, deposit, depositors));
-										Self::start_referendum(
-											metaverse_id,
-											proposal_id,
-											preimage_hash,
-											proposal_description,
-											launch_block,
-											proposal_type,
-										);
-									}
-								}
-
+									preimage_hash,
+									proposal_description,
+									balance,
+								)?;
 								Ok(().into())
 							}
 						} else {
@@ -495,6 +455,15 @@ pub mod pallet {
 						OffchainPreimages::<T>::contains_key(metaverse_id, preimage_hash),
 						Error::<T>::PreimageInvalid
 					);
+
+					Self::launch_public_referendum(
+						metaverse_id,
+						from,
+						proposal_type,
+						preimage_hash,
+						proposal_description,
+						balance,
+					)?;
 
 					Ok(().into())
 				}
@@ -1116,6 +1085,62 @@ impl<T: Config> Pallet<T> {
 		} else {
 			T::Currency::set_lock(GOVERNANCE_ID, who, lock_needed, WithdrawReasons::TRANSFER);
 		}
+	}
+
+	fn launch_public_referendum(
+		metaverse_id: MetaverseId,
+		from: T::AccountId,
+		proposal_type: ProposalType,
+		preimage_hash: T::Hash,
+		proposal_description: Vec<u8>,
+		balance: BalanceOf<T>,
+	) -> DispatchResult {
+		let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
+		let proposal_info = ProposalInfo {
+			proposed_by: from.clone(),
+			proposal_type,
+			hash: preimage_hash,
+			title: proposal_description.clone(),
+			referendum_launch_block: launch_block,
+		};
+
+		let proposal_id = Self::get_next_proposal_id()?;
+		<Proposals<T>>::insert(metaverse_id, proposal_id, proposal_info);
+
+		Self::update_proposals_per_metaverse_number(metaverse_id, true)?;
+		T::Currency::reserve(&from, balance)?;
+		<DepositOf<T>>::insert(proposal_id, (&[&from][..], balance));
+
+		Self::deposit_event(Event::ProposalSubmitted(from, metaverse_id, proposal_id));
+
+		let mut metaverse_has_referendum_running: bool = false;
+		for (_, referendum_info) in ReferendumInfoOf::<T>::iter_prefix(metaverse_id) {
+			if let ReferendumInfo::Ongoing(status) = referendum_info {
+				metaverse_has_referendum_running = true;
+				break;
+			}
+		}
+		if !metaverse_has_referendum_running {
+			if let Some((depositors, deposit)) = <DepositOf<T>>::take(proposal_id) {
+				<Proposals<T>>::remove(metaverse_id, proposal_id);
+				Self::update_proposals_per_metaverse_number(metaverse_id, false);
+				// refund depositors
+				for d in &depositors {
+					T::Currency::unreserve(d, deposit);
+				}
+				Self::deposit_event(Event::Tabled(proposal_id, deposit, depositors));
+				Self::start_referendum(
+					metaverse_id,
+					proposal_id,
+					preimage_hash,
+					proposal_description,
+					launch_block,
+					proposal_type,
+				)?;
+			}
+		}
+
+		Ok(())
 	}
 }
 
