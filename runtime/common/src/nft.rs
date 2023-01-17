@@ -163,10 +163,10 @@ where
 		input.expect_arguments(2)?;
 
 		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
-		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
+		let token_id = input.read::<TokenId>()?.into();
 
 		// Fetch info
-		let nft_address_result = Runtime::encode_nft_evm_address((class_id, token_id.into()));
+		let nft_address_result = Runtime::encode_nft_evm_address((class_id, token_id));
 
 		match nft_address_result
 		{

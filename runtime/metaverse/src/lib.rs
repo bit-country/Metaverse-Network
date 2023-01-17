@@ -1224,11 +1224,12 @@ impl Erc20Mapping for Runtime {
 	fn decode_nft_evm_address(addr: EvmAddress) -> Option<(ClassId, TokenId)> {
 		let address = addr.as_bytes();
 
-		let class_id = u32::from_be_bytes(address[H160_POSITION_TOKEN_NFT_CLASS_ID]);
+		let class_id = u32::from_be_bytes(address
+			[H160_POSITION_TOKEN_NFT_CLASS_ID]);
 		let token_id = u64::from_be_bytes(address[H160_POSITION_TOKEN_NFT_TOKEN_ID]);
 		
 		// Encode again to ensure encoded address is matched
-		Self::encode_nft_evm_address((class_id, token_id)?).and_then(|encoded| if encoded == addr { (class_id, token_id) } else { None })
+		Self::encode_nft_evm_address((class_id, token_id)).and_then(|encoded| if encoded == addr { Some((class_id, token_id)) } else { None })
 	}
 }
 
