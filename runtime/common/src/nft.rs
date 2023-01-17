@@ -166,7 +166,7 @@ where
 		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
 
 		// Fetch info
-		let nft_address_result = Runtime::encode_evm_address((class_id, token_id));
+		let nft_address_result = Runtime::encode_nft_evm_address((class_id, token_id.into()));
 
 		match nft_address_result
 		{

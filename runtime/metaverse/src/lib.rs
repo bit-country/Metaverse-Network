@@ -96,7 +96,7 @@ use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment,
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
-	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN,
+	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN, H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID, H160_POSITION_TOKEN_NFT_TOKEN_ID
 };
 
 // primitives imports
@@ -1188,6 +1188,18 @@ impl Erc20Mapping for Runtime {
 		EvmAddress::try_from(t).ok()
 	}
 
+	fn encode_nft_evm_address(t: (ClassId, TokenId)) -> Option<EvmAddress> {
+		let mut address = [0u8; 20];
+		let mut asset_bytes: Vec<u8> = t.0.to_be_bytes().to_vec();
+		asset_bytes.append(&mut t.1.to_be_bytes().to_vec());
+
+		for byte_index in H160_POSITION_TOKEN_NFT {
+			address[byte_index] = asset_bytes.as_slice()[byte_index];
+		}
+
+		Ok(EvmAddress::from_slice(&address))
+	}
+
 	fn decode_evm_address(addr: EvmAddress) -> Option<FungibleTokenId> {
 		let address = addr.as_bytes();
 		let currency_id = match CurrencyIdType::try_from(address[H160_POSITION_CURRENCY_ID_TYPE]).ok()? {
@@ -1207,6 +1219,16 @@ impl Erc20Mapping for Runtime {
 
 		// Encode again to ensure encoded address is matched
 		Self::encode_evm_address(currency_id?).and_then(|encoded| if encoded == addr { currency_id } else { None })
+	}
+
+	fn decode_nft_evm_address(addr: EvmAddress) -> Option<(ClassId, TokenId)> {
+		let address = addr.as_bytes();
+
+		let class_id = u32::from_be_bytes(address[H160_POSITION_TOKEN_NFT_CLASS_ID]);
+		let token_id = u64::from_be_bytes(address[H160_POSITION_TOKEN_NFT_TOKEN_ID]);
+		
+		// Encode again to ensure encoded address is matched
+		Self::encode_nft_evm_address((class_id, token_id)?).and_then(|encoded| if encoded == addr { (class_id, token_id) } else { None })
 	}
 }
 
