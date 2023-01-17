@@ -758,14 +758,11 @@ pub mod pallet {
 		/// Hooks that call every new block finalized.
 		fn on_finalize(now: T::BlockNumber) {
 			for (metaverse_id, referendum_id, referendum_info) in <ReferendumInfoOf<T>>::iter() {
-				match referendum_info {
-					ReferendumInfo::Ongoing(status) => {
-						if status.end == now {
-							Self::finalize_vote(metaverse_id, referendum_id, status);
-							Self::launch_public(now, metaverse_id);
-						}
+				if let ReferendumInfo::Ongoing(status) = referendum_info {
+					if status.end == now {
+						Self::finalize_vote(metaverse_id, referendum_id, status);
+						Self::launch_public(now, metaverse_id);
 					}
-					_ => (),
 				}
 			}
 		}
@@ -792,7 +789,7 @@ impl<T: Config> Pallet<T> {
 	fn note_preimage_inner(who: T::AccountId, metaverse_id: MetaverseId, encoded_proposal: Vec<u8>) -> DispatchResult {
 		let preimage_hash = T::Hashing::hash(&encoded_proposal[..]);
 		ensure!(
-			!<Preimages<T>>::contains_key(&metaverse_id, &preimage_hash),
+			!LocalPreimages::<T>::contains_key(&metaverse_id, &preimage_hash),
 			Error::<T>::DuplicatePreimage
 		);
 
@@ -816,7 +813,7 @@ impl<T: Config> Pallet<T> {
 					since: now,
 					expiry: None,
 				};
-				<Preimages<T>>::insert(metaverse_id, preimage_hash, a);
+				<LocalPreimages<T>>::insert(metaverse_id, preimage_hash, a);
 
 				Self::deposit_event(Event::<T>::PreimageNoted(metaverse_id, preimage_hash, who, deposit));
 
@@ -1048,7 +1045,7 @@ impl<T: Config> Pallet<T> {
 				Self::deposit_event(Event::ReferendumPassed(referendum_id));
 			}
 		} else {
-			let preimage = <Preimages<T>>::take(&metaverse_id, &referendum_status.proposal_hash);
+			let preimage = <LocalPreimages<T>>::take(&metaverse_id, &referendum_status.proposal_hash);
 			if let Some(PreimageStatus::Available {
 				data,
 				provider,
@@ -1071,7 +1068,7 @@ impl<T: Config> Pallet<T> {
 		referendum_id: ReferendumId,
 		proposal_hash: T::Hash,
 	) -> DispatchResult {
-		let preimage = <Preimages<T>>::take(&metaverse_id, &proposal_hash);
+		let preimage = <LocalPreimages<T>>::take(&metaverse_id, &proposal_hash);
 		if let Some(PreimageStatus::Available {
 			data,
 			provider,
