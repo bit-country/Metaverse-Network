@@ -1644,6 +1644,30 @@ impl pallet_proxy::Config for Runtime {
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
+parameter_types! {
+	pub const CampaignDeposit: Balance = 100 * DOLLARS;
+	pub const MinimumRewardPool: Balance = 1000 * DOLLARS;
+	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 7 * DAYS;
+	pub const MinimumCampaignDuration: BlockNumber = 3 * DAYS;
+	pub const MaxSetRewardsListLength: u64 = 200;
+}
+
+impl reward::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type FungibleTokenCurrency = Currencies;
+	type PalletId = MetaverseNetworkTreasuryPalletId;
+	type MiningCurrencyId = MiningResourceCurrencyId;
+	type MinimumRewardPool = MinimumRewardPool;
+	type CampaignDeposit = CampaignDeposit;
+	type MinimumCampaignDuration = MinimumCampaignDuration;
+	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type MaxSetRewardsListLength = MaxSetRewardsListLength;
+	type AdminOrigin = EnsureRootOrMetaverseTreasury;
+	type NFTHandler = Nft;
+	type WeightInfo = ();
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1723,6 +1747,8 @@ construct_runtime!(
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 67,
+		// Reward mechadism
+		Reward: reward::{Pallet, Call, Storage ,Event<T>},
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}
