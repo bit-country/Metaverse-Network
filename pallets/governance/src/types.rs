@@ -350,7 +350,7 @@ pub enum ReferendumInfo<BlockNumber, Balance, Hash> {
 	},
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, Copy)]
 pub enum ProposalType {
 	Onchain,
 	Offchain,
