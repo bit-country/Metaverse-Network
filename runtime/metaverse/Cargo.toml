@@ -198,6 +198,7 @@ runtime-benchmarks = [
     "reward/runtime-benchmarks",
     "economy/runtime-benchmarks",
     "mining/runtime-benchmarks",
+    "governance/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks"
 ]
