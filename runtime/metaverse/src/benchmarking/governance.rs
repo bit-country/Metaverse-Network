@@ -1,5 +1,4 @@
 #![cfg(feature = "runtime-benchmarks")]
-
 use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;

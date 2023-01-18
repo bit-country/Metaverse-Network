@@ -1841,7 +1841,6 @@ impl_runtime_apis! {
 			use mining::benchmarking::MiningModule as MiningBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
-			use governance::benchmarking::GovernanceModule as GovernanceBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1881,7 +1880,6 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
-			use governance::benchmarking::GovernanceModule as GovernanceBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
