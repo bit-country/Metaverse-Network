@@ -338,6 +338,7 @@ pub struct ReferendumStatus<BlockNumber, Balance, Hash> {
 	pub(crate) title: Vec<u8>,
 	pub(crate) threshold: VoteThreshold,
 	pub(crate) proposal_hash: Hash,
+	pub(crate) proposal_type: ProposalType,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
