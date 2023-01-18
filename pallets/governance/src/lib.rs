@@ -260,6 +260,8 @@ pub mod pallet {
 		Seconded(T::AccountId, ProposalId),
 		/// Local governance proposal is added to the proposal queue
 		Tabled(ProposalId, BalanceOf<T>, Vec<T::AccountId>),
+		/// Local governance offchain hash executed
+		OffchainPreimageExecuted(MetaverseId, T::Hash),
 	}
 
 	#[pallet::error]
@@ -995,25 +997,33 @@ impl<T: Config> Pallet<T> {
 				None => when += ReferendumParameters::default().enactment_period,
 			}
 
-			if T::Scheduler::schedule_named(
-				(GOVERNANCE_ID, referendum_id).encode(),
-				DispatchTime::At(when),
-				None,
-				63,
-				frame_system::RawOrigin::Root.into(),
-				Call::enact_proposal {
-					proposal: referendum_status.proposal,
-					metaverse_id: referendum_status.metaverse,
-					referendum_id: referendum_id,
-					proposal_hash: referendum_status.proposal_hash,
+			match referendum_status.proposal_type {
+				ProposalType::Onchain => {
+					if T::Scheduler::schedule_named(
+						(GOVERNANCE_ID, referendum_id).encode(),
+						DispatchTime::At(when),
+						None,
+						63,
+						frame_system::RawOrigin::Root.into(),
+						Call::enact_proposal {
+							proposal: referendum_status.proposal,
+							metaverse_id: referendum_status.metaverse,
+							referendum_id: referendum_id,
+							proposal_hash: referendum_status.proposal_hash,
+						}
+						.into(),
+					)
+					.is_err()
+					{
+						frame_support::print("LOGIC ERROR: is_referendum_approved/schedule_named failed");
+					} else {
+						Self::deposit_event(Event::ReferendumPassed(referendum_id));
+					}
 				}
-				.into(),
-			)
-			.is_err()
-			{
-				frame_support::print("LOGIC ERROR: is_referendum_approved/schedule_named failed");
-			} else {
-				Self::deposit_event(Event::ReferendumPassed(referendum_id));
+				ProposalType::Offchain => Self::deposit_event(Event::OffchainPreimageExecuted(
+					referendum_status.metaverse,
+					referendum_status.proposal_hash,
+				)),
 			}
 		} else {
 			let preimage = <LocalPreimages<T>>::take(&metaverse_id, &referendum_status.proposal_hash);
