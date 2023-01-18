@@ -227,7 +227,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 14,
+	spec_version: 15,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1665,7 +1665,7 @@ impl reward::Config for Runtime {
 	type MaxSetRewardsListLength = MaxSetRewardsListLength;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
-	type WeightInfo = ();
+	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1747,8 +1747,8 @@ construct_runtime!(
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 67,
-		// Reward mechadism
-		Reward: reward::{Pallet, Call, Storage ,Event<T>},
+		// Reward mechanism
+		Reward: reward::{Pallet, Call, Storage ,Event<T>} = 68,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}
