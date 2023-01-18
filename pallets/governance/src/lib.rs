@@ -728,7 +728,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		/// Hooks that call every new block initialized.
-		fn on_initialize(now: T::BlockNumber) {
+		fn on_initialize(now: T::BlockNumber) -> Weight {
 			for (metaverse_id, referendum_id, referendum_info) in <ReferendumInfoOf<T>>::iter() {
 				if let ReferendumInfo::Ongoing(status) = referendum_info {
 					if status.end == now {
@@ -737,6 +737,8 @@ pub mod pallet {
 					}
 				}
 			}
+			//TODO benchmarking to get correct weight
+			0
 		}
 	}
 }
