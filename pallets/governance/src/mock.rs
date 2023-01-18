@@ -413,26 +413,26 @@ impl pallet_metaverse::Config for Runtime {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-pub enum ProposalType {
+pub enum ProposalFilter {
 	Any,
 	JustTransfer,
 }
 
-impl Default for ProposalType {
+impl Default for ProposalFilter {
 	fn default() -> Self {
 		Self::JustTransfer
 	}
 }
 
-impl InstanceFilter<Call> for ProposalType {
+impl InstanceFilter<Call> for ProposalFilter {
 	fn filter(&self, c: &Call) -> bool {
 		match self {
-			ProposalType::Any => true,
-			ProposalType::JustTransfer => matches!(c, Call::Metaverse(..)),
+			ProposalFilter::Any => true,
+			ProposalFilter::JustTransfer => matches!(c, Call::Metaverse(..)),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
-		self == &ProposalType::Any || self == o
+		self == &ProposalFilter::Any || self == o
 	}
 }
 
@@ -454,7 +454,7 @@ impl Config for Runtime {
 	type Scheduler = Scheduler;
 	type MetaverseLandInfo = MetaverseLandInfo;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
-	type ProposalType = ProposalType;
+	type ProposalType = ProposalFilter;
 }
 
 parameter_type_with_key! {
@@ -599,7 +599,7 @@ pub fn add_preimage(hash: H256) {
 		/// None if it's not imminent.
 		expiry: Some(150),
 	};
-	Preimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
+	LocalPreimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
 }
 
 pub fn add_freeze_metaverse_preimage(hash: H256) {
@@ -611,7 +611,7 @@ pub fn add_freeze_metaverse_preimage(hash: H256) {
 		/// None if it's not imminent.
 		expiry: Some(150),
 	};
-	Preimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
+	LocalPreimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
 }
 
 pub fn add_freeze_metaverse_preimage_alice(hash: H256) {
@@ -623,7 +623,7 @@ pub fn add_freeze_metaverse_preimage_alice(hash: H256) {
 		/// None if it's not imminent.
 		expiry: Some(150),
 	};
-	Preimages::<Runtime>::insert(ALICE_COUNTRY_ID, hash, preimage_status);
+	LocalPreimages::<Runtime>::insert(ALICE_COUNTRY_ID, hash, preimage_status);
 }
 
 pub fn add_metaverse_preimage(hash: H256) {
@@ -635,12 +635,13 @@ pub fn add_metaverse_preimage(hash: H256) {
 		/// None if it's not imminent.
 		expiry: Some(150),
 	};
-	Preimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
+	LocalPreimages::<Runtime>::insert(BOB_COUNTRY_ID, hash, preimage_status);
 }
 
 pub fn add_out_of_scope_proposal(preimage_hash: H256) {
 	let proposal_info = ProposalInfo {
 		proposed_by: ALICE,
+		proposal_type: ProposalType::Onchain,
 		hash: preimage_hash,
 		title: PROPOSAL_DESCRIPTION.to_vec(),
 		referendum_launch_block: PROPOSAL_BLOCK,
