@@ -386,6 +386,7 @@ pub mod pallet {
 		/// - `balance`: deposit for the proposal
 		/// - `preimage_hash`: hash of the selected preimage that will be part of the proposal
 		/// - `proposal_description`: description of the proposal encoded as vector of numbers
+		/// - `proposal_type`: proposal type, either proposed on-chain or off-chain
 		///
 		/// Emits `Tabled` if successful.
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
@@ -724,8 +725,8 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		/// Hooks that call every new block finalized.
-		fn on_finalize(now: T::BlockNumber) {
+		/// Hooks that call every new block initialized.
+		fn on_initialize(now: T::BlockNumber) {
 			for (metaverse_id, referendum_id, referendum_info) in <ReferendumInfoOf<T>>::iter() {
 				if let ReferendumInfo::Ongoing(status) = referendum_info {
 					if status.end == now {
@@ -833,8 +834,9 @@ impl<T: Config> Pallet<T> {
 			proposal: proposal_id,
 			title: proposal_description,
 			tally: initial_tally,
-			proposal_hash: proposal_hash,
+			proposal_hash,
 			threshold: referendum_threshold.clone(),
+			proposal_type,
 		};
 		let referendum_info = ReferendumInfo::Ongoing(referendum_status);
 		<ReferendumInfoOf<T>>::insert(metaverse_id, referendum_id, referendum_info);
