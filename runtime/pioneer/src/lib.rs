@@ -227,7 +227,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 16,
+	spec_version: 17,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1648,7 +1648,7 @@ parameter_types! {
 	pub const CampaignDeposit: Balance = 100 * DOLLARS;
 	pub const MinimumRewardPool: Balance = 1000 * DOLLARS;
 	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 7 * DAYS;
-	pub const MinimumCampaignDuration: BlockNumber = 3 * DAYS;
+	pub const MinimumCampaignDuration: BlockNumber = 30 * MINUTES;
 	pub const MaxSetRewardsListLength: u64 = 200;
 }
 
