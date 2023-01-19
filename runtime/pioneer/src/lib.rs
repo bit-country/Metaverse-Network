@@ -19,10 +19,11 @@
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use cumulus_primitives_core::ParaId;
 use frame_support::traits::{
-	Contains, Currency, EnsureOneOf, EnsureOrigin, EqualPrivilegeOnly, Get, Nothing, OnUnbalanced,
+	Contains, Currency, EitherOfDiverse, EnsureOneOf, EnsureOrigin, EqualPrivilegeOnly, Get, InstanceFilter, Nothing,
+	OnUnbalanced,
 };
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
@@ -32,7 +33,7 @@ use frame_support::{
 		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
-	BoundedVec, PalletId, WeakBoundedVec,
+	BoundedVec, PalletId, RuntimeDebug, WeakBoundedVec,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -47,11 +48,13 @@ use orml_xcm_support::DepositToAlternative;
 use pallet_xcm::{EnsureXcm, IsMajorityOfBody, XcmPassthrough};
 use polkadot_parachain::primitives::Sibling;
 use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
+use scale_info::prelude::vec;
+use scale_info::TypeInfo;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::traits::{AccountIdConversion, Convert, ConvertInto};
+use sp_runtime::traits::{AccountIdConversion, ConstU32, Convert, ConvertInto};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
@@ -80,12 +83,13 @@ pub use constants::{currency::*, time::*};
 use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
+use metaverse_runtime_common::FixedRateOfAsset;
+use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
+
 // XCM Imports
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
-use metaverse_runtime_common::FixedRateOfAsset;
-use primitives::{Amount, ClassId, ForeignAssetIdMapping, FungibleTokenId, Moment, NftId, RoundIndex, TokenSymbol};
-use scale_info::prelude::vec;
+
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
@@ -223,7 +227,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 12,
+	spec_version: 14,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -518,28 +522,34 @@ type CouncilCollective = pallet_collective::Instance1;
 type TechnicalCommitteeCollective = pallet_collective::Instance2;
 
 // Council
-pub type EnsureRootOrAllCouncilCollective =
-	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>>;
+pub type EnsureRootOrAllCouncilCollective = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>,
+>;
 
-type EnsureRootOrHalfCouncilCollective =
-	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
+type EnsureRootOrHalfCouncilCollective = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>,
+>;
 
-type EnsureRootOrTwoThirdsCouncilCollective =
-	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>>;
+type EnsureRootOrTwoThirdsCouncilCollective = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
+>;
 
 // Technical Committee
 
-pub type EnsureRootOrAllTechnicalCommittee = EnsureOneOf<
+pub type EnsureRootOrAllTechnicalCommittee = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 1, 1>,
 >;
 
-type EnsureRootOrHalfTechnicalCommittee = EnsureOneOf<
+type EnsureRootOrHalfTechnicalCommittee = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 1, 2>,
 >;
 
-type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
+type EnsureRootOrTwoThirdsTechnicalCommittee = EitherOfDiverse<
 	EnsureRoot<AccountId>,
 	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 2, 3>,
 >;
@@ -1387,7 +1397,7 @@ impl metaverse::Config for Runtime {
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
 	type MinContribution = MinContribution;
-	type MetaverseCouncil = EnsureRootOrMetaverseTreasury;
+	type MetaverseCouncil = EnsureRootOrHalfCouncilCollective;
 	type WeightInfo = weights::module_metaverse::WeightInfo<Runtime>;
 	type MetaverseRegistrationDeposit = MinContribution;
 	type MinStakingAmount = MinContribution;
@@ -1506,12 +1516,9 @@ impl economy::Config for Runtime {
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
 }
 
-pub type EnsureRootOrHalfMetaverseCouncil =
-	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
-
 impl emergency::Config for Runtime {
 	type Event = Event;
-	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type EmergencyOrigin = EnsureRootOrHalfCouncilCollective;
 	type NormalCallFilter = NormalCallFilter;
 	type MaintenanceCallFilter = MaintenanceFilter;
 	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
@@ -1529,11 +1536,11 @@ pub type OracleMembershipInstance = pallet_membership::Instance1;
 
 impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
 	type Event = Event;
-	type AddOrigin = EnsureRootOrHalfMetaverseCouncil;
-	type RemoveOrigin = EnsureRootOrHalfMetaverseCouncil;
-	type SwapOrigin = EnsureRootOrHalfMetaverseCouncil;
-	type ResetOrigin = EnsureRootOrHalfMetaverseCouncil;
-	type PrimeOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type AddOrigin = EnsureRootOrHalfCouncilCollective;
+	type RemoveOrigin = EnsureRootOrHalfCouncilCollective;
+	type SwapOrigin = EnsureRootOrHalfCouncilCollective;
+	type ResetOrigin = EnsureRootOrHalfCouncilCollective;
+	type PrimeOrigin = EnsureRootOrHalfCouncilCollective;
 	type MembershipInitialized = ();
 	type MembershipChanged = RewardOracle;
 	type MaxMembers = OracleMaxMembers;
@@ -1558,7 +1565,83 @@ impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
 impl asset_manager::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type RegisterOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type RegisterOrigin = EnsureRootOrHalfCouncilCollective;
+}
+
+parameter_types! {
+	// One storage item; key size 32, value size 8; .
+	pub ProxyDepositBase: Balance = deposit(1, 8);
+	// Additional storage item size of 33 bytes.
+	pub ProxyDepositFactor: Balance = deposit(0, 33);
+	pub AnnouncementDepositBase: Balance = deposit(1, 8);
+	pub AnnouncementDepositFactor: Balance = deposit(0, 66);
+}
+
+/// The type used to represent the kinds of proxying allowed.
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+pub enum ProxyType {
+	Any,
+	CancelProxy,
+	Governance,
+	Auction,
+	Economy,
+	Nft,
+}
+
+impl Default for ProxyType {
+	fn default() -> Self {
+		Self::Any
+	}
+}
+
+impl InstanceFilter<Call> for ProxyType {
+	fn filter(&self, c: &Call) -> bool {
+		match self {
+			_ if matches!(c, Call::Utility(..)) => true,
+			ProxyType::Any => true,
+			ProxyType::CancelProxy => matches!(c, Call::Proxy(pallet_proxy::Call::reject_announcement { .. })),
+			ProxyType::Governance => matches!(
+				c,
+				Call::Democracy(..) | Call::Council(..) | Call::TechnicalCommittee(..)
+			),
+			ProxyType::Auction => matches!(
+				c,
+				Call::Auction(auction::Call::bid { .. }) | Call::Auction(auction::Call::buy_now { .. })
+			),
+			ProxyType::Economy => matches!(
+				c,
+				Call::Economy(economy::Call::stake { .. }) | Call::Economy(economy::Call::unstake { .. })
+			),
+			ProxyType::Nft => matches!(
+				c,
+				Call::Nft(nft::Call::transfer { .. }) | Call::Nft(nft::Call::transfer_batch { .. })
+			),
+		}
+	}
+
+	fn is_superset(&self, o: &Self) -> bool {
+		match (self, o) {
+			(x, y) if x == y => true,
+			(ProxyType::Any, _) => true,
+			(_, ProxyType::Any) => false,
+			_ => false,
+		}
+	}
+}
+
+impl pallet_proxy::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ProxyDepositBase;
+	type ProxyDepositFactor = ProxyDepositFactor;
+	type MaxProxies = ConstU32<32>;
+	type WeightInfo = ();
+	type MaxPending = ConstU32<32>;
+	type CallHasher = BlakeTwo256;
+	type AnnouncementDepositBase = AnnouncementDepositBase;
+	type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1638,6 +1721,8 @@ construct_runtime!(
 		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
+		// Proxy
+		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 67,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}
