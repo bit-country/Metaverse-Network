@@ -240,6 +240,8 @@ pub trait NFTTrait<AccountId, Balance> {
 	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError>;
 	/// Get the detail of this nft
 	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
+	/// Check if the asset is a stackable NFT
+	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
 	/// Check if collection and class exist
 	fn check_collection_and_class(
 		collection_id: GroupCollectionId,

@@ -47,6 +47,27 @@ fn init_test_nft(owner: Origin) {
 	assert_ok!(Nft::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 }
 
+fn init_test_stackable_nft(owner: Origin) {
+	assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+	assert_ok!(Nft::create_class(
+		owner.clone(),
+		vec![1],
+		test_attributes(1),
+		COLLECTION_ID,
+		TokenType::Transferable,
+		CollectionType::Collectable,
+		Perbill::from_percent(0u32),
+		None
+	));
+	assert_ok!(Nft::mint_stackable_nft(
+		owner.clone(),
+		CLASS_ID,
+		vec![1],
+		test_attributes(1),
+		100u32.into()
+	));
+}
+
 fn init_bound_to_address_nft(owner: Origin) {
 	assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
 	assert_ok!(Nft::create_class(
@@ -246,6 +267,26 @@ fn mint_asset_with_promotion_disabled_should_work() {
 }
 
 #[test]
+fn mint_stackable_asset_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		assert_ok!(Nft::enable_promotion(Origin::root(), true));
+		init_test_stackable_nft(origin.clone());
+
+		assert_eq!(free_native_balance(class_id_account()), 3);
+		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
+
+		assert_eq!(
+			OrmlNft::get_stackable_collections_balances((0, 0, ALICE)),
+			100u32.into()
+		);
+
+		let event = mock::Event::Nft(crate::Event::NewStackableNftMinted(ALICE, CLASS_ID, 0, 100u32.into()));
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
 fn mint_asset_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
@@ -304,6 +345,43 @@ fn mint_exceed_max_minting_limit_should_fail() {
 }
 
 #[test]
+fn mint_stackable_asset_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		let invalid_owner = Origin::signed(BOB);
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(0u32),
+			Some(10)
+		));
+		assert_noop!(
+			Nft::mint_stackable_nft(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 0u32.into()),
+			Error::<Runtime>::InvalidStackableNftAmount
+		);
+		assert_noop!(
+			Nft::mint_stackable_nft(origin.clone(), 1, vec![1], test_attributes(1), 1u32.into()),
+			Error::<Runtime>::ClassIdNotFound
+		);
+		assert_noop!(
+			Nft::mint_stackable_nft(
+				invalid_owner.clone(),
+				CLASS_ID,
+				vec![1],
+				test_attributes(1),
+				1u32.into()
+			),
+			Error::<Runtime>::NoPermission
+		);
+	})
+}
+
+#[test]
 fn mint_exceed_max_batch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
@@ -337,6 +415,55 @@ fn transfer_should_work() {
 }
 
 #[test]
+fn transfer_stackable_nft_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		init_test_stackable_nft(origin.clone());
+		assert_eq!(
+			OrmlNft::get_stackable_collections_balances((0, 0, ALICE)),
+			100u32.into()
+		);
+
+		assert_ok!(Nft::transfer_stackable_nft(origin, BOB, (0, 0), 50u32.into()));
+		assert_eq!(OrmlNft::get_stackable_collections_balances((0, 0, BOB)), 50u32.into());
+		assert_eq!(OrmlNft::get_stackable_collections_balances((0, 0, ALICE)), 50u32.into());
+
+		let event = mock::Event::Nft(crate::Event::TransferedStackableNft(ALICE, BOB, (0, 0), 50u32.into()));
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn transfer_stackable_nft_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		let failing_origin = Origin::signed(BOB);
+		init_test_stackable_nft(origin.clone());
+		init_test_nft(origin.clone());
+
+		assert_noop!(
+			Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 1), 0u32.into()),
+			Error::<Runtime>::InvalidStackableNftTransfer
+		);
+
+		assert_noop!(
+			Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 1), 10u32.into()),
+			Error::<Runtime>::InvalidStackableNftTransfer
+		);
+
+		assert_noop!(
+			Nft::transfer_stackable_nft(origin, BOB, (0, 0), 101u32.into()),
+			Error::<Runtime>::InvalidStackableNftTransfer
+		);
+
+		assert_noop!(
+			Nft::transfer_stackable_nft(failing_origin, ALICE, (0, 0), 10u32.into()),
+			Error::<Runtime>::InvalidStackableNftTransfer
+		);
+	})
+}
+
+#[test]
 fn burn_nft_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
@@ -345,6 +472,21 @@ fn burn_nft_should_work() {
 		assert_ok!(Nft::burn(origin, (0, 1)));
 		let event = mock::Event::Nft(crate::Event::BurnedNft((0, 1)));
 		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn burn_nft_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+
+		init_test_stackable_nft(origin.clone());
+
+		assert_noop!(Nft::burn(origin.clone(), (0, 0)), Error::<Runtime>::InvalidAssetType);
+
+		assert_ok!(Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 0), 100u32.into()));
+
+		assert_noop!(Nft::burn(origin.clone(), (0, 0)), Error::<Runtime>::InvalidAssetType);
 	})
 }
 
@@ -397,6 +539,7 @@ fn transfer_batch_exceed_length_should_fail() {
 fn transfer_batch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
+		init_test_stackable_nft(origin.clone());
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -410,7 +553,11 @@ fn transfer_batch_should_fail() {
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 		assert_noop!(
-			Nft::transfer_batch(origin.clone(), vec![(BOB, (0, 3)), (BOB, (0, 4))]),
+			Nft::transfer_batch(origin.clone(), vec![(BOB, (0, 0)), (BOB, (0, 1))]),
+			Error::<Runtime>::InvalidAssetType
+		);
+		assert_noop!(
+			Nft::transfer_batch(origin.clone(), vec![(BOB, (0, 3)), (BOB, (0, 6))]),
 			Error::<Runtime>::AssetInfoNotFound
 		);
 	})
@@ -454,6 +601,14 @@ fn do_transfer_should_fail() {
 			Nft::do_transfer(ALICE, BOB, (0, 1)),
 			Error::<Runtime>::AssetInfoNotFound
 		);
+
+		init_test_stackable_nft(origin.clone());
+
+		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 1)), Error::<Runtime>::InvalidAssetType);
+
+		assert_ok!(Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 1), 100u32.into()));
+
+		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 1)), Error::<Runtime>::InvalidAssetType);
 	})
 }
 

@@ -259,6 +259,10 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(false)
 	}
 
+	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
+
 	fn check_collection_and_class(
 		collection_id: GroupCollectionId,
 		class_id: Self::ClassId,
