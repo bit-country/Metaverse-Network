@@ -20,6 +20,7 @@ use super::*;
 pub type AccountId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u64;
+pub type Hash = H256;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -95,6 +96,7 @@ parameter_types! {
 	pub const MinimumRewardPool: Balance = 1;
 	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 10;
 	pub const MinimumCampaignDuration: BlockNumber = 5;
+	pub const MaxLeafNodes: u64 = 30;
 	pub const MaxSetRewardsListLength: u64 = 2;
 }
 
@@ -111,6 +113,7 @@ impl Config for Runtime {
 	type MaxSetRewardsListLength = MaxSetRewardsListLength;
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type NFTHandler = NFTModule;
+	type MaxLeafNodes = MaxLeafNodes;
 	type WeightInfo = ();
 }
 
