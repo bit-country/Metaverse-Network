@@ -34,6 +34,7 @@ pallet-timestamp = { default-features = false, git = "https://github.com/parityt
 pallet-transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 frame-executive = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 sp-api = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 sp-consensus-aura = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
