@@ -2,14 +2,14 @@
 pragma solidity >=0.8.3;
 
 /// @dev The NFT Precompile contract's address.
-address constant NFT_PRECOMPILE_ADDRESS = 0x2222222220000000000000000000000000000000;
+address constant NFT_PRECOMPILE_ADDRESS = 0x0202020202020202020000000000000000000000;
 
 /// @dev The NFT Precompile contract's instance.
 NFT constant NFT_CONTRACT = NFT(NFT_PRECOMPILE_ADDRESS);
 
 /// @title  The NFT Precompile Interface
 /// @dev The interface through which solidity contracts will interact with pallet-nft.
-/// @custom:address 0x2222222220000000000000000000000000000000
+/// @custom:address 0x0202020202020202020000000000000000000000
 interface NFT {
     /// @dev Gets the NFT token metadata.
     /// @custom:selector 70a08231
@@ -23,7 +23,7 @@ interface NFT {
     /// @param class_id The class ID of the NFT.
     /// @param token_id The token ID of the NFT.
     /// @return An address representing the NFT token address.
-    function getNftMetadata(uint256 class_id, uint256 token_id) external view returns (addreess);
+    function getNftAddress(uint256 class_id, uint256 token_id) external view returns (address);
 
     /// @dev Gets the NFT token owner.
     /// @custom:selector 70a08233
