@@ -2,14 +2,14 @@
 pragma solidity >=0.8.3;
 
 /// @dev The Metaverse Precompile contract's address.
-address constant METAVERSE_PRECOMPILE_ADDRESS = 0x1111111110000000000000000000000000000000;
+address constant METAVERSE_PRECOMPILE_ADDRESS = 0x0101010101010101010000000000000000000000;
 
 /// @dev The Metaverse Precompile contract's instance.
 Metaverse constant METAVERSE_CONTRACT = Metaverse(METAVERSE_PRECOMPILE_ADDRESS);
 
 /// @title  The Metaverse Precompile Interface
 /// @dev The interface through which solidity contracts will interact with pallet-metaverse.
-/// @custom:address 0x1111111110000000000000000000000000000000
+/// @custom:address 0x0101010101010101010000000000000000000000
 interface Metaverse {
     /// @dev Gets the owner of the specified metaverse fund address.
     /// @custom:selector 80a08230
