@@ -2,14 +2,14 @@
 pragma solidity >=0.8.3;
 
 /// @dev The Auction Precompile contract's address.
-address constant AUCTION_PRECOMPILE_ADDRESS = 0x3333333330000000000000000000000000000000;
+address constant AUCTION_PRECOMPILE_ADDRESS = 0x0303030303030303030000000000000000000000;
 
 /// @dev The Auction Precompile contract's instance.
 Auction constant AUCTION_CONTRACT = Auction(AUCTION_PRECOMPILE_ADDRESS);
 
 /// @title  The Auction Precompile Interface
 /// @dev The interface through which solidity contracts will interact with pallet-auction.
-/// @custom:address 0x3333333330000000000000000000000000000000
+/// @custom:address 0x0303030303030303030000000000000000000000
 interface Auction {
     /// @dev Gets the NFT of the specified listing.
     /// @custom:selector 60a08231
