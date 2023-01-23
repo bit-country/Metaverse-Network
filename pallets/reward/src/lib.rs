@@ -28,7 +28,9 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash, Saturating};
+use sp_core::Encode as SPEncode;
+use sp_io::hashing::keccak_256;
+use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash as Hasher, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
@@ -39,7 +41,7 @@ use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
 use primitives::{
-	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, RewardType, TrieIndex,
+	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, Hash, RewardType, TrieIndex,
 };
 use primitives::{Balance, ClassId, FungibleTokenId, NftId};
 pub use weights::WeightInfo;
@@ -118,6 +120,9 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumCampaignCoolingOffPeriod: Get<Self::BlockNumber>;
 
+		/// The maximum amount of leaf nodes that could be passed when claiming reward
+		#[pallet::constant]
+		type MaxLeafNodes: Get<u64>;
 		/// The max number of accounts that could be rewarded per extrinsic
 		#[pallet::constant]
 		type MaxSetRewardsListLength: Get<u64>;
@@ -142,6 +147,17 @@ pub mod pallet {
 		CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId>,
 	>;
 
+	/// List of merkle roots for each campaign
+	#[pallet::storage]
+	#[pallet::getter(fn campaign_merkle_roots)]
+	pub(super) type CampaignMerkleRoots<T: Config> = StorageMap<_, Twox64Concat, CampaignId, Vec<Hash>, ValueQuery>;
+
+	/// List of claimed account for each mekrle tree-based campaign
+	#[pallet::storage]
+	#[pallet::getter(fn campaign_claimed_accounts_list)]
+	pub(super) type CampaignClaimedAccounts<T: Config> =
+		StorageMap<_, Twox64Concat, CampaignId, Vec<T::AccountId>, ValueQuery>;
+
 	/// Tracker for the next available trie index
 	#[pallet::storage]
 	#[pallet::getter(fn next_trie_index)]
@@ -164,8 +180,12 @@ pub mod pallet {
 		NewRewardCampaignCreated(CampaignId, T::AccountId),
 		/// Reward claimed [campaign_id, account, balance]
 		RewardClaimed(CampaignId, T::AccountId, BalanceOf<T>),
-		/// Reward claimed [campaign_id, account, asset]
+		/// Reward claimed [campaign_id, account, assets]
 		NftRewardClaimed(CampaignId, T::AccountId, Vec<(ClassId, TokenId)>),
+		/// Set reward using merkle root [campaign_id, balance, hash]
+		SetRewardRoot(CampaignId, BalanceOf<T>, Hash),
+		/// Set NFT rewards using merkle root[campaign_id, hash]
+		SetNftRewardRoot(CampaignId, Hash),
 		/// Set reward [campaign_id, rewards_list]
 		SetReward(CampaignId, Vec<(T::AccountId, BalanceOf<T>)>),
 		/// Set reward [campaign_id, rewards_list]
@@ -174,6 +194,8 @@ pub mod pallet {
 		RewardCampaignEnded(CampaignId),
 		/// Reward campaign closed [campaign_id]
 		RewardCampaignClosed(CampaignId),
+		/// Reward campaign  root closed [campaign_id]
+		RewardCampaignRootClosed(CampaignId),
 		/// Reward campaign canceled [campaign_id]
 		RewardCampaignCanceled(CampaignId),
 		/// Set reward origin added [account]
@@ -214,7 +236,7 @@ pub mod pallet {
 		InvalidSetRewardOrigin,
 		/// Invalid reward type
 		InvalidRewardType,
-		/// No permission to create nft campaign
+		/// Cannot use an NFT token for a reward pool
 		NoPermissionToUseNftInRewardPool,
 		/// Nft token reward is already assigned
 		NftTokenCannotBeRewarded,
@@ -222,18 +244,40 @@ pub mod pallet {
 		InvalidNftQuantity,
 		/// Invalid campaign type
 		InvalidCampaignType,
+		/// Reward is already set
+		RewardAlreadySet,
+		/// Reward leaf amount is larger then maximum
+		InvalidRewardLeafAmount,
+		/// Merkle root is not related to a campaign
+		MerkleRootNotRelatedToCampaign,
+		/// No merkle roots found
+		NoMerkleRootsFound,
+		/// Invalid merkle roots quantity
+		InvalidMerkleRootsQuantity,
 		/// The account is already rewarded for this campaign
 		AccountAlreadyRewarded,
 		/// Invalid total NFT rewards amount parameter
 		InvalidTotalNftRewardAmountParameter,
 		/// Rewards list size is above maximum permited size
 		RewardsListSizeAboveMaximum,
-		/// Artimetic operation overflow
+		/// Arthimetic operation overflow
 		ArithmeticOverflow,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
+		/// Create a new token-based campaign from parameters
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `creator`: the account for which the campaign is created.
+		/// - `reward`: the total balance of the currency provided as reward.
+		/// - `end`: the end block at which users can participate.
+		/// - `cooling_off_duration`: the duriation (in blocks) of the period during which accounts
+		///   can claim rewards.
+		/// - `properties`: information relevant for the campaign.
+		/// - `currency_id`: specify the type of currency which for the reward pool.
+		///
+		/// Emits `NewRewardCampaignCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_campaign())]
 		pub fn create_campaign(
 			origin: OriginFor<T>,
@@ -295,6 +339,11 @@ pub mod pallet {
 				},
 			);
 
+			let empty_root_vec: Vec<Hash> = Vec::new();
+			let empty_acc_vec: Vec<T::AccountId> = Vec::new();
+			CampaignMerkleRoots::<T>::insert(campaign_id, empty_root_vec);
+			CampaignClaimedAccounts::<T>::insert(campaign_id, empty_acc_vec);
+
 			NextTrieIndex::<T>::put(next_trie_index);
 			NextCampaignId::<T>::put(next_campaign_id);
 
@@ -303,6 +352,17 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Create a new NFT-based campaign from parameters
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `creator`: the account for which the campaign is created.
+		/// - `reward`: the pool of NFTs that will be provided as reward.
+		/// - `end`: the end block at which users can participate.
+		/// - `cooling_off_duration`: the duriation (in blocks) of the period during which accounts
+		///   can claim rewards.
+		/// - `properties`: information relevant for the campaign.
+		///
+		/// Emits `NewRewardCampaignCreated` if successful.
 		#[pallet::weight(T::WeightInfo::create_campaign() * (1u64 + reward.len() as u64))]
 		#[transactional]
 		pub fn create_nft_campaign(
@@ -366,6 +426,11 @@ pub mod pallet {
 				},
 			);
 
+			let empty_root_vec: Vec<Hash> = Vec::new();
+			let empty_acc_vec: Vec<T::AccountId> = Vec::new();
+			CampaignMerkleRoots::<T>::insert(campaign_id, empty_root_vec);
+			CampaignClaimedAccounts::<T>::insert(campaign_id, empty_acc_vec);
+
 			NextTrieIndex::<T>::put(next_trie_index);
 			NextCampaignId::<T>::put(next_campaign_id);
 
@@ -374,6 +439,13 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Claim reward set without merkle root for token-based campaign
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// account is rewarded for the campaign.
+		/// - `campaign_id`: the ID of the campaign for which the account is claiming reward.
+		///
+		/// Emits `RewardClaimed` if successful.
 		#[pallet::weight(T::WeightInfo::claim_reward())]
 		pub fn claim_reward(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -394,6 +466,7 @@ pub mod pallet {
 						let fund_account = Self::fund_account_id(id);
 						let (balance, _) = Self::reward_get(campaign.trie_index, &who);
 						ensure!(balance > Zero::zero(), Error::<T>::NoRewardFound);
+						// TO DO: Find account balance
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
 
 						Self::reward_kill(campaign.trie_index, &who);
@@ -408,6 +481,80 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Claim reward set with merkle root for token-based campaign
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// account is rewarded for the campaign.
+		/// - `campaign_id`: the ID of the campaign for which the account is claiming reward.
+		/// - `balance`: the amount of tokens which the account will claim (required for
+		///   merkle-proof calculation).
+		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
+		///
+		/// Emits `RewardClaimed` if successful.
+		#[pallet::weight(T::WeightInfo::claim_reward_root()  * (1u64 + leaf_nodes.len() as u64))]
+		#[transactional]
+		pub fn claim_reward_root(
+			origin: OriginFor<T>,
+			id: CampaignId,
+			balance: BalanceOf<T>,
+			leaf_nodes: Vec<Hash>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+
+				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+
+				match campaign.claimed {
+					RewardType::FungibleTokens(c, r) => {
+						let fund_account = Self::fund_account_id(id);
+						let merkle_root = Self::calculate_merkle_proof(&who, &balance, &leaf_nodes)?;
+
+						ensure!(
+							Self::campaign_merkle_roots(id).contains(&merkle_root),
+							Error::<T>::MerkleRootNotRelatedToCampaign
+						);
+						ensure!(
+							!Self::campaign_claimed_accounts_list(id).contains(&who),
+							Error::<T>::NoRewardFound
+						);
+
+						<CampaignClaimedAccounts<T>>::try_mutate(id, |claimed_accounts_list| -> DispatchResult {
+							claimed_accounts_list.push(who.clone());
+							Ok(())
+						});
+
+						let (root_balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
+						// extra check in case the CampaignMerkleRoots storage is corrupted
+						ensure!(root_balance > Zero::zero(), Error::<T>::NoRewardFound);
+						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
+
+						campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
+						Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
+
+						Ok(())
+					}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
+			})?;
+			Ok(())
+		}
+
+		/// Claim reward set without merkle root for NFT-based campaign
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// account is rewarded for the campaign.
+		/// - `campaign_id`: the ID of the campaign for which the account is claiming reward.
+		/// - `amount`: the amount of NFTs that the account is going to claim
+		///
+		/// Emits `RewardClaimed` if successful.
 		#[pallet::weight(T::WeightInfo::claim_nft_reward() * (1u64 + amount))]
 		#[transactional]
 		pub fn claim_nft_reward(origin: OriginFor<T>, id: CampaignId, amount: u64) -> DispatchResult {
@@ -445,6 +592,7 @@ pub mod pallet {
 
 							campaign.claimed = RewardType::NftAssets(new_claimed);
 							Self::reward_kill(campaign.trie_index, &who);
+
 							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, tokens));
 							Ok(())
 						}
@@ -456,6 +604,84 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Claim reward set with merkle root for NFT-based campaign
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// account is rewarded for the campaign.
+		/// - `campaign_id`: the ID of the campaign for which the account is claiming reward.
+		/// - `tokens`: the list of NFTs which the account will claim (required for  merkle-proof
+		///   calculation).
+		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
+		///
+		/// Emits `RewardClaimed` if successful.
+		#[pallet::weight(T::WeightInfo::claim_nft_reward_root() * (1u64 + tokens.len() as u64))]
+		#[transactional]
+		pub fn claim_nft_reward_root(
+			origin: OriginFor<T>,
+			id: CampaignId,
+			tokens: Vec<(ClassId, TokenId)>,
+			leaf_nodes: Vec<Hash>,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			let now = frame_system::Pallet::<T>::block_number();
+
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+
+				ensure!(campaign.end < now, Error::<T>::CampaignStillActive);
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+
+				match campaign.reward.clone() {
+					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
+						RewardType::NftAssets(claimed) => {
+							let merkle_proof: Hash =
+								Self::calculate_nft_rewards_merkle_proof(&who, &tokens, &leaf_nodes)?;
+
+							ensure!(
+								Self::campaign_merkle_roots(id).contains(&merkle_proof),
+								Error::<T>::MerkleRootNotRelatedToCampaign
+							);
+
+							let (tokens, _) = Self::reward_get_nft_root(campaign.trie_index, merkle_proof);
+							ensure!(!tokens.is_empty(), Error::<T>::NoRewardFound);
+
+							let mut new_claimed = claimed;
+							for token in tokens.clone() {
+								ensure!(
+									reward.contains(&token) && !new_claimed.contains(&token),
+									Error::<T>::NoRewardFound
+								);
+
+								T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
+								T::NFTHandler::transfer_nft(&campaign.creator, &who, &token)?;
+								new_claimed.push(token);
+							}
+
+							campaign.claimed = RewardType::NftAssets(new_claimed);
+
+							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, tokens));
+							Ok(())
+						}
+						_ => Err(Error::<T>::InvalidCampaignType.into()),
+					},
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
+			})?;
+			Ok(())
+		}
+
+		/// Set reward for token-based campaign without using merkle root
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// origin got permission to set rewards.
+		/// - `campaign_id`: the ID of the campaign for which the rewards will be set.
+		/// - `rewards`: vector of account IDs and their's reward balances pairs.
+		///
+		/// Emits `SetReward` if successful.
 		#[pallet::weight(T::WeightInfo::set_reward() * rewards.len() as u64)]
 		#[transactional]
 		pub fn set_reward(
@@ -505,6 +731,72 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Set reward for token-based campaign using merkle root
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// origin got permission to set rewards.
+		/// - `campaign_id`: the ID of the campaign for which the rewards will be set.
+		/// - `total_amount`: the amount of tokens which will be rewarded.
+		/// - `merkle_root`: the merkle root that will be used when claiming rewards.
+		///
+		/// Emits `SetReward` if successful.
+		#[pallet::weight(T::WeightInfo::set_reward_root())]
+		pub fn set_reward_root(
+			origin: OriginFor<T>,
+			id: CampaignId,
+			total_amount: BalanceOf<T>,
+			merkle_root: Hash,
+		) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
+
+			let now = frame_system::Pallet::<T>::block_number();
+
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+
+				match campaign.cap {
+					RewardType::FungibleTokens(c, b) => {
+						ensure!(b >= total_amount, Error::<T>::RewardExceedCap);
+
+						let (balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
+						ensure!(balance == Zero::zero(), Error::<T>::RewardAlreadySet);
+
+						campaign.cap = RewardType::FungibleTokens(c, b.saturating_sub(total_amount));
+
+						<CampaignMerkleRoots<T>>::try_mutate_exists(id, |campaign_roots| -> DispatchResult {
+							let mut campaign_roots_vec: Vec<Hash> = campaign_roots.clone().unwrap_or(Vec::new());
+							campaign_roots_vec.push(merkle_root);
+							campaign_roots.replace(campaign_roots_vec);
+							Ok(())
+						});
+
+						Self::reward_put_root(campaign.trie_index, merkle_root.clone(), &total_amount, &[]);
+						Self::deposit_event(Event::<T>::SetRewardRoot(id, total_amount, merkle_root));
+						Ok(())
+					}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
+			})?;
+			Ok(())
+		}
+
+		/// Set reward for NFT-based campaign without using merkle root
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// origin got permission to set rewards.
+		/// - `campaign_id`: the ID of the campaign for which the rewards will be set.
+		/// - `rewards`: vector of account IDs and their number of tokens that they will receive
+		///   pairs.
+		/// - `total_nfts_amount`: the total number of NFTs that will be rewrad.
+		///
+		/// Emits `SetReward` if successful.
 		#[pallet::weight(T::WeightInfo::set_nft_reward() * total_nfts_amount)]
 		#[transactional]
 		pub fn set_nft_reward(
@@ -565,8 +857,63 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(T::WeightInfo::close_campaign())]
-		pub fn close_campaign(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
+		/// Set reward for NFT-based campaign using merkle root
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// origin got permission to set rewards.
+		/// - `campaign_id`: the ID of the campaign for which the rewards will be set.
+		/// - `merkle_root`: the merkle root that will be used when claiming rewards.
+		///
+		/// Emits `SetReward` if successful.
+		#[pallet::weight(T::WeightInfo::set_nft_reward_root())]
+		pub fn set_nft_reward_root(origin: OriginFor<T>, id: CampaignId, merkle_root: Hash) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
+
+			let now = frame_system::Pallet::<T>::block_number();
+
+			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
+				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
+
+				ensure!(
+					campaign.end + campaign.cooling_off_duration >= now,
+					Error::<T>::CampaignExpired
+				);
+
+				match campaign.cap.clone() {
+					RewardType::NftAssets(cap) => {
+						ensure!(Self::campaign_merkle_roots(id).is_empty(), Error::<T>::RewardAlreadySet);
+
+						ensure!(!cap.is_empty(), Error::<T>::RewardExceedCap);
+
+						Self::reward_put_nft_root(campaign.trie_index, merkle_root, &cap, &[]);
+
+						let mut merkle_roots_vec: Vec<Hash> = Vec::new();
+						merkle_roots_vec.push(merkle_root);
+						<CampaignMerkleRoots<T>>::insert(id, merkle_roots_vec);
+
+						campaign.cap = RewardType::NftAssets(Vec::new());
+						Self::deposit_event(Event::<T>::SetNftRewardRoot(id, merkle_root));
+						Ok(())
+					}
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
+			})?;
+			Ok(())
+		}
+
+		/// Close token-based campaign  
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works for the
+		/// campign creator.
+		/// - `campaign_id`: the ID of the campaign for which the rewards will be set.
+		/// - `merkle_roots_quanity`: the amount of merkle roots that were used for setting rewards.
+		///
+		/// Emits `RewardCampaignClosed` and/or `RewardCampaignRootClosed`  if successful.
+		#[pallet::weight(T::WeightInfo::close_campaign() * (1u64 + merkle_roots_quantity))]
+		#[transactional]
+		pub fn close_campaign(origin: OriginFor<T>, id: CampaignId, merkle_roots_quantity: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -588,8 +935,27 @@ pub mod pallet {
 						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, unclaimed_balance.saturated_into())?;
 
 						Self::reward_kill(campaign.trie_index, &who);
+
 						Campaigns::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
+
+						let merkle_roots = Self::campaign_merkle_roots(id);
+
+						ensure!(
+							merkle_roots.len() as u64 == merkle_roots_quantity,
+							Error::<T>::InvalidMerkleRootsQuantity
+						);
+
+						for root in merkle_roots.clone() {
+							Self::reward_kill_root(campaign.trie_index, &root);
+						}
+
+						if merkle_roots.len() as u64 > 0 {
+							CampaignMerkleRoots::<T>::remove(id);
+							CampaignClaimedAccounts::<T>::remove(id);
+							Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
+						}
+
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -598,7 +964,16 @@ pub mod pallet {
 			}
 		}
 
+		/// Close NFT-based campaign  
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works for the
+		/// campign creator.
+		/// - `campaign_id`: the ID of the campaign for which the rewards will be set.
+		/// - `left_nfts`: the amount of unclaimed NFTs in the reward pool.
+		///
+		/// Emits `RewardCampaignClosed` and/or `RewardCampaignRootClosed`  if successful.
 		#[pallet::weight(T::WeightInfo::close_nft_campaign() * (1u64 + left_nfts))]
+		#[transactional]
 		pub fn close_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
@@ -631,6 +1006,15 @@ pub mod pallet {
 						Self::reward_kill(campaign.trie_index, &who);
 						Campaigns::<T>::remove(id);
 						Self::deposit_event(Event::<T>::RewardCampaignClosed(id));
+						let roots_vec = Self::campaign_merkle_roots(id);
+						CampaignMerkleRoots::<T>::remove(id);
+						match roots_vec.get(0) {
+							Some(mekrle_root_ref) => {
+								Self::reward_kill_root(campaign.trie_index, mekrle_root_ref);
+								Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
+							}
+							_ => {}
+						}
 						Ok(())
 					}
 					_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -639,6 +1023,13 @@ pub mod pallet {
 			}
 		}
 
+		/// Cancel token-based campaign  
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// origin got admin privilege.
+		/// - `campaign_id`: the ID of the campaign for which the rewards will be set.
+		///
+		/// Emits `RewardCampaignCanceled` if successful.
 		#[pallet::weight(T::WeightInfo::cancel_campaign())]
 		pub fn cancel_campaign(origin: OriginFor<T>, id: CampaignId) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
@@ -662,7 +1053,15 @@ pub mod pallet {
 			}
 		}
 
-		#[pallet::weight(T::WeightInfo::cancel_nft_campaign() * left_nfts)]
+		/// Cancel NFT-based campaign  
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// origin got admin privilege.
+		/// - `campaign_id`: the ID of the campaign for which the rewards will be set.
+		/// - `left_nfts`: the size of the NFT reward pool.
+		///
+		/// Emits `RewardCampaignCanceled` if successful.
+		#[pallet::weight(T::WeightInfo::cancel_nft_campaign() * (1u64 + left_nfts))]
 		pub fn cancel_nft_campaign(origin: OriginFor<T>, id: CampaignId, left_nfts: u64) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
@@ -688,6 +1087,13 @@ pub mod pallet {
 			}
 		}
 
+		/// Allow account to set rewards
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// origin got admin privilege.
+		/// - `account`: the account which will be allowed to set rewards.
+		///
+		/// Emits `SetRewardOriginAdded` if successful.
 		#[pallet::weight(T::WeightInfo::add_set_reward_origin())]
 		pub fn add_set_reward_origin(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
@@ -704,6 +1110,13 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Remove permission  to set rewards for a given account
+		///
+		/// The dispatch origin for this call must be _Signed_. This extrinsic only works if the
+		/// origin got admin privilege.
+		/// - `account`: the account which won';t be allowed to set rewards.
+		///
+		/// Emits `SetRewardOriginRemoved` if successful.
 		#[pallet::weight(T::WeightInfo::remove_set_reward_origin())]
 		pub fn remove_set_reward_origin(origin: OriginFor<T>, account: T::AccountId) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
@@ -723,6 +1136,7 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+		/// Hook that is called every time a new block is finalized.
 		fn on_finalize(block_number: T::BlockNumber) {
 			for (id, info) in Campaigns::<T>::iter()
 				.filter(|(_, campaign_info)| campaign_info.end == block_number)
@@ -732,6 +1146,7 @@ pub mod pallet {
 			}
 		}
 
+		/// Hook that is called every time the runtime is upgraded.
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_campaign_info_v3();
 			0
@@ -748,6 +1163,7 @@ impl<T: Config> Pallet<T> {
 		T::PalletId::get().into_sub_account_truncating(id)
 	}
 
+	/// Generate unique ChildInfo IDs
 	pub fn id_from_index(index: TrieIndex) -> child::ChildInfo {
 		let mut buf = Vec::new();
 		buf.extend_from_slice(b"bcreward");
@@ -755,48 +1171,148 @@ impl<T: Config> Pallet<T> {
 		child::ChildInfo::new_default(T::Hashing::hash(&buf[..]).as_ref())
 	}
 
+	/// Add non-merke root reward for token-based campaigns.
 	pub fn reward_put(index: TrieIndex, who: &T::AccountId, balance: &BalanceOf<T>, memo: &[u8]) {
 		who.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(balance, memo)));
 	}
 
+	/// Add merke root reward for token-based campaigns.
+	pub fn reward_put_root(index: TrieIndex, merkle_root: Hash, balance: &BalanceOf<T>, memo: &[u8]) {
+		merkle_root.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(balance, memo)));
+	}
+
+	/// Add non-merke root reward for NFT-based campaigns.
 	pub fn reward_put_nft(index: TrieIndex, who: &T::AccountId, tokens: &Vec<(ClassId, TokenId)>, memo: &[u8]) {
 		who.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(tokens, memo)));
 	}
 
+	/// Add merke root reward for NFT-based campaigns.
+	pub fn reward_put_nft_root(index: TrieIndex, merkle_root: Hash, tokens: &Vec<(ClassId, TokenId)>, memo: &[u8]) {
+		merkle_root.using_encoded(|b| child::put(&Self::id_from_index(index), b, &(tokens, memo)));
+	}
+
+	/// Get the balance for an account rewarded in a token-based campaigns.
 	pub fn reward_get(index: TrieIndex, who: &T::AccountId) -> (BalanceOf<T>, Vec<u8>) {
 		who.using_encoded(|b| child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(&Self::id_from_index(index), b))
 	}
 
+	/// Get a merkle root for a token-based campaigns.
+	pub fn reward_get_root(index: TrieIndex, merkle_root: Hash) -> (BalanceOf<T>, Vec<u8>) {
+		merkle_root.using_encoded(|b| child::get_or_default::<(BalanceOf<T>, Vec<u8>)>(&Self::id_from_index(index), b))
+	}
+
+	/// Get the balance for an account rewarded in a NFT-based campaigns.
 	pub fn reward_get_nft(index: TrieIndex, who: &T::AccountId) -> (Vec<(ClassId, TokenId)>, Vec<u8>) {
 		who.using_encoded(|b| {
 			child::get_or_default::<(Vec<(ClassId, TokenId)>, Vec<u8>)>(&Self::id_from_index(index), b)
 		})
 	}
 
+	/// Get the merkle root for a NFT-based campaigns.
+	pub fn reward_get_nft_root(index: TrieIndex, merkle_root: Hash) -> (Vec<(ClassId, TokenId)>, Vec<u8>) {
+		merkle_root.using_encoded(|b| {
+			child::get_or_default::<(Vec<(ClassId, TokenId)>, Vec<u8>)>(&Self::id_from_index(index), b)
+		})
+	}
+
+	/// Close a non-merkle proof based campaign.
 	pub fn reward_kill(index: TrieIndex, who: &T::AccountId) {
 		who.using_encoded(|b| child::kill(&Self::id_from_index(index), b));
 	}
 
+	/// Close a merkle proof based campaign.
+	pub fn reward_kill_root(index: TrieIndex, merkle_root: &Hash) {
+		merkle_root.using_encoded(|b| child::kill(&Self::id_from_index(index), b));
+	}
+
+	/// Child trie iterator for token-based campaign.
 	pub fn campaign_reward_iterator(
 		index: TrieIndex,
 	) -> ChildTriePrefixIterator<(T::AccountId, (BalanceOf<T>, Vec<u8>))> {
 		ChildTriePrefixIterator::<_>::with_prefix_over_key::<Identity>(&Self::id_from_index(index), &[])
 	}
 
+	/// Child trie iterator for NFT-based campaign.
 	pub fn campaign_nft_reward_iterator(
 		index: TrieIndex,
 	) -> ChildTriePrefixIterator<(T::AccountId, (Vec<(ClassId, TokenId)>, Vec<u8>))> {
 		ChildTriePrefixIterator::<_>::with_prefix_over_key::<Identity>(&Self::id_from_index(index), &[])
 	}
 
+	/// Internal calculation of a merkle proof for a token-based campaign.
+	pub fn calculate_merkle_proof(
+		who: &T::AccountId,
+		balance: &BalanceOf<T>,
+		leaf_nodes: &Vec<Hash>,
+	) -> Result<Hash, DispatchError> {
+		ensure!(
+			leaf_nodes.len() as u64 <= T::MaxLeafNodes::get(),
+			Error::<T>::InvalidRewardLeafAmount
+		);
+
+		// Hash the pair of AccountId and Balance
+		let mut leaf: Vec<u8> = who.encode();
+		leaf.extend(balance.encode());
+
+		Self::build_merkle_proof(leaf, leaf_nodes)
+	}
+
+	/// Internal calculation of the merkle proof for NFT-based campaign.
+	pub fn calculate_nft_rewards_merkle_proof(
+		who: &T::AccountId,
+		tokens: &Vec<(ClassId, TokenId)>,
+		leaf_nodes: &Vec<Hash>,
+	) -> Result<Hash, DispatchError> {
+		ensure!(
+			leaf_nodes.len() as u64 <= T::MaxLeafNodes::get(),
+			Error::<T>::InvalidRewardLeafAmount
+		);
+
+		// Hash the pair of AccountId and list of (ClassId, TokenId)
+		let mut leaf: Vec<u8> = who.encode();
+		for token in tokens.clone() {
+			leaf.extend(token.encode());
+		}
+
+		Self::build_merkle_proof(leaf, leaf_nodes)
+	}
+
+	/// Internal merkle proof calculation out of leaf node and vector of hashes of relevant leaf
+	/// nodes and branches
+	fn build_merkle_proof(raw_leaf: Vec<u8>, proof_nodes: &Vec<Hash>) -> Result<Hash, DispatchError> {
+		let mut proof: Hash = keccak_256(&raw_leaf).into();
+
+		for leaf_node in proof_nodes {
+			proof = Self::sorted_hash_of(&proof, leaf_node);
+		}
+
+		Ok(proof)
+	}
+
+	/// Internal emit of end campaign event
 	fn end_campaign(campaign_id: CampaignId) -> DispatchResult {
 		Self::deposit_event(Event::<T>::RewardCampaignEnded(campaign_id));
 		Ok(())
 	}
 
+	/// Internal check if an account is allowed to set rewards.
 	pub fn is_set_reward_origin(who: &T::AccountId) -> bool {
 		let set_reward_origin = Self::set_reward_origins(who);
 		set_reward_origin == Some(())
+	}
+
+	/// Internal merkle hash calculation from two hashes
+	pub fn sorted_hash_of(a: &Hash, b: &Hash) -> Hash {
+		let mut h: Vec<u8> = Vec::with_capacity(64);
+		if a < b {
+			h.extend_from_slice(a.as_ref());
+			h.extend_from_slice(b.as_ref());
+		} else {
+			h.extend_from_slice(b.as_ref());
+			h.extend_from_slice(a.as_ref());
+		}
+
+		keccak_256(&h).into()
 	}
 	/*
 		/// Internal update of campaign info to v2
