@@ -10,11 +10,15 @@ use sp_core::H160;
 use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
 
+use crate::auction::AuctionPrecompile;
 use crate::currencies::MultiCurrencyPrecompile;
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
 pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
+/// The auction precompile address prefix. Addresses that match against this prefix will be routed
+/// to AuctionPrecompile
+pub const AUCTION_ADDRESS_PREFIX: &[u8] = &[3u8; 9];
 /// The PrecompileSet installed in the Metaverse runtime.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MetaverseNetworkPrecompiles<R>(PhantomData<(R)>);
@@ -30,7 +34,8 @@ impl<R> MetaverseNetworkPrecompiles<R> {
 /// 1024-2047 Precompiles that are not in Ethereum Mainnet
 impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
-	R: pallet_evm::Config + currencies::Config,
+	R: pallet_evm::Config + currencies::Config + auction::Config,
+	AuctionPrecompile<R>: Precompile,
 	MultiCurrencyPrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
@@ -65,6 +70,7 @@ where
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
 				Some(MultiCurrencyPrecompile::<R>::execute(handle))
 			}
+			a if &a.to_fixed_bytes()[0..9] == AUCTION_ADDRESS_PREFIX => Some(AuctionPrecompile::<R>::execute(handle)),
 			// Default
 			_ => None,
 		}

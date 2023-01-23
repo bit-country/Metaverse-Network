@@ -107,7 +107,9 @@ pub mod pallet {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::tokens::currency};
 	use frame_system::ensure_root;
 	use frame_system::pallet_prelude::OriginFor;
-	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use orml_traits::{
+		currency::TransferAll, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
+	};
 	use sp_runtime::traits::CheckedAdd;
 	use sp_runtime::ArithmeticError;
 

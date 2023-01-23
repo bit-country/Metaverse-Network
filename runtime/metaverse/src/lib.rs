@@ -43,7 +43,7 @@ pub use frame_support::{
 use frame_support::{BoundedVec, ConsensusEngineId};
 // A few exports that help ease life for downstream crates.
 use frame_support::traits::{
-	Contains, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
+	Contains, EitherOfDiverse, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -175,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 48,
+	spec_version: 80,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -275,6 +275,7 @@ impl Contains<Call> for NormalCallFilter {
 
 /// Maintenance mode Call filter
 pub struct MaintenanceFilter;
+
 impl Contains<Call> for MaintenanceFilter {
 	fn contains(c: &Call) -> bool {
 		match c {
@@ -454,6 +455,39 @@ parameter_types! {
 type CouncilCollective = pallet_collective::Instance1;
 type TechnicalCommitteeCollective = pallet_collective::Instance2;
 
+// Council
+pub type EnsureRootOrAllCouncilCollective = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>,
+>;
+
+type EnsureRootOrHalfCouncilCollective = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>,
+>;
+
+type EnsureRootOrTwoThirdsCouncilCollective = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>,
+>;
+
+// Technical Committee
+
+pub type EnsureRootOrAllTechnicalCommittee = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 1, 1>,
+>;
+
+type EnsureRootOrHalfTechnicalCommittee = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 1, 2>,
+>;
+
+type EnsureRootOrTwoThirdsTechnicalCommittee = EitherOfDiverse<
+	EnsureRoot<AccountId>,
+	pallet_collective::EnsureProportionAtLeast<AccountId, TechnicalCommitteeCollective, 2, 3>,
+>;
+
 impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type Origin = Origin;
 	type Proposal = Call;
@@ -572,7 +606,7 @@ impl metaverse::Config for Runtime {
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
 	type MinContribution = MinContribution;
-	type MetaverseCouncil = EnsureRootOrHalfMetaverseCouncil;
+	type MetaverseCouncil = EnsureRootOrHalfCouncilCollective;
 	type WeightInfo = weights::module_metaverse::WeightInfo<Runtime>;
 	type MetaverseRegistrationDeposit = MinContribution;
 	type MinStakingAmount = MinContribution;
@@ -692,9 +726,6 @@ impl EnsureOrigin<Origin> for EnsureRootOrMetaverseTreasury {
 		Origin::from(RawOrigin::Signed(zero_account_id))
 	}
 }
-
-pub type EnsureRootOrHalfMetaverseCouncil =
-	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
 
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 10;
@@ -834,12 +865,12 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 6 * HOURS;
-	pub const VotingPeriod: BlockNumber = 6 * HOURS;
-	pub const FastTrackVotingPeriod: BlockNumber = 1 * HOURS;
+	pub const LaunchPeriod: BlockNumber = 30 * MINUTES;
+	pub const VotingPeriod: BlockNumber = 15 * MINUTES;
+	pub const FastTrackVotingPeriod: BlockNumber = 15 * MINUTES;
 	pub const InstantAllowed: bool = true;
 	pub const MinimumDeposit: Balance = 1000 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 1 * HOURS;
+	pub const EnactmentPeriod: BlockNumber = 15 * MINUTES;
 	pub const CooloffPeriod: BlockNumber = 1 * HOURS;
 	pub const PreimageByteDeposit: Balance = 1 * CENTS;
 	pub const MaxVotes: u32 = 50;
@@ -857,23 +888,23 @@ impl pallet_democracy::Config for Runtime {
 	// Same as EnactmentPeriod
 	type MinimumDeposit = MinimumDeposit;
 	/// A straight majority of the council can decide what their next motion is.
-	type ExternalOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>;
+	type ExternalOrigin = EnsureRootOrHalfCouncilCollective;
 	/// A super-majority can have the next scheduled referendum be a straight majority-carries vote.
-	type ExternalMajorityOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 3, 4>;
+	type ExternalMajorityOrigin = EnsureRootOrHalfCouncilCollective;
 	/// A unanimous council can have the next scheduled referendum be a straight default-carries
 	/// (NTB) vote.
-	type ExternalDefaultOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>;
+	type ExternalDefaultOrigin = EnsureRootOrAllCouncilCollective;
 	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
 	/// be tabled immediately and with a shorter voting/enactment period.
-	type FastTrackOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
-	type InstantOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 1>;
+	type FastTrackOrigin = EnsureRootOrTwoThirdsTechnicalCommittee;
+	type InstantOrigin = EnsureRootOrAllTechnicalCommittee;
 	type InstantAllowed = InstantAllowed;
 	type FastTrackVotingPeriod = FastTrackVotingPeriod;
 	// To cancel a proposal which has been passed, 2/3 of the council must agree to it.
-	type CancellationOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
+	type CancellationOrigin = EnsureRootOrTwoThirdsCouncilCollective;
 	// To cancel a proposal before it has been passed, the technical committee must be unanimous or
 	// Root must agree.
-	type CancelProposalOrigin = pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 2, 3>;
+	type CancelProposalOrigin = EnsureRootOrAllTechnicalCommittee;
 	type BlacklistOrigin = EnsureRoot<AccountId>;
 	// Any single technical committee member may veto a coming council proposal, however they can
 	// only do it once and it lasts only for the cool-off period.
@@ -964,6 +995,7 @@ impl pallet_proxy::Config for Runtime {
 	type AnnouncementDepositBase = AnnouncementDepositBase;
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub enum ProposalType {
 	Any,
@@ -1037,7 +1069,7 @@ impl economy::Config for Runtime {
 
 impl emergency::Config for Runtime {
 	type Event = Event;
-	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type EmergencyOrigin = EnsureRootOrHalfCouncilCollective;
 	type NormalCallFilter = NormalCallFilter;
 	type MaintenanceCallFilter = MaintenanceFilter;
 	type WeightInfo = weights::module_emergency::WeightInfo<Runtime>;
@@ -1055,11 +1087,11 @@ pub type OracleMembershipInstance = pallet_membership::Instance1;
 
 impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
 	type Event = Event;
-	type AddOrigin = EnsureRootOrHalfMetaverseCouncil;
-	type RemoveOrigin = EnsureRootOrHalfMetaverseCouncil;
-	type SwapOrigin = EnsureRootOrHalfMetaverseCouncil;
-	type ResetOrigin = EnsureRootOrHalfMetaverseCouncil;
-	type PrimeOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type AddOrigin = EnsureRootOrHalfCouncilCollective;
+	type RemoveOrigin = EnsureRootOrHalfCouncilCollective;
+	type SwapOrigin = EnsureRootOrHalfCouncilCollective;
+	type ResetOrigin = EnsureRootOrHalfCouncilCollective;
+	type PrimeOrigin = EnsureRootOrHalfCouncilCollective;
 	type MembershipInitialized = ();
 	type MembershipChanged = RewardOracle;
 	type MaxMembers = OracleMaxMembers;
@@ -1231,9 +1263,6 @@ parameter_types! {
 	pub const MaxApprovals: u32 = 100;
 }
 
-type EnsureRootOrHalfCouncilCollective =
-	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
-
 impl pallet_treasury::Config for Runtime {
 	type PalletId = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
@@ -1280,7 +1309,7 @@ impl reward::Config for Runtime {
 impl asset_manager::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
-	type RegisterOrigin = EnsureRootOrHalfMetaverseCouncil;
+	type RegisterOrigin = EnsureRootOrHalfCouncilCollective;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.

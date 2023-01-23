@@ -5287,6 +5287,7 @@ dependencies = [
 name = "metaverse-runtime-common"
 version = "0.0.1"
 dependencies = [
+ "auction-manager",
  "bit-country-primitives",
  "core-primitives",
  "cumulus-pallet-parachain-system",
@@ -5298,6 +5299,7 @@ dependencies = [
  "num_enum",
  "orml-currencies",
  "orml-traits",
+ "pallet-auction",
  "pallet-evm",
  "pallet-evm-precompile-blake2",
  "pallet-evm-precompile-bn128",
