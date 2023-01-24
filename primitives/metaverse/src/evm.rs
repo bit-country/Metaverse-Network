@@ -27,6 +27,7 @@ use serde::{Deserialize, Serialize};
 use sp_core::{H160, U256};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
+use sp_std::vec::Vec;
 
 use crate::{ClassId, FungibleTokenId, TokenId};
 
@@ -117,6 +118,7 @@ impl TryFrom<FungibleTokenId> for EvmAddress {
 
 		Ok(EvmAddress::from_slice(&address))
 	}
+
 }
 
 pub struct Output;

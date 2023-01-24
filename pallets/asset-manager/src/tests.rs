@@ -252,3 +252,4 @@ fn ensure_precompile_addresses_are_correct() {
 		);
 	})
 }
+
