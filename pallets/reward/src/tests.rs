@@ -57,14 +57,15 @@ fn test_hash(value: u64) -> Hash {
 fn test_claim_hash(who: AccountId, balance: Balance) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
 	leaf.extend(balance.encode());
-	keccak_256(&leaf).into()
+	
+	keccak_256(&keccak_256(&leaf)).into()
 }
 
 fn test_claim_nft_hash(who: AccountId, token: (ClassId, TokenId)) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
 	leaf.extend(token.0.encode());
 	leaf.extend(token.1.encode());
-	keccak_256(&leaf).into()
+	keccak_256(&keccak_256(&leaf)).into()
 }
 
 #[test]

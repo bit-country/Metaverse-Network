@@ -1280,7 +1280,7 @@ impl<T: Config> Pallet<T> {
 	/// Internal merkle proof calculation out of leaf node and vector of hashes of relevant leaf
 	/// nodes and branches
 	fn build_merkle_proof(raw_leaf: Vec<u8>, proof_nodes: &Vec<Hash>) -> Result<Hash, DispatchError> {
-		let mut proof: Hash = keccak_256(&raw_leaf).into();
+		let mut proof: Hash = keccak_256(&keccak_256(&raw_leaf)).into();
 
 		for leaf_node in proof_nodes {
 			proof = Self::sorted_hash_of(&proof, leaf_node);
@@ -1312,7 +1312,7 @@ impl<T: Config> Pallet<T> {
 			h.extend_from_slice(a.as_ref());
 		}
 
-		keccak_256(&h).into()
+		keccak_256(&keccak_256(&h)).into()
 	}
 	/*
 		/// Internal update of campaign info to v2
