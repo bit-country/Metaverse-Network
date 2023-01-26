@@ -1391,6 +1391,7 @@ parameter_types! {
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 	pub const MinBlocksPerLandIssuanceRound: u32 = 20;
 	pub const MinimumStake: Balance = 100 * DOLLARS;
+	pub const MaximumEstateStake: Balance = 10_000 * DOLLARS;
 	pub const RewardPaymentDelay: u32 = 2;
 	pub const DefaultMaxBound: (i32,i32) = (-1000,1000);
 	pub const NetworkFee: Balance = 1 * DOLLARS; // Network fee
@@ -1495,6 +1496,7 @@ impl economy::Config for Runtime {
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
+	type MaximumEstateStake = MaximumEstateStake;
 }
 
 pub type EnsureRootOrHalfMetaverseCouncil =
