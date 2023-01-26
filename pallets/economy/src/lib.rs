@@ -165,7 +165,7 @@ pub mod pallet {
 			NMapKey<Blake2_128Concat, EstateId>,
 		),
 		BalanceOf<T>,
-		ValueQuery,
+		OptionQuery,
 	>;
 
 	/// Total native token locked in this pallet
