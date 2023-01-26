@@ -3,36 +3,39 @@
 #![allow(clippy::unused_unit)]
 #![allow(clippy::useless_attribute)]
 
-use chainbridge as bridge;
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
-
 use orml_traits::MultiCurrencyExtended;
+pub use pallet::*;
 use primitives::{Balance, FungibleTokenId};
 use sp_arithmetic::traits::SaturatedConversion;
 use sp_core::U256;
 use sp_std::prelude::*;
 
-pub use pallet::*;
-
-type ResourceId = bridge::ResourceId;
-
+pub type ResourceId = [u8; 32];
+pub type ChainId = u8;
+pub type DepositNonce = u64;
 #[frame_support::pallet]
 pub mod pallet {
-	use super::*;
 	use orml_traits::MultiCurrency;
 
+	use super::*;
+
 	#[pallet::config]
-	pub trait Config: frame_system::Config + bridge::Config {
+	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// Specifies the origin check provided by the bridge for calls that can only be called by
 		/// the bridge pallet
 		type BridgeOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
 		/// The currency mechanism.
 		type Currency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>;
+		/// The nft handling mechanism.
+		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 		/// Native currency
 		type NativeCurrencyId: Get<FungibleTokenId>;
-		type BridgeTokenId: Get<ResourceId>;
+		/// The sovereign pallet
+		#[pallet::constant]
+		type PalletId: Get<PalletId>;
 	}
 
 	#[pallet::error]
@@ -54,7 +57,13 @@ pub mod pallet {
 		/// [resource_id token_id]
 		RemoveResourceTokenId(ResourceId, FungibleTokenId),
 		/// [chainId, min_fee, fee_scale]
-		FeeUpdated(bridge::ChainId, Balance, u32),
+		FeeUpdated(ChainId, Balance, u32),
+		/// FungibleTransfer is for relaying fungibles (dest_id, resource_id, amount,
+		/// recipient, metadata)
+		FungibleTransfer(ChainId, ResourceId, U256, Vec<u8>, Vec<u8>),
+		/// Non-fungibletransfer is for relaying non-fungibles (dest_id, nonce, resource_id,
+		/// collection_id, token_id, recipient, metadata)
+		NonFungibleTransfer(ChainId, ResourceId, ClassId, TokenId, Vec<u8>, Vec<u8>),
 	}
 
 	#[pallet::pallet]
@@ -66,7 +75,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
-	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, bridge::ChainId, (Balance, u32), ValueQuery>;
+	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, ChainId, (Balance, u32), ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn currency_ids)]
@@ -79,7 +88,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			min_fee: Balance,
 			fee_scale: u32,
-			dest_id: bridge::ChainId,
+			dest_id: ChainId,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(fee_scale <= 1000u32, Error::<T>::InvalidFeeOption);
@@ -95,13 +104,13 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			amount: Balance,
 			recipient: Vec<u8>,
-			dest_id: bridge::ChainId,
+			dest_id: ChainId,
 		) -> DispatchResult {
 			let source = ensure_signed(origin)?;
-			ensure!(
-				<bridge::Module<T>>::chain_whitelisted(dest_id),
-				Error::<T>::InvalidTransfer
-			);
+			//			ensure!(
+			//				<bridge::Module<T>>::chain_whitelisted(dest_id),
+			//				Error::<T>::InvalidTransfer
+			//			);
 
 			let resource_id =
 				Self::resource_ids(FungibleTokenId::NativeToken(0)).ok_or(Error::<T>::ResourceIdNotRegistered)?;
