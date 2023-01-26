@@ -53,6 +53,10 @@ fn test_attributes(x: u8) -> Attributes {
 fn test_hash(value: u64) -> Hash {
 	Hash::from_low_u64_be(value)
 }
+fn test_js_root_hash() -> Hash {
+	let bytes = [0u8; 32];
+	Hash::from_slice(&bytes)
+}
 
 fn test_claim_hash(who: AccountId, balance: Balance) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
@@ -2110,5 +2114,117 @@ fn remove_reward_origin_fails() {
 			Reward::remove_set_reward_origin(Origin::signed(ALICE), ALICE),
 			Error::<Runtime>::SetRewardOriginDoesNotExist
 		);
+	});
+}
+
+#[test]
+fn merkle_proof_based_cmapaing_works_with_js_generated_root(){
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			160,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0),
+		));
+		
+		let campaign_info = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			cooling_off_duration: 10,
+			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+		};
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			5,
+			test_js_root_hash()// get root hash value from JS
+		));
+		
+		run_to_block(17);
+
+		// 10 reward winner 
+		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 10, vec![]));
+		assert_eq!(Balances::free_balance(BOB), 20010);
+
+		let campaign_info_after_claim_10 = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_10));
+		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB]);
+
+
+		// 25 reward winner
+		assert_ok!(Reward::claim_reward_root(Origin::signed(CHARLIE), 0, 25, vec![]));
+		assert_eq!(Balances::free_balance(CHARLIE), 2025);
+
+		let campaign_info_after_claim_25 = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 35),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_25));
+		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB, CHARLIE]);
+
+		// 50 reward winner
+		assert_ok!(Reward::claim_reward_root(Origin::signed(DONNA), 0, 50, vec![]));
+		assert_eq!(Balances::free_balance(DONNA), 100050);
+
+		let campaign_info_after_claim_50 = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 85),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_50));
+		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB, CHARLIE, DONNA]);
+
+		// 75 reward winner
+		assert_ok!(Reward::claim_reward_root(Origin::signed(EVA), 0, 75, vec![]));
+		assert_eq!(Balances::free_balance(EVA), 1075);
+
+		let campaign_info_after_claim_75 = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_75));
+		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB, CHARLIE, DONNA, EVA]);
+
 	});
 }
