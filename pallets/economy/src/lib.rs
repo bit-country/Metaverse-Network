@@ -109,6 +109,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
 
+		/// The maximum estate staked per land unit
+		#[pallet::constant]
+		type MaximumEstateStake: Get<BalanceOf<Self>>;
+
 		/// The Power Amount per block
 		#[pallet::constant]
 		type PowerAmountPerBlock: Get<PowerAmount>;
@@ -148,6 +152,21 @@ pub mod pallet {
 	#[pallet::getter(fn staking_exit_queue)]
 	pub type ExitQueue<T: Config> =
 		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, RoundIndex, BalanceOf<T>, OptionQuery>;
+
+	/// Estate self-staking exit estate queue info
+	/// This will keep track of staked estate exits queue, unstake only allows after 1 round
+	#[pallet::storage]
+	#[pallet::getter(fn staking_exit_queue)]
+	pub type EstateExitQueue<T: Config> = StorageNMap<
+		_,
+		(
+			NMapKey<Blake2_128Concat, T::AccountId>,
+			NMapKey<Blake2_128Concat, RoundIndex>,
+			NMapKey<Blake2_128Concat, EstateId>,
+		),
+		BalanceOf<T>,
+		ValueQuery,
+	>;
 
 	/// Total native token locked in this pallet
 	#[pallet::storage]
@@ -220,6 +239,10 @@ pub mod pallet {
 		StakerNotEstateOwner,
 		/// Staking estate does not exist
 		StakeEstateDoesNotExist,
+		/// Has scheduled exit estate staking, only stake after queue exit
+		EstateExitQueueAlreadyScheduled,
+		/// Estate exit queue does not exist
+		EstateExitQueueDoesNotExit,
 	}
 
 	#[pallet::call]
@@ -298,14 +321,14 @@ pub mod pallet {
 			);
 
 			let current_round = T::RoundHandler::get_current_round_info();
-			// Check if user already in exit queue
-			ensure!(
-				!ExitQueue::<T>::contains_key(&who, current_round.current),
-				Error::<T>::ExitQueueAlreadyScheduled
-			);
-
 			match estate {
 				None => {
+					// Check if user already in exit queue
+					ensure!(
+						!ExitQueue::<T>::contains_key(&who, current_round.current),
+						Error::<T>::ExitQueueAlreadyScheduled
+					);
+
 					let mut staked_balance = StakingInfo::<T>::get(&who);
 					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
@@ -343,7 +366,6 @@ pub mod pallet {
 					let new_total_staked = TotalEstateStake::<T>::get().saturating_add(amount);
 					<TotalEstateStake<T>>::put(new_total_staked);
 
-					let current_round = T::RoundHandler::get_current_round_info();
 					Self::deposit_event(Event::EstateStakedToEconomy101(who, estate_id, amount));
 				}
 			}
@@ -441,11 +463,17 @@ pub mod pallet {
 					let current_round = T::RoundHandler::get_current_round_info();
 					let next_round = current_round.current.saturating_add(One::one());
 
-					// This exit queue will be executed by exit_staking extrinsics to unreserved token
-					ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
+					// Check if user already in exit queue of the current
+					ensure!(
+						!EstateExitQueue::<T>::contains_key(&who, next_round),
+						Error::<T>::ExitQueueAlreadyScheduled
+					);
 
-					// Update staking info of user immediately
-					// Remove staking info
+					// This estate exit queue will be executed by exit_staking extrinsics to unreserved token
+					EstateExitQueue::<T>::insert((&who, next_round.clone(), estate_id), amount_to_unstake);
+
+					// Update estate staking info of user immediately
+					// Remove estate staking info
 					if amount_to_unstake == staked_balance {
 						EstateStakingInfo::<T>::remove(&estate_id);
 					} else {
