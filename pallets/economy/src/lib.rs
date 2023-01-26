@@ -243,6 +243,8 @@ pub mod pallet {
 		EstateExitQueueAlreadyScheduled,
 		/// Estate exit queue does not exist
 		EstateExitQueueDoesNotExit,
+		/// Stake amount exceed estate max amount
+		StakeAmountExceedMaximumAmount,
 	}
 
 	#[pallet::call]
@@ -363,6 +365,14 @@ pub mod pallet {
 					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+
+					// Ensure stake amount less than maximum
+					let total_land_units = T::EstateHandler::get_total_land_units(Some(estate_id));
+					ensure!(total_land_units > 0, Error::<T>::StakeEstateDoesNotExist);
+
+					let stake_allowance = T::MaximumEstateStake::get()
+						.saturating_mul(TryInto::<BalanceOf<T>>::try_into(total_land_units).unwrap_or_default());
+					ensure!(total <= stake_allowance, Error::<T>::StakeAmountExceedMaximumAmount);
 
 					T::Currency::reserve(&who, amount)?;
 
