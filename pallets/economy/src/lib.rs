@@ -341,10 +341,15 @@ pub mod pallet {
 					let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
 					<TotalStake<T>>::put(new_total_staked);
 
-					let current_round = T::RoundHandler::get_current_round_info();
 					Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
 				}
 				Some(estate_id) => {
+					// Check if user already in exit queue
+					ensure!(
+						!EstateExitQueue::<T>::contains_key(&who, current_round.current, estate_id),
+						Error::<T>::EstateExitQueueAlreadyScheduled
+					);
+
 					ensure!(
 						T::EstateHandler::check_estate(estate_id.clone())?,
 						Error::<T>::StakeEstateDoesNotExist
@@ -463,9 +468,9 @@ pub mod pallet {
 					let current_round = T::RoundHandler::get_current_round_info();
 					let next_round = current_round.current.saturating_add(One::one());
 
-					// Check if user already in exit queue of the current
+					// Check if user already in estate exit queue of the current estate
 					ensure!(
-						!EstateExitQueue::<T>::contains_key(&who, next_round),
+						!EstateExitQueue::<T>::contains_key(&who, next_round, estate_id),
 						Error::<T>::ExitQueueAlreadyScheduled
 					);
 
