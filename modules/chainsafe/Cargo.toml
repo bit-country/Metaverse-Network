@@ -12,7 +12,7 @@ version = '0.0.1'
 # third-party dependencies
 codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive", "max-encoded-len"] }
 serde = { version = "1.0.137", optional = true }
-hex = { version = "0.3.4", default-features = false }
+hex = { version = "0.4", default-features = false }
 
 # primitives
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
@@ -25,7 +25,6 @@ sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "pol
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 
-chainbridge = { package = "chainbridge", git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse" }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 
@@ -47,5 +46,4 @@ std = [
     "frame-system/std",
     "primitives/std",
     "orml-traits/std",
-    "chainbridge/std",
 ]

@@ -12,8 +12,5 @@ members = [
     'primitives/*',
     'modules/relaychain',
     'modules/support',
-]
-exclude = [
     'modules/chainsafe',
-#    'runtime/integration-tests',
 ]

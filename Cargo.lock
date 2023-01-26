@@ -5393,6 +5393,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "modules-chainsafe"
+version = "0.0.1"
+dependencies = [
+ "bit-country-primitives",
+ "blake2-rfc",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "orml-traits",
+ "parity-scale-codec",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "more-asserts"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
