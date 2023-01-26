@@ -272,6 +272,11 @@ fn unstake_should_work_for_estate() {
 			Some(OWNED_ESTATE_ID)
 		));
 
+		assert_noop!(
+			EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
+			Error::<Runtime>::StakeAmountExceedMaximumAmount
+		);
+
 		assert_ok!(EconomyModule::unstake(
 			Origin::signed(ALICE),
 			UNSTAKE_AMOUNT,
