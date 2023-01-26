@@ -156,7 +156,7 @@ pub mod pallet {
 	/// Estate self-staking exit estate queue info
 	/// This will keep track of staked estate exits queue, unstake only allows after 1 round
 	#[pallet::storage]
-	#[pallet::getter(fn staking_exit_queue)]
+	#[pallet::getter(fn estate_staking_exit_queue)]
 	pub type EstateExitQueue<T: Config> = StorageNMap<
 		_,
 		(
