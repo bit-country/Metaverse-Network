@@ -157,7 +157,7 @@ runtime_benchmarks! {
 		assert_eq!(staking_balance, min_stake + dollar(90));
 
 		assert_eq!(
-			Economy::staking_exit_queue(caller.clone(), next_round),
+			Economy::estate_staking_exit_queue((caller.clone(), next_round, ESTATE_ID)),
 			Some(dollar(10))
 		);
 	}
