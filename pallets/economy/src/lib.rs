@@ -346,7 +346,7 @@ pub mod pallet {
 				Some(estate_id) => {
 					// Check if user already in exit queue
 					ensure!(
-						!EstateExitQueue::<T>::contains_key(&who, current_round.current, estate_id),
+						!EstateExitQueue::<T>::contains_key((&who, current_round.current, estate_id)),
 						Error::<T>::EstateExitQueueAlreadyScheduled
 					);
 
@@ -470,7 +470,7 @@ pub mod pallet {
 
 					// Check if user already in estate exit queue of the current estate
 					ensure!(
-						!EstateExitQueue::<T>::contains_key(&who, next_round, estate_id),
+						!EstateExitQueue::<T>::contains_key((&who, next_round, estate_id)),
 						Error::<T>::ExitQueueAlreadyScheduled
 					);
 
