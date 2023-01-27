@@ -5393,7 +5393,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "modules-chainsafe"
+name = "modules-bridge"
 version = "0.0.1"
 dependencies = [
  "bit-country-primitives",
@@ -5920,7 +5920,7 @@ dependencies = [
 [[package]]
 name = "orml-nft"
 version = "0.4.1-dev"
-source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26#320cf2defa32d55aeffb85093dae968de27a5cef"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1#6f6c102db42c559223a5fdb4f4c75ef765c35fae"
 dependencies = [
  "frame-support",
  "frame-system",

@@ -78,7 +78,7 @@ fp-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26-1", default-features = false }
 orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-benchmarking = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false, optional = true }
 # metaverse dependencies
