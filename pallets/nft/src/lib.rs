@@ -1405,4 +1405,43 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		let asset_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
 		Ok(asset_info.owner)
 	}
+
+	fn mint_token_with_id(
+		sender: &T::AccountId,
+		class_id: Self::ClassId,
+		token_id: Self::TokenId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<Self::TokenId, DispatchError> {
+		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
+
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
+
+		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
+		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+
+		let new_nft_data = NftAssetData {
+			deposit,
+			attributes: attributes,
+			is_locked: false,
+		};
+
+		let minted_token_id =
+			NftModule::<T>::mint_with_token_id(&sender, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, minted_token_id.clone()),
+			(class_id, minted_token_id),
+			sender.clone(),
+			class_id,
+			1u32,
+			minted_token_id,
+		));
+
+		Ok(minted_token_id)
+	}
 }
