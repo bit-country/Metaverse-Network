@@ -12,5 +12,5 @@ members = [
     'primitives/*',
     'modules/relaychain',
     'modules/support',
-    'modules/chainsafe',
+    'modules/bridge',
 ]
