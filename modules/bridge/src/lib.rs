@@ -96,6 +96,10 @@ pub mod pallet {
 	#[pallet::getter(fn currency_ids)]
 	pub type CurrencyIds<T: Config> = StorageMap<_, Twox64Concat, ResourceId, FungibleTokenId, OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn class_ids)]
+	pub type ClassIds<T: Config> = StorageMap<_, Twox64Concat, ResourceId, ClassId, OptionQuery>;
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
@@ -122,11 +126,6 @@ pub mod pallet {
 			dest_id: ChainId,
 		) -> DispatchResult {
 			let source = ensure_signed(origin)?;
-			//			ensure!(
-			//				<bridge::Module<T>>::chain_whitelisted(dest_id),
-			//				Error::<T>::InvalidTransfer
-			//			);
-
 			let resource_id =
 				Self::resource_ids(FungibleTokenId::NativeToken(0)).ok_or(Error::<T>::ResourceIdNotRegistered)?;
 			let bridge_id = T::PalletId::get().into_account_truncating();
@@ -171,6 +170,20 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Execute NFT minting using bridge account as the source
+		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		pub fn mint_nft(
+			origin: OriginFor<T>,
+			to: T::AccountId,
+			token_id: TokenId,
+			resource_id: ResourceId,
+		) -> DispatchResult {
+			let source = T::BridgeOrigin::ensure_origin(origin)?;
+
+			// Get collection id from resource_id
+
+			Ok(())
+		}
 		/// Register new resource token id for bridge
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
@@ -199,6 +212,7 @@ pub mod pallet {
 				ResourceIds::<T>::remove(currency_id);
 				Self::deposit_event(Event::RemoveResourceTokenId(resource_id, currency_id));
 			}
+			CurrencyIds::<T>::remove(resource_id);
 			Ok(())
 		}
 
@@ -212,29 +226,27 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(
-				!NftResourceIds::<T>::contains_key(class_id),
+				!NftResourceIds::<T>::contains_key(class_id) && !ClassIds::<T>::contains_key(resource_id),
 				Error::<T>::ResourceTokenIdAlreadyExist,
 			);
 
 			NftResourceIds::<T>::insert(class_id, resource_id);
+			ClassIds::<T>::insert(resource_id, class_id);
 			Self::deposit_event(Event::RegisterNewResourceNftId(resource_id, class_id));
 			Ok(())
 		}
 
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
-		pub fn remove_resource_nft_id(origin: OriginFor<T>, class_id: ClassId) -> DispatchResult {
+		pub fn remove_resource_nft_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
 			ensure_root(origin)?;
-			ensure!(
-				NftResourceIds::<T>::contains_key(class_id),
-				Error::<T>::ResourceIdNotRegistered,
-			);
 
-			NftResourceIds::<T>::remove(class_id);
-			if let Some(resource_id) = NftResourceIds::<T>::take(class_id) {
+			if let Some(class_id) = ClassIds::<T>::take(resource_id) {
 				NftResourceIds::<T>::remove(class_id);
 				Self::deposit_event(Event::RemoveResourceNftId(resource_id, class_id));
 			}
+			ClassIds::<T>::remove(resource_id);
+
 			Ok(())
 		}
 	}

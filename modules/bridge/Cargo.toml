@@ -1,10 +1,10 @@
 [package]
 authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet bridge balance transfer.'
+description = 'Metaverse Network pallet bridge token and nft transfer.'
 edition = '2021'
 homepage = 'https://metaverse.network'
 license = 'Unlicense'
-name = 'modules-chainsafe'
+name = 'modules-bridge'
 repository = 'https://github.com/bit-country'
 version = '0.0.1'
 
