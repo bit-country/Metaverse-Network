@@ -6,18 +6,25 @@
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::MultiCurrencyExtended;
-pub use pallet::*;
-use primitives::{Balance, FungibleTokenId};
 use sp_arithmetic::traits::SaturatedConversion;
 use sp_core::U256;
 use sp_std::prelude::*;
 
+pub use pallet::*;
+use primitives::{Balance, FungibleTokenId};
+
 pub type ResourceId = [u8; 32];
 pub type ChainId = u8;
 pub type DepositNonce = u64;
+
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
+	use sp_runtime::traits::AccountIdConversion;
+
+	use core_primitives::NFTTrait;
+	use primitives::{ClassId, TokenId};
 
 	use super::*;
 
@@ -30,7 +37,7 @@ pub mod pallet {
 		/// The currency mechanism.
 		type Currency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>;
 		/// The nft handling mechanism.
-		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+		type NFTHandler: NFTTrait<Self::AccountId, Balance, ClassId = ClassId, TokenId = TokenId>;
 		/// Native currency
 		type NativeCurrencyId: Get<FungibleTokenId>;
 		/// The sovereign pallet
@@ -64,6 +71,10 @@ pub mod pallet {
 		/// Non-fungibletransfer is for relaying non-fungibles (dest_id, nonce, resource_id,
 		/// collection_id, token_id, recipient, metadata)
 		NonFungibleTransfer(ChainId, ResourceId, ClassId, TokenId, Vec<u8>, Vec<u8>),
+		/// Register new NFT id with class id[resource_id class_id]
+		RegisterNewResourceNftId(ResourceId, ClassId),
+		/// Remove  NFT id with class id[resource_id class_id]
+		RemoveResourceNftId(ResourceId, ClassId),
 	}
 
 	#[pallet::pallet]
@@ -72,6 +83,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn resource_ids)]
 	pub type ResourceIds<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, ResourceId, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn nft_resource_ids)]
+	pub type NftResourceIds<T: Config> = StorageMap<_, Twox64Concat, ClassId, ResourceId, OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
@@ -114,7 +129,7 @@ pub mod pallet {
 
 			let resource_id =
 				Self::resource_ids(FungibleTokenId::NativeToken(0)).ok_or(Error::<T>::ResourceIdNotRegistered)?;
-			let bridge_id = <bridge::Module<T>>::account_id();
+			let bridge_id = T::PalletId::get().into_account_truncating();
 			ensure!(BridgeFee::<T>::contains_key(&dest_id), Error::<T>::FeeOptionsMissing);
 			let (min_fee, fee_scale) = Self::bridge_fee(dest_id);
 			let fee_estimated = amount
@@ -133,12 +148,15 @@ pub mod pallet {
 				(amount + fee).into(),
 			)?;
 
-			<bridge::Module<T>>::transfer_fungible(
+			Self::deposit_event(Event::FungibleTransfer(
 				dest_id,
 				resource_id,
-				recipient,
 				U256::from(amount.saturated_into::<u128>()),
-			)
+				recipient.clone(),
+				recipient,
+			));
+
+			Ok(())
 		}
 
 		//
@@ -180,6 +198,42 @@ pub mod pallet {
 			if let Some(currency_id) = CurrencyIds::<T>::take(resource_id) {
 				ResourceIds::<T>::remove(currency_id);
 				Self::deposit_event(Event::RemoveResourceTokenId(resource_id, currency_id));
+			}
+			Ok(())
+		}
+
+		/// Register new resource token id for bridge
+		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn register_new_nft_resource_id(
+			origin: OriginFor<T>,
+			resource_id: ResourceId,
+			class_id: ClassId,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			ensure!(
+				!NftResourceIds::<T>::contains_key(class_id),
+				Error::<T>::ResourceTokenIdAlreadyExist,
+			);
+
+			NftResourceIds::<T>::insert(class_id, resource_id);
+			Self::deposit_event(Event::RegisterNewResourceNftId(resource_id, class_id));
+			Ok(())
+		}
+
+		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[transactional]
+		pub fn remove_resource_nft_id(origin: OriginFor<T>, class_id: ClassId) -> DispatchResult {
+			ensure_root(origin)?;
+			ensure!(
+				NftResourceIds::<T>::contains_key(class_id),
+				Error::<T>::ResourceIdNotRegistered,
+			);
+
+			NftResourceIds::<T>::remove(class_id);
+			if let Some(resource_id) = NftResourceIds::<T>::take(class_id) {
+				NftResourceIds::<T>::remove(class_id);
+				Self::deposit_event(Event::RemoveResourceNftId(resource_id, class_id));
 			}
 			Ok(())
 		}
