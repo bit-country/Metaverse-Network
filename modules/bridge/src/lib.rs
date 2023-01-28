@@ -24,7 +24,7 @@ pub mod pallet {
 	use sp_runtime::traits::AccountIdConversion;
 
 	use core_primitives::NFTTrait;
-	use primitives::{ClassId, TokenId};
+	use primitives::{Attributes, ClassId, NftMetadata, TokenId};
 
 	use super::*;
 
@@ -47,13 +47,22 @@ pub mod pallet {
 
 	#[pallet::error]
 	pub enum Error<T> {
+		/// Invalid transfer
 		InvalidTransfer,
+		/// Invalid command
 		InvalidCommand,
+		/// Invalid transaction payload
 		InvalidPayload,
+		/// Fee option is invalid
 		InvalidFeeOption,
+		/// No fee available
 		FeeOptionsMissing,
+		/// Resource id already exists
 		ResourceTokenIdAlreadyExist,
+		/// Resource id is not registered
 		ResourceIdNotRegistered,
+		/// NFT class id is not registered for associated resource id
+		ClassIdIsNotRegistered,
 	}
 
 	#[pallet::event]
@@ -75,6 +84,8 @@ pub mod pallet {
 		RegisterNewResourceNftId(ResourceId, ClassId),
 		/// Remove  NFT id with class id[resource_id class_id]
 		RemoveResourceNftId(ResourceId, ClassId),
+		/// Minting executed from registered resource id
+		NonFungibleBridgeExecuted(ResourceId, ClassId, TokenId, T::AccountId),
 	}
 
 	#[pallet::pallet]
@@ -177,12 +188,21 @@ pub mod pallet {
 			to: T::AccountId,
 			token_id: TokenId,
 			resource_id: ResourceId,
+			metadata: NftMetadata,
 		) -> DispatchResult {
-			let source = T::BridgeOrigin::ensure_origin(origin)?;
+			T::BridgeOrigin::ensure_origin(origin)?;
 
 			// Get collection id from resource_id
+			let class_id = Self::class_ids(resource_id).ok_or(Error::<T>::ClassIdIsNotRegistered)?;
 
-			Ok(())
+			if let Ok(_mint_succeeded) =
+				T::NFTHandler::mint_token_with_id(&to, class_id, token_id, metadata, Attributes::new())
+			{
+				Self::deposit_event(Event::NonFungibleBridgeExecuted(resource_id, class_id, token_id, to));
+				Ok(())
+			} else {
+				Err(Error::<T>::InvalidCommand.into())
+			}
 		}
 		/// Register new resource token id for bridge
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
