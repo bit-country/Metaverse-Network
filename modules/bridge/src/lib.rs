@@ -190,18 +190,46 @@ pub mod pallet {
 			resource_id: ResourceId,
 			metadata: NftMetadata,
 		) -> DispatchResult {
-			T::BridgeOrigin::ensure_origin(origin)?;
+			let bridge_origin = T::BridgeOrigin::ensure_origin(origin)?;
 
 			// Get collection id from resource_id
 			let class_id = Self::class_ids(resource_id).ok_or(Error::<T>::ClassIdIsNotRegistered)?;
 
-			if let Ok(_mint_succeeded) =
-				T::NFTHandler::mint_token_with_id(&to, class_id, token_id, metadata, Attributes::new())
-			{
-				Self::deposit_event(Event::NonFungibleBridgeExecuted(resource_id, class_id, token_id, to));
-				Ok(())
-			} else {
-				Err(Error::<T>::InvalidCommand.into())
+			// Check if NFT does exists
+			match T::NFTHandler::check_ownership(&bridge_origin, &(class_id, token_id)) {
+				Ok(is_bridge_owned) => {
+					if is_bridge_owned == true {
+						if let Ok(_transfer_succeeded) =
+							T::NFTHandler::transfer_nft(&bridge_origin, &to, &(class_id, token_id))
+						{
+							Self::deposit_event(Event::NonFungibleBridgeExecuted(resource_id, class_id, token_id, to));
+							Ok(())
+						} else {
+							Err(Error::<T>::InvalidCommand.into())
+						}
+					}
+				}
+				Err(err) => match *err {
+					DispatchError::Other(str) => {
+						if str == "AssetInfoNotFound" {
+							if let Ok(_mint_succeeded) =
+								T::NFTHandler::mint_token_with_id(&to, class_id, token_id, metadata, Attributes::new())
+							{
+								Self::deposit_event(Event::NonFungibleBridgeExecuted(
+									resource_id,
+									class_id,
+									token_id,
+									to,
+								));
+								Ok(())
+							} else {
+								Err(Error::<T>::InvalidCommand.into())
+							}
+						}
+						Err(Error::<T>::InvalidCommand.into())
+					}
+					_ => Err(err),
+				},
 			}
 		}
 		/// Register new resource token id for bridge
