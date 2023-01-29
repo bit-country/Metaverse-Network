@@ -84,8 +84,12 @@ pub mod pallet {
 		RegisterNewResourceNftId(ResourceId, ClassId),
 		/// Remove  NFT id with class id[resource_id class_id]
 		RemoveResourceNftId(ResourceId, ClassId),
-		/// Minting executed from registered resource id
-		NonFungibleBridgeExecuted(ResourceId, ClassId, TokenId, T::AccountId),
+		/// Bridge in executed from foreign account to account with registered resource id
+		/// [resource_id, class_id, token_id, H160 address, account_id]
+		NonFungibleBridgeInExecuted(ResourceId, ClassId, TokenId, Vec<u8>, T::AccountId),
+		/// Bridge out executed from account to foreign account registered resource id [resource_id,
+		/// class_id, token_id, H160 address]
+		NonFungibleBridgeOutExecuted(ResourceId, ClassId, TokenId, T::AccountId, Vec<u8>),
 	}
 
 	#[pallet::pallet]
@@ -183,8 +187,9 @@ pub mod pallet {
 
 		/// Execute NFT minting using bridge account as the source
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
-		pub fn mint_nft(
+		pub fn bridge_in_nft(
 			origin: OriginFor<T>,
+			from: Vec<u8>,
 			to: T::AccountId,
 			token_id: TokenId,
 			resource_id: ResourceId,
@@ -198,11 +203,17 @@ pub mod pallet {
 			// Check if NFT does exists
 			match T::NFTHandler::check_ownership(&bridge_origin, &(class_id, token_id)) {
 				Ok(is_bridge_owned) => {
-					if is_bridge_owned == true {
+					if is_bridge_owned {
 						if let Ok(_transfer_succeeded) =
 							T::NFTHandler::transfer_nft(&bridge_origin, &to, &(class_id, token_id))
 						{
-							Self::deposit_event(Event::NonFungibleBridgeExecuted(resource_id, class_id, token_id, to));
+							Self::deposit_event(Event::NonFungibleBridgeInExecuted(
+								resource_id,
+								class_id,
+								token_id,
+								from,
+								to,
+							));
 						}
 					}
 					Ok(())
@@ -217,6 +228,7 @@ pub mod pallet {
 									resource_id,
 									class_id,
 									token_id,
+									from,
 									to,
 								));
 							};
@@ -227,6 +239,38 @@ pub mod pallet {
 				},
 			}
 		}
+
+		/// Executes a simple currency transfer using the bridge account as the source
+		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		pub fn bridge_out_nft(
+			origin: OriginFor<T>,
+			to: Vec<u8>,
+			token: (ClassId, TokenId),
+			chain_id: ChainId,
+		) -> DispatchResult {
+			let source = ensure_signed(origin)?;
+
+			let resource_id = Self::nft_resource_ids(token.0).ok_or(Error::<T>::ResourceIdNotRegistered)?;
+			let bridge_id = T::PalletId::get().into_account_truncating();
+
+			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
+			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
+
+			T::Currency::transfer(FungibleTokenId::NativeToken(0), &source, &bridge_id, (min_fee).into())?;
+
+			T::NFTHandler::transfer_nft(&source, &bridge_id, &token)?;
+
+			Self::deposit_event(Event::NonFungibleBridgeOutExecuted(
+				resource_id,
+				token.0,
+				token.1,
+				source,
+				to,
+			));
+
+			Ok(())
+		}
+
 		/// Register new resource token id for bridge
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
