@@ -203,13 +203,11 @@ pub mod pallet {
 							T::NFTHandler::transfer_nft(&bridge_origin, &to, &(class_id, token_id))
 						{
 							Self::deposit_event(Event::NonFungibleBridgeExecuted(resource_id, class_id, token_id, to));
-							Ok(())
-						} else {
-							Err(Error::<T>::InvalidCommand.into())
 						}
 					}
+					Ok(())
 				}
-				Err(err) => match *err {
+				Err(err) => match err {
 					DispatchError::Other(str) => {
 						if str == "AssetInfoNotFound" {
 							if let Ok(_mint_succeeded) =
@@ -221,12 +219,9 @@ pub mod pallet {
 									token_id,
 									to,
 								));
-								Ok(())
-							} else {
-								Err(Error::<T>::InvalidCommand.into())
-							}
+							};
 						}
-						Err(Error::<T>::InvalidCommand.into())
+						Ok(())
 					}
 					_ => Err(err),
 				},
