@@ -53,9 +53,44 @@ fn test_attributes(x: u8) -> Attributes {
 fn test_hash(value: u64) -> Hash {
 	Hash::from_low_u64_be(value)
 }
+
 fn test_js_root_hash() -> Hash {
-	let bytes = [0u8; 32];
-	Hash::from_slice(&bytes)
+	let root_bytes_hash = "0x6bc4c138f30655b8325a0bce5cd0d385ed191bf23f0e87a4aadc6450b925d14e";
+	Hash::from_slice(root_bytes_hash.as_bytes())
+}
+
+/*
+	Hash values generated using: https://github.com/OpenZeppelin/merkle-tree
+	Test Data:
+	2 (BOB) - 10;
+	3 (CHARLIE) - 25;
+	4 (DONNA) - 50;
+	5 (EVA) - 75;
+*/
+fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
+	match who {
+		BOB => {
+			let charlie_bytes_hash = "0x9fac775f7f3b1c731fcd206ad91742ee75ae61970cf8228d82ce0049fb444467";
+			let branch_bytes_hash = "0x43cf841b64f53a04af8466b9a2d4d0d3b708022437cac6a62d45f775f472acd0";
+			return vec![Hash::from_slice(charlie_bytes_hash.as_bytes()), Hash::from_slice(branch_bytes_hash.as_bytes())]
+		}
+		CHARLIE=> {
+			let bob_bytes_hash = "0xaee41e97c2317c241ed0a691b44af21d207e6f95ec68d166b1fb0729de464ce1";
+			let branch_bytes_hash = "0x43cf841b64f53a04af8466b9a2d4d0d3b708022437cac6a62d45f775f472acd0";
+			return vec![Hash::from_slice(bob_bytes_hash.as_bytes()), Hash::from_slice(branch_bytes_hash.as_bytes())]
+		}
+		DONNA => {
+			let eva_bytes_hash = "0x44d61289b4411af94ca6fac7a415b5ae2bc090540338c634136e7ec3cfca233c";
+			let branch_bytes_hash = "0xee71d4699eb6d5be5351f7074c7667d8cfbfe0f9364906e599946313e630a80f";
+			return vec![Hash::from_slice(eva_bytes_hash.as_bytes()), Hash::from_slice(branch_bytes_hash.as_bytes())]		
+		}
+		EVA => {
+			let donna_bytes_hash = "0xf330cb1be8b183c06cc551cf4505a13638f306e80a2d9addbf4eeb637dd24cf5";
+			let branch_bytes_hash = "0xee71d4699eb6d5be5351f7074c7667d8cfbfe0f9364906e599946313e630a80f";
+			return vec![Hash::from_slice(donna_bytes_hash.as_bytes()), Hash::from_slice(branch_bytes_hash.as_bytes())]
+		}
+		_ => {vec![]}
+	}
 }
 
 fn test_claim_hash(who: AccountId, balance: Balance) -> Hash {
@@ -2154,7 +2189,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root(){
 		run_to_block(17);
 
 		// 10 reward winner 
-		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 10, vec![]));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 10, test_js_leaf_hashes(BOB)));
 		assert_eq!(Balances::free_balance(BOB), 20010);
 
 		let campaign_info_after_claim_10 = CampaignInfo {
@@ -2173,7 +2208,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root(){
 
 
 		// 25 reward winner
-		assert_ok!(Reward::claim_reward_root(Origin::signed(CHARLIE), 0, 25, vec![]));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(CHARLIE), 0, 25, test_js_leaf_hashes(CHARLIE)));
 		assert_eq!(Balances::free_balance(CHARLIE), 2025);
 
 		let campaign_info_after_claim_25 = CampaignInfo {
@@ -2191,7 +2226,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root(){
 		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB, CHARLIE]);
 
 		// 50 reward winner
-		assert_ok!(Reward::claim_reward_root(Origin::signed(DONNA), 0, 50, vec![]));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(DONNA), 0, 50, test_js_leaf_hashes(DONNA)));
 		assert_eq!(Balances::free_balance(DONNA), 100050);
 
 		let campaign_info_after_claim_50 = CampaignInfo {
@@ -2209,7 +2244,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root(){
 		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB, CHARLIE, DONNA]);
 
 		// 75 reward winner
-		assert_ok!(Reward::claim_reward_root(Origin::signed(EVA), 0, 75, vec![]));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(EVA), 0, 75, test_js_leaf_hashes(EVA)));
 		assert_eq!(Balances::free_balance(EVA), 1075);
 
 		let campaign_info_after_claim_75 = CampaignInfo {

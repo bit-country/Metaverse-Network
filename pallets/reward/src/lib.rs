@@ -488,7 +488,7 @@ pub mod pallet {
 		/// - `campaign_id`: the ID of the campaign for which the account is claiming reward.
 		/// - `balance`: the amount of tokens which the account will claim (required for
 		///   merkle-proof calculation).
-		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
+		/// - `leaf_nodes`: list of the merkle tree nodes required for merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
 		#[pallet::weight(T::WeightInfo::claim_reward_root()  * (1u64 + leaf_nodes.len() as u64))]
