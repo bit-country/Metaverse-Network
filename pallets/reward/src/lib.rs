@@ -1312,7 +1312,7 @@ impl<T: Config> Pallet<T> {
 			h.extend_from_slice(a.as_ref());
 		}
 
-		keccak_256(&keccak_256(&h)).into()
+		keccak_256(&h).into()
 	}
 	/*
 		/// Internal update of campaign info to v2

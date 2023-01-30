@@ -25,6 +25,7 @@ use super::*;
 use core_primitives::Attributes;
 use mock::{Balance, Event, *};
 use primitives::{CampaignInfo, FungibleTokenId, Hash};
+use hex_literal::hex;
 
 fn init_test_nft(owner: Origin) {
 	//Create group collection before class
@@ -55,8 +56,8 @@ fn test_hash(value: u64) -> Hash {
 }
 
 fn test_js_root_hash() -> Hash {
-	let root_bytes_hash = "0x6bc4c138f30655b8325a0bce5cd0d385ed191bf23f0e87a4aadc6450b925d14e";
-	Hash::from_slice(root_bytes_hash.as_bytes())
+	let root_bytes_hash = hex!("6bc4c138f30655b8325a0bce5cd0d385ed191bf23f0e87a4aadc6450b925d14e");
+	Hash::from_slice(&root_bytes_hash)
 }
 
 /*
@@ -70,24 +71,24 @@ fn test_js_root_hash() -> Hash {
 fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
 	match who {
 		BOB => {
-			let charlie_bytes_hash = "0x9fac775f7f3b1c731fcd206ad91742ee75ae61970cf8228d82ce0049fb444467";
-			let branch_bytes_hash = "0x43cf841b64f53a04af8466b9a2d4d0d3b708022437cac6a62d45f775f472acd0";
-			return vec![Hash::from_slice(charlie_bytes_hash.as_bytes()), Hash::from_slice(branch_bytes_hash.as_bytes())]
+			let charlie_bytes_hash = hex!("9fac775f7f3b1c731fcd206ad91742ee75ae61970cf8228d82ce0049fb444467");
+			let branch_bytes_hash = hex!("43cf841b64f53a04af8466b9a2d4d0d3b708022437cac6a62d45f775f472acd0");
+			return vec![Hash::from_slice(&charlie_bytes_hash), Hash::from_slice(&branch_bytes_hash)]
 		}
 		CHARLIE=> {
-			let bob_bytes_hash = "0xaee41e97c2317c241ed0a691b44af21d207e6f95ec68d166b1fb0729de464ce1";
-			let branch_bytes_hash = "0x43cf841b64f53a04af8466b9a2d4d0d3b708022437cac6a62d45f775f472acd0";
-			return vec![Hash::from_slice(bob_bytes_hash.as_bytes()), Hash::from_slice(branch_bytes_hash.as_bytes())]
+			let bob_bytes_hash = hex!("aee41e97c2317c241ed0a691b44af21d207e6f95ec68d166b1fb0729de464ce1");
+			let branch_bytes_hash = hex!("43cf841b64f53a04af8466b9a2d4d0d3b708022437cac6a62d45f775f472acd0");
+			return vec![Hash::from_slice(&bob_bytes_hash), Hash::from_slice(&branch_bytes_hash)]
 		}
 		DONNA => {
-			let eva_bytes_hash = "0x44d61289b4411af94ca6fac7a415b5ae2bc090540338c634136e7ec3cfca233c";
-			let branch_bytes_hash = "0xee71d4699eb6d5be5351f7074c7667d8cfbfe0f9364906e599946313e630a80f";
-			return vec![Hash::from_slice(eva_bytes_hash.as_bytes()), Hash::from_slice(branch_bytes_hash.as_bytes())]		
+			let eva_bytes_hash = hex!("44d61289b4411af94ca6fac7a415b5ae2bc090540338c634136e7ec3cfca233c");
+			let branch_bytes_hash = hex!("ee71d4699eb6d5be5351f7074c7667d8cfbfe0f9364906e599946313e630a80f");
+			return vec![Hash::from_slice(&eva_bytes_hash), Hash::from_slice(&branch_bytes_hash)]		
 		}
 		EVA => {
-			let donna_bytes_hash = "0xf330cb1be8b183c06cc551cf4505a13638f306e80a2d9addbf4eeb637dd24cf5";
-			let branch_bytes_hash = "0xee71d4699eb6d5be5351f7074c7667d8cfbfe0f9364906e599946313e630a80f";
-			return vec![Hash::from_slice(donna_bytes_hash.as_bytes()), Hash::from_slice(branch_bytes_hash.as_bytes())]
+			let donna_bytes_hash = hex!("f330cb1be8b183c06cc551cf4505a13638f306e80a2d9addbf4eeb637dd24cf5");
+			let branch_bytes_hash = hex!("ee71d4699eb6d5be5351f7074c7667d8cfbfe0f9364906e599946313e630a80f");
+			return vec![Hash::from_slice(&donna_bytes_hash), Hash::from_slice(&branch_bytes_hash)]
 		}
 		_ => {vec![]}
 	}
