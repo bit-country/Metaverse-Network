@@ -33,7 +33,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		/// Specifies the origin check provided by the bridge for calls that can only be called by
 		/// the bridge pallet
-		type BridgeOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		type BridgeOrigin: EnsureOrigin<Self::Origin>;
 		/// The currency mechanism.
 		type Currency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>;
 		/// The nft handling mechanism.
@@ -180,8 +180,9 @@ pub mod pallet {
 		/// Executes a simple currency transfer using the bridge account as the source
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		pub fn transfer(origin: OriginFor<T>, to: T::AccountId, amount: Balance, _rid: ResourceId) -> DispatchResult {
-			let source = T::BridgeOrigin::ensure_origin(origin)?;
-			T::Currency::transfer(FungibleTokenId::NativeToken(0), &source, &to, amount.into())?;
+			T::BridgeOrigin::ensure_origin(origin.clone())?;
+			let bridge_origin = ensure_signed(origin)?;
+			T::Currency::transfer(FungibleTokenId::NativeToken(0), &bridge_origin, &to, amount.into())?;
 			Ok(())
 		}
 
@@ -195,8 +196,9 @@ pub mod pallet {
 			resource_id: ResourceId,
 			metadata: NftMetadata,
 		) -> DispatchResult {
-			let bridge_origin = T::BridgeOrigin::ensure_origin(origin)?;
+			T::BridgeOrigin::ensure_origin(origin.clone())?;
 
+			let bridge_origin = ensure_signed(origin)?;
 			// Get collection id from resource_id
 			let class_id = Self::class_ids(resource_id).ok_or(Error::<T>::ClassIdIsNotRegistered)?;
 
@@ -224,7 +226,7 @@ pub mod pallet {
 							if let Ok(_mint_succeeded) =
 								T::NFTHandler::mint_token_with_id(&to, class_id, token_id, metadata, Attributes::new())
 							{
-								Self::deposit_event(Event::NonFungibleBridgeExecuted(
+								Self::deposit_event(Event::NonFungibleBridgeInExecuted(
 									resource_id,
 									class_id,
 									token_id,
@@ -279,7 +281,7 @@ pub mod pallet {
 			resource_id: ResourceId,
 			currency_id: FungibleTokenId,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			T::BridgeOrigin::ensure_origin(origin)?;
 			ensure!(
 				!ResourceIds::<T>::contains_key(currency_id) && !CurrencyIds::<T>::contains_key(resource_id),
 				Error::<T>::ResourceTokenIdAlreadyExist,
@@ -294,7 +296,7 @@ pub mod pallet {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn remove_resource_token_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
-			ensure_root(origin)?;
+			T::BridgeOrigin::ensure_origin(origin)?;
 			if let Some(currency_id) = CurrencyIds::<T>::take(resource_id) {
 				ResourceIds::<T>::remove(currency_id);
 				Self::deposit_event(Event::RemoveResourceTokenId(resource_id, currency_id));
@@ -311,7 +313,7 @@ pub mod pallet {
 			resource_id: ResourceId,
 			class_id: ClassId,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			T::BridgeOrigin::ensure_origin(origin)?;
 			ensure!(
 				!NftResourceIds::<T>::contains_key(class_id) && !ClassIds::<T>::contains_key(resource_id),
 				Error::<T>::ResourceTokenIdAlreadyExist,
@@ -326,7 +328,7 @@ pub mod pallet {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn remove_resource_nft_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
-			ensure_root(origin)?;
+			T::BridgeOrigin::ensure_origin(origin)?;
 
 			if let Some(class_id) = ClassIds::<T>::take(resource_id) {
 				NftResourceIds::<T>::remove(class_id);

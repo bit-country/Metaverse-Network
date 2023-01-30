@@ -5222,6 +5222,7 @@ dependencies = [
  "getrandom 0.2.7",
  "hex-literal",
  "metaverse-runtime-common",
+ "modules-bridge",
  "orml-benchmarking",
  "orml-currencies",
  "orml-nft",
