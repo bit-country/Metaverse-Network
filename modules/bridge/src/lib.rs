@@ -7,15 +7,21 @@ use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::MultiCurrencyExtended;
 use sp_arithmetic::traits::SaturatedConversion;
-use sp_core::U256;
+use sp_core::{H160, U256};
 use sp_std::prelude::*;
 
 pub use pallet::*;
 use primitives::{Balance, FungibleTokenId};
 
-pub type ResourceId = [u8; 32];
+pub type ResourceId = H160;
 pub type ChainId = u8;
 pub type DepositNonce = u64;
+
+#[cfg(all(feature = "std", test))]
+mod mock;
+
+#[cfg(all(feature = "std", test))]
+mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
