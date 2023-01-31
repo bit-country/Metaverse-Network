@@ -5397,6 +5397,7 @@ dependencies = [
 name = "modules-bridge"
 version = "0.0.1"
 dependencies = [
+ "auction-manager",
  "bit-country-primitives",
  "blake2-rfc",
  "core-primitives",

@@ -1,17 +1,22 @@
 #![cfg(test)]
 
 use frame_support::traits::{EqualPrivilegeOnly, Nothing};
-use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
+use frame_support::{construct_runtime, ord_parameter_types, pallet_prelude::Hooks, parameter_types, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
-use sp_runtime::traits::{AccountIdConversion, One};
+use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use std::collections::BTreeMap;
 
-use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
+use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
+use core_primitives::{
+	Attributes, CollectionType, MetaverseInfo, MetaverseMetadata, MetaverseTrait, NFTTrait, NftAssetData, NftClassData,
+	NftMetadata, TokenType,
+};
 use primitives::{
-	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId, NftOffer,
-	UndeployedLandBlockId,
+	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, GroupCollectionId,
+	ItemId, MapSpotId, NftOffer, TokenId, UndeployedLandBlockId,
 };
 
 use crate as bridge;
@@ -20,6 +25,10 @@ use super::*;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 256;
+}
+
+ord_parameter_types! {
+	pub const One: AccountId = ALICE;
 }
 
 pub type AccountId = u128;
@@ -34,6 +43,14 @@ pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const BOB_METAVERSE_ID: MetaverseId = 2;
+
+pub const CLASS_FUND_ID: AccountId = 123;
+pub const BENEFICIARY_ID: AccountId = 99;
+pub const ASSET_ID_1: TokenId = 101;
+pub const ASSET_ID_2: TokenId = 100;
+pub const ASSET_CLASS_ID: ClassId = 5;
+pub const ASSET_TOKEN_ID: TokenId = 6;
+pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
 
 pub const ESTATE_ID_EXIST: EstateId = 0;
 pub const ESTATE_ID_EXIST_1: EstateId = 1;
@@ -133,11 +150,12 @@ impl orml_tokens::Config for Runtime {
 parameter_types! {
 	pub const BridgeSovereignPalletId: PalletId = PalletId(*b"bit/brgd");
 }
+
 impl Config for Runtime {
 	type Event = Event;
 	type BridgeOrigin = EnsureSignedBy<One, AccountId>;
 	type Currency = Tokens;
-	type NFTHandler = NFTModule;
+	type NFTHandler = MockNFTHandler;
 	type NativeCurrencyId = NativeCurrencyId;
 	type PalletId = BridgeSovereignPalletId;
 }
@@ -166,38 +184,12 @@ parameter_types! {
 	pub MaxMetadata: u32 = 10;
 }
 
-impl pallet_nft::Config for Runtime {
-	type Event = Event;
-	type Currency = Balances;
-	type Treasury = MetaverseNetworkTreasuryPalletId;
-	type PalletId = NftPalletId;
-	type AuctionHandler = AuctionModule;
-	type WeightInfo = ();
-	type MaxBatchTransfer = MaxBatchTransfer;
-	type MaxBatchMinting = MaxBatchMinting;
-	type MaxMetadata = MaxMetadata;
-	type MultiCurrency = Currencies;
-	type MiningResourceId = MiningCurrencyId;
-	type AssetMintingFee = AssetMintingFee;
-	type ClassMintingFee = ClassMintingFee;
-}
-
 parameter_types! {
 	pub MaxClassMetadata: u32 = 1024;
 	pub MaxTokenMetadata: u32 = 1024;
 	pub AssetMintingFee: Balance = 1;
 	pub ClassMintingFee: Balance = 2;
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
-}
-
-impl orml_nft::Config for Runtime {
-	type ClassId = u32;
-	type TokenId = u64;
-	type Currency = Balances;
-	type ClassData = NftClassData<Balance>;
-	type TokenData = NftAssetData<Balance>;
-	type MaxClassMetadata = MaxClassMetadata;
-	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -213,8 +205,6 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
-		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		BridgeModule: bridge::{Pallet, Call, Storage, Event<T>},
 	}
 );
@@ -269,5 +259,191 @@ pub fn run_to_block(n: u64) {
 		System::on_finalize(System::block_number());
 		System::set_block_number(System::block_number() + 1);
 		System::on_initialize(System::block_number());
+	}
+}
+fn test_attributes(x: u8) -> Attributes {
+	let mut attr: Attributes = BTreeMap::new();
+	attr.insert(vec![x, x + 5], vec![x, x + 10]);
+	attr
+}
+
+pub struct MockNFTHandler;
+
+impl NFTTrait<AccountId, Balance> for MockNFTHandler {
+	type TokenId = TokenId;
+	type ClassId = ClassId;
+
+	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		let nft_value = *asset_id;
+		if (*who == ALICE && (nft_value.1 == 1 || nft_value.1 == 3))
+			|| (*who == BOB && (nft_value.1 == 2 || nft_value.1 == 4))
+			|| (*who == ALICE && (nft_value.1 == 100 || nft_value.1 == 101))
+		{
+			return Ok(true);
+		}
+		Ok(false)
+	}
+
+	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		Ok(false)
+	}
+
+	fn check_collection_and_class(
+		collection_id: GroupCollectionId,
+		class_id: Self::ClassId,
+	) -> Result<bool, DispatchError> {
+		if class_id == ASSET_CLASS_ID && collection_id == ASSET_COLLECTION_ID {
+			return Ok(true);
+		}
+		Ok(false)
+	}
+	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
+		Ok(ASSET_COLLECTION_ID)
+	}
+
+	fn create_token_class(
+		sender: &AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
+	) -> Result<ClassId, DispatchError> {
+		match *sender {
+			ALICE => {
+				if collection_id == 0 {
+					Ok(0)
+				} else if collection_id == 1 {
+					Ok(1)
+				} else {
+					Ok(2)
+				}
+			}
+			BOB => Ok(3),
+			BENEFICIARY_ID => Ok(ASSET_CLASS_ID),
+			_ => Ok(100),
+		}
+	}
+
+	fn mint_token(
+		sender: &AccountId,
+		class_id: ClassId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<TokenId, DispatchError> {
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => {
+				if class_id == 15 {
+					return Ok(ASSET_ID_1);
+				} else if class_id == 16 {
+					return Ok(ASSET_ID_2);
+				} else {
+					return Ok(200);
+				}
+			}
+			_ => {
+				if class_id == 0 {
+					return Ok(1000);
+				} else {
+					return Ok(1001);
+				}
+			}
+		}
+	}
+
+	fn transfer_nft(from: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+		Ok(())
+	}
+
+	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+		Ok(())
+	}
+	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+		Ok(true)
+	}
+
+	fn get_class_fund(class_id: &Self::ClassId) -> AccountId {
+		CLASS_FUND_ID
+	}
+
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
+		let new_data = NftClassData {
+			deposit: 0,
+			attributes: test_attributes(1),
+			token_type: TokenType::Transferable,
+			collection_type: CollectionType::Collectable,
+			is_locked: false,
+			royalty_fee: Perbill::from_percent(0u32),
+			mint_limit: None,
+			total_minted_tokens: 0u32,
+		};
+		Ok(new_data)
+	}
+
+	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {
+		todo!()
+	}
+
+	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
+		todo!()
+	}
+
+	fn get_nft_class_detail(_class_id: Self::ClassId) -> Result<NftClassData<Balance>, DispatchError> {
+		let new_data = NftClassData {
+			deposit: 0,
+			attributes: test_attributes(1),
+			token_type: TokenType::Transferable,
+			collection_type: CollectionType::Collectable,
+			is_locked: false,
+			royalty_fee: Perbill::from_percent(0u32),
+			mint_limit: None,
+			total_minted_tokens: 0u32,
+		};
+		Ok(new_data)
+	}
+
+	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
+		Ok(10u64)
+	}
+
+	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError> {
+		Ok(ALICE)
+	}
+
+	fn mint_token_with_id(
+		sender: &AccountId,
+		class_id: Self::ClassId,
+		token_id: Self::TokenId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<Self::TokenId, DispatchError> {
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => {
+				if class_id == 15 {
+					return Ok(ASSET_ID_1);
+				} else if class_id == 16 {
+					return Ok(ASSET_ID_2);
+				} else {
+					return Ok(200);
+				}
+			}
+			_ => {
+				if class_id == 0 {
+					return Ok(1000);
+				} else {
+					return Ok(1001);
+				}
+			}
+		}
 	}
 }
