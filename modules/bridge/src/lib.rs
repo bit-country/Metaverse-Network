@@ -25,9 +25,11 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
-	use sp_runtime::traits::AccountIdConversion;
+	use sp_arithmetic::traits::Saturating;
+	use sp_runtime::traits::{AccountIdConversion, CheckedDiv};
 
 	use core_primitives::NFTTrait;
 	use primitives::{Attributes, ClassId, NftMetadata, TokenId};
@@ -41,15 +43,18 @@ pub mod pallet {
 		/// the bridge pallet
 		type BridgeOrigin: EnsureOrigin<Self::Origin>;
 		/// The currency mechanism.
-		type Currency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>;
+		type Currency: ReservableCurrency<Self::AccountId>
+			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 		/// The nft handling mechanism.
-		type NFTHandler: NFTTrait<Self::AccountId, Balance, ClassId = ClassId, TokenId = TokenId>;
+		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 		/// Native currency
 		type NativeCurrencyId: Get<FungibleTokenId>;
 		/// The sovereign pallet
 		#[pallet::constant]
 		type PalletId: Get<PalletId>;
 	}
+
+	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::error]
 	pub enum Error<T> {
@@ -79,7 +84,7 @@ pub mod pallet {
 		/// [resource_id token_id]
 		RemoveResourceTokenId(ResourceId, FungibleTokenId),
 		/// [chainId, min_fee, fee_scale]
-		FeeUpdated(ChainId, Balance, u32),
+		FeeUpdated(ChainId, BalanceOf<T>, u32),
 		/// FungibleTransfer is for relaying fungibles (dest_id, resource_id, amount,
 		/// recipient, metadata)
 		FungibleTransfer(ChainId, ResourceId, U256, Vec<u8>, Vec<u8>),
@@ -111,7 +116,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
-	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, ChainId, (Balance, u32), ValueQuery>;
+	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, ChainId, (BalanceOf<T>, u32), ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn currency_ids)]
@@ -126,7 +131,7 @@ pub mod pallet {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		pub fn sudo_change_fee(
 			origin: OriginFor<T>,
-			min_fee: Balance,
+			min_fee: BalanceOf<T>,
 			fee_scale: u32,
 			dest_id: ChainId,
 		) -> DispatchResult {
@@ -142,7 +147,7 @@ pub mod pallet {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		pub fn transfer_native(
 			origin: OriginFor<T>,
-			amount: Balance,
+			amount: BalanceOf<T>,
 			recipient: Vec<u8>,
 			dest_id: ChainId,
 		) -> DispatchResult {
@@ -152,20 +157,17 @@ pub mod pallet {
 			let bridge_id = T::PalletId::get().into_account_truncating();
 			ensure!(BridgeFee::<T>::contains_key(&dest_id), Error::<T>::FeeOptionsMissing);
 			let (min_fee, fee_scale) = Self::bridge_fee(dest_id);
-			let fee_estimated = amount
-				.saturating_mul(fee_scale.into())
-				.checked_div(1000u32.into())
-				.ok_or("Overflow")?;
+			let fee_estimated = amount.saturating_mul(fee_scale.into());
 			let fee = if fee_estimated > min_fee {
 				fee_estimated
 			} else {
 				min_fee
 			};
 			T::Currency::transfer(
-				FungibleTokenId::NativeToken(0),
 				&source,
 				&bridge_id,
 				(amount + fee).into(),
+				ExistenceRequirement::AllowDeath,
 			)?;
 
 			Self::deposit_event(Event::FungibleTransfer(
@@ -182,15 +184,6 @@ pub mod pallet {
 		//
 		// Executable calls. These can be triggered by a bridge transfer initiated on another chain
 		//
-
-		/// Executes a simple currency transfer using the bridge account as the source
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
-		pub fn transfer(origin: OriginFor<T>, to: T::AccountId, amount: Balance, _rid: ResourceId) -> DispatchResult {
-			T::BridgeOrigin::ensure_origin(origin.clone())?;
-			let bridge_origin = ensure_signed(origin)?;
-			T::Currency::transfer(FungibleTokenId::NativeToken(0), &bridge_origin, &to, amount.into())?;
-			Ok(())
-		}
 
 		/// Execute NFT minting using bridge account as the source
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
@@ -264,7 +257,7 @@ pub mod pallet {
 			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
 			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
 
-			T::Currency::transfer(FungibleTokenId::NativeToken(0), &source, &bridge_id, (min_fee).into())?;
+			T::Currency::transfer(&source, &bridge_id, min_fee.into(), ExistenceRequirement::AllowDeath)?;
 
 			T::NFTHandler::transfer_nft(&source, &bridge_id, &token)?;
 
