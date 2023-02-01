@@ -1320,7 +1320,7 @@ impl asset_manager::Config for Runtime {
 impl modules_bridge::Config for Runtime {
 	type Event = Event;
 	type BridgeOrigin = EnsureRootOrTwoThirdsCouncilCollective;
-	type Currency = Tokens;
+	type Currency = Balances;
 	type NFTHandler = Nft;
 	type NativeCurrencyId = GetNativeCurrencyId;
 	type PalletId = BridgeSovereignPalletId;
