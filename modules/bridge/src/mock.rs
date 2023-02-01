@@ -153,8 +153,8 @@ parameter_types! {
 
 impl Config for Runtime {
 	type Event = Event;
-	type BridgeOrigin = EnsureSignedBy<One, AccountId>;
-	type Currency = Tokens;
+	type BridgeOrigin = EnsureRoot<AccountId>;
+	type Currency = Balances;
 	type NFTHandler = MockNFTHandler;
 	type NativeCurrencyId = NativeCurrencyId;
 	type PalletId = BridgeSovereignPalletId;
