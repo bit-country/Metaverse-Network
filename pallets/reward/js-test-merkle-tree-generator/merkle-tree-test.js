@@ -12,7 +12,7 @@ import { stringToU8a, numberToU8a} from '@polkadot/util';
 
 
 // (1) Get data and encode it using SCALE 
-// SCALE Librarires:
+// SCALE Libraries:
 // https://github.com/paritytech/scale-ts
 // https://github.com/soramitsu/scale-codec-js-library
 // https://github.com/LimeChain/as-scale-codec
