@@ -320,7 +320,13 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 10000), (BOB, 20000), (CHARLIE, 2000), (DONNA, 100000), (EVA, 1000)],
+			balances: vec![
+				(ALICE, 10000),
+				(BOB, 20000),
+				(CHARLIE, 2000),
+				(DONNA, 100000),
+				(EVA, 1000),
+			],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
