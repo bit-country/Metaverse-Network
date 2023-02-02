@@ -1,21 +1,13 @@
-// ES 6
-//import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
-import { MerkleTree } from 'merkletreejs';
-import { keccak256AsU8a } from '@polkadot/util-crypto';
-import { stringToU8a, numberToU8a} from '@polkadot/util';
 
-//import { ScaleString } from "as-scale-codec";
-
-// CommonJS
 //const StandardMerkleTree = require("@openzeppelin/merkle-tree");
-//const { MerkleTree } = require('merkletreejs');
+const MerkleTree = require ('merkletreejs');
+const keccak256AsU8a = require ('@polkadot/util-crypto');
 
 
 // (1) Get data and encode it using SCALE 
 // SCALE Libraries:
 // https://github.com/paritytech/scale-ts
 // https://github.com/soramitsu/scale-codec-js-library
-// https://github.com/LimeChain/as-scale-codec
 
 const values = [
    [2, 10],

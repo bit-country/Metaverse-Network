@@ -1,7 +1,5 @@
 {
-  "type": "module",
   "dependencies": {
-    "@openzeppelin/merkle-tree": "^1.0.2",
     "@polkadot/util": "^10.3.1",
     "@polkadot/util-crypto": "^10.3.1",
     "merkletreejs": "^0.3.9"
