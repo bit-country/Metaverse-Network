@@ -2176,9 +2176,8 @@ fn js_encoded_data_matches_blockchain_encoded_data() {
 }
 
 #[test]
-fn js_generated_leafs_match_blockchain_generated_leafs(){
-	ExtBuilder::default().build().execute_with(|| { 
-
+fn js_generated_leafs_match_blockchain_generated_leafs() {
+	ExtBuilder::default().build().execute_with(|| {
 		let bob_hash = Hash::from_slice(&hex!(
 			"64b39d59f54b02b6d862584c58735a0d3ff7c8d1ee46250809f4c244ca13d5ca"
 		));
@@ -2188,12 +2187,12 @@ fn js_generated_leafs_match_blockchain_generated_leafs(){
 			"d90b5864238131f03c065e80a5e0c04aadb2493984702ef3bb279dcd3cb8ac7d"
 		));
 		assert_eq!(test_claim_hash(CHARLIE, 25), charlie_hash);
-	
+
 		let donna_hash = Hash::from_slice(&hex!(
 			"77ead2ce9a216ed6ac05f5d8a2c7d12373428794b33d56f65163073769976208"
 		));
 		assert_eq!(test_claim_hash(DONNA, 50), donna_hash);
-	
+
 		let eva_hash = Hash::from_slice(&hex!(
 			"7ecf6a4f9809680533d36217de280ae07964f4c65595308405e2c860bc52d4bf"
 		));
@@ -2232,7 +2231,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 			Origin::signed(ALICE),
 			0,
 			160,
-			test_js_root_hash()// get root hash value from JS
+			test_js_root_hash() // get root hash value from JS
 		));
 
 		run_to_block(17);
