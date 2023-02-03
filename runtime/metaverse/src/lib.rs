@@ -1306,7 +1306,7 @@ impl reward::Config for Runtime {
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
 	type MaxLeafNodes = MaxLeafNodes;
-	type WeightInfo = ();
+	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 
 impl asset_manager::Config for Runtime {

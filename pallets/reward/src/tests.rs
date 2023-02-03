@@ -71,30 +71,24 @@ fn test_js_root_hash() -> Hash {
 fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
 	match who {
 		BOB => {
-			let charlie_bytes_hash = hex!("d90b5864238131f03c065e80a5e0c04aadb2493984702ef3bb279dcd3cb8ac7d");
-			let branch_bytes_hash = hex!("addd535f444323fab87b3350449e85e8ca478541d55a3697caa567d06b45ec3a");
-			return vec![
-				Hash::from_slice(&charlie_bytes_hash),
-				Hash::from_slice(&branch_bytes_hash),
-			];
+			let charlie_bytes_hash = hex!("08ff25495489b40bfe5e03a4e8f6fa72a789a7ae3ba2d8369663f6930046d5ed");
+			let branch_bytes_hash = hex!("5638886e07230f89746726af9a681bd5da72c28e0e522e0f19e6510e27ae769f");
+			return vec![Hash::from_slice(&charlie_bytes_hash), Hash::from_slice(&branch_bytes_hash)]
 		}
-		CHARLIE => {
-			let bob_bytes_hash = hex!("64b39d59f54b02b6d862584c58735a0d3ff7c8d1ee46250809f4c244ca13d5ca");
-			let branch_bytes_hash = hex!("addd535f444323fab87b3350449e85e8ca478541d55a3697caa567d06b45ec3a");
-			return vec![Hash::from_slice(&bob_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
+		CHARLIE=> {
+			let bob_bytes_hash = hex!("ef4629f1a27b6a1332317e1d6fc565596d1b223a58f1042439b8873a29e1bd16");
+			let branch_bytes_hash = hex!("5638886e07230f89746726af9a681bd5da72c28e0e522e0f19e6510e27ae769f");
+			return vec![Hash::from_slice(&bob_bytes_hash), Hash::from_slice(&branch_bytes_hash)]
 		}
 		DONNA => {
-			let eva_bytes_hash = hex!("7ecf6a4f9809680533d36217de280ae07964f4c65595308405e2c860bc52d4bf");
-			let branch_bytes_hash = hex!("8903505f09ba64010935c4ff9155d37f572578ffdf205dbfdf4381d41a9a83cd");
-			return vec![Hash::from_slice(&eva_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
+			let eva_bytes_hash = hex!("4348c6e6f8cbffc49ace3c2571561b4814a9f774cf0b390ea66fc065bae67bb5");
+			let branch_bytes_hash = hex!("ff4138645c4062409d622aee697dbd1e277536d2fb67bb5c90f1bb598139368d");
+			return vec![Hash::from_slice(&eva_bytes_hash), Hash::from_slice(&branch_bytes_hash)]		
 		}
 		EVA => {
-			let donna_bytes_hash = hex!("77ead2ce9a216ed6ac05f5d8a2c7d12373428794b33d56f65163073769976208");
-			let branch_bytes_hash = hex!("8903505f09ba64010935c4ff9155d37f572578ffdf205dbfdf4381d41a9a83cd");
-			return vec![
-				Hash::from_slice(&donna_bytes_hash),
-				Hash::from_slice(&branch_bytes_hash),
-			];
+			let donna_bytes_hash = hex!("de2ba7c7af7d72edbf7179b62e1929d14e51334490821323091901b371e6463d");
+			let branch_bytes_hash = hex!("ff4138645c4062409d622aee697dbd1e277536d2fb67bb5c90f1bb598139368d");
+			return vec![Hash::from_slice(&donna_bytes_hash), Hash::from_slice(&branch_bytes_hash)]
 		}
 		_ => {
 			vec![]
@@ -2176,11 +2170,10 @@ fn js_encoded_data_matches_blockchain_encoded_data() {
 }
 
 #[test]
-fn js_generated_leafs_match_blockchain_generated_leafs() {
-	ExtBuilder::default().build().execute_with(|| {
-		let bob_hash = Hash::from_slice(&hex!(
-			"64b39d59f54b02b6d862584c58735a0d3ff7c8d1ee46250809f4c244ca13d5ca"
-		));
+fn js_generated_leafs_match_blockchain_generated_leafs(){
+	ExtBuilder::default().build().execute_with(|| { 
+
+		let bob_hash = Hash::from_slice(&hex!("ef4629f1a27b6a1332317e1d6fc565596d1b223a58f1042439b8873a29e1bd16"));
 		assert_eq!(test_claim_hash(BOB, 10), bob_hash);
 
 		let charlie_hash = Hash::from_slice(&hex!(
@@ -2230,8 +2223,8 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 		assert_ok!(Reward::set_reward_root(
 			Origin::signed(ALICE),
 			0,
-			160,
-			test_js_root_hash() // get root hash value from JS
+			5,
+			test_js_root_hash()// get root hash value from JS
 		));
 
 		run_to_block(17);
