@@ -6,7 +6,7 @@ const keccak256AsU8a = require ('@polkadot/util-crypto');
    NOTE:
    - Ensure that the merkle trees are balanced (there are no single leaf branches) in order to prevent forgery attack
    - In the example I use 2 different hashing functions for the leaves and the branches in order to prevent second preimage attack
-   - Leaves need to be encoded using scale in order to be validated by the Metaverse Network blockchain
+   - Leaves need to be encoded using SCALE in order to be validated by the Metaverse Network blockchain
 */
 
 // (1) Get data and encode it using SCALE 
@@ -25,12 +25,18 @@ const bob_leaf_array = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 const charlie_leaf_array = new Uint8Array([3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 const donna_leaf_array = new Uint8Array([4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 const eva_leaf_array = new Uint8Array([5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 75, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+const charlie2_leaf_array = new Uint8Array([3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 256, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+const donna2_leaf_array = new Uint8Array([4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 501, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+const eva2_leaf_array = new Uint8Array([5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 751, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
 const scale_values = [
    bob_leaf_array, 
    charlie_leaf_array, 
    donna_leaf_array, 
-   eva_leaf_array
+   eva_leaf_array,
+   charlie2_leaf_array,
+   donna2_leaf_array,
+   eva2_leaf_array
 ];
 
 // (2) Build merkle tree using double hashing for leaves
