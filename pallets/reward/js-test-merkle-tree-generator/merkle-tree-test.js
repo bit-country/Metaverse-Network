@@ -1,8 +1,13 @@
 
-//const StandardMerkleTree = require("@openzeppelin/merkle-tree");
 const MerkleTree = require ('merkletreejs');
 const keccak256AsU8a = require ('@polkadot/util-crypto');
 
+/* 
+   NOTE:
+   - Ensure that the merkle trees are balanced (there are no single leaf branches) in order to prevent forgery attack
+   - In the example I use 2 different hashing functions for the leaves and the branches in order to prevent second preimage attack
+   - Leaves need to be encoded using scale in order to be validated by the Metaverse Network blockchain
+*/
 
 // (1) Get data and encode it using SCALE 
 // SCALE Libraries:
