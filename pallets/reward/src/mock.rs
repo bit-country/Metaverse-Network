@@ -24,10 +24,9 @@ pub type Hash = H256;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
-pub const FREEDY: AccountId = 3;
-
-pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
-pub const FREE_BALANCE: Balance = 9010;
+pub const CHARLIE: AccountId = 3;
+pub const DONNA: AccountId = 4;
+pub const EVA: AccountId = 5;
 
 pub const COLLECTION_ID: u64 = 0;
 pub const CLASS_ID: u32 = 0;
@@ -321,7 +320,13 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 10000), (BOB, 20000)],
+			balances: vec![
+				(ALICE, 10000),
+				(BOB, 20000),
+				(CHARLIE, 2000),
+				(DONNA, 100000),
+				(EVA, 1000),
+			],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

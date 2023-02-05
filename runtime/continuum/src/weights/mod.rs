@@ -7,3 +7,4 @@ pub mod module_estate;
 pub mod module_metaverse;
 pub mod module_mining;
 pub mod module_nft;
+//pub mod module_reward;
