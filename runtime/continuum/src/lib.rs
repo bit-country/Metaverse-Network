@@ -1340,7 +1340,7 @@ impl nft::Config for Runtime {
 	type Currency = Balances;
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type MultiCurrency = Currencies;
-	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
+
 	type PalletId = NftPalletId;
 	type AuctionHandler = Auction;
 	type MaxBatchTransfer = MaxBatchTransfer;
@@ -1349,6 +1349,7 @@ impl nft::Config for Runtime {
 	type MiningResourceId = MiningResourceCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type WeightInfo = weights::module_nft::WeightInfo<Runtime>;
 }
 
 parameter_types! {

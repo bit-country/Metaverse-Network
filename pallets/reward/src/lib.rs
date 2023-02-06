@@ -488,7 +488,7 @@ pub mod pallet {
 		/// - `campaign_id`: the ID of the campaign for which the account is claiming reward.
 		/// - `balance`: the amount of tokens which the account will claim (required for
 		///   merkle-proof calculation).
-		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
+		/// - `leaf_nodes`: list of the merkle tree nodes required for merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
 		#[pallet::weight(T::WeightInfo::claim_reward_root()  * (1u64 + leaf_nodes.len() as u64))]
@@ -1280,7 +1280,7 @@ impl<T: Config> Pallet<T> {
 	/// Internal merkle proof calculation out of leaf node and vector of hashes of relevant leaf
 	/// nodes and branches
 	fn build_merkle_proof(raw_leaf: Vec<u8>, proof_nodes: &Vec<Hash>) -> Result<Hash, DispatchError> {
-		let mut proof: Hash = keccak_256(&raw_leaf).into();
+		let mut proof: Hash = keccak_256(&keccak_256(&raw_leaf)).into();
 
 		for leaf_node in proof_nodes {
 			proof = Self::sorted_hash_of(&proof, leaf_node);
