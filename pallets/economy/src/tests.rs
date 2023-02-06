@@ -272,6 +272,11 @@ fn unstake_should_work_for_estate() {
 			Some(OWNED_ESTATE_ID)
 		));
 
+		assert_noop!(
+			EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
+			Error::<Runtime>::StakeAmountExceedMaximumAmount
+		);
+
 		assert_ok!(EconomyModule::unstake(
 			Origin::signed(ALICE),
 			UNSTAKE_AMOUNT,
@@ -296,7 +301,7 @@ fn unstake_should_work_for_estate() {
 		assert_eq!(EconomyModule::total_estate_stake(), total_staked_balance);
 		let next_round: RoundIndex = CURRENT_ROUND.saturating_add(1);
 		assert_eq!(
-			EconomyModule::staking_exit_queue(ALICE, next_round),
+			EconomyModule::estate_staking_exit_queue((ALICE, next_round, OWNED_ESTATE_ID)),
 			Some(UNSTAKE_AMOUNT)
 		);
 	});
