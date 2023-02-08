@@ -34,27 +34,35 @@
 // --output
 // ./pallets/economy/src/weights.rs
 
-#![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
 #![allow(unused_imports)]
 #![allow(clippy::unnecessary_cast)]
 
-use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
+use frame_support::{
+	traits::Get,
+	weights::{constants::RocksDbWeight, Weight},
+};
 use sp_std::marker::PhantomData;
 
 /// Weight functions needed for economy.
-pub trait WeightInfo {	fn set_bit_power_exchange_rate() -> Weight;	fn set_power_balance() -> Weight;	fn stake_a() -> Weight;	fn stake_b() -> Weight;	fn unstake_a() -> Weight;	fn unstake_b() -> Weight;	fn withdraw_unreserved() -> Weight;}
+pub trait WeightInfo {
+	fn set_bit_power_exchange_rate() -> Weight;
+	fn set_power_balance() -> Weight;
+	fn stake_a() -> Weight;
+	fn stake_b() -> Weight;
+	fn unstake_a() -> Weight;
+	fn unstake_b() -> Weight;
+	fn withdraw_unreserved() -> Weight;
+}
 
 /// Weights for economy using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn set_bit_power_exchange_rate() -> Weight {
-		(20_400_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		(20_400_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn set_power_balance() -> Weight {
-		(20_400_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		(20_400_000 as Weight).saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn stake_a() -> Weight {
 		(50_600_000 as Weight)
@@ -84,11 +92,36 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 }
 
 // For backwards compatibility and tests
-impl WeightInfo for () {	fn set_bit_power_exchange_rate() -> Weight {
-		(20_400_000 as Weight)			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn set_power_balance() -> Weight {
-		(20_400_000 as Weight)			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn stake_a() -> Weight {
-		(50_600_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn stake_b() -> Weight {
-		(67_300_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(7 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn unstake_a() -> Weight {
-		(30_100_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn unstake_b() -> Weight {
-		(55_500_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(6 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn withdraw_unreserved() -> Weight {
-		(52_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}}
+impl WeightInfo for () {
+	fn set_bit_power_exchange_rate() -> Weight {
+		(20_400_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	fn set_power_balance() -> Weight {
+		(20_400_000 as Weight).saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+	fn stake_a() -> Weight {
+		(50_600_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(4 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+	fn stake_b() -> Weight {
+		(67_300_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(7 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(2 as Weight))
+	}
+	fn unstake_a() -> Weight {
+		(30_100_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(3 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
+	}
+	fn unstake_b() -> Weight {
+		(55_500_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(6 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(3 as Weight))
+	}
+	fn withdraw_unreserved() -> Weight {
+		(52_000_000 as Weight)
+			.saturating_add(RocksDbWeight::get().reads(1 as Weight))
+			.saturating_add(RocksDbWeight::get().writes(1 as Weight))
+	}
+}

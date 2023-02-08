@@ -32,7 +32,7 @@ pub trait Estate<AccountId> {
 		undeployed_land_block: UndeployedLandBlockId,
 	) -> Result<bool, DispatchError>;
 
-	fn get_total_land_units() -> u64;
+	fn get_total_land_units(estate_id: Option<EstateId>) -> u64;
 
 	fn get_total_undeploy_land_units() -> u64;
 
