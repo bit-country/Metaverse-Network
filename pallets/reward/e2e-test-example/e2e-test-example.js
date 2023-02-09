@@ -1,5 +1,4 @@
 import { MerkleTree} from 'merkletreejs';
-import {hexToU8a} from '@polkadot/util';
 import {keccak256AsU8a, encodeAddress, decodeAddress} from '@polkadot/util-crypto';
 import {WalkerImpl, createTupleEncoder, createArrayEncoder, encodeU128, encodeU64, encodeU32, encodeStr} from "@scale-codec/core";
 
@@ -10,15 +9,8 @@ import {WalkerImpl, createTupleEncoder, createArrayEncoder, encodeU128, encodeU6
    - Leaves need to be encoded using SCALE in order to be validated by the Metaverse Network blockchain
 */
 
-// SCALE Libraries:
-// https://github.com/paritytech/scale-ts
-// https://github.com/soramitsu/scale-codec-js-library
-
-// Simple example of SCALE encoding for a leaf 
-const bob = [2,10];
-//const bob_address = encodeAddress(WalkerImpl.encode(BigInt(bob[0]), encodeU128));
-//const bob_output_address = [...decodeAddress(bob_address), ...WalkerImpl.encode(BigInt(bob[1]), encodeU128)];
-//console.log("Bob SCALE: ", bob_output);
+// SCALE Library - https://github.com/soramitsu/scale-codec-js-library
+// You can also use https://github.com/paritytech/scale-ts
 
 // TEST DATA (VALID SCALE OUTPUT)
 const bob_leaf_array = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -51,7 +43,6 @@ const scale_values = values.map(x => [...decodeAddress(x[0]), ...WalkerImpl.enco
 //const scale_values = values.map(x => [...decodeAddress(x[0]), ...WalkerImpl.encode(x[1], encodeU32)], , ...WalkerImpl.encode(BigInt(x[2]), encodeU64))
 
 // (3) Build merkle tree using double hashing for leaves - use it ot call setRewardRoot
-//const tree = StandardMerkleTree.of(values, ["uint256", "uint256"]);
 const leaves = scale_values.map(x => keccak256AsU8a(keccak256AsU8a(x)));
 const tree = new MerkleTree(leaves, keccak256AsU8a);
 
