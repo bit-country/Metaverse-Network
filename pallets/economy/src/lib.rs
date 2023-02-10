@@ -502,7 +502,7 @@ pub mod pallet {
 		/// `estate_id`: the estate ID which funds are going to be unstaked
 		///
 		/// Emit `EstateStakingRemovedFromEconomy101` event if successful
-		#[pallet::weight(T::WeightInfo::unstake_b())]
+		#[pallet::weight(T::WeightInfo::unstake_new_estate_owner())]
 		pub fn unstake_new_estate_owner(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
 

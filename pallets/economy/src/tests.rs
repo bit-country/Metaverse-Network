@@ -25,8 +25,8 @@ use sp_std::default::Default;
 use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, TokenType};
 use mock::{Event, *};
-use primitives::GroupCollectionId;
 use primitives::staking::Bond;
+use primitives::GroupCollectionId;
 
 use super::*;
 
@@ -127,7 +127,6 @@ fn stake_should_fail_for_non_existing_estate() {
 	});
 }
 
-
 #[test]
 fn stake_should_fail_for_estate_not_owned_by_staker() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -139,20 +138,19 @@ fn stake_should_fail_for_estate_not_owned_by_staker() {
 }
 #[test]
 fn stake_should_fail_for_estate_owned_by_staker_but_having_previously_staked_bond() {
-ExtBuilder::default().build().execute_with(|| {
-		
-	let prepopulated_bond = Bond {
-		staker: BOB,
-		amount: STAKE_BALANCE
-	};
+	ExtBuilder::default().build().execute_with(|| {
+		let prepopulated_bond = Bond {
+			staker: BOB,
+			amount: STAKE_BALANCE,
+		};
 
-	EstateStakingInfo::<Runtime>::insert(&OWNED_ESTATE_ID, prepopulated_bond);
+		EstateStakingInfo::<Runtime>::insert(&OWNED_ESTATE_ID, prepopulated_bond);
 
-	assert_noop!(
-		EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
-		Error::<Runtime>::PreviousOwnerStillStakesAtEstate
-	);
-});
+		assert_noop!(
+			EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
+			Error::<Runtime>::PreviousOwnerStillStakesAtEstate
+		);
+	});
 }
 
 #[test]
@@ -259,7 +257,7 @@ fn unstake_should_fail_for_estate_the_account_has_not_staked_in() {
 	ExtBuilder::default().build().execute_with(|| {
 		let prepopulated_bond = Bond {
 			staker: BOB,
-			amount: STAKE_BALANCE
+			amount: STAKE_BALANCE,
 		};
 
 		EstateStakingInfo::<Runtime>::insert(&OWNED_ESTATE_ID, prepopulated_bond);
@@ -411,33 +409,41 @@ fn unstake_should_fail_with_existing_queue() {
 
 #[test]
 fn unstake_new_estate_owner_should_fail_if_estate_does_not_exist() {
-	ExtBuilder::default().build().execute_with(|| {	
+	ExtBuilder::default().build().execute_with(|| {
 		//assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)));
 		assert_noop!(
-			EconomyModule::unstake_new_estate_owner(Origin::signed(ALICE), 1000u64)
-			, Error::<Runtime>::StakeEstateDoesNotExist
+			EconomyModule::unstake_new_estate_owner(Origin::signed(ALICE), 1000u64),
+			Error::<Runtime>::StakeEstateDoesNotExist
 		);
 	});
 }
 
 #[test]
 fn unstake_new_estate_owner_should_fail_if_not_estate_owner() {
-	ExtBuilder::default().build().execute_with(|| {	
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)));
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(
+			Origin::signed(ALICE),
+			STAKE_BALANCE,
+			Some(OWNED_ESTATE_ID)
+		));
 		assert_noop!(
-			EconomyModule::unstake_new_estate_owner(Origin::signed(BOB), OWNED_ESTATE_ID)
-			, Error::<Runtime>::StakerNotEstateOwner
+			EconomyModule::unstake_new_estate_owner(Origin::signed(BOB), OWNED_ESTATE_ID),
+			Error::<Runtime>::StakerNotEstateOwner
 		);
 	});
 }
 
 #[test]
 fn unstake_new_estate_owner_should_fail_if_no_previous_owner_has_staked_balance_left() {
-	ExtBuilder::default().build().execute_with(|| {	
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)));
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake(
+			Origin::signed(ALICE),
+			STAKE_BALANCE,
+			Some(OWNED_ESTATE_ID)
+		));
 		assert_noop!(
-			EconomyModule::unstake_new_estate_owner(Origin::signed(ALICE), OWNED_ESTATE_ID)
-			, Error::<Runtime>::StakerNotPreviousOwner
+			EconomyModule::unstake_new_estate_owner(Origin::signed(ALICE), OWNED_ESTATE_ID),
+			Error::<Runtime>::StakerNotPreviousOwner
 		);
 	});
 }
@@ -445,16 +451,16 @@ fn unstake_new_estate_owner_should_fail_if_no_previous_owner_has_staked_balance_
 #[test]
 fn unstake_new_estate_owner_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-			
 		let prepopulated_bond = Bond {
 			staker: BOB,
-			amount: STAKE_BALANCE
+			amount: STAKE_BALANCE,
 		};
 
 		EstateStakingInfo::<Runtime>::insert(&OWNED_ESTATE_ID, prepopulated_bond);
-		assert_ok!(
-			EconomyModule::unstake_new_estate_owner(Origin::signed(ALICE), OWNED_ESTATE_ID)
-		);
+		assert_ok!(EconomyModule::unstake_new_estate_owner(
+			Origin::signed(ALICE),
+			OWNED_ESTATE_ID
+		));
 		assert_eq!(
 			last_event(),
 			Event::Economy(crate::Event::EstateStakingRemovedFromEconomy101(
@@ -463,10 +469,7 @@ fn unstake_new_estate_owner_should_work() {
 				STAKE_BALANCE
 			))
 		);
-		assert_eq!(
-			EconomyModule::get_estate_staking_info(OWNED_ESTATE_ID).is_some(),
-			false
-		);
+		assert_eq!(EconomyModule::get_estate_staking_info(OWNED_ESTATE_ID).is_some(), false);
 		assert_eq!(EconomyModule::total_estate_stake(), 0u128);
 	});
 }
