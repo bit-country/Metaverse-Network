@@ -628,7 +628,7 @@ parameter_types! {
 	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
 	pub const MaxLeasePeriod: u32 = 1000000;
 	pub const LeaseOfferExpiryPeriod: u32 = 10000;
-
+	pub const MaximumEstateStake: Balance = 1000 * DOLLARS;
 }
 
 impl estate::Config for Runtime {
@@ -1066,6 +1066,7 @@ impl economy::Config for Runtime {
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
+	type MaximumEstateStake = MaximumEstateStake;
 }
 
 impl emergency::Config for Runtime {

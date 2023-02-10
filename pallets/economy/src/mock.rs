@@ -103,6 +103,7 @@ parameter_types! {
 	pub const MiningTreasuryPalletId: PalletId = PalletId(*b"bit/fund");
 	pub const MaxTokenMetadata: u32 = 1024;
 	pub const MinimumStake: Balance = 100;
+	pub const MaximumEstateStake: Balance = 100;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -165,7 +166,7 @@ impl Estate<u128> for EstateHandler {
 		Ok(true)
 	}
 
-	fn get_total_land_units() -> u64 {
+	fn get_total_land_units(estate_id: Option<EstateId>) -> u64 {
 		10
 	}
 
@@ -221,6 +222,7 @@ impl Config for Runtime {
 	type EconomyTreasury = EconomyPalletId;
 	type MiningCurrencyId = MiningCurrencyId;
 	type MinimumStake = MinimumStake;
+	type MaximumEstateStake = MaximumEstateStake;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = ();
 }
