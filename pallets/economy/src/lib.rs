@@ -496,6 +496,56 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Unstake native token (staked by previous owner) from staking ledger.
+		///
+		/// The dispatch origin for this call must be _Signed_. Works if the origin is the estate owner and the previous owner got staked funds
+		///
+		/// `estate_id`: the estate ID which funds are going to be unstaked
+		///
+		/// Emit `EstateStakingRemovedFromEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::unstake_b())]
+		pub fn unstake_new_estate_owner(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(
+				T::EstateHandler::check_estate(estate_id.clone())?,
+				Error::<T>::StakeEstateDoesNotExist
+			);
+
+			ensure!(
+				T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
+				Error::<T>::StakerNotEstateOwner
+			);
+
+			let staking_bond_value = EstateStakingInfo::<T>::get(estate_id);
+			match staking_bond_value {
+				Some(staking_info) => {
+					ensure!(
+						staking_info.staker.clone() != who.clone(),
+						Error::<T>::StakerNotPreviousOwner
+					);
+					let staked_balance = staking_info.amount;
+		
+					let current_round = T::RoundHandler::get_current_round_info();
+					let next_round = current_round.current.saturating_add(One::one());
+		
+					// This exit queue will be executed by exit_staking extrinsics to unreserved token
+					ExitQueue::<T>::insert(&staking_info.staker, next_round.clone(), staked_balance);
+					EstateStakingInfo::<T>::remove(&estate_id);
+		
+					let new_total_staked = TotalEstateStake::<T>::get().saturating_sub(staked_balance);
+					<TotalEstateStake<T>>::put(new_total_staked);
+		
+					Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(who, estate_id, staked_balance));
+					Ok(().into())
+				}
+				None => {
+					Err(Error::<T>::StakeEstateDoesNotExist.into())
+				}
+			}
+		}
+			
+
 		/// Withdraw unstaked token from unstaking queue. The unstaked amount will be unreserved and
 		/// become transferrable
 		///
