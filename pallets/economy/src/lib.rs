@@ -58,7 +58,7 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::staking::{RoundInfo, Bond};
+	use primitives::staking::{Bond, RoundInfo};
 	use primitives::{ClassId, GroupCollectionId, NftId};
 
 	use super::*;
@@ -140,7 +140,8 @@ pub mod pallet {
 	/// Estate-staking info
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_staking_info)]
-	pub type EstateStakingInfo<T: Config> = StorageMap<_, Twox64Concat, EstateId, Bond<T::AccountId, BalanceOf<T>>, OptionQuery>;
+	pub type EstateStakingInfo<T: Config> =
+		StorageMap<_, Twox64Concat, EstateId, Bond<T::AccountId, BalanceOf<T>>, OptionQuery>;
 
 	/// Self-staking exit queue info
 	/// This will keep track of stake exits queue, unstake only allows after 1 round
@@ -349,7 +350,7 @@ pub mod pallet {
 						}
 						_ => {}
 					}
-					
+
 					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
@@ -449,13 +450,10 @@ pub mod pallet {
 					let staking_bond_value = EstateStakingInfo::<T>::get(estate_id);
 					match staking_bond_value {
 						Some(staking_bond) => {
-							ensure!(
-								staking_bond.staker == who.clone(),
-								Error::<T>::NoFundsStakedAtEstate
-							);
+							ensure!(staking_bond.staker == who.clone(), Error::<T>::NoFundsStakedAtEstate);
 							staked_balance = staking_bond.amount;
 						}
-						_=> {}
+						_ => {}
 					}
 					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
@@ -498,7 +496,8 @@ pub mod pallet {
 
 		/// Unstake native token (staked by previous owner) from staking ledger.
 		///
-		/// The dispatch origin for this call must be _Signed_. Works if the origin is the estate owner and the previous owner got staked funds
+		/// The dispatch origin for this call must be _Signed_. Works if the origin is the estate
+		/// owner and the previous owner got staked funds
 		///
 		/// `estate_id`: the estate ID which funds are going to be unstaked
 		///
@@ -525,26 +524,27 @@ pub mod pallet {
 						Error::<T>::StakerNotPreviousOwner
 					);
 					let staked_balance = staking_info.amount;
-		
+
 					let current_round = T::RoundHandler::get_current_round_info();
 					let next_round = current_round.current.saturating_add(One::one());
-		
+
 					// This exit queue will be executed by exit_staking extrinsics to unreserved token
 					ExitQueue::<T>::insert(&staking_info.staker, next_round.clone(), staked_balance);
 					EstateStakingInfo::<T>::remove(&estate_id);
-		
+
 					let new_total_staked = TotalEstateStake::<T>::get().saturating_sub(staked_balance);
 					<TotalEstateStake<T>>::put(new_total_staked);
-		
-					Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(who, estate_id, staked_balance));
+
+					Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(
+						who,
+						estate_id,
+						staked_balance,
+					));
 					Ok(().into())
 				}
-				None => {
-					Err(Error::<T>::StakeEstateDoesNotExist.into())
-				}
+				None => Err(Error::<T>::StakeEstateDoesNotExist.into()),
 			}
 		}
-			
 
 		/// Withdraw unstaked token from unstaking queue. The unstaked amount will be unreserved and
 		/// become transferrable
@@ -637,10 +637,7 @@ pub mod pallet {
 					let staking_bond_value = EstateStakingInfo::<T>::get(estate_id);
 					match staking_bond_value {
 						Some(staking_bond) => {
-							ensure!(
-								staking_bond.staker == who.clone(),
-								Error::<T>::NoFundsStakedAtEstate
-							);
+							ensure!(staking_bond.staker == who.clone(), Error::<T>::NoFundsStakedAtEstate);
 							staked_balance = staking_bond.amount;
 						}
 						_ => {}
@@ -663,7 +660,7 @@ pub mod pallet {
 					} else {
 						let new_staking_bond = Bond {
 							staker: who.clone(),
-							amount: remaining
+							amount: remaining,
 						};
 						EstateStakingInfo::<T>::insert(&estate_id, new_staking_bond);
 					}
