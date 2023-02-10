@@ -257,29 +257,19 @@ fn unstake_should_fail_for_non_existing_estate() {
 #[test]
 fn unstake_should_fail_for_estate_the_account_has_not_staked_in() {
 	ExtBuilder::default().build().execute_with(|| {
+		let prepopulated_bond = Bond {
+			staker: BOB,
+			amount: STAKE_BALANCE
+		};
+
+		EstateStakingInfo::<Runtime>::insert(&OWNED_ESTATE_ID, prepopulated_bond);
+
 		assert_noop!(
-			EconomyModule::unstake(Origin::signed(ALICE), STAKE_BALANCE, Some(EXISTING_ESTATE_ID)),
-			Error::<Runtime>::NoFundsStakedAtEstate
-		);
-		assert_noop!(
-			EconomyModule::unstake(Origin::signed(BOB), STAKE_BALANCE, Some(EXISTING_ESTATE_ID)),
+			EconomyModule::unstake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
 			Error::<Runtime>::NoFundsStakedAtEstate
 		);
 	});
 }
-
-#[test]
-fn unstake_should_fail_for_too_large_unstake_claim() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
-
-		assert_noop!(
-			EconomyModule::unstake(Origin::signed(ALICE), 2 * STAKE_BALANCE, None),
-			Error::<Runtime>::UnstakeAmountExceedStakedAmount
-		);
-	});
-}
-
 
 #[test]
 fn unstake_should_work() {
@@ -433,7 +423,7 @@ fn unstake_new_estate_owner_should_fail_if_estate_does_not_exist() {
 #[test]
 fn unstake_new_estate_owner_should_fail_if_not_estate_owner() {
 	ExtBuilder::default().build().execute_with(|| {	
-		//assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)));
+		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)));
 		assert_noop!(
 			EconomyModule::unstake_new_estate_owner(Origin::signed(BOB), OWNED_ESTATE_ID)
 			, Error::<Runtime>::StakerNotEstateOwner

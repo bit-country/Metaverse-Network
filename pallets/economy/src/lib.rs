@@ -343,7 +343,7 @@ pub mod pallet {
 					match staking_bond_value {
 						Some(staking_bond) => {
 							ensure!(
-								staking_bond.staker != who.clone(),
+								staking_bond.staker == who.clone(),
 								Error::<T>::PreviousOwnerStillStakesAtEstate
 							);
 							staked_balance = staking_bond.amount;
