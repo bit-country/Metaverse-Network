@@ -283,6 +283,8 @@ pub mod pallet {
 		ClassFundsWithdrawn(ClassIdOf<T>),
 		/// NFT is unlocked
 		NftUnlocked(ClassIdOf<T>, TokenIdOf<T>),
+		/// Successfully updated royalty fee
+		ClassRoyaltyFeeUpdated(ClassIdOf<T>, Perbill),
 	}
 
 	#[pallet::error]
@@ -776,6 +778,31 @@ pub mod pallet {
 
 				info.total_issuance = new_total_issuance;
 				Self::deposit_event(Event::<T>::ClassTotalIssuanceUpdated(class_id, new_total_issuance));
+
+				Ok(())
+			})
+		}
+
+		/// Force update royalty fee of a given class
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `class_id`: the class ID of the collection
+		/// - `new_royalty_fee: the new royalty fee of the collection
+		///
+		/// Emits `ClassRoyaltyFeeUpdated` if successful.
+		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
+		pub fn force_update_royalty_fee(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+			new_royalty_fee: Perbill,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			// update class total issuance
+			Classes::<T>::try_mutate(class_id.clone(), |class_info| -> DispatchResult {
+				let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+
+				info.data.royalty_fee = new_royalty_fee;
+				Self::deposit_event(Event::<T>::ClassRoyaltyFeeUpdated(class_id, new_royalty_fee));
 
 				Ok(())
 			})
