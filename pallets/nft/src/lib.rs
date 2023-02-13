@@ -26,14 +26,12 @@
 #![allow(clippy::upper_case_acronyms)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode};
-use frame_support::traits::Len;
+use codec::{Encode};
 use frame_support::{
     dispatch::{DispatchResult, DispatchResultWithPostInfo},
     ensure,
     pallet_prelude::*,
     traits::{
-        schedule::{DispatchTime, Named as ScheduleNamed},
         Currency, ExistenceRequirement, Get, LockIdentifier, ReservableCurrency,
     },
     transactional, PalletId,
@@ -41,23 +39,21 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_runtime::traits::Saturating;
 use sp_runtime::{
-    traits::{AccountIdConversion, Dispatchable, One},
+    traits::{AccountIdConversion, One},
     DispatchError,
 };
-use sp_runtime::{Perbill, RuntimeDebug};
+use sp_runtime::{Perbill};
 use sp_std::vec::Vec;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData, NftAssetDataV1, NftClassDataV1};
+use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1};
 use primitives::{
-    AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId, ESTATE_CLASS_ID, LAND_CLASS_ID,
+    AssetId, ClassId, GroupCollectionId, ItemId, TokenId,
 };
 pub use weights::WeightInfo;
 
@@ -85,7 +81,7 @@ pub mod pallet {
     use sp_runtime::ArithmeticError;
 
     use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
-    use primitives::{ClassId, FungibleTokenId, ItemId};
+    use primitives::{FungibleTokenId};
 
     use super::*;
 
