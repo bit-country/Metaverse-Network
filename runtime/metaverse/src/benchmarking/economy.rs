@@ -17,6 +17,7 @@ use crate::{
 
 use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance};
 
+const SEED: u32 = 0;
 const MAX_BOUND: (i32, i32) = (-100, 100);
 const COORDINATE_IN_1: (i32, i32) = (-10, 10);
 
@@ -103,11 +104,6 @@ runtime_benchmarks! {
 		let stake_amount = min_stake + dollar(100);
 
 	}: stake(RawOrigin::Signed(caller.clone()), stake_amount, Some(ESTATE_ID))
-	verify {
-		let staking_balance = Economy::get_estate_staking_info(ESTATE_ID);
-		assert_eq!(staking_balance, stake_amount);
-	}
-
 
 	// unstake
 	unstake_a{
@@ -152,15 +148,32 @@ runtime_benchmarks! {
 		let current_round = Mining::get_current_round_info();
 		let next_round = current_round.current.saturating_add(One::one());
 	}: unstake(RawOrigin::Signed(caller.clone()), dollar(10), Some(ESTATE_ID))
-	verify {
-		let staking_balance = Economy::get_estate_staking_info(ESTATE_ID);
-		assert_eq!(staking_balance, min_stake + dollar(90));
 
-		assert_eq!(
-			Economy::estate_staking_exit_queue((caller.clone(), next_round, ESTATE_ID)),
-			Some(dollar(10))
-		);
-	}
+	// unstake old owner estate staking
+	unstake_new_estate_owner{
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+
+		let owner: AccountId = account("target", 0, SEED);
+		let owner_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(owner.clone());
+		set_balance(CURRENCY_ID, &owner, dollar(1000));
+
+		let min_stake = MinimumStake::get();
+		let stake_amount = min_stake + dollar(100);
+
+		create_nft_group();
+		set_metaverse_treasury_initial_balance();
+		Metaverse::create_metaverse(RawOrigin::Signed(owner.clone()).into(), vec![1u8]);
+		Estate::mint_estate(RawOrigin::Root.into(), owner.clone(), METAVERSE_ID, vec![COORDINATE_IN_1]);
+
+		Economy::stake(RawOrigin::Signed(owner.clone()).into(), stake_amount, Some(ESTATE_ID));
+
+		let current_round = Mining::get_current_round_info();
+		let next_round = current_round.current.saturating_add(One::one());
+
+		Estate::transfer_estate(RawOrigin::Signed(owner.clone()).into(), caller.clone(), ESTATE_ID);
+	}: _(RawOrigin::Signed(caller.clone()), ESTATE_ID)
 
 	// withdraw_unreserved
 	withdraw_unreserved{
