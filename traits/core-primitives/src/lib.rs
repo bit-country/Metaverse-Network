@@ -9,35 +9,35 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use primitives::staking::RoundInfo;
 use primitives::{
-	AssetId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, MetaverseId, TokenId, UndeployedLandBlockId,
-	UndeployedLandBlockType,
+    ClassId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId,
+    UndeployedLandBlockType,
 };
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenType {
-	Transferable,
-	BoundToAddress,
+    Transferable,
+    BoundToAddress,
 }
 
 impl TokenType {
-	pub fn is_transferable(&self) -> bool {
-		matches!(*self, TokenType::Transferable)
-	}
+    pub fn is_transferable(&self) -> bool {
+        matches!(*self, TokenType::Transferable)
+    }
 }
 
 impl Default for TokenType {
-	fn default() -> Self {
-		TokenType::Transferable
-	}
+    fn default() -> Self {
+        TokenType::Transferable
+    }
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CollectionType {
-	Collectable,
-	Wearable,
-	Executable(Vec<u8>),
+    Collectable,
+    Wearable,
+    Executable(Vec<u8>),
 }
 
 // Collection extension for fast retrieval
