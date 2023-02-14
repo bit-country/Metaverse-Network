@@ -238,6 +238,13 @@ pub mod pallet {
 			u32,
 			TokenIdOf<T>,
 		),
+		/// Emit event when new nft minted - show the first and last asset mint
+		NewStackableNftMinted(
+			<T as frame_system::Config>::AccountId,
+			ClassIdOf<T>,
+			TokenIdOf<T>,
+			BalanceOf<T>,
+		),
 		/// Emit event when new time capsule minted
 		NewTimeCapsuleMinted(
 			(ClassIdOf<T>, TokenIdOf<T>),
@@ -253,6 +260,13 @@ pub mod pallet {
 			<T as frame_system::Config>::AccountId,
 			TokenIdOf<T>,
 			(ClassIdOf<T>, TokenIdOf<T>),
+		),
+		/// Successfully transfer NFT
+		TransferedStackableNft(
+			<T as frame_system::Config>::AccountId,
+			<T as frame_system::Config>::AccountId,
+			(ClassIdOf<T>, TokenIdOf<T>),
+			BalanceOf<T>,
 		),
 		/// Successfully force transfer NFT
 		ForceTransferredNft(
