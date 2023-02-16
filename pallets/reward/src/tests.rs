@@ -1630,6 +1630,7 @@ fn close_nft_campaign_with_merkle_root_works() {
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
 		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), vec![]);
+		assert_eq!(CampaignClaimIndexes::<Runtime>::get(campaign_id), vec![]);
 
 		let event = mock::Event::Reward(crate::Event::RewardCampaignRootClosed(campaign_id));
 		assert_eq!(last_event(), event)
@@ -1710,6 +1711,7 @@ fn close_campaign_using_merkle_root_works() {
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
 		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), vec![]);
 		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![]);
+		assert_eq!(CampaignClaimIndexes::<Runtime>::get(campaign_id), vec![]);
 
 		let event = mock::Event::Reward(crate::Event::RewardCampaignRootClosed(campaign_id));
 		assert_eq!(last_event(), event)
@@ -1981,6 +1983,45 @@ fn cancel_nft_campaign_works() {
 }
 
 #[test]
+fn cancel_mekrle_root_nft_campaign_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+
+		init_test_nft(Origin::signed(ALICE));
+		init_test_nft(Origin::signed(ALICE));
+
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+
+		assert_ok!(Reward::create_nft_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			vec![(0u32, 1u64)],
+			10,
+			10,
+			vec![1],
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
+
+		assert_ok!(Reward::set_nft_reward_root(Origin::signed(ALICE), 0, test_hash(1u64), vec![(BOB, 1u64)]));
+
+		run_to_block(5);
+
+		assert_ok!(Reward::cancel_nft_campaign(Origin::signed(ALICE), 0, 1));
+
+		assert_eq!(Balances::free_balance(ALICE), 9994);
+		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, false);
+
+		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+		assert_eq!(CampaignClaimIndexes::<Runtime>::get(campaign_id), vec![]);
+
+		let event = mock::Event::Reward(crate::Event::RewardCampaignCanceled(campaign_id));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
 fn cancel_campaign_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
@@ -2004,6 +2045,47 @@ fn cancel_campaign_works() {
 		assert_eq!(Balances::free_balance(BOB), 20011);
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+
+		let event = mock::Event::Reward(crate::Event::RewardCampaignCanceled(campaign_id));
+		assert_eq!(last_event(), event)
+	});
+}
+
+#[test]
+fn cancel_mekrle_root_campaign_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			BOB,
+			10,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 9989);
+
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			5,
+			test_hash(1u64), // get root hash value from JS
+			vec![(BOB, 0u64)] 
+		));
+
+		run_to_block(5);
+		
+
+		assert_ok!(Reward::cancel_campaign(Origin::signed(ALICE), 0));
+
+		assert_eq!(Balances::free_balance(ALICE), 9989);
+		assert_eq!(Balances::free_balance(BOB), 20011);
+
+		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
+		assert_eq!(CampaignClaimIndexes::<Runtime>::get(campaign_id), vec![]);
 
 		let event = mock::Event::Reward(crate::Event::RewardCampaignCanceled(campaign_id));
 		assert_eq!(last_event(), event)

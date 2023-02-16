@@ -978,6 +978,7 @@ pub mod pallet {
 						if merkle_roots.len() as u64 > 0 {
 							CampaignMerkleRoots::<T>::remove(id);
 							CampaignClaimedAccounts::<T>::remove(id);
+							CampaignClaimIndexes::<T>::remove(id);
 							Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
 						}
 
@@ -1035,6 +1036,7 @@ pub mod pallet {
 						CampaignMerkleRoots::<T>::remove(id);
 						match roots_vec.get(0) {
 							Some(mekrle_root_ref) => {
+								CampaignClaimIndexes::<T>::remove(id);
 								Self::reward_kill_root(campaign.trie_index, mekrle_root_ref);
 								Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
 							}
@@ -1071,6 +1073,9 @@ pub mod pallet {
 					T::FungibleTokenCurrency::transfer(c, &fund_account, &campaign.creator, r.saturated_into())?;
 					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
 					Campaigns::<T>::remove(id);
+					if !Self::campaign_claim_indexes(id).is_empty() {
+						CampaignClaimIndexes::<T>::remove(id);
+					}
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 					Ok(())
 				}
@@ -1105,6 +1110,9 @@ pub mod pallet {
 						T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
 					}
 					Campaigns::<T>::remove(id);
+					if !Self::campaign_claim_indexes(id).is_empty() {
+						CampaignClaimIndexes::<T>::remove(id);
+					}
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 					Ok(().into())
 				}
