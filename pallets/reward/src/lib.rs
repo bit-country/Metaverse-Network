@@ -43,7 +43,7 @@ pub use pallet::*;
 use primitives::{
 	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, Hash, RewardType, TrieIndex,
 };
-use primitives::{Balance, ClassId, FungibleTokenId, NftId};
+use primitives::{Balance, ClaimId, ClassId, FungibleTokenId, NftId};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -158,6 +158,12 @@ pub mod pallet {
 	pub(super) type CampaignClaimedAccounts<T: Config> =
 		StorageMap<_, Twox64Concat, CampaignId, Vec<T::AccountId>, ValueQuery>;
 
+	/// List of indecies that can claim rewards for every campaign
+	#[pallet::storage]
+	#[pallet::getter(fn campaign_claim_indexes)]
+	pub(super) type CampaignClaimIndexes<T: Config> =
+		StorageMap<_, Twox64Concat, CampaignId, Vec<(T::AccountId, ClaimId)>, ValueQuery>;
+
 	/// Tracker for the next available trie index
 	#[pallet::storage]
 	#[pallet::getter(fn next_trie_index)]
@@ -262,6 +268,10 @@ pub mod pallet {
 		RewardsListSizeAboveMaximum,
 		/// Arthimetic operation overflow
 		ArithmeticOverflow,
+		/// Invalid claim index value
+		InvalidClaimIndex,
+		/// Reward claim entry does not exist in the campaign claim index
+		EntryDoesNotExistInClaimIndex,
 	}
 
 	#[pallet::call]
@@ -496,6 +506,7 @@ pub mod pallet {
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
+			//claim_id: ClaimId,
 			balance: BalanceOf<T>,
 			leaf_nodes: Vec<Hash>,
 		) -> DispatchResult {
@@ -511,6 +522,8 @@ pub mod pallet {
 					campaign.end + campaign.cooling_off_duration >= now,
 					Error::<T>::CampaignExpired
 				);
+
+				//ensure!(Self::campaign_c)
 
 				match campaign.claimed {
 					RewardType::FungibleTokens(c, r) => {
@@ -619,6 +632,7 @@ pub mod pallet {
 		pub fn claim_nft_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
+			//claim_id: ClaimId,
 			tokens: Vec<(ClassId, TokenId)>,
 			leaf_nodes: Vec<Hash>,
 		) -> DispatchResult {
@@ -746,10 +760,12 @@ pub mod pallet {
 			id: CampaignId,
 			total_amount: BalanceOf<T>,
 			merkle_root: Hash,
+			claim_index: Vec<(T::AccountId, ClaimId)>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
+			ensure!(claim_index.len() > 0, Error::<T>::InvalidClaimIndex);
 
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -774,6 +790,13 @@ pub mod pallet {
 							let mut campaign_roots_vec: Vec<Hash> = campaign_roots.clone().unwrap_or(Vec::new());
 							campaign_roots_vec.push(merkle_root);
 							campaign_roots.replace(campaign_roots_vec);
+							Ok(())
+						});
+
+						<CampaignClaimIndexes<T>>::try_mutate_exists(id, |campaign_claim_index| -> DispatchResult {
+							let mut campaign_claim_index_vec: Vec<(T::AccountId, ClaimId)> = campaign_claim_index.clone().unwrap_or(Vec::new());
+							campaign_claim_index_vec.append(&mut claim_index.clone());
+							campaign_claim_index.replace(campaign_claim_index_vec);
 							Ok(())
 						});
 
@@ -866,11 +889,12 @@ pub mod pallet {
 		///
 		/// Emits `SetReward` if successful.
 		#[pallet::weight(T::WeightInfo::set_nft_reward_root())]
-		pub fn set_nft_reward_root(origin: OriginFor<T>, id: CampaignId, merkle_root: Hash) -> DispatchResult {
+		pub fn set_nft_reward_root(origin: OriginFor<T>, id: CampaignId, merkle_root: Hash, claim_index: Vec<(T::AccountId, ClaimId)>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
-
+			ensure!(claim_index.len() > 0, Error::<T>::InvalidClaimIndex);
+			
 			let now = frame_system::Pallet::<T>::block_number();
 
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
@@ -892,6 +916,7 @@ pub mod pallet {
 						let mut merkle_roots_vec: Vec<Hash> = Vec::new();
 						merkle_roots_vec.push(merkle_root);
 						<CampaignMerkleRoots<T>>::insert(id, merkle_roots_vec);
+						<CampaignClaimIndexes<T>>::insert(id, claim_index);
 
 						campaign.cap = RewardType::NftAssets(Vec::new());
 						Self::deposit_event(Event::<T>::SetNftRewardRoot(id, merkle_root));

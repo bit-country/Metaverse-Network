@@ -23,36 +23,59 @@ const scale_values_valid = [
    charlie_leaf_array, 
    donna_leaf_array, 
    eva_leaf_array,
+]
+
+// (1) Get the whitelist data: pair of ClaimId, Balance / (ClassId, TokenId). Create index that maps each ClaimId to AccountId
+const index = [
+   [0, '5GuttyuDTejF1p6fzv1ffzxNKEnTWWJ4jCMwqcFfiwMj1bYh'], // sudo dev
+   [1, '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'], // alice sudo
+   [2, '5FHmnS7PYbm8MBNt33S9yuwiJEKkj3eT6ZcuQz1itW4fa3mA'], // blockchex
+   [3, '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'], // bob
+   [4, '5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y'], // charlie
+   [5, '5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL'], // freddie
+   [6, '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy'], // dave
+   [7, '5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw'] // eva
 ];
 
-// (1) Get the whitelist data: pair of AccountId, Balance / (ClassId, TokenId)
+const index_values = [
+   [0, 100000000000000000000], 
+   [1, 100000000000000000000], 
+   [2, 100000000000000000000], 
+   [3, 100000000000000000000], 
+   [4, 100000000000000000000], 
+   [5, 100000000000000000000], 
+   [6, 100000000000000000000], 
+   [7, 100000000000000000000], 
+];
+
 const values = [
-   ['5FpqLqqbFyYWgYtgQS11HvTkaripk1nPFFti6CwDaMj8cSvu', 10],
-   ['5EUXjqNx3Rsh3wtDJAPBzEvJdGVD3QmxmMUjrfARNr4uh7pq', 25],
-   ['5Dqy8KtwmGJd6Tkar8Va3Uw7xvX4RQAhrygUk3T8vUxDXf2a', 50],
-   ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', 75]
+   ['5GuttyuDTejF1p6fzv1ffzxNKEnTWWJ4jCMwqcFfiwMj1bYh', 100000000000000000000], // sudo dev
+   ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', 100000000000000000000], // alice sudo
+   ['5FHmnS7PYbm8MBNt33S9yuwiJEKkj3eT6ZcuQz1itW4fa3mA', 100000000000000000000], // blockchex
+   ['5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', 100000000000000000000], // bob
+   ['5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y', 100000000000000000000], // charlie
+   ['5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL', 100000000000000000000], // freddie
+   ['5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy', 100000000000000000000], // dave
+   ['5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw', 100000000000000000000] // eva
 ];
 
-// (2) Decode the address string and encode reward data using SCALE
-const scale_values = values.map(x => [...decodeAddress(x[0]), ...WalkerImpl.encode(BigInt(x[1]), encodeU128)]);
+// (2) Encode reward data using SCALE
+const scale_values = index_values.map(x => [...WalkerImpl.encode(BigInt(x[0]), encodeU64), ...WalkerImpl.encode(BigInt(x[1]), encodeU128)]);
 
-// Alternatively the address can be encoded as string. !!! Need to test and confirm if that would produce valid leaf hashes
-// const scale_values = values.map(x => [...WalkerImpl.encode(x[0], encodeStr), ...WalkerImpl.encode(BigInt(x[1]), encodeU128)]);
+// Encoding for NFT campaigns
+//const scale_values = values.map(x => [...WalkerImpl.encode(BigInt(x[0]), encodeU64), ...WalkerImpl.encode(x[1], encodeU32)], , ...WalkerImpl.encode(BigInt(x[2]), encodeU64))
 
-// Encoding for NFT-based input
-//const scale_values = values.map(x => [...decodeAddress(x[0]), ...WalkerImpl.encode(x[1], encodeU32)], , ...WalkerImpl.encode(BigInt(x[2]), encodeU64))
-
-// (3) Build merkle tree using double hashing for leaves - use it ot call setRewardRoot
+// (3) Build merkle tree using double hashing for leaves - use it ot call setRewardRoot together witrh passing the index as claim_index
 const leaves = scale_values.map(x => keccak256AsU8a(keccak256AsU8a(x)));
 const tree = new MerkleTree(leaves, keccak256AsU8a);
 
 console.log("Merkle Tree: ", tree.toString());
 
 // (4) Get proofs for each leaf - use them to call claimRewardRoot
-const bob_proof = tree.getHexProof(leaves[0]).map(x => x.toString().substring(2));
-const charlie_proof = tree.getHexProof(leaves[1]).map(x => x.toString().substring(2));
-const donna_proof = tree.getHexProof(leaves[2]).map(x => x.toString().substring(2));
-const eva_proof = tree.getHexProof(leaves[3]).map(x => x.toString().substring(2));
+const bob_proof = tree.getHexProof(leaves[0]);
+const charlie_proof = tree.getHexProof(leaves[1]).map(x => x.toString());
+const donna_proof = tree.getHexProof(leaves[2]).map(x => x.toString());
+const eva_proof = tree.getHexProof(leaves[3]).map(x => x.toString());
 
 console.log("Bob Proof Array: ", bob_proof);
 console.log("Charlie Proof Array: ", charlie_proof);

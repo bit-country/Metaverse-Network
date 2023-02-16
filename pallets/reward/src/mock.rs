@@ -5,6 +5,7 @@ use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Pal
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
+use sp_core::crypto::AccountId32;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::*;

@@ -131,6 +131,8 @@ pub type Ratio = FixedU128;
 pub type TrieIndex = u32;
 /// Campaign index
 pub type CampaignId = u32;
+/// Index used for claim rewrads for merkle root campaigns
+pub type ClaimId = u64;
 
 /// Land Token Class Id
 pub const LAND_CLASS_ID: ClassId = 15;
