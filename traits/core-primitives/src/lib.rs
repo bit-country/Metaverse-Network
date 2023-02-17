@@ -9,56 +9,55 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use primitives::staking::RoundInfo;
 use primitives::{
-    ClassId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId,
-    UndeployedLandBlockType,
+	ClassId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType,
 };
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum TokenType {
-    Transferable,
-    BoundToAddress,
+	Transferable,
+	BoundToAddress,
 }
 
 impl TokenType {
-    pub fn is_transferable(&self) -> bool {
-        matches!(*self, TokenType::Transferable)
-    }
+	pub fn is_transferable(&self) -> bool {
+		matches!(*self, TokenType::Transferable)
+	}
 }
 
 impl Default for TokenType {
-    fn default() -> Self {
-        TokenType::Transferable
-    }
+	fn default() -> Self {
+		TokenType::Transferable
+	}
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum CollectionType {
-    Collectable,
-    Wearable,
-    Executable(Vec<u8>),
+	Collectable,
+	Wearable,
+	Executable(Vec<u8>),
 }
 
 // Collection extension for fast retrieval
 impl CollectionType {
-    pub fn is_collectable(&self) -> bool {
-        matches!(*self, CollectionType::Collectable)
-    }
+	pub fn is_collectable(&self) -> bool {
+		matches!(*self, CollectionType::Collectable)
+	}
 
-    pub fn is_executable(&self) -> bool {
-        matches!(*self, CollectionType::Executable(_))
-    }
+	pub fn is_executable(&self) -> bool {
+		matches!(*self, CollectionType::Executable(_))
+	}
 
-    pub fn is_wearable(&self) -> bool {
-        matches!(*self, CollectionType::Wearable)
-    }
+	pub fn is_wearable(&self) -> bool {
+		matches!(*self, CollectionType::Wearable)
+	}
 }
 
 impl Default for CollectionType {
-    fn default() -> Self {
-        CollectionType::Collectable
-    }
+	fn default() -> Self {
+		CollectionType::Collectable
+	}
 }
 
 pub type NftMetadata = Vec<u8>;
@@ -66,291 +65,291 @@ pub type Attributes = BTreeMap<Vec<u8>, Vec<u8>>;
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct NftGroupCollectionData {
-    pub name: NftMetadata,
-    // Metadata from ipfs
-    pub properties: NftMetadata,
+	pub name: NftMetadata,
+	// Metadata from ipfs
+	pub properties: NftMetadata,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftClassData<Balance> {
-    // Minimum balance to create a collection of Asset
-    pub deposit: Balance,
-    pub attributes: Attributes,
-    pub token_type: TokenType,
-    pub collection_type: CollectionType,
-    pub is_locked: bool,
-    pub royalty_fee: Perbill,
-    pub mint_limit: Option<u32>,
-    pub total_minted_tokens: u32,
+	// Minimum balance to create a collection of Asset
+	pub deposit: Balance,
+	pub attributes: Attributes,
+	pub token_type: TokenType,
+	pub collection_type: CollectionType,
+	pub is_locked: bool,
+	pub royalty_fee: Perbill,
+	pub mint_limit: Option<u32>,
+	pub total_minted_tokens: u32,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftClassDataV1<Balance> {
-    // Minimum balance to create a collection of Asset
-    pub deposit: Balance,
-    pub attributes: Attributes,
-    pub token_type: TokenType,
-    pub collection_type: CollectionType,
-    pub is_locked: bool,
-    pub royalty_fee: Perbill,
+	// Minimum balance to create a collection of Asset
+	pub deposit: Balance,
+	pub attributes: Attributes,
+	pub token_type: TokenType,
+	pub collection_type: CollectionType,
+	pub is_locked: bool,
+	pub royalty_fee: Perbill,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftAssetData<Balance> {
-    // Deposit balance to create each token
-    pub deposit: Balance,
-    pub attributes: Attributes,
-    pub is_locked: bool,
+	// Deposit balance to create each token
+	pub deposit: Balance,
+	pub attributes: Attributes,
+	pub is_locked: bool,
 }
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct NftAssetDataV1<Balance> {
-    // Deposit balance to create each token
-    pub deposit: Balance,
-    pub attributes: Attributes,
+	// Deposit balance to create each token
+	pub deposit: Balance,
+	pub attributes: Attributes,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseAssetData {
-    pub image: Vec<u8>,
+	pub image: Vec<u8>,
 }
 
 pub type MetaverseMetadata = Vec<u8>;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseInfo<AccountId> {
-    /// The owner of this metaverse
-    pub owner: AccountId,
-    /// The metadata of this metaverse
-    pub metadata: MetaverseMetadata,
-    /// The currency use in this metaverse
-    pub currency_id: FungibleTokenId,
-    /// Whether the metaverse can be transferred or not.
-    pub is_frozen: bool,
-    /// Metaverse listing fee
-    pub listing_fee: Perbill,
-    /// Class Id for land tokens
-    pub land_class_id: ClassId,
-    /// Class Id for estate tokens
-    pub estate_class_id: ClassId,
+	/// The owner of this metaverse
+	pub owner: AccountId,
+	/// The metadata of this metaverse
+	pub metadata: MetaverseMetadata,
+	/// The currency use in this metaverse
+	pub currency_id: FungibleTokenId,
+	/// Whether the metaverse can be transferred or not.
+	pub is_frozen: bool,
+	/// Metaverse listing fee
+	pub listing_fee: Perbill,
+	/// Class Id for land tokens
+	pub land_class_id: ClassId,
+	/// Class Id for estate tokens
+	pub estate_class_id: ClassId,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseInfoV1<AccountId> {
-    /// The owner of this metaverse
-    pub owner: AccountId,
-    /// The metadata of this metaverse
-    pub metadata: MetaverseMetadata,
-    /// The currency use in this metaverse
-    pub currency_id: FungibleTokenId,
-    /// Whether the metaverse can be transferred or not.
-    pub is_frozen: bool,
+	/// The owner of this metaverse
+	pub owner: AccountId,
+	/// The metadata of this metaverse
+	pub metadata: MetaverseMetadata,
+	/// The currency use in this metaverse
+	pub currency_id: FungibleTokenId,
+	/// Whether the metaverse can be transferred or not.
+	pub is_frozen: bool,
 }
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub struct MetaverseFund<AccountId, Balance> {
-    /// The fund account of this metaverse
-    pub vault: AccountId,
-    /// The fund balance of this metaverse
-    pub value: Balance,
-    /// The amount of native token backing of this metaverse
-    pub backing: Balance,
-    /// The currency use in this fund
-    pub currency_id: FungibleTokenId,
+	/// The fund account of this metaverse
+	pub vault: AccountId,
+	/// The fund balance of this metaverse
+	pub value: Balance,
+	/// The amount of native token backing of this metaverse
+	pub backing: Balance,
+	/// The currency use in this fund
+	pub currency_id: FungibleTokenId,
 }
 
 pub trait MetaverseTrait<AccountId> {
-    /// Create metaverse
-    fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId;
-    /// Check the ownership of this metaverse
-    fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
-    /// Get the detail of this metaverse
-    fn get_metaverse(metaverse_id: MetaverseId) -> Option<MetaverseInfo<AccountId>>;
-    /// Get metaverse token detail
-    fn get_metaverse_token(metaverse_id: MetaverseId) -> Option<FungibleTokenId>;
-    /// Update metaverse token, this only use once per metaverse
-    fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
-    /// Get the land class for a specific metaverse
-    fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError>;
-    /// Get the estate class for a specific metaverse
-    fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError>;
-    /// Get metaverse marketplace listing fee
-    fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError>;
-    /// Get metaverse treasury
-    fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId;
-    /// Get network treasury
-    fn get_network_treasury() -> AccountId;
-    /// Check if nft is estate or land belongs to metaverse
-    fn check_if_metaverse_estate(metaverse_id: MetaverseId, class_id: &ClassId) -> Result<bool, DispatchError>;
-    /// Check if metaverse has any estate or land
-    fn check_if_metaverse_has_any_land(metaverse_id: MetaverseId) -> Result<bool, DispatchError>;
-    /// Check if account own any metaverse
-    fn is_metaverse_owner(who: &AccountId) -> bool;
+	/// Create metaverse
+	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId;
+	/// Check the ownership of this metaverse
+	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
+	/// Get the detail of this metaverse
+	fn get_metaverse(metaverse_id: MetaverseId) -> Option<MetaverseInfo<AccountId>>;
+	/// Get metaverse token detail
+	fn get_metaverse_token(metaverse_id: MetaverseId) -> Option<FungibleTokenId>;
+	/// Update metaverse token, this only use once per metaverse
+	fn update_metaverse_token(metaverse_id: MetaverseId, currency_id: FungibleTokenId) -> Result<(), DispatchError>;
+	/// Get the land class for a specific metaverse
+	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError>;
+	/// Get the estate class for a specific metaverse
+	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError>;
+	/// Get metaverse marketplace listing fee
+	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError>;
+	/// Get metaverse treasury
+	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId;
+	/// Get network treasury
+	fn get_network_treasury() -> AccountId;
+	/// Check if nft is estate or land belongs to metaverse
+	fn check_if_metaverse_estate(metaverse_id: MetaverseId, class_id: &ClassId) -> Result<bool, DispatchError>;
+	/// Check if metaverse has any estate or land
+	fn check_if_metaverse_has_any_land(metaverse_id: MetaverseId) -> Result<bool, DispatchError>;
+	/// Check if account own any metaverse
+	fn is_metaverse_owner(who: &AccountId) -> bool;
 }
 
 pub trait MetaverseLandTrait<AccountId> {
-    /// Get Land units owned by account
-    fn get_user_land_units(who: &AccountId, metaverse_id: &MetaverseId) -> Vec<(i32, i32)>;
-    /// Check if this user own the metaverse
-    fn is_user_own_metaverse_land(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
-    /// Check if land unit belongs to a metaverse
-    fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError>;
+	/// Get Land units owned by account
+	fn get_user_land_units(who: &AccountId, metaverse_id: &MetaverseId) -> Vec<(i32, i32)>;
+	/// Check if this user own the metaverse
+	fn is_user_own_metaverse_land(who: &AccountId, metaverse_id: &MetaverseId) -> bool;
+	/// Check if land unit belongs to a metaverse
+	fn check_landunit(metaverse_id: MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError>;
 }
 
 pub trait UndeployedLandBlocksTrait<AccountId> {
-    fn issue_undeployed_land_blocks(
-        beneficiary: &AccountId,
-        number_of_land_block: u32,
-        number_land_units_per_land_block: u32,
-        undeployed_land_block_type: UndeployedLandBlockType,
-    ) -> Result<Vec<UndeployedLandBlockId>, DispatchError>;
+	fn issue_undeployed_land_blocks(
+		beneficiary: &AccountId,
+		number_of_land_block: u32,
+		number_land_units_per_land_block: u32,
+		undeployed_land_block_type: UndeployedLandBlockType,
+	) -> Result<Vec<UndeployedLandBlockId>, DispatchError>;
 
-    fn transfer_undeployed_land_block(
-        who: &AccountId,
-        to: &AccountId,
-        undeployed_land_block_id: UndeployedLandBlockId,
-    ) -> Result<UndeployedLandBlockId, DispatchError>;
+	fn transfer_undeployed_land_block(
+		who: &AccountId,
+		to: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError>;
 
-    fn burn_undeployed_land_block(
-        undeployed_land_block_id: UndeployedLandBlockId,
-    ) -> Result<UndeployedLandBlockId, DispatchError>;
+	fn burn_undeployed_land_block(
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError>;
 
-    fn freeze_undeployed_land_block(
-        undeployed_land_block_id: UndeployedLandBlockId,
-    ) -> Result<UndeployedLandBlockId, DispatchError>;
+	fn freeze_undeployed_land_block(
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<UndeployedLandBlockId, DispatchError>;
 
-    fn check_undeployed_land_block(
-        owner: &AccountId,
-        undeployed_land_block_id: UndeployedLandBlockId,
-    ) -> Result<bool, DispatchError>;
+	fn check_undeployed_land_block(
+		owner: &AccountId,
+		undeployed_land_block_id: UndeployedLandBlockId,
+	) -> Result<bool, DispatchError>;
 }
 
 pub trait NFTTrait<AccountId, Balance> {
-    /// Token identifier
-    type TokenId;
-    /// Token class identifier
-    type ClassId;
-    /// Check the ownership of this nft asset
-    fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
-    /// Get the detail of this nft
-    fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError>;
-    /// Get the detail of this nft
-    fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
-    /// Check if the asset is a stackable NFT
-    fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
-    /// Check if collection and class exist
-    fn check_collection_and_class(
-        collection_id: GroupCollectionId,
-        class_id: Self::ClassId,
-    ) -> Result<bool, DispatchError>;
-    /// Create NFT token class
-    fn create_token_class(
-        sender: &AccountId,
-        metadata: NftMetadata,
-        attributes: Attributes,
-        collection_id: GroupCollectionId,
-        token_type: TokenType,
-        collection_type: CollectionType,
-        royalty_fee: Perbill,
-        mint_limit: Option<u32>,
-    ) -> Result<ClassId, DispatchError>;
-    /// Mint NFT token
-    fn mint_token(
-        sender: &AccountId,
-        class_id: Self::ClassId,
-        metadata: NftMetadata,
-        attributes: Attributes,
-    ) -> Result<Self::TokenId, DispatchError>;
-    /// Burn nft
-    fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
-    /// Check if item is on listing
-    fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError>;
-    /// transfer nft
-    fn transfer_nft(sender: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
-    /// Is Nft transferable
-    fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
-    /// Get collection account fund
-    fn get_class_fund(class_id: &Self::ClassId) -> AccountId;
-    /// Set lock collection
-    fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> DispatchResult;
-    /// Set lock nft
-    fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> DispatchResult;
-    /// Get nft class detail
-    fn get_nft_class_detail(class_id: Self::ClassId) -> Result<NftClassData<Balance>, DispatchError>;
-    /// Get class total issuance
-    fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError>;
-    /// Get nft asset owner
-    fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError>;
+	/// Token identifier
+	type TokenId;
+	/// Token class identifier
+	type ClassId;
+	/// Check the ownership of this nft asset
+	fn check_ownership(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
+	/// Get the detail of this nft
+	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError>;
+	/// Get the detail of this nft
+	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError>;
+	/// Check if the asset is a stackable NFT
+	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
+	/// Check if collection and class exist
+	fn check_collection_and_class(
+		collection_id: GroupCollectionId,
+		class_id: Self::ClassId,
+	) -> Result<bool, DispatchError>;
+	/// Create NFT token class
+	fn create_token_class(
+		sender: &AccountId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		collection_id: GroupCollectionId,
+		token_type: TokenType,
+		collection_type: CollectionType,
+		royalty_fee: Perbill,
+		mint_limit: Option<u32>,
+	) -> Result<ClassId, DispatchError>;
+	/// Mint NFT token
+	fn mint_token(
+		sender: &AccountId,
+		class_id: Self::ClassId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<Self::TokenId, DispatchError>;
+	/// Burn nft
+	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
+	/// Check if item is on listing
+	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError>;
+	/// transfer nft
+	fn transfer_nft(sender: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
+	/// Is Nft transferable
+	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError>;
+	/// Get collection account fund
+	fn get_class_fund(class_id: &Self::ClassId) -> AccountId;
+	/// Set lock collection
+	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> DispatchResult;
+	/// Set lock nft
+	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> DispatchResult;
+	/// Get nft class detail
+	fn get_nft_class_detail(class_id: Self::ClassId) -> Result<NftClassData<Balance>, DispatchError>;
+	/// Get class total issuance
+	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError>;
+	/// Get nft asset owner
+	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError>;
 }
 
 pub trait RoundTrait<BlockNumber> {
-    fn get_current_round_info() -> RoundInfo<BlockNumber>;
+	fn get_current_round_info() -> RoundInfo<BlockNumber>;
 }
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Eq, PartialEq, Clone, Copy, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct MiningRange<T> {
-    pub min: T,
-    pub ideal: T,
-    pub max: T,
-    pub staking_allocation: T,
-    pub mining_allocation: T,
+	pub min: T,
+	pub ideal: T,
+	pub max: T,
+	pub staking_allocation: T,
+	pub mining_allocation: T,
 }
 
 impl<T: Ord> MiningRange<T> {
-    pub fn is_valid(&self) -> bool {
-        self.max >= self.ideal && self.ideal >= self.min
-    }
+	pub fn is_valid(&self) -> bool {
+		self.max >= self.ideal && self.ideal >= self.min
+	}
 }
 
 impl<T: Ord + Copy> From<T> for MiningRange<T> {
-    fn from(other: T) -> MiningRange<T> {
-        MiningRange {
-            min: other,
-            ideal: other,
-            max: other,
-            staking_allocation: other,
-            mining_allocation: other,
-        }
-    }
+	fn from(other: T) -> MiningRange<T> {
+		MiningRange {
+			min: other,
+			ideal: other,
+			max: other,
+			staking_allocation: other,
+			mining_allocation: other,
+		}
+	}
 }
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
 pub struct MiningResourceRateInfo {
-    /// annual inflation rate
-    pub rate: Perbill,
-    /// land staking reward percentage (4 decimals)
-    pub staking_reward: Perbill,
-    /// metaverse staking reward percentage (4 decimals)
-    pub mining_reward: Perbill,
+	/// annual inflation rate
+	pub rate: Perbill,
+	/// land staking reward percentage (4 decimals)
+	pub staking_reward: Perbill,
+	/// metaverse staking reward percentage (4 decimals)
+	pub mining_reward: Perbill,
 }
 
 impl MiningResourceRateInfo {
-    pub fn new(rate: Perbill, staking_reward: Perbill, mining_reward: Perbill) -> MiningResourceRateInfo {
-        MiningResourceRateInfo {
-            rate,
-            staking_reward,
-            mining_reward,
-        }
-    }
+	pub fn new(rate: Perbill, staking_reward: Perbill, mining_reward: Perbill) -> MiningResourceRateInfo {
+		MiningResourceRateInfo {
+			rate,
+			staking_reward,
+			mining_reward,
+		}
+	}
 
-    /// kBIT and Land unit ratio
-    pub fn set_rate(&mut self, rate: Perbill) {
-        self.rate = rate;
-    }
+	/// kBIT and Land unit ratio
+	pub fn set_rate(&mut self, rate: Perbill) {
+		self.rate = rate;
+	}
 
-    /// Set staking reward
-    pub fn set_staking_reward(&mut self, staking_reward: Perbill) {
-        self.staking_reward = staking_reward;
-    }
+	/// Set staking reward
+	pub fn set_staking_reward(&mut self, staking_reward: Perbill) {
+		self.staking_reward = staking_reward;
+	}
 
-    /// Set mining reward
-    pub fn set_mining_reward(&mut self, mining_reward: Perbill) {
-        self.mining_reward = mining_reward;
-    }
+	/// Set mining reward
+	pub fn set_mining_reward(&mut self, mining_reward: Perbill) {
+		self.mining_reward = mining_reward;
+	}
 }

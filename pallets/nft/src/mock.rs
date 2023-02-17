@@ -1,9 +1,9 @@
 #![cfg(test)]
 
-use codec::{Encode};
+use codec::Encode;
 use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, parameter_types};
-use frame_system::{EnsureRoot};
+use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::testing::Header;
@@ -37,30 +37,30 @@ pub const TOKEN_ID_2: <Runtime as orml_nft::Config>::TokenId = 2;
 pub const COLLECTION_ID: u64 = 0;
 
 impl frame_system::Config for Runtime {
-    type Origin = Origin;
-    type Index = u64;
-    type BlockNumber = BlockNumber;
-    type Call = Call;
-    type Hash = H256;
-    type Hashing = ::sp_runtime::traits::BlakeTwo256;
-    type AccountId = AccountId;
-    type Lookup = IdentityLookup<Self::AccountId>;
-    type Header = Header;
-    type Event = Event;
-    type BlockHashCount = BlockHashCount;
-    type BlockWeights = ();
-    type BlockLength = ();
-    type Version = ();
-    type PalletInfo = PalletInfo;
-    type AccountData = pallet_balances::AccountData<Balance>;
-    type OnNewAccount = ();
-    type OnKilledAccount = ();
-    type DbWeight = ();
-    type BaseCallFilter = frame_support::traits::Everything;
-    type SystemWeightInfo = ();
-    type SS58Prefix = ();
-    type OnSetCode = ();
-    type MaxConsumers = frame_support::traits::ConstU32<16>;
+	type Origin = Origin;
+	type Index = u64;
+	type BlockNumber = BlockNumber;
+	type Call = Call;
+	type Hash = H256;
+	type Hashing = ::sp_runtime::traits::BlakeTwo256;
+	type AccountId = AccountId;
+	type Lookup = IdentityLookup<Self::AccountId>;
+	type Header = Header;
+	type Event = Event;
+	type BlockHashCount = BlockHashCount;
+	type BlockWeights = ();
+	type BlockLength = ();
+	type Version = ();
+	type PalletInfo = PalletInfo;
+	type AccountData = pallet_balances::AccountData<Balance>;
+	type OnNewAccount = ();
+	type OnKilledAccount = ();
+	type DbWeight = ();
+	type BaseCallFilter = frame_support::traits::Everything;
+	type SystemWeightInfo = ();
+	type SS58Prefix = ();
+	type OnSetCode = ();
+	type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -68,15 +68,15 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for Runtime {
-    type Balance = Balance;
-    type Event = Event;
-    type DustRemoval = ();
-    type ExistentialDeposit = ExistentialDeposit;
-    type AccountStore = System;
-    type MaxLocks = ();
-    type WeightInfo = ();
-    type MaxReserves = ();
-    type ReserveIdentifier = ();
+	type Balance = Balance;
+	type Event = Event;
+	type DustRemoval = ();
+	type ExistentialDeposit = ExistentialDeposit;
+	type AccountStore = System;
+	type MaxLocks = ();
+	type WeightInfo = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = ();
 }
 
 parameter_type_with_key! {
@@ -92,87 +92,87 @@ parameter_types! {
 pub struct MockAuctionManager;
 
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
-    type Balance = Balance;
+	type Balance = Balance;
 
-    fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
-        None
-    }
+	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+		None
+	}
 
-    fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
-        None
-    }
+	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+		None
+	}
 
-    fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
-        Ok(())
-    }
+	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+		Ok(())
+	}
 
-    fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
-        Ok(())
-    }
+	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
+		Ok(())
+	}
 
-    fn new_auction(
-        _recipient: u128,
-        _initial_amount: Self::Balance,
-        _start: u64,
-        _end: Option<u64>,
-    ) -> Result<u64, DispatchError> {
-        Ok(0)
-    }
+	fn new_auction(
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_end: Option<u64>,
+	) -> Result<u64, DispatchError> {
+		Ok(0)
+	}
 
-    fn create_auction(
-        _auction_type: AuctionType,
-        _item_id: ItemId<Balance>,
-        _end: Option<u64>,
-        _recipient: u128,
-        _initial_amount: Self::Balance,
-        _start: u64,
-        _listing_level: ListingLevel<AccountId>,
-        _listing_fee: Perbill,
-        _currency_id: FungibleTokenId,
-    ) -> Result<u64, DispatchError> {
-        Ok(0)
-    }
+	fn create_auction(
+		_auction_type: AuctionType,
+		_item_id: ItemId<Balance>,
+		_end: Option<u64>,
+		_recipient: u128,
+		_initial_amount: Self::Balance,
+		_start: u64,
+		_listing_level: ListingLevel<AccountId>,
+		_listing_fee: Perbill,
+		_currency_id: FungibleTokenId,
+	) -> Result<u64, DispatchError> {
+		Ok(0)
+	}
 
-    fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
+	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
-    fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
-        Ok(())
-    }
+	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+		Ok(())
+	}
 
-    fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
-        Ok(())
-    }
+	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
+		Ok(())
+	}
 
-    fn local_auction_bid_handler(
-        _: BlockNumber,
-        _: u64,
-        _: (
-            AccountId,
-            <Self as auction_manager::Auction<AccountId, BlockNumber>>::Balance,
-        ),
-        _: std::option::Option<(
-            AccountId,
-            <Self as auction_manager::Auction<AccountId, BlockNumber>>::Balance,
-        )>,
-        _: FungibleTokenId,
-    ) -> Result<(), sp_runtime::DispatchError> {
-        Ok(())
-    }
+	fn local_auction_bid_handler(
+		_: BlockNumber,
+		_: u64,
+		_: (
+			AccountId,
+			<Self as auction_manager::Auction<AccountId, BlockNumber>>::Balance,
+		),
+		_: std::option::Option<(
+			AccountId,
+			<Self as auction_manager::Auction<AccountId, BlockNumber>>::Balance,
+		)>,
+		_: FungibleTokenId,
+	) -> Result<(), sp_runtime::DispatchError> {
+		Ok(())
+	}
 
-    fn collect_royalty_fee(
-        _high_bid_price: &Self::Balance,
-        _high_bidder: &u128,
-        _asset_id: &(u32, u64),
-        _social_currency_id: FungibleTokenId,
-    ) -> DispatchResult {
-        Ok(())
-    }
+	fn collect_royalty_fee(
+		_high_bid_price: &Self::Balance,
+		_high_bidder: &u128,
+		_asset_id: &(u32, u64),
+		_social_currency_id: FungibleTokenId,
+	) -> DispatchResult {
+		Ok(())
+	}
 }
 
 impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
-    fn check_item_in_auction(_item_id: ItemId<Balance>) -> bool {
-        return false;
-    }
+	fn check_item_in_auction(_item_id: ItemId<Balance>) -> bool {
+		return false;
+	}
 }
 
 parameter_types! {
@@ -186,19 +186,19 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-    type Event = Event;
-    type Balance = Balance;
-    type Amount = Amount;
-    type CurrencyId = FungibleTokenId;
-    type WeightInfo = ();
-    type ExistentialDeposits = ExistentialDeposits;
-    type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
-    type MaxLocks = ();
-    type ReserveIdentifier = [u8; 8];
-    type MaxReserves = ();
-    type DustRemovalWhitelist = Nothing;
-    type OnNewTokenAccount = ();
-    type OnKilledTokenAccount = ();
+	type Event = Event;
+	type Balance = Balance;
+	type Amount = Amount;
+	type CurrencyId = FungibleTokenId;
+	type WeightInfo = ();
+	type ExistentialDeposits = ExistentialDeposits;
+	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type MaxLocks = ();
+	type ReserveIdentifier = [u8; 8];
+	type MaxReserves = ();
+	type DustRemovalWhitelist = Nothing;
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -209,28 +209,28 @@ parameter_types! {
 }
 
 impl currencies::Config for Runtime {
-    type Event = Event;
-    type MultiSocialCurrency = Tokens;
-    type NativeCurrency = AdaptedBasicCurrency;
-    type GetNativeCurrencyId = NativeCurrencyId;
-    type WeightInfo = ();
+	type Event = Event;
+	type MultiSocialCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = NativeCurrencyId;
+	type WeightInfo = ();
 }
 
 parameter_types! {
 	pub MaximumSchedulerWeight: Weight = 128;
 }
 impl pallet_scheduler::Config for Runtime {
-    type Event = Event;
-    type Origin = Origin;
-    type PalletsOrigin = OriginCaller;
-    type Call = Call;
-    type MaximumWeight = MaximumSchedulerWeight;
-    type ScheduleOrigin = EnsureRoot<AccountId>;
-    type OriginPrivilegeCmp = EqualPrivilegeOnly;
-    type MaxScheduledPerBlock = ();
-    type WeightInfo = ();
-    type PreimageProvider = ();
-    type NoPreimagePostponement = ();
+	type Event = Event;
+	type Origin = Origin;
+	type PalletsOrigin = OriginCaller;
+	type Call = Call;
+	type MaximumWeight = MaximumSchedulerWeight;
+	type ScheduleOrigin = EnsureRoot<AccountId>;
+	type OriginPrivilegeCmp = EqualPrivilegeOnly;
+	type MaxScheduledPerBlock = ();
+	type WeightInfo = ();
+	type PreimageProvider = ();
+	type NoPreimagePostponement = ();
 }
 
 parameter_types! {
@@ -240,19 +240,19 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-    type Event = Event;
-    type Currency = Balances;
-    type Treasury = MetaverseNetworkTreasuryPalletId;
-    type PalletId = NftPalletId;
-    type AuctionHandler = MockAuctionManager;
-    type WeightInfo = ();
-    type MaxBatchTransfer = MaxBatchTransfer;
-    type MaxBatchMinting = MaxBatchMinting;
-    type MaxMetadata = MaxMetadata;
-    type MultiCurrency = Currencies;
-    type MiningResourceId = MiningCurrencyId;
-    type AssetMintingFee = AssetMintingFee;
-    type ClassMintingFee = ClassMintingFee;
+	type Event = Event;
+	type Currency = Balances;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
+	type PalletId = NftPalletId;
+	type AuctionHandler = MockAuctionManager;
+	type WeightInfo = ();
+	type MaxBatchTransfer = MaxBatchTransfer;
+	type MaxBatchMinting = MaxBatchMinting;
+	type MaxMetadata = MaxMetadata;
+	type MultiCurrency = Currencies;
+	type MiningResourceId = MiningCurrencyId;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
 }
 
 parameter_types! {
@@ -292,36 +292,36 @@ construct_runtime!(
 pub struct ExtBuilder;
 
 impl Default for ExtBuilder {
-    fn default() -> Self {
-        ExtBuilder
-    }
+	fn default() -> Self {
+		ExtBuilder
+	}
 }
 
 impl ExtBuilder {
-    pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Runtime>()
-            .unwrap();
+	pub fn build(self) -> sp_io::TestExternalities {
+		let mut t = frame_system::GenesisConfig::default()
+			.build_storage::<Runtime>()
+			.unwrap();
 
-        pallet_balances::GenesisConfig::<Runtime> {
-            balances: vec![(ALICE, 100000), (BOB, 1000)],
-        }
-            .assimilate_storage(&mut t)
-            .unwrap();
+		pallet_balances::GenesisConfig::<Runtime> {
+			balances: vec![(ALICE, 100000), (BOB, 1000)],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
 
-        let mut ext = sp_io::TestExternalities::new(t);
-        ext.execute_with(|| System::set_block_number(1));
-        ext
-    }
+		let mut ext = sp_io::TestExternalities::new(t);
+		ext.execute_with(|| System::set_block_number(1));
+		ext
+	}
 }
 
 pub fn last_event() -> Event {
-    frame_system::Pallet::<Runtime>::events()
-        .pop()
-        .expect("Event expected")
-        .event
+	frame_system::Pallet::<Runtime>::events()
+		.pop()
+		.expect("Event expected")
+		.event
 }
 
 pub fn transfer_balance_encode(to: AccountId, value: u128) -> Vec<u8> {
-    Call::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
+	Call::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
 }
