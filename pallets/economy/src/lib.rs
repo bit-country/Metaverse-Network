@@ -612,6 +612,35 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// Withdraw unstaked token from estate unstaking queue. The unstaked amount will be
+		/// unreserved and become transferrable
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `round_index`: the round index that user can redeem.
+		/// `estate_id`: the estate id that user can redeem.
+		///
+		/// Emit `UnstakedAmountWithdrew` event if successful
+		#[pallet::weight(T::WeightInfo::withdraw_unreserved())]
+		pub fn withdraw_estate_unreserved(
+			origin: OriginFor<T>,
+			round_index: RoundIndex,
+			estate_id: EstateId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Get user exit queue
+			let exit_balance = EstateExitQueue::<T>::get((&who, round_index, estate_id))
+				.ok_or(Error::<T>::EstateExitQueueDoesNotExit)?;
+
+			EstateExitQueue::<T>::remove((&who, round_index, estate_id));
+			T::Currency::unreserve(&who, exit_balance);
+
+			Self::deposit_event(Event::<T>::UnstakedAmountWithdrew(who, exit_balance));
+
+			Ok(().into())
+		}
+
 		/// Force unstake native token from staking ledger. The unstaked amount able to redeem
 		/// immediately
 		///
