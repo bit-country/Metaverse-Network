@@ -143,9 +143,22 @@ pub mod pallet {
 
 	/// Estate-staking info
 	#[pallet::storage]
-	#[pallet::getter(fn get_estate_staking_info)]
-	pub type EstateStakingInfo<T: Config> =
+	#[pallet::getter(fn old_get_estate_staking_info)]
+	pub type OldEstateStakingInfo<T: Config> =
 		StorageMap<_, Twox64Concat, EstateId, Bond<T::AccountId, BalanceOf<T>>, OptionQuery>;
+
+	/// Estate-staking info
+	#[pallet::storage]
+	#[pallet::getter(fn get_estate_staking_info)]
+	pub type EstateStakingInfo<T: Config> = StorageNMap<
+		_,
+		(
+			NMapKey<Blake2_128Concat, T::AccountId>,
+			NMapKey<Blake2_128Concat, EstateId>,
+		),
+		BalanceOf<T>,
+		OptionQuery,
+	>;
 
 	/// Self-staking exit queue info
 	/// This will keep track of stake exits queue, unstake only allows after 1 round
