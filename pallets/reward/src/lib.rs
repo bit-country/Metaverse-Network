@@ -271,7 +271,7 @@ pub mod pallet {
 		/// Invalid claim index value
 		InvalidClaimIndex,
 		/// Reward claim entry does not exist in the campaign claim index
-		EntryDoesNotExistInClaimIndex,
+		NoClaimIndexEntry,
 	}
 
 	#[pallet::call]
@@ -506,7 +506,7 @@ pub mod pallet {
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
-			//claim_id: ClaimId,
+			claim_id: ClaimId,
 			balance: BalanceOf<T>,
 			leaf_nodes: Vec<Hash>,
 		) -> DispatchResult {
@@ -522,42 +522,47 @@ pub mod pallet {
 					campaign.end + campaign.cooling_off_duration >= now,
 					Error::<T>::CampaignExpired
 				);
+				
+				<CampaignClaimIndexes<T>>::try_mutate(id, |campaign_claim_index| -> DispatchResult{
+					//let mut new_claim_index = campaign_claim_index.clone();
+					match campaign_claim_index.binary_search(&(who, claim_id)) {
+						Ok(claim_index_entry_id) => {
 
-				//ensure!(Self::campaign_c)
-
-				match campaign.claimed {
-					RewardType::FungibleTokens(c, r) => {
-						let fund_account = Self::fund_account_id(id);
-						let merkle_root = Self::calculate_merkle_proof(&who, &balance, &leaf_nodes)?;
-
-						ensure!(
-							Self::campaign_merkle_roots(id).contains(&merkle_root),
-							Error::<T>::MerkleRootNotRelatedToCampaign
-						);
-						ensure!(
-							!Self::campaign_claimed_accounts_list(id).contains(&who),
-							Error::<T>::NoRewardFound
-						);
-
-						<CampaignClaimedAccounts<T>>::try_mutate(id, |claimed_accounts_list| -> DispatchResult {
-							claimed_accounts_list.push(who.clone());
-							Ok(())
-						});
-
-						let (root_balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
-						// extra check in case the CampaignMerkleRoots storage is corrupted
-						ensure!(root_balance > Zero::zero(), Error::<T>::NoRewardFound);
-						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
-
-						campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
-						Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
-
-						Ok(())
+							match campaign.claimed {
+								RewardType::FungibleTokens(c, r) => {
+									let fund_account = Self::fund_account_id(id);
+									// TO DO: Replace AccountId with ClaimId when calculating merkle roots
+									let merkle_root = Self::calculate_merkle_proof(&who, &balance, &leaf_nodes)?;
+			
+									ensure!(
+										Self::campaign_merkle_roots(id).contains(&merkle_root),
+										Error::<T>::MerkleRootNotRelatedToCampaign
+									);
+									//ensure!(
+									//	!Self::campaign_claimed_accounts_list(id).contains(&who),
+									//	Error::<T>::NoRewardFound
+									//s);
+			
+									campaign_claim_index.remove(claim_index_entry_id);
+			
+									let (root_balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
+									// extra check in case the CampaignMerkleRoots storage is corrupted
+									ensure!(root_balance > Zero::zero(), Error::<T>::NoRewardFound);
+									T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
+			
+									campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
+									Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
+								}
+								_ => {
+									Err(Error::<T>::InvalidCampaignType.into())
+								}
+							}
+						}
+						_ => Err(Error::<T>::NoClaimIndexEntry.into()),
 					}
-					_ => Err(Error::<T>::InvalidCampaignType.into()),
-				}
-			})?;
-			Ok(())
+					Ok(().into())
+				})?
+			})?
 		}
 
 		/// Claim reward set without merkle root for NFT-based campaign
@@ -632,7 +637,7 @@ pub mod pallet {
 		pub fn claim_nft_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
-			//claim_id: ClaimId,
+			claim_id: ClaimId,
 			tokens: Vec<(ClassId, TokenId)>,
 			leaf_nodes: Vec<Hash>,
 		) -> DispatchResult {
@@ -649,9 +654,15 @@ pub mod pallet {
 					Error::<T>::CampaignExpired
 				);
 
+				ensure!(
+					Self::campaign_claim_indexes(id).contains(&(who, claim_id)),
+					Error::<T>::NoClaimIndexEntry
+				);
+
 				match campaign.reward.clone() {
 					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
 						RewardType::NftAssets(claimed) => {
+							// TO DO: Replace AccountId with ClaimId when calculating merkle roots
 							let merkle_proof: Hash =
 								Self::calculate_nft_rewards_merkle_proof(&who, &tokens, &leaf_nodes)?;
 

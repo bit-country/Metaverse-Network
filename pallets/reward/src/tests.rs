@@ -923,13 +923,14 @@ fn claim_reward_root_works() {
 			Origin::signed(ALICE),
 			0,
 			5,
-			test_claim_hash(BOB, 5), vec![(BOB, 0u64)]
+			test_claim_hash(BOB, 5),
+			vec![(BOB, 0u64)]
 		));
 
 		run_to_block(17);
 		//assert_eq!(last_event(), mock::Event::Reward(crate::Event::RewardCampaignEnded(0)));
 
-		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 0, 5, vec![]));
 		assert_eq!(Balances::free_balance(BOB), 20005);
 
 		let campaign_info_after_claim = CampaignInfo {
@@ -943,7 +944,7 @@ fn claim_reward_root_works() {
 			trie_index: 0,
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim));
-		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB]);
+		assert_eq!(Reward::campaign_claim_indexes(campaign_id), vec![]);
 
 		let event = mock::Event::Reward(crate::Event::RewardClaimed(campaign_id, BOB, 5u32.into()));
 		assert_eq!(last_event(), event)
@@ -1049,6 +1050,7 @@ fn claim_nft_reward_root_works() {
 		assert_ok!(Reward::claim_nft_reward_root(
 			Origin::signed(BOB),
 			0,
+			0,
 			vec![(0u32, 1u64)],
 			vec![]
 		));
@@ -1066,6 +1068,7 @@ fn claim_nft_reward_root_works() {
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim));
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, false);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().owner, BOB);
+		assert_eq!(Reward::campaign_claim_indexes(0), vec![(BOB, 0)]);
 
 		let event = mock::Event::Reward(crate::Event::NftRewardClaimed(campaign_id, BOB, vec![(0u32, 1u64)]));
 		assert_eq!(last_event(), event)
@@ -1245,22 +1248,27 @@ fn claim_reward_root_fails() {
 		run_to_block(9);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]),
+			Reward::claim_reward_root(Origin::signed(BOB), 0, 0, 5, vec![]),
 			Error::<Runtime>::CampaignStillActive
 		);
 
 		run_to_block(17);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, vec![]),
+			Reward::claim_reward_root(Origin::signed(BOB), 1, 0, 5, vec![]),
 			Error::<Runtime>::CampaignIsNotFound
+		);
+
+		assert_noop!(
+			Reward::claim_reward_root(Origin::signed(BOB), 0, 1, 5, vec![]),
+			Error::<Runtime>::NoClaimIndexEntry
 		);
 
 		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]));
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]),
-			Error::<Runtime>::NoRewardFound
+			Reward::claim_reward_root(Origin::signed(BOB), 0, 0, 5, vec![]),
+			Error::<Runtime>::NoClaimIndexEntry
 		);
 
 		//assert_noop!(
@@ -1271,7 +1279,7 @@ fn claim_reward_root_fails() {
 		run_to_block(23);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]),
+			Reward::claim_reward_root(Origin::signed(BOB), 0, 0, 5, vec![]),
 			Error::<Runtime>::CampaignExpired
 		);
 
@@ -1292,7 +1300,7 @@ fn claim_reward_root_fails() {
 		run_to_block(37);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 1, 5, vec![]),
+			Reward::claim_reward_root(Origin::signed(BOB), 1, 1, 5, vec![]),
 			Error::<Runtime>::InvalidCampaignType
 		);
 
@@ -1309,30 +1317,30 @@ fn claim_reward_root_fails() {
 		run_to_block(51);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 2, 5, vec![]),
-			Error::<Runtime>::MerkleRootNotRelatedToCampaign
+			Reward::claim_reward_root(Origin::signed(BOB), 2, 2, 5, vec![]),
+			Error::<Runtime>::NoClaimIndexEntry
 		);
 
 		assert_ok!(Reward::set_reward_root(
 			Origin::signed(ALICE),
 			2,
 			10,
-			test_claim_hash(BOB, 10), vec![(BOB, 0u64)]
+			test_claim_hash(BOB, 10), vec![(BOB, 2u64)]
 		));
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 2, 5, vec![]),
+			Reward::claim_reward_root(Origin::signed(BOB), 2, 2, 5, vec![]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(BOB), 2, 10, vec![test_hash(2)]),
+			Reward::claim_reward_root(Origin::signed(BOB), 2, 2, 10, vec![test_hash(2)]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 
 		assert_noop!(
-			Reward::claim_reward_root(Origin::signed(ALICE), 2, 10, vec![]),
-			Error::<Runtime>::MerkleRootNotRelatedToCampaign
+			Reward::claim_reward_root(Origin::signed(ALICE), 2, 2, 10, vec![]),
+			Error::<Runtime>::NoClaimIndexEntry
 		);
 	});
 }
@@ -1442,31 +1450,43 @@ fn claim_nft_reward_root_fails() {
 		run_to_block(9);
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 0, vec![(0u32, 1u64)], vec![]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 0, 0, vec![(0u32, 1u64)], vec![]),
 			Error::<Runtime>::CampaignStillActive
 		);
 
 		run_to_block(17);
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 1, vec![(0u32, 1u64)], vec![]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 1, 0, vec![(0u32, 1u64)], vec![]),
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 0, vec![(0u32, 2u64)], vec![]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 0, 0, vec![(0u32, 2u64)], vec![]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
+		);
+
+		assert_noop!(
+			Reward::claim_nft_reward_root(
+				Origin::signed(BOB),
+				0,
+				1,
+				vec![(0u32, 1u64)],
+				vec![]
+			),
+			Error::<Runtime>::NoClaimIndexEntry
 		);
 
 		assert_ok!(Reward::claim_nft_reward_root(
 			Origin::signed(BOB),
+			0,
 			0,
 			vec![(0u32, 1u64)],
 			vec![]
 		));
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 0, vec![(0u32, 1u64)], vec![]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 0, 0, vec![(0u32, 1u64)], vec![]),
 			Error::<Runtime>::NoRewardFound
 		);
 
@@ -1484,13 +1504,13 @@ fn claim_nft_reward_root_fails() {
 			Origin::signed(ALICE),
 			1,
 			test_claim_nft_hash(BOB, (0u32, 2u64)),
-			vec![(BOB, 0u64)]
+			vec![(BOB, 1u64)]
 		));
 
 		run_to_block(38);
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 1, vec![(0u32, 2u64)], vec![]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 1, 1, vec![(0u32, 2u64)], vec![]),
 			Error::<Runtime>::CampaignExpired
 		);
 
@@ -1508,13 +1528,14 @@ fn claim_nft_reward_root_fails() {
 			Origin::signed(ALICE),
 			2,
 			5,
-			test_claim_hash(BOB, 5), vec![(BOB, 0u64)]
+			test_claim_hash(BOB, 5),
+			vec![(BOB, 2u64)]
 		));
 
 		run_to_block(51);
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 2, vec![(0u32, 2u64)], vec![]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 2, 2, vec![(0u32, 2u64)], vec![]),
 			Error::<Runtime>::InvalidCampaignType
 		);
 
@@ -1532,19 +1553,19 @@ fn claim_nft_reward_root_fails() {
 		run_to_block(81);
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, vec![(0u32, 3u64)], vec![]),
-			Error::<Runtime>::MerkleRootNotRelatedToCampaign
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, 0, vec![(0u32, 3u64)], vec![]),
+			Error::<Runtime>::NoClaimIndexEntry
 		);
 
 		assert_ok!(Reward::set_nft_reward_root(
 			Origin::signed(ALICE),
 			3,
 			test_claim_nft_hash(BOB, (0u32, 3u64)),
-			vec![(BOB, 0u64)]
+			vec![(BOB, 3u64)]
 		));
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, vec![(0u32, 2u64)], vec![]),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 3, 3, vec![(0u32, 2u64)], vec![]),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 
@@ -1552,14 +1573,15 @@ fn claim_nft_reward_root_fails() {
 			Reward::claim_nft_reward_root(
 				Origin::signed(BOB),
 				3,
+				3,
 				vec![(0u32, 3u64)],
 				vec![test_claim_nft_hash(ALICE, (0u32, 3u64))]
 			),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
 		assert_noop!(
-			Reward::claim_nft_reward_root(Origin::signed(ALICE), 3, vec![(0u32, 3u64)], vec![]),
-			Error::<Runtime>::MerkleRootNotRelatedToCampaign
+			Reward::claim_nft_reward_root(Origin::signed(ALICE), 3, 3, vec![(0u32, 3u64)], vec![]),
+			Error::<Runtime>::NoClaimIndexEntry
 		);
 	});
 }
@@ -1700,7 +1722,7 @@ fn close_campaign_using_merkle_root_works() {
 		));
 
 		run_to_block(11);
-		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 0, 5, vec![]));
 		run_to_block(100);
 
 		assert_ok!(Reward::close_campaign(Origin::signed(BOB), 0, 2));
@@ -2336,7 +2358,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 			0,
 			160,
 			test_js_root_hash(), // get root hash value from JS
-			vec![(BOB, 0u64)] 
+			vec![(BOB, 2u64), (CHARLIE, 3u64), (DONNA, 4u64), (EVA, 5u64)] 
 		));
 
 		run_to_block(17);
@@ -2345,6 +2367,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 		assert_ok!(Reward::claim_reward_root(
 			Origin::signed(BOB),
 			0,
+			2,
 			10,
 			test_js_leaf_hashes(BOB)
 		));
@@ -2362,12 +2385,13 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_10));
-		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB]);
+		assert_eq!(Reward::campaign_claim_indexes(campaign_id), vec![(CHARLIE, 3u64), (DONNA, 4u64), (EVA, 5u64)]);
 
 		// 25 reward winner
 		assert_ok!(Reward::claim_reward_root(
 			Origin::signed(CHARLIE),
 			0,
+			3,
 			25,
 			test_js_leaf_hashes(CHARLIE)
 		));
@@ -2385,12 +2409,13 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_25));
-		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB, CHARLIE]);
+		assert_eq!(Reward::campaign_claim_indexes(campaign_id), vec![(DONNA, 4u64), (EVA, 5u64)]);
 
 		// 50 reward winner
 		assert_ok!(Reward::claim_reward_root(
 			Origin::signed(DONNA),
 			0,
+			4,
 			50,
 			test_js_leaf_hashes(DONNA)
 		));
@@ -2408,15 +2433,13 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_50));
-		assert_eq!(
-			CampaignClaimedAccounts::<Runtime>::get(campaign_id),
-			vec![BOB, CHARLIE, DONNA]
-		);
+		assert_eq!(Reward::campaign_claim_indexes(campaign_id), vec![(EVA, 5u64)]);
 
 		// 75 reward winner
 		assert_ok!(Reward::claim_reward_root(
 			Origin::signed(EVA),
 			0,
+			5,
 			75,
 			test_js_leaf_hashes(EVA)
 		));
@@ -2434,10 +2457,8 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_75));
-		assert_eq!(
-			CampaignClaimedAccounts::<Runtime>::get(campaign_id),
-			vec![BOB, CHARLIE, DONNA, EVA]
-		);
+		assert_eq!(Reward::campaign_claim_indexes(campaign_id), vec![]);
+
 	});
 }
 /* 
