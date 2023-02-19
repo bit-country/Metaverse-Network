@@ -4,7 +4,7 @@ use frame_benchmarking::{account, whitelisted_caller};
 use frame_support::traits::{Currency, Get, OnFinalize, OnInitialize};
 use frame_system::RawOrigin;
 use orml_benchmarking::runtime_benchmarks;
-use primitives::{AccountId, Balance, BlockNumber, ClassId, FungibleTokenId, Hash, TokenId};
+use primitives::{AccountId, Balance, BlockNumber, ClaimId, ClassId, FungibleTokenId, Hash, TokenId};
 use sp_core::Encode;
 use sp_io::hashing::keccak_256;
 use sp_std::vec::Vec;
@@ -33,14 +33,14 @@ pub fn get_hash(value: u64) -> Hash {
 	Hash::from_low_u64_be(value)
 }
 
-pub fn get_claim_hash(who: AccountId, balance: Balance) -> Hash {
-	let mut leaf: Vec<u8> = who.encode();
+pub fn get_claim_hash(claim_id: ClaimId, balance: Balance) -> Hash {
+	let mut leaf: Vec<u8> = claim_id.encode();
 	leaf.extend(balance.encode());
 	keccak_256(&keccak_256(&leaf)).into()
 }
 
-pub fn get_claim_nft_hash(who: AccountId, token: (ClassId, TokenId)) -> Hash {
-	let mut leaf: Vec<u8> = who.encode();
+pub fn get_claim_nft_hash(claim_id: ClaimId, token: (ClassId, TokenId)) -> Hash {
+	let mut leaf: Vec<u8> = claim_id.encode();
 	leaf.extend(token.encode());
 	keccak_256(&keccak_256(&leaf)).into()
 }
@@ -99,7 +99,7 @@ runtime_benchmarks! {
 
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
-		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), get_claim_hash(claiming_account.clone(), 5u32.into()),  vec![(claiming_account.clone(), 0u64.into())]);
+		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), get_claim_hash(0u64.into(), 5u32.into()),  vec![(claiming_account.clone(), 0u64.into())]);
 		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
 		run_to_block(claiming_block);
 	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), 0u64.into(), 5u32.into(), vec![])
@@ -142,7 +142,7 @@ runtime_benchmarks! {
 		mint_NFT(&origin, 0u32.into());
 		mint_NFT(&origin, 0u32.into());
 		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(),1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
-		Reward::set_nft_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), get_claim_nft_hash(claiming_account.clone(), (0u32, 1u64)), vec![(claiming_account.clone(), 0u64)]);
+		Reward::set_nft_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), get_claim_nft_hash(0u64.into(), (0u32, 1u64)), vec![(claiming_account.clone(), 0u64)]);
 		let claiming_block = MinimumCampaignDuration::get() + MinimumCampaignCoolingOffPeriod::get();
 		run_to_block(claiming_block);
 	}: _(RawOrigin::Signed(claiming_account.clone()), 0u32.into(), 0u64.into(), vec![(0u32, 1u64)], vec![])
@@ -233,7 +233,7 @@ runtime_benchmarks! {
 		let campaign_end  = System::block_number() + MinimumCampaignDuration::get();
 		Reward::create_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), MinimumRewardPool::get(), campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1], CURRENCY_ID);
 		Reward::set_reward(RawOrigin::Signed(who.clone()).into(), 0u32.into(), vec![(claiming_account.clone(),5u32.into())]);
-		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), get_claim_hash(claiming_account.clone(), 5u32.into()), vec![(claiming_account.clone(), 0u64)]);
+		Reward::set_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), 5u32.into(), get_claim_hash(0u64.into(), 5u32.into()), vec![(claiming_account.clone(), 0u64)]);
 		run_to_block(2 * (campaign_end + MinimumCampaignCoolingOffPeriod::get()));
 	}: _(RawOrigin::Signed(origin.clone()), 0u32.into(), 1)
 
@@ -256,7 +256,7 @@ runtime_benchmarks! {
 		mint_NFT(&origin, 0u32.into());
 		Reward::create_nft_campaign(RawOrigin::Signed(origin.clone()).into(), origin.clone(), vec![(0u32.into(), 0u64.into()), (0u32.into(), 1u64.into())], campaign_end.clone(), MinimumCampaignCoolingOffPeriod::get(), vec![1]);
 		Reward::set_nft_reward(RawOrigin::Signed(who.clone()).into(), 0u32.into(), vec![(claiming_account.clone(), 1)], 1);
-		Reward::set_nft_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), get_claim_nft_hash(claiming_account.clone(), (0u32, 0u64)), vec![(claiming_account.clone(), 0u64)]);
+		Reward::set_nft_reward_root(RawOrigin::Signed(who.clone()).into(), 0u32.into(), get_claim_nft_hash(0u64.into(), (0u32, 0u64)), vec![(claiming_account.clone(), 0u64)]);
 		run_to_block(2 * (campaign_end + MinimumCampaignCoolingOffPeriod::get()));
 	}: _(RawOrigin::Signed(origin.clone()), 0u32.into(), 2u64)
 

@@ -18,16 +18,16 @@
 #![cfg(test)]
 
 use frame_support::{assert_err, assert_noop, assert_ok, sp_runtime::runtime_logger};
+use sp_core::crypto::AccountId32;
 use sp_runtime::app_crypto::Ss58Codec;
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
-use sp_core::crypto::AccountId32;
 
 use super::*;
 use core_primitives::Attributes;
 use hex_literal::hex;
 use mock::{Balance, Event, *};
-use primitives::{CampaignInfo, FungibleTokenId, Hash};
+use primitives::{CampaignInfo, ClaimId, FungibleTokenId, Hash};
 
 fn init_test_nft(owner: Origin) {
 	//Create group collection before class
@@ -58,41 +58,41 @@ fn test_hash(value: u64) -> Hash {
 }
 
 fn test_js_root_hash() -> Hash {
-	let root_bytes_hash = hex!("b0885a06a169891b562c9ed1b43510422328d6975923d72b661e084e119dde80");
+	let root_bytes_hash = hex!("94de15a55b4c8182b961ccd74396920be4e61e5dbd5b0b48d67fcab7107de058");
 	Hash::from_slice(&root_bytes_hash)
 }
 
 /*
 	Hash values generated using: https://github.com/OpenZeppelin/merkle-tree
 	Test Data:
-	2 (BOB) - 10;
-	3 (CHARLIE) - 25;
-	4 (DONNA) - 50;
-	5 (EVA) - 75;
+	2 (BOB, 2) - 10;
+	3 (CHARLIE, 3) - 25;
+	4 (DONNA, 4) - 50;
+	5 (EVA, 5) - 75;
 */
 fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
 	match who {
 		BOB => {
-			let charlie_bytes_hash = hex!("d90b5864238131f03c065e80a5e0c04aadb2493984702ef3bb279dcd3cb8ac7d");
-			let branch_bytes_hash = hex!("addd535f444323fab87b3350449e85e8ca478541d55a3697caa567d06b45ec3a");
+			let charlie_bytes_hash = hex!("9a2454145c8401a834d15c9b377337acb7ff7050373e82bf3be53375c8dd4ec7");
+			let branch_bytes_hash = hex!("a29c4e23fa80b1880e64161376184bcba37cb2d57b011302cbcf60daeaf2483b");
 			return vec![
 				Hash::from_slice(&charlie_bytes_hash),
 				Hash::from_slice(&branch_bytes_hash),
 			];
 		}
 		CHARLIE => {
-			let bob_bytes_hash = hex!("64b39d59f54b02b6d862584c58735a0d3ff7c8d1ee46250809f4c244ca13d5ca");
-			let branch_bytes_hash = hex!("addd535f444323fab87b3350449e85e8ca478541d55a3697caa567d06b45ec3a");
+			let bob_bytes_hash = hex!("f31996c36b4a9a93e572c65f3359b974149c4fe41a45c233a6003456cead93ad");
+			let branch_bytes_hash = hex!("a29c4e23fa80b1880e64161376184bcba37cb2d57b011302cbcf60daeaf2483b");
 			return vec![Hash::from_slice(&bob_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
 		}
 		DONNA => {
-			let eva_bytes_hash = hex!("7ecf6a4f9809680533d36217de280ae07964f4c65595308405e2c860bc52d4bf");
-			let branch_bytes_hash = hex!("8903505f09ba64010935c4ff9155d37f572578ffdf205dbfdf4381d41a9a83cd");
+			let eva_bytes_hash = hex!("27159abb82570a2951fe18ce55e2f0dd9c8b40f5bda51b5ffdb5b30a45dfe895");
+			let branch_bytes_hash = hex!("38db34817d6939096dae6db4a51e1127965d6df2f40e3f77a4022e8d49b7f660");
 			return vec![Hash::from_slice(&eva_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
 		}
 		EVA => {
-			let donna_bytes_hash = hex!("77ead2ce9a216ed6ac05f5d8a2c7d12373428794b33d56f65163073769976208");
-			let branch_bytes_hash = hex!("8903505f09ba64010935c4ff9155d37f572578ffdf205dbfdf4381d41a9a83cd");
+			let donna_bytes_hash = hex!("1bec91fb576897a836d6805fd724b79a3d94dda96643e11fc17fa7a87f80baa6");
+			let branch_bytes_hash = hex!("38db34817d6939096dae6db4a51e1127965d6df2f40e3f77a4022e8d49b7f660");
 			return vec![
 				Hash::from_slice(&donna_bytes_hash),
 				Hash::from_slice(&branch_bytes_hash),
@@ -104,15 +104,15 @@ fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
 	}
 }
 
-fn test_claim_hash(who: AccountId, balance: Balance) -> Hash {
-	let mut leaf: Vec<u8> = who.encode();
+fn test_claim_hash(claim_id: ClaimId, balance: Balance) -> Hash {
+	let mut leaf: Vec<u8> = claim_id.encode();
 	leaf.extend(balance.encode());
 
 	keccak_256(&keccak_256(&leaf)).into()
 }
 
-fn test_claim_nft_hash(who: AccountId, token: (ClassId, TokenId)) -> Hash {
-	let mut leaf: Vec<u8> = who.encode();
+fn test_claim_nft_hash(claim_id: ClaimId, token: (ClassId, TokenId)) -> Hash {
+	let mut leaf: Vec<u8> = claim_id.encode();
 	leaf.extend(token.0.encode());
 	leaf.extend(token.1.encode());
 	keccak_256(&keccak_256(&leaf)).into()
@@ -396,7 +396,13 @@ fn set_reward_root_works() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64), vec![(BOB, 0u64)]));
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			5,
+			test_hash(1u64),
+			vec![(BOB, 0u64)]
+		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
@@ -499,7 +505,12 @@ fn set_nft_reward_root_works() {
 		assert_eq!(Balances::free_balance(ALICE), 9990);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
-		assert_ok!(Reward::set_nft_reward_root(Origin::signed(ALICE), 0, test_hash(1u64), vec![(BOB, 1u64)]));
+		assert_ok!(Reward::set_nft_reward_root(
+			Origin::signed(ALICE),
+			0,
+			test_hash(1u64),
+			vec![(BOB, 1u64)]
+		));
 
 		let campaign_info_2 = CampaignInfo {
 			creator: ALICE,
@@ -647,7 +658,13 @@ fn set_reward_root_fails() {
 			Error::<Runtime>::InvalidClaimIndex
 		);
 
-		assert_ok!(Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64), vec![(BOB, 0u64)]));
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			5,
+			test_hash(1u64),
+			vec![(BOB, 0u64)]
+		));
 
 		assert_noop!(
 			Reward::set_reward_root(Origin::signed(ALICE), 0, 5, test_hash(1u64), vec![(BOB, 0u64)]),
@@ -796,7 +813,12 @@ fn set_nft_reward_root_fails() {
 			Error::<Runtime>::InvalidClaimIndex
 		);
 
-		assert_ok!(Reward::set_nft_reward_root(Origin::signed(ALICE), 0, test_hash(1u64), vec![(BOB, 1u64)]));
+		assert_ok!(Reward::set_nft_reward_root(
+			Origin::signed(ALICE),
+			0,
+			test_hash(1u64),
+			vec![(BOB, 1u64)]
+		));
 
 		assert_noop!(
 			Reward::set_nft_reward_root(Origin::signed(ALICE), 0, test_hash(1u64), vec![(BOB, 1u64)]),
@@ -923,7 +945,7 @@ fn claim_reward_root_works() {
 			Origin::signed(ALICE),
 			0,
 			5,
-			test_claim_hash(BOB, 5),
+			test_claim_hash(0u64, 5),
 			vec![(BOB, 0u64)]
 		));
 
@@ -1041,7 +1063,7 @@ fn claim_nft_reward_root_works() {
 		assert_ok!(Reward::set_nft_reward_root(
 			Origin::signed(ALICE),
 			0,
-			test_claim_nft_hash(BOB, (0u32, 1u64)),
+			test_claim_nft_hash(0u64, (0u32, 1u64)),
 			vec![(BOB, 0u64)]
 		));
 
@@ -1242,7 +1264,8 @@ fn claim_reward_root_fails() {
 			Origin::signed(ALICE),
 			0,
 			5,
-			test_claim_hash(BOB, 5), vec![(BOB, 0u64)]
+			test_claim_hash(0u64, 5),
+			vec![(BOB, 0u64)]
 		));
 
 		run_to_block(9);
@@ -1298,7 +1321,7 @@ fn claim_reward_root_fails() {
 		assert_ok!(Reward::set_nft_reward_root(
 			Origin::signed(ALICE),
 			1,
-			test_claim_nft_hash(BOB, (0u32, 1u64)),
+			test_claim_nft_hash(1u64, (0u32, 1u64)),
 			vec![(BOB, 1u64)]
 		));
 
@@ -1330,7 +1353,8 @@ fn claim_reward_root_fails() {
 			Origin::signed(ALICE),
 			2,
 			10,
-			test_claim_hash(BOB, 10), vec![(BOB, 2u64)]
+			test_claim_hash(2u64, 10),
+			vec![(BOB, 2u64)]
 		));
 
 		assert_noop!(
@@ -1448,7 +1472,7 @@ fn claim_nft_reward_root_fails() {
 		assert_ok!(Reward::set_nft_reward_root(
 			Origin::signed(ALICE),
 			0,
-			test_claim_nft_hash(BOB, (0u32, 1u64)),
+			test_claim_nft_hash(0u64, (0u32, 1u64)),
 			vec![(BOB, 0u64)]
 		));
 
@@ -1472,13 +1496,7 @@ fn claim_nft_reward_root_fails() {
 		);
 
 		assert_noop!(
-			Reward::claim_nft_reward_root(
-				Origin::signed(BOB),
-				0,
-				1,
-				vec![(0u32, 1u64)],
-				vec![]
-			),
+			Reward::claim_nft_reward_root(Origin::signed(BOB), 0, 1, vec![(0u32, 1u64)], vec![]),
 			Error::<Runtime>::NoClaimIndexEntry
 		);
 
@@ -1508,7 +1526,7 @@ fn claim_nft_reward_root_fails() {
 		assert_ok!(Reward::set_nft_reward_root(
 			Origin::signed(ALICE),
 			1,
-			test_claim_nft_hash(BOB, (0u32, 2u64)),
+			test_claim_nft_hash(1u64, (0u32, 2u64)),
 			vec![(BOB, 1u64)]
 		));
 
@@ -1533,7 +1551,7 @@ fn claim_nft_reward_root_fails() {
 			Origin::signed(ALICE),
 			2,
 			5,
-			test_claim_hash(BOB, 5),
+			test_claim_hash(2u64, 5),
 			vec![(BOB, 2u64)]
 		));
 
@@ -1565,7 +1583,7 @@ fn claim_nft_reward_root_fails() {
 		assert_ok!(Reward::set_nft_reward_root(
 			Origin::signed(ALICE),
 			3,
-			test_claim_nft_hash(BOB, (0u32, 3u64)),
+			test_claim_nft_hash(3u64, (0u32, 3u64)),
 			vec![(BOB, 3u64)]
 		));
 
@@ -1580,7 +1598,7 @@ fn claim_nft_reward_root_fails() {
 				3,
 				3,
 				vec![(0u32, 3u64)],
-				vec![test_claim_nft_hash(ALICE, (0u32, 3u64))]
+				vec![test_claim_nft_hash(1u64, (0u32, 3u64))]
 			),
 			Error::<Runtime>::MerkleRootNotRelatedToCampaign
 		);
@@ -1645,7 +1663,12 @@ fn close_nft_campaign_with_merkle_root_works() {
 
 		assert_eq!(Balances::free_balance(ALICE), 9993);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
-		assert_ok!(Reward::set_nft_reward_root(Origin::signed(ALICE), 0, test_hash(1u64), vec![(BOB, 0u64)]));
+		assert_ok!(Reward::set_nft_reward_root(
+			Origin::signed(ALICE),
+			0,
+			test_hash(1u64),
+			vec![(BOB, 0u64)]
+		));
 		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), vec![test_hash(1u64)]);
 
 		run_to_block(100);
@@ -1714,7 +1737,7 @@ fn close_campaign_using_merkle_root_works() {
 			Origin::signed(ALICE),
 			0,
 			5,
-			test_claim_hash(BOB, 5),
+			test_claim_hash(0u64, 5),
 			vec![(BOB, 0u64)]
 		));
 
@@ -1722,7 +1745,7 @@ fn close_campaign_using_merkle_root_works() {
 			Origin::signed(ALICE),
 			0,
 			4,
-			test_claim_hash(3, 3),
+			test_claim_hash(1u64, 3),
 			vec![(3, 1u64)]
 		));
 
@@ -1737,7 +1760,6 @@ fn close_campaign_using_merkle_root_works() {
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
 		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), vec![]);
-		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![]);
 		assert_eq!(CampaignClaimIndexes::<Runtime>::get(campaign_id), vec![]);
 
 		let event = mock::Event::Reward(crate::Event::RewardCampaignRootClosed(campaign_id));
@@ -1850,7 +1872,7 @@ fn close_campaign_using_merkle_root_fails() {
 			Origin::signed(ALICE),
 			0,
 			5,
-			test_claim_hash(BOB, 5),
+			test_claim_hash(0u64, 5),
 			vec![(BOB, 0u64)]
 		));
 
@@ -1858,7 +1880,7 @@ fn close_campaign_using_merkle_root_fails() {
 			Origin::signed(ALICE),
 			0,
 			4,
-			test_claim_hash(3, 3),
+			test_claim_hash(0u64, 3),
 			vec![(BOB, 0u64)]
 		));
 
@@ -2031,7 +2053,12 @@ fn cancel_mekrle_root_nft_campaign_works() {
 		assert_eq!(Balances::free_balance(ALICE), 9993);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
-		assert_ok!(Reward::set_nft_reward_root(Origin::signed(ALICE), 0, test_hash(1u64), vec![(BOB, 1u64)]));
+		assert_ok!(Reward::set_nft_reward_root(
+			Origin::signed(ALICE),
+			0,
+			test_hash(1u64),
+			vec![(BOB, 1u64)]
+		));
 
 		run_to_block(5);
 
@@ -2100,11 +2127,10 @@ fn cancel_mekrle_root_campaign_works() {
 			0,
 			5,
 			test_hash(1u64), // get root hash value from JS
-			vec![(BOB, 0u64)] 
+			vec![(BOB, 0u64)]
 		));
 
 		run_to_block(5);
-		
 
 		assert_ok!(Reward::cancel_campaign(Origin::signed(ALICE), 0));
 
@@ -2310,24 +2336,24 @@ fn js_encoded_data_matches_blockchain_encoded_data() {
 fn js_generated_leafs_match_blockchain_generated_leafs() {
 	ExtBuilder::default().build().execute_with(|| {
 		let bob_hash = Hash::from_slice(&hex!(
-			"64b39d59f54b02b6d862584c58735a0d3ff7c8d1ee46250809f4c244ca13d5ca"
+			"f31996c36b4a9a93e572c65f3359b974149c4fe41a45c233a6003456cead93ad"
 		));
-		assert_eq!(test_claim_hash(BOB, 10), bob_hash);
+		assert_eq!(test_claim_hash(2u64, 10), bob_hash);
 
 		let charlie_hash = Hash::from_slice(&hex!(
-			"d90b5864238131f03c065e80a5e0c04aadb2493984702ef3bb279dcd3cb8ac7d"
+			"9a2454145c8401a834d15c9b377337acb7ff7050373e82bf3be53375c8dd4ec7"
 		));
-		assert_eq!(test_claim_hash(CHARLIE, 25), charlie_hash);
+		assert_eq!(test_claim_hash(3u64, 25), charlie_hash);
 
 		let donna_hash = Hash::from_slice(&hex!(
-			"77ead2ce9a216ed6ac05f5d8a2c7d12373428794b33d56f65163073769976208"
+			"1bec91fb576897a836d6805fd724b79a3d94dda96643e11fc17fa7a87f80baa6"
 		));
-		assert_eq!(test_claim_hash(DONNA, 50), donna_hash);
+		assert_eq!(test_claim_hash(4u64, 50), donna_hash);
 
 		let eva_hash = Hash::from_slice(&hex!(
-			"7ecf6a4f9809680533d36217de280ae07964f4c65595308405e2c860bc52d4bf"
+			"27159abb82570a2951fe18ce55e2f0dd9c8b40f5bda51b5ffdb5b30a45dfe895"
 		));
-		assert_eq!(test_claim_hash(EVA, 75), eva_hash);
+		assert_eq!(test_claim_hash(5u64, 75), eva_hash);
 	});
 }
 
@@ -2363,7 +2389,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 			0,
 			160,
 			test_js_root_hash(), // get root hash value from JS
-			vec![(BOB, 2u64), (CHARLIE, 3u64), (DONNA, 4u64), (EVA, 5u64)] 
+			vec![(BOB, 2u64), (CHARLIE, 3u64), (DONNA, 4u64), (EVA, 5u64)]
 		));
 
 		run_to_block(17);
@@ -2390,7 +2416,10 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_10));
-		assert_eq!(Reward::campaign_claim_indexes(campaign_id), vec![(CHARLIE, 3u64), (DONNA, 4u64), (EVA, 5u64)]);
+		assert_eq!(
+			Reward::campaign_claim_indexes(campaign_id),
+			vec![(CHARLIE, 3u64), (DONNA, 4u64), (EVA, 5u64)]
+		);
 
 		// 25 reward winner
 		assert_ok!(Reward::claim_reward_root(
@@ -2414,7 +2443,10 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 		};
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_25));
-		assert_eq!(Reward::campaign_claim_indexes(campaign_id), vec![(DONNA, 4u64), (EVA, 5u64)]);
+		assert_eq!(
+			Reward::campaign_claim_indexes(campaign_id),
+			vec![(DONNA, 4u64), (EVA, 5u64)]
+		);
 
 		// 50 reward winner
 		assert_ok!(Reward::claim_reward_root(
@@ -2463,10 +2495,9 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_75));
 		assert_eq!(Reward::campaign_claim_indexes(campaign_id), vec![]);
-
 	});
 }
-/* 
+/*
 #[test]
 fn account_conversion_works() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -2481,4 +2512,3 @@ fn account_conversion_works() {
 	});
 }
 */
-
