@@ -525,7 +525,7 @@ pub mod pallet {
 				
 				<CampaignClaimIndexes<T>>::try_mutate(id, |campaign_claim_index| -> DispatchResult{
 					//let mut new_claim_index = campaign_claim_index.clone();
-					match campaign_claim_index.binary_search(&(who, claim_id)) {
+					match campaign_claim_index.binary_search(&(who.clone(), claim_id)) {
 						Ok(claim_index_entry_id) => {
 
 							match campaign.claimed {
@@ -553,16 +553,15 @@ pub mod pallet {
 									campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
 									Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
 								}
-								_ => {
-									Err(Error::<T>::InvalidCampaignType.into())
-								}
+								_ => return Err(Error::<T>::InvalidCampaignType.into()),
 							}
 						}
-						_ => Err(Error::<T>::NoClaimIndexEntry.into()),
+						_ => return Err(Error::<T>::NoClaimIndexEntry.into()),
 					}
-					Ok(().into())
-				})?
-			})?
+					Ok(())
+				})
+			})?;
+			Ok(())
 		}
 
 		/// Claim reward set without merkle root for NFT-based campaign
@@ -655,7 +654,7 @@ pub mod pallet {
 				);
 
 				ensure!(
-					Self::campaign_claim_indexes(id).contains(&(who, claim_id)),
+					Self::campaign_claim_indexes(id).contains(&(who.clone(), claim_id)),
 					Error::<T>::NoClaimIndexEntry
 				);
 
@@ -664,7 +663,7 @@ pub mod pallet {
 						RewardType::NftAssets(claimed) => {
 							// TO DO: Replace AccountId with ClaimId when calculating merkle roots
 							let merkle_proof: Hash =
-								Self::calculate_nft_rewards_merkle_proof(&who, &tokens, &leaf_nodes)?;
+								Self::calculate_nft_rewards_merkle_proof(&who.clone(), &tokens, &leaf_nodes)?;
 
 							ensure!(
 								Self::campaign_merkle_roots(id).contains(&merkle_proof),

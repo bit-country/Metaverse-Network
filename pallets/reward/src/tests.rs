@@ -1264,7 +1264,7 @@ fn claim_reward_root_fails() {
 			Error::<Runtime>::NoClaimIndexEntry
 		);
 
-		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 5, vec![]));
+		assert_ok!(Reward::claim_reward_root(Origin::signed(BOB), 0, 0, 5, vec![]));
 
 		assert_noop!(
 			Reward::claim_reward_root(Origin::signed(BOB), 0, 0, 5, vec![]),
@@ -1295,7 +1295,12 @@ fn claim_reward_root_fails() {
 			vec![1],
 		));
 
-		assert_ok!(Reward::set_nft_reward(Origin::signed(ALICE), 1, vec![(BOB, 1)], 1));
+		assert_ok!(Reward::set_nft_reward_root(
+			Origin::signed(ALICE),
+			1,
+			test_claim_nft_hash(BOB, (0u32, 1u64)),
+			vec![(BOB, 1u64)]
+		));
 
 		run_to_block(37);
 
