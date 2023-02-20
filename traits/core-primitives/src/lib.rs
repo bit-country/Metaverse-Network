@@ -264,6 +264,16 @@ pub trait NFTTrait<AccountId, Balance> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError>;
+
+	/// Mint NFT token
+	fn mint_token_with_id(
+		sender: &AccountId,
+		class_id: Self::ClassId,
+		token_id: Self::TokenId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<Self::TokenId, DispatchError>;
+
 	/// Burn nft
 	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
 	/// Check if item is on listing

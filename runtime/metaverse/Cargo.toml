@@ -78,7 +78,7 @@ fp-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26-1", default-features = false }
 orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-benchmarking = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false, optional = true }
 # metaverse dependencies
@@ -99,6 +99,8 @@ emergency = { package = "pallet-emergency", path = "../../pallets/emergency", ve
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 metaverse-runtime-common = { path = "../common", default-features = false }
 asset-manager = { path = "../../pallets/asset-manager", default-features = false }
+
+modules-bridge = { path = "../../modules/bridge", default-features = false }
 
 # ink! contracts pacakges
 pallet-contracts = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.26" }
@@ -178,7 +180,8 @@ std = [
     "pallet-contracts-primitives/std",
     "pallet-contracts-rpc-runtime-api/std",
     "frame-try-runtime/std",
-    "metaverse-runtime-common/std"
+    "metaverse-runtime-common/std",
+    "modules-bridge/std"
 ]
 runtime-benchmarks = [
     "orml-benchmarking",

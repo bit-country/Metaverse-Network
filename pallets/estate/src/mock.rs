@@ -468,6 +468,44 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError> {
 		Ok(ALICE)
 	}
+
+	fn mint_token_with_id(
+		sender: &AccountId,
+		class_id: Self::ClassId,
+		token_id: Self::TokenId,
+		metadata: core_primitives::NftMetadata,
+		attributes: core_primitives::Attributes,
+	) -> Result<Self::TokenId, DispatchError> {
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => {
+				if class_id == METAVERSE_LAND_CLASS {
+					return Ok(ASSET_ID_1);
+				} else if class_id == METAVERSE_ESTATE_CLASS {
+					return Ok(ASSET_ID_2);
+				} else {
+					return Ok(200);
+				}
+			}
+			AUCTION_BENEFICIARY_ID => {
+				if class_id == METAVERSE_LAND_CLASS {
+					return Ok(METAVERSE_LAND_IN_AUCTION_TOKEN);
+				} else if class_id == METAVERSE_ESTATE_CLASS {
+					return Ok(METAVERSE_ESTATE_IN_AUCTION_TOKEN);
+				} else {
+					return Ok(201);
+				}
+			}
+			_ => {
+				if class_id == 0 {
+					return Ok(1000);
+				} else {
+					return Ok(1001);
+				}
+			}
+		}
+	}
 }
 
 parameter_types! {
