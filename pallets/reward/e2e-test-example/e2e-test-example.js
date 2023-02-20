@@ -1,6 +1,6 @@
-import { MerkleTree} from 'merkletreejs';
-import {keccak256AsU8a, encodeAddress, decodeAddress} from '@polkadot/util-crypto';
-import {WalkerImpl, createTupleEncoder, createArrayEncoder, encodeU128, encodeU64, encodeU32, encodeStr} from "@scale-codec/core";
+import {MerkleTree} from 'merkletreejs';
+import {keccak256AsU8a, decodeAddress} from '@polkadot/util-crypto';
+import {WalkerImpl, encodeU128, encodeU64, encodeU32} from "@scale-codec/core";
 
 /* 
    NOTE:
@@ -65,9 +65,10 @@ const scale_values = index_values.map(x => [...WalkerImpl.encode(BigInt(x[0]), e
 // Encoding for NFT campaigns
 //const scale_values = values.map(x => [...WalkerImpl.encode(BigInt(x[0]), encodeU64), ...WalkerImpl.encode(x[1], encodeU32)], , ...WalkerImpl.encode(BigInt(x[2]), encodeU64))
 
-// (3) Build merkle tree using double hashing for leaves - use it ot call setRewardRoot together witrh passing the index as claim_index
+// (3) Build merkle tree using double hashing for leaves - use it ot call setRewardRoot together with passing the index as claim_index
+// Make sure that  set the sortPairs option to true so the hashes will calculated like the one on blockchain-side
 const leaves = scale_values.map(x => keccak256AsU8a(keccak256AsU8a(x)));
-const tree = new MerkleTree(leaves, keccak256AsU8a);
+const tree = new MerkleTree(leaves, keccak256AsU8a, {sortPairs: true});
 
 console.log("Merkle Tree: ", tree.toString());
 

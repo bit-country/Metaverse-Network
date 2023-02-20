@@ -58,7 +58,7 @@ fn test_hash(value: u64) -> Hash {
 }
 
 fn test_js_root_hash() -> Hash {
-	let root_bytes_hash = hex!("94de15a55b4c8182b961ccd74396920be4e61e5dbd5b0b48d67fcab7107de058");
+	let root_bytes_hash = hex!("47c0a85ab3b862cd023c4b427e93aa91d82a26d0dc7761696db47b81aa2f8d90");
 	Hash::from_slice(&root_bytes_hash)
 }
 
@@ -70,7 +70,7 @@ fn test_js_root_hash() -> Hash {
 	4 (DONNA, 4) - 50;
 	5 (EVA, 5) - 75;
 */
-fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
+fn test_js_merkle_proofs(who: AccountId) -> Vec<Hash> {
 	match who {
 		BOB => {
 			let charlie_bytes_hash = hex!("9a2454145c8401a834d15c9b377337acb7ff7050373e82bf3be53375c8dd4ec7");
@@ -87,12 +87,12 @@ fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
 		}
 		DONNA => {
 			let eva_bytes_hash = hex!("27159abb82570a2951fe18ce55e2f0dd9c8b40f5bda51b5ffdb5b30a45dfe895");
-			let branch_bytes_hash = hex!("38db34817d6939096dae6db4a51e1127965d6df2f40e3f77a4022e8d49b7f660");
+			let branch_bytes_hash = hex!("f20e7c4f46ef972bed9d357641021b1d166a8bcefd0e60a8b0475d84d5cb56b0");
 			return vec![Hash::from_slice(&eva_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
 		}
 		EVA => {
 			let donna_bytes_hash = hex!("1bec91fb576897a836d6805fd724b79a3d94dda96643e11fc17fa7a87f80baa6");
-			let branch_bytes_hash = hex!("38db34817d6939096dae6db4a51e1127965d6df2f40e3f77a4022e8d49b7f660");
+			let branch_bytes_hash = hex!("f20e7c4f46ef972bed9d357641021b1d166a8bcefd0e60a8b0475d84d5cb56b0");
 			return vec![
 				Hash::from_slice(&donna_bytes_hash),
 				Hash::from_slice(&branch_bytes_hash),
@@ -2322,13 +2322,13 @@ fn remove_reward_origin_fails() {
 fn js_encoded_data_matches_blockchain_encoded_data() {
 	ExtBuilder::default().build().execute_with(|| {
 		let balance: Balance = 10;
-		let mut leaf: Vec<u8> = BOB.encode();
+		let mut leaf: Vec<u8> = BOB_CLAIM_ID.encode();
 		leaf.extend(balance.encode());
 
 		assert_eq!(
 			leaf,
-			vec![2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-		); // SCALE encoding for [2u128, 10u128]
+			vec![2, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+		); // SCALE encoding for [2u64, 10u128]
 	});
 }
 
@@ -2339,26 +2339,75 @@ fn js_generated_leafs_match_blockchain_generated_leafs() {
 			"f31996c36b4a9a93e572c65f3359b974149c4fe41a45c233a6003456cead93ad"
 		));
 		assert_eq!(test_claim_hash(2u64, 10), bob_hash);
+		assert_eq!(test_js_merkle_proofs(CHARLIE)[0], bob_hash);
 
 		let charlie_hash = Hash::from_slice(&hex!(
 			"9a2454145c8401a834d15c9b377337acb7ff7050373e82bf3be53375c8dd4ec7"
 		));
 		assert_eq!(test_claim_hash(3u64, 25), charlie_hash);
+		assert_eq!(test_js_merkle_proofs(BOB)[0], charlie_hash);
 
 		let donna_hash = Hash::from_slice(&hex!(
 			"1bec91fb576897a836d6805fd724b79a3d94dda96643e11fc17fa7a87f80baa6"
 		));
 		assert_eq!(test_claim_hash(4u64, 50), donna_hash);
+		assert_eq!(test_js_merkle_proofs(EVA)[0], donna_hash);
 
 		let eva_hash = Hash::from_slice(&hex!(
 			"27159abb82570a2951fe18ce55e2f0dd9c8b40f5bda51b5ffdb5b30a45dfe895"
 		));
 		assert_eq!(test_claim_hash(5u64, 75), eva_hash);
+		assert_eq!(test_js_merkle_proofs(DONNA)[0], eva_hash);
 	});
 }
 
 #[test]
-fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
+fn js_generated_branches_match_blockchain_generated_branches() {
+	ExtBuilder::default().build().execute_with(|| {
+		let bob_hash = Hash::from_slice(&hex!(
+			"f31996c36b4a9a93e572c65f3359b974149c4fe41a45c233a6003456cead93ad"
+		));
+		assert_eq!(test_js_merkle_proofs(CHARLIE)[0], bob_hash);
+		let charlie_hash = Hash::from_slice(&hex!(
+			"9a2454145c8401a834d15c9b377337acb7ff7050373e82bf3be53375c8dd4ec7"
+		));
+		assert_eq!(test_js_merkle_proofs(BOB)[0], charlie_hash);
+
+		let branch_hash_bob_charlie = Hash::from_slice(&hex!(
+			"f20e7c4f46ef972bed9d357641021b1d166a8bcefd0e60a8b0475d84d5cb56b0"
+		));
+		assert_eq!(
+			Reward::branch_hash_of(&bob_hash, &charlie_hash),
+			branch_hash_bob_charlie
+		);
+
+		let donna_hash = Hash::from_slice(&hex!(
+			"1bec91fb576897a836d6805fd724b79a3d94dda96643e11fc17fa7a87f80baa6"
+		));
+		assert_eq!(test_js_merkle_proofs(EVA)[0], donna_hash);
+		let eva_hash = Hash::from_slice(&hex!(
+			"27159abb82570a2951fe18ce55e2f0dd9c8b40f5bda51b5ffdb5b30a45dfe895"
+		));
+		assert_eq!(test_js_merkle_proofs(DONNA)[0], eva_hash);
+
+		let branch_hash_donna_eva = Hash::from_slice(&hex!(
+			"a29c4e23fa80b1880e64161376184bcba37cb2d57b011302cbcf60daeaf2483b"
+		));
+		assert_eq!(Reward::branch_hash_of(&donna_hash, &eva_hash), branch_hash_donna_eva);
+
+		let root_hash = Hash::from_slice(&hex!(
+			"47c0a85ab3b862cd023c4b427e93aa91d82a26d0dc7761696db47b81aa2f8d90"
+		));
+		assert_eq!(test_js_root_hash(), root_hash);
+		assert_eq!(
+			Reward::branch_hash_of(&branch_hash_bob_charlie, &branch_hash_donna_eva),
+			root_hash
+		);
+	});
+}
+
+#[test]
+fn merkle_proof_based_campaign_works_with_js_generated_root() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
@@ -2400,7 +2449,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 			0,
 			2,
 			10,
-			test_js_leaf_hashes(BOB)
+			test_js_merkle_proofs(BOB)
 		));
 		assert_eq!(Balances::free_balance(BOB), 20010);
 
@@ -2427,7 +2476,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 			0,
 			3,
 			25,
-			test_js_leaf_hashes(CHARLIE)
+			test_js_merkle_proofs(CHARLIE)
 		));
 		assert_eq!(Balances::free_balance(CHARLIE), 2025);
 
@@ -2454,7 +2503,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 			0,
 			4,
 			50,
-			test_js_leaf_hashes(DONNA)
+			test_js_merkle_proofs(DONNA)
 		));
 		assert_eq!(Balances::free_balance(DONNA), 100050);
 
@@ -2478,7 +2527,7 @@ fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
 			0,
 			5,
 			75,
-			test_js_leaf_hashes(EVA)
+			test_js_merkle_proofs(EVA)
 		));
 		assert_eq!(Balances::free_balance(EVA), 1075);
 

@@ -12,7 +12,7 @@ use auction_manager::*;
 use core_primitives::NftAssetData;
 use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
-use primitives::{Amount, AuctionId, EstateId, FungibleTokenId, ItemId, UndeployedLandBlockId};
+use primitives::{Amount, AuctionId, ClaimId, EstateId, FungibleTokenId, ItemId, UndeployedLandBlockId};
 
 use crate as reward;
 
@@ -25,6 +25,7 @@ pub type Hash = H256;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
+pub const BOB_CLAIM_ID: ClaimId = 2;
 pub const CHARLIE: AccountId = 3;
 pub const DONNA: AccountId = 4;
 pub const EVA: AccountId = 5;
