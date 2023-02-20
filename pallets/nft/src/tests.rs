@@ -832,3 +832,67 @@ fn force_updating_total_issuance_should_fail() {
 		);
 	})
 }
+
+#[test]
+fn force_updating_new_royal_fee_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(ALICE);
+		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(20u32),
+			None
+		));
+		assert_ok!(Nft::force_update_royalty_fee(
+			Origin::root(),
+			CLASS_ID,
+			Perbill::from_percent(0u32)
+		));
+
+		assert_eq!(
+			NftModule::<Runtime>::classes(CLASS_ID).unwrap().data.royalty_fee,
+			Perbill::from_percent(0u32)
+		);
+		let event = mock::Event::Nft(crate::Event::ClassRoyaltyFeeUpdated(
+			CLASS_ID,
+			Perbill::from_percent(0u32),
+		));
+		assert_eq!(last_event(), event);
+	})
+}
+
+#[test]
+fn force_updating_new_royal_fee_should_fail() {
+	ExtBuilder::default().build().execute_with(|| {
+		let origin = Origin::signed(BOB);
+		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		assert_ok!(Nft::create_group(Origin::root(), vec![1], vec![1],));
+		assert_ok!(Nft::create_class(
+			origin.clone(),
+			vec![1],
+			test_attributes(1),
+			COLLECTION_ID,
+			TokenType::Transferable,
+			CollectionType::Collectable,
+			Perbill::from_percent(20u32),
+			None
+		));
+		// Non-root signer is not allowed
+		assert_noop!(
+			Nft::force_update_royalty_fee(Origin::signed(ALICE), CLASS_ID, Perbill::from_percent(0u32)),
+			BadOrigin
+		);
+
+		// New royalty fee should not exceed the limit
+		assert_noop!(
+			Nft::force_update_royalty_fee(Origin::root(), CLASS_ID, Perbill::from_percent(u32::MAX)),
+			Error::<Runtime>::RoyaltyFeeExceedLimit
+		);
+	})
+}

@@ -175,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 83,
+	spec_version: 88,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1308,7 +1308,7 @@ impl reward::Config for Runtime {
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
 	type MaxLeafNodes = MaxLeafNodes;
-	type WeightInfo = ();
+	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 
 impl asset_manager::Config for Runtime {

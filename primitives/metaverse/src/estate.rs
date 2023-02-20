@@ -3,10 +3,10 @@ use scale_info::{prelude::vec::Vec, TypeInfo};
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_runtime::DispatchError;
-use sp_runtime::{Perbill, RuntimeDebug};
+use sp_runtime::RuntimeDebug;
 
-use crate::{AccountId, Balance, BlockNumber, ClassId, UndeployedLandBlockId};
-use crate::{EstateId, MetaverseId, TokenId};
+use crate::UndeployedLandBlockId;
+use crate::{EstateId, MetaverseId};
 
 pub trait Estate<AccountId> {
 	fn transfer_estate(estate_id: EstateId, from: &AccountId, to: &AccountId) -> Result<EstateId, DispatchError>;

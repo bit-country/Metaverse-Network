@@ -31,9 +31,6 @@ sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkad
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false, optional = true }
 
-# local packages
-core-primitives = { path = "../../traits/core-primitives", default-features = false }
-
 # Orml packages
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
@@ -44,6 +41,10 @@ pallet-estate = { package = "pallet-estate", path = "../estate", default-feature
 pallet-nft = { package = "pallet-nft", path = "../nft", default-features = false }
 pallet-mining = { package = "pallet-mining", path = "../mining", default-features = false }
 auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
+
+# Other
+hex-literal = "0.3.4"
 
 [features]
 runtime-benchmarks = [
