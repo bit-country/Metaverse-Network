@@ -7207,6 +7207,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex-literal",
  "orml-currencies",
  "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-tokens",
