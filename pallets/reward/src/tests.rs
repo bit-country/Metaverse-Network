@@ -2377,7 +2377,7 @@ fn js_generated_branches_match_blockchain_generated_branches() {
 			"f20e7c4f46ef972bed9d357641021b1d166a8bcefd0e60a8b0475d84d5cb56b0"
 		));
 		assert_eq!(
-			Reward::branch_hash_of(&bob_hash, &charlie_hash),
+			Reward::sorted_hash_of(&bob_hash, &charlie_hash),
 			branch_hash_bob_charlie
 		);
 
@@ -2393,14 +2393,14 @@ fn js_generated_branches_match_blockchain_generated_branches() {
 		let branch_hash_donna_eva = Hash::from_slice(&hex!(
 			"a29c4e23fa80b1880e64161376184bcba37cb2d57b011302cbcf60daeaf2483b"
 		));
-		assert_eq!(Reward::branch_hash_of(&donna_hash, &eva_hash), branch_hash_donna_eva);
+		assert_eq!(Reward::sorted_hash_of(&donna_hash, &eva_hash), branch_hash_donna_eva);
 
 		let root_hash = Hash::from_slice(&hex!(
 			"47c0a85ab3b862cd023c4b427e93aa91d82a26d0dc7761696db47b81aa2f8d90"
 		));
 		assert_eq!(test_js_root_hash(), root_hash);
 		assert_eq!(
-			Reward::branch_hash_of(&branch_hash_bob_charlie, &branch_hash_donna_eva),
+			Reward::sorted_hash_of(&branch_hash_bob_charlie, &branch_hash_donna_eva),
 			root_hash
 		);
 	});
