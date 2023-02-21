@@ -1,7 +1,9 @@
 {
+  "type": "module",
   "dependencies": {
     "@polkadot/util": "^10.3.1",
     "@polkadot/util-crypto": "^10.3.1",
+    "@scale-codec/core": "^1.1.1",
     "merkletreejs": "^0.3.9"
   }
 }
