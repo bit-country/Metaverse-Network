@@ -35,9 +35,7 @@ frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch =
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
-
-# Local packages
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26-1", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 pallet-estate = { package = "pallet-estate", path = "../estate", default-features = false }
 pallet-nft = { package = "pallet-nft", path = "../nft", default-features = false }

@@ -1,10 +1,10 @@
 [package]
 authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet bridge balance transfer.'
+description = 'Metaverse Network pallet bridge token and nft transfer.'
 edition = '2021'
 homepage = 'https://metaverse.network'
 license = 'Unlicense'
-name = 'modules-chainsafe'
+name = 'modules-bridge'
 repository = 'https://github.com/bit-country'
 version = '0.0.1'
 
@@ -12,8 +12,8 @@ version = '0.0.1'
 # third-party dependencies
 codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive", "max-encoded-len"] }
 serde = { version = "1.0.137", optional = true }
-hex = { version = "0.3.4", default-features = false }
-
+hex = { version = "0.4", default-features = false }
+scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 # primitives
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
@@ -25,19 +25,26 @@ sp-arithmetic = { git = "https://github.com/paritytech/substrate", branch = "pol
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 
-chainbridge = { package = "chainbridge", git = 'https://github.com/justinphamnz/chainbridge-substrate', branch = 'master', default-features = false }
-primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse" }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 
 [dev-dependencies]
 blake2-rfc = { version = "0.2.18", default-features = false }
 hex-literal = "0.3"
+pallet-nft = { path = "../../pallets/nft", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+currencies = { package = "currencies", path = "../../pallets/currencies", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
+auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
 
 [features]
 default = ["std"]
 std = [
     "codec/std",
     "serde",
+    "scale-info/std",
     "sp-std/std",
     "sp-runtime/std",
     "sp-io/std",
@@ -46,6 +53,12 @@ std = [
     "frame-support/std",
     "frame-system/std",
     "primitives/std",
+    "core-primitives/std",
     "orml-traits/std",
-    "chainbridge/std",
+    "orml-nft/std",
+    "pallet-nft/std",
+    "currencies/std",
+    "orml-tokens/std",
+    "pallet-balances/std",
+    "auction-manager/std"
 ]

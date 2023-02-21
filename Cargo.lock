@@ -1094,7 +1094,7 @@ dependencies = [
  "hex-literal",
  "log",
  "orml-currencies",
- "orml-nft",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-oracle",
  "orml-tokens",
  "orml-traits",
@@ -5222,9 +5222,10 @@ dependencies = [
  "getrandom 0.2.7",
  "hex-literal",
  "metaverse-runtime-common",
+ "modules-bridge",
  "orml-benchmarking",
  "orml-currencies",
- "orml-nft",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-oracle",
  "orml-tokens",
  "orml-traits",
@@ -5390,6 +5391,34 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "xcm",
+]
+
+[[package]]
+name = "modules-bridge"
+version = "0.0.1"
+dependencies = [
+ "auction-manager",
+ "bit-country-primitives",
+ "blake2-rfc",
+ "core-primitives",
+ "currencies",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26)",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-balances",
+ "pallet-nft",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -5910,6 +5939,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "orml-nft"
+version = "0.4.1-dev"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1#6f6c102db42c559223a5fdb4f4c75ef765c35fae"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "orml-oracle"
 version = "0.4.1-dev"
 source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26#320cf2defa32d55aeffb85093dae968de27a5cef"
@@ -6065,7 +6108,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "frame-system-rpc-runtime-api",
- "orml-nft",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
@@ -6332,7 +6375,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-currencies",
- "orml-nft",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
@@ -6501,7 +6544,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "orml-currencies",
- "orml-nft",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
@@ -7002,7 +7045,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
- "orml-nft",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
@@ -7164,9 +7207,8 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
- "hex-literal",
  "orml-currencies",
- "orml-nft",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
@@ -7793,7 +7835,7 @@ dependencies = [
  "log",
  "metaverse-runtime-common",
  "orml-currencies",
- "orml-nft",
+ "orml-nft 0.4.1-dev (git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1)",
  "orml-oracle",
  "orml-tokens",
  "orml-traits",

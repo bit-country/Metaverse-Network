@@ -175,7 +175,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 82,
+	spec_version: 88,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -357,6 +357,7 @@ parameter_types! {
 	pub const BitMiningTreasury: PalletId = PalletId(*b"bit/ming");
 	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
 	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
+	pub const BridgeSovereignPalletId: PalletId = PalletId(*b"bit/brgd");
 	pub const MaxAuthorities: u32 = 50;
 }
 
@@ -1316,6 +1317,15 @@ impl asset_manager::Config for Runtime {
 	type RegisterOrigin = EnsureRootOrHalfCouncilCollective;
 }
 
+impl modules_bridge::Config for Runtime {
+	type Event = Event;
+	type BridgeOrigin = EnsureRootOrTwoThirdsCouncilCollective;
+	type Currency = Balances;
+	type NFTHandler = Nft;
+	type NativeCurrencyId = GetNativeCurrencyId;
+	type PalletId = BridgeSovereignPalletId;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1383,11 +1393,10 @@ construct_runtime!(
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
 
 		// Proxy
-		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>}
+		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>},
 
 		// Bridge
-//		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
-//		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
+		BridgeSupport: modules_bridge::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

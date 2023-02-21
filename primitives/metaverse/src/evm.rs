@@ -17,13 +17,10 @@
 
 use core::ops::Range;
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, Encode};
 use ethabi::Token;
-use hex_literal::hex;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_core::{H160, U256};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
@@ -39,7 +36,8 @@ pub type EvmAddress = sp_core::H160;
 )]
 #[repr(u8)]
 pub enum CurrencyIdType {
-	NativeToken = 1, // 0 is prefix of precompile and predeploy
+	NativeToken = 1,
+	// 0 is prefix of precompile and predeploy
 	FungibleToken,
 	MiningResource,
 }
@@ -70,7 +68,6 @@ pub trait Erc20Mapping {
 
 //pub const METAVERSE_CHAIN_ID: u64 = 2042;
 //pub const PIONEER_CHAIN_ID: u64 = 137;
-
 pub const H160_POSITION_CURRENCY_ID_TYPE: usize = 9;
 pub const H160_POSITION_TOKEN: usize = 19;
 pub const H160_POSITION_TOKEN_NFT: Range<usize> = 14..20;

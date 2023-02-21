@@ -149,7 +149,7 @@ impl Estate<u128> for EstateHandler {
 	}
 
 	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
-		if estate_id == OWNED_ESTATE_ID {
+		if estate_id == OWNED_ESTATE_ID && owner == ALICE {
 			return Ok(true);
 		}
 		Ok(false)
