@@ -29,7 +29,7 @@ const values  = [
 const scale_values = values.map(x => [...decodeAddress(x[0]), ...WalkerImpl.encode(BigInt(x[1]), encodeU128)]);
 
 // Encoding for NFT campaigns
-//const scale_values = values.map(x => [...decodeAddress(x[0]), encodeU64), ...WalkerImpl.encode(x[1], encodeU32)], , ...WalkerImpl.encode(BigInt(x[2]), encodeU64))
+//const scale_values = values.map(x => [...decodeAddress(x[0]), encodeU64), ...WalkerImpl.encode(x[1], encodeU32), ...WalkerImpl.encode(BigInt(x[2]), encodeU64)])
 
 // (3) Build merkle tree using double hashing for leaves - use it ot call setRewardRoot
 const leaves = scale_values.map(x => keccak256AsU8a(keccak256AsU8a(x)));

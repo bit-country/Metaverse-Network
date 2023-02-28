@@ -43,7 +43,7 @@ pub use pallet::*;
 use primitives::{
 	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, Hash, RewardType, TrieIndex,
 };
-use primitives::{Balance, ClaimId, ClassId, FungibleTokenId, NftId};
+use primitives::{Balance, ClassId, FungibleTokenId, NftId};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -152,11 +152,11 @@ pub mod pallet {
 	#[pallet::getter(fn campaign_merkle_roots)]
 	pub(super) type CampaignMerkleRoots<T: Config> = StorageMap<_, Twox64Concat, CampaignId, Vec<Hash>, ValueQuery>;
 
-	/// List of indexes that can claim rewards for every campaign
+	/// List of claimed account for each mekrle tree-based campaign
 	#[pallet::storage]
-	#[pallet::getter(fn campaign_claim_indexes)]
-	pub(super) type CampaignClaimIndexes<T: Config> =
-		StorageMap<_, Twox64Concat, CampaignId, Vec<(T::AccountId, ClaimId)>, ValueQuery>;
+	#[pallet::getter(fn campaign_claimed_accounts_list)]
+	pub(super) type CampaignClaimedAccounts<T: Config> =
+		StorageMap<_, Twox64Concat, CampaignId, Vec<T::AccountId>, ValueQuery>;
 
 	/// Tracker for the next available trie index
 	#[pallet::storage]
@@ -262,10 +262,6 @@ pub mod pallet {
 		RewardsListSizeAboveMaximum,
 		/// Arthimetic operation overflow
 		ArithmeticOverflow,
-		/// Invalid claim index value
-		InvalidClaimIndex,
-		/// Reward claim entry does not exist in the campaign claim index
-		NoClaimIndexEntry,
 	}
 
 	#[pallet::call]
@@ -344,9 +340,9 @@ pub mod pallet {
 			);
 
 			let empty_root_vec: Vec<Hash> = Vec::new();
-			let empty_acc_vec: Vec<(T::AccountId, ClaimId)> = Vec::new();
+			let empty_acc_vec: Vec<T::AccountId> = Vec::new();
 			CampaignMerkleRoots::<T>::insert(campaign_id, empty_root_vec);
-			CampaignClaimIndexes::<T>::insert(campaign_id, empty_acc_vec);
+			CampaignClaimedAccounts::<T>::insert(campaign_id, empty_acc_vec);
 
 			NextTrieIndex::<T>::put(next_trie_index);
 			NextCampaignId::<T>::put(next_campaign_id);
@@ -431,9 +427,9 @@ pub mod pallet {
 			);
 
 			let empty_root_vec: Vec<Hash> = Vec::new();
-			let empty_acc_vec: Vec<(T::AccountId, ClaimId)> = Vec::new();
+			let empty_acc_vec: Vec<T::AccountId> = Vec::new();
 			CampaignMerkleRoots::<T>::insert(campaign_id, empty_root_vec);
-			CampaignClaimIndexes::<T>::insert(campaign_id, empty_acc_vec);
+			CampaignClaimedAccounts::<T>::insert(campaign_id, empty_acc_vec);
 
 			NextTrieIndex::<T>::put(next_trie_index);
 			NextCampaignId::<T>::put(next_campaign_id);
@@ -500,7 +496,6 @@ pub mod pallet {
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
-			claim_id: ClaimId,
 			balance: BalanceOf<T>,
 			leaf_nodes: Vec<Hash>,
 		) -> DispatchResult {
@@ -517,48 +512,37 @@ pub mod pallet {
 					Error::<T>::CampaignExpired
 				);
 
-				<CampaignClaimIndexes<T>>::try_mutate(id, |campaign_claim_index| -> DispatchResult {
-					//let mut new_claim_index = campaign_claim_index.clone();
-					match campaign_claim_index.binary_search(&(who.clone(), claim_id)) {
-						Ok(claim_index_entry_id) => {
-							match campaign.claimed {
-								RewardType::FungibleTokens(c, r) => {
-									let fund_account = Self::fund_account_id(id);
+				match campaign.claimed {
+					RewardType::FungibleTokens(c, r) => {
+						let fund_account = Self::fund_account_id(id);
+						let merkle_root = Self::calculate_merkle_proof(&who, &balance, &leaf_nodes)?;
 
-									let merkle_root = Self::calculate_merkle_proof(&claim_id, &balance, &leaf_nodes)?;
+						ensure!(
+							Self::campaign_merkle_roots(id).contains(&merkle_root),
+							Error::<T>::MerkleRootNotRelatedToCampaign
+						);
+						ensure!(
+							!Self::campaign_claimed_accounts_list(id).contains(&who),
+							Error::<T>::NoRewardFound
+						);
 
-									ensure!(
-										Self::campaign_merkle_roots(id).contains(&merkle_root),
-										Error::<T>::MerkleRootNotRelatedToCampaign
-									);
-									//ensure!(
-									//	!Self::campaign_claimed_accounts_list(id).contains(&who),
-									//	Error::<T>::NoRewardFound
-									//s);
+						<CampaignClaimedAccounts<T>>::try_mutate(id, |claimed_accounts_list| -> DispatchResult {
+							claimed_accounts_list.push(who.clone());
+							Ok(())
+						});
 
-									campaign_claim_index.remove(claim_index_entry_id);
+						let (root_balance, _) = Self::reward_get_root(campaign.trie_index, merkle_root.clone());
+						// extra check in case the CampaignMerkleRoots storage is corrupted
+						ensure!(root_balance > Zero::zero(), Error::<T>::NoRewardFound);
+						T::FungibleTokenCurrency::transfer(c, &fund_account, &who, balance.saturated_into())?;
 
-									let (root_balance, _) =
-										Self::reward_get_root(campaign.trie_index, merkle_root.clone());
-									// extra check in case the CampaignMerkleRoots storage is corrupted
-									ensure!(root_balance > Zero::zero(), Error::<T>::NoRewardFound);
-									T::FungibleTokenCurrency::transfer(
-										c,
-										&fund_account,
-										&who,
-										balance.saturated_into(),
-									)?;
+						campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
+						Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
 
-									campaign.claimed = RewardType::FungibleTokens(c, r.saturating_add(balance));
-									Self::deposit_event(Event::<T>::RewardClaimed(id, who, balance));
-								}
-								_ => return Err(Error::<T>::InvalidCampaignType.into()),
-							}
-						}
-						_ => return Err(Error::<T>::NoClaimIndexEntry.into()),
+						Ok(())
 					}
-					Ok(())
-				})
+					_ => Err(Error::<T>::InvalidCampaignType.into()),
+				}
 			})?;
 			Ok(())
 		}
@@ -635,7 +619,6 @@ pub mod pallet {
 		pub fn claim_nft_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
-			claim_id: ClaimId,
 			tokens: Vec<(ClassId, TokenId)>,
 			leaf_nodes: Vec<Hash>,
 		) -> DispatchResult {
@@ -652,16 +635,11 @@ pub mod pallet {
 					Error::<T>::CampaignExpired
 				);
 
-				ensure!(
-					Self::campaign_claim_indexes(id).contains(&(who.clone(), claim_id)),
-					Error::<T>::NoClaimIndexEntry
-				);
-
 				match campaign.reward.clone() {
 					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
 						RewardType::NftAssets(claimed) => {
 							let merkle_proof: Hash =
-								Self::calculate_nft_rewards_merkle_proof(&claim_id.clone(), &tokens, &leaf_nodes)?;
+								Self::calculate_nft_rewards_merkle_proof(&who, &tokens, &leaf_nodes)?;
 
 							ensure!(
 								Self::campaign_merkle_roots(id).contains(&merkle_proof),
@@ -768,12 +746,10 @@ pub mod pallet {
 			id: CampaignId,
 			total_amount: BalanceOf<T>,
 			merkle_root: Hash,
-			claim_index: Vec<(T::AccountId, ClaimId)>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
-			ensure!(claim_index.len() > 0, Error::<T>::InvalidClaimIndex);
 
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -798,14 +774,6 @@ pub mod pallet {
 							let mut campaign_roots_vec: Vec<Hash> = campaign_roots.clone().unwrap_or(Vec::new());
 							campaign_roots_vec.push(merkle_root);
 							campaign_roots.replace(campaign_roots_vec);
-							Ok(())
-						});
-
-						<CampaignClaimIndexes<T>>::try_mutate_exists(id, |campaign_claim_index| -> DispatchResult {
-							let mut campaign_claim_index_vec: Vec<(T::AccountId, ClaimId)> =
-								campaign_claim_index.clone().unwrap_or(Vec::new());
-							campaign_claim_index_vec.append(&mut claim_index.clone());
-							campaign_claim_index.replace(campaign_claim_index_vec);
 							Ok(())
 						});
 
@@ -898,16 +866,10 @@ pub mod pallet {
 		///
 		/// Emits `SetReward` if successful.
 		#[pallet::weight(T::WeightInfo::set_nft_reward_root())]
-		pub fn set_nft_reward_root(
-			origin: OriginFor<T>,
-			id: CampaignId,
-			merkle_root: Hash,
-			claim_index: Vec<(T::AccountId, ClaimId)>,
-		) -> DispatchResult {
+		pub fn set_nft_reward_root(origin: OriginFor<T>, id: CampaignId, merkle_root: Hash) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			ensure!(Self::is_set_reward_origin(&who), Error::<T>::InvalidSetRewardOrigin);
-			ensure!(claim_index.len() > 0, Error::<T>::InvalidClaimIndex);
 
 			let now = frame_system::Pallet::<T>::block_number();
 
@@ -930,7 +892,6 @@ pub mod pallet {
 						let mut merkle_roots_vec: Vec<Hash> = Vec::new();
 						merkle_roots_vec.push(merkle_root);
 						<CampaignMerkleRoots<T>>::insert(id, merkle_roots_vec);
-						<CampaignClaimIndexes<T>>::insert(id, claim_index);
 
 						campaign.cap = RewardType::NftAssets(Vec::new());
 						Self::deposit_event(Event::<T>::SetNftRewardRoot(id, merkle_root));
@@ -991,7 +952,7 @@ pub mod pallet {
 
 						if merkle_roots.len() as u64 > 0 {
 							CampaignMerkleRoots::<T>::remove(id);
-							CampaignClaimIndexes::<T>::remove(id);
+							CampaignClaimedAccounts::<T>::remove(id);
 							Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
 						}
 
@@ -1049,7 +1010,6 @@ pub mod pallet {
 						CampaignMerkleRoots::<T>::remove(id);
 						match roots_vec.get(0) {
 							Some(mekrle_root_ref) => {
-								CampaignClaimIndexes::<T>::remove(id);
 								Self::reward_kill_root(campaign.trie_index, mekrle_root_ref);
 								Self::deposit_event(Event::<T>::RewardCampaignRootClosed(id));
 							}
@@ -1086,9 +1046,6 @@ pub mod pallet {
 					T::FungibleTokenCurrency::transfer(c, &fund_account, &campaign.creator, r.saturated_into())?;
 					T::Currency::transfer(&fund_account, &campaign.creator, T::CampaignDeposit::get(), AllowDeath)?;
 					Campaigns::<T>::remove(id);
-					if !Self::campaign_claim_indexes(id).is_empty() {
-						CampaignClaimIndexes::<T>::remove(id);
-					}
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 					Ok(())
 				}
@@ -1123,9 +1080,6 @@ pub mod pallet {
 						T::NFTHandler::set_lock_nft((token.0, token.1), false)?;
 					}
 					Campaigns::<T>::remove(id);
-					if !Self::campaign_claim_indexes(id).is_empty() {
-						CampaignClaimIndexes::<T>::remove(id);
-					}
 					Self::deposit_event(Event::<T>::RewardCampaignCanceled(id));
 					Ok(().into())
 				}
@@ -1287,7 +1241,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Internal calculation of a merkle proof for a token-based campaign.
 	pub fn calculate_merkle_proof(
-		claim_id: &ClaimId,
+		who: &T::AccountId,
 		balance: &BalanceOf<T>,
 		leaf_nodes: &Vec<Hash>,
 	) -> Result<Hash, DispatchError> {
@@ -1297,7 +1251,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Hash the pair of AccountId and Balance
-		let mut leaf: Vec<u8> = claim_id.encode();
+		let mut leaf: Vec<u8> = who.encode();
 		leaf.extend(balance.encode());
 
 		Self::build_merkle_proof(leaf, leaf_nodes)
@@ -1305,7 +1259,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Internal calculation of the merkle proof for NFT-based campaign.
 	pub fn calculate_nft_rewards_merkle_proof(
-		claim_id: &ClaimId,
+		who: &T::AccountId,
 		tokens: &Vec<(ClassId, TokenId)>,
 		leaf_nodes: &Vec<Hash>,
 	) -> Result<Hash, DispatchError> {
@@ -1315,7 +1269,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Hash the pair of AccountId and list of (ClassId, TokenId)
-		let mut leaf: Vec<u8> = claim_id.encode();
+		let mut leaf: Vec<u8> = who.encode();
 		for token in tokens.clone() {
 			leaf.extend(token.encode());
 		}
@@ -1350,7 +1304,6 @@ impl<T: Config> Pallet<T> {
 	/// Internal merkle hash calculation from two hashes
 	pub fn sorted_hash_of(a: &Hash, b: &Hash) -> Hash {
 		let mut h: Vec<u8> = Vec::with_capacity(64);
-
 		if a < b {
 			h.extend_from_slice(a.as_ref());
 			h.extend_from_slice(b.as_ref());
