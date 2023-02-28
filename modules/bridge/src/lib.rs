@@ -78,6 +78,8 @@ pub mod pallet {
 		BridgeOriginAlreadyExist,
 		/// Bridge origin doesn't exists
 		BridgeOriginDoesNotExist,
+		/// Origin doesn't have permission
+		NoPermission,
 	}
 
 	#[pallet::event]
@@ -208,9 +210,9 @@ pub mod pallet {
 			resource_id: ResourceId,
 			metadata: NftMetadata,
 		) -> DispatchResult {
-			T::BridgeOrigin::ensure_origin(origin.clone())?;
-
 			let bridge_origin = ensure_signed(origin)?;
+			ensure!(Self::is_bridge_origin(&bridge_origin), Error::<T>::NoPermission);
+
 			// Get collection id from resource_id
 			let class_id = Self::class_ids(resource_id).ok_or(Error::<T>::ClassIdIsNotRegistered)?;
 
@@ -355,7 +357,7 @@ pub mod pallet {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		pub fn add_bridge_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
-			ensure!(!Self::bridge_origin(&who), Error::<T>::BridgeOriginsAlreadyExist);
+			ensure!(!Self::is_bridge_origin(&who), Error::<T>::BridgeOriginAlreadyExist);
 
 			BridgeOrigins::<T>::insert(who.clone(), ());
 			Self::deposit_event(Event::AddNewBridgeOrigin(who));
@@ -367,12 +369,19 @@ pub mod pallet {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
 		pub fn remove_bridge_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
-			ensure!(Self::bridge_origin(&who), Error::<T>::BridgeOriginDoesNotExist);
+			ensure!(Self::is_bridge_origin(&who), Error::<T>::BridgeOriginDoesNotExist);
 
 			BridgeOrigins::<T>::remove(who.clone());
 			Self::deposit_event(Event::BridgeOriginRemoved(who));
 
 			Ok(())
 		}
+	}
+}
+
+impl<T: Config> Pallet<T> {
+	pub fn is_bridge_origin(who: &T::AccountId) -> bool {
+		let bridge_origin = Self::bridge_origin(who);
+		bridge_origin == Some(())
 	}
 }
