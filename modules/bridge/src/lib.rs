@@ -215,13 +215,13 @@ pub mod pallet {
 
 			// Get collection id from resource_id
 			let class_id = Self::class_ids(resource_id).ok_or(Error::<T>::ClassIdIsNotRegistered)?;
-
+			let bridge_id = T::PalletId::get().into_account_truncating();
 			// Check if NFT does exists
-			match T::NFTHandler::check_ownership(&bridge_origin, &(class_id, token_id)) {
+			match T::NFTHandler::check_ownership(&bridge_id, &(class_id, token_id)) {
 				Ok(is_bridge_owned) => {
 					if is_bridge_owned {
 						if let Ok(_transfer_succeeded) =
-							T::NFTHandler::transfer_nft(&bridge_origin, &to, &(class_id, token_id))
+							T::NFTHandler::transfer_nft(&bridge_id, &to, &(class_id, token_id))
 						{
 							Self::deposit_event(Event::NonFungibleBridgeInExecuted(
 								resource_id,
