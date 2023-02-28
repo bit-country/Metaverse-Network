@@ -126,6 +126,11 @@ pub mod pallet {
 	#[pallet::getter(fn class_ids)]
 	pub type ClassIds<T: Config> = StorageMap<_, Twox64Concat, ResourceId, ClassId, OptionQuery>;
 
+	/// Bridge executor origins
+	#[pallet::storage]
+	#[pallet::getter(fn bridge_origin)]
+	pub type BridgeOrigins<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, (), OptionQuery>;
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]

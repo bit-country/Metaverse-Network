@@ -33,7 +33,7 @@ orml-traits = { git = "https://github.com/bit-country/open-runtime-module-librar
 blake2-rfc = { version = "0.2.18", default-features = false }
 hex-literal = "0.3"
 pallet-nft = { path = "../../pallets/nft", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26-1", version = "0.4.2-dev", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 currencies = { package = "currencies", path = "../../pallets/currencies", default-features = false }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
