@@ -75,7 +75,9 @@ pub mod pallet {
 		/// NFT class id is not registered for associated resource id
 		ClassIdIsNotRegistered,
 		/// Bridge origin already exists
-		BridgeOriginsAlreadyExist,
+		BridgeOriginAlreadyExist,
+		/// Bridge origin doesn't exists
+		BridgeOriginDoesNotExist,
 	}
 
 	#[pallet::event]
@@ -105,6 +107,8 @@ pub mod pallet {
 		NonFungibleBridgeOutExecuted(ResourceId, ClassId, TokenId, T::AccountId, Vec<u8>),
 		/// Add new bridge origin
 		AddNewBridgeOrigin(T::AccountId),
+		/// Remove bridge origin
+		BridgeOriginRemoved(T::AccountId),
 	}
 
 	#[pallet::pallet]
@@ -355,6 +359,18 @@ pub mod pallet {
 
 			BridgeOrigins::<T>::insert(who.clone(), ());
 			Self::deposit_event(Event::AddNewBridgeOrigin(who));
+
+			Ok(())
+		}
+
+		/// Remove Bridge origin that used to execute bridge only request
+		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		pub fn remove_bridge_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+			T::BridgeOrigin::ensure_origin(origin)?;
+			ensure!(Self::bridge_origin(&who), Error::<T>::BridgeOriginDoesNotExist);
+
+			BridgeOrigins::<T>::remove(who.clone());
+			Self::deposit_event(Event::BridgeOriginRemoved(who));
 
 			Ok(())
 		}
