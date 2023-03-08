@@ -572,7 +572,7 @@ pub mod pallet {
 					let next_round = current_round.current.saturating_add(One::one());
 
 					// This exit queue will be executed by exit_staking extrinsics to unreserved token
-					ExitQueue::<T>::insert(&staking_info.staker, next_round.clone(), staked_balance);
+					EstateExitQueue::<T>::insert(&staking_info.staker, next_round.clone(), staked_balance);
 					EstateStakingInfo::<T>::remove(&estate_id);
 
 					let new_total_staked = TotalEstateStake::<T>::get().saturating_sub(staked_balance);
@@ -738,7 +738,7 @@ pub mod pallet {
 					}
 
 					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
-					<TotalStake<T>>::put(new_total_staked);
+					<TotalEstateStake<T>>::put(new_total_staked);
 
 					T::Currency::unreserve(&who, amount_to_unstake);
 
