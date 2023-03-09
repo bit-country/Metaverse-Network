@@ -614,7 +614,7 @@ pub mod pallet {
 		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_nft_reward_root() * (1u64 + tokens.len() as u64))]
+		#[pallet::weight(T::WeightInfo::claim_nft_reward_root() * (1u64 + reward_tokens.len() as u64))]
 		#[transactional]
 		pub fn claim_nft_reward_root(
 			origin: OriginFor<T>,
@@ -639,7 +639,7 @@ pub mod pallet {
 					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
 						RewardType::NftAssets(claimed) => {
 							let merkle_proof: Hash =
-								Self::calculate_nft_rewards_merkle_proof(&who, &tokens, &leaf_nodes)?;
+								Self::calculate_nft_rewards_merkle_proof(&who, &reward_tokens, &leaf_nodes)?;
 
 							ensure!(
 								Self::campaign_merkle_roots(id).contains(&merkle_proof),
