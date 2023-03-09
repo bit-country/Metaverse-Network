@@ -25,11 +25,14 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use std::error;
+
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
 	use sp_arithmetic::traits::Saturating;
 	use sp_runtime::traits::{AccountIdConversion, CheckedDiv};
+	use sp_runtime::ModuleError;
 
 	use core_primitives::NFTTrait;
 	use primitives::{Attributes, ClassId, NftMetadata, TokenId};
@@ -235,8 +238,8 @@ pub mod pallet {
 					Ok(())
 				}
 				Err(err) => match err {
-					DispatchError::Other(str) => {
-						if str == "AssetInfoNotFound" {
+					DispatchError::Module(ModuleError { index, error, message }) => {
+						if message == Some("AssetInfoNotFound") {
 							if let Ok(_mint_succeeded) =
 								T::NFTHandler::mint_token_with_id(&to, class_id, token_id, metadata, Attributes::new())
 							{
