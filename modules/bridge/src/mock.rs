@@ -1,13 +1,15 @@
 #![cfg(test)]
 
+use std::collections::BTreeMap;
+use std::vec;
+
 use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, pallet_prelude::Hooks, parameter_types, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
-use std::collections::BTreeMap;
+use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleError, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{
@@ -280,6 +282,13 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			|| (*who == ALICE && (nft_value.1 == 100 || nft_value.1 == 101))
 		{
 			return Ok(true);
+		}
+		if (nft_value.1 == 5) {
+			return Err(DispatchError::Module(ModuleError {
+				index: 5,
+				error: [0, 0, 0, 0],
+				message: Some("AssetInfoNotFound"),
+			}));
 		}
 		Ok(false)
 	}
