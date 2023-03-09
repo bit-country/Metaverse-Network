@@ -9,7 +9,7 @@ Currency constant CURRENCY_CONTRACT = Currency(CURRENCY_PRECOMPILE_ADDRESS);
 
 /// @title The Currency Precompile Interface
 /// @dev The interface through which solidity contracts will interact with pallet-currency.
-/// @custom:address 0x0101010101010101010000000000000000000000
+/// @custom:address 0x0000000000000000000000000000000000000000
 interface Currency {
     /// @dev Gets the total supply of a currency.
     /// @custom:selector 10a08230

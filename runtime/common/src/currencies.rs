@@ -16,6 +16,7 @@ use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, FungibleTokenId};
+use fp_evm::Context;
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -182,5 +183,23 @@ where
 
 		// Build output.
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+	use frame_support::assert_noop;
+	use hex_literal::hex;
+
+	type MultiCurrencyPrecompile = crate::MultiCurrencyPrecompile<Runtime>;
+
+	#[test]
+	fn handles_invalid_currency_id() {
+		new_test_ext().execute_with(|| {
+			//let context = ;
+			//let handle = MockHandle::new();
+			todo!();
+		});
 	}
 }

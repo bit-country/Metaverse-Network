@@ -38,6 +38,9 @@ pub mod currencies;
 pub mod nft;
 pub mod precompiles;
 
+#[cfg(test)]
+mod mock;
+
 /// Simple fee calculator that requires payment in a single fungible at a fixed rate.
 ///
 /// - The `FixedRate` constant should be the concrete fungible ID and the amount of it
