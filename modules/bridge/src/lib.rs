@@ -25,8 +25,6 @@ mod tests;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use std::error;
-
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
