@@ -162,7 +162,7 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
-		pub fn sudo_change_fee(
+		pub fn oracle_change_fee(
 			origin: OriginFor<T>,
 			min_fee: BalanceOf<T>,
 			fee_scale: u32,
