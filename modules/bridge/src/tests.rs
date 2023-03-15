@@ -58,6 +58,32 @@ fn bridge_out_fungible_work() {
 }
 
 #[test]
+fn bridge_in_fungible() {
+	ExtBuilder::default().build().execute_with(|| {
+		let resource_id = H160::from_str("0x0000000000000000000200000000000000000000")
+			.ok()
+			.unwrap();
+		assert_ok!(BridgeModule::add_bridge_origin(Origin::root(), ALICE));
+		assert_ok!(BridgeModule::oracle_change_fee(Origin::signed(ALICE), 100, 1, 0));
+		assert_ok!(BridgeModule::register_new_token_id(
+			Origin::root(),
+			resource_id,
+			FungibleTokenId::NativeToken(0),
+			Perbill::from_percent(1)
+		));
+
+		assert_eq!(Balances::free_balance(ALICE), 100000);
+		assert_ok!(BridgeModule::bridge_in_fungible(
+			Origin::signed(ALICE),
+			vec![1],
+			BOB,
+			5,
+			resource_id
+		));
+	})
+}
+
+#[test]
 fn bridge_in_nft_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		let resource_id = H160::from_str("0x0000000000000000000200000000000000000000")
