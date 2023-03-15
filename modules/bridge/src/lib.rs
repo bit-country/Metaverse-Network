@@ -6,7 +6,7 @@
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::MultiCurrencyExtended;
-use sp_arithmetic::traits::SaturatedConversion;
+use sp_arithmetic::{traits::SaturatedConversion, Perbill};
 use sp_core::{H160, U256};
 use sp_std::prelude::*;
 
@@ -16,7 +16,7 @@ use primitives::{Balance, FungibleTokenId};
 pub type ResourceId = H160;
 pub type ChainId = u8;
 pub type DepositNonce = u64;
-pub type RatioPerNative = u128; // 1:RatioPerNative is the native amount
+pub type RatioPerNative = Perbill; // 1:RatioPerNative is the native amount
 
 #[cfg(all(feature = "std", test))]
 mod mock;
@@ -29,7 +29,7 @@ pub mod pallet {
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
-	use sp_arithmetic::traits::{Saturating, Zero};
+	use sp_arithmetic::traits::{CheckedMul, Saturating, Zero};
 	use sp_runtime::traits::{AccountIdConversion, CheckedDiv};
 	use sp_runtime::{ArithmeticError, ModuleError};
 
@@ -206,9 +206,7 @@ pub mod pallet {
 					ExistenceRequirement::AllowDeath,
 				)?;
 			} else {
-				actual_fee = fee
-					.checked_div(currency_id.1.into())
-					.ok_or(ArithmeticError::DivisionByZero)?;
+				actual_fee = currency_id.1 * fee;
 
 				// Transfer the fee as native token first
 				T::Currency::transfer(&source, &bridge_id, actual_fee.into(), ExistenceRequirement::AllowDeath)?;
@@ -324,6 +322,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			resource_id: ResourceId,
 			currency_id: FungibleTokenId,
+			fee_ratio: RatioPerNative,
 		) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
 			ensure!(
@@ -332,7 +331,7 @@ pub mod pallet {
 			);
 
 			ResourceIds::<T>::insert(currency_id, resource_id);
-			CurrencyIds::<T>::insert(resource_id, currency_id);
+			CurrencyIds::<T>::insert(resource_id, (currency_id, fee_ratio));
 			Self::deposit_event(Event::RegisterNewResourceTokenId(resource_id, currency_id));
 			Ok(())
 		}
