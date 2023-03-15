@@ -4,6 +4,7 @@ use frame_support::{
 	construct_runtime, parameter_types,
 	traits::{AsEnsureOriginWithArg, Everything, Nothing},
 	weights::Weight,
+	PalletId,
 };
 
 use frame_system::{EnsureNever, EnsureRoot};
@@ -12,13 +13,14 @@ use precompile_utils::{
 	precompile_set::*,
 	testing::{MockHandle, PrecompileTesterExt},
 };
-use sp_core::H256;
+use sp_core::{U256, H256};
 use sp_runtime::traits::{BlakeTwo256, ConstU32, IdentityLookup};
 
 use primitives::{Amount, ClassId, GroupCollectionId, TokenId, FungibleTokenId, ItemId};
 use core_primitives::{NftAssetData, NftClassData};
 // use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use sp_runtime::Perbill;
+use currencies as multi_currency;
 
 pub type AccountId = u128;
 pub type AssetId = u128;
@@ -364,7 +366,7 @@ construct_runtime!(
 		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
+        Currencies: currencies::{ Pallet, Storage, Call, Event<T>}
 		//OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		//Nft: nft::{Pallet, Storage, Call, Event<T>},
 		//LocalAssets: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>}
