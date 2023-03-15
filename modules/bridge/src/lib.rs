@@ -165,7 +165,9 @@ pub mod pallet {
 			fee_scale: u32,
 			dest_id: ChainId,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			let bridge_origin = ensure_signed(origin)?;
+			ensure!(Self::is_bridge_origin(&bridge_origin), Error::<T>::NoPermission);
+
 			ensure!(fee_scale <= 1000u32, Error::<T>::InvalidFeeOption);
 			BridgeFee::<T>::insert(dest_id, (min_fee, fee_scale));
 			Self::deposit_event(Event::FeeUpdated(dest_id, min_fee, fee_scale));
