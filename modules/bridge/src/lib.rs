@@ -180,7 +180,7 @@ pub mod pallet {
 		/// Transfers some amount of the native token to some recipient on a (whitelisted)
 		/// destination chain.
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
-		pub fn bridge_in_fungible(
+		pub fn bridge_out_fungible(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
 			recipient: Vec<u8>,
@@ -224,6 +224,38 @@ pub mod pallet {
 				U256::from(amount.saturated_into::<u128>()),
 				source,
 				recipient,
+			));
+
+			Ok(())
+		}
+
+		/// Executes a simple currency transfer from user account to bridge account
+		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		pub fn bridge_in_fungible(
+			origin: OriginFor<T>,
+			from: Vec<u8>,
+			to: T::AccountId,
+			amount: BalanceOf<T>,
+			resource_id: ResourceId,
+		) -> DispatchResult {
+			let bridge_origin = ensure_signed(origin)?;
+			ensure!(Self::is_bridge_origin(&bridge_origin), Error::<T>::NoPermission);
+
+			let currency_id = Self::currency_ids(resource_id).ok_or(Error::<T>::ResourceIdNotRegistered)?;
+			let bridge_id = T::PalletId::get().into_account_truncating();
+
+			if currency_id.0 == FungibleTokenId::NativeToken(0) {
+				T::Currency::transfer(&bridge_id, &to, amount, ExistenceRequirement::AllowDeath)?;
+			} else {
+				// Handle the multi currency token transfer
+				T::MultiCurrency::transfer(currency_id.0, &bridge_id, &to, amount)?;
+			}
+
+			Self::deposit_event(Event::FungibleBridgeInExecuted(
+				resource_id,
+				U256::from(amount.saturated_into::<u128>()),
+				from,
+				to,
 			));
 
 			Ok(())
