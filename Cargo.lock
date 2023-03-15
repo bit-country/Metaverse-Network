@@ -5294,7 +5294,6 @@ dependencies = [
  "core-primitives",
  "cumulus-pallet-parachain-system",
  "currencies",
- "fp-evm",
  "frame-support",
  "frame-system",
  "impl-trait-for-tuples",

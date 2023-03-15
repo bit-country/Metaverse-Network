@@ -360,8 +360,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		//ForeignAssets: pallet_assets::<Instance1>::{Pallet, Call, Storage, Event<T>},
-		//Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
+		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
         Currencies: currencies::{ Pallet, Storage, Call, Event<T>},

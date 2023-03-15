@@ -16,7 +16,7 @@ use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, FungibleTokenId};
-use fp_evm::Context;
+use pallet_evm::Context;
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -189,7 +189,7 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::assert_noop;
+	use frame_support::{assert_eq, assert_noop};
 	use hex_literal::hex;
 
 	type MultiCurrencyPrecompile = crate::MultiCurrencyPrecompile<Runtime>;
@@ -197,9 +197,78 @@ mod tests {
 	#[test]
 	fn handles_invalid_currency_id() {
 		new_test_ext().execute_with(|| {
-			//let context = ;
-			//let handle = MockHandle::new();
-			todo!();
+			let context = Context {
+				address: H160(hex!("0x0000000000000000000500000000000000000000")),
+				caller: H160(hex!("0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				apparent_value: U256::zero(),
+			};
+			let code_address: H160 =  H160(hex!("0x0000000000000000000500000000000000000000"));
+			let handle = MockHandle::new(code_address, context);
+			assert_noop!(
+				MultiCurrencyPrecompile::execute(&handle),
+				PrecompileFailure::Revert {
+					exit_status: ExitRevert::Reverted,
+					output: "invalid currency id".into(),
+					cost: target_gas_limit(Some(10_000)).unwrap(),
+				}
+			);
 		});
 	}
+/*
+
+	#[test]
+	fn total_supply_works() {
+		new_test_ext().execute_with(|| {
+			let context = Context {
+				address: H160(hex!("0x0000000000000000000100000000000000000000")),
+				caller: H160(hex!("0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				apparent_value: U256::zero(),
+			};
+			let code_address: H160 =  H160(hex!("0x0000000000000000000100000000000000000000"));
+			let mut handle = MockHandle::new(code_address, context);
+			let action_input = Action::TotalSuply.as_bytes().to_vec();
+			handle.input = action_input;
+
+			let response = MultiCurrencyPrecompile::execute(&handle);
+			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+		});
+	}
+
+	#[test]
+	fn balance_of_works() {
+		new_test_ext().execute_with(|| {
+			let context = Context {
+				address: H160(hex!("0x000000000000000000100000000000000000000")),
+				caller: H160(hex!("0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				apparent_value: U256::zero(),
+			};
+			let code_address: H160 =  H160(hex!("0x0000000000000000000100000000000000000000"));
+			let handle = MockHandle::new(code_address, context);
+			let action_input = Action::BalanceOf.as_bytes().to_vec();
+			handle.input = action_input;
+
+			let response = MultiCurrencyPrecompile::execute(&handle);
+			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+
+		});
+	}
+
+	#[test]
+	fn transfer_works() {
+		new_test_ext().execute_with(|| {
+			let context = Context {
+				address: H160(hex!("0x0000000000000000000100000000000000000000")),
+				caller: H160(hex!("0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				apparent_value: U256::zero(),
+			};
+			let code_address: H160 =  H160(hex!("0x0000000000000000000100000000000000000000"));
+			let handle = MockHandle::new(code_address, context);
+			let action_input = Action::Transfer.as_bytes().to_vec();
+			handle.input = action_input;
+
+			let response = MultiCurrencyPrecompile::execute(&handle);
+			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+		});
+	}
+ */
 }
