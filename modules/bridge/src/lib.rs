@@ -48,6 +48,11 @@ pub mod pallet {
 		/// The currency mechanism.
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+		type MultiCurrency: MultiCurrencyExtended<
+			Self::AccountId,
+			CurrencyId = FungibleTokenId,
+			Balance = BalanceOf<Self>,
+		>;
 		/// The nft handling mechanism.
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 		/// Native currency
@@ -181,29 +186,35 @@ pub mod pallet {
 			let currency_id = Self::currency_ids(resource_id).ok_or(Error::<T>::ResourceIdNotRegistered)?;
 
 			let bridge_id = T::PalletId::get().into_account_truncating();
-			ensure!(BridgeFee::<T>::contains_key(&dest_id), Error::<T>::FeeOptionsMissing);
-			let (min_fee, fee_scale) = Self::bridge_fee(dest_id);
+			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
+			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
 
-			let mut native_amount = Zero::zero();
-			if currency_id.0 == FungibleTokenId::NativeToken(0) {
-				native_amount = amount;
-			} else {
-				native_amount = amount
-					.checked_div(currency_id.1)
-					.ok_or(ArithmeticError::DivisionByZero)?;
-			}
-			let fee_estimated = native_amount.saturating_mul(fee_scale.into());
+			let fee_estimated = amount.saturating_mul(fee_scale.into());
 			let fee = if fee_estimated > min_fee {
 				fee_estimated
 			} else {
 				min_fee
 			};
-			T::Currency::transfer(
-				&source,
-				&bridge_id,
-				(amount + fee).into(),
-				ExistenceRequirement::AllowDeath,
-			)?;
+
+			let mut actual_fee = Zero::zero();
+			if currency_id.0 == FungibleTokenId::NativeToken(0) {
+				actual_fee = fee;
+				T::Currency::transfer(
+					&source,
+					&bridge_id,
+					(amount + actual_fee).into(),
+					ExistenceRequirement::AllowDeath,
+				)?;
+			} else {
+				actual_fee = fee
+					.checked_div(currency_id.1.into())
+					.ok_or(ArithmeticError::DivisionByZero)?;
+
+				// Transfer the fee as native token first
+				T::Currency::transfer(&source, &bridge_id, actual_fee.into(), ExistenceRequirement::AllowDeath)?;
+				// Handle the multi currency token transfer
+				T::MultiCurrency::transfer(currency_id.0, &source, &bridge_id, amount)?;
+			}
 
 			Self::deposit_event(Event::FungibleBridgeOutExecuted(
 				resource_id,
