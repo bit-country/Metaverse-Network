@@ -138,6 +138,9 @@ pub mod pallet {
 	#[pallet::getter(fn nft_resource_ids)]
 	pub type NftResourceIds<T: Config> = StorageMap<_, Twox64Concat, ClassId, ResourceId, OptionQuery>;
 
+	/// Fee ratio between native token of chainId with token type for tx fee
+	/// For example: price A - 0.20 and price B - 1200 in the same unit then ratio would be
+	/// (0.20/0.20) : (1200/0.20) = 1 : 6,000 So, the ratio between price A and price B is 1:6,000.
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
 	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, ChainId, (BalanceOf<T>, u32), ValueQuery>;
