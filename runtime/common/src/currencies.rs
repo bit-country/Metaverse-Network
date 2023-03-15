@@ -189,20 +189,21 @@ where
 #[cfg(test)]
 mod tests {
 	use super::*;
-	use frame_support::{assert_eq, assert_noop};
+	use frame_support::assert_noop;
 	use hex_literal::hex;
+	use crate::mock::{Runtime as MockRuntime, Balances};
 
-	type MultiCurrencyPrecompile = crate::MultiCurrencyPrecompile<Runtime>;
+	type MultiCurrencyPrecompile = crate::currencies::MultiCurrencyPrecompile<MockRuntime>;
 
 	#[test]
 	fn handles_invalid_currency_id() {
 		new_test_ext().execute_with(|| {
 			let context = Context {
-				address: H160(hex!("0x0000000000000000000500000000000000000000")),
-				caller: H160(hex!("0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				address: H160(hex!("0000000000000000000500000000000000000000")),
+				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
 				apparent_value: U256::zero(),
 			};
-			let code_address: H160 =  H160(hex!("0x0000000000000000000500000000000000000000"));
+			let code_address: H160 =  H160(hex!("0000000000000000000500000000000000000000"));
 			let handle = MockHandle::new(code_address, context);
 			assert_noop!(
 				MultiCurrencyPrecompile::execute(&handle),
@@ -220,11 +221,11 @@ mod tests {
 	fn total_supply_works() {
 		new_test_ext().execute_with(|| {
 			let context = Context {
-				address: H160(hex!("0x0000000000000000000100000000000000000000")),
-				caller: H160(hex!("0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				address: H160(hex!("0000000000000000000100000000000000000000")),
+				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
 				apparent_value: U256::zero(),
 			};
-			let code_address: H160 =  H160(hex!("0x0000000000000000000100000000000000000000"));
+			let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
 			let mut handle = MockHandle::new(code_address, context);
 			let action_input = Action::TotalSuply.as_bytes().to_vec();
 			handle.input = action_input;
@@ -238,11 +239,11 @@ mod tests {
 	fn balance_of_works() {
 		new_test_ext().execute_with(|| {
 			let context = Context {
-				address: H160(hex!("0x000000000000000000100000000000000000000")),
-				caller: H160(hex!("0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				address: H160(hex!("000000000000000000100000000000000000000")),
+				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
 				apparent_value: U256::zero(),
 			};
-			let code_address: H160 =  H160(hex!("0x0000000000000000000100000000000000000000"));
+			let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
 			let handle = MockHandle::new(code_address, context);
 			let action_input = Action::BalanceOf.as_bytes().to_vec();
 			handle.input = action_input;
@@ -257,11 +258,11 @@ mod tests {
 	fn transfer_works() {
 		new_test_ext().execute_with(|| {
 			let context = Context {
-				address: H160(hex!("0x0000000000000000000100000000000000000000")),
-				caller: H160(hex!("0x6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				address: H160(hex!("0000000000000000000100000000000000000000")),
+				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
 				apparent_value: U256::zero(),
 			};
-			let code_address: H160 =  H160(hex!("0x0000000000000000000100000000000000000000"));
+			let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
 			let handle = MockHandle::new(code_address, context);
 			let action_input = Action::Transfer.as_bytes().to_vec();
 			handle.input = action_input;

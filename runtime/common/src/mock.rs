@@ -2,7 +2,7 @@ use super::*;
 
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{AsEnsureOriginWithArg, Everything},
+	traits::{AsEnsureOriginWithArg, Everything, Nothing},
 	weights::Weight,
 };
 
@@ -17,7 +17,7 @@ use sp_runtime::traits::{BlakeTwo256, ConstU32, IdentityLookup};
 
 use primitives::{Amount, ClassId, GroupCollectionId, TokenId, FungibleTokenId, ItemId};
 use core_primitives::{NftAssetData, NftClassData};
-use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
+// use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use sp_runtime::Perbill;
 
 pub type AccountId = u128;
@@ -140,7 +140,7 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type WeightInfo = ();
 }
-
+/* 
 pub type Precompiles<R> = PrecompileSetBuilder<
 	R,
 	(
@@ -154,6 +154,7 @@ pub type Precompiles<R> = PrecompileSetBuilder<
 		>,
 	),
 >;
+*/
 
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
@@ -207,7 +208,7 @@ impl orml_tokens::Config for Runtime {
 	type OnKilledTokenAccount = ();
 }
 
-pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balance, Amount, BlockNumber>;
 
 parameter_types! {
 	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);

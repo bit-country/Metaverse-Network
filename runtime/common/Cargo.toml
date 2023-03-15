@@ -10,6 +10,7 @@ scale-info = { version = "2.1.2", default-features = false, features = ["derive"
 impl-trait-for-tuples = "0.2.1"
 log = { version = "0.4.17", default-features = false }
 num_enum = { version = "0.5.3", default-features = false }
+hex-literal = { version = "0.3.1" }
 
 # Substrate
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
@@ -17,10 +18,15 @@ frame-system = { git = "https://github.com/paritytech/substrate", branch = "polk
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 
 # Polkadot & Cumulus pallets
 polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.26", default-features = false }
 cumulus-pallet-parachain-system = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.26', default-features = false }
+
+# FRAME pallets
+pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 
 # EVM pallets
 pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.26", default-features = false }
@@ -52,7 +58,7 @@ precompile-utils-macro = { path = "../../primitives/precompiles/macro" }
 currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
 evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", version = "2.0.0-rc6", default-features = false }
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
-auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
+#auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
@@ -64,6 +70,7 @@ std = [
     "sp-core/std",
     "sp-runtime/std",
     "sp-std/std",
+    "sp-io/std",
     "log/std",
     "frame-support/std",
     "frame-system/std",
@@ -86,10 +93,12 @@ std = [
     "core-primitives/std",
     "precompile-utils/std",
     "currencies/std",
-    "nft/std",
-    'auction-manager/std',
+    #"nft/std",
+    #"auction-manager/std",
     "evm-mapping/std",
     "xcm/std",
     "xcm-executor/std",
     "xcm-builder/std",
+    "pallet-timestamp/std",
+    "pallet-balances/std",
 ]
