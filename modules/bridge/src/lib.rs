@@ -342,8 +342,8 @@ pub mod pallet {
 		pub fn remove_resource_token_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
 			if let Some(currency_id) = CurrencyIds::<T>::take(resource_id) {
-				ResourceIds::<T>::remove(currency_id);
-				Self::deposit_event(Event::RemoveResourceTokenId(resource_id, currency_id));
+				ResourceIds::<T>::remove(currency_id.0);
+				Self::deposit_event(Event::RemoveResourceTokenId(resource_id, currency_id.0));
 			}
 			CurrencyIds::<T>::remove(resource_id);
 			Ok(())
