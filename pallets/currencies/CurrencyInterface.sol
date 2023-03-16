@@ -12,35 +12,29 @@ Currency constant CURRENCY_CONTRACT = Currency(CURRENCY_PRECOMPILE_ADDRESS);
 /// @custom:address 0x0000000000000000000000000000000000000000
 interface Currency {
     /// @dev Gets the total supply of a currency.
-    /// @custom:selector 10a08230
     /// @return An uint256 representing the total supply of a currency.
     function totalSupply() external view returns (uint256);
 
     /// @dev Gets balance of an address.
-    /// @custom:selector 10a08231
     /// @param owner address The address that owns a currency.
     /// @return An uint256 representing the balance of the owner.
     function balanceOf(address owner) external view returns (uint256);
     
     /// @dev Gets the currency  allowance of an address.
-    /// @custom:selector 10a08232
     /// @param owner address The address that owns a currency
     /// @param currency address The currency address
     /// @return An uint256 representing of the currency for the owner.
     function allowance(address owner, address currency) external view returns (uint256);
 
     /// @dev Gets the name of a currency.
-    /// @custom:selector 10a08233
     /// @return A bytes32 array representing the name of a currency.
     function name() external view returns (bytes32);
 
     /// @dev Gets the symbol of a currency.
-    /// @custom:selector 10a08234
     /// @return A bytes32 array representing the symbol of a currency.
     function symbol() external view returns (bytes32);
 
     /// @dev Gets the decimals of a currency.
-    /// @custom:selector 10a08235
     /// @return An uint256 representing the decimals of a currency.
     function decimals() external view returns (uint256);
     
@@ -52,14 +46,12 @@ interface Currency {
     function transfer(address receiver, uint256 amount) external returns (bool);
     
     /// @dev Approve currency for transfer.
-    /// @custom:selector 10059cbb
     /// @param owner The currency owner address.
     /// @param amount uint256 The amount that will be approved.
     /// @return true if the approval was successful, revert otherwise.
     function approve(address owner, uint256 amount) external returns (bool);
 
     /// @dev Transfer currency from a specified address to another one.
-    /// @custom:selector 10059cbc
     /// @param sender The currency sender address.
     /// @param receiver The currency receiver address.
     /// @param amount uint256 The amount that will be transferred.
@@ -67,14 +59,12 @@ interface Currency {
     function transferFrom(address sender, address receiver, uint256 amount) external returns (bool);
     
     /// @dev Event emitted when a currency is transferred.
-    /// @custom:selector a0f252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ff
     /// @param sender address The address that transferred the currency.
     /// @param receiver address The address that received the currency.
     /// @param amount uint256 The amount that was transferred.
     event Transferred(address indexed sender, address receiver, uint256 amount);
     
     /// @dev Event emitted when a currency is approved.
-    /// @custom:selector a1f252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3cf
     /// @param owner The currency owner address.
     /// @param amount uint256 The amount that was approved.
     event Approved(address indexed owner, uint256 amount);

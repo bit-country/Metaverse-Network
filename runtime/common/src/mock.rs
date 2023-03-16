@@ -20,7 +20,8 @@ use primitives::{Amount, ClassId, GroupCollectionId, TokenId, FungibleTokenId, I
 use core_primitives::{NftAssetData, NftClassData};
 // use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use sp_runtime::Perbill;
-use currencies as multi_currency;
+//use currencies as multi_currency;
+use currencies::BasicCurrencyAdapter;
 
 pub type AccountId = u128;
 pub type AssetId = u128;
@@ -136,12 +137,19 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = ();
 	type MaxLocks = ();
 	type Balance = Balance;
-	type RuntimeEvent = RuntimeEvent;
+	//type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
 }
+/// The asset precompile address prefix. Addresses that match against this prefix will be routed
+/// to MultiCurrencyPrecompile
+pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
+/// The NFT precompile address prefix. Addresses that match against this prefix will be routed
+/// to NftPrecompile
+pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
+
 /* 
 pub type Precompiles<R> = PrecompileSetBuilder<
 	R,
@@ -166,8 +174,8 @@ parameter_types! {
 
 impl pallet_evm::Config for Runtime {
 	type FeeCalculator = ();
-	type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
-	type WeightPerGas = WeightPerGas;
+	type GasWeightMapping = pallet_evm::GasWeightMapping<Self>;
+	//type WeightPerGas = WeightPerGas;
 	type CallOrigin = EnsureAddressRoot<AccountId>;
 	type WithdrawOrigin = EnsureAddressNever<AccountId>;
 	type AddressMapping = AccountId;
@@ -200,7 +208,7 @@ impl orml_tokens::Config for Runtime {
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
-	type ExistentialDeposits = ExistentialDeposits;
+	type ExistentialDeposits = Self::ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = ();
 	type ReserveIdentifier = [u8; 8];
@@ -210,7 +218,7 @@ impl orml_tokens::Config for Runtime {
 	type OnKilledTokenAccount = ();
 }
 
-pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balance, Amount, BlockNumber>;
+pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, Balance, Amount, BlockNumber>;
 
 parameter_types! {
 	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
