@@ -8,7 +8,7 @@ use frame_support::{
 };
 
 use frame_system::{EnsureNever, EnsureRoot};
-use pallet_evm::{EnsureAddressNever, EnsureAddressRoot};
+use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
 use precompile_utils::{
 	precompile_set::*
 };
@@ -137,7 +137,7 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = ();
 	type MaxLocks = ();
 	type Balance = Balance;
-	//type RuntimeEvent = RuntimeEvent;
+	type Event = Event;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -169,7 +169,7 @@ pub type Precompiles<R> = PrecompileSetBuilder<
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
 	pub PrecompilesValue: Precompiles<Runtime> = Precompiles::new();
-	pub WeightPerGas: Weight = Weight::from_ref_time(1);
+	//pub WeightPerGas: Weight = Weight::from_ref_time(1);
 }
 
 impl pallet_evm::Config for Runtime {
@@ -181,7 +181,7 @@ impl pallet_evm::Config for Runtime {
 	//type WeightPerGas = WeightPerGas;
 	type CallOrigin = EnsureAddressRoot<AccountId>;
 	type WithdrawOrigin = EnsureAddressNever<AccountId>;
-	type AddressMapping = AccountId;
+	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
 	type Currency = Balances;
 	type Event = Event;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
@@ -208,7 +208,7 @@ impl orml_tokens::Config for Runtime {
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
-	type ExistentialDeposits = Self::ExistentialDeposits;
+	type ExistentialDeposits = ExistentialDeposits;
 	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = ();
 	type ReserveIdentifier = [u8; 8];

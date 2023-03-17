@@ -6,7 +6,7 @@ use pallet_evm::{
 	PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
-use sp_runtime::traits::Dispatchable;
+use sp_runtime::traits::{AccountIdConversion, Dispatchable};
 use sp_std::{marker::PhantomData, prelude::*};
 
 use precompile_utils::data::{Address, EvmData, EvmDataWriter};
@@ -211,7 +211,6 @@ mod tests {
 				PrecompileFailure::Revert {
 					exit_status: ExitRevert::Reverted,
 					output: "invalid currency id".into(),
-					cost: target_gas_limit(Some(10_000)).unwrap(),
 				}
 			);
 		});
