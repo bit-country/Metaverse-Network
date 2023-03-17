@@ -37,7 +37,7 @@ pallet-evm-precompile-ed25519 = { git = "https://github.com/justinphamnz/frontie
 pallet-evm-precompile-modexp = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.26", default-features = false }
 pallet-evm-precompile-sha3fips = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.26", default-features = false }
 pallet-evm-precompile-simple = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.26", default-features = false }
-#fp-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.26", default-features = false }
+
 
 # XCM pallets
 xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.26", default-features = false }
@@ -54,8 +54,8 @@ orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library",
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 precompile-utils = { path = "../../primitives/precompiles", default-features = false }
-precompile-utils-macro = { path = "../../primitives/precompiles/macro" }
-currencies = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
+precompile-utils-macro = { path = "../../primitives/precompiles/macro", default-features = false }
+currencies_pallet = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
 evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", version = "2.0.0-rc6", default-features = false }
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
 #auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
@@ -77,7 +77,6 @@ std = [
     "cumulus-pallet-parachain-system/std",
     "polkadot-parachain/std",
     "pallet-evm/std",
-    #"fp-evm/std",
     "pallet-evm-precompile-blake2/std",
     "pallet-evm-precompile-simple/std",
     "pallet-evm-precompile-bn128/std",
@@ -92,7 +91,7 @@ std = [
     "primitives/std",
     "core-primitives/std",
     "precompile-utils/std",
-    "currencies/std",
+    "currencies_pallet/std",
     #"nft/std",
     #"auction-manager/std",
     "evm-mapping/std",

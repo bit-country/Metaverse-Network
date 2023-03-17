@@ -10,8 +10,7 @@ use frame_support::{
 use frame_system::{EnsureNever, EnsureRoot};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot};
 use precompile_utils::{
-	precompile_set::*,
-	testing::{MockHandle, PrecompileTesterExt},
+	precompile_set::*
 };
 use sp_core::{U256, H256};
 use sp_runtime::traits::{BlakeTwo256, ConstU32, IdentityLookup};
@@ -21,7 +20,8 @@ use core_primitives::{NftAssetData, NftClassData};
 // use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use sp_runtime::Perbill;
 //use currencies as multi_currency;
-use currencies::BasicCurrencyAdapter;
+use orml_traits::parameter_type_with_key;
+use crate::currencies as currencies_precompile;
 
 pub type AccountId = u128;
 pub type AssetId = u128;
@@ -218,14 +218,14 @@ impl orml_tokens::Config for Runtime {
 	type OnKilledTokenAccount = ();
 }
 
-pub type AdaptedBasicCurrency = BasicCurrencyAdapter<Runtime, Balance, Amount, BlockNumber>;
+pub type AdaptedBasicCurrency = currencies_pallet::BasicCurrencyAdapter<Runtime, Balance, Amount, BlockNumber>;
 
 parameter_types! {
 	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 }
 
-impl currencies::Config for Runtime {
+impl currencies_pallet::Config for Runtime {
 	type Event = Event;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
@@ -374,14 +374,14 @@ construct_runtime!(
 		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Currencies: currencies::{ Pallet, Storage, Call, Event<T>}
+        Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>}
 		//OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		//Nft: nft::{Pallet, Storage, Call, Event<T>},
 		//LocalAssets: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>}
 	}
 );
 
-pub(crate) struct ExtBuilder {
+pub struct ExtBuilder {
 	// endowed accounts with balances
 	balances: Vec<(AccountId, Balance)>,
 }
@@ -415,4 +415,9 @@ impl ExtBuilder {
 	}
 }
 
-
+pub fn last_event() -> Event {
+	frame_system::Pallet::<Runtime>::events()
+		.pop()
+		.expect("Event expected")
+		.event
+}

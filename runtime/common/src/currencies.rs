@@ -13,6 +13,7 @@ use precompile_utils::data::{Address, EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
 use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
+use precompile_utils::testing::{MockHandle, PrecompileTe};
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, FungibleTokenId};
@@ -33,7 +34,7 @@ pub enum Action {
 }
 
 /// Alias for the Balance type for the provided Runtime and Instance.
-pub type BalanceOf<Runtime> = <<Runtime as currencies::Config>::MultiSocialCurrency as MultiCurrencyTrait<
+pub type BalanceOf<Runtime> = <<Runtime as currencies_pallet::Config>::MultiSocialCurrency as MultiCurrencyTrait<
 	<Runtime as frame_system::Config>::AccountId,
 >>::Balance;
 
@@ -50,12 +51,12 @@ pub struct MultiCurrencyPrecompile<Runtime>(PhantomData<Runtime>);
 
 impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,
 	Runtime: Erc20Mapping,
-	currencies::Pallet<Runtime>:
+	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 	U256: From<
-		<<Runtime as currencies::Config>::MultiSocialCurrency as MultiCurrencyTrait<
+		<<Runtime as currencies_pallet::Config>::MultiSocialCurrency as MultiCurrencyTrait<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
@@ -104,11 +105,11 @@ where
 
 impl<Runtime> MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies::Config + pallet_evm::Config + frame_system::Config,
-	currencies::Pallet<Runtime>:
+	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,
+	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 	U256: From<
-		<<Runtime as currencies::Config>::MultiSocialCurrency as MultiCurrencyTrait<
+		<<Runtime as currencies_pallet::Config>::MultiSocialCurrency as MultiCurrencyTrait<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
@@ -122,7 +123,7 @@ where
 		input.expect_arguments(0)?;
 
 		// Fetch info
-		let total_issuance = <Runtime as currencies::Config>::MultiSocialCurrency::total_issuance(currency_id);
+		let total_issuance = <Runtime as currencies_pallet::Config>::MultiSocialCurrency::total_issuance(currency_id);
 
 		log::debug!(target: "evm", "multicurrency: total issuance: {:?}", total_issuance);
 
@@ -141,10 +142,10 @@ where
 		let owner: H160 = input.read::<Address>()?.into();
 		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
 		// Fetch info
-		let balance = if currency_id == <Runtime as currencies::Config>::GetNativeCurrencyId::get() {
-			<Runtime as currencies::Config>::NativeCurrency::free_balance(&who)
+		let balance = if currency_id == <Runtime as currencies_pallet::Config>::GetNativeCurrencyId::get() {
+			<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&who)
 		} else {
-			<Runtime as currencies::Config>::MultiSocialCurrency::free_balance(currency_id, &who)
+			<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(currency_id, &who)
 		};
 
 		log::debug!(target: "evm", "multicurrency: who: {:?} balance: {:?}", who ,balance);
@@ -170,7 +171,7 @@ where
 
 		log::debug!(target: "evm", "multicurrency: transfer from: {:?}, to: {:?}, amount: {:?}", origin, to, amount);
 
-		<currencies::Pallet<Runtime> as MultiCurrencyTrait<Runtime::AccountId>>::transfer(
+		<currencies_pallet::Pallet<Runtime> as MultiCurrencyTrait<Runtime::AccountId>>::transfer(
 			currency_id,
 			&origin,
 			&to,
