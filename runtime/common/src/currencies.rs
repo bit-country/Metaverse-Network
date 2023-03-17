@@ -13,7 +13,6 @@ use precompile_utils::data::{Address, EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
 use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
-use precompile_utils::testing::{MockHandle, PrecompileTe};
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, FungibleTokenId};
@@ -192,13 +191,14 @@ mod tests {
 	use super::*;
 	use frame_support::assert_noop;
 	use hex_literal::hex;
-	use crate::mock::{Runtime as MockRuntime, Balances};
+	use precompile_utils::testing::MockHandle;
+	use crate::mock::*;
 
-	type MultiCurrencyPrecompile = crate::currencies::MultiCurrencyPrecompile<MockRuntime>;
+	type MultiCurrencyPrecompile = crate::currencies::MultiCurrencyPrecompile<Runtime>;
 
 	#[test]
 	fn handles_invalid_currency_id() {
-		new_test_ext().execute_with(|| {
+		ExtBuilder::default().build().execute_with(|| {
 			let context = Context {
 				address: H160(hex!("0000000000000000000500000000000000000000")),
 				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),

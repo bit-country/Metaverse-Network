@@ -244,7 +244,7 @@ impl<'p, P: PrecompileSet> PrecompilesTester<'p, P> {
 		}
 
 		if let Some(logs) = &self.expected_logs {
-			similar_asserts::assert_eq!(&self.handle.logs, logs);
+			assert_eq!(&self.handle.logs, logs);
 		}
 	}
 

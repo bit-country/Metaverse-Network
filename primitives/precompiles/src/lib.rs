@@ -25,8 +25,6 @@ pub mod logs;
 pub mod modifier;
 pub mod precompile_set;
 pub mod substrate;
-
-#[cfg(feature = "testing")]
 pub mod testing;
 
 #[cfg(test)]
