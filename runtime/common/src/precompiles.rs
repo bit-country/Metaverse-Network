@@ -11,7 +11,7 @@ use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
 
 use crate::currencies::MultiCurrencyPrecompile;
-use crate::nft::NftPrecompile;
+//use crate::nft::NftPrecompile;
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
@@ -34,9 +34,9 @@ impl<R> MetaverseNetworkPrecompiles<R> {
 /// 1024-2047 Precompiles that are not in Ethereum Mainnet
 impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
-	R: pallet_evm::Config + currencies_pallet::Config + nft::Config,
+	R: pallet_evm::Config + currencies_pallet::Config, //+ nft::Config,
 	MultiCurrencyPrecompile<R>: Precompile,
-	NftPrecompile<R>: Precompile,
+	//NftPrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
@@ -70,9 +70,9 @@ where
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
 				Some(MultiCurrencyPrecompile::<R>::execute(handle))
 			}
-			a if &a.to_fixed_bytes()[0..9] == NFT_PRECOMPILE_ADDRESS_PREFIX => {
-				Some(NftPrecompile::<R>::execute(handle))
-			}
+			//a if &a.to_fixed_bytes()[0..9] == NFT_PRECOMPILE_ADDRESS_PREFIX => {
+			//	Some(NftPrecompile::<R>::execute(handle))
+			//}
 			// Default
 			_ => None,
 		}

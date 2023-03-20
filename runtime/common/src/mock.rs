@@ -12,79 +12,110 @@ use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
 use precompile_utils::{
 	precompile_set::*
 };
-use sp_core::{U256, H256};
-use sp_runtime::traits::{BlakeTwo256, ConstU32, IdentityLookup};
-
+use sp_core::{Encode, Decode, MaxEncodedLen, U256, H256, H160};
+use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, ConstU32, IdentityLookup};
+use sp_runtime::AccountId32;
 use primitives::{Amount, ClassId, GroupCollectionId, TokenId, FungibleTokenId, ItemId};
 use core_primitives::{NftAssetData, NftClassData};
 // use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use sp_runtime::Perbill;
-//use currencies as multi_currency;
 use orml_traits::parameter_type_with_key;
-use crate::currencies as currencies_precompile;
 
-pub type AccountId = u128;
+use hex_literal::hex;
+
+use crate::currencies::MultiCurrencyPrecompile;
+use crate::precompiles::MetaverseNetworkPrecompiles;
+
+use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
+use pallet_evm::AddressMapping;
+
+pub type AccountId = AccountId32;
 pub type AssetId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u32;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 pub type Block = frame_system::mocking::MockBlock<Runtime>;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
+pub const ALICE: AccountId = AccountId32::new([1u8; 32]);
+pub const BOB: AccountId = AccountId32::new([2u8; 32]);
 
-/* 
-/// The foreign asset precompile address prefix. Addresses that match against this prefix will
-/// be routed to Erc20AssetsPrecompileSet being marked as foreign
-pub const FOREIGN_ASSET_PRECOMPILE_ADDRESS_PREFIX: u32 = 0xffffffff;
+/* MockAccount AccountId Implementation
+pub const ALICE: AccountId = MockAccount::from_u64(1u64);
+pub const BOB: AccountId = MockAccount::from_u64(2u64);
 
-/// The local asset precompile address prefix. Addresses that match against this prefix will
-/// be routed to Erc20AssetsPrecompileSet being marked as local
-pub const LOCAL_ASSET_PRECOMPILE_ADDRESS_PREFIX: u32 = 0xfffffffe;
+#[derive(
+	Eq,
+	PartialEq,
+	Clone,
+	Ord,
+	PartialOrd,
+	Encode,
+	Decode,
+	Debug,
+	MaxEncodedLen,
+	TypeInfo,
+	Serialize,
+	Deserialize,
+	//std::fmt::Display,
+)]
+pub struct MockAccount(pub H160);
 
-parameter_types! {
-	pub ForeignAssetPrefix: &'static [u8] = &[0xff, 0xff, 0xff, 0xff];
-	pub LocalAssetPrefix: &'static [u8] = &[0xff, 0xff, 0xff, 0xfe];
-}
-
-// Implement the trait, where we convert AccountId to AssetID
-impl AccountIdAssetIdConversion<AccountId, AssetId> for Runtime {
-	/// The way to convert an account to assetId is by ensuring that the prefix is 0XFFFFFFFF
-	/// and by taking the lowest 128 bits as the assetId
-	fn account_to_asset_id(account: AccountId) -> Option<(Vec<u8>, AssetId)> {
-		if account.has_prefix_u32(FOREIGN_ASSET_PRECOMPILE_ADDRESS_PREFIX) {
-			return Some((
-				FOREIGN_ASSET_PRECOMPILE_ADDRESS_PREFIX
-					.to_be_bytes()
-					.to_vec(),
-				account.without_prefix(),
-			));
-		}
-
-		if account.has_prefix_u32(LOCAL_ASSET_PRECOMPILE_ADDRESS_PREFIX) {
-			return Some((
-				LOCAL_ASSET_PRECOMPILE_ADDRESS_PREFIX.to_be_bytes().to_vec(),
-				account.without_prefix(),
-			));
-		}
-
-		None
+impl MockAccount {
+pub fn from_u64(v: u64) -> Self {
+		H160::from_low_u64_be(v).into()
 	}
 
-	// Not used for now
-	fn asset_id_to_account(prefix: &[u8], asset_id: AssetId) -> AccountId {
-		if prefix
-			== LOCAL_ASSET_PRECOMPILE_ADDRESS_PREFIX
-				.to_be_bytes()
-				.as_slice()
-		{
-			LocalAssetId(asset_id).into()
-		} else {
-			ForeignAssetId(asset_id).into()
-		}
+	pub fn zero() -> Self {
+		H160::zero().into()
+	}
+
+	pub fn has_prefix(&self, prefix: &[u8]) -> bool {
+		&self.0[0..4] == prefix
+	}
+
+	pub fn has_prefix_u32(&self, prefix: u32) -> bool {
+		self.0[0..4] == prefix.to_be_bytes()
+	}
+
+	pub fn without_prefix(&self) -> u128 {
+		u128::from_be_bytes(<[u8; 16]>::try_from(&self.0[4..20]).expect("slice have len 16"))
+	}
+}
+
+impl From<MockAccount> for H160 {
+	fn from(account: MockAccount) -> H160 {
+		account.0
+	}
+}
+
+impl From<MockAccount> for [u8; 20] {
+	fn from(account: MockAccount) -> [u8; 20] {
+		let x: H160 = account.into();
+		x.into()
+	}
+}
+
+impl From<H160> for MockAccount {
+	fn from(address: H160) -> MockAccount {
+		MockAccount(address)
+	}
+}
+
+impl From<[u8; 20]> for MockAccount {
+	fn from(address: [u8; 20]) -> MockAccount {
+		let x: H160 = address.into();
+		MockAccount(x)
+	}
+}
+
+impl AddressMapping<MockAccount> for MockAccount {
+	fn into_account_id(address: H160) -> MockAccount {
+		address.into()
 	}
 }
 */
+
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
 	pub const SS58Prefix: u8 = 42;
@@ -150,25 +181,18 @@ pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
 /// to NftPrecompile
 pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
 
-/* 
+
 pub type Precompiles<R> = PrecompileSetBuilder<
 	R,
 	(
-		PrecompileSetStartingWith<
-			ForeignAssetPrefix,
-			Erc20AssetsPrecompileSet<R, IsForeign, pallet_assets::Instance1>,
-		>,
-		PrecompileSetStartingWith<
-			LocalAssetPrefix,
-			Erc20AssetsPrecompileSet<R, IsLocal, pallet_assets::Instance2>,
-		>,
+		MultiCurrencyPrecompile<R>,
 	),
 >;
-*/
+
 
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
-	pub PrecompilesValue: Precompiles<Runtime> = Precompiles::new();
+	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> =  MetaverseNetworkPrecompiles::<Runtime>::new();
 	//pub WeightPerGas: Weight = Weight::from_ref_time(1);
 }
 
@@ -185,7 +209,7 @@ impl pallet_evm::Config for Runtime {
 	type Currency = Balances;
 	type Event = Event;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
-	type PrecompilesType = Precompiles<Self>;
+	type PrecompilesType = MetaverseNetworkPrecompiles<Self>;
 	type PrecompilesValue = PrecompilesValue;
 	type BlockGasLimit = BlockGasLimit;
 	type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
@@ -218,11 +242,18 @@ impl orml_tokens::Config for Runtime {
 	type OnKilledTokenAccount = ();
 }
 
-pub type AdaptedBasicCurrency = currencies_pallet::BasicCurrencyAdapter<Runtime, Balance, Amount, BlockNumber>;
+pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 parameter_types! {
 	pub const NativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
+}
+
+impl orml_currencies::Config for Runtime {
+	type MultiCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = NativeCurrencyId;
+	type WeightInfo = ();
 }
 
 impl currencies_pallet::Config for Runtime {
@@ -374,6 +405,7 @@ construct_runtime!(
 		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
+		OrmlCurrencies: orml_currencies::{Pallet, Call},
         Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>}
 		//OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		//Nft: nft::{Pallet, Storage, Call, Event<T>},
@@ -420,4 +452,16 @@ pub fn last_event() -> Event {
 		.pop()
 		.expect("Event expected")
 		.event
+}
+
+pub fn alice_evm_addr() -> H160 {
+	H160::from(hex_literal::hex!("1000000000000000000000000000000000000001"))
+}
+
+pub fn bob_evm_addr() -> H160 {
+	H160::from(hex_literal::hex!("1000000000000000000000000000000000000002"))
+}
+
+pub fn neer_evm_address() -> H160 {
+	H160::from(hex_literal::hex!("0000000000000000000100000000000000000000"))
 }
