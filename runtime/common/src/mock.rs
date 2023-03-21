@@ -165,7 +165,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type MaxReserves = ();
-	type ReserveIdentifier = ();
+	type ReserveIdentifier = [u8; 8];
 	type MaxLocks = ();
 	type Balance = Balance;
 	type Event = Event;
@@ -255,6 +255,7 @@ impl orml_currencies::Config for Runtime {
 	type GetNativeCurrencyId = NativeCurrencyId;
 	type WeightInfo = ();
 }
+
 
 impl currencies_pallet::Config for Runtime {
 	type Event = Event;
@@ -405,11 +406,10 @@ construct_runtime!(
 		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-		OrmlCurrencies: orml_currencies::{Pallet, Call},
+		//OrmlCurrencies: orml_currencies::{Pallet, Call},
         Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>}
 		//OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		//Nft: nft::{Pallet, Storage, Call, Event<T>},
-		//LocalAssets: pallet_assets::<Instance2>::{Pallet, Call, Storage, Event<T>}
 	}
 );
 
