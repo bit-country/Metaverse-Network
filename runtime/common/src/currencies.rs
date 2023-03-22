@@ -48,6 +48,12 @@ pub type BalanceOf<Runtime> = <<Runtime as currencies_pallet::Config>::MultiSoci
 /// - Transfer. Rest `input` bytes: `from`, `to`, `amount`.
 pub struct MultiCurrencyPrecompile<Runtime>(PhantomData<Runtime>);
 
+impl<Runtime> Default for MultiCurrencyPrecompile<Runtime> {
+	fn default() -> Self {
+		Self(PhantomData)
+	}
+}
+
 impl<Runtime> PrecompileSet for MultiCurrencyPrecompile<Runtime>
 where
 	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,

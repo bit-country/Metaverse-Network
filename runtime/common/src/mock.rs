@@ -195,7 +195,7 @@ where
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
 		match handle.code_address() {
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
-				MultiCurrencyPrecompile::<R>::new().execute(handle)
+				MultiCurrencyPrecompile::<R>::default().execute(handle)
 			}
 			_ => None,
 		}
