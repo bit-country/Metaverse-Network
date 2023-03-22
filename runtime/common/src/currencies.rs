@@ -195,7 +195,7 @@ mod tests {
 	use crate::mock::*;
 
 	type MultiCurrencyPrecompile = crate::currencies::MultiCurrencyPrecompile<crate::mock::Runtime>;
-
+ 
 	#[test]
 	fn handles_invalid_currency_id() {
 		ExtBuilder::default().build().execute_with(|| {

@@ -181,19 +181,13 @@ pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
 /// to NftPrecompile
 pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
 
-
-pub type Precompiles<R> = PrecompileSetBuilder<
-	R,
-	(
-		MultiCurrencyPrecompile<R>,
-	),
->;
-
+//pub type Precompiles<R> = MetaverseNetworkPrecompiles<R>;
+pub type Precompiles<R> = PrecompileSetBuilder<R, (PrecompileAt<AddressU64<1>, MultiCurrencyPrecompile<R>>,)>;
 
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
-	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> =  MetaverseNetworkPrecompiles::<Runtime>::new();
-	//pub WeightPerGas: Weight = Weight::from_ref_time(1);
+	pub PrecompilesValue: Precompiles<Runtime> = Precompiles::new();
+
 }
 
 impl pallet_evm::Config for Runtime {
@@ -202,14 +196,13 @@ impl pallet_evm::Config for Runtime {
 	type ChainId = ();
 	type OnChargeTransaction = ();
 	type FindAuthor = ();
-	//type WeightPerGas = WeightPerGas;
 	type CallOrigin = EnsureAddressRoot<AccountId>;
 	type WithdrawOrigin = EnsureAddressNever<AccountId>;
 	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
 	type Currency = Balances;
 	type Event = Event;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
-	type PrecompilesType = MetaverseNetworkPrecompiles<Self>;
+	type PrecompilesType = Precompiles<Self>;
 	type PrecompilesValue = PrecompilesValue;
 	type BlockGasLimit = BlockGasLimit;
 	type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
@@ -255,7 +248,6 @@ impl orml_currencies::Config for Runtime {
 	type GetNativeCurrencyId = NativeCurrencyId;
 	type WeightInfo = ();
 }
-
 
 impl currencies_pallet::Config for Runtime {
 	type Event = Event;
@@ -406,7 +398,6 @@ construct_runtime!(
 		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
         Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-		//OrmlCurrencies: orml_currencies::{Pallet, Call},
         Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>}
 		//OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		//Nft: nft::{Pallet, Storage, Call, Event<T>},
