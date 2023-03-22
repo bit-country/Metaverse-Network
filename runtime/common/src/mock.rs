@@ -22,6 +22,10 @@ use sp_runtime::Perbill;
 use core_primitives::{NftAssetData, NftClassData};
 use precompile_utils::precompile_set::*;
 use precompile_utils::EvmResult;
+use primitives::evm::{
+	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
+	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
+};
 use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
@@ -186,12 +190,12 @@ pub struct Precompiles<R>(PhantomData<R>);
 
 impl<R> PrecompileSet for Precompiles<R>
 where
-	MultiCurrencyPrecompile<R>: Precompile,
+	MultiCurrencyPrecompile<R>: PrecompileSet,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
 		match handle.code_address() {
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
-				Some(MultiCurrencyPrecompile::<R>::execute(handle))
+				MultiCurrencyPrecompile::<R>::new().execute(handle)
 			}
 			_ => None,
 		}
@@ -272,6 +276,72 @@ impl currencies_pallet::Config for Runtime {
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
 	type WeightInfo = ();
+}
+
+/// Evm address mapping
+impl Erc20Mapping for Runtime {
+	fn encode_evm_address(t: FungibleTokenId) -> Option<EvmAddress> {
+		EvmAddress::try_from(t).ok()
+	}
+
+	fn encode_nft_evm_address(t: (ClassId, TokenId)) -> Option<EvmAddress> {
+		let mut address = [2u8; 20];
+		let mut asset_bytes: Vec<u8> = t.0.to_be_bytes().to_vec();
+		asset_bytes.append(&mut t.1.to_be_bytes().to_vec());
+
+		for byte_index in H160_POSITION_TOKEN_NFT {
+			address[byte_index] = asset_bytes.as_slice()[byte_index];
+		}
+
+		Some(EvmAddress::from_slice(&address))
+	}
+
+	fn decode_evm_address(addr: EvmAddress) -> Option<FungibleTokenId> {
+		let address = addr.as_bytes();
+		let currency_id = match CurrencyIdType::try_from(address[H160_POSITION_CURRENCY_ID_TYPE]).ok()? {
+			CurrencyIdType::NativeToken => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::NativeToken)
+				.ok(),
+			CurrencyIdType::MiningResource => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::MiningResource)
+				.ok(),
+			CurrencyIdType::FungibleToken => address[H160_POSITION_TOKEN]
+				.try_into()
+				.map(FungibleTokenId::FungibleToken)
+				.ok(),
+		};
+
+		// Encode again to ensure encoded address is matched
+		Self::encode_evm_address(currency_id?).and_then(|encoded| if encoded == addr { currency_id } else { None })
+	}
+
+	fn decode_nft_evm_address(addr: EvmAddress) -> Option<(ClassId, TokenId)> {
+		let address = addr.as_bytes();
+
+		let mut class_id_bytes = [2u8; 4];
+		let mut token_id_bytes = [2u8; 8];
+		for byte_index in H160_POSITION_TOKEN_NFT {
+			if byte_index < H160_POSITION_TOKEN_NFT_CLASS_ID_END {
+				class_id_bytes[byte_index - H160_POSITION_TOKEN_NFT.start] = address[byte_index];
+			} else {
+				token_id_bytes[byte_index - H160_POSITION_TOKEN_NFT_CLASS_ID_END] = address[byte_index];
+			}
+		}
+
+		let class_id = u32::from_be_bytes(class_id_bytes);
+		let token_id = u64::from_be_bytes(token_id_bytes);
+
+		// Encode again to ensure encoded address is matched
+		Self::encode_nft_evm_address((class_id, token_id)).and_then(|encoded| {
+			if encoded == addr {
+				Some((class_id, token_id))
+			} else {
+				None
+			}
+		})
+	}
 }
 
 /*// NFT - related
