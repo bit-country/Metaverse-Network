@@ -118,7 +118,6 @@ impl TryFrom<FungibleTokenId> for EvmAddress {
 
 		Ok(EvmAddress::from_slice(&address))
 	}
-
 }
 
 pub struct Output;

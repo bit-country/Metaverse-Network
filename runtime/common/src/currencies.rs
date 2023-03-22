@@ -49,52 +49,52 @@ pub type BalanceOf<Runtime> = <<Runtime as currencies_pallet::Config>::MultiSoci
 pub struct MultiCurrencyPrecompile<Runtime>(PhantomData<Runtime>);
 
 impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
-where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,
-	Runtime: Erc20Mapping,
-	currencies_pallet::Pallet<Runtime>:
-		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
-	U256: From<
-		<<Runtime as currencies_pallet::Config>::MultiSocialCurrency as MultiCurrencyTrait<
-			<Runtime as frame_system::Config>::AccountId,
-		>>::Balance,
-	>,
-	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
-	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+//where
+//	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,
+//	Runtime: Erc20Mapping,
+//	currencies_pallet::Pallet<Runtime>:
+//		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
+//	U256: From<
+//		<<Runtime as currencies_pallet::Config>::MultiSocialCurrency as MultiCurrencyTrait<
+//			<Runtime as frame_system::Config>::AccountId,
+//		>>::Balance,
+//	>,
+//	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+//	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
 	fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
-		let address = handle.code_address();
-
-		if let Some(currency_id) = Runtime::decode_evm_address(address) {
-			log::debug!(target: "evm", "multicurrency: currency id: {:?}", currency_id);
-
-			let result = {
-				let selector = match handle.read_selector() {
-					Ok(selector) => selector,
-					Err(e) => return Err(e),
-				};
-
-				if let Err(err) = handle.check_function_modifier(match selector {
-					Action::Approve | Action::Transfer | Action::TransferFrom => FunctionModifier::NonPayable,
-					_ => FunctionModifier::View,
-				}) {
-					return Err(err);
-				}
-
-				match selector {
-					// Local and Foreign common
-					Action::TotalSupply => Self::total_supply(currency_id, handle),
-					Action::BalanceOf => Self::balance_of(currency_id, handle),
-					Action::Allowance => Self::total_supply(currency_id, handle),
-					Action::Transfer => Self::transfer(currency_id, handle),
-					Action::Approve => Self::total_supply(currency_id, handle),
-					Action::TransferFrom => Self::total_supply(currency_id, handle),
-					Action::Name => Self::total_supply(currency_id, handle),
-					Action::Symbol => Self::total_supply(currency_id, handle),
-					Action::Decimals => Self::total_supply(currency_id, handle),
-				}
-			};
-		}
+		//		let address = handle.code_address();
+		//
+		//		if let Some(currency_id) = Runtime::decode_evm_address(address) {
+		//			log::debug!(target: "evm", "multicurrency: currency id: {:?}", currency_id);
+		//
+		//			let result = {
+		//				let selector = match handle.read_selector() {
+		//					Ok(selector) => selector,
+		//					Err(e) => return Err(e),
+		//				};
+		//
+		//				if let Err(err) = handle.check_function_modifier(match selector {
+		//					Action::Approve | Action::Transfer | Action::TransferFrom => FunctionModifier::NonPayable,
+		//					_ => FunctionModifier::View,
+		//				}) {
+		//					return Err(err);
+		//				}
+		//
+		//				match selector {
+		//					// Local and Foreign common
+		//					Action::TotalSupply => Self::total_supply(currency_id, handle),
+		//					Action::BalanceOf => Self::balance_of(currency_id, handle),
+		//					Action::Allowance => Self::total_supply(currency_id, handle),
+		//					Action::Transfer => Self::transfer(currency_id, handle),
+		//					Action::Approve => Self::total_supply(currency_id, handle),
+		//					Action::TransferFrom => Self::total_supply(currency_id, handle),
+		//					Action::Name => Self::total_supply(currency_id, handle),
+		//					Action::Symbol => Self::total_supply(currency_id, handle),
+		//					Action::Decimals => Self::total_supply(currency_id, handle),
+		//				}
+		//			};
+		//		}
 		Err(PrecompileFailure::Revert {
 			exit_status: ExitRevert::Reverted,
 			output: "invalid currency id".into(),
@@ -184,92 +184,4 @@ where
 		// Build output.
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
 	}
-}
-
-#[cfg(test)]
-mod tests {
-	use frame_support::assert_noop;
-	use hex_literal::hex;
-
-	use precompile_utils::testing::{MockHandle, PrecompileTesterExt};
-
-	use crate::mock::*;
-
-	use super::*;
-
-	fn precompiles() -> Precompiles<Runtime> {
-		PrecompilesValue::get()
-	}
-
-	#[test]
-	fn handles_invalid_currency_id() {
-		ExtBuilder::default().build().execute_with(|| {
-			precompiles()
-				.prepare_test(
-					H160(hex!("0000000000000000000500000000000000000000")),
-					H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-					EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
-				)
-				.expect_cost(0)
-				.expect_no_logs()
-				.execute_returns(EvmDataWriter::new().write(U256::from(3500u64)).build());
-		});
-	}
-	/*
-
-	   #[test]
-	   fn total_supply_works() {
-		   new_test_ext().execute_with(|| {
-			   let context = Context {
-				   address: H160(hex!("0000000000000000000100000000000000000000")),
-				   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-				   apparent_value: U256::zero(),
-			   };
-			   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-			   let mut handle = MockHandle::new(code_address, context);
-			   let action_input = Action::TotalSuply.as_bytes().to_vec();
-			   handle.input = action_input;
-
-			   let response = MultiCurrencyPrecompile::execute(&handle);
-			   assert_eq!(resp.exit_status, ExitSucceed::Returned);
-		   });
-	   }
-
-	   #[test]
-	   fn balance_of_works() {
-		   new_test_ext().execute_with(|| {
-			   let context = Context {
-				   address: H160(hex!("000000000000000000100000000000000000000")),
-				   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-				   apparent_value: U256::zero(),
-			   };
-			   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-			   let handle = MockHandle::new(code_address, context);
-			   let action_input = Action::BalanceOf.as_bytes().to_vec();
-			   handle.input = action_input;
-
-			   let response = MultiCurrencyPrecompile::execute(&handle);
-			   assert_eq!(resp.exit_status, ExitSucceed::Returned);
-
-		   });
-	   }
-
-	   #[test]
-	   fn transfer_works() {
-		   new_test_ext().execute_with(|| {
-			   let context = Context {
-				   address: H160(hex!("0000000000000000000100000000000000000000")),
-				   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-				   apparent_value: U256::zero(),
-			   };
-			   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-			   let handle = MockHandle::new(code_address, context);
-			   let action_input = Action::Transfer.as_bytes().to_vec();
-			   handle.input = action_input;
-
-			   let response = MultiCurrencyPrecompile::execute(&handle);
-			   assert_eq!(resp.exit_status, ExitSucceed::Returned);
-		   });
-	   }
-	*/
 }

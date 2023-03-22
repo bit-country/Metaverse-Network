@@ -204,7 +204,7 @@ where
 
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
-	pub PrecompilesValue: Precompiles<Runtime> = Precompiles::new();
+	pub PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
 }
 
 impl pallet_evm::Config for Runtime {

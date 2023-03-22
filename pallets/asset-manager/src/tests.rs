@@ -227,29 +227,41 @@ fn evm_decode_address_works() {
 #[test]
 fn ensure_precompile_addresses_are_correct() {
 	ExtBuilder::default().build().execute_with(|| {
-
 		let currency_precompile_address = [0u8; 20];
-		let metaverse_precompile_address = [1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
-		let nft_precompile_address= [2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
-		let auction_precompile_address= [3u8, 3u8, 3u8, 3u8, 3u8, 3u8, 3u8, 3u8, 3u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+		let metaverse_precompile_address = [
+			1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 1u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+		];
+		let nft_precompile_address = [
+			2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 2u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+		];
+		let auction_precompile_address = [
+			3u8, 3u8, 3u8, 3u8, 3u8, 3u8, 3u8, 3u8, 3u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
+		];
 
 		assert_eq!(
 			H160::from_slice(&currency_precompile_address),
-			H160::from_str("0x0000000000000000000000000000000000000000").ok().unwrap()
+			H160::from_str("0x0000000000000000000000000000000000000000")
+				.ok()
+				.unwrap()
 		);
 		assert_eq!(
 			H160::from_slice(&metaverse_precompile_address),
-			H160::from_str("0x0101010101010101010000000000000000000000").ok().unwrap()
+			H160::from_str("0x0101010101010101010000000000000000000000")
+				.ok()
+				.unwrap()
 		);
 		assert_eq!(
 			H160::from_slice(&nft_precompile_address),
-			H160::from_str("0x0202020202020202020000000000000000000000").ok().unwrap()
+			H160::from_str("0x0202020202020202020000000000000000000000")
+				.ok()
+				.unwrap()
 		);
 
 		assert_eq!(
 			H160::from_slice(&auction_precompile_address),
-			H160::from_str("0x0303030303030303030000000000000000000000").ok().unwrap()
+			H160::from_str("0x0303030303030303030000000000000000000000")
+				.ok()
+				.unwrap()
 		);
 	})
 }
-
