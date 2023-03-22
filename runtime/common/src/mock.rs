@@ -1,4 +1,4 @@
-use super::*;
+use std::ptr::hash;
 
 use frame_support::{
 	construct_runtime, parameter_types,
@@ -6,29 +6,28 @@ use frame_support::{
 	weights::Weight,
 	PalletId,
 };
-
 use frame_system::{EnsureNever, EnsureRoot};
-use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping};
-use precompile_utils::{
-	precompile_set::*
-};
-use sp_core::{Encode, Decode, MaxEncodedLen, U256, H256, H160};
+use hex_literal::hex;
+// use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
+use orml_traits::parameter_type_with_key;
+use pallet_evm::{AddressMapping, PrecompileHandle, PrecompileOutput};
+use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
+use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
+use sp_core::{Decode, Encode, MaxEncodedLen, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, ConstU32, IdentityLookup};
 use sp_runtime::AccountId32;
-use primitives::{Amount, ClassId, GroupCollectionId, TokenId, FungibleTokenId, ItemId};
-use core_primitives::{NftAssetData, NftClassData};
-// use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use sp_runtime::Perbill;
-use orml_traits::parameter_type_with_key;
 
-use hex_literal::hex;
+use core_primitives::{NftAssetData, NftClassData};
+use precompile_utils::precompile_set::*;
+use precompile_utils::EvmResult;
+use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
 use crate::precompiles::MetaverseNetworkPrecompiles;
 
-use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
-use pallet_evm::AddressMapping;
+use super::*;
 
 pub type AccountId = AccountId32;
 pub type AssetId = u128;
@@ -174,6 +173,7 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type WeightInfo = ();
 }
+
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
 pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
@@ -181,13 +181,30 @@ pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
 /// to NftPrecompile
 pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
 
-//pub type Precompiles<R> = MetaverseNetworkPrecompiles<R>;
-pub type Precompiles<R> = PrecompileSetBuilder<R, (PrecompileAt<AddressU64<1>, MultiCurrencyPrecompile<R>>,)>;
+#[derive(Default)]
+pub struct Precompiles<R>(PhantomData<R>);
+
+impl<R> PrecompileSet for Precompiles<R>
+where
+	MultiCurrencyPrecompile<R>: Precompile,
+{
+	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
+		match handle.code_address() {
+			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
+				Some(MultiCurrencyPrecompile::<R>::execute(handle))
+			}
+			_ => None,
+		}
+	}
+
+	fn is_precompile(&self, address: H160) -> bool {
+		true
+	}
+}
 
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
 	pub PrecompilesValue: Precompiles<Runtime> = Precompiles::new();
-
 }
 
 impl pallet_evm::Config for Runtime {
@@ -257,7 +274,7 @@ impl currencies_pallet::Config for Runtime {
 	type WeightInfo = ();
 }
 
-/*// NFT - related 
+/*// NFT - related
 pub struct MockAuctionManager;
 
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
@@ -397,8 +414,8 @@ construct_runtime!(
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-        Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>}
+		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>}
 		//OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		//Nft: nft::{Pallet, Storage, Call, Event<T>},
 	}
@@ -411,7 +428,9 @@ pub struct ExtBuilder {
 
 impl Default for ExtBuilder {
 	fn default() -> ExtBuilder {
-		ExtBuilder { balances: vec![(ALICE, 100000), (BOB, 200000)] }
+		ExtBuilder {
+			balances: vec![(ALICE, 100000), (BOB, 200000)],
+		}
 	}
 }
 
@@ -455,4 +474,18 @@ pub fn bob_evm_addr() -> H160 {
 
 pub fn neer_evm_address() -> H160 {
 	H160::from(hex_literal::hex!("0000000000000000000100000000000000000000"))
+}
+
+pub enum Account {
+	Alice,
+	Bob,
+	Charlie,
+	Bogus,
+	Precompile,
+}
+
+impl Default for Account {
+	fn default() -> Self {
+		Self::Bogus
+	}
 }
