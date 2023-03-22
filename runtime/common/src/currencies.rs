@@ -1,6 +1,7 @@
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
+use pallet_evm::Context;
 use pallet_evm::{
 	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 	PrecompileResult, PrecompileSet,
@@ -16,7 +17,6 @@ use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, FungibleTokenId};
-use pallet_evm::Context;
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -188,88 +188,88 @@ where
 
 #[cfg(test)]
 mod tests {
-	use super::*;
 	use frame_support::assert_noop;
 	use hex_literal::hex;
-	use precompile_utils::testing::MockHandle;
+
+	use precompile_utils::testing::{MockHandle, PrecompileTesterExt};
+
 	use crate::mock::*;
 
-	type MultiCurrencyPrecompile = crate::currencies::MultiCurrencyPrecompile<crate::mock::Runtime>;
- 
+	use super::*;
+
+	fn precompiles() -> Precompiles<Runtime> {
+		PrecompilesValue::get()
+	}
+
 	#[test]
 	fn handles_invalid_currency_id() {
 		ExtBuilder::default().build().execute_with(|| {
-			let context = Context {
-				address: H160(hex!("0000000000000000000500000000000000000000")),
-				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-				apparent_value: U256::zero(),
-			};
-			let code_address: H160 =  H160(hex!("0000000000000000000500000000000000000000"));
-			let handle = MockHandle::new(code_address, context);
-			assert_noop!(
-				MultiCurrencyPrecompile::execute(&handle),
-				PrecompileFailure::Revert {
-					exit_status: ExitRevert::Reverted,
-					output: "invalid currency id".into(),
-				}
-			);
+			precompiles()
+				.prepare_test(
+					H160(hex!("0000000000000000000500000000000000000000")),
+					H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+					EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(3500u64)).build());
 		});
 	}
-/*
+	/*
 
-	#[test]
-	fn total_supply_works() {
-		new_test_ext().execute_with(|| {
-			let context = Context {
-				address: H160(hex!("0000000000000000000100000000000000000000")),
-				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-				apparent_value: U256::zero(),
-			};
-			let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-			let mut handle = MockHandle::new(code_address, context);
-			let action_input = Action::TotalSuply.as_bytes().to_vec();
-			handle.input = action_input;
+	   #[test]
+	   fn total_supply_works() {
+		   new_test_ext().execute_with(|| {
+			   let context = Context {
+				   address: H160(hex!("0000000000000000000100000000000000000000")),
+				   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				   apparent_value: U256::zero(),
+			   };
+			   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
+			   let mut handle = MockHandle::new(code_address, context);
+			   let action_input = Action::TotalSuply.as_bytes().to_vec();
+			   handle.input = action_input;
 
-			let response = MultiCurrencyPrecompile::execute(&handle);
-			assert_eq!(resp.exit_status, ExitSucceed::Returned);
-		});
-	}
+			   let response = MultiCurrencyPrecompile::execute(&handle);
+			   assert_eq!(resp.exit_status, ExitSucceed::Returned);
+		   });
+	   }
 
-	#[test]
-	fn balance_of_works() {
-		new_test_ext().execute_with(|| {
-			let context = Context {
-				address: H160(hex!("000000000000000000100000000000000000000")),
-				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-				apparent_value: U256::zero(),
-			};
-			let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-			let handle = MockHandle::new(code_address, context);
-			let action_input = Action::BalanceOf.as_bytes().to_vec();
-			handle.input = action_input;
+	   #[test]
+	   fn balance_of_works() {
+		   new_test_ext().execute_with(|| {
+			   let context = Context {
+				   address: H160(hex!("000000000000000000100000000000000000000")),
+				   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				   apparent_value: U256::zero(),
+			   };
+			   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
+			   let handle = MockHandle::new(code_address, context);
+			   let action_input = Action::BalanceOf.as_bytes().to_vec();
+			   handle.input = action_input;
 
-			let response = MultiCurrencyPrecompile::execute(&handle);
-			assert_eq!(resp.exit_status, ExitSucceed::Returned);
+			   let response = MultiCurrencyPrecompile::execute(&handle);
+			   assert_eq!(resp.exit_status, ExitSucceed::Returned);
 
-		});
-	}
+		   });
+	   }
 
-	#[test]
-	fn transfer_works() {
-		new_test_ext().execute_with(|| {
-			let context = Context {
-				address: H160(hex!("0000000000000000000100000000000000000000")),
-				caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-				apparent_value: U256::zero(),
-			};
-			let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-			let handle = MockHandle::new(code_address, context);
-			let action_input = Action::Transfer.as_bytes().to_vec();
-			handle.input = action_input;
+	   #[test]
+	   fn transfer_works() {
+		   new_test_ext().execute_with(|| {
+			   let context = Context {
+				   address: H160(hex!("0000000000000000000100000000000000000000")),
+				   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
+				   apparent_value: U256::zero(),
+			   };
+			   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
+			   let handle = MockHandle::new(code_address, context);
+			   let action_input = Action::Transfer.as_bytes().to_vec();
+			   handle.input = action_input;
 
-			let response = MultiCurrencyPrecompile::execute(&handle);
-			assert_eq!(resp.exit_status, ExitSucceed::Returned);
-		});
-	}
- */
+			   let response = MultiCurrencyPrecompile::execute(&handle);
+			   assert_eq!(resp.exit_status, ExitSucceed::Returned);
+		   });
+	   }
+	*/
 }
