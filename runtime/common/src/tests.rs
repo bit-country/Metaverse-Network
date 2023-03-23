@@ -30,56 +30,46 @@ fn handles_invalid_currency_id() {
 
    #[test]
    fn total_supply_works() {
-	   new_test_ext().execute_with(|| {
-		   let context = Context {
-			   address: H160(hex!("0000000000000000000100000000000000000000")),
-			   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-			   apparent_value: U256::zero(),
-		   };
-		   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-		   let mut handle = MockHandle::new(code_address, context);
-		   let action_input = Action::TotalSuply.as_bytes().to_vec();
-		   handle.input = action_input;
-
-		   let response = MultiCurrencyPrecompile::execute(&handle);
-		   assert_eq!(resp.exit_status, ExitSucceed::Returned);
-	   });
+		ExtBuilder::default().build().execute_with(|| {
+			precompiles()
+				.prepare_test(
+					neer_evm_address(),
+					alice_evm_addr(),
+					EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(3500u64)).build());
+		});
    }
 
    #[test]
    fn balance_of_works() {
-	   new_test_ext().execute_with(|| {
-		   let context = Context {
-			   address: H160(hex!("000000000000000000100000000000000000000")),
-			   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-			   apparent_value: U256::zero(),
-		   };
-		   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-		   let handle = MockHandle::new(code_address, context);
-		   let action_input = Action::BalanceOf.as_bytes().to_vec();
-		   handle.input = action_input;
-
-		   let response = MultiCurrencyPrecompile::execute(&handle);
-		   assert_eq!(resp.exit_status, ExitSucceed::Returned);
-
-	   });
+	    ExtBuilder::default().build().execute_with(|| {
+			precompiles()
+				.prepare_test(
+					neer_evm_address(),
+					alice_evm_addr(),
+					EvmDataWriter::new_with_selector(Action::BalanceOf).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
+		});
    }
 
    #[test]
    fn transfer_works() {
-	   new_test_ext().execute_with(|| {
-		   let context = Context {
-			   address: H160(hex!("0000000000000000000100000000000000000000")),
-			   caller: H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
-			   apparent_value: U256::zero(),
-		   };
-		   let code_address: H160 =  H160(hex!("0000000000000000000100000000000000000000"));
-		   let handle = MockHandle::new(code_address, context);
-		   let action_input = Action::Transfer.as_bytes().to_vec();
-		   handle.input = action_input;
-
-		   let response = MultiCurrencyPrecompile::execute(&handle);
-		   assert_eq!(resp.exit_status, ExitSucceed::Returned);
-	   });
+	   ExtBuilder::default().build().execute_with(|| {
+			precompiles()
+				.prepare_test(
+					neer_evm_address(),
+					alice_evm_addr(),
+					EvmDataWriter::new_with_selector(Action::Transfer).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
+		});
    }
 */
