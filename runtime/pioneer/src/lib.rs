@@ -627,8 +627,8 @@ parameter_types! {
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 2 * HOURS;
 	pub const InstantAllowed: bool = true;
-	pub const MinimumDeposit: Balance = 100 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 3 * DAYS;
+	pub const MinimumDeposit: Balance = 10000 * DOLLARS;
+	pub const EnactmentPeriod: BlockNumber = 7 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * MINUTES;
 	pub const PreimageByteDeposit: Balance = 10 * CENTS;
 	pub const MaxVotes: u32 = 100;
