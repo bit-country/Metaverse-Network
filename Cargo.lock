@@ -7852,6 +7852,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
+ "pallet-reward",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
