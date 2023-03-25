@@ -227,7 +227,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("pioneer-runtime"),
 	impl_name: create_runtime_str!("pioneer-runtime"),
 	authoring_version: 1,
-	spec_version: 18,
+	spec_version: 19,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -627,8 +627,8 @@ parameter_types! {
 	pub const VotingPeriod: BlockNumber = 7 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 2 * HOURS;
 	pub const InstantAllowed: bool = true;
-	pub const MinimumDeposit: Balance = 100 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 3 * DAYS;
+	pub const MinimumDeposit: Balance = 10000 * DOLLARS;
+	pub const EnactmentPeriod: BlockNumber = 7 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * MINUTES;
 	pub const PreimageByteDeposit: Balance = 10 * CENTS;
 	pub const MaxVotes: u32 = 100;
@@ -1647,6 +1647,32 @@ impl pallet_proxy::Config for Runtime {
 	type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
+parameter_types! {
+	pub const CampaignDeposit: Balance = 1000 * DOLLARS;
+	pub const MinimumRewardPool: Balance = 1000 * DOLLARS;
+	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 7 * DAYS;
+	pub const MinimumCampaignDuration: BlockNumber = 30 * MINUTES;
+	pub const MaxSetRewardsListLength: u64 = 200;
+	pub const MaxLeafNodes: u32 = 30;
+}
+
+impl reward::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type FungibleTokenCurrency = Currencies;
+	type PalletId = MetaverseNetworkTreasuryPalletId;
+	type MiningCurrencyId = MiningResourceCurrencyId;
+	type MinimumRewardPool = MinimumRewardPool;
+	type CampaignDeposit = CampaignDeposit;
+	type MinimumCampaignDuration = MinimumCampaignDuration;
+	type MinimumCampaignCoolingOffPeriod = MinimumCampaignCoolingOffPeriod;
+	type MaxLeafNodes = MaxLeafNodes;
+	type MaxSetRewardsListLength = MaxSetRewardsListLength;
+	type AdminOrigin = EnsureRootOrMetaverseTreasury;
+	type NFTHandler = Nft;
+	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1726,6 +1752,8 @@ construct_runtime!(
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>} = 67,
+		// Reward mechanism
+		Reward: reward::{Pallet, Call, Storage ,Event<T>} = 68,
 		// Crowdloan
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>} = 70,
 	}

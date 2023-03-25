@@ -491,7 +491,7 @@ pub mod pallet {
 		/// - `leaf_nodes`: list of the merkle tree nodes required for merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_reward_root()  * (1u64 + leaf_nodes.len() as u64))]
+		#[pallet::weight(T::WeightInfo::claim_reward_root() * (1u64 + leaf_nodes.len() as u64))]
 		#[transactional]
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
