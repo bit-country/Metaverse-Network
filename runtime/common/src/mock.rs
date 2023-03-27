@@ -535,6 +535,10 @@ pub fn last_event() -> Event {
 		.event
 }
 
+pub fn currency_precompile_evm_addr() -> H160 {
+	H160::from(hex_literal::hex!("0000000000000000000000000000000000000000"))
+}
+
 pub fn alice_evm_addr() -> H160 {
 	H160::from(hex_literal::hex!("1000000000000000000000000000000000000001"))
 }

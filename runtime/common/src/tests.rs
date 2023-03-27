@@ -17,32 +17,32 @@ fn handles_invalid_currency_id() {
 	ExtBuilder::default().build().execute_with(|| {
 		precompiles()
 			.prepare_test(
+				currency_precompile_evm_addr(), 
 				H160(hex!("0000000000000000000500000000000000000000")),
-				H160(hex!("6Be02d1d3665660d22FF9624b7BE0551ee1Ac91b")),
 				EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
 			)
 			.expect_cost(0)
 			.expect_no_logs()
+			//.execute_reverts()
 			.execute_returns(EvmDataWriter::new().write(U256::from(3500u64)).build());
 	});
 }
-/*
 
-   #[test]
-   fn total_supply_works() {
-		ExtBuilder::default().build().execute_with(|| {
-			precompiles()
-				.prepare_test(
-					neer_evm_address(),
-					alice_evm_addr(),
-					EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
-				)
-				.expect_cost(0)
-				.expect_no_logs()
-				.execute_returns(EvmDataWriter::new().write(U256::from(3500u64)).build());
-		});
-   }
-
+#[test]
+fn total_supply_works() {
+	ExtBuilder::default().build().execute_with(|| {
+		precompiles()
+			.prepare_test(
+				currency_precompile_evm_addr(), 
+				neer_evm_address(),
+				EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
+			)
+			.expect_cost(0)
+			.expect_no_logs()
+			.execute_returns(EvmDataWriter::new().write(U256::from(300000u64)).build());
+	});
+}
+/* 
    #[test]
    fn balance_of_works() {
 	    ExtBuilder::default().build().execute_with(|| {
