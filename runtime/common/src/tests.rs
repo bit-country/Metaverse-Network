@@ -23,8 +23,8 @@ fn handles_invalid_currency_id() {
 			)
 			.expect_cost(0)
 			.expect_no_logs()
-			//.execute_reverts()
-			.execute_returns(EvmDataWriter::new().write(U256::from(3500u64)).build());
+			.execute_reverts(|output| output == b"invalid currency id")
+			//.execute_returns(EvmDataWriter::new().write(U256::from(3500u64)).build());
 	});
 }
 
