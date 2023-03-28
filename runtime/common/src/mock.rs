@@ -547,6 +547,10 @@ pub fn bob_evm_addr() -> H160 {
 	H160::from(hex_literal::hex!("1000000000000000000000000000000000000002"))
 }
 
+pub fn charlie_evm_addr() -> H160 {
+	H160::from(hex_literal::hex!("1000000000000000000000000000000000000003"))
+}
+
 pub fn neer_evm_address() -> H160 {
 	H160::from(hex_literal::hex!("0000000000000000000100000000000000000000"))
 }

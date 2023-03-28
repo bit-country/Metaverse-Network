@@ -53,7 +53,7 @@ impl<Runtime> Default for MultiCurrencyPrecompile<Runtime> {
 		Self(PhantomData)
 	}
 }
-
+#[cfg(test)]
 impl<Runtime> PrecompileSet for MultiCurrencyPrecompile<Runtime>
 where
 	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,
