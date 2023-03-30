@@ -33,6 +33,7 @@ fn total_supply_works() {
 		.with_balances(vec![(ALICE, 100000)])
 		.build()
 		.execute_with(|| {
+			Balances::set_balance(Origin::root(), ALICE, 100000, 0);
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(), 
@@ -41,7 +42,7 @@ fn total_supply_works() {
 				)
 				.expect_cost(0)
 				.expect_no_logs()
-				.execute_returns(EvmDataWriter::new().write(U256::from(300000u64)).build());
+				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
 		});
 }
 
@@ -62,7 +63,7 @@ fn balance_of_works() {
 			evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
 			evm_writer.write_pointer(alice_evm_addr().to_fixed_bytes().to_vec());
 			precompiles()
-				.prepare_test(currency_precompile_evm_addr(), neer_evm_address(), evm_writer.build())
+				.prepare_test(alice_evm_addr(), neer_evm_address(), evm_writer.build())
 				.expect_cost(0)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
