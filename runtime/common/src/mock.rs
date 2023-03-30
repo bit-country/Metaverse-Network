@@ -28,7 +28,6 @@ use primitives::evm::{
 };
 use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
-
 use crate::currencies::MultiCurrencyPrecompile;
 use crate::precompiles::MetaverseNetworkPrecompiles;
 
@@ -499,9 +498,7 @@ pub struct ExtBuilder {
 
 impl Default for ExtBuilder {
 	fn default() -> ExtBuilder {
-		ExtBuilder {
-			balances: vec![(ALICE, 100000), (BOB, 200000)],
-		}
+		ExtBuilder { balances: vec![] }
 	}
 }
 
@@ -533,10 +530,6 @@ pub fn last_event() -> Event {
 		.pop()
 		.expect("Event expected")
 		.event
-}
-
-pub fn currency_precompile_evm_addr() -> H160 {
-	H160::from(hex_literal::hex!("0000000000000000000000000000000000000000"))
 }
 
 pub fn alice_evm_addr() -> H160 {

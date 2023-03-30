@@ -17,7 +17,7 @@ fn handles_invalid_currency_id() {
 	ExtBuilder::default().build().execute_with(|| {
 		precompiles()
 			.prepare_test(
-				currency_precompile_evm_addr(), 
+				alice_evm_addr(),
 				H160(hex!("0000000000000000000500000000000000000000")),
 				EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
 			)
@@ -29,73 +29,70 @@ fn handles_invalid_currency_id() {
 
 #[test]
 fn total_supply_works() {
-	ExtBuilder::default().build().execute_with(|| {
-		precompiles()
-			.prepare_test(
-				currency_precompile_evm_addr(), 
-				neer_evm_address(),
-				EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
-			)
-			.expect_cost(0)
-			.expect_no_logs()
-			.execute_returns(EvmDataWriter::new().write(U256::from(300000u64)).build());
-	});
+	ExtBuilder::default()
+		.with_balances(vec![(ALICE, 100000)])
+		.build()
+		.execute_with(|| {
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(), 
+					neer_evm_address(),
+					EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(300000u64)).build());
+		});
 }
- 
+
 #[test]
 fn balance_of_works() {
-	ExtBuilder::default().build().execute_with(|| {
-		let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
-		evm_writer.write_pointer(charlie_evm_addr().to_fixed_bytes().to_vec());
-		precompiles()
-			.prepare_test(
-				currency_precompile_evm_addr(), 
-				neer_evm_address(),
-				evm_writer.build(),
-			)
-			.expect_cost(0)
-			.expect_no_logs()
-			.execute_returns(EvmDataWriter::new().write(U256::from(0u64)).build());
+	ExtBuilder::default()
+		.with_balances(vec![(ALICE, 100000)])
+		.build()
+		.execute_with(|| {
+			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
+			evm_writer.write_pointer(charlie_evm_addr().to_fixed_bytes().to_vec());
+			precompiles()
+				.prepare_test(alice_evm_addr(), neer_evm_address(), evm_writer.build())
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(0u64)).build());
 
-		evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
-		evm_writer.write_pointer(alice_evm_addr().to_fixed_bytes().to_vec());
-		precompiles()
-		.prepare_test(
-				currency_precompile_evm_addr(), 
-				neer_evm_address(),
-				evm_writer.build(),
-			)
-			.expect_cost(0)
-			.expect_no_logs()
-			.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
-	});
+			evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
+			evm_writer.write_pointer(alice_evm_addr().to_fixed_bytes().to_vec());
+			precompiles()
+				.prepare_test(currency_precompile_evm_addr(), neer_evm_address(), evm_writer.build())
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
+		});
 }
 
 #[test]
 fn transfer_works() {
-	ExtBuilder::default().build().execute_with(|| {
-		let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
-		evm_writer.write_pointer(1000u64.to_be_bytes().to_vec());
-		evm_writer.write_pointer(charlie_evm_addr().to_fixed_bytes().to_vec());
-		precompiles()
-			.prepare_test(
-				currency_precompile_evm_addr(), 
-				neer_evm_address(),
-				evm_writer.build(),
-			)
-			.expect_cost(0)
-			.expect_no_logs()
-			.execute_returns(EvmDataWriter::new().write(0u64).build());
+	ExtBuilder::default()
+		.with_balances(vec![(ALICE, 100000), (BOB, 200000)])
+		.build()
+		.execute_with(|| {
+			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
+			evm_writer.write_pointer(1000u64.to_be_bytes().to_vec());
+			evm_writer.write_pointer(charlie_evm_addr().to_fixed_bytes().to_vec());
+			precompiles()
+				.prepare_test(alice_evm_addr(), neer_evm_address(), evm_writer.build())
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(0u64).build());
 		});
 }
 
-/* 
+/*
 	#[test]
 	fn handles_invalid_currency_precompile_selector() {
 		ExtBuilder::default().build().execute_with(|| {
 			precompiles()
 				.prepare_test(
-					currency_precompile_evm_addr(), 
+					currency_precompile_evm_addr(),
 					neer_evm_address(),
 					EvmDataWriter::new_with_selector(9876u32).build(),
 				)

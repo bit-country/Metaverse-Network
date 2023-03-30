@@ -15,6 +15,8 @@
 // along with Utils.  If not, see <http://www.gnu.org/licenses/>.
 
 use {
+	alloc::format,
+	alloc::string::String,
 	core::assert_matches::assert_matches,
 	fp_evm::{
 		Context, ExitError, ExitReason, ExitSucceed, Log, PrecompileFailure, PrecompileHandle, PrecompileOutput,
@@ -22,10 +24,8 @@ use {
 	},
 	sp_core::{H160, H256, U256},
 	sp_std::boxed::Box,
-	sp_std::vec::Vec,
 	sp_std::vec,
-	alloc::string::String,
-	alloc::format,
+	sp_std::vec::Vec,
 };
 
 pub struct Subcall {
