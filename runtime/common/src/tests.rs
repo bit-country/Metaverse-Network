@@ -5,6 +5,8 @@ use sp_core::{H160, U256};
 use precompile_utils::data::EvmDataWriter;
 use precompile_utils::testing::*;
 
+use primitives::FungibleTokenId;
+
 use crate::currencies::Action;
 use crate::mock::*;
 
@@ -33,7 +35,7 @@ fn total_supply_works() {
 		.with_balances(vec![(ALICE, 100000)])
 		.build()
 		.execute_with(|| {
-			Balances::set_balance(Origin::root(), ALICE, 100000, 0);
+			Currencies::update_balance(Origin::root(), ALICE, FungibleTokenId::NativeToken(0), 100000);
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(), 
