@@ -548,6 +548,10 @@ pub fn neer_evm_address() -> H160 {
 	H160::from(hex_literal::hex!("0000000000000000000100000000000000000000"))
 }
 
+pub fn bit_evm_address() -> H160 {
+	H160::from(hex_literal::hex!("0000000000000000000300000000000000000000"))
+}
+
 pub enum Account {
 	Alice,
 	Bob,
