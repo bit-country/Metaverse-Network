@@ -4,7 +4,6 @@ use sp_core::{H160, U256};
 
 use precompile_utils::data::EvmDataWriter;
 use precompile_utils::testing::*;
-
 use primitives::FungibleTokenId;
 
 use crate::currencies::Action;
@@ -30,16 +29,16 @@ fn handles_invalid_currency_id() {
 }
 
 #[test]
-fn total_supply_works() {
+fn total_supply_of_foreign_currencies_works() {
 	ExtBuilder::default()
 		.with_balances(vec![(ALICE, 100000)])
 		.build()
 		.execute_with(|| {
-			Currencies::update_balance(Origin::root(), ALICE, FungibleTokenId::NativeToken(0), 100000);
+			Currencies::update_balance(Origin::root(), ALICE, FungibleTokenId::MiningResource(0), 100000);
 			precompiles()
 				.prepare_test(
-					alice_evm_addr(), 
-					neer_evm_address(),
+					alice_evm_addr(),
+					bit_evm_address(),
 					EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
 				)
 				.expect_cost(0)
