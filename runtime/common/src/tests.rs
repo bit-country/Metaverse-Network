@@ -48,6 +48,25 @@ fn total_supply_of_foreign_currencies_works() {
 }
 
 #[test]
+fn total_supply_of_native_currencies_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(ALICE, 100000)])
+		.build()
+		.execute_with(|| {
+			//Currencies::update_balance(Origin::root(), ALICE, FungibleTokenId::NativeToken(0), 100000);
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					neer_evm_address(),
+					EvmDataWriter::new_with_selector(Action::TotalSupply).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
+		});
+}
+
+#[test]
 fn balance_of_works() {
 	ExtBuilder::default()
 		.with_balances(vec![(ALICE, 100000)])

@@ -7,7 +7,7 @@ use pallet_evm::{
 	PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
-use sp_runtime::traits::{AccountIdConversion, Dispatchable};
+use sp_runtime::traits::{AccountIdConversion, Dispatchable, Zero};
 use sp_std::{marker::PhantomData, prelude::*};
 
 use precompile_utils::data::{Address, EvmData, EvmDataWriter};
@@ -186,8 +186,15 @@ where
 		let input = handle.read_input()?;
 		input.expect_arguments(0)?;
 
-		// Fetch info
-		let total_issuance = <Runtime as currencies_pallet::Config>::MultiSocialCurrency::total_issuance(currency_id);
+		let mut total_issuance: BalanceOf<Runtime> = Zero::zero();
+		match currency_id {
+			FungibleTokenId::NativeToken(_) => {
+				total_issuance = <Runtime as currencies_pallet::Config>::NativeCurrency::total_issuance();
+			}
+			_ => {
+				total_issuance = <Runtime as currencies_pallet::Config>::MultiSocialCurrency::total_issuance(currency_id);
+			}
+		}
 
 		log::debug!(target: "evm", "multicurrency: total issuance: {:?}", total_issuance);
 
