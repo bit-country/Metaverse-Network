@@ -9,6 +9,8 @@ use primitives::FungibleTokenId;
 use crate::currencies::Action;
 use crate::mock::*;
 use pallet_evm::AddressMapping;
+use orml_traits::BasicCurrency;
+use orml_traits::MultiCurrency;
 //use currencies_pallet::MultiSocialCurrency;
 
 fn precompiles() -> Precompiles<Runtime> {
@@ -103,10 +105,14 @@ fn balance_of_native_currencies_works() {
 #[test]
 fn transfer_foreign_currencies_works() {
 	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 10000), (bob_account_id(), 5000)])
 		.build()
 		.execute_with(|| {
 			Currencies::update_balance(Origin::root(), alice_account_id(), FungibleTokenId::MiningResource(0), 100000);
-			Currencies::update_balance(Origin::root(), bob_account_id(), FungibleTokenId::MiningResource(0), 200000);
+			Currencies::update_balance(Origin::root(), bob_account_id(), FungibleTokenId::MiningResource(0), 150000);
+
+			assert_eq!(<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), &alice_account_id()), 100000);
+			assert_eq!(<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), &bob_account_id()), 150000);
 
 			let mut evm_writer = EvmDataWriter::new_with_selector(Action::Transfer);
 			evm_writer.write_pointer(1000u64.to_be_bytes().to_vec());
@@ -118,9 +124,10 @@ fn transfer_foreign_currencies_works() {
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(1u64).build());
 
-			//assert_eq!(Currencies::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), alice), 9000);
-			//assert_eq!(<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), bob), 21000);
 
+
+			assert_eq!(<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), &alice_account_id()), 99928);
+			assert_eq!(<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), &bob_account_id()), 151000);
 		});
 }
 
@@ -130,6 +137,8 @@ fn transfer_native_currencies_works() {
 		.with_balances(vec![(alice_account_id(), 100000), (bob_account_id(), 150000)])
 		.build()
 		.execute_with(|| {
+			assert_eq!(<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&alice_account_id()), 100000);
+			assert_eq!(<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&bob_account_id()), 150000);
 			let mut evm_writer = EvmDataWriter::new_with_selector(Action::Transfer);
 			evm_writer.write_pointer(1000u64.to_be_bytes().to_vec());
 			evm_writer.write_pointer(bob_evm_addr().to_fixed_bytes().to_vec());
@@ -140,9 +149,8 @@ fn transfer_native_currencies_works() {
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(1u64).build());
 
-			//assert_eq!(Currencies::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), alice), 9000);
-			//assert_eq!(<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), bob), 21000);
-
+			assert_eq!(<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&alice_account_id()), 99928);
+			assert_eq!(<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&bob_account_id()), 151000);
 		});
 }
 
