@@ -99,14 +99,23 @@ fn transfer_works() {
 		.with_balances(vec![(ALICE, 100000), (BOB, 200000)])
 		.build()
 		.execute_with(|| {
-			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
+			let mut evm_writer = EvmDataWriter::new_with_selector(Action::Transfer);
 			evm_writer.write_pointer(1000u64.to_be_bytes().to_vec());
-			evm_writer.write_pointer(charlie_evm_addr().to_fixed_bytes().to_vec());
+			evm_writer.write_pointer(bob_evm_addr().to_fixed_bytes().to_vec());
+
+			let alice: AccountId = into_account_id(alice_evm_addr());
+			//assert_eq!(alice.as_slice(), ALICE.as_slice());
+			Currencies::update_balance(Origin::root(), alice, FungibleTokenId::MiningResource(0), 100000);
+
+			let bob: AccountId = into_account_id(bob_evm_addr());
+			//assert_eq!(alice.as_slice(), ALICE.as_slice());
+			Currencies::update_balance(Origin::root(), bob, FungibleTokenId::MiningResource(0), 200000);
+
 			precompiles()
-				.prepare_test(alice_evm_addr(), neer_evm_address(), evm_writer.build())
+				.prepare_test(alice_evm_addr(), bit_evm_address(), evm_writer.build())
 				.expect_cost(0)
 				.expect_no_logs()
-				.execute_returns(EvmDataWriter::new().write(0u64).build());
+				.execute_returns(EvmDataWriter::new().write(1u64).build());
 		});
 }
 
@@ -125,6 +134,7 @@ fn transfer_works() {
 				.execute_reverts(|output| output == b"invalid currency precompile selector")
 		});
 	}
+
 
 
 */
