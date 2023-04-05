@@ -10,7 +10,7 @@ use frame_system::{EnsureNever, EnsureRoot};
 use hex_literal::hex;
 // use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use orml_traits::parameter_type_with_key;
-use pallet_evm::{PrecompileHandle, PrecompileOutput};
+use pallet_evm::{AddressMapping, PrecompileHandle, PrecompileOutput};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
@@ -39,89 +39,6 @@ pub type Balance = u128;
 pub type BlockNumber = u32;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 pub type Block = frame_system::mocking::MockBlock<Runtime>;
-
-
-pub const ALICE: AccountId = AccountId32::new([1u8; 32]);
-pub const BOB: AccountId = AccountId32::new([2u8; 32]);
-
-//pub const ALICE: AccountId = into_account_id(alice_evm_addr());
-//pub const BOB: AccountId = into_account_id(bob_evm_addr());
-
-/* MockAccount AccountId Implementation
-pub const ALICE: AccountId = MockAccount::from_u64(1u64);
-pub const BOB: AccountId = MockAccount::from_u64(2u64);
-
-#[derive(
-	Eq,
-	PartialEq,
-	Clone,
-	Ord,
-	PartialOrd,
-	Encode,
-	Decode,
-	Debug,
-	MaxEncodedLen,
-	TypeInfo,
-	Serialize,
-	Deserialize,
-	//std::fmt::Display,
-)]
-pub struct MockAccount(pub H160);
-
-impl MockAccount {
-pub fn from_u64(v: u64) -> Self {
-		H160::from_low_u64_be(v).into()
-	}
-
-	pub fn zero() -> Self {
-		H160::zero().into()
-	}
-
-	pub fn has_prefix(&self, prefix: &[u8]) -> bool {
-		&self.0[0..4] == prefix
-	}
-
-	pub fn has_prefix_u32(&self, prefix: u32) -> bool {
-		self.0[0..4] == prefix.to_be_bytes()
-	}
-
-	pub fn without_prefix(&self) -> u128 {
-		u128::from_be_bytes(<[u8; 16]>::try_from(&self.0[4..20]).expect("slice have len 16"))
-	}
-}
-
-impl From<MockAccount> for H160 {
-	fn from(account: MockAccount) -> H160 {
-		account.0
-	}
-}
-
-impl From<MockAccount> for [u8; 20] {
-	fn from(account: MockAccount) -> [u8; 20] {
-		let x: H160 = account.into();
-		x.into()
-	}
-}
-
-impl From<H160> for MockAccount {
-	fn from(address: H160) -> MockAccount {
-		MockAccount(address)
-	}
-}
-
-impl From<[u8; 20]> for MockAccount {
-	fn from(address: [u8; 20]) -> MockAccount {
-		let x: H160 = address.into();
-		MockAccount(x)
-	}
-}
-
-impl AddressMapping<MockAccount> for MockAccount {
-	fn into_account_id(address: H160) -> MockAccount {
-		address.into()
-	}
-}
-*/
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
@@ -556,6 +473,14 @@ pub fn bit_evm_address() -> H160 {
 	H160::from(hex_literal::hex!("0000000000000000000300000000000000000000"))
 }
 
+pub fn alice_account_id() -> AccountId {
+	<Runtime as pallet_evm::Config>::AddressMapping::into_account_id(alice_evm_addr())
+}
+
+pub fn bob_account_id() -> AccountId {
+	<Runtime as pallet_evm::Config>::AddressMapping::into_account_id(bob_evm_addr())
+}
+
 pub enum Account {
 	Alice,
 	Bob,
@@ -568,13 +493,4 @@ impl Default for Account {
 	fn default() -> Self {
 		Self::Bogus
 	}
-}
-
-pub fn into_account_id(address: H160) -> AccountId {
-	let mut data = [0u8; 24];
-	data[0..4].copy_from_slice(b"evm:");
-	data[4..24].copy_from_slice(&address[..]);
-	let hash: H256 = Blake2Hasher::hash(&data);
-
-	AccountId::from(Into::<[u8; 32]>::into(hash))
 }
