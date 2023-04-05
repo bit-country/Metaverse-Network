@@ -1,6 +1,6 @@
 use frame_support::assert_noop;
 use hex_literal::hex;
-use sp_core::{H160, U256};
+use sp_core::{H160, U256, ByteArray};
 
 use precompile_utils::data::EvmDataWriter;
 use precompile_utils::testing::*;
@@ -53,7 +53,6 @@ fn total_supply_of_native_currencies_works() {
 		.with_balances(vec![(ALICE, 100000)])
 		.build()
 		.execute_with(|| {
-			//Currencies::update_balance(Origin::root(), ALICE, FungibleTokenId::NativeToken(0), 100000);
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -80,10 +79,14 @@ fn balance_of_works() {
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(0u64)).build());
 
+			let alice: AccountId = into_account_id(alice_evm_addr());
+			//assert_eq!(alice.as_slice(), ALICE.as_slice());
+			Currencies::update_balance(Origin::root(), alice, FungibleTokenId::MiningResource(0), 100000);
+
 			evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
 			evm_writer.write_pointer(alice_evm_addr().to_fixed_bytes().to_vec());
 			precompiles()
-				.prepare_test(alice_evm_addr(), neer_evm_address(), evm_writer.build())
+				.prepare_test(alice_evm_addr(), bit_evm_address(), evm_writer.build())
 				.expect_cost(0)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());

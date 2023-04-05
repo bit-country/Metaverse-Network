@@ -10,11 +10,11 @@ use frame_system::{EnsureNever, EnsureRoot};
 use hex_literal::hex;
 // use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use orml_traits::parameter_type_with_key;
-use pallet_evm::{AddressMapping, PrecompileHandle, PrecompileOutput};
+use pallet_evm::{PrecompileHandle, PrecompileOutput};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-use sp_core::{Decode, Encode, MaxEncodedLen, H160, H256, U256};
+use sp_core::{Decode, Encode, MaxEncodedLen, Hasher, Blake2Hasher, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, ConstU32, IdentityLookup};
 use sp_runtime::AccountId32;
 use sp_runtime::Perbill;
@@ -40,8 +40,12 @@ pub type BlockNumber = u32;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 pub type Block = frame_system::mocking::MockBlock<Runtime>;
 
+
 pub const ALICE: AccountId = AccountId32::new([1u8; 32]);
 pub const BOB: AccountId = AccountId32::new([2u8; 32]);
+
+//pub const ALICE: AccountId = into_account_id(alice_evm_addr());
+//pub const BOB: AccountId = into_account_id(bob_evm_addr());
 
 /* MockAccount AccountId Implementation
 pub const ALICE: AccountId = MockAccount::from_u64(1u64);
@@ -564,4 +568,13 @@ impl Default for Account {
 	fn default() -> Self {
 		Self::Bogus
 	}
+}
+
+pub fn into_account_id(address: H160) -> AccountId {
+	let mut data = [0u8; 24];
+	data[0..4].copy_from_slice(b"evm:");
+	data[4..24].copy_from_slice(&address[..]);
+	let hash: H256 = Blake2Hasher::hash(&data);
+
+	AccountId::from(Into::<[u8; 32]>::into(hash))
 }

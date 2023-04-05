@@ -186,15 +186,12 @@ where
 		let input = handle.read_input()?;
 		input.expect_arguments(0)?;
 
-		let mut total_issuance: BalanceOf<Runtime> = Zero::zero();
-		match currency_id {
-			FungibleTokenId::NativeToken(_) => {
-				total_issuance = <Runtime as currencies_pallet::Config>::NativeCurrency::total_issuance();
-			}
-			_ => {
-				total_issuance = <Runtime as currencies_pallet::Config>::MultiSocialCurrency::total_issuance(currency_id);
-			}
+		let total_issuance = if currency_id == <Runtime as currencies_pallet::Config>::GetNativeCurrencyId::get(){
+			<Runtime as currencies_pallet::Config>::NativeCurrency::total_issuance()
 		}
+		else {
+			<Runtime as currencies_pallet::Config>::MultiSocialCurrency::total_issuance(currency_id)
+		};
 
 		log::debug!(target: "evm", "multicurrency: total issuance: {:?}", total_issuance);
 
