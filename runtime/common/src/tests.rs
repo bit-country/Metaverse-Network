@@ -2,7 +2,7 @@ use frame_support::assert_noop;
 use hex_literal::hex;
 use sp_core::{H160, U256, ByteArray};
 
-use precompile_utils::data::EvmDataWriter;
+use precompile_utils::data::{Address, EvmDataWriter};
 use precompile_utils::testing::*;
 use primitives::FungibleTokenId;
 
@@ -76,10 +76,8 @@ fn balance_of_foreign_currencies_works() {
 		.execute_with(|| {
 			Currencies::update_balance(Origin::root(), alice_account_id(), FungibleTokenId::MiningResource(0), 100000);
 
-			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
-			evm_writer.write_pointer(alice_evm_addr().to_fixed_bytes().to_vec());
 			precompiles()
-				.prepare_test(alice_evm_addr(), bit_evm_address(), evm_writer.build())
+				.prepare_test(alice_evm_addr(), bit_evm_address(), EvmDataWriter::new_with_selector(Action::BalanceOf).write(Address::from(alice_evm_addr())).build())
 				.expect_cost(0)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
@@ -93,9 +91,8 @@ fn balance_of_native_currencies_works() {
 		.build()
 		.execute_with(|| {
 			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
-			evm_writer.write_pointer(alice_evm_addr().to_fixed_bytes().to_vec());
 			precompiles()
-				.prepare_test(alice_evm_addr(), bit_evm_address(), evm_writer.build())
+				.prepare_test(alice_evm_addr(), bit_evm_address(), EvmDataWriter::new_with_selector(Action::BalanceOf).write(Address::from(alice_evm_addr())).build())
 				.expect_cost(0)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
@@ -123,8 +120,6 @@ fn transfer_foreign_currencies_works() {
 				.expect_cost(1756)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(1u64).build());
-
-
 
 			assert_eq!(<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), &alice_account_id()), 99928);
 			assert_eq!(<Runtime as currencies_pallet::Config>::MultiSocialCurrency::free_balance(FungibleTokenId::MiningResource(0), &bob_account_id()), 151000);
