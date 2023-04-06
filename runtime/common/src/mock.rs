@@ -14,7 +14,7 @@ use pallet_evm::{AddressMapping, PrecompileHandle, PrecompileOutput};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-use sp_core::{Decode, Encode, MaxEncodedLen, Hasher, Blake2Hasher, H160, H256, U256};
+use sp_core::{Blake2Hasher, Decode, Encode, Hasher, MaxEncodedLen, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, ConstU32, IdentityLookup};
 use sp_runtime::AccountId32;
 use sp_runtime::Perbill;

@@ -186,10 +186,9 @@ where
 		let input = handle.read_input()?;
 		input.expect_arguments(0)?;
 
-		let total_issuance = if currency_id == <Runtime as currencies_pallet::Config>::GetNativeCurrencyId::get(){
+		let total_issuance = if currency_id == <Runtime as currencies_pallet::Config>::GetNativeCurrencyId::get() {
 			<Runtime as currencies_pallet::Config>::NativeCurrency::total_issuance()
-		}
-		else {
+		} else {
 			<Runtime as currencies_pallet::Config>::MultiSocialCurrency::total_issuance(currency_id)
 		};
 
