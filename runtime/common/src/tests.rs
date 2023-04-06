@@ -92,7 +92,7 @@ fn balance_of_native_currencies_works() {
 		.execute_with(|| {
 			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
 			precompiles()
-				.prepare_test(alice_evm_addr(), bit_evm_address(), EvmDataWriter::new_with_selector(Action::BalanceOf).write(Address::from(alice_evm_addr())).build())
+				.prepare_test(alice_evm_addr(), neer_evm_address(), EvmDataWriter::new_with_selector(Action::BalanceOf).write(Address::from(alice_evm_addr())).build())
 				.expect_cost(0)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(100000u64)).build());
