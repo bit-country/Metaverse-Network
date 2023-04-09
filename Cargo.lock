@@ -5289,6 +5289,7 @@ dependencies = [
 name = "metaverse-runtime-common"
 version = "0.0.1"
 dependencies = [
+ "auction-manager",
  "bit-country-primitives",
  "core-primitives",
  "cumulus-pallet-parachain-system",

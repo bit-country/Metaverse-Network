@@ -59,7 +59,7 @@ precompile-utils-macro = { path = "../../primitives/precompiles/macro", default-
 currencies_pallet = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
 evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", version = "2.0.0-rc6", default-features = false }
 nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
-#auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
+auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }

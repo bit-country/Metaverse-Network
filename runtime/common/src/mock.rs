@@ -29,6 +29,7 @@ use primitives::evm::{
 use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
+use crate::nft::NftPrecompile;
 use crate::precompiles::MetaverseNetworkPrecompiles;
 
 use super::*;
@@ -265,7 +266,7 @@ impl Erc20Mapping for Runtime {
 	}
 }
 
-/*// NFT - related
+// NFT - related
 pub struct MockAuctionManager;
 
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
@@ -392,7 +393,7 @@ impl nft::Config for Runtime {
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 }
-*/
+
 
 // Configure a mock runtime to test the pallet.
 construct_runtime!(
@@ -407,8 +408,8 @@ construct_runtime!(
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>}
-		//OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
-		//Nft: nft::{Pallet, Storage, Call, Event<T>},
+		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
+		Nft: nft::{Pallet, Storage, Call, Event<T>},
 	}
 );
 
