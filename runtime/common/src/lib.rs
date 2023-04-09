@@ -35,7 +35,7 @@ use xcm_executor::{
 use primitives::BuyWeightRate;
 
 pub mod currencies;
-//pub mod nft;
+pub mod nft;
 pub mod precompiles;
 
 #[cfg(test)]

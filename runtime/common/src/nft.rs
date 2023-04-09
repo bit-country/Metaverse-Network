@@ -63,6 +63,56 @@ pub type TokenIdOf<Runtime> = <Runtime as orml_nft::Config>::TokenId;
 /// - Withdraw from class fund. Rest `input` bytes: `(`class_id`, `token_id`).
 pub struct NftPrecompile<Runtime>(PhantomData<Runtime>);
 
+#[cfg(test)]
+impl<Runtime> PrecompileSet for NftPrecompile<Runtime>
+where
+	Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
+	Runtime: Erc20Mapping,
+	U256: From<
+		<<Runtime as nft::Config>::Currency as frame_support::traits::Currency<
+			<Runtime as frame_system::Config>::AccountId,
+		>>::Balance,
+	>,
+	ClassIdOf<Runtime>: TryFrom<U256> + Into<ClassId> + EvmData,
+	TokenIdOf<Runtime>: TryFrom<U256> + Into<<Runtime as orml_nft::Config>::TokenId> + EvmData,
+	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+{
+	fn execute(handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
+		let result = {
+			let selector = match handle.read_selector() {
+				Ok(selector) => selector,
+				Err(e) => return Some(Err(e)),
+			};
+
+			if let Err(err) = handle.check_function_modifier(match selector {
+				Action::CreateClass
+				| Action::MintNfts
+				| Action::BurnNft
+				| Action::TransferNft
+				| Action::WithdrawFromClassFund => FunctionModifier::NonPayable,
+				_ => FunctionModifier::View,
+			}) {
+				return Some(Err(err));
+			}
+
+			match selector {
+				// Local and Foreign common
+				Action::GetNftMetadata => Self::nft_metadata(handle),
+				Action::GetNftAddress => Self::nft_address(handle),
+				Action::GetAssetOwner => Self::nft_owner(handle),
+				Action::GetClassFundBalance => Self::class_fund_balance(handle),
+				Action::CreateClass => Self::create_class(handle),
+				Action::MintNfts => Self::mint_nfts(handle),
+				Action::TransferNft => Self::transfer_nft(handle),
+				Action::BurnNft => Self::burn_nft(handle),
+				Action::WithdrawFromClassFund => Self::withdraw_class_funds(handle),
+			}
+		};
+		Some(result)
+	}
+}
+
 impl<Runtime> Precompile for NftPrecompile<Runtime>
 where
 	Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
@@ -108,12 +158,11 @@ where
 				Action::WithdrawFromClassFund => Self::withdraw_class_funds(handle),
 			}
 		};
-		Err(PrecompileFailure::Revert {
-			exit_status: ExitRevert::Reverted,
-			output: "invalid nft action".into(),
-		})
+		result
 	}
 }
+
+
 
 impl<Runtime> NftPrecompile<Runtime>
 where
