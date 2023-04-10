@@ -17,6 +17,7 @@ fn precompiles() -> Precompiles<Runtime> {
 	PrecompilesValue::get()
 }
 
+// Currency Precompile Tests
 #[test]
 fn handles_invalid_currency_id() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -202,22 +203,3 @@ fn transfer_native_currencies_works() {
 		});
 }
 
-/*
-	#[test]
-	fn handles_invalid_currency_precompile_selector() {
-		ExtBuilder::default().build().execute_with(|| {
-			precompiles()
-				.prepare_test(
-					currency_precompile_evm_addr(),
-					neer_evm_address(),
-					EvmDataWriter::new_with_selector(9876u32).build(),
-				)
-				.expect_cost(0)
-				.expect_no_logs()
-				.execute_reverts(|output| output == b"invalid currency precompile selector")
-		});
-	}
-
-
-
-*/
