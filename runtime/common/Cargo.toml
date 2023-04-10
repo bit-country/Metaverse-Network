@@ -58,7 +58,7 @@ precompile-utils = { path = "../../primitives/precompiles", default-features = f
 precompile-utils-macro = { path = "../../primitives/precompiles/macro", default-features = false }
 currencies_pallet = { package = "currencies", path = "../../pallets/currencies", version = "2.0.0-rc6", default-features = false }
 evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", version = "2.0.0-rc6", default-features = false }
-nft = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
+nft_pallet = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 
 [build-dependencies]
@@ -94,8 +94,8 @@ std = [
     "core-primitives/std",
     "precompile-utils/std",
     "currencies_pallet/std",
-    #"nft/std",
-    #"auction-manager/std",
+    "nft_pallet/std",
+    "auction-manager/std",
     "evm-mapping/std",
     "xcm/std",
     "xcm-executor/std",

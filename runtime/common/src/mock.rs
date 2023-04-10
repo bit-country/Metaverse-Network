@@ -2,13 +2,13 @@ use std::ptr::hash;
 
 use frame_support::{
 	construct_runtime, parameter_types,
+	dispatch::DispatchResult,
 	traits::{AsEnsureOriginWithArg, Everything, Nothing},
 	weights::Weight,
 	PalletId,
 };
 use frame_system::{EnsureNever, EnsureRoot};
 use hex_literal::hex;
-// use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{AddressMapping, PrecompileHandle, PrecompileOutput};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
@@ -16,17 +16,18 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_core::{Blake2Hasher, Decode, Encode, Hasher, MaxEncodedLen, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, ConstU32, IdentityLookup};
-use sp_runtime::AccountId32;
-use sp_runtime::Perbill;
+use sp_runtime::{AccountId32, DispatchError, Perbill};
 
+use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{NftAssetData, NftClassData};
+use evm_mapping::EvmAddressMapping;
 use precompile_utils::precompile_set::*;
 use precompile_utils::EvmResult;
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
 	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
-use primitives::{Amount, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
+use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
 use crate::nft::NftPrecompile;
@@ -113,11 +114,15 @@ pub struct Precompiles<R>(PhantomData<R>);
 impl<R> PrecompileSet for Precompiles<R>
 where
 	MultiCurrencyPrecompile<R>: PrecompileSet,
+	NftPrecompile<R>: PrecompileSet,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
 		match handle.code_address() {
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
 				MultiCurrencyPrecompile::<R>::default().execute(handle)
+			}
+			a if &a.to_fixed_bytes()[0..9] == NFT_PRECOMPILE_ADDRESS_PREFIX => {
+				NftPrecompile::<R>::default().execute(handle)
 			}
 			_ => None,
 		}
@@ -272,7 +277,7 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<AccountId32, Self::Balance, u32>> {
 		None
 	}
 
@@ -280,7 +285,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<AccountId32, Self::Balance, u32>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -289,10 +294,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn new_auction(
-		_recipient: u128,
+		_recipient: AccountId32,
 		_initial_amount: Self::Balance,
-		_start: u64,
-		_end: Option<u64>,
+		_start: u32,
+		_end: Option<u32>,
 	) -> Result<u64, DispatchError> {
 		Ok(0)
 	}
@@ -300,10 +305,10 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn create_auction(
 		_auction_type: AuctionType,
 		_item_id: ItemId<Balance>,
-		_end: Option<u64>,
-		_recipient: u128,
+		_end: Option<u32>,
+		_recipient: AccountId32,
 		_initial_amount: Self::Balance,
-		_start: u64,
+		_start: u32,
 		_listing_level: ListingLevel<AccountId>,
 		_listing_fee: Perbill,
 		_currency_id: FungibleTokenId,
@@ -339,7 +344,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
-		_high_bidder: &u128,
+		_high_bidder: &AccountId32,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
@@ -368,6 +373,15 @@ impl orml_nft::Config for Runtime {
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
+impl evm_mapping::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type AddressMapping = EvmAddressMapping<Runtime>;
+	type ChainId = ();
+	type TransferAll = OrmlCurrencies;
+	type WeightInfo = ();
+}
+
 parameter_types! {
 	pub AssetMintingFee: Balance = 1;
 	pub ClassMintingFee: Balance = 1;
@@ -378,7 +392,7 @@ parameter_types! {
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
 }
 
-impl nft::Config for Runtime {
+impl nft_pallet::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
@@ -389,7 +403,7 @@ impl nft::Config for Runtime {
 	type MaxBatchTransfer = MaxBatchTransfer;
 	type MaxBatchMinting = MaxBatchMinting;
 	type MaxMetadata = MaxNftMetadata;
-	type MiningResourceId = MiningResourceCurrencyId;
+	type MiningResourceId = MiningCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 }
@@ -404,12 +418,17 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+
+		Evm: pallet_evm::{Pallet, Call, Storage, Event<T>},
+		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
+
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>}
+		OrmlCurrencies: orml_currencies::{Pallet, Call},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
-		Nft: nft::{Pallet, Storage, Call, Event<T>},
+
+		Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>},
+		Nft: nft_pallet::{Pallet, Storage, Call, Event<T>},
 	}
 );
 

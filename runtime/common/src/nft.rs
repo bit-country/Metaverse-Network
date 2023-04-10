@@ -63,13 +63,19 @@ pub type TokenIdOf<Runtime> = <Runtime as orml_nft::Config>::TokenId;
 /// - Withdraw from class fund. Rest `input` bytes: `(`class_id`, `token_id`).
 pub struct NftPrecompile<Runtime>(PhantomData<Runtime>);
 
+impl<Runtime> Default for NftPrecompile<Runtime> {
+	fn default() -> Self {
+		Self(PhantomData)
+	}
+}
+
 #[cfg(test)]
 impl<Runtime> PrecompileSet for NftPrecompile<Runtime>
 where
-	Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
+	Runtime: nft_pallet::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
 	Runtime: Erc20Mapping,
 	U256: From<
-		<<Runtime as nft::Config>::Currency as frame_support::traits::Currency<
+		<<Runtime as nft_pallet::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
@@ -78,7 +84,7 @@ where
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
 {
-	fn execute(handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
+	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
 		let result = {
 			let selector = match handle.read_selector() {
 				Ok(selector) => selector,
@@ -111,14 +117,18 @@ where
 		};
 		Some(result)
 	}
+
+	fn is_precompile(&self, address: H160) -> bool {
+		todo!()
+	}
 }
 
 impl<Runtime> Precompile for NftPrecompile<Runtime>
 where
-	Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
+	Runtime: nft_pallet::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
 	Runtime: Erc20Mapping,
 	U256: From<
-		<<Runtime as nft::Config>::Currency as frame_support::traits::Currency<
+		<<Runtime as nft_pallet::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
@@ -166,10 +176,10 @@ where
 
 impl<Runtime> NftPrecompile<Runtime>
 where
-	Runtime: nft::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
+	Runtime: nft_pallet::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
 	Runtime: Erc20Mapping,
 	U256: From<
-		<<Runtime as nft::Config>::Currency as frame_support::traits::Currency<
+		<<Runtime as nft_pallet::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
@@ -283,10 +293,10 @@ where
 		let owner: H160 = input.read::<Address>()?.into();
 		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
 
-		let class_treasury = <Runtime as nft::Config>::Treasury::get().into_sub_account_truncating(class_id);
+		let class_treasury = <Runtime as nft_pallet::Config>::Treasury::get().into_sub_account_truncating(class_id);
 
 		// Fetch info
-		let balance = <Runtime as nft::Config>::Currency::free_balance(&class_treasury);
+		let balance = <Runtime as nft_pallet::Config>::Currency::free_balance(&class_treasury);
 
 		log::debug!(target: "evm", "class: ({:?}, ) fund balance: {:?}", class_id, balance);
 
@@ -322,7 +332,7 @@ where
 
 		log::debug!(target: "evm", "create class for: {:?}", who);
 
-		<nft::Pallet<Runtime>>::create_class(
+		<nft_pallet::Pallet<Runtime>>::create_class(
 			RawOrigin::Signed(who).into(),
 			class_metadata,
 			class_attributes,
@@ -361,7 +371,7 @@ where
 
 		log::debug!(target: "evm", "create class for: {:?}", who);
 
-		<nft::Pallet<Runtime>>::mint(
+		<nft_pallet::Pallet<Runtime>>::mint(
 			RawOrigin::Signed(who).into(),
 			nft_class_id.into(),
 			nft_metadata,
@@ -395,7 +405,7 @@ where
 
 		log::debug!(target: "evm", "nft transfer from: {:?}, to: {:?}, token: ({:?}, {:?})", origin, to, class_id, token_id);
 
-		<nft::Pallet<Runtime>>::transfer(RawOrigin::Signed(origin).into(), to, (class_id.into(), token_id)).map_err(
+		<nft_pallet::Pallet<Runtime>>::transfer(RawOrigin::Signed(origin).into(), to, (class_id.into(), token_id)).map_err(
 			|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -421,7 +431,7 @@ where
 
 		log::debug!(target: "evm", "burn nft asset: ({:?}, {:?})", class_id, token_id);
 
-		<nft::Pallet<Runtime>>::burn(RawOrigin::Signed(who).into(), (class_id.into(), token_id)).map_err(|e| {
+		<nft_pallet::Pallet<Runtime>>::burn(RawOrigin::Signed(who).into(), (class_id.into(), token_id)).map_err(|e| {
 			PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -447,7 +457,7 @@ where
 
 		log::debug!(target: "evm", "withdraw funds from class {:?} fund", class_id);
 
-		<nft::Pallet<Runtime>>::withdraw_funds_from_class_fund(RawOrigin::Signed(who).into(), class_id.into())
+		<nft_pallet::Pallet<Runtime>>::withdraw_funds_from_class_fund(RawOrigin::Signed(who).into(), class_id.into())
 			.map_err(|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
