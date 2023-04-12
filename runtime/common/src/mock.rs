@@ -1,8 +1,9 @@
 use std::ptr::hash;
 
 use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime,
 	dispatch::DispatchResult,
+	parameter_types,
 	traits::{AsEnsureOriginWithArg, Everything, Nothing},
 	weights::Weight,
 	PalletId,
@@ -36,6 +37,7 @@ use crate::precompiles::MetaverseNetworkPrecompiles;
 use super::*;
 
 pub type AccountId = AccountId32;
+//pub type ClassId = u32;
 pub type AssetId = u128;
 pub type Balance = u128;
 pub type BlockNumber = u32;
@@ -100,6 +102,9 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type WeightInfo = ();
 }
+
+pub const COLLECTION_ID: u64 = 0;
+pub const CLASS_ID: ClassId = 0u32;
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
@@ -408,7 +413,6 @@ impl nft_pallet::Config for Runtime {
 	type ClassMintingFee = ClassMintingFee;
 }
 
-
 // Configure a mock runtime to test the pallet.
 construct_runtime!(
 	pub enum Runtime where
@@ -487,6 +491,10 @@ pub fn charlie_evm_addr() -> H160 {
 
 pub fn neer_evm_address() -> H160 {
 	H160::from(hex_literal::hex!("0000000000000000000100000000000000000000"))
+}
+
+pub fn nft_precompile_address() -> H160 {
+	H160::from(hex_literal::hex!("0202020202020202020000000000000000000000"))
 }
 
 pub fn bit_evm_address() -> H160 {

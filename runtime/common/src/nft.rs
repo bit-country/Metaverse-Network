@@ -172,8 +172,6 @@ where
 	}
 }
 
-
-
 impl<Runtime> NftPrecompile<Runtime>
 where
 	Runtime: nft_pallet::Config + orml_nft::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
@@ -290,9 +288,6 @@ where
 
 		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
 
-		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
-
 		let class_treasury = <Runtime as nft_pallet::Config>::Treasury::get().into_sub_account_truncating(class_id);
 
 		// Fetch info
@@ -405,12 +400,11 @@ where
 
 		log::debug!(target: "evm", "nft transfer from: {:?}, to: {:?}, token: ({:?}, {:?})", origin, to, class_id, token_id);
 
-		<nft_pallet::Pallet<Runtime>>::transfer(RawOrigin::Signed(origin).into(), to, (class_id.into(), token_id)).map_err(
-			|e| PrecompileFailure::Revert {
+		<nft_pallet::Pallet<Runtime>>::transfer(RawOrigin::Signed(origin).into(), to, (class_id.into(), token_id))
+			.map_err(|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			},
-		)?;
+			})?;
 
 		// Build output.
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
@@ -431,12 +425,12 @@ where
 
 		log::debug!(target: "evm", "burn nft asset: ({:?}, {:?})", class_id, token_id);
 
-		<nft_pallet::Pallet<Runtime>>::burn(RawOrigin::Signed(who).into(), (class_id.into(), token_id)).map_err(|e| {
-			PrecompileFailure::Revert {
+		<nft_pallet::Pallet<Runtime>>::burn(RawOrigin::Signed(who).into(), (class_id.into(), token_id)).map_err(
+			|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			}
-		})?;
+			},
+		)?;
 
 		// Build output.
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
@@ -459,9 +453,9 @@ where
 
 		<nft_pallet::Pallet<Runtime>>::withdraw_funds_from_class_fund(RawOrigin::Signed(who).into(), class_id.into())
 			.map_err(|e| PrecompileFailure::Revert {
-				exit_status: ExitRevert::Reverted,
-				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			})?;
+			exit_status: ExitRevert::Reverted,
+			output: Into::<&str>::into(e).as_bytes().to_vec(),
+		})?;
 
 		// Build output.
 		Ok(succeed(EvmDataWriter::new().write(true).build()))

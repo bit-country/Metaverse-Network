@@ -202,4 +202,3 @@ fn transfer_native_currencies_works() {
 			);
 		});
 }
-
