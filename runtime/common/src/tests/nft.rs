@@ -38,10 +38,82 @@ fn init_test_nft(owner: Origin) {
 		Perbill::from_percent(0u32),
 		None,
 	);
-	Nft::mint(owner.clone(), CLASS_ID, vec![1], test_attributes(1), 1);
+	Nft::mint(owner.clone(), CLASS_ID, vec![2u8], test_attributes(1), 1);
 }
 
 // Nft Precompile Tests
+
+#[test]
+fn get_nft_metadata_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			init_test_nft(Origin::signed(alice_account_id()));
+
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					nft_precompile_address(),
+					EvmDataWriter::new_with_selector(Action::GetNftMetadata)
+						.write(U256::from(CLASS_ID))
+                        .write(U256::from(TOKEN_ID))
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(Vec::<u8>::from(vec![2u8])).build());
+		});
+}
+
+#[test]
+fn get_nft_address_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			init_test_nft(Origin::signed(alice_account_id()));
+
+			//let nft_address = Runtime::encode_nf_evm_address()
+
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					nft_precompile_address(),
+					EvmDataWriter::new_with_selector(Action::GetNftAddress)
+					    .write(U256::from(CLASS_ID))
+                        .write(U256::from(TOKEN_ID))
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(Address::from(nft_address())).build());
+		});
+}
+
+#[test]
+fn get_nft_owner_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			init_test_nft(Origin::signed(alice_account_id()));
+
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					nft_precompile_address(),
+					EvmDataWriter::new_with_selector(Action::GetAssetOwner)
+                        .write(U256::from(CLASS_ID))
+                        .write(U256::from(TOKEN_ID))
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(Address::from(alice_evm_addr())).build());
+		});
+}
+
 #[test]
 fn get_class_fund_balance_works() {
 	ExtBuilder::default()

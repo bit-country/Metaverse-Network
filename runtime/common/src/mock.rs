@@ -44,6 +44,10 @@ pub type BlockNumber = u32;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 pub type Block = frame_system::mocking::MockBlock<Runtime>;
 
+pub const COLLECTION_ID: u64 = 0;
+pub const CLASS_ID: ClassId = 0u32;
+pub const TOKEN_ID: TokenId = 0u64;
+
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
 	pub const SS58Prefix: u8 = 42;
@@ -102,9 +106,6 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type WeightInfo = ();
 }
-
-pub const COLLECTION_ID: u64 = 0;
-pub const CLASS_ID: ClassId = 0u32;
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
@@ -494,6 +495,10 @@ pub fn neer_evm_address() -> H160 {
 }
 
 pub fn nft_precompile_address() -> H160 {
+	H160::from(hex_literal::hex!("0202020202020202020000000000000000000000"))
+}
+
+pub fn nft_address() -> H160 {
 	H160::from(hex_literal::hex!("0202020202020202020000000000000000000000"))
 }
 
