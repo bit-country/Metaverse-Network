@@ -135,3 +135,138 @@ fn get_class_fund_balance_works() {
 				.execute_returns(EvmDataWriter::new().write(U256::from(2u64)).build());
 		});
 }
+
+#[test]
+fn create_class_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			init_test_nft(Origin::signed(alice_account_id()));
+
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					nft_precompile_address(),
+					EvmDataWriter::new_with_selector(Action::CreateClass)
+						.write(Address::from(alice_evm_addr())) // owner
+						.write(U256::from(COLLECTION_ID)) // collection id
+						.write(Vec::<u8>::from(vec![2u8])) // metadata
+						.write(U256::from(1u32)) // royalty fee
+						.write(U256::from(10u32))  // class mint limit
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
+		});
+}
+
+#[test]
+fn mint_nft_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			init_test_nft(Origin::signed(alice_account_id()));
+
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					nft_precompile_address(),
+					EvmDataWriter::new_with_selector(Action::MintNfts)
+						.write(Address::from(alice_evm_addr())) // owner
+						.write(U256::from(CLASS_ID)) // class id
+						.write(Vec::<u8>::from(vec![3u8])) // metadata
+						.write(U256::from(1u32))  // quantity
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
+		});
+}
+
+#[test]
+fn transfer_nft_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			init_test_nft(Origin::signed(alice_account_id()));
+
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					nft_precompile_address(),
+					EvmDataWriter::new_with_selector(Action::TransferNft)
+						.write(U256::from(CLASS_ID))
+						.write(U256::from(TOKEN_ID))
+						.write(Address::from(bob_evm_addr()))
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
+		});
+}
+
+#[test]
+fn burn_nft_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			init_test_nft(Origin::signed(alice_account_id()));
+
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					nft_precompile_address(),
+					EvmDataWriter::new_with_selector(Action::BurnNft)
+						.write(Address::from(alice_evm_addr()))
+						.write(U256::from(CLASS_ID))
+                        .write(U256::from(TOKEN_ID))
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
+			
+		});
+}
+
+#[test]
+fn withdraw_from_class_fund_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			init_test_nft(Origin::signed(alice_account_id()));
+
+			let class_fund = <Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
+
+			assert_eq!(
+				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
+				2
+			);
+
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					nft_precompile_address(),
+					EvmDataWriter::new_with_selector(Action::WithdrawFromClassFund)
+						.write(U256::from(CLASS_ID))
+						.write(Address::from(alice_evm_addr()))
+						.build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
+		
+			assert_eq!(
+				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
+				2
+			);
+		});
+}
