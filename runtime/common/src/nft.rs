@@ -288,7 +288,7 @@ where
 
 		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
 
-		let class_treasury = <Runtime as nft_pallet::Config>::Treasury::get().into_sub_account_truncating(class_id);
+		let class_treasury = <Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(class_id);
 
 		// Fetch info
 		let balance = <Runtime as nft_pallet::Config>::Currency::free_balance(&class_treasury);
@@ -303,13 +303,11 @@ where
 	fn create_class(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
-		// Parse input of index 1 (owner)
-		let mut input = handle.read_input()?;
-		input.expect_arguments(5)?;
+		let who = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
 
-		// Build call info
-		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
+		// Parse input 
+		let mut input = handle.read_input()?;
+		input.expect_arguments(4)?;
 
 		let class_metadata: NftMetadata = input.read::<NftMetadata>()?.into();
 		let mut class_attributes: Attributes = Attributes::new();
@@ -349,13 +347,11 @@ where
 	fn mint_nfts(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
+		let who = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
+
 		// Parse input of index 1 (owner)
 		let mut input = handle.read_input()?;
-		input.expect_arguments(4)?;
-
-		// Build call info
-		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
+		input.expect_arguments(3)?;
 
 		let nft_class_id = input.read::<ClassIdOf<Runtime>>()?.into();
 		let nft_metadata: NftMetadata = input.read::<NftMetadata>()?.into();
@@ -415,11 +411,11 @@ where
 
 		// Parse input of index 1 (owner)
 		let mut input = handle.read_input()?;
-		input.expect_arguments(3)?;
+		input.expect_arguments(2)?;
 
 		// Build call info
-		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
+		let who = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
+		//let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
 		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
 		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
 

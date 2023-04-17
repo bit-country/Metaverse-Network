@@ -122,6 +122,15 @@ fn get_class_fund_balance_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
+			let class_fund: AccountId = <Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
+
+			Currencies::update_balance(
+				Origin::root(),
+				class_fund.clone(),
+				FungibleTokenId::NativeToken(0),
+				1000,
+			);
+
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -132,7 +141,7 @@ fn get_class_fund_balance_works() {
 				)
 				.expect_cost(0)
 				.expect_no_logs()
-				.execute_returns(EvmDataWriter::new().write(U256::from(2u64)).build());
+				.execute_returns(EvmDataWriter::new().write(U256::from(1000u64)).build());
 		});
 }
 
@@ -149,7 +158,7 @@ fn create_class_works() {
 					alice_evm_addr(),
 					nft_precompile_address(),
 					EvmDataWriter::new_with_selector(Action::CreateClass)
-						.write(Address::from(alice_evm_addr())) // owner
+						//.write(Address::from(alice_evm_addr())) // owner
 						.write(U256::from(COLLECTION_ID)) // collection id
 						.write(Vec::<u8>::from(vec![2u8])) // metadata
 						.write(U256::from(1u32)) // royalty fee
@@ -175,7 +184,7 @@ fn mint_nft_works() {
 					alice_evm_addr(),
 					nft_precompile_address(),
 					EvmDataWriter::new_with_selector(Action::MintNfts)
-						.write(Address::from(alice_evm_addr())) // owner
+						//.write(Address::from(alice_evm_addr())) // owner
 						.write(U256::from(CLASS_ID)) // class id
 						.write(Vec::<u8>::from(vec![3u8])) // metadata
 						.write(U256::from(1u32))  // quantity
@@ -224,7 +233,7 @@ fn burn_nft_works() {
 					alice_evm_addr(),
 					nft_precompile_address(),
 					EvmDataWriter::new_with_selector(Action::BurnNft)
-						.write(Address::from(alice_evm_addr()))
+						//.write(Address::from(alice_evm_addr()))
 						.write(U256::from(CLASS_ID))
                         .write(U256::from(TOKEN_ID))
 						.build(),
@@ -244,11 +253,17 @@ fn withdraw_from_class_fund_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
-			let class_fund = <Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
+			let class_fund: AccountId = <Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
 
+			Currencies::update_balance(
+				Origin::root(),
+				class_fund.clone(),
+				FungibleTokenId::NativeToken(0),
+				1000,
+			);
 			assert_eq!(
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
-				2
+				1000
 			);
 
 			precompiles()
@@ -266,7 +281,7 @@ fn withdraw_from_class_fund_works() {
 		
 			assert_eq!(
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
-				2
+				0
 			);
 		});
 }
