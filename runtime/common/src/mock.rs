@@ -46,7 +46,9 @@ pub type Block = frame_system::mocking::MockBlock<Runtime>;
 
 pub const COLLECTION_ID: u64 = 0;
 pub const CLASS_ID: ClassId = 0u32;
+pub const CLASS_ID_2: ClassId = 1u32;
 pub const TOKEN_ID: TokenId = 0u64;
+pub const TOKEN_ID_2: TokenId = 1u64;
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;

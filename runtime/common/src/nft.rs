@@ -309,14 +309,13 @@ where
 		let mut input = handle.read_input()?;
 		input.expect_arguments(4)?;
 
+		let class_collection_id: GroupCollectionId = input.read::<GroupCollectionId>()?.into();
 		let class_metadata: NftMetadata = input.read::<NftMetadata>()?.into();
 		let mut class_attributes: Attributes = Attributes::new();
 		class_attributes.insert("Chain:".as_bytes().to_vec(), "EVM".as_bytes().to_vec());
 		class_attributes.insert("Metadata:".as_bytes().to_vec(), class_metadata.clone());
-		let class_collection_id: GroupCollectionId = input.read::<GroupCollectionId>()?.into();
+		
 
-		//let class_token_type: TokenType = input.read::<TokenType>()?.encode().into();
-		//let class_collection_type: CollectionType = input.read::<CollectionType>()?.into();
 		let class_token_type = TokenType::Transferable;
 		let class_collection_type = CollectionType::Collectable;
 
