@@ -81,8 +81,8 @@ pub trait Erc20Mapping {
 
 pub const H160_POSITION_CURRENCY_ID_TYPE: usize = 9;
 pub const H160_POSITION_TOKEN: usize = 19;
-pub const H160_POSITION_TOKEN_NFT: Range<usize> = 10..20;
-pub const H160_POSITION_TOKEN_NFT_CLASS_ID_END: usize = 14;
+pub const H160_POSITION_TOKEN_NFT: Range<usize> = 8..20;
+pub const H160_POSITION_TOKEN_NFT_CLASS_ID_END: usize = 12;
 pub const H160_POSITION_FUNGIBLE_TOKEN: Range<usize> = 10..13;
 pub const H160_POSITION_MINING_RESOURCE: Range<usize> = 14..20;
 

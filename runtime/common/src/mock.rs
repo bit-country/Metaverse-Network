@@ -26,7 +26,7 @@ use precompile_utils::precompile_set::*;
 use precompile_utils::EvmResult;
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
-	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
+	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END, 
 };
 use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
@@ -224,8 +224,8 @@ impl Erc20Mapping for Runtime {
 		let mut asset_bytes: Vec<u8> = t.0.to_be_bytes().to_vec();
 		asset_bytes.append(&mut t.1.to_be_bytes().to_vec());
 
-		for byte_index in H160_POSITION_TOKEN_NFT {
-			address[byte_index] = asset_bytes.as_slice()[byte_index];
+		for byte_index in 0..asset_bytes.len()  {
+			address[byte_index + H160_POSITION_TOKEN_NFT.start] = asset_bytes.as_slice()[byte_index];
 		}
 
 		Some(EvmAddress::from_slice(&address))
@@ -501,7 +501,7 @@ pub fn nft_precompile_address() -> H160 {
 }
 
 pub fn nft_address() -> H160 {
-	H160::from(hex_literal::hex!("0202020202020202020000000000000000000000"))
+	H160::from(hex_literal::hex!("0202020202020202000000000000000000000000"))
 }
 
 pub fn bit_evm_address() -> H160 {

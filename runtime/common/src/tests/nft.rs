@@ -78,8 +78,6 @@ fn get_nft_address_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
-			//let nft_address = Runtime::encode_nf_evm_address()
-
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
