@@ -5,9 +5,10 @@ use sp_runtime::traits::{AccountIdConversion, Zero};
 use sp_runtime::Perbill;
 use sp_std::collections::btree_map::BTreeMap;
 
-use precompile_utils::data::{Address, EvmDataWriter};
+use precompile_utils::data::{Address, Bytes, EvmDataWriter};
 use precompile_utils::testing::*;
 use primitives::FungibleTokenId;
+use primitives::evm::Output;
 
 use crate::mock::*;
 use crate::nft::Action;
@@ -39,7 +40,7 @@ fn init_test_nft(owner: Origin) {
 		Perbill::from_percent(0u32),
 		None,
 	);
-	Nft::mint(owner.clone(), CLASS_ID, vec![2], test_attributes(1), 1);
+	Nft::mint(owner.clone(), CLASS_ID, vec![2u8], test_attributes(1), 1);
 }
 
 // Nft Precompile Tests
@@ -52,7 +53,7 @@ fn get_nft_metadata_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
-			//let expected_metadata = 
+			let nft_metadata: NftMetadata = vec![2u8];
 
 			precompiles()
 				.prepare_test(
@@ -65,7 +66,7 @@ fn get_nft_metadata_works() {
 				)
 				.expect_cost(0)
 				.expect_no_logs()
-				.execute_returns(EvmDataWriter::new().write(Vec::<u8>::from(vec![2u8])).build());
+				.execute_returns(EvmDataWriter::new().write(Bytes::from(nft_metadata.as_slice())).build());
 		});
 }
 
@@ -102,6 +103,7 @@ fn get_nft_owner_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
+			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
