@@ -23,7 +23,6 @@ use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, ClassId, GroupCollectionId, TokenId};
 
-
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
 pub enum Action {

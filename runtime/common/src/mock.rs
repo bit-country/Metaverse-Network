@@ -504,7 +504,7 @@ pub fn nft_precompile_address() -> H160 {
 }
 
 pub fn nft_address() -> H160 {
-	H160::from(hex_literal::hex!("0202020202020202000000000000000000000000"))
+	H160::from(hex_literal::hex!("0202020202020200000000000000000000000002"))
 }
 
 pub fn bit_evm_address() -> H160 {
