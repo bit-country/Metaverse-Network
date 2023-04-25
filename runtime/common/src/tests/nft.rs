@@ -7,16 +7,17 @@ use sp_std::collections::btree_map::BTreeMap;
 
 use precompile_utils::data::{Address, Bytes, EvmDataWriter};
 use precompile_utils::testing::*;
-use primitives::FungibleTokenId;
 use primitives::evm::Output;
+use primitives::FungibleTokenId;
 
 use crate::mock::*;
 use crate::nft::Action;
+use evm_mapping::AddressMapping as AddressMappingEvm;
+use orml_nft::Pallet as NftModule;
 use orml_traits::BasicCurrency;
 use pallet_evm::AddressMapping;
-use orml_nft::Pallet as NftModule;
 
-use core_primitives::{Attributes, CollectionType, NftMetadata, TokenType, NftClassData, NftAssetData};
+use core_primitives::{Attributes, CollectionType, NftAssetData, NftClassData, NftMetadata, TokenType};
 
 fn precompiles() -> Precompiles<Runtime> {
 	PrecompilesValue::get()
@@ -61,7 +62,7 @@ fn get_nft_metadata_works() {
 					nft_precompile_address(),
 					EvmDataWriter::new_with_selector(Action::GetNftMetadata)
 						.write(U256::from(CLASS_ID))
-                        .write(U256::from(TOKEN_ID))
+						.write(U256::from(TOKEN_ID))
 						.build(),
 				)
 				.expect_cost(0)
@@ -83,8 +84,8 @@ fn get_nft_address_works() {
 					alice_evm_addr(),
 					nft_precompile_address(),
 					EvmDataWriter::new_with_selector(Action::GetNftAddress)
-					    .write(U256::from(CLASS_ID))
-                        .write(U256::from(TOKEN_ID))
+						.write(U256::from(CLASS_ID))
+						.write(U256::from(TOKEN_ID))
 						.build(),
 				)
 				.expect_cost(0)
@@ -101,14 +102,13 @@ fn get_nft_owner_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
 					nft_precompile_address(),
 					EvmDataWriter::new_with_selector(Action::GetAssetOwner)
-                        .write(U256::from(CLASS_ID))
-                        .write(U256::from(TOKEN_ID))
+						.write(U256::from(CLASS_ID))
+						.write(U256::from(TOKEN_ID))
 						.build(),
 				)
 				.expect_cost(0)
@@ -125,7 +125,8 @@ fn get_class_fund_balance_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
-			let class_fund: AccountId = <Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
+			let class_fund: AccountId =
+				<Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
 
 			Currencies::update_balance(
 				Origin::root(),
@@ -157,6 +158,7 @@ fn create_class_works() {
 			init_test_nft(Origin::signed(alice_account_id()));
 
 			assert_eq!(NftModule::<Runtime>::classes(CLASS_ID_2), None);
+			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
 
 			precompiles()
 				.prepare_test(
@@ -166,13 +168,13 @@ fn create_class_works() {
 						.write(U256::from(COLLECTION_ID)) // collection id
 						.write(Vec::<u8>::from(vec![2u8])) // metadata
 						.write(U256::from(1u32)) // royalty fee
-						.write(U256::from(10u32))  // class mint limit
+						.write(U256::from(10u32)) // class mint limit
 						.build(),
 				)
 				.expect_cost(0)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
-			
+
 			assert_eq!(NftModule::<Runtime>::classes(CLASS_ID_2).is_some(), true);
 		});
 }
@@ -186,6 +188,7 @@ fn mint_nft_works() {
 			init_test_nft(Origin::signed(alice_account_id()));
 
 			assert_eq!(NftModule::<Runtime>::tokens(CLASS_ID, TOKEN_ID_2), None);
+			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
 
 			let nft_metadata: NftMetadata = vec![3u8];
 			precompiles()
@@ -195,13 +198,13 @@ fn mint_nft_works() {
 					EvmDataWriter::new_with_selector(Action::MintNfts)
 						.write(U256::from(CLASS_ID)) // class id
 						.write(Vec::<u8>::from(nft_metadata)) // metadata
-						.write(U256::from(1u32))  // quantity
+						.write(U256::from(1u32)) // quantity
 						.build(),
 				)
 				.expect_cost(0)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
-			
+
 			assert_eq!(NftModule::<Runtime>::tokens(CLASS_ID, TOKEN_ID_2).is_some(), true);
 		});
 }
@@ -214,7 +217,12 @@ fn transfer_nft_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
-			assert_eq!(NftModule::<Runtime>::tokens(CLASS_ID, TOKEN_ID).unwrap().owner, alice_account_id());
+			assert_eq!(
+				NftModule::<Runtime>::tokens(CLASS_ID, TOKEN_ID).unwrap().owner,
+				alice_account_id()
+			);
+			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(Origin::signed(bob_account_id()));
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -229,7 +237,10 @@ fn transfer_nft_works() {
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
 
-			assert_eq!(NftModule::<Runtime>::tokens(CLASS_ID, TOKEN_ID).unwrap().owner, bob_account_id());
+			assert_eq!(
+				NftModule::<Runtime>::tokens(CLASS_ID, TOKEN_ID).unwrap().owner,
+				bob_account_id()
+			);
 		});
 }
 
@@ -240,14 +251,14 @@ fn burn_nft_works() {
 		.build()
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
-
+			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
 					nft_precompile_address(),
 					EvmDataWriter::new_with_selector(Action::BurnNft)
 						.write(U256::from(CLASS_ID))
-                        .write(U256::from(TOKEN_ID))
+						.write(U256::from(TOKEN_ID))
 						.build(),
 				)
 				.expect_cost(0)
@@ -265,7 +276,8 @@ fn withdraw_from_class_fund_works() {
 		.execute_with(|| {
 			init_test_nft(Origin::signed(alice_account_id()));
 
-			let class_fund: AccountId = <Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
+			let class_fund: AccountId =
+				<Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
 
 			Currencies::update_balance(
 				Origin::root(),
@@ -277,6 +289,7 @@ fn withdraw_from_class_fund_works() {
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
 				1000
 			);
+			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
 
 			precompiles()
 				.prepare_test(
@@ -290,7 +303,7 @@ fn withdraw_from_class_fund_works() {
 				.expect_cost(0)
 				.expect_no_logs()
 				.execute_returns(EvmDataWriter::new().write(U256::from(1u64)).build());
-		
+
 			assert_eq!(
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
 				0

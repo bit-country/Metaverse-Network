@@ -1,4 +1,5 @@
 use core_primitives::{Attributes, CollectionType, NftMetadata, TokenType};
+use evm_mapping::AddressMapping as EvmMapping;
 use evm_mapping::EvmAddressMapping;
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
@@ -21,6 +22,7 @@ use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
 use primitives::{evm, Balance, ClassId, GroupCollectionId, TokenId};
+
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -260,8 +262,14 @@ where
 			Some(nft_info) => {
 				log::debug!(target: "evm", "Nft asset info: {:?}", nft_info);
 
-				let evm_address_output = <evm_mapping::Pallet<Runtime>>::evm_addresses(nft_info.owner);
+				let evm_address =
+					<Runtime as evm_mapping::Config>::AddressMapping::get_or_create_evm_address(&nft_info.owner);
+				let encoded = Output::encode_address(evm_address);
+				// Build output.
+				Ok(succeed(encoded))
 
+				/*
+				let evm_address_output = <Runtime as evm_mapping::Config>::AddressMapping::get_evm_address(&nft_info.owner);
 				match evm_address_output {
 					Some(evm_address) => {
 						let encoded = Output::encode_address(evm_address);
@@ -272,6 +280,7 @@ where
 						exit_status: pallet_evm::ExitError::Other("Invalid nft asset owner EVM address".into()),
 					}),
 				}
+				*/
 			}
 			None => Err(PrecompileFailure::Error {
 				exit_status: pallet_evm::ExitError::Other("Non-existing NFT.".into()),
@@ -303,9 +312,9 @@ where
 	fn create_class(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
-		let who = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
+		let who = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&handle.context().caller);
 
-		// Parse input 
+		// Parse input
 		let mut input = handle.read_input()?;
 		input.expect_arguments(4)?;
 
@@ -314,7 +323,6 @@ where
 		let mut class_attributes: Attributes = Attributes::new();
 		class_attributes.insert("Chain:".as_bytes().to_vec(), "EVM".as_bytes().to_vec());
 		class_attributes.insert("Metadata:".as_bytes().to_vec(), class_metadata.clone());
-		
 
 		let class_token_type = TokenType::Transferable;
 		let class_collection_type = CollectionType::Collectable;
@@ -346,7 +354,7 @@ where
 	fn mint_nfts(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
-		let who = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
+		let who = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&handle.context().caller);
 
 		// Parse input of index 1 (owner)
 		let mut input = handle.read_input()?;
@@ -390,8 +398,8 @@ where
 		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
 		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
 
-		let origin = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
-		let to = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(to);
+		let origin = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&handle.context().caller);
+		let to = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&to);
 
 		log::debug!(target: "evm", "nft transfer from: {:?}, to: {:?}, token: ({:?}, {:?})", origin, to, class_id, token_id);
 
@@ -413,8 +421,9 @@ where
 		input.expect_arguments(2)?;
 
 		// Build call info
-		let who = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
-		//let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
+		let who = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&handle.context().caller);
+		//let who: Runtime::AccountId = <Runtime as
+		// pallet_evm::Config>::AddressMapping::into_account_id(owner);
 		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
 		let token_id = input.read::<TokenIdOf<Runtime>>()?.into();
 
@@ -442,7 +451,7 @@ where
 
 		// Build call info
 		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(owner);
+		let who = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&handle.context().caller);
 
 		log::debug!(target: "evm", "withdraw funds from class {:?} fund", class_id);
 

@@ -21,12 +21,14 @@ use sp_runtime::{AccountId32, DispatchError, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{NftAssetData, NftClassData};
+use evm_mapping::AddressMapping as AddressMappingEvm;
 use evm_mapping::EvmAddressMapping;
+
 use precompile_utils::precompile_set::*;
 use precompile_utils::EvmResult;
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
-	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END, 
+	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
 use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
@@ -49,6 +51,9 @@ pub const CLASS_ID: ClassId = 0u32;
 pub const CLASS_ID_2: ClassId = 1u32;
 pub const TOKEN_ID: TokenId = 0u64;
 pub const TOKEN_ID_2: TokenId = 1u64;
+pub const ALICE_ACCOUNT: AccountId = AccountId::new([1u8; 32]);
+pub const BOB_ACCOUNT: AccountId = AccountId::new([2u8; 32]);
+pub const CHARLIE_ACCOUNT: AccountId = AccountId::new([3u8; 32]);
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
@@ -224,7 +229,7 @@ impl Erc20Mapping for Runtime {
 		let mut asset_bytes: Vec<u8> = t.0.to_be_bytes().to_vec();
 		asset_bytes.append(&mut t.1.to_be_bytes().to_vec());
 
-		for byte_index in 0..asset_bytes.len()  {
+		for byte_index in 0..asset_bytes.len() {
 			address[byte_index + H160_POSITION_TOKEN_NFT.start] = asset_bytes.as_slice()[byte_index];
 		}
 
@@ -481,15 +486,13 @@ pub fn last_event() -> Event {
 }
 
 pub fn alice_evm_addr() -> H160 {
-	H160::from(hex_literal::hex!("1000000000000000000000000000000000000001"))
+	//H160::from(hex_literal::hex!("1000000000000000000000000000000000000001"))
+	EvmAddressMapping::<Runtime>::get_default_evm_address(&ALICE_ACCOUNT)
 }
 
 pub fn bob_evm_addr() -> H160 {
-	H160::from(hex_literal::hex!("1000000000000000000000000000000000000002"))
-}
-
-pub fn charlie_evm_addr() -> H160 {
-	H160::from(hex_literal::hex!("1000000000000000000000000000000000000003"))
+	//H160::from(hex_literal::hex!("1000000000000000000000000000000000000002"))
+	EvmAddressMapping::<Runtime>::get_default_evm_address(&BOB_ACCOUNT)
 }
 
 pub fn neer_evm_address() -> H160 {
@@ -509,11 +512,13 @@ pub fn bit_evm_address() -> H160 {
 }
 
 pub fn alice_account_id() -> AccountId {
-	<Runtime as pallet_evm::Config>::AddressMapping::into_account_id(alice_evm_addr())
+	//<Runtime as pallet_evm::Config>::AddressMapping::into_account_id(alice_evm_addr())
+	ALICE_ACCOUNT
 }
 
 pub fn bob_account_id() -> AccountId {
-	<Runtime as pallet_evm::Config>::AddressMapping::into_account_id(bob_evm_addr())
+	//<Runtime as pallet_evm::Config>::AddressMapping::into_account_id(bob_evm_addr())
+	BOB_ACCOUNT
 }
 
 pub enum Account {

@@ -10,6 +10,8 @@ use sp_core::{H160, U256};
 use sp_runtime::traits::{AccountIdConversion, Dispatchable, Zero};
 use sp_std::{marker::PhantomData, prelude::*};
 
+use evm_mapping::AddressMapping as EvmMapping;
+use evm_mapping::EvmAddressMapping;
 use precompile_utils::data::{Address, EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
 use precompile_utils::modifier::FunctionModifier;
@@ -56,7 +58,7 @@ impl<Runtime> Default for MultiCurrencyPrecompile<Runtime> {
 #[cfg(test)]
 impl<Runtime> PrecompileSet for MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
 	Runtime: Erc20Mapping,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
@@ -115,7 +117,7 @@ where
 
 impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
 	Runtime: Erc20Mapping,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
@@ -169,7 +171,7 @@ where
 
 impl<Runtime> MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config,
+	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 	U256: From<
@@ -207,7 +209,8 @@ where
 		input.expect_arguments(1)?;
 
 		let owner: H160 = input.read::<Address>()?.into();
-		let who: Runtime::AccountId = Runtime::AddressMapping::into_account_id(owner);
+
+		let who: Runtime::AccountId = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&owner);
 		// Fetch info
 		let balance = if currency_id == <Runtime as currencies_pallet::Config>::GetNativeCurrencyId::get() {
 			<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&who)
@@ -233,8 +236,8 @@ where
 		let amount = input.read::<BalanceOf<Runtime>>()?;
 
 		// Build call info
-		let origin = Runtime::AddressMapping::into_account_id(handle.context().caller);
-		let to = Runtime::AddressMapping::into_account_id(to);
+		let origin = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&handle.context().caller);
+		let to = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&to);
 
 		log::debug!(target: "evm", "multicurrency: transfer from: {:?}, to: {:?}, amount: {:?}", origin, to, amount);
 

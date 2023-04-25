@@ -1194,7 +1194,7 @@ impl Erc20Mapping for Runtime {
 		let mut asset_bytes: Vec<u8> = t.0.to_be_bytes().to_vec();
 		asset_bytes.append(&mut t.1.to_be_bytes().to_vec());
 
-		for byte_index in 0..asset_bytes.len()  {
+		for byte_index in 0..asset_bytes.len() {
 			address[byte_index + H160_POSITION_TOKEN_NFT.start] = asset_bytes.as_slice()[byte_index];
 		}
 
