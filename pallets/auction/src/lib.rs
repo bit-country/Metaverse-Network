@@ -786,7 +786,7 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
-		/// Hooks that call every new block finalized.
+		/// Hooks that call every new block is initialized.
 		fn on_initialize(now: T::BlockNumber) -> Weight {
 			let mut total_item = 0;
 			for (auction_id, _) in <AuctionEndTime<T>>::drain_prefix(&now) {

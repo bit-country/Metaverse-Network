@@ -12,47 +12,57 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> nft::WeightInfo for WeightInfo<T> {
 	fn create_group() -> Weight {
-		(15_532_000 as Weight)
+		(15_762_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(2 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 	fn create_class() -> Weight {
-		(29_496_000 as Weight)
+		(32_238_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(4 as Weight))
 	}
 	fn mint() -> Weight {
-		(49_776_000 as Weight)
+		(49_566_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(10 as Weight))
 	}
+	fn mint_stackable_nft() -> Weight {
+		(46_560_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(6 as Weight))
+			.saturating_add(T::DbWeight::get().writes(8 as Weight))
+	}
 	fn transfer() -> Weight {
-		(28_845_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
+		(30_588_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(5 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
+	fn transfer_stackable_nft() -> Weight {
+		(23_361_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(3 as Weight))
+			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+	}
 	fn transfer_batch() -> Weight {
-		(46_555_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
+		(49_633_000 as Weight)
+			.saturating_add(T::DbWeight::get().reads(8 as Weight))
 			.saturating_add(T::DbWeight::get().writes(6 as Weight))
 	}
 	fn sign_asset() -> Weight {
-		(35_655_000 as Weight)
+		(34_549_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(4 as Weight))
 			.saturating_add(T::DbWeight::get().writes(3 as Weight))
 	}
 	fn set_hard_limit() -> Weight {
-		(13_747_000 as Weight)
+		(14_025_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}
 	fn withdraw_funds_from_class_fund() -> Weight {
-		(26_662_000 as Weight)
+		(27_002_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(3 as Weight))
 			.saturating_add(T::DbWeight::get().writes(2 as Weight))
 	}
 	fn force_update_total_issuance() -> Weight {
-		(12_784_000 as Weight)
+		(12_330_000 as Weight)
 			.saturating_add(T::DbWeight::get().reads(1 as Weight))
 			.saturating_add(T::DbWeight::get().writes(1 as Weight))
 	}

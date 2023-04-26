@@ -85,6 +85,7 @@ pallet-utility = { git = 'https://github.com/paritytech/substrate', branch = 'po
 pallet-bounties = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.26', default-features = false }
 pallet-preimage = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.26', default-features = false }
 pallet-membership = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
+pallet-proxy = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.26', default-features = false }
 
 # Cumulus Dependencies
 cumulus-pallet-aura-ext = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.26', default-features = false }
@@ -157,6 +158,7 @@ std = [
     "pallet-multisig/std",
     "pallet-membership/std",
     "pallet-utility/std",
+    "pallet-proxy/std",
     "parachain-info/std",
     "cumulus-pallet-aura-ext/std",
     "cumulus-pallet-parachain-system/std",
