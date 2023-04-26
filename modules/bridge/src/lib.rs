@@ -6,7 +6,7 @@
 use frame_support::{pallet_prelude::*, transactional};
 use frame_system::pallet_prelude::*;
 use orml_traits::MultiCurrencyExtended;
-use sp_arithmetic::traits::SaturatedConversion;
+use sp_arithmetic::{traits::SaturatedConversion, Perbill};
 use sp_core::{H160, U256};
 use sp_std::prelude::*;
 
@@ -16,6 +16,7 @@ use primitives::{Balance, FungibleTokenId};
 pub type ResourceId = H160;
 pub type ChainId = u8;
 pub type DepositNonce = u64;
+pub type RatioPerNative = Perbill; // 1:RatioPerNative is the native amount
 
 #[cfg(all(feature = "std", test))]
 mod mock;
@@ -28,11 +29,12 @@ pub mod pallet {
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
-	use sp_arithmetic::traits::Saturating;
+	use sp_arithmetic::traits::{CheckedMul, Saturating, Zero};
 	use sp_runtime::traits::{AccountIdConversion, CheckedDiv};
-	use sp_runtime::ModuleError;
+	use sp_runtime::{ArithmeticError, ModuleError};
 
 	use core_primitives::NFTTrait;
+	use primitives::evm::CurrencyIdType::FungibleToken;
 	use primitives::{Attributes, ClassId, NftMetadata, TokenId};
 
 	use super::*;
@@ -46,6 +48,11 @@ pub mod pallet {
 		/// The currency mechanism.
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+		type MultiCurrency: MultiCurrencyExtended<
+			Self::AccountId,
+			CurrencyId = FungibleTokenId,
+			Balance = BalanceOf<Self>,
+		>;
 		/// The nft handling mechanism.
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 		/// Native currency
@@ -108,6 +115,12 @@ pub mod pallet {
 		/// Bridge out executed from account to foreign account registered resource id [resource_id,
 		/// class_id, token_id, H160 address]
 		NonFungibleBridgeOutExecuted(ResourceId, ClassId, TokenId, T::AccountId, Vec<u8>),
+		/// Bridge out executed from account to foreign account registered resource id [resource_id,
+		/// amount, from, to H160 address]
+		FungibleBridgeOutExecuted(ResourceId, U256, T::AccountId, Vec<u8>),
+		/// Bridge in executed from account to foreign account registered resource id [resource_id,
+		/// amount, from, to H160 address]
+		FungibleBridgeInExecuted(ResourceId, U256, Vec<u8>, T::AccountId),
 		/// Add new bridge origin
 		AddNewBridgeOrigin(T::AccountId),
 		/// Remove bridge origin
@@ -125,13 +138,17 @@ pub mod pallet {
 	#[pallet::getter(fn nft_resource_ids)]
 	pub type NftResourceIds<T: Config> = StorageMap<_, Twox64Concat, ClassId, ResourceId, OptionQuery>;
 
+	/// Fee ratio between native token of chainId with token type for tx fee
+	/// For example: price A - 0.20 and price B - 1200 in the same unit then ratio would be
+	/// (0.20/0.20) : (1200/0.20) = 1 : 6,000 So, the ratio between price A and price B is 1:6,000.
 	#[pallet::storage]
 	#[pallet::getter(fn bridge_fee)]
 	pub type BridgeFee<T: Config> = StorageMap<_, Twox64Concat, ChainId, (BalanceOf<T>, u32), ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn currency_ids)]
-	pub type CurrencyIds<T: Config> = StorageMap<_, Twox64Concat, ResourceId, FungibleTokenId, OptionQuery>;
+	pub type CurrencyIds<T: Config> =
+		StorageMap<_, Twox64Concat, ResourceId, (FungibleTokenId, RatioPerNative), OptionQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn class_ids)]
@@ -145,13 +162,15 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
-		pub fn sudo_change_fee(
+		pub fn oracle_change_fee(
 			origin: OriginFor<T>,
 			min_fee: BalanceOf<T>,
 			fee_scale: u32,
 			dest_id: ChainId,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			let bridge_origin = ensure_signed(origin)?;
+			ensure!(Self::is_bridge_origin(&bridge_origin), Error::<T>::NoPermission);
+
 			ensure!(fee_scale <= 1000u32, Error::<T>::InvalidFeeOption);
 			BridgeFee::<T>::insert(dest_id, (min_fee, fee_scale));
 			Self::deposit_event(Event::FeeUpdated(dest_id, min_fee, fee_scale));
@@ -161,37 +180,82 @@ pub mod pallet {
 		/// Transfers some amount of the native token to some recipient on a (whitelisted)
 		/// destination chain.
 		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
-		pub fn transfer_native(
+		pub fn bridge_out_fungible(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
 			recipient: Vec<u8>,
-			dest_id: ChainId,
+			resource_id: ResourceId,
+			chain_id: ChainId,
 		) -> DispatchResult {
 			let source = ensure_signed(origin)?;
-			let resource_id =
-				Self::resource_ids(FungibleTokenId::NativeToken(0)).ok_or(Error::<T>::ResourceIdNotRegistered)?;
+			let currency_id = Self::currency_ids(resource_id).ok_or(Error::<T>::ResourceIdNotRegistered)?;
+
 			let bridge_id = T::PalletId::get().into_account_truncating();
-			ensure!(BridgeFee::<T>::contains_key(&dest_id), Error::<T>::FeeOptionsMissing);
-			let (min_fee, fee_scale) = Self::bridge_fee(dest_id);
+			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
+			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
+
 			let fee_estimated = amount.saturating_mul(fee_scale.into());
 			let fee = if fee_estimated > min_fee {
 				fee_estimated
 			} else {
 				min_fee
 			};
-			T::Currency::transfer(
-				&source,
-				&bridge_id,
-				(amount + fee).into(),
-				ExistenceRequirement::AllowDeath,
-			)?;
 
-			Self::deposit_event(Event::FungibleTransfer(
-				dest_id,
+			let mut actual_fee = Zero::zero();
+			if currency_id.0 == FungibleTokenId::NativeToken(0) {
+				actual_fee = fee;
+				T::Currency::transfer(
+					&source,
+					&bridge_id,
+					(amount + actual_fee).into(),
+					ExistenceRequirement::AllowDeath,
+				)?;
+			} else {
+				actual_fee = currency_id.1 * fee;
+
+				// Transfer the fee as native token first
+				T::Currency::transfer(&source, &bridge_id, actual_fee.into(), ExistenceRequirement::AllowDeath)?;
+				// Handle the multi currency token transfer
+				T::MultiCurrency::transfer(currency_id.0, &source, &bridge_id, amount)?;
+			}
+
+			Self::deposit_event(Event::FungibleBridgeOutExecuted(
 				resource_id,
 				U256::from(amount.saturated_into::<u128>()),
-				recipient.clone(),
+				source,
 				recipient,
+			));
+
+			Ok(())
+		}
+
+		/// Executes a simple currency transfer from user account to bridge account
+		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		pub fn bridge_in_fungible(
+			origin: OriginFor<T>,
+			from: Vec<u8>,
+			to: T::AccountId,
+			amount: BalanceOf<T>,
+			resource_id: ResourceId,
+		) -> DispatchResult {
+			let bridge_origin = ensure_signed(origin)?;
+			ensure!(Self::is_bridge_origin(&bridge_origin), Error::<T>::NoPermission);
+
+			let currency_id = Self::currency_ids(resource_id).ok_or(Error::<T>::ResourceIdNotRegistered)?;
+			let bridge_id = T::PalletId::get().into_account_truncating();
+
+			if currency_id.0 == FungibleTokenId::NativeToken(0) {
+				T::Currency::transfer(&bridge_id, &to, amount, ExistenceRequirement::AllowDeath)?;
+			} else {
+				// Handle the multi currency token transfer
+				T::MultiCurrency::transfer(currency_id.0, &bridge_id, &to, amount)?;
+			}
+
+			Self::deposit_event(Event::FungibleBridgeInExecuted(
+				resource_id,
+				U256::from(amount.saturated_into::<u128>()),
+				from,
+				to,
 			));
 
 			Ok(())
@@ -295,6 +359,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			resource_id: ResourceId,
 			currency_id: FungibleTokenId,
+			fee_ratio: RatioPerNative,
 		) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
 			ensure!(
@@ -303,7 +368,7 @@ pub mod pallet {
 			);
 
 			ResourceIds::<T>::insert(currency_id, resource_id);
-			CurrencyIds::<T>::insert(resource_id, currency_id);
+			CurrencyIds::<T>::insert(resource_id, (currency_id, fee_ratio));
 			Self::deposit_event(Event::RegisterNewResourceTokenId(resource_id, currency_id));
 			Ok(())
 		}
@@ -313,8 +378,8 @@ pub mod pallet {
 		pub fn remove_resource_token_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
 			if let Some(currency_id) = CurrencyIds::<T>::take(resource_id) {
-				ResourceIds::<T>::remove(currency_id);
-				Self::deposit_event(Event::RemoveResourceTokenId(resource_id, currency_id));
+				ResourceIds::<T>::remove(currency_id.0);
+				Self::deposit_event(Event::RemoveResourceTokenId(resource_id, currency_id.0));
 			}
 			CurrencyIds::<T>::remove(resource_id);
 			Ok(())

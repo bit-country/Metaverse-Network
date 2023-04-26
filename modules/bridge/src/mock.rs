@@ -157,6 +157,7 @@ impl Config for Runtime {
 	type Event = Event;
 	type BridgeOrigin = EnsureRoot<AccountId>;
 	type Currency = Balances;
+	type MultiCurrency = Currencies;
 	type NFTHandler = MockNFTHandler;
 	type NativeCurrencyId = NativeCurrencyId;
 	type PalletId = BridgeSovereignPalletId;

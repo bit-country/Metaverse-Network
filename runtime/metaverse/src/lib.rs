@@ -1321,6 +1321,7 @@ impl modules_bridge::Config for Runtime {
 	type Event = Event;
 	type BridgeOrigin = EnsureRootOrTwoThirdsCouncilCollective;
 	type Currency = Balances;
+	type MultiCurrency = Currencies;
 	type NFTHandler = Nft;
 	type NativeCurrencyId = GetNativeCurrencyId;
 	type PalletId = BridgeSovereignPalletId;
