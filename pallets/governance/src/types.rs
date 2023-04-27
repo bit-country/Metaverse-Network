@@ -112,12 +112,12 @@ impl<
 
 #[derive(Encode, Decode, Clone, RuntimeDebug, PartialEq, Eq, TypeInfo)]
 pub struct ReferendumParameters<BlockNumber> {
-	pub(crate) voting_threshold: Option<VoteThreshold>,
-	pub(crate) min_proposal_launch_period: BlockNumber, // number of blocks
-	pub(crate) voting_period: BlockNumber,              // number of blocks
-	pub(crate) enactment_period: BlockNumber,           // number of blocks
-	pub(crate) local_vote_locking_period: BlockNumber,  // number of blocks
-	pub(crate) max_proposals_per_metaverse: u8,
+	pub voting_threshold: Option<VoteThreshold>,
+	pub min_proposal_launch_period: BlockNumber, // number of blocks
+	pub voting_period: BlockNumber,              // number of blocks
+	pub enactment_period: BlockNumber,           // number of blocks
+	pub local_vote_locking_period: BlockNumber,  // number of blocks
+	pub max_proposals_per_metaverse: u8,
 }
 
 impl<BlockNumber: From<u32>> Default for ReferendumParameters<BlockNumber> {
@@ -233,9 +233,9 @@ impl Bounded for Conviction {
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct Vote<Balance> {
-	pub(crate) aye: bool,
-	pub(crate) balance: Balance,
-	pub(crate) conviction: Conviction,
+	pub aye: bool,
+	pub balance: Balance,
+	pub conviction: Conviction,
 }
 
 impl<Balance: Saturating> Vote<Balance> {
@@ -252,9 +252,9 @@ impl<Balance: Saturating> Vote<Balance> {
 /// Tally Struct
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct Tally<Balance> {
-	pub(crate) ayes: Balance,
-	pub(crate) nays: Balance,
-	pub(crate) turnout: Balance,
+	pub ayes: Balance,
+	pub nays: Balance,
+	pub turnout: Balance,
 }
 impl<Balance: From<u8> + Zero + Copy + CheckedAdd + CheckedSub + CheckedMul + CheckedDiv + Bounded + Saturating>
 	Tally<Balance>
@@ -322,10 +322,11 @@ impl<Balance: Saturating + Ord + Zero + Copy, BlockNumber: Ord + Copy + Zero> Vo
 }
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct ProposalInfo<AccountId, BlockNumber, Hash> {
-	pub(crate) proposed_by: AccountId,
-	pub(crate) hash: Hash,
-	pub(crate) title: Vec<u8>,
-	pub(crate) referendum_launch_block: BlockNumber,
+	pub proposed_by: AccountId,
+	pub proposal_type: ProposalType,
+	pub hash: Hash,
+	pub title: Vec<u8>,
+	pub referendum_launch_block: BlockNumber,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -337,6 +338,7 @@ pub struct ReferendumStatus<BlockNumber, Balance, Hash> {
 	pub(crate) title: Vec<u8>,
 	pub(crate) threshold: VoteThreshold,
 	pub(crate) proposal_hash: Hash,
+	pub(crate) proposal_type: ProposalType,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
@@ -347,4 +349,10 @@ pub enum ReferendumInfo<BlockNumber, Balance, Hash> {
 		passed: bool,
 		end: BlockNumber,
 	},
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo, Copy)]
+pub enum ProposalType {
+	Onchain,
+	Offchain,
 }

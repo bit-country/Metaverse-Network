@@ -1,9 +1,11 @@
 #![cfg(test)]
 
-use super::*;
 use frame_support::sp_runtime::DispatchError::BadOrigin;
 use frame_support::{assert_err, assert_noop, assert_ok};
+
 use mock::{Event, *};
+
+use super::*;
 
 // Update country referendum parameters tests
 #[test]
@@ -66,7 +68,8 @@ fn create_new_proposal_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_eq!(
 			last_event(),
@@ -93,7 +96,8 @@ fn create_local_metaverse_proposal_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_eq!(
 			last_event(),
@@ -119,7 +123,8 @@ fn create_new_proposal_when_not_enough_funds_does_not_work() {
 				BOB_COUNTRY_ID,
 				600,
 				hash.clone(),
-				PROPOSAL_DESCRIPTION.to_vec()
+				PROPOSAL_DESCRIPTION.to_vec(),
+				ProposalType::Onchain
 			),
 			Error::<Runtime>::InsufficientBalance
 		);
@@ -138,7 +143,8 @@ fn create_new_proposal_with_out_of_scope_preimage_does_not_work() {
 				BOB_COUNTRY_ID,
 				600,
 				hash.clone(),
-				PROPOSAL_DESCRIPTION.to_vec()
+				PROPOSAL_DESCRIPTION.to_vec(),
+				ProposalType::Onchain
 			),
 			Error::<Runtime>::PreimageInvalid
 		);
@@ -161,7 +167,8 @@ fn create_new_proposal_when_too_small_deposit_does_not_work() {
 				BOB_COUNTRY_ID,
 				40,
 				hash.clone(),
-				PROPOSAL_DESCRIPTION.to_vec()
+				PROPOSAL_DESCRIPTION.to_vec(),
+				ProposalType::Onchain
 			),
 			Error::<Runtime>::DepositTooLow
 		);
@@ -179,7 +186,8 @@ fn create_new_proposal_when_not_country_member_does_not_work() {
 				ALICE_COUNTRY_ID,
 				400,
 				hash.clone(),
-				PROPOSAL_DESCRIPTION.to_vec()
+				PROPOSAL_DESCRIPTION.to_vec(),
+				ProposalType::Onchain
 			),
 			Error::<Runtime>::AccountIsNotMetaverseMember
 		);
@@ -211,7 +219,8 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 				BOB_COUNTRY_ID,
 				400,
 				hash.clone(),
-				PROPOSAL_DESCRIPTION.to_vec()
+				PROPOSAL_DESCRIPTION.to_vec(),
+				ProposalType::Onchain
 			),
 			Error::<Runtime>::ProposalQueueFull
 		);
@@ -304,14 +313,16 @@ fn fast_track_proposal_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_ok!(GovernanceModule::propose(
 			origin.clone(),
 			BOB_COUNTRY_ID,
 			600,
 			hash2.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_ok!(GovernanceModule::fast_track_proposal(
 			Origin::signed(ALICE),
@@ -338,14 +349,16 @@ fn fast_track_proposal_when_not_country_owner_does_not_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_ok!(GovernanceModule::propose(
 			origin.clone(),
 			BOB_COUNTRY_ID,
 			600,
 			hash2.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_noop!(
 			GovernanceModule::fast_track_proposal(Origin::signed(BOB), 1, BOB_COUNTRY_ID),
@@ -366,7 +379,8 @@ fn vote_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(2);
 		assert_ok!(GovernanceModule::try_vote(
@@ -394,7 +408,8 @@ fn vote_when_not_country_member_does_not_work() {
 			ALICE_COUNTRY_ID,
 			100,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(16);
 		assert_noop!(
@@ -415,7 +430,8 @@ fn vote_more_than_once_does_not_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
@@ -443,7 +459,8 @@ fn remove_vote_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
@@ -472,7 +489,8 @@ fn remove_vote_when_you_have_not_voted_does_not_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(16);
 		assert_noop!(
@@ -493,7 +511,8 @@ fn emergency_cancel_referendum_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(18);
 		assert_ok!(GovernanceModule::emergency_cancel_referendum(
@@ -529,7 +548,8 @@ fn emergency_cancel_referendum_when_not_having_privileges_does_not_work() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(17);
 		assert_noop!(
@@ -551,7 +571,8 @@ fn referendum_proposal_passes() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
@@ -585,7 +606,8 @@ fn referendum_proposal_is_rejected() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
@@ -620,7 +642,8 @@ fn referendum_proposal_is_enacted() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_ok!(GovernanceModule::enact_proposal(
 			root.clone(),
@@ -669,7 +692,8 @@ fn unlocking_balance_after_removing_vote_works() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
@@ -701,7 +725,8 @@ fn unlocking_balance_after_referendum_is_over_works() {
 			BOB_COUNTRY_ID,
 			600,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
@@ -736,14 +761,16 @@ fn second_proposal_work() {
 			BOB_COUNTRY_ID,
 			500,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_ok!(GovernanceModule::propose(
 			origin.clone(),
 			BOB_COUNTRY_ID,
 			500,
 			hash2.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_ok!(GovernanceModule::second(seconder.clone(), 1, 1));
 		assert_eq!(last_event(), Event::Governance(crate::Event::Seconded(BOB, 1)));
@@ -768,14 +795,16 @@ fn second_proposal_does_not_work() {
 			BOB_COUNTRY_ID,
 			500,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_ok!(GovernanceModule::propose(
 			origin.clone(),
 			BOB_COUNTRY_ID,
 			500,
 			hash2.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_noop!(
 			GovernanceModule::second(seconder.clone(), 1, 0),
@@ -800,14 +829,16 @@ fn get_next_proposal_work() {
 			BOB_COUNTRY_ID,
 			500,
 			hash.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_ok!(GovernanceModule::propose(
 			origin.clone(),
 			BOB_COUNTRY_ID,
 			300,
 			hash2.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_eq!(GovernanceModule::deposit_of(1), Some((vec![1], 300)));
 		assert_ok!(GovernanceModule::propose(
@@ -815,7 +846,8 @@ fn get_next_proposal_work() {
 			BOB_COUNTRY_ID,
 			400,
 			hash3.clone(),
-			PROPOSAL_DESCRIPTION.to_vec()
+			PROPOSAL_DESCRIPTION.to_vec(),
+			ProposalType::Onchain
 		));
 		assert_eq!(GovernanceModule::deposit_of(2), Some((vec![1], 400)));
 		assert_ok!(GovernanceModule::second(seconder.clone(), 1, 1));

@@ -6804,6 +6804,7 @@ dependencies = [
  "bit-country-primitives",
  "core-primitives",
  "currencies",
+ "frame-benchmarking",
  "frame-executive",
  "frame-support",
  "frame-system",
