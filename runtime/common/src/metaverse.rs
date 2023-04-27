@@ -32,7 +32,7 @@ pub enum Action {
 }
 
 //Alias for the Balance type for the provided Runtime and Instance.
-//pub type BalanceOf<Runtime> = <<Runtime as metaverse::Config>::Currency as Trait>::Balance;
+//pub type BalanceOf<Runtime> = <<Runtime as metaverse_pallet::Config>::Currency as Trait>::Balance;
 
 /// The `Metaverse` impl precompile.
 ///
@@ -51,10 +51,10 @@ pub struct MetaversePrecompile<Runtime>(PhantomData<Runtime>);
 
 impl<Runtime> Precompile for MetaversePrecompile<Runtime>
 where
-	Runtime: metaverse::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
+	Runtime: metaverse_pallet::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
 	Runtime: Erc20Mapping,
 	U256: From<
-		<<Runtime as metaverse::Config>::Currency as frame_support::traits::Currency<
+		<<Runtime as metaverse_pallet::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
@@ -95,9 +95,9 @@ where
 
 impl<Runtime> MetaversePrecompile<Runtime>
 where
-	Runtime: metaverse::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
+	Runtime: metaverse_pallet::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
 	U256: From<
-		<<Runtime as metaverse::Config>::Currency as frame_support::traits::Currency<
+		<<Runtime as metaverse_pallet::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
 		>>::Balance,
 	>,
@@ -114,7 +114,7 @@ where
 			let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
 
 			// Fetch info
-			let metaverse_info_result = <metaverse::Pallet<Runtime>>::get_metaverse(metaverse_id);
+			let metaverse_info_result = <metaverse_pallet::Pallet<Runtime>>::get_metaverse(metaverse_id);
 
 			match metaverse_info_result {
 				Some(metaverse_info) => {
@@ -151,7 +151,7 @@ where
 		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
 
 		// Fetch info
-		let metaverse_info_result = <metaverse::Pallet<Runtime>>::get_metaverse(metaverse_id);
+		let metaverse_info_result = <metaverse_pallet::Pallet<Runtime>>::get_metaverse(metaverse_id);
 
 		match metaverse_info_result {
 			Some(metaverse_info) => {
@@ -176,10 +176,10 @@ where
 		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
 
 		let metaverse_treasury =
-			<Runtime as metaverse::Config>::MetaverseTreasury::get().into_sub_account_truncating(metaverse_id);
+			<Runtime as metaverse_pallet::Config>::MetaverseTreasury::get().into_sub_account_truncating(metaverse_id);
 
 		// Fetch info
-		let balance = <Runtime as metaverse::Config>::Currency::free_balance(&metaverse_treasury);
+		let balance = <Runtime as metaverse_pallet::Config>::Currency::free_balance(&metaverse_treasury);
 
 		log::debug!(target: "evm", "metaverse: {:?} fund balance: {:?}", metaverse_id, balance);
 
@@ -202,7 +202,7 @@ where
 
 		log::debug!(target: "evm", "create metaverse for: {:?}", who);
 
-		<metaverse::Pallet<Runtime>>::create_metaverse(RawOrigin::Signed(who).into(), metaverse_metadata).map_err(
+		<metaverse_pallet::Pallet<Runtime>>::create_metaverse(RawOrigin::Signed(who).into(), metaverse_metadata).map_err(
 			|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -228,7 +228,7 @@ where
 
 		log::debug!(target: "evm", "withdraw funds from {:?} treasury", metaverse_id);
 
-		<metaverse::Pallet<Runtime>>::withdraw_from_metaverse_fund(RawOrigin::Signed(who).into(), metaverse_id)
+		<metaverse_pallet::Pallet<Runtime>>::withdraw_from_metaverse_fund(RawOrigin::Signed(who).into(), metaverse_id)
 			.map_err(|e| PrecompileFailure::Revert {
 				exit_status: ExitRevert::Reverted,
 				output: Into::<&str>::into(e).as_bytes().to_vec(),
@@ -255,7 +255,7 @@ where
 
 			log::debug!(target: "evm", "meatverse: transfer from: {:?}, to: {:?}, amount: {:?}", origin, to, amount);
 
-			<metaverse::Pallet<Runtime> as MetaverseTrait<Runtime::AccountId>>::transfer(
+			<metaverse_pallet::Pallet<Runtime> as MetaverseTrait<Runtime::AccountId>>::transfer(
 				metaverse_id,
 				&origin,
 				&to,
