@@ -90,12 +90,13 @@ use core_primitives::{NftAssetData, NftClassData};
 // External imports
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
+use evm_mapping::EvmAddressMapping;
 use metaverse_runtime_common::precompiles::MetaverseNetworkPrecompiles;
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
-	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN,
+	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN, H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
 
 // primitives imports
@@ -588,6 +589,7 @@ parameter_types! {
 impl orml_nft::Config for Runtime {
 	type ClassId = ClassId;
 	type TokenId = NftId;
+	type Currency = Balances;
 	type ClassData = NftClassData<Balance>;
 	type TokenData = NftAssetData<Balance>;
 	type MaxClassMetadata = MaxClassMetadata;
@@ -1187,6 +1189,18 @@ impl Erc20Mapping for Runtime {
 		EvmAddress::try_from(t).ok()
 	}
 
+	fn encode_nft_evm_address(t: (ClassId, TokenId)) -> Option<EvmAddress> {
+		let mut address = [2u8; 20];
+		let mut asset_bytes: Vec<u8> = t.0.to_be_bytes().to_vec();
+		asset_bytes.append(&mut t.1.to_be_bytes().to_vec());
+
+		for byte_index in 0..asset_bytes.len() {
+			address[byte_index + H160_POSITION_TOKEN_NFT.start] = asset_bytes.as_slice()[byte_index];
+		}
+
+		Some(EvmAddress::from_slice(&address))
+	}
+
 	fn decode_evm_address(addr: EvmAddress) -> Option<FungibleTokenId> {
 		let address = addr.as_bytes();
 		let currency_id = match CurrencyIdType::try_from(address[H160_POSITION_CURRENCY_ID_TYPE]).ok()? {
@@ -1206,6 +1220,32 @@ impl Erc20Mapping for Runtime {
 
 		// Encode again to ensure encoded address is matched
 		Self::encode_evm_address(currency_id?).and_then(|encoded| if encoded == addr { currency_id } else { None })
+	}
+
+	fn decode_nft_evm_address(addr: EvmAddress) -> Option<(ClassId, TokenId)> {
+		let address = addr.as_bytes();
+
+		let mut class_id_bytes = [2u8; 4];
+		let mut token_id_bytes = [2u8; 8];
+		for byte_index in H160_POSITION_TOKEN_NFT {
+			if byte_index < H160_POSITION_TOKEN_NFT_CLASS_ID_END {
+				class_id_bytes[byte_index - H160_POSITION_TOKEN_NFT.start] = address[byte_index];
+			} else {
+				token_id_bytes[byte_index - H160_POSITION_TOKEN_NFT_CLASS_ID_END] = address[byte_index];
+			}
+		}
+
+		let class_id = u32::from_be_bytes(class_id_bytes);
+		let token_id = u64::from_be_bytes(token_id_bytes);
+
+		// Encode again to ensure encoded address is matched
+		Self::encode_nft_evm_address((class_id, token_id)).and_then(|encoded| {
+			if encoded == addr {
+				Some((class_id, token_id))
+			} else {
+				None
+			}
+		})
 	}
 }
 
@@ -1287,6 +1327,7 @@ parameter_types! {
 	pub const MinimumRewardPool: Balance = 100 * DOLLARS;
 	pub const MinimumCampaignCoolingOffPeriod: BlockNumber = 2; //  4 * 30 * 7200 Around 4 months in blocktime
 	pub const MinimumCampaignDuration: BlockNumber = 1; // 7 * 7200 Around a week in blocktime
+	pub const MaxLeafNodes: u64 = 30;
 	pub const MaxSetRewardsListLength: u64 = 500;
 }
 
@@ -1303,6 +1344,7 @@ impl reward::Config for Runtime {
 	type MaxSetRewardsListLength = MaxSetRewardsListLength;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
+	type MaxLeafNodes = MaxLeafNodes;
 	type WeightInfo = ();
 }
 
@@ -1310,6 +1352,24 @@ impl asset_manager::Config for Runtime {
 	type Event = Event;
 	type Currency = Balances;
 	type RegisterOrigin = EnsureRootOrHalfCouncilCollective;
+}
+
+pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
+
+impl orml_currencies::Config for Runtime {
+	type MultiCurrency = Tokens;
+	type NativeCurrency = AdaptedBasicCurrency;
+	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type WeightInfo = ();
+}
+
+impl evm_mapping::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type AddressMapping = EvmAddressMapping<Runtime>;
+	type ChainId = ChainId;
+	type TransferAll = OrmlCurrencies;
+	type WeightInfo = weights::module_evm_mapping::WeightInfo<Runtime>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1338,6 +1398,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
 		Preimage: pallet_preimage::{Pallet, Call, Storage, Event<T>},
+		OrmlCurrencies: orml_currencies::{Pallet, Call},
 
 		// Metaverse & Related
 		OrmlNFT: orml_nft::{Pallet, Storage},
@@ -1367,6 +1428,7 @@ construct_runtime!(
 		EVM: pallet_evm::{Pallet, Call, Storage, Config, Event<T>},
 		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
+		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
 
 		// ink! Smart Contracts.
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
@@ -1380,6 +1442,7 @@ construct_runtime!(
 
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>}
+
 		// Bridge
 //		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
 //		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
@@ -1840,6 +1903,7 @@ impl_runtime_apis! {
 			use mining::benchmarking::MiningModule as MiningBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
+			use evm_mapping::benchmarking::EvmMappingModule as EvmMappingBench;
 
 			let mut list = Vec::<BenchmarkList>::new();
 
@@ -1852,6 +1916,7 @@ impl_runtime_apis! {
 			list_benchmark!(list, extra, pallet_utility, Utility);
 			list_benchmark!(list, extra, currencies, CurrenciesBench::<Runtime>);
 			list_benchmark!(list, extra, emergency, EmergencyBench::<Runtime>);
+			list_benchmark!(list, extra, evm_mapping, EvmMappingBench::<Runtime>);
 			orml_list_benchmark!(list, extra, auction, benchmarking::auction);
 			orml_list_benchmark!(list, extra, continuum, benchmarking::continuum);
 			orml_list_benchmark!(list, extra, economy, benchmarking::economy);
@@ -1878,6 +1943,7 @@ impl_runtime_apis! {
 			use crowdloan::benchmarking::CrowdloanModule as CrowdloanBench;
 			use currencies::benchmarking::CurrencyModule as CurrenciesBench;
 			use emergency::benchmarking::EmergencyModule as EmergencyBench;
+			use evm_mapping::benchmarking::EvmMappingModule as EvmMappingBench;
 
 			let whitelist: Vec<TrackedStorageKey> = vec![
 				// Block Number
@@ -1904,6 +1970,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, pallet_utility, Utility);
 			add_benchmark!(params, batches, currencies, CurrenciesBench::<Runtime>);
 			add_benchmark!(params, batches, emergency, EmergencyBench::<Runtime>);
+			add_benchmark!(params, batches, evm_mapping, EvmMappingBench::<Runtime>);
 			orml_add_benchmark!(params, batches, auction, benchmarking::auction);
 			orml_add_benchmark!(params, batches, continuum, benchmarking::continuum);
 			orml_add_benchmark!(params, batches, economy, benchmarking::economy);

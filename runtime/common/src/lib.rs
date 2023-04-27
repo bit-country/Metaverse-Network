@@ -36,8 +36,14 @@ use primitives::BuyWeightRate;
 
 pub mod currencies;
 pub mod metaverse;
+pub mod nft;
 pub mod precompiles;
 
+#[cfg(test)]
+mod mock;
+
+#[cfg(test)]
+mod tests;
 /// Simple fee calculator that requires payment in a single fungible at a fixed rate.
 ///
 /// - The `FixedRate` constant should be the concrete fungible ID and the amount of it

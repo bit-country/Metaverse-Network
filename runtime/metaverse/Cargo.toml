@@ -34,6 +34,7 @@ pallet-timestamp = { default-features = false, git = "https://github.com/parityt
 pallet-transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 frame-executive = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 sp-api = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 sp-block-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
 sp-consensus-aura = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26" }
@@ -98,6 +99,7 @@ emergency = { package = "pallet-emergency", path = "../../pallets/emergency", ve
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 metaverse-runtime-common = { path = "../common", default-features = false }
 asset-manager = { path = "../../pallets/asset-manager", default-features = false }
+evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", default-features = false }
 
 # ink! contracts pacakges
 pallet-contracts = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.26" }
@@ -164,6 +166,7 @@ std = [
     "crowdloan/std",
     "economy/std",
     "emergency/std",
+    "evm-mapping/std",
     "pallet-utility/std",
     "pallet-collator-selection/std",
     "orml-benchmarking/std",
@@ -198,6 +201,7 @@ runtime-benchmarks = [
     "reward/runtime-benchmarks",
     "economy/runtime-benchmarks",
     "mining/runtime-benchmarks",
+    "evm-mapping/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
     "pallet-ethereum/runtime-benchmarks"
 ]
