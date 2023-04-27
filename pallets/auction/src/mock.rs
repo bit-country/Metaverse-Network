@@ -153,7 +153,7 @@ impl Estate<u128> for EstateHandler {
 		}
 	}
 
-	fn get_total_land_units() -> u64 {
+	fn get_total_land_units(estate_id: Option<EstateId>) -> u64 {
 		100
 	}
 

@@ -27,6 +27,7 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
+use sp_runtime::traits::Zero;
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, One, Saturating},
 	ArithmeticError, DispatchError,
@@ -2209,8 +2210,17 @@ impl<T: Config> Estate<T::AccountId> for Pallet<T> {
 		return Ok(true);
 	}
 
-	fn get_total_land_units() -> u64 {
-		AllLandUnitsCount::<T>::get()
+	fn get_total_land_units(estate_id: Option<EstateId>) -> u64 {
+		match estate_id {
+			Some(id) => {
+				if let Some(estate_info) = Estates::<T>::get(id) {
+					estate_info.land_units.len() as u64
+				} else {
+					0
+				}
+			}
+			None => AllLandUnitsCount::<T>::get(),
+		}
 	}
 
 	fn get_total_undeploy_land_units() -> u64 {

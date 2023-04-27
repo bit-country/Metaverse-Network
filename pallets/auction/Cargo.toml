@@ -35,7 +35,7 @@ pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/parityt
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 # orml packages
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26-1", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 pallet-nft = { default-features = false, package = 'pallet-nft', path = '../nft' }

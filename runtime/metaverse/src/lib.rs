@@ -176,7 +176,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 80,
+	spec_version: 92,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -358,6 +358,7 @@ parameter_types! {
 	pub const BitMiningTreasury: PalletId = PalletId(*b"bit/ming");
 	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
 	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
+	pub const BridgeSovereignPalletId: PalletId = PalletId(*b"bit/brgd");
 	pub const MaxAuthorities: u32 = 50;
 }
 
@@ -629,7 +630,7 @@ parameter_types! {
 	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
 	pub const MaxLeasePeriod: u32 = 1000000;
 	pub const LeaseOfferExpiryPeriod: u32 = 10000;
-
+	pub const MaximumEstateStake: Balance = 1000 * DOLLARS;
 }
 
 impl estate::Config for Runtime {
@@ -867,12 +868,12 @@ impl pallet_scheduler::Config for Runtime {
 }
 
 parameter_types! {
-	pub const LaunchPeriod: BlockNumber = 30 * MINUTES;
-	pub const VotingPeriod: BlockNumber = 15 * MINUTES;
+	pub const LaunchPeriod: BlockNumber = 1 * DAYS;
+	pub const VotingPeriod: BlockNumber = 3 * DAYS;
 	pub const FastTrackVotingPeriod: BlockNumber = 15 * MINUTES;
 	pub const InstantAllowed: bool = true;
 	pub const MinimumDeposit: Balance = 1000 * DOLLARS;
-	pub const EnactmentPeriod: BlockNumber = 15 * MINUTES;
+	pub const EnactmentPeriod: BlockNumber = 6 * HOURS;
 	pub const CooloffPeriod: BlockNumber = 1 * HOURS;
 	pub const PreimageByteDeposit: Balance = 1 * CENTS;
 	pub const MaxVotes: u32 = 50;
@@ -1067,6 +1068,7 @@ impl economy::Config for Runtime {
 	type RoundHandler = Mining;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
+	type MaximumEstateStake = MaximumEstateStake;
 }
 
 impl emergency::Config for Runtime {
@@ -1345,7 +1347,7 @@ impl reward::Config for Runtime {
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
 	type MaxLeafNodes = MaxLeafNodes;
-	type WeightInfo = ();
+	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 
 impl asset_manager::Config for Runtime {
@@ -1370,6 +1372,16 @@ impl evm_mapping::Config for Runtime {
 	type ChainId = ChainId;
 	type TransferAll = OrmlCurrencies;
 	type WeightInfo = weights::module_evm_mapping::WeightInfo<Runtime>;
+}
+
+impl modules_bridge::Config for Runtime {
+	type Event = Event;
+	type BridgeOrigin = EnsureRootOrTwoThirdsCouncilCollective;
+	type Currency = Balances;
+	type MultiCurrency = Currencies;
+	type NFTHandler = Nft;
+	type NativeCurrencyId = GetNativeCurrencyId;
+	type PalletId = BridgeSovereignPalletId;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -1441,11 +1453,10 @@ construct_runtime!(
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
 
 		// Proxy
-		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>}
+		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>},
 
 		// Bridge
-//		ChainBridge: chainbridge::{Pallet, Call, Storage, Event<T>},
-//		BridgeTransfer: modules_chainsafe::{Pallet, Call, Event<T>, Storage}
+		BridgeSupport: modules_bridge::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

@@ -5093,7 +5093,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-node"
-version = "0.0.4"
+version = "0.0.15"
 dependencies = [
  "async-trait",
  "bit-country-primitives",
@@ -5222,6 +5222,7 @@ dependencies = [
  "getrandom 0.2.7",
  "hex-literal",
  "metaverse-runtime-common",
+ "modules-bridge",
  "orml-benchmarking",
  "orml-currencies",
  "orml-nft",
@@ -5401,6 +5402,34 @@ dependencies = [
  "sp-runtime",
  "sp-std",
  "xcm",
+]
+
+[[package]]
+name = "modules-bridge"
+version = "0.0.1"
+dependencies = [
+ "auction-manager",
+ "bit-country-primitives",
+ "blake2-rfc",
+ "core-primitives",
+ "currencies",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "hex-literal",
+ "orml-nft",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-balances",
+ "pallet-nft",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
 ]
 
 [[package]]
@@ -5908,8 +5937,8 @@ dependencies = [
 
 [[package]]
 name = "orml-nft"
-version = "0.4.1-dev"
-source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26#320cf2defa32d55aeffb85093dae968de27a5cef"
+version = "0.4.2-dev"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.26-1#4741c1ac12219928e76ab31e3b3ed6a544d6fa93"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -7176,6 +7205,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "hex-literal",
  "orml-currencies",
  "orml-nft",
  "orml-tokens",
@@ -7834,6 +7864,7 @@ dependencies = [
  "pallet-preimage",
  "pallet-proxy",
  "pallet-randomness-collective-flip",
+ "pallet-reward",
  "pallet-scheduler",
  "pallet-session",
  "pallet-sudo",
@@ -12906,7 +12937,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",

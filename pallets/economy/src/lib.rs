@@ -58,7 +58,7 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::staking::RoundInfo;
+	use primitives::staking::{Bond, RoundInfo};
 	use primitives::{ClassId, GroupCollectionId, NftId};
 
 	use super::*;
@@ -109,6 +109,10 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
 
+		/// The maximum estate staked per land unit
+		#[pallet::constant]
+		type MaximumEstateStake: Get<BalanceOf<Self>>;
+
 		/// The Power Amount per block
 		#[pallet::constant]
 		type PowerAmountPerBlock: Get<PowerAmount>;
@@ -140,7 +144,8 @@ pub mod pallet {
 	/// Estate-staking info
 	#[pallet::storage]
 	#[pallet::getter(fn get_estate_staking_info)]
-	pub type EstateStakingInfo<T: Config> = StorageMap<_, Twox64Concat, EstateId, BalanceOf<T>, ValueQuery>;
+	pub type EstateStakingInfo<T: Config> =
+		StorageMap<_, Twox64Concat, EstateId, Bond<T::AccountId, BalanceOf<T>>, OptionQuery>;
 
 	/// Self-staking exit queue info
 	/// This will keep track of stake exits queue, unstake only allows after 1 round
@@ -148,6 +153,21 @@ pub mod pallet {
 	#[pallet::getter(fn staking_exit_queue)]
 	pub type ExitQueue<T: Config> =
 		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, RoundIndex, BalanceOf<T>, OptionQuery>;
+
+	/// Estate self-staking exit estate queue info
+	/// This will keep track of staked estate exits queue, unstake only allows after 1 round
+	#[pallet::storage]
+	#[pallet::getter(fn estate_staking_exit_queue)]
+	pub type EstateExitQueue<T: Config> = StorageNMap<
+		_,
+		(
+			NMapKey<Blake2_128Concat, T::AccountId>,
+			NMapKey<Blake2_128Concat, RoundIndex>,
+			NMapKey<Blake2_128Concat, EstateId>,
+		),
+		BalanceOf<T>,
+		OptionQuery,
+	>;
 
 	/// Total native token locked in this pallet
 	#[pallet::storage]
@@ -220,6 +240,18 @@ pub mod pallet {
 		StakerNotEstateOwner,
 		/// Staking estate does not exist
 		StakeEstateDoesNotExist,
+		/// Stake is not previous owner
+		StakerNotPreviousOwner,
+		/// No funds staked at estate
+		NoFundsStakedAtEstate,
+		/// Previous owner still stakes at estate
+		PreviousOwnerStillStakesAtEstate,
+		/// Has scheduled exit estate staking, only stake after queue exit
+		EstateExitQueueAlreadyScheduled,
+		/// Estate exit queue does not exist
+		EstateExitQueueDoesNotExit,
+		/// Stake amount exceed estate max amount
+		StakeAmountExceedMaximumAmount,
 	}
 
 	#[pallet::call]
@@ -298,14 +330,14 @@ pub mod pallet {
 			);
 
 			let current_round = T::RoundHandler::get_current_round_info();
-			// Check if user already in exit queue
-			ensure!(
-				!ExitQueue::<T>::contains_key(&who, current_round.current),
-				Error::<T>::ExitQueueAlreadyScheduled
-			);
-
 			match estate {
 				None => {
+					// Check if user already in exit queue
+					ensure!(
+						!ExitQueue::<T>::contains_key(&who, current_round.current),
+						Error::<T>::ExitQueueAlreadyScheduled
+					);
+
 					let mut staked_balance = StakingInfo::<T>::get(&who);
 					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
@@ -318,10 +350,15 @@ pub mod pallet {
 					let new_total_staked = TotalStake::<T>::get().saturating_add(amount);
 					<TotalStake<T>>::put(new_total_staked);
 
-					let current_round = T::RoundHandler::get_current_round_info();
 					Self::deposit_event(Event::SelfStakedToEconomy101(who, amount));
 				}
 				Some(estate_id) => {
+					// Check if user already in exit queue
+					ensure!(
+						!EstateExitQueue::<T>::contains_key((&who, current_round.current, estate_id)),
+						Error::<T>::EstateExitQueueAlreadyScheduled
+					);
+
 					ensure!(
 						T::EstateHandler::check_estate(estate_id.clone())?,
 						Error::<T>::StakeEstateDoesNotExist
@@ -331,19 +368,43 @@ pub mod pallet {
 						Error::<T>::StakerNotEstateOwner
 					);
 
-					let mut staked_balance = EstateStakingInfo::<T>::get(&estate_id);
+					let mut staked_balance: BalanceOf<T> = Zero::zero();
+					let staking_bond_value = EstateStakingInfo::<T>::get(estate_id);
+					match staking_bond_value {
+						Some(staking_bond) => {
+							ensure!(
+								staking_bond.staker == who.clone(),
+								Error::<T>::PreviousOwnerStillStakesAtEstate
+							);
+							staked_balance = staking_bond.amount;
+						}
+						_ => {}
+					}
+
 					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
 
+					// Ensure stake amount less than maximum
+					let total_land_units = T::EstateHandler::get_total_land_units(Some(estate_id));
+					ensure!(total_land_units > 0, Error::<T>::StakeEstateDoesNotExist);
+
+					let stake_allowance = T::MaximumEstateStake::get()
+						.saturating_mul(TryInto::<BalanceOf<T>>::try_into(total_land_units).unwrap_or_default());
+					ensure!(total <= stake_allowance, Error::<T>::StakeAmountExceedMaximumAmount);
+
 					T::Currency::reserve(&who, amount)?;
 
-					EstateStakingInfo::<T>::insert(&estate_id, total);
+					let new_staking_bond = Bond {
+						staker: who.clone(),
+						amount: total,
+					};
+
+					EstateStakingInfo::<T>::insert(&estate_id, new_staking_bond);
 
 					let new_total_staked = TotalEstateStake::<T>::get().saturating_add(amount);
 					<TotalEstateStake<T>>::put(new_total_staked);
 
-					let current_round = T::RoundHandler::get_current_round_info();
 					Self::deposit_event(Event::EstateStakedToEconomy101(who, estate_id, amount));
 				}
 			}
@@ -421,12 +482,16 @@ pub mod pallet {
 						T::EstateHandler::check_estate(estate_id.clone())?,
 						Error::<T>::StakeEstateDoesNotExist
 					);
-					ensure!(
-						T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
-						Error::<T>::StakerNotEstateOwner
-					);
 
-					let mut staked_balance = EstateStakingInfo::<T>::get(estate_id);
+					let mut staked_balance = Zero::zero();
+					let staking_bond_value = EstateStakingInfo::<T>::get(estate_id);
+					match staking_bond_value {
+						Some(staking_bond) => {
+							ensure!(staking_bond.staker == who.clone(), Error::<T>::NoFundsStakedAtEstate);
+							staked_balance = staking_bond.amount;
+						}
+						_ => {}
+					}
 					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
 					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
@@ -441,15 +506,25 @@ pub mod pallet {
 					let current_round = T::RoundHandler::get_current_round_info();
 					let next_round = current_round.current.saturating_add(One::one());
 
-					// This exit queue will be executed by exit_staking extrinsics to unreserved token
-					ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
+					// Check if user already in estate exit queue of the current estate
+					ensure!(
+						!EstateExitQueue::<T>::contains_key((&who, next_round, estate_id)),
+						Error::<T>::ExitQueueAlreadyScheduled
+					);
 
-					// Update staking info of user immediately
-					// Remove staking info
+					// This estate exit queue will be executed by exit_staking extrinsics to unreserved token
+					EstateExitQueue::<T>::insert((&who, next_round.clone(), estate_id), amount_to_unstake);
+
+					// Update estate staking info of user immediately
+					// Remove estate staking info
 					if amount_to_unstake == staked_balance {
 						EstateStakingInfo::<T>::remove(&estate_id);
 					} else {
-						EstateStakingInfo::<T>::insert(&estate_id, remaining);
+						let new_staking_bond = Bond {
+							staker: who.clone(),
+							amount: remaining,
+						};
+						EstateStakingInfo::<T>::insert(&estate_id, new_staking_bond);
 					}
 
 					let new_total_staked = TotalEstateStake::<T>::get().saturating_sub(amount_to_unstake);
@@ -460,6 +535,58 @@ pub mod pallet {
 			}
 
 			Ok(().into())
+		}
+
+		/// Unstake native token (staked by previous owner) from staking ledger.
+		///
+		/// The dispatch origin for this call must be _Signed_. Works if the origin is the estate
+		/// owner and the previous owner got staked funds
+		///
+		/// `estate_id`: the estate ID which funds are going to be unstaked
+		///
+		/// Emit `EstateStakingRemovedFromEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::unstake_new_estate_owner())]
+		pub fn unstake_new_estate_owner(origin: OriginFor<T>, estate_id: EstateId) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			ensure!(
+				T::EstateHandler::check_estate(estate_id.clone())?,
+				Error::<T>::StakeEstateDoesNotExist
+			);
+
+			ensure!(
+				T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
+				Error::<T>::StakerNotEstateOwner
+			);
+
+			let staking_bond_value = EstateStakingInfo::<T>::get(estate_id);
+			match staking_bond_value {
+				Some(staking_info) => {
+					ensure!(
+						staking_info.staker.clone() != who.clone(),
+						Error::<T>::StakerNotPreviousOwner
+					);
+					let staked_balance = staking_info.amount;
+
+					let current_round = T::RoundHandler::get_current_round_info();
+					let next_round = current_round.current.saturating_add(One::one());
+
+					// This exit queue will be executed by exit_staking extrinsics to unreserved token
+					EstateExitQueue::<T>::insert((&staking_info.staker, next_round.clone(), estate_id), staked_balance);
+					EstateStakingInfo::<T>::remove(&estate_id);
+
+					let new_total_staked = TotalEstateStake::<T>::get().saturating_sub(staked_balance);
+					<TotalEstateStake<T>>::put(new_total_staked);
+
+					Self::deposit_event(Event::EstateStakingRemovedFromEconomy101(
+						who,
+						estate_id,
+						staked_balance,
+					));
+					Ok(().into())
+				}
+				None => Err(Error::<T>::StakeEstateDoesNotExist.into()),
+			}
 		}
 
 		/// Withdraw unstaked token from unstaking queue. The unstaked amount will be unreserved and
@@ -478,6 +605,35 @@ pub mod pallet {
 			let exit_balance = ExitQueue::<T>::get(&who, round_index).ok_or(Error::<T>::ExitQueueDoesNotExit)?;
 
 			ExitQueue::<T>::remove(&who, round_index);
+			T::Currency::unreserve(&who, exit_balance);
+
+			Self::deposit_event(Event::<T>::UnstakedAmountWithdrew(who, exit_balance));
+
+			Ok(().into())
+		}
+
+		/// Withdraw unstaked token from estate unstaking queue. The unstaked amount will be
+		/// unreserved and become transferrable
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `round_index`: the round index that user can redeem.
+		/// `estate_id`: the estate id that user can redeem.
+		///
+		/// Emit `UnstakedAmountWithdrew` event if successful
+		#[pallet::weight(T::WeightInfo::withdraw_unreserved())]
+		pub fn withdraw_estate_unreserved(
+			origin: OriginFor<T>,
+			round_index: RoundIndex,
+			estate_id: EstateId,
+		) -> DispatchResultWithPostInfo {
+			let who = ensure_signed(origin)?;
+
+			// Get user exit queue
+			let exit_balance = EstateExitQueue::<T>::get((&who, round_index, estate_id))
+				.ok_or(Error::<T>::EstateExitQueueDoesNotExit)?;
+
+			EstateExitQueue::<T>::remove((&who, round_index, estate_id));
 			T::Currency::unreserve(&who, exit_balance);
 
 			Self::deposit_event(Event::<T>::UnstakedAmountWithdrew(who, exit_balance));
@@ -549,11 +705,15 @@ pub mod pallet {
 						T::EstateHandler::check_estate(estate_id.clone())?,
 						Error::<T>::StakeEstateDoesNotExist
 					);
-					ensure!(
-						T::EstateHandler::check_estate_ownership(who.clone(), estate_id.clone())?,
-						Error::<T>::StakerNotEstateOwner
-					);
-					let mut staked_balance = EstateStakingInfo::<T>::get(estate_id);
+					let mut staked_balance: BalanceOf<T> = Zero::zero();
+					let staking_bond_value = EstateStakingInfo::<T>::get(estate_id);
+					match staking_bond_value {
+						Some(staking_bond) => {
+							ensure!(staking_bond.staker == who.clone(), Error::<T>::NoFundsStakedAtEstate);
+							staked_balance = staking_bond.amount;
+						}
+						_ => {}
+					}
 					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
 					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
@@ -570,11 +730,15 @@ pub mod pallet {
 					if amount_to_unstake == staked_balance {
 						EstateStakingInfo::<T>::remove(&estate_id);
 					} else {
-						EstateStakingInfo::<T>::insert(&estate_id, remaining);
+						let new_staking_bond = Bond {
+							staker: who.clone(),
+							amount: remaining,
+						};
+						EstateStakingInfo::<T>::insert(&estate_id, new_staking_bond);
 					}
 
 					let new_total_staked = TotalStake::<T>::get().saturating_sub(amount_to_unstake);
-					<TotalStake<T>>::put(new_total_staked);
+					<TotalEstateStake<T>>::put(new_total_staked);
 
 					T::Currency::unreserve(&who, amount_to_unstake);
 

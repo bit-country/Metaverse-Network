@@ -28,29 +28,24 @@
 
 use core::result;
 
-use codec::{Decode, Encode};
+use codec::Encode;
 use frame_support::traits::Len;
 use frame_support::{
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
-	traits::{
-		schedule::{DispatchTime, Named as ScheduleNamed},
-		Currency, ExistenceRequirement, Get, LockIdentifier, ReservableCurrency,
-	},
+	traits::{Currency, ExistenceRequirement, Get, LockIdentifier, ReservableCurrency},
 	transactional, PalletId,
 };
 use frame_system::pallet_prelude::*;
 use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
 use sp_runtime::traits::Saturating;
+use sp_runtime::Perbill;
 use sp_runtime::{
-	traits::{AccountIdConversion, Dispatchable, One, Zero},
+	traits::{AccountIdConversion, One},
 	DispatchError,
 };
-use sp_runtime::{Perbill, RuntimeDebug};
 use sp_std::vec::Vec;
 use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 
@@ -85,7 +80,7 @@ pub mod pallet {
 	use sp_runtime::ArithmeticError;
 
 	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
-	use primitives::{ClassId, FungibleTokenId, ItemId};
+	use primitives::FungibleTokenId;
 
 	use super::*;
 
@@ -298,6 +293,8 @@ pub mod pallet {
 		ClassFundsWithdrawn(ClassIdOf<T>),
 		/// NFT is unlocked
 		NftUnlocked(ClassIdOf<T>, TokenIdOf<T>),
+		/// Successfully updated royalty fee
+		ClassRoyaltyFeeUpdated(ClassIdOf<T>, Perbill),
 	}
 
 	#[pallet::error]
@@ -368,6 +365,7 @@ pub mod pallet {
 		InvalidStackableNftTransfer,
 		/// Invalid stackable NFT amount
 		InvalidStackableNftAmount,
+		/// Invalid current total issuance
 		/// Invalid current total issuance
 		InvalidCurrentTotalIssuance,
 	}
@@ -888,6 +886,36 @@ pub mod pallet {
 				Ok(())
 			})
 		}
+
+		/// Force update royalty fee of a given class
+		///
+		/// The dispatch origin for this call must be _Root_.
+		/// - `class_id`: the class ID of the collection
+		/// - `new_royalty_fee: the new royalty fee of the collection
+		///
+		/// Emits `ClassRoyaltyFeeUpdated` if successful.
+		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
+		pub fn force_update_royalty_fee(
+			origin: OriginFor<T>,
+			class_id: ClassIdOf<T>,
+			new_royalty_fee: Perbill,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+
+			ensure!(
+				new_royalty_fee <= Perbill::from_percent(25u32),
+				Error::<T>::RoyaltyFeeExceedLimit
+			);
+			// update class total issuance
+			Classes::<T>::try_mutate(class_id.clone(), |class_info| -> DispatchResult {
+				let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+
+				info.data.royalty_fee = new_royalty_fee;
+				Self::deposit_event(Event::<T>::ClassRoyaltyFeeUpdated(class_id, new_royalty_fee));
+
+				Ok(())
+			})
+		}
 	}
 
 	#[pallet::hooks]
@@ -1402,5 +1430,44 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<T::AccountId, DispatchError> {
 		let asset_info = NftModule::<T>::tokens(asset_id.0, asset_id.1).ok_or(Error::<T>::AssetInfoNotFound)?;
 		Ok(asset_info.owner)
+	}
+
+	fn mint_token_with_id(
+		sender: &T::AccountId,
+		class_id: Self::ClassId,
+		token_id: Self::TokenId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<Self::TokenId, DispatchError> {
+		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
+
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
+
+		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
+		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+
+		let new_nft_data = NftAssetData {
+			deposit,
+			attributes: attributes,
+			is_locked: false,
+		};
+
+		let minted_token_id =
+			NftModule::<T>::mint_with_token_id(&sender, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, minted_token_id.clone()),
+			(class_id, minted_token_id),
+			sender.clone(),
+			class_id,
+			1u32,
+			minted_token_id,
+		));
+
+		Ok(minted_token_id)
 	}
 }

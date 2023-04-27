@@ -62,8 +62,8 @@ pub struct MetaverseStakingSnapshot<Balance> {
 }
 
 const LOCK_STAKING: LockIdentifier = *b"stakelok";
-const ESTATE_CLASS_ROYALTY_FEE: u32 = 5;
-const LAND_CLASS_ROYALTY_FEE: u32 = 10;
+const ESTATE_CLASS_ROYALTY_FEE: u32 = 0;
+const LAND_CLASS_ROYALTY_FEE: u32 = 0;
 
 /// Storing the reward detail of metaverse that store the list of stakers for each metaverse
 /// This will be used to reward metaverse owner and the stakers.
