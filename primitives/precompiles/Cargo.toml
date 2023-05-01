@@ -45,4 +45,4 @@ std = [
 	"sp-io/std",
 	"sp-std/std",
 ]
-testing = [ "similar-asserts", "std" ]
+#testing = [ "similar-asserts", "std" ]

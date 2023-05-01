@@ -17,3 +17,6 @@ mod nft;
 
 #[cfg(feature = "with-pioneer-runtime")]
 mod estate;
+
+#[cfg(feature = "with-pioneer-runtime")]
+mod evm;

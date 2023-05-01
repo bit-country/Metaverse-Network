@@ -24,11 +24,15 @@ use scale_info::TypeInfo;
 use sp_core::{H160, U256};
 use sp_runtime::RuntimeDebug;
 use sp_std::prelude::*;
+use sp_std::vec::Vec;
 
-use crate::FungibleTokenId;
+use crate::{ClassId, FungibleTokenId, TokenId};
 
 /// Evm Address.
 pub type EvmAddress = sp_core::H160;
+
+// Nft Token
+//pub type NftToken = (ClassId, TokenId);
 
 /// H160 CurrencyId Type enum
 #[derive(
@@ -47,8 +51,12 @@ pub enum CurrencyIdType {
 pub trait Erc20Mapping {
 	/// Encode the FungibleTokenId to EvmAddress.
 	fn encode_evm_address(v: FungibleTokenId) -> Option<EvmAddress>;
+	/// Encode the NFT token to EvmAddress.
+	fn encode_nft_evm_address(v: (ClassId, TokenId)) -> Option<EvmAddress>;
 	/// Decode the FungibleTokenId from EvmAddress.
 	fn decode_evm_address(v: EvmAddress) -> Option<FungibleTokenId>;
+	/// Decode the NFT token from EvmAddress.
+	fn decode_nft_evm_address(v: EvmAddress) -> Option<(ClassId, TokenId)>;
 }
 
 #[rustfmt::skip]
@@ -70,7 +78,9 @@ pub trait Erc20Mapping {
 //pub const PIONEER_CHAIN_ID: u64 = 137;
 pub const H160_POSITION_CURRENCY_ID_TYPE: usize = 9;
 pub const H160_POSITION_TOKEN: usize = 19;
-pub const H160_POSITION_TOKEN_NFT: Range<usize> = 14..20;
+pub const H160_POSITION_TOKEN_NFT: Range<usize> = 7..19;
+pub const H160_POSITION_TOKEN_NFT_CLASS: Range<usize> = 7..11;
+pub const H160_POSITION_TOKEN_NFT_CLASS_ID_END: usize = 11;
 pub const H160_POSITION_FUNGIBLE_TOKEN: Range<usize> = 10..13;
 pub const H160_POSITION_MINING_RESOURCE: Range<usize> = 14..20;
 

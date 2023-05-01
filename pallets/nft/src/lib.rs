@@ -52,8 +52,8 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1};
-use primitives::{AssetId, ClassId, GroupCollectionId, ItemId, TokenId};
+use primitive_traits::{CollectionType, NftAssetData, NftAssetDataV1, NftClassDataV1};
+use primitives::{AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
