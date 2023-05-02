@@ -7,7 +7,7 @@ homepage = 'https://metaverse.network'
 license = 'Unlicense'
 name = 'metaverse-node'
 repository = 'https://github.com/bit-country/Metaverse-Network/'
-version = '0.0.4'
+version = '0.0.15'
 
 [package.metadata.docs.rs]
 targets = ['x86_64-unknown-linux-gnu']

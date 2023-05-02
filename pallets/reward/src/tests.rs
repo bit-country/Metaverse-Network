@@ -23,6 +23,7 @@ use sp_std::default::Default;
 
 use super::*;
 use core_primitives::Attributes;
+use hex_literal::hex;
 use mock::{Balance, Event, *};
 use primitives::{CampaignInfo, FungibleTokenId, Hash};
 
@@ -54,17 +55,65 @@ fn test_hash(value: u64) -> Hash {
 	Hash::from_low_u64_be(value)
 }
 
+fn test_js_root_hash() -> Hash {
+	let root_bytes_hash = hex!("b0885a06a169891b562c9ed1b43510422328d6975923d72b661e084e119dde80");
+	Hash::from_slice(&root_bytes_hash)
+}
+
+/*
+	Hash values generated using: https://github.com/OpenZeppelin/merkle-tree
+	Test Data:
+	2 (BOB) - 10;
+	3 (CHARLIE) - 25;
+	4 (DONNA) - 50;
+	5 (EVA) - 75;
+*/
+fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
+	match who {
+		BOB => {
+			let charlie_bytes_hash = hex!("d90b5864238131f03c065e80a5e0c04aadb2493984702ef3bb279dcd3cb8ac7d");
+			let branch_bytes_hash = hex!("addd535f444323fab87b3350449e85e8ca478541d55a3697caa567d06b45ec3a");
+			return vec![
+				Hash::from_slice(&charlie_bytes_hash),
+				Hash::from_slice(&branch_bytes_hash),
+			];
+		}
+		CHARLIE => {
+			let bob_bytes_hash = hex!("64b39d59f54b02b6d862584c58735a0d3ff7c8d1ee46250809f4c244ca13d5ca");
+			let branch_bytes_hash = hex!("addd535f444323fab87b3350449e85e8ca478541d55a3697caa567d06b45ec3a");
+			return vec![Hash::from_slice(&bob_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
+		}
+		DONNA => {
+			let eva_bytes_hash = hex!("7ecf6a4f9809680533d36217de280ae07964f4c65595308405e2c860bc52d4bf");
+			let branch_bytes_hash = hex!("8903505f09ba64010935c4ff9155d37f572578ffdf205dbfdf4381d41a9a83cd");
+			return vec![Hash::from_slice(&eva_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
+		}
+		EVA => {
+			let donna_bytes_hash = hex!("77ead2ce9a216ed6ac05f5d8a2c7d12373428794b33d56f65163073769976208");
+			let branch_bytes_hash = hex!("8903505f09ba64010935c4ff9155d37f572578ffdf205dbfdf4381d41a9a83cd");
+			return vec![
+				Hash::from_slice(&donna_bytes_hash),
+				Hash::from_slice(&branch_bytes_hash),
+			];
+		}
+		_ => {
+			vec![]
+		}
+	}
+}
+
 fn test_claim_hash(who: AccountId, balance: Balance) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
 	leaf.extend(balance.encode());
-	keccak_256(&leaf).into()
+
+	keccak_256(&keccak_256(&leaf)).into()
 }
 
 fn test_claim_nft_hash(who: AccountId, token: (ClassId, TokenId)) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
 	leaf.extend(token.0.encode());
 	leaf.extend(token.1.encode());
-	keccak_256(&leaf).into()
+	keccak_256(&keccak_256(&leaf)).into()
 }
 
 #[test]
@@ -2108,6 +2157,181 @@ fn remove_reward_origin_fails() {
 		assert_noop!(
 			Reward::remove_set_reward_origin(Origin::signed(ALICE), ALICE),
 			Error::<Runtime>::SetRewardOriginDoesNotExist
+		);
+	});
+}
+
+#[test]
+fn js_encoded_data_matches_blockchain_encoded_data() {
+	ExtBuilder::default().build().execute_with(|| {
+		let balance: Balance = 10;
+		let mut leaf: Vec<u8> = BOB.encode();
+		leaf.extend(balance.encode());
+
+		assert_eq!(
+			leaf,
+			vec![2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+		); // SCALE encoding for [2u128, 10u128]
+	});
+}
+
+#[test]
+fn js_generated_leafs_match_blockchain_generated_leafs() {
+	ExtBuilder::default().build().execute_with(|| {
+		let bob_hash = Hash::from_slice(&hex!(
+			"64b39d59f54b02b6d862584c58735a0d3ff7c8d1ee46250809f4c244ca13d5ca"
+		));
+		assert_eq!(test_claim_hash(BOB, 10), bob_hash);
+
+		let charlie_hash = Hash::from_slice(&hex!(
+			"d90b5864238131f03c065e80a5e0c04aadb2493984702ef3bb279dcd3cb8ac7d"
+		));
+		assert_eq!(test_claim_hash(CHARLIE, 25), charlie_hash);
+
+		let donna_hash = Hash::from_slice(&hex!(
+			"77ead2ce9a216ed6ac05f5d8a2c7d12373428794b33d56f65163073769976208"
+		));
+		assert_eq!(test_claim_hash(DONNA, 50), donna_hash);
+
+		let eva_hash = Hash::from_slice(&hex!(
+			"7ecf6a4f9809680533d36217de280ae07964f4c65595308405e2c860bc52d4bf"
+		));
+		assert_eq!(test_claim_hash(EVA, 75), eva_hash);
+	});
+}
+
+#[test]
+fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
+	ExtBuilder::default().build().execute_with(|| {
+		let campaign_id = 0;
+		assert_ok!(Reward::add_set_reward_origin(Origin::signed(ALICE), ALICE));
+
+		assert_ok!(Reward::create_campaign(
+			Origin::signed(ALICE),
+			ALICE,
+			160,
+			10,
+			10,
+			vec![1],
+			FungibleTokenId::NativeToken(0),
+		));
+
+		let campaign_info = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			cooling_off_duration: 10,
+			trie_index: 0,
+			end: 10,
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+		};
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
+		assert_ok!(Reward::set_reward_root(
+			Origin::signed(ALICE),
+			0,
+			160,
+			test_js_root_hash() // get root hash value from JS
+		));
+
+		run_to_block(17);
+
+		// 10 reward winner
+		assert_ok!(Reward::claim_reward_root(
+			Origin::signed(BOB),
+			0,
+			10,
+			test_js_leaf_hashes(BOB)
+		));
+		assert_eq!(Balances::free_balance(BOB), 20010);
+
+		let campaign_info_after_claim_10 = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 10),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_10));
+		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB]);
+
+		// 25 reward winner
+		assert_ok!(Reward::claim_reward_root(
+			Origin::signed(CHARLIE),
+			0,
+			25,
+			test_js_leaf_hashes(CHARLIE)
+		));
+		assert_eq!(Balances::free_balance(CHARLIE), 2025);
+
+		let campaign_info_after_claim_25 = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 35),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_25));
+		assert_eq!(CampaignClaimedAccounts::<Runtime>::get(campaign_id), vec![BOB, CHARLIE]);
+
+		// 50 reward winner
+		assert_ok!(Reward::claim_reward_root(
+			Origin::signed(DONNA),
+			0,
+			50,
+			test_js_leaf_hashes(DONNA)
+		));
+		assert_eq!(Balances::free_balance(DONNA), 100050);
+
+		let campaign_info_after_claim_50 = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 85),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_50));
+		assert_eq!(
+			CampaignClaimedAccounts::<Runtime>::get(campaign_id),
+			vec![BOB, CHARLIE, DONNA]
+		);
+
+		// 75 reward winner
+		assert_ok!(Reward::claim_reward_root(
+			Origin::signed(EVA),
+			0,
+			75,
+			test_js_leaf_hashes(EVA)
+		));
+		assert_eq!(Balances::free_balance(EVA), 1075);
+
+		let campaign_info_after_claim_75 = CampaignInfo {
+			creator: ALICE,
+			properties: vec![1],
+			reward: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			claimed: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 160),
+			end: 10,
+			cap: RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), 0),
+			cooling_off_duration: 10,
+			trie_index: 0,
+		};
+
+		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_after_claim_75));
+		assert_eq!(
+			CampaignClaimedAccounts::<Runtime>::get(campaign_id),
+			vec![BOB, CHARLIE, DONNA, EVA]
 		);
 	});
 }

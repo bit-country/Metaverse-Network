@@ -48,7 +48,7 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "releas
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
 orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26", default-features = false }
+orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.26-1", version = "0.4.2-dev", default-features = false }
 
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
@@ -59,6 +59,7 @@ currencies_pallet = { package = "currencies", path = "../../pallets/currencies",
 evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", version = "2.0.0-rc6", default-features = false }
 nft_pallet = { package = "pallet-nft", path = "../../pallets/nft", version = "2.0.0-rc6", default-features = false }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
+asset-manager = { path = "../../pallets/asset-manager", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.26", default-features = false }
@@ -94,6 +95,7 @@ std = [
     "precompile-utils/std",
     "currencies_pallet/std",
     "nft_pallet/std",
+    "asset-manager/std",
     "auction-manager/std",
     "evm-mapping/std",
     "xcm/std",

@@ -16,7 +16,7 @@ use sp_std::{
 	vec::Vec,
 };
 
-use primitives::{AssetId, AuctionId, ClassId, FungibleTokenId, ItemId, MetaverseId, TokenId};
+use primitives::{AuctionId, ClassId, FungibleTokenId, ItemId, MetaverseId, TokenId};
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, RuntimeDebug, TypeInfo)]
 pub enum Change<Value> {

@@ -1,6 +1,6 @@
 use sp_runtime::DispatchError;
 
-use crate::{MapSpotId, MetaverseId, SpotId};
+use crate::{MapSpotId, MetaverseId};
 
 pub trait MapTrait<AccountId> {
 	fn transfer_spot(
