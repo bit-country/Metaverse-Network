@@ -45,7 +45,7 @@ fn handles_non_supported_allowance() {
 			)
 			.expect_cost(0)
 			.expect_no_logs()
-			.execute_reverts(|output| output == b"not supported")
+			.execute_error(pallet_evm::ExitError::Other("not supported".into()))
 	});
 }
 
@@ -60,7 +60,7 @@ fn handles_non_supported_approve() {
 			)
 			.expect_cost(0)
 			.expect_no_logs()
-			.execute_reverts(|output| output == b"not supported")
+			.execute_error(pallet_evm::ExitError::Other("not supported".into()))
 	});
 }
 
@@ -75,7 +75,7 @@ fn handles_non_supported_transfer_from() {
 			)
 			.expect_cost(0)
 			.expect_no_logs()
-			.execute_reverts(|output| output == b"not supported")
+			.execute_error(pallet_evm::ExitError::Other("not supported".into()))
 	});
 }
 

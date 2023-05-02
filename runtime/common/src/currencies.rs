@@ -97,13 +97,13 @@ where
 					// Local and Foreign common
 					Action::TotalSupply => Self::total_supply(currency_id, handle),
 					Action::BalanceOf => Self::balance_of(currency_id, handle),
-					Action::Allowance => Self::total_supply(currency_id, handle),
+					Action::Allowance => Self::not_supported(currency_id, handle),
 					Action::Transfer => Self::transfer(currency_id, handle),
-					Action::Approve => Self::total_supply(currency_id, handle),
-					Action::TransferFrom => Self::total_supply(currency_id, handle),
-					Action::Name => Self::total_supply(currency_id, handle),
-					Action::Symbol => Self::total_supply(currency_id, handle),
-					Action::Decimals => Self::total_supply(currency_id, handle),
+					Action::Approve => Self::not_supported(currency_id, handle),
+					Action::TransferFrom => Self::not_supported(currency_id, handle),
+					Action::Name => Self::name(currency_id, handle),
+					Action::Symbol => Self::symbol(currency_id, handle),
+					Action::Decimals => Self::decimals(currency_id, handle),
 				}
 			};
 			return Some(result);
@@ -194,9 +194,8 @@ where
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
 	fn not_supported(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
-		Err(PrecompileFailure::Revert {
-			exit_status: ExitRevert::Reverted,
-			output: "not supported".as_bytes().to_vec(),
+		Err(PrecompileFailure::Error {
+			exit_status: pallet_evm::ExitError::Other("not supported".into()),
 		})
 	}
 
