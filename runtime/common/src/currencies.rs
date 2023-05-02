@@ -18,7 +18,7 @@ use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
-use primitives::{evm, Balance, FungibleTokenId, AssetIds, AssetMetadata};
+use primitives::{evm, AssetIds, AssetMetadata, Balance, FungibleTokenId};
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -58,7 +58,11 @@ impl<Runtime> Default for MultiCurrencyPrecompile<Runtime> {
 #[cfg(test)]
 impl<Runtime> PrecompileSet for MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config + asset_manager::Config,
+	Runtime: currencies_pallet::Config
+		+ pallet_evm::Config
+		+ frame_system::Config
+		+ evm_mapping::Config
+		+ asset_manager::Config,
 	Runtime: Erc20Mapping,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
@@ -117,7 +121,11 @@ where
 
 impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config + asset_manager::Config,
+	Runtime: currencies_pallet::Config
+		+ pallet_evm::Config
+		+ frame_system::Config
+		+ evm_mapping::Config
+		+ asset_manager::Config,
 	Runtime: Erc20Mapping,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
@@ -171,7 +179,11 @@ where
 
 impl<Runtime> MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config + asset_manager::Config,
+	Runtime: currencies_pallet::Config
+		+ pallet_evm::Config
+		+ frame_system::Config
+		+ evm_mapping::Config
+		+ asset_manager::Config,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 	U256: From<
@@ -195,8 +207,9 @@ where
 		let input = handle.read_input()?;
 		input.expect_arguments(0)?;
 
-		let asset_metadata_result = <asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
-		match asset_metadata_result{ 
+		let asset_metadata_result =
+			<asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
+		match asset_metadata_result {
 			Some(asset_metadata) => {
 				log::debug!(target: "evm", "multicurrency: name: {:?}", asset_metadata.name);
 
@@ -206,7 +219,7 @@ where
 			}
 			None => Err(PrecompileFailure::Error {
 				exit_status: pallet_evm::ExitError::Other("Non-existing asset.".into()),
-			})
+			}),
 		}
 	}
 
@@ -217,9 +230,10 @@ where
 		let input = handle.read_input()?;
 		input.expect_arguments(0)?;
 
-		let asset_metadata_result = <asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
+		let asset_metadata_result =
+			<asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
 
-		match asset_metadata_result{ 
+		match asset_metadata_result {
 			Some(asset_metadata) => {
 				log::debug!(target: "evm", "multicurrency: symbol: {:?}", asset_metadata.symbol);
 
@@ -229,7 +243,7 @@ where
 			}
 			None => Err(PrecompileFailure::Error {
 				exit_status: pallet_evm::ExitError::Other("Non-existing asset.".into()),
-			})
+			}),
 		}
 	}
 
@@ -240,9 +254,10 @@ where
 		let input = handle.read_input()?;
 		input.expect_arguments(0)?;
 
-		let asset_metadata_result = <asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
-		
-		match asset_metadata_result{ 
+		let asset_metadata_result =
+			<asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
+
+		match asset_metadata_result {
 			Some(asset_metadata) => {
 				log::debug!(target: "evm", "multicurrency: decimals: {:?}", asset_metadata.decimals);
 
@@ -252,9 +267,8 @@ where
 			}
 			None => Err(PrecompileFailure::Error {
 				exit_status: pallet_evm::ExitError::Other("Non-existing asset.".into()),
-			})
+			}),
 		}
-		
 	}
 
 	fn total_supply(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {

@@ -2,7 +2,7 @@ use frame_support::assert_noop;
 use hex_literal::hex;
 use sp_core::{ByteArray, H160, U256};
 
-use precompile_utils::data::{Address, EvmDataWriter};
+use precompile_utils::data::{Address, Bytes, EvmDataWriter};
 use precompile_utils::testing::*;
 use primitives::FungibleTokenId;
 
@@ -32,6 +32,105 @@ fn handles_invalid_currency_id() {
 			.expect_no_logs()
 			.execute_reverts(|output| output == b"invalid currency id")
 	});
+}
+
+#[test]
+fn handles_non_supported_allowance() {
+	ExtBuilder::default().build().execute_with(|| {
+		precompiles()
+			.prepare_test(
+				alice_evm_addr(),
+				neer_evm_address(),
+				EvmDataWriter::new_with_selector(Action::Allowance).build(),
+			)
+			.expect_cost(0)
+			.expect_no_logs()
+			.execute_reverts(|output| output == b"not supported")
+	});
+}
+
+#[test]
+fn handles_non_supported_approve() {
+	ExtBuilder::default().build().execute_with(|| {
+		precompiles()
+			.prepare_test(
+				alice_evm_addr(),
+				neer_evm_address(),
+				EvmDataWriter::new_with_selector(Action::Approve).build(),
+			)
+			.expect_cost(0)
+			.expect_no_logs()
+			.execute_reverts(|output| output == b"not supported")
+	});
+}
+
+#[test]
+fn handles_non_supported_transfer_from() {
+	ExtBuilder::default().build().execute_with(|| {
+		precompiles()
+			.prepare_test(
+				alice_evm_addr(),
+				neer_evm_address(),
+				EvmDataWriter::new_with_selector(Action::TransferFrom).build(),
+			)
+			.expect_cost(0)
+			.expect_no_logs()
+			.execute_reverts(|output| output == b"not supported")
+	});
+}
+
+#[test]
+fn name_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					neer_evm_address(),
+					EvmDataWriter::new_with_selector(Action::Name).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(Bytes::from("NEER".as_bytes())).build());
+		});
+}
+
+#[test]
+fn symbol_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					neer_evm_address(),
+					EvmDataWriter::new_with_selector(Action::Symbol).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(Bytes::from("NEER".as_bytes())).build());
+		});
+}
+
+#[test]
+fn decimals_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					neer_evm_address(),
+					EvmDataWriter::new_with_selector(Action::Decimals).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(18)).build());
+		});
 }
 
 #[test]
