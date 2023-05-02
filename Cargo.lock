@@ -5290,6 +5290,7 @@ dependencies = [
 name = "metaverse-runtime-common"
 version = "0.0.1"
 dependencies = [
+ "asset-manager",
  "auction-manager",
  "bit-country-primitives",
  "core-primitives",
