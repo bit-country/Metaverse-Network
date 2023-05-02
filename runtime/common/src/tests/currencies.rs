@@ -1,18 +1,18 @@
+use asset_manager::BalanceOf;
 use frame_support::assert_noop;
 use hex_literal::hex;
-use sp_core::{ByteArray, H160, U256};
+use sp_core::{H160, U256};
+use sp_runtime::traits::Zero;
+use sp_std::boxed::Box;
 
 use precompile_utils::data::{Address, Bytes, EvmDataWriter};
 use precompile_utils::testing::*;
-use primitives::FungibleTokenId;
+use primitives::{AssetMetadata, FungibleTokenId};
 
 use crate::currencies::Action;
 use crate::mock::*;
 use orml_traits::BasicCurrency;
 use orml_traits::MultiCurrency;
-//use pallet_evm::AddressMapping;
-use evm_mapping::AddressMapping;
-//use currencies_pallet::MultiSocialCurrency;
 
 fn precompiles() -> Precompiles<Runtime> {
 	PrecompilesValue::get()
@@ -85,6 +85,17 @@ fn name_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
+			let asset_metadata = AssetMetadata {
+				name: "NEER".as_bytes().to_vec(),
+				symbol: "NEER".as_bytes().to_vec(),
+				decimals: 18u8,
+				minimal_balance: Zero::zero(),
+			};
+			AssetManager::update_native_asset_metadata(
+				Origin::root(),
+				FungibleTokenId::NativeToken(0),
+				Box::new(asset_metadata),
+			);
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -103,6 +114,17 @@ fn symbol_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
+			let asset_metadata = AssetMetadata {
+				name: "NEER".as_bytes().to_vec(),
+				symbol: "NEER".as_bytes().to_vec(),
+				decimals: 18u8,
+				minimal_balance: Zero::zero(),
+			};
+			AssetManager::update_native_asset_metadata(
+				Origin::root(),
+				FungibleTokenId::NativeToken(0),
+				Box::new(asset_metadata),
+			);
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -121,6 +143,17 @@ fn decimals_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
+			let asset_metadata = AssetMetadata {
+				name: "NEER".as_bytes().to_vec(),
+				symbol: "NEER".as_bytes().to_vec(),
+				decimals: 18u8,
+				minimal_balance: Zero::zero(),
+			};
+			AssetManager::update_native_asset_metadata(
+				Origin::root(),
+				FungibleTokenId::NativeToken(0),
+				Box::new(asset_metadata),
+			);
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
