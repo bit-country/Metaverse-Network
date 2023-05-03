@@ -1470,4 +1470,14 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 
 		Ok(minted_token_id)
 	}
+	
+	fn get_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {
+		NftModule::<T>::get_stackable_collections_balances((asset_id.0, asset_id.1, who))
+	}
+
+	fn transfer_stackable_nft(sender: &T::AccountId, to: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId), amount: BalanceOf<T>) -> DispatchResult {
+		NftModule::<T>::transfer_stackable_nft(&sender, &to, *asset_id, amount);
+
+		Ok(())
+	}
 }
