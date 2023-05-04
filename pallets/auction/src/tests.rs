@@ -1265,6 +1265,56 @@ fn multicurrency_buy_now_with_bundle_should_work() {
 }
 
 #[test]
+// Buy now should work
+fn buy_now_stackable_nft_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let owner = Origin::signed(BOB);
+		let buyer = Origin::signed(ALICE);
+
+		init_test_stackable_nft(owner.clone());
+
+		// call create_auction
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			ItemId::StackableNFT(0, 0, 30u128),
+			None,
+			BOB,
+			200,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
+
+		//assert_eq!(AuctionModule::auctions(0), None);
+		// check account received asset
+		assert_eq!(NFTModule::<Runtime>::get_stackable_nft_balance(&ALICE, &(0, 0)), 30u128);
+		assert_eq!(NFTModule::<Runtime>::get_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
+
+		// check balances were transferred
+		assert_eq!(Balances::free_balance(ALICE), 99800);
+		// initial balance is 500 - sold 200 = 700
+		// royalty fee 1% for both sales is 4
+		// network fee 1% for both sales is 4
+		// 700 - 8 + 1 for deposit minting = 693
+		assert_eq!(Balances::free_balance(BOB), 693);
+
+		// event was triggered
+		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
+		assert_eq!(last_event(), event);
+
+		// check of auction item is still valid
+		assert_eq!(AuctionItems::<Runtime>::get(1), None);
+		// Check that auction is over
+		assert_noop!(
+			AuctionModule::buy_now(buyer.clone(), 1, 150),
+			Error::<Runtime>::AuctionDoesNotExist
+		);
+	});
+}
+
+#[test]
 // Private bid_auction should work
 fn buy_now_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
