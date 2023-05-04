@@ -1495,29 +1495,32 @@ pub mod pallet {
 						}
 						ItemId::StackableNFT(class_id, token_id, amount) => {
 							Self::collect_listing_fee(
-								&high_bid_price,
+								&value,
 								&auction_item.recipient,
 								auction_item.currency_id,
 								auction_item.listing_level.clone(),
-								auction_item.listing_fee,
-							);
+								auction_item.listing_fee.clone(),
+							)?;
 
 							Self::collect_royalty_fee(
-								&high_bid_price,
+								&value,
 								&auction_item.recipient,
 								&(class_id, token_id),
 								auction_item.currency_id,
-							);
+							)?;
 
 							//T::NFTHandler::set_lock_nft((class_id, token_id), false);
 							let asset_transfer = T::NFTHandler::transfer_stackable_nft(
 								&auction_item.recipient,
-								&high_bidder,
+								&from,
 								&(class_id, token_id),
 								amount,
 							);
-							if let Ok(_transferred) = asset_transfer {
-								Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+							match asset_transfer {
+								Err(_) => (),
+								Ok(_) => {
+									Self::deposit_event(Event::BuyNowFinalised(auction_id, from, value));
+								}
 							}
 						}
 						_ => {} // Future implementation for other items
