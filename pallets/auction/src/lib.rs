@@ -1080,6 +1080,58 @@ pub mod pallet {
 					<ItemsInAuction<T>>::insert(item_id, true);
 					Ok(auction_id)
 				}
+				ItemId::StackableNFT(class_id, token_id, amount) => {
+					// Check available balance
+					let available_balance = T::NFTHandler::get_stackable_nft_balance(&recipient, &(class_id, token_id));
+					ensure!(amount <= available_balance, Error::<T>::NoPermissionToCreateAuction);
+
+					// Ensure NFT authorised to sell
+					if let ListingLevel::Local(metaverse_id) = listing_level {
+						ensure!(
+							MetaverseCollection::<T>::contains_key(metaverse_id, class_id)
+								|| T::MetaverseInfoSource::check_ownership(&recipient, &metaverse_id)
+								|| T::MetaverseInfoSource::check_if_metaverse_estate(metaverse_id, &class_id)?,
+							Error::<T>::NoPermissionToCreateAuction
+						);
+					}
+
+					// Ensure auction end time below limit
+					ensure!(
+						Self::check_valid_finality(&end_time, One::one()),
+						Error::<T>::ExceedFinalityLimit
+					);
+
+					// Reserve network deposit fee
+					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
+
+					let auction_id = Self::new_auction(recipient.clone(), initial_amount, start_time, Some(end_time))?;
+
+					let new_auction_item = AuctionItem {
+						item_id: item_id.clone(),
+						recipient: recipient.clone(),
+						initial_amount: initial_amount,
+						amount: initial_amount,
+						start_time,
+						end_time,
+						auction_type,
+						listing_level: listing_level.clone(),
+						currency_id,
+						listing_fee,
+					};
+
+					<AuctionItems<T>>::insert(auction_id, new_auction_item);
+
+					Self::deposit_event(Event::NewAuctionItem(
+						auction_id,
+						recipient,
+						listing_level,
+						initial_amount,
+						initial_amount,
+						end_time,
+					));
+					<ItemsInAuction<T>>::insert(item_id, true);
+					Ok(auction_id)
+				}
 				_ => Err(Error::<T>::AuctionTypeIsNotSupported.into()),
 			}
 		}
@@ -1441,6 +1493,33 @@ pub mod pallet {
 								}
 							}
 						}
+						ItemId::StackableNFT(class_id, token_id, amount) => {
+							Self::collect_listing_fee(
+								&high_bid_price,
+								&auction_item.recipient,
+								auction_item.currency_id,
+								auction_item.listing_level.clone(),
+								auction_item.listing_fee,
+							);
+
+							Self::collect_royalty_fee(
+								&high_bid_price,
+								&auction_item.recipient,
+								&(class_id, token_id),
+								auction_item.currency_id,
+							);
+
+							//T::NFTHandler::set_lock_nft((class_id, token_id), false);
+							let asset_transfer = T::NFTHandler::transfer_stackable_nft(
+								&auction_item.recipient,
+								&high_bidder,
+								&(class_id, token_id),
+								amount,
+							);
+							if let Ok(_transferred) = asset_transfer {
+								Self::deposit_event(Event::AuctionFinalized(auction_id, high_bidder, high_bid_price));
+							}
+						}
 						_ => {} // Future implementation for other items
 					}
 				}
@@ -1599,6 +1678,37 @@ pub mod pallet {
 								);
 
 								if let Ok(_) = undeployed_land_block {
+									Self::deposit_event(Event::AuctionFinalized(
+										auction_id,
+										high_bidder,
+										high_bid_price,
+									));
+								}
+							}
+							ItemId::StackableNFT(class_id, token_id, amount) => {
+								Self::collect_listing_fee(
+									&high_bid_price,
+									&auction_item.recipient,
+									auction_item.currency_id,
+									auction_item.listing_level.clone(),
+									auction_item.listing_fee,
+								);
+
+								Self::collect_royalty_fee(
+									&high_bid_price,
+									&auction_item.recipient,
+									&(class_id, token_id),
+									auction_item.currency_id,
+								);
+
+								//T::NFTHandler::set_lock_nft((class_id, token_id), false);
+								let asset_transfer = T::NFTHandler::transfer_stackable_nft(
+									&auction_item.recipient,
+									&high_bidder,
+									&(class_id, token_id),
+									amount,
+								);
+								if let Ok(_transferred) = asset_transfer {
 									Self::deposit_event(Event::AuctionFinalized(
 										auction_id,
 										high_bidder,

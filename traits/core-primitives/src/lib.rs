@@ -297,7 +297,12 @@ pub trait NFTTrait<AccountId, Balance> {
 	/// Get stackable nft balance
 	fn get_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance;
 	/// transfer stackable nft
-	fn transfer_stackable_nft(sender: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId), amount: Balance) -> DispatchResult;
+	fn transfer_stackable_nft(
+		sender: &AccountId,
+		to: &AccountId,
+		nft: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult;
 }
 
 pub trait RoundTrait<BlockNumber> {
