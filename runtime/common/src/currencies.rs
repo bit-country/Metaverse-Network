@@ -18,7 +18,7 @@ use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
-use primitives::{evm, Balance, FungibleTokenId};
+use primitives::{evm, AssetIds, AssetMetadata, Balance, FungibleTokenId};
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -58,7 +58,11 @@ impl<Runtime> Default for MultiCurrencyPrecompile<Runtime> {
 #[cfg(test)]
 impl<Runtime> PrecompileSet for MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
+	Runtime: currencies_pallet::Config
+		+ pallet_evm::Config
+		+ frame_system::Config
+		+ evm_mapping::Config
+		+ asset_manager::Config,
 	Runtime: Erc20Mapping,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
@@ -93,13 +97,13 @@ where
 					// Local and Foreign common
 					Action::TotalSupply => Self::total_supply(currency_id, handle),
 					Action::BalanceOf => Self::balance_of(currency_id, handle),
-					Action::Allowance => Self::total_supply(currency_id, handle),
+					Action::Allowance => Self::not_supported(currency_id, handle),
 					Action::Transfer => Self::transfer(currency_id, handle),
-					Action::Approve => Self::total_supply(currency_id, handle),
-					Action::TransferFrom => Self::total_supply(currency_id, handle),
-					Action::Name => Self::total_supply(currency_id, handle),
-					Action::Symbol => Self::total_supply(currency_id, handle),
-					Action::Decimals => Self::total_supply(currency_id, handle),
+					Action::Approve => Self::not_supported(currency_id, handle),
+					Action::TransferFrom => Self::not_supported(currency_id, handle),
+					Action::Name => Self::name(currency_id, handle),
+					Action::Symbol => Self::symbol(currency_id, handle),
+					Action::Decimals => Self::decimals(currency_id, handle),
 				}
 			};
 			return Some(result);
@@ -117,7 +121,11 @@ where
 
 impl<Runtime> Precompile for MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
+	Runtime: currencies_pallet::Config
+		+ pallet_evm::Config
+		+ frame_system::Config
+		+ evm_mapping::Config
+		+ asset_manager::Config,
 	Runtime: Erc20Mapping,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
@@ -152,13 +160,13 @@ where
 					// Local and Foreign common
 					Action::TotalSupply => Self::total_supply(currency_id, handle),
 					Action::BalanceOf => Self::balance_of(currency_id, handle),
-					Action::Allowance => Self::total_supply(currency_id, handle),
+					Action::Allowance => Self::not_supported(currency_id, handle),
 					Action::Transfer => Self::transfer(currency_id, handle),
-					Action::Approve => Self::total_supply(currency_id, handle),
-					Action::TransferFrom => Self::total_supply(currency_id, handle),
-					Action::Name => Self::total_supply(currency_id, handle),
-					Action::Symbol => Self::total_supply(currency_id, handle),
-					Action::Decimals => Self::total_supply(currency_id, handle),
+					Action::Approve => Self::not_supported(currency_id, handle),
+					Action::TransferFrom => Self::not_supported(currency_id, handle),
+					Action::Name => Self::name(currency_id, handle),
+					Action::Symbol => Self::symbol(currency_id, handle),
+					Action::Decimals => Self::decimals(currency_id, handle),
 				}
 			};
 		}
@@ -171,7 +179,11 @@ where
 
 impl<Runtime> MultiCurrencyPrecompile<Runtime>
 where
-	Runtime: currencies_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
+	Runtime: currencies_pallet::Config
+		+ pallet_evm::Config
+		+ frame_system::Config
+		+ evm_mapping::Config
+		+ asset_manager::Config,
 	currencies_pallet::Pallet<Runtime>:
 		MultiCurrencyTrait<Runtime::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>,
 	U256: From<
@@ -181,6 +193,83 @@ where
 	>,
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
+	fn not_supported(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		Err(PrecompileFailure::Error {
+			exit_status: pallet_evm::ExitError::Other("not supported".into()),
+		})
+	}
+
+	fn name(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input
+		let input = handle.read_input()?;
+		input.expect_arguments(0)?;
+
+		let asset_metadata_result =
+			<asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
+		match asset_metadata_result {
+			Some(asset_metadata) => {
+				log::debug!(target: "evm", "multicurrency: name: {:?}", asset_metadata.name);
+
+				let encoded = Output::encode_bytes(asset_metadata.name.as_slice());
+				// Build output.
+				Ok(succeed(encoded))
+			}
+			None => Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::Other("Non-existing asset.".into()),
+			}),
+		}
+	}
+
+	fn symbol(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input
+		let input = handle.read_input()?;
+		input.expect_arguments(0)?;
+
+		let asset_metadata_result =
+			<asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
+
+		match asset_metadata_result {
+			Some(asset_metadata) => {
+				log::debug!(target: "evm", "multicurrency: symbol: {:?}", asset_metadata.symbol);
+
+				let encoded = Output::encode_bytes(asset_metadata.symbol.as_slice());
+				// Build output.
+				Ok(succeed(encoded))
+			}
+			None => Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::Other("Non-existing asset.".into()),
+			}),
+		}
+	}
+
+	fn decimals(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
+
+		// Parse input
+		let input = handle.read_input()?;
+		input.expect_arguments(0)?;
+
+		let asset_metadata_result =
+			<asset_manager::Pallet<Runtime>>::asset_metadatas(AssetIds::NativeAssetId(currency_id));
+
+		match asset_metadata_result {
+			Some(asset_metadata) => {
+				log::debug!(target: "evm", "multicurrency: decimals: {:?}", asset_metadata.decimals);
+
+				let encoded = Output::encode_uint(asset_metadata.decimals.into());
+				// Build output.
+				Ok(succeed(encoded))
+			}
+			None => Err(PrecompileFailure::Error {
+				exit_status: pallet_evm::ExitError::Other("Non-existing asset.".into()),
+			}),
+		}
+	}
+
 	fn total_supply(currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 

@@ -284,6 +284,12 @@ impl Erc20Mapping for Runtime {
 	}
 }
 
+impl asset_manager::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type RegisterOrigin = EnsureRoot<AccountId>;
+}
+
 // NFT - related
 pub struct MockAuctionManager;
 
@@ -441,6 +447,7 @@ construct_runtime!(
 
 		Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>},
 		Nft: nft_pallet::{Pallet, Storage, Call, Event<T>},
+		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
