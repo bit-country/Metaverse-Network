@@ -233,6 +233,12 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, ClassId, (), OptionQuery>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn reserved_stackable_nft_balances)]
+	/// Reserved stackable nft balance
+	pub(super) type ReservedStackableNftBalance<T: Config> =
+		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, (ClassId, TokenId), BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn nft_offers)]
 	/// Index NFT offers by token and oferror
 	pub(super) type Offers<T: Config> = StorageDoubleMap<
@@ -868,10 +874,10 @@ pub mod pallet {
 				Error::<T>::ListingPriceIsBelowMinimum
 			);
 
-			ensure!(
-				Self::items_in_auction(item_id.clone()) == None,
-				Error::<T>::ItemAlreadyInAuction
-			);
+			//ensure!(
+			//	Self::items_in_auction(item_id.clone()) == None,
+			//	Error::<T>::ItemAlreadyInAuction
+			//);
 
 			let start_time = <system::Pallet<T>>::block_number();
 
@@ -882,6 +888,10 @@ pub mod pallet {
 
 			match item_id.clone() {
 				ItemId::NFT(class_id, token_id) => {
+					ensure!(
+						Self::items_in_auction(item_id.clone()) == None,
+						Error::<T>::ItemAlreadyInAuction
+					);
 					// Check ownership
 					let is_owner = T::NFTHandler::check_ownership(&recipient, &(class_id, token_id))?;
 					ensure!(is_owner, Error::<T>::NoPermissionToCreateAuction);
@@ -939,6 +949,10 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Spot(_spot_id, _metaverse_id) => {
+					ensure!(
+						Self::items_in_auction(item_id.clone()) == None,
+						Error::<T>::ItemAlreadyInAuction
+					);
 					// Ensure auction end time below limit
 					ensure!(
 						Self::check_valid_finality(&end_time, One::one()),
@@ -977,6 +991,10 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::Bundle(tokens) => {
+					ensure!(
+						Self::items_in_auction(item_id.clone()) == None,
+						Error::<T>::ItemAlreadyInAuction
+					);
 					ensure!(
 						(tokens.len() as u32) < T::MaxBundleItem::get(),
 						Error::<T>::ExceedBundleLimit
@@ -1037,6 +1055,10 @@ pub mod pallet {
 					Ok(auction_id)
 				}
 				ItemId::UndeployedLandBlock(undeployed_land_block_id) => {
+					ensure!(
+						Self::items_in_auction(item_id.clone()) == None,
+						Error::<T>::ItemAlreadyInAuction
+					);
 					// Ensure the undeployed land block exist and can be used in auction
 					ensure!(
 						T::EstateHandler::check_undeployed_land_block(&recipient, undeployed_land_block_id)?,
@@ -1083,7 +1105,12 @@ pub mod pallet {
 				ItemId::StackableNFT(class_id, token_id, amount) => {
 					// Check available balance
 					let available_balance = T::NFTHandler::get_stackable_nft_balance(&recipient, &(class_id, token_id));
-					ensure!(amount <= available_balance, Error::<T>::NoPermissionToCreateAuction);
+					let reserved_balance =
+						Self::reserved_stackable_nft_balances(recipient.clone(), (class_id, token_id));
+					ensure!(
+						amount + reserved_balance <= available_balance,
+						Error::<T>::NoPermissionToCreateAuction
+					);
 
 					// Ensure NFT authorised to sell
 					if let ListingLevel::Local(metaverse_id) = listing_level {
@@ -1099,6 +1126,12 @@ pub mod pallet {
 					ensure!(
 						Self::check_valid_finality(&end_time, One::one()),
 						Error::<T>::ExceedFinalityLimit
+					);
+
+					ReservedStackableNftBalance::<T>::insert(
+						recipient.clone(),
+						(class_id, token_id),
+						reserved_balance.saturating_add(amount),
 					);
 
 					// Reserve network deposit fee
@@ -1509,7 +1542,16 @@ pub mod pallet {
 								auction_item.currency_id,
 							)?;
 
-							//T::NFTHandler::set_lock_nft((class_id, token_id), false);
+							let reserved_balance = Self::reserved_stackable_nft_balances(
+								auction_item.recipient.clone(),
+								(class_id, token_id),
+							);
+							ReservedStackableNftBalance::<T>::insert(
+								auction_item.recipient.clone(),
+								(class_id, token_id),
+								reserved_balance.saturating_sub(amount),
+							);
+
 							let asset_transfer = T::NFTHandler::transfer_stackable_nft(
 								&auction_item.recipient,
 								&from,
@@ -1704,7 +1746,17 @@ pub mod pallet {
 									auction_item.currency_id,
 								);
 
-								//T::NFTHandler::set_lock_nft((class_id, token_id), false);
+								// Unreserve stackable nft balance
+								let reserved_balance = Self::reserved_stackable_nft_balances(
+									auction_item.recipient.clone(),
+									(class_id, token_id),
+								);
+								ReservedStackableNftBalance::<T>::insert(
+									auction_item.recipient.clone(),
+									(class_id, token_id),
+									reserved_balance.saturating_sub(amount),
+								);
+
 								let asset_transfer = T::NFTHandler::transfer_stackable_nft(
 									&auction_item.recipient,
 									&high_bidder,

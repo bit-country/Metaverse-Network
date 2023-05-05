@@ -240,6 +240,7 @@ fn create_new_stackable_nft_auction_work() {
 			Some(true)
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99996);
+		assert_eq!(AuctionModule::reserved_stackable_nft_balances(ALICE, (0, 0)), 50u128);
 	});
 }
 
@@ -370,7 +371,7 @@ fn create_new_multicurrency_buy_now_bundle_work() {
 
 #[test]
 // Creating auction should work
-fn create_new_buy_stackable_nft_work() {
+fn create_new_stackable_nft_buy_now_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = Origin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
@@ -401,6 +402,7 @@ fn create_new_buy_stackable_nft_work() {
 			Some(true)
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99996);
+		assert_eq!(AuctionModule::reserved_stackable_nft_balances(ALICE, (0, 0)), 30u128);
 	});
 }
 
@@ -635,6 +637,62 @@ fn create_new_auction_stackable_nft_fails() {
 			AuctionModule::create_auction(
 				AuctionType::BuyNow,
 				ItemId::StackableNFT(0, 0, 120u128),
+				None,
+				ALICE,
+				100,
+				0,
+				ListingLevel::Global,
+				Perbill::from_percent(0u32),
+				FungibleTokenId::MiningResource(0)
+			),
+			Error::<Runtime>::NoPermissionToCreateAuction
+		);
+
+		// call create_auction
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::Auction,
+			ItemId::StackableNFT(0, 0, 30u128),
+			None,
+			ALICE,
+			200,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_noop!(
+			AuctionModule::create_auction(
+				AuctionType::Auction,
+				ItemId::StackableNFT(0, 0, 71u128),
+				None,
+				ALICE,
+				100,
+				0,
+				ListingLevel::Global,
+				Perbill::from_percent(0u32),
+				FungibleTokenId::MiningResource(0)
+			),
+			Error::<Runtime>::NoPermissionToCreateAuction
+		);
+
+		// call create_auction
+		assert_ok!(AuctionModule::create_auction(
+			AuctionType::BuyNow,
+			ItemId::StackableNFT(0, 0, 30u128),
+			None,
+			ALICE,
+			200,
+			0,
+			ListingLevel::Global,
+			Perbill::from_percent(0u32),
+			FungibleTokenId::NativeToken(0)
+		));
+
+		assert_noop!(
+			AuctionModule::create_auction(
+				AuctionType::BuyNow,
+				ItemId::StackableNFT(0, 0, 71u128),
 				None,
 				ALICE,
 				100,
@@ -1299,6 +1357,8 @@ fn buy_now_stackable_nft_work() {
 		// network fee 1% for both sales is 4
 		// 700 - 8 + 1 for deposit minting = 693
 		assert_eq!(Balances::free_balance(BOB), 693);
+
+		assert_eq!(AuctionModule::reserved_stackable_nft_balances(BOB, (0, 0)), 0u128);
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));

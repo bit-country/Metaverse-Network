@@ -421,6 +421,19 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			}
 		}
 	}
+
+	fn get_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
+		0u64
+	}
+
+	fn transfer_stackable_nft(
+		sender: &AccountId,
+		to: &AccountId,
+		nft: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
 }
 
 parameter_types! {
