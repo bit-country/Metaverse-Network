@@ -241,6 +241,7 @@ fn create_new_stackable_nft_auction_work() {
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99996);
 		assert_eq!(AuctionModule::reserved_stackable_nft_balances(ALICE, (0, 0)), 50u128);
+		//assert_eq!(NftModule::is_transferable((0,0 )), false);
 	});
 }
 

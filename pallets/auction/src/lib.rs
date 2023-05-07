@@ -1108,7 +1108,7 @@ pub mod pallet {
 					let reserved_balance =
 						Self::reserved_stackable_nft_balances(recipient.clone(), (class_id, token_id));
 					ensure!(
-						amount + reserved_balance <= available_balance,
+						amount.saturating_add(reserved_balance) <= available_balance,
 						Error::<T>::NoPermissionToCreateAuction
 					);
 
