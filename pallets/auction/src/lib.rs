@@ -1104,11 +1104,12 @@ pub mod pallet {
 				}
 				ItemId::StackableNFT(class_id, token_id, amount) => {
 					// Check available balance
-					let available_balance = T::NFTHandler::get_stackable_nft_balance(&recipient, &(class_id, token_id));
-					let reserved_balance =
-						Self::reserved_stackable_nft_balances(recipient.clone(), (class_id, token_id));
+					//let available_balance = T::NFTHandler::get_stackable_nft_balance(&recipient, &(class_id,
+					// token_id)); let reserved_balance =
+					//	Self::reserved_stackable_nft_balances(recipient.clone(), (class_id, token_id));
 					ensure!(
-						amount.saturating_add(reserved_balance) <= available_balance,
+						//amount.checked_add(reserved_balance) <= available_balance,
+						T::NFTHandler::get_free_stackable_nft_balance(&recipient, &(class_id, token_id)) >= amount,
 						Error::<T>::NoPermissionToCreateAuction
 					);
 
@@ -1128,12 +1129,14 @@ pub mod pallet {
 						Error::<T>::ExceedFinalityLimit
 					);
 
+					T::NFTHandler::reserve_stackable_nft_balance(&recipient, &(class_id, token_id), amount);
+					/*
 					ReservedStackableNftBalance::<T>::insert(
 						recipient.clone(),
 						(class_id, token_id),
 						reserved_balance.saturating_add(amount),
 					);
-
+					*/
 					// Reserve network deposit fee
 					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
@@ -1542,14 +1545,10 @@ pub mod pallet {
 								auction_item.currency_id,
 							)?;
 
-							let reserved_balance = Self::reserved_stackable_nft_balances(
-								auction_item.recipient.clone(),
-								(class_id, token_id),
-							);
-							ReservedStackableNftBalance::<T>::insert(
-								auction_item.recipient.clone(),
-								(class_id, token_id),
-								reserved_balance.saturating_sub(amount),
+							T::NFTHandler::unreserve_stackable_nft_balance(
+								&auction_item.recipient,
+								&(class_id, token_id),
+								amount,
 							);
 
 							let asset_transfer = T::NFTHandler::transfer_stackable_nft(
@@ -1746,15 +1745,10 @@ pub mod pallet {
 									auction_item.currency_id,
 								);
 
-								// Unreserve stackable nft balance
-								let reserved_balance = Self::reserved_stackable_nft_balances(
-									auction_item.recipient.clone(),
-									(class_id, token_id),
-								);
-								ReservedStackableNftBalance::<T>::insert(
-									auction_item.recipient.clone(),
-									(class_id, token_id),
-									reserved_balance.saturating_sub(amount),
+								T::NFTHandler::unreserve_stackable_nft_balance(
+									&auction_item.recipient,
+									&(class_id, token_id),
+									amount,
 								);
 
 								let asset_transfer = T::NFTHandler::transfer_stackable_nft(

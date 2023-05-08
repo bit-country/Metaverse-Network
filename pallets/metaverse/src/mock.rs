@@ -279,8 +279,24 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 	}
 
-	fn get_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
-		0u64
+	fn get_free_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
+		1000
+	}
+
+	fn reserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn unreserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
 	}
 
 	fn transfer_stackable_nft(

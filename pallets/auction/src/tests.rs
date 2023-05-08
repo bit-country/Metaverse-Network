@@ -1348,8 +1348,8 @@ fn buy_now_stackable_nft_work() {
 
 		//assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::get_stackable_nft_balance(&ALICE, &(0, 0)), 30u128);
-		assert_eq!(NFTModule::<Runtime>::get_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
+		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 30u128);
+		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
 
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99800);

@@ -295,7 +295,19 @@ pub trait NFTTrait<AccountId, Balance> {
 	/// Get nft asset owner
 	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError>;
 	/// Get stackable nft balance
-	fn get_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance;
+	fn get_free_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance;
+	/// Reserve stackable nft balance
+	fn reserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult;
+	/// Unreserve stackable nft balance
+	fn unreserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult;
 	/// transfer stackable nft
 	fn transfer_stackable_nft(
 		sender: &AccountId,
