@@ -468,7 +468,9 @@ fn transfer_stackable_nft_should_fail() {
 			Error::<Runtime>::InvalidStackableNftTransfer
 		);
 
-		assert_ok!(Nft::transfer_stackable_nft(origin, BOB, (0, 0), 30u32.into()));
+		ReservedStackableNftBalance::<Runtime>::insert(ALICE, (0, 0), 0);
+
+		assert_ok!(Nft::transfer_stackable_nft(origin, BOB, (0, 0), 71u32.into()));
 	})
 }
 

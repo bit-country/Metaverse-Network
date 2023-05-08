@@ -215,6 +215,8 @@ fn create_new_stackable_nft_auction_work() {
 		let origin = Origin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
+		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 100u128);
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::StackableNFT(0, 0, 50u128),
@@ -240,8 +242,9 @@ fn create_new_stackable_nft_auction_work() {
 			Some(true)
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99996);
-		assert_eq!(AuctionModule::reserved_stackable_nft_balances(ALICE, (0, 0)), 50u128);
-		//assert_eq!(NftModule::is_transferable((0,0 )), false);
+		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 50u128);
+		let is_transferable = NFTModule::<Runtime>::is_transferable(&(0, 0));
+		assert_eq!(is_transferable, Ok(false));
 	});
 }
 
@@ -377,6 +380,8 @@ fn create_new_stackable_nft_buy_now_work() {
 		let origin = Origin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
+		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 100u128);
+
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
 			ItemId::StackableNFT(0, 0, 30u128),
@@ -403,7 +408,9 @@ fn create_new_stackable_nft_buy_now_work() {
 			Some(true)
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99996);
-		assert_eq!(AuctionModule::reserved_stackable_nft_balances(ALICE, (0, 0)), 30u128);
+		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 70u128);
+		let is_transferable = NFTModule::<Runtime>::is_transferable(&(0, 0));
+		assert_eq!(is_transferable, Ok(false));
 	});
 }
 
@@ -1332,6 +1339,8 @@ fn buy_now_stackable_nft_work() {
 
 		init_test_stackable_nft(owner.clone());
 
+		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)), 100u128);
+
 		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -1344,12 +1353,19 @@ fn buy_now_stackable_nft_work() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0)
 		));
+		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		//assert_eq!(AuctionModule::auctions(0), None);
 		// check account received asset
-		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 30u128);
-		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
+		assert_eq!(
+			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
+			30u128
+		);
+		assert_eq!(
+			NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)),
+			70u128
+		);
 
 		// check balances were transferred
 		assert_eq!(Balances::free_balance(ALICE), 99800);
@@ -1358,8 +1374,6 @@ fn buy_now_stackable_nft_work() {
 		// network fee 1% for both sales is 4
 		// 700 - 8 + 1 for deposit minting = 693
 		assert_eq!(Balances::free_balance(BOB), 693);
-
-		assert_eq!(AuctionModule::reserved_stackable_nft_balances(BOB, (0, 0)), 0u128);
 
 		// event was triggered
 		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
@@ -1372,6 +1386,8 @@ fn buy_now_stackable_nft_work() {
 			AuctionModule::buy_now(buyer.clone(), 1, 150),
 			Error::<Runtime>::AuctionDoesNotExist
 		);
+		let is_transferable = NFTModule::<Runtime>::is_transferable(&(0, 0));
+		assert_eq!(is_transferable, Ok(false));
 	});
 }
 

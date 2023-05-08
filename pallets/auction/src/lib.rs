@@ -233,12 +233,6 @@ pub mod pallet {
 		StorageDoubleMap<_, Twox64Concat, MetaverseId, Twox64Concat, ClassId, (), OptionQuery>;
 
 	#[pallet::storage]
-	#[pallet::getter(fn reserved_stackable_nft_balances)]
-	/// Reserved stackable nft balance
-	pub(super) type ReservedStackableNftBalance<T: Config> =
-		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, (ClassId, TokenId), BalanceOf<T>, ValueQuery>;
-
-	#[pallet::storage]
 	#[pallet::getter(fn nft_offers)]
 	/// Index NFT offers by token and oferror
 	pub(super) type Offers<T: Config> = StorageDoubleMap<
