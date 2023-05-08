@@ -215,7 +215,10 @@ fn create_new_stackable_nft_auction_work() {
 		let origin = Origin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 100u128);
+		assert_eq!(
+			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
+			100u128
+		);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -242,7 +245,10 @@ fn create_new_stackable_nft_auction_work() {
 			Some(true)
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99996);
-		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 50u128);
+		assert_eq!(
+			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
+			50u128
+		);
 		let is_transferable = NFTModule::<Runtime>::is_transferable(&(0, 0));
 		assert_eq!(is_transferable, Ok(false));
 	});
@@ -380,7 +386,10 @@ fn create_new_stackable_nft_buy_now_work() {
 		let origin = Origin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 100u128);
+		assert_eq!(
+			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
+			100u128
+		);
 
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
@@ -408,7 +417,10 @@ fn create_new_stackable_nft_buy_now_work() {
 			Some(true)
 		);
 		assert_eq!(Balances::free_balance(ALICE), 99996);
-		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)), 70u128);
+		assert_eq!(
+			NFTModule::<Runtime>::get_free_stackable_nft_balance(&ALICE, &(0, 0)),
+			70u128
+		);
 		let is_transferable = NFTModule::<Runtime>::is_transferable(&(0, 0));
 		assert_eq!(is_transferable, Ok(false));
 	});
@@ -1339,7 +1351,10 @@ fn buy_now_stackable_nft_work() {
 
 		init_test_stackable_nft(owner.clone());
 
-		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)), 100u128);
+		assert_eq!(
+			NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)),
+			100u128
+		);
 
 		// call create_auction
 		assert_ok!(AuctionModule::create_auction(
@@ -1353,7 +1368,10 @@ fn buy_now_stackable_nft_work() {
 			Perbill::from_percent(0u32),
 			FungibleTokenId::NativeToken(0)
 		));
-		assert_eq!(NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)), 70u128);
+		assert_eq!(
+			NFTModule::<Runtime>::get_free_stackable_nft_balance(&BOB, &(0, 0)),
+			70u128
+		);
 		assert_ok!(AuctionModule::buy_now(buyer.clone(), 0, 200));
 
 		//assert_eq!(AuctionModule::auctions(0), None);
