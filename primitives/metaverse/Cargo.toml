@@ -10,7 +10,7 @@ codec = { package = "parity-scale-codec", version = "3.1.5", default-features = 
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 hex-literal = "0.3.1"
 num_enum = { version = "0.5.3", default-features = false }
-ethabi = { version = "17.0.0", default-features = false }
+ethabi = { version = "18.0.0", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
