@@ -1094,29 +1094,12 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "3.2.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23b71c3ce99b7611011217b366d923f1d0a7e07a92bb2dbf1e84508c673ca3bd"
-dependencies = [
- "atty",
- "bitflags",
- "clap_derive 3.2.18",
- "clap_lex 0.2.4",
- "indexmap",
- "once_cell",
- "strsim",
- "termcolor",
- "textwrap",
-]
-
-[[package]]
-name = "clap"
 version = "4.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34d21f9bf1b425d2968943631ec91202fe5e837264063503708b83013f8fc938"
 dependencies = [
  "clap_builder",
- "clap_derive 4.2.0",
+ "clap_derive",
  "once_cell",
 ]
 
@@ -1129,21 +1112,8 @@ dependencies = [
  "anstream",
  "anstyle",
  "bitflags",
- "clap_lex 0.4.1",
+ "clap_lex",
  "strsim",
-]
-
-[[package]]
-name = "clap_derive"
-version = "3.2.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea0c8bce528c4be4da13ea6fead8965e95b6073585a2f05204bd8f4119f82a65"
-dependencies = [
- "heck",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -1156,15 +1126,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.16",
-]
-
-[[package]]
-name = "clap_lex"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
-dependencies = [
- "os_str_bytes",
 ]
 
 [[package]]
@@ -1656,7 +1617,7 @@ name = "cumulus-client-cli"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/cumulus?branch=polkadot-v0.9.38#9b4e0247137f158d1a35118197d34adfa58858b7"
 dependencies = [
- "clap 4.2.7",
+ "clap",
  "parity-scale-codec",
  "sc-chain-spec 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.38)",
  "sc-cli 0.10.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.38)",
@@ -3020,7 +2981,7 @@ name = "fc-cli"
 version = "1.0.0-dev"
 source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v0.9.38#df4e329ef9b1ef54d83114deff98124139f1dd6d"
 dependencies = [
- "clap 4.2.7",
+ "clap",
  "ethereum-types 0.14.1",
  "fc-db",
  "fp-rpc",
@@ -3459,7 +3420,7 @@ dependencies = [
  "Inflector",
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.2.7",
+ "clap",
  "comfy-table",
  "frame-benchmarking 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.38)",
  "frame-support 4.0.0-dev (git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.38)",
@@ -5833,7 +5794,7 @@ version = "0.0.15"
 dependencies = [
  "async-trait",
  "bit-country-primitives",
- "clap 3.2.20",
+ "clap",
  "continuum-runtime",
  "cumulus-client-cli",
  "cumulus-client-collator",
@@ -6925,12 +6886,6 @@ dependencies = [
  "xcm",
  "xcm-executor",
 ]
-
-[[package]]
-name = "os_str_bytes"
-version = "6.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ff7415e9ae3fff1225851df9e0d9e4e5479f947619774677a63572e55e80eff"
 
 [[package]]
 name = "p256"
@@ -8976,7 +8931,7 @@ name = "polkadot-cli"
 version = "0.9.38"
 source = "git+https://github.com/paritytech/polkadot?branch=release-v0.9.38#097ffd245c42aeff28cf80f8a3568e1bee2e7da7"
 dependencies = [
- "clap 4.2.7",
+ "clap",
  "frame-benchmarking-cli",
  "futures 0.3.28",
  "log",
@@ -11226,7 +11181,7 @@ source = "git+https://github.com/purestake/substrate?branch=moonbeam-polkadot-v0
 dependencies = [
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.2.7",
+ "clap",
  "fdlimit",
  "futures 0.3.28",
  "libp2p",
@@ -11266,7 +11221,7 @@ source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.38#bc
 dependencies = [
  "array-bytes 4.2.0",
  "chrono",
- "clap 4.2.7",
+ "clap",
  "fdlimit",
  "futures 0.3.28",
  "libp2p",
@@ -12636,7 +12591,7 @@ name = "sc-storage-monitor"
 version = "0.1.0"
 source = "git+https://github.com/purestake/substrate?branch=moonbeam-polkadot-v0.9.38#f1795e7d41664b81c5e84b7d362fec0ab19b7f5d"
 dependencies = [
- "clap 4.2.7",
+ "clap",
  "futures 0.3.28",
  "log",
  "nix 0.26.2",
@@ -12652,7 +12607,7 @@ name = "sc-storage-monitor"
 version = "0.1.0"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.38#bcff60a227d455d95b4712b6cb356ce56b1ff672"
 dependencies = [
- "clap 4.2.7",
+ "clap",
  "futures 0.3.28",
  "log",
  "nix 0.26.2",
@@ -15160,12 +15115,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 
 [[package]]
-name = "textwrap"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
-
-[[package]]
 name = "thiserror"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -15680,7 +15629,7 @@ name = "try-runtime-cli"
 version = "0.10.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.38#bcff60a227d455d95b4712b6cb356ce56b1ff672"
 dependencies = [
- "clap 4.2.7",
+ "clap",
  "frame-remote-externalities",
  "hex",
  "log",

@@ -18,11 +18,11 @@ name = "metaverse-node"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.1.5" }
-serde = { version = "1.0.137", features = ["derive"] }
+serde = { version = "1.0.140", features = ["derive"] }
 futures = { version = "0.3.9", features = ["compat"] }
 hex-literal = "0.3.4"
 log = "0.4.17"
-clap = { version = "3.0", features = ["derive"] }
+clap = { version = "4.0.9", features = ["derive"] }
 parking_lot = "0.12.1"
 async-trait = "0.1"
 jsonrpsee = { version = "0.14.0", features = ["server"] }
