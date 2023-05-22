@@ -61,6 +61,23 @@ pub struct AuctionItem<AccountId, BlockNumber, Balance> {
 
 #[cfg_attr(feature = "std", derive(PartialEq, Eq))]
 #[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
+pub struct AuctionItemV2<AccountId, BlockNumber, Balance> {
+	pub item_id: ItemId<Balance>,
+	pub recipient: AccountId,
+	pub initial_amount: Balance,
+	/// Current amount for sale
+	pub amount: Balance,
+	/// Auction start time
+	pub start_time: BlockNumber,
+	pub end_time: BlockNumber,
+	pub auction_type: AuctionType,
+	pub listing_level: ListingLevel<AccountId>,
+	pub currency_id: FungibleTokenId,
+	pub listing_fee: Perbill,
+}
+
+#[cfg_attr(feature = "std", derive(PartialEq, Eq))]
+#[derive(Encode, Decode, Clone, RuntimeDebug, TypeInfo)]
 pub struct AuctionItemV1<AccountId, BlockNumber, Balance> {
 	pub item_id: ItemId<Balance>,
 	pub recipient: AccountId,

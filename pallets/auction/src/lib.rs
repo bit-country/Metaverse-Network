@@ -36,7 +36,9 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 
-use auction_manager::{Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionType, Change, OnNewBidResult};
+use auction_manager::{
+	Auction, AuctionHandler, AuctionInfo, AuctionItem, AuctionItemV2, AuctionType, Change, OnNewBidResult,
+};
 use core_primitives::UndeployedLandBlocksTrait;
 pub use pallet::*;
 use pallet_nft::Pallet as NFTModule;
@@ -799,10 +801,10 @@ pub mod pallet {
 			T::WeightInfo::on_finalize().saturating_mul(total_item)
 		}
 
-		//		fn on_runtime_upgrade() -> Weight {
-		//			Self::upgrade_auction_item_data_v2();
-		//			0
-		//		}
+		fn on_runtime_upgrade() -> Weight {
+			Self::upgrade_auction_item_data_v3();
+			0
+		}
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
@@ -1845,27 +1847,54 @@ pub mod pallet {
 			}
 			Ok(())
 		}
+		/*
+				pub fn upgrade_auction_item_data_v2() -> Weight {
+					log::info!("Start upgrading auction item data v2");
+					let mut num_auction_items = 0;
 
-		pub fn upgrade_auction_item_data_v2() -> Weight {
-			log::info!("Start upgrading auction item data v2");
+					AuctionItems::<T>::translate(
+						|_k, auction_v1: AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+							num_auction_items += 1;
+							let v2: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
+								item_id: auction_v1.item_id,
+								recipient: auction_v1.recipient,
+								initial_amount: auction_v1.initial_amount,
+								amount: auction_v1.amount,
+								start_time: auction_v1.start_time,
+								end_time: auction_v1.end_time,
+								auction_type: auction_v1.auction_type,
+								listing_level: auction_v1.listing_level,
+								currency_id: auction_v1.currency_id,
+								listing_fee: Perbill::from_percent(0u32),
+							};
+							Some(v2)
+						},
+					);
+
+					log::info!("{} auction items upgraded:", num_auction_items);
+					0
+				}
+		*/
+		pub fn upgrade_auction_item_data_v3() -> Weight {
+			log::info!("Start upgrading auction item data v3");
 			let mut num_auction_items = 0;
 
 			AuctionItems::<T>::translate(
-				|_k, auction_v1: AuctionItemV1<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
+				|_k, auction_v2: AuctionItemV2<T::AccountId, T::BlockNumber, BalanceOf<T>>| {
 					num_auction_items += 1;
-					let v2: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
-						item_id: auction_v1.item_id,
-						recipient: auction_v1.recipient,
-						initial_amount: auction_v1.initial_amount,
-						amount: auction_v1.amount,
-						start_time: auction_v1.start_time,
-						end_time: auction_v1.end_time,
-						auction_type: auction_v1.auction_type,
-						listing_level: auction_v1.listing_level,
-						currency_id: auction_v1.currency_id,
-						listing_fee: Perbill::from_percent(0u32),
+					let v3: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> = AuctionItem {
+						item_id: auction_v2.item_id,
+						recipient: auction_v2.recipient,
+						initial_amount: auction_v2.initial_amount,
+						amount: auction_v2.amount,
+						start_time: auction_v2.start_time,
+						end_time: auction_v2.end_time,
+						auction_type: auction_v2.auction_type,
+						listing_level: auction_v2.listing_level,
+						currency_id: auction_v2.currency_id,
+						listing_fee: auction_v2.listing_fee,
 					};
-					Some(v2)
+					Some(v3)
 				},
 			);
 
