@@ -1100,11 +1100,7 @@ pub mod pallet {
 				}
 				ItemId::StackableNFT(class_id, token_id, amount) => {
 					// Check available balance
-					//let available_balance = T::NFTHandler::get_stackable_nft_balance(&recipient, &(class_id,
-					// token_id)); let reserved_balance =
-					//	Self::reserved_stackable_nft_balances(recipient.clone(), (class_id, token_id));
 					ensure!(
-						//amount.checked_add(reserved_balance) <= available_balance,
 						T::NFTHandler::get_free_stackable_nft_balance(&recipient, &(class_id, token_id)) >= amount,
 						Error::<T>::NoPermissionToCreateAuction
 					);
@@ -1126,13 +1122,7 @@ pub mod pallet {
 					);
 
 					T::NFTHandler::reserve_stackable_nft_balance(&recipient, &(class_id, token_id), amount);
-					/*
-					ReservedStackableNftBalance::<T>::insert(
-						recipient.clone(),
-						(class_id, token_id),
-						reserved_balance.saturating_add(amount),
-					);
-					*/
+
 					// Reserve network deposit fee
 					<T as Config>::Currency::reserve(&recipient, T::NetworkFeeReserve::get())?;
 
