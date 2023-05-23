@@ -24,6 +24,7 @@ use {
 	frame_support::{ensure, WeakBoundedVec},
 	sp_std::vec::Vec,
 	xcm::latest::{Junction, Junctions, MultiLocation, NetworkId},
+	xcm::opaque::v2::Junction::GeneralKey,
 };
 // Function to convert network id to bytes
 // We don't implement EVMData here as these bytes will be appended only
