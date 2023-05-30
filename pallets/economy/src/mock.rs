@@ -80,7 +80,7 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -108,7 +108,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -196,7 +196,7 @@ parameter_types! {
 }
 
 impl pallet_mining::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MiningCurrency = Currencies;
 	type BitMiningTreasury = MiningTreasuryPalletId;
 	type BitMiningResourceId = MiningCurrencyId;
@@ -213,7 +213,7 @@ ord_parameter_types! {
 	pub const PowerAmountPerBlock: u32 = 10;
 }
 impl Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type FungibleTokenCurrency = Currencies;
 	type NFTHandler = NFTModule;
@@ -238,7 +238,7 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
@@ -261,7 +261,7 @@ parameter_types! {
 }
 
 impl currencies::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = OrmlTokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
@@ -359,7 +359,7 @@ parameter_types! {
 }
 
 impl pallet_nft::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type PalletId = NftPalletId;
 	type WeightInfo = ();

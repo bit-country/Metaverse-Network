@@ -337,7 +337,7 @@ parameter_types! {
 }
 
 impl currencies::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
@@ -348,7 +348,7 @@ parameter_types! {
 	pub MaximumSchedulerWeight: Weight = 128;
 }
 impl pallet_scheduler::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;
 	type Call = Call;
@@ -371,7 +371,7 @@ parameter_types! {
 }
 
 impl pallet_nft::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;

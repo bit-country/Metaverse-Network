@@ -46,7 +46,7 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -69,7 +69,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -186,7 +186,7 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
@@ -209,7 +209,7 @@ parameter_types! {
 }
 
 impl currencies::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
@@ -220,7 +220,7 @@ parameter_types! {
 	pub MaximumSchedulerWeight: Weight = 128;
 }
 impl pallet_scheduler::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;
 	type Call = Call;
@@ -240,7 +240,7 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;

@@ -49,7 +49,7 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = sp_runtime::traits::IdentityLookup<Self::AccountId>;
 	type Header = sp_runtime::testing::Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = ConstU64<250>;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -68,7 +68,7 @@ impl frame_system::Config for Runtime {
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
 	type DustRemoval = ();
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type ExistentialDeposit = ConstU128<1>;
 	type AccountStore = System;
 	type MaxLocks = ();
@@ -85,7 +85,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 impl asset_manager::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type RegisterOrigin = EnsureSignedBy<CouncilAccount, AccountId>;
 }

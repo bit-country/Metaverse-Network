@@ -364,7 +364,7 @@ impl frame_system::Config for Runtime {
 	/// The header type.
 	type Header = generic::Header<BlockNumber, BlakeTwo256>;
 	/// The ubiquitous event type.
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	/// The ubiquitous origin type.
 	type Origin = Origin;
 	/// Maximum number of block number to block hash mappings to keep (oldest pruned first).
@@ -430,7 +430,7 @@ impl pallet_balances::Config for Runtime {
 	/// The type for recording an account's balance.
 	type Balance = Balance;
 	/// The ubiquitous event type.
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -465,7 +465,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction = pallet_transaction_payment::CurrencyAdapter<Balances, DealWithFees>;
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type WeightToFee = WeightToFee;
@@ -474,7 +474,7 @@ impl pallet_transaction_payment::Config for Runtime {
 }
 
 impl pallet_sudo::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Call = Call;
 }
 
@@ -544,7 +544,7 @@ type EnsureRootOrTwoThirdsTechnicalCommittee = EnsureOneOf<
 >;
 
 impl pallet_treasury::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type PalletId = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type ApproveOrigin = EnsureRootOrTwoThirdsCouncilCollective;
@@ -563,7 +563,7 @@ impl pallet_treasury::Config for Runtime {
 }
 
 impl pallet_bounties::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BountyDepositBase = BountyDepositBase;
 	type BountyDepositPayoutDelay = BountyDepositPayoutDelay;
 	type BountyUpdatePeriod = BountyUpdatePeriod;
@@ -586,7 +586,7 @@ parameter_types! {
 impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type Origin = Origin;
 	type Proposal = Call;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
 	type MaxMembers = CouncilMaxMembers;
@@ -603,7 +603,7 @@ parameter_types! {
 impl pallet_collective::Config<TechnicalCommitteeCollective> for Runtime {
 	type Origin = Origin;
 	type Proposal = Call;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MotionDuration = TechnicalCommitteeMotionDuration;
 	type MaxProposals = TechnicalCommitteeMaxProposals;
 	type MaxMembers = TechnicalCouncilMaxMembers;
@@ -626,7 +626,7 @@ parameter_types! {
 
 impl pallet_democracy::Config for Runtime {
 	type Proposal = Call;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EnactmentPeriod = EnactmentPeriod;
 	type LaunchPeriod = LaunchPeriod;
@@ -677,7 +677,7 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
@@ -725,7 +725,7 @@ parameter_type_with_key! {
 }
 
 impl orml_xtokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type CurrencyId = FungibleTokenId;
 	type CurrencyIdConvert = FungibleTokenIdConvert;
@@ -742,11 +742,11 @@ impl orml_xtokens::Config for Runtime {
 }
 
 impl orml_unknown_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 }
 
 impl orml_xcm::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type SovereignOrigin = EnsureRoot<AccountId>;
 }
 
@@ -755,7 +755,7 @@ parameter_types! {
 }
 
 impl currencies::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
@@ -768,7 +768,7 @@ parameter_types! {
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type DmpMessageHandler = DmpQueue;
 	type ReservedDmpWeight = ReservedDmpWeight;
@@ -1114,7 +1114,7 @@ pub type XcmRouter = (
 );
 
 impl pallet_xcm::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type SendXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type XcmRouter = XcmRouter;
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
@@ -1132,12 +1132,12 @@ impl pallet_xcm::Config for Runtime {
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 }
 
 impl cumulus_pallet_xcmp_queue::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ChannelInfo = ParachainSystem;
 	type VersionWrapper = PolkadotXcm;
@@ -1148,7 +1148,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 }
 
 impl cumulus_pallet_dmp_queue::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 }
@@ -1161,7 +1161,7 @@ parameter_types! {
 }
 
 impl pallet_session::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	// we don't have stash and controller, thus we don't need the convert as well.
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
@@ -1192,7 +1192,7 @@ pub type CollatorSelectionUpdateOrigin =
 	EnsureOneOf<EnsureRoot<AccountId>, EnsureXcm<IsMajorityOfBody<RocLocation, ExecutiveBody>>>;
 
 impl pallet_collator_selection::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type UpdateOrigin = CollatorSelectionUpdateOrigin;
 	type PotId = CollatorPotPalletId;
@@ -1208,7 +1208,7 @@ impl pallet_collator_selection::Config for Runtime {
 }
 
 impl pallet_utility::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Call = Call;
 	type PalletsOrigin = OriginCaller;
 	type WeightInfo = ();
@@ -1223,7 +1223,7 @@ parameter_types! {
 }
 
 impl pallet_multisig::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Call = Call;
 	type Currency = Balances;
 	type DepositBase = DepositBase;
@@ -1266,7 +1266,7 @@ parameter_types! {
 
 impl pallet_preimage::Config for Runtime {
 	type WeightInfo = ();
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
 	type MaxSize = PreimageMaxSize;
@@ -1283,7 +1283,7 @@ parameter_types! {
 }
 
 impl pallet_scheduler::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Origin = Origin;
 	type PalletsOrigin = OriginCaller;
 	type Call = Call;
@@ -1301,7 +1301,7 @@ parameter_types! {
 }
 
 impl pallet_vesting::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type BlockNumberToBalance = ConvertInto;
 	type MinVestedTransfer = MinVestedTransfer;
@@ -1316,7 +1316,7 @@ parameter_types! {
 }
 
 impl mining::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MiningCurrency = Currencies;
 	type BitMiningTreasury = BitMiningTreasuryPalletId;
 	type BitMiningResourceId = MiningResourceCurrencyId;
@@ -1336,7 +1336,7 @@ parameter_types! {
 }
 
 impl nft::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type MultiCurrency = Currencies;
@@ -1374,7 +1374,7 @@ parameter_types! {
 }
 
 impl metaverse::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MetaverseTreasury = LocalMetaverseFundPalletId;
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
@@ -1403,7 +1403,7 @@ parameter_types! {
 }
 
 impl estate::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type LandTreasury = LandTreasuryPalletId;
 	type MetaverseInfoSource = Metaverse;
 	type Currency = Balances;
@@ -1439,7 +1439,7 @@ parameter_types! {
 }
 
 impl auction::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type AuctionTimeToClose = AuctionTimeToClose;
 	type Handler = Auction;
 	type Currency = Balances;
@@ -1460,7 +1460,7 @@ impl auction::Config for Runtime {
 }
 
 impl continuum::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type SessionDuration = ContinuumSessionDuration;
 	type SpotAuctionChillingDuration = SpotAuctionChillingDuration;
 	type EmergencyOrigin = EnsureRoot<AccountId>;
@@ -1473,7 +1473,7 @@ impl continuum::Config for Runtime {
 }
 
 impl crowdloan::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type VestingSchedule = Vesting;
 	type BlockNumberToBalance = ConvertInto;
@@ -1488,7 +1488,7 @@ parameter_types! {
 impl economy::Config for Runtime {
 	type Currency = Balances;
 	type EconomyTreasury = EconomyTreasuryPalletId;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type FungibleTokenCurrency = Currencies;
 	type MinimumStake = MinimumStake;
 	type MiningCurrencyId = MiningCurrencyId;
@@ -1504,7 +1504,7 @@ pub type EnsureRootOrHalfMetaverseCouncil =
 	EnsureOneOf<EnsureRoot<AccountId>, pallet_collective::EnsureProportionAtLeast<AccountId, CouncilCollective, 1, 2>>;
 
 impl emergency::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type EmergencyOrigin = EnsureRootOrHalfMetaverseCouncil;
 	type NormalCallFilter = NormalCallFilter;
 	type MaintenanceCallFilter = MaintenanceFilter;
@@ -1522,7 +1522,7 @@ parameter_types! {
 pub type OracleMembershipInstance = pallet_membership::Instance1;
 
 impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type AddOrigin = EnsureRootOrHalfMetaverseCouncil;
 	type RemoveOrigin = EnsureRootOrHalfMetaverseCouncil;
 	type SwapOrigin = EnsureRootOrHalfMetaverseCouncil;
@@ -1537,7 +1537,7 @@ impl pallet_membership::Config<OracleMembershipInstance> for Runtime {
 type MiningRewardDataProvider = orml_oracle::Instance1;
 
 impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type OnNewData = ();
 	type CombineData = orml_oracle::DefaultCombineData<Runtime, MinimumCount, ExpiresIn, MiningRewardDataProvider>;
 	type Time = Timestamp;

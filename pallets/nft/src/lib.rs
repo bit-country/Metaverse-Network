@@ -93,7 +93,7 @@ pub mod pallet {
 		frame_system::Config
 		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
 	{
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The data deposit per byte to calculate fee
 		/// Default minting price per NFT token
 		#[pallet::constant]
