@@ -49,24 +49,24 @@ pub trait WeightInfo {	fn transfer() -> Weight;	fn transfer_native_currency() ->
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn transfer() -> Weight {
-		(43_400_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(43_400_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn transfer_native_currency() -> Weight {
-		(42_500_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(42_500_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn update_balance() -> Weight {
-		(68_700_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(68_700_000, 0)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn transfer() -> Weight {
-		(43_400_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn transfer_native_currency() -> Weight {
-		(42_500_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn update_balance() -> Weight {
-		(68_700_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(1 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}}
+		Weight::from_parts(43_400_000, 0)			.saturating_add(RocksDbWeight::get().reads(2 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn transfer_native_currency() -> Weight {
+		Weight::from_parts(42_500_000, 0)			.saturating_add(RocksDbWeight::get().reads(2 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn update_balance() -> Weight {
+		Weight::from_parts(68_700_000, 0)			.saturating_add(RocksDbWeight::get().reads(1 as u64))			.saturating_add(RocksDbWeight::get().writes(1 as u64))	}}

@@ -56,40 +56,40 @@ pub trait WeightInfo {
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn set_allow_buy_now() -> Weight {
-		(3_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(3_000_000, 0)
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn set_max_bounds() -> Weight {
-		(20_600_000 as Weight)
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(20_600_000, 0)
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn issue_map_slot() -> Weight {
-		(49_500_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(49_500_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn create_new_auction() -> Weight {
-		(174_400_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(6 as Weight))
+		Weight::from_parts(174_400_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(6 as u64))
 	}
 	fn buy_map_spot() -> Weight {
-		(303_100_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+		Weight::from_parts(303_100_000, 0)
+			.saturating_add(T::DbWeight::get().reads(6 as u64))
+			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 	fn bid_map_spot() -> Weight {
-		(207_400_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(207_400_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn set_allow_buy_now() -> Weight {
-		(3_000_000 as Weight)			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn set_max_bounds() -> Weight {
-		(20_600_000 as Weight)			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn issue_map_slot() -> Weight {
-		(49_500_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(2 as Weight))			.saturating_add(RocksDbWeight::get().writes(1 as Weight))	}	fn create_new_auction() -> Weight {
-		(174_400_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(6 as Weight))	}	fn buy_map_spot() -> Weight {
-		(303_100_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(6 as Weight))			.saturating_add(RocksDbWeight::get().writes(7 as Weight))	}	fn bid_map_spot() -> Weight {
-		(207_400_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}}
+		Weight::from_parts(3_000_000, 0)			.saturating_add(RocksDbWeight::get().writes(1 as u64))	}	fn set_max_bounds() -> Weight {
+		Weight::from_parts(20_600_000, 0)			.saturating_add(RocksDbWeight::get().writes(1 as u64))	}	fn issue_map_slot() -> Weight {
+		Weight::from_parts(49_500_000, 0)			.saturating_add(RocksDbWeight::get().reads(2 as u64))			.saturating_add(RocksDbWeight::get().writes(1 as u64))	}	fn create_new_auction() -> Weight {
+		Weight::from_parts(174_400_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(6 as u64))	}	fn buy_map_spot() -> Weight {
+		Weight::from_parts(303_100_000, 0)			.saturating_add(RocksDbWeight::get().reads(6 as u64))			.saturating_add(RocksDbWeight::get().writes(7 as u64))	}	fn bid_map_spot() -> Weight {
+		Weight::from_parts(207_400_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}}

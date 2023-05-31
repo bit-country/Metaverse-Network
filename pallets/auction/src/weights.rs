@@ -49,28 +49,28 @@ pub trait WeightInfo {	fn create_new_auction() -> Weight;	fn create_new_buy_now(
 /// Weights for auction using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn create_new_auction() -> Weight {
-		(50_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(10 as Weight))			.saturating_add(T::DbWeight::get().writes(8 as Weight))	}	fn create_new_buy_now() -> Weight {
-		(49_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(10 as Weight))			.saturating_add(T::DbWeight::get().writes(8 as Weight))	}	fn bid() -> Weight {
-		(38_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(4 as Weight))			.saturating_add(T::DbWeight::get().writes(6 as Weight))	}	fn buy_now() -> Weight {
-		(100_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(13 as Weight))			.saturating_add(T::DbWeight::get().writes(13 as Weight))	}	fn cancel_listing() -> Weight {
-		(38_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(5 as Weight))			.saturating_add(T::DbWeight::get().writes(7 as Weight))	}	fn authorise_metaverse_collection() -> Weight {
-		(16_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn remove_authorise_metaverse_collection() -> Weight {
-		(16_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(2 as Weight))	}	fn make_offer() -> Weight {
-		(30_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(5 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn withdraw_offer() -> Weight {
-		(23_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(3 as Weight))			.saturating_add(T::DbWeight::get().writes(3 as Weight))	}	fn accept_offer() -> Weight {
-		(55_000_000 as Weight)			.saturating_add(T::DbWeight::get().reads(7 as Weight))			.saturating_add(T::DbWeight::get().writes(7 as Weight))	}	fn on_finalize() -> Weight {
-		(2_000_000 as Weight)	}}
+		Weight::from_parts(50_000_000, 0)			.saturating_add(T::DbWeight::get().reads(10 as u64))			.saturating_add(T::DbWeight::get().writes(8 as u64))	}	fn create_new_buy_now() -> Weight {
+		Weight::from_parts(49_000_000, 0)			.saturating_add(T::DbWeight::get().reads(10 as u64))			.saturating_add(T::DbWeight::get().writes(8 as u64))	}	fn bid() -> Weight {
+		Weight::from_parts(38_000_000, 0)			.saturating_add(T::DbWeight::get().reads(4 as u64))			.saturating_add(T::DbWeight::get().writes(6 as u64))	}	fn buy_now() -> Weight {
+		Weight::from_parts(100_000_000, 0)			.saturating_add(T::DbWeight::get().reads(13 as u64))			.saturating_add(T::DbWeight::get().writes(13 as u64))	}	fn cancel_listing() -> Weight {
+		Weight::from_parts(38_000_000, 0)			.saturating_add(T::DbWeight::get().reads(5 as u64))			.saturating_add(T::DbWeight::get().writes(7 as u64))	}	fn authorise_metaverse_collection() -> Weight {
+		Weight::from_parts(16_000_000, 0)			.saturating_add(T::DbWeight::get().reads(3 as u64))			.saturating_add(T::DbWeight::get().writes(2 as u64))	}	fn remove_authorise_metaverse_collection() -> Weight {
+		Weight::from_parts(16_000_000, 0)			.saturating_add(T::DbWeight::get().reads(3 as u64))			.saturating_add(T::DbWeight::get().writes(2 as u64))	}	fn make_offer() -> Weight {
+		Weight::from_parts(30_000_000, 0)			.saturating_add(T::DbWeight::get().reads(5 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}	fn withdraw_offer() -> Weight {
+		Weight::from_parts(23_000_000, 0)			.saturating_add(T::DbWeight::get().reads(3 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}	fn accept_offer() -> Weight {
+		Weight::from_parts(55_000_000, 0)			.saturating_add(T::DbWeight::get().reads(7 as u64))			.saturating_add(T::DbWeight::get().writes(7 as u64))	}	fn on_finalize() -> Weight {
+		Weight::from_parts(2_000_000, 0)	}}
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn create_new_auction() -> Weight {
-		(50_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(10 as Weight))			.saturating_add(RocksDbWeight::get().writes(8 as Weight))	}	fn create_new_buy_now() -> Weight {
-		(49_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(10 as Weight))			.saturating_add(RocksDbWeight::get().writes(8 as Weight))	}	fn bid() -> Weight {
-		(38_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(4 as Weight))			.saturating_add(RocksDbWeight::get().writes(6 as Weight))	}	fn buy_now() -> Weight {
-		(100_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(13 as Weight))			.saturating_add(RocksDbWeight::get().writes(13 as Weight))	}	fn cancel_listing() -> Weight {
-		(38_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(5 as Weight))			.saturating_add(RocksDbWeight::get().writes(7 as Weight))	}	fn authorise_metaverse_collection() -> Weight {
-		(16_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn remove_authorise_metaverse_collection() -> Weight {
-		(16_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(2 as Weight))	}	fn make_offer() -> Weight {
-		(30_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(5 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn withdraw_offer() -> Weight {
-		(23_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(3 as Weight))			.saturating_add(RocksDbWeight::get().writes(3 as Weight))	}	fn accept_offer() -> Weight {
-		(55_000_000 as Weight)			.saturating_add(RocksDbWeight::get().reads(7 as Weight))			.saturating_add(RocksDbWeight::get().writes(7 as Weight))	}	fn on_finalize() -> Weight {
-		(2_000_000 as Weight)	}}
+		Weight::from_parts(50_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(10 as u64))			.saturating_add(RocksDbWeight::get().writes(8 as u64))	}	fn create_new_buy_now() -> Weight {
+		Weight::from_parts(49_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(10 as u64))			.saturating_add(RocksDbWeight::get().writes(8 as u64))	}	fn bid() -> Weight {
+		Weight::from_parts(38_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(6 as u64))	}	fn buy_now() -> Weight {
+		Weight::from_parts(100_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(13 as u64))			.saturating_add(RocksDbWeight::get().writes(13 as u64))	}	fn cancel_listing() -> Weight {
+		Weight::from_parts(38_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(5 as u64))			.saturating_add(RocksDbWeight::get().writes(7 as u64))	}	fn authorise_metaverse_collection() -> Weight {
+		Weight::from_parts(16_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(3 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn remove_authorise_metaverse_collection() -> Weight {
+		Weight::from_parts(16_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(3 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn make_offer() -> Weight {
+		Weight::from_parts(30_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(5 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}	fn withdraw_offer() -> Weight {
+		Weight::from_parts(23_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(3 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}	fn accept_offer() -> Weight {
+		Weight::from_parts(55_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(7 as u64))			.saturating_add(RocksDbWeight::get().writes(7 as u64))	}	fn on_finalize() -> Weight {
+		Weight::from_parts(2_000_000, 0)	}}
