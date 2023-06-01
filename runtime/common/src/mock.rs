@@ -63,7 +63,7 @@ parameter_types! {
 impl frame_system::Config for Runtime {
 	type BaseCallFilter = Everything;
 	type DbWeight = ();
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
 	type Call = Call;
@@ -72,7 +72,7 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = sp_runtime::generic::Header<BlockNumber, BlakeTwo256>;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
@@ -107,7 +107,7 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type MaxLocks = ();
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -161,7 +161,7 @@ impl pallet_evm::Config for Runtime {
 	type WithdrawOrigin = EnsureAddressNever<AccountId>;
 	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
 	type Currency = Balances;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
 	type PrecompilesType = Precompiles<Self>;
 	type PrecompilesValue = PrecompilesValue;
@@ -181,7 +181,7 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
@@ -211,7 +211,7 @@ impl orml_currencies::Config for Runtime {
 }
 
 impl currencies_pallet::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
@@ -285,7 +285,7 @@ impl Erc20Mapping for Runtime {
 }
 
 impl asset_manager::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type RegisterOrigin = EnsureRoot<AccountId>;
 }
@@ -393,7 +393,7 @@ impl orml_nft::Config for Runtime {
 }
 
 impl evm_mapping::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type AddressMapping = EvmAddressMapping<Runtime>;
 	type ChainId = ();
@@ -412,7 +412,7 @@ parameter_types! {
 }
 
 impl nft_pallet::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
 	type Treasury = MetaverseNetworkTreasuryPalletId;

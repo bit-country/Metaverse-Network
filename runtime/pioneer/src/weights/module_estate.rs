@@ -46,123 +46,123 @@ use sp_std::marker::PhantomData;
 /// Weight functions for estate.
 pub struct WeightInfo<T>(PhantomData<T>);
 
-impl<T: frame_system::Config> estate::WeightInfo for WeightInfo<T> {	
+impl<T: frame_system::Config> estate::WeightInfo for WeightInfo<T> {
 	fn mint_land() -> Weight {
-		(103_900_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+		Weight::from_parts(103_900_000, 0)
+			.saturating_add(T::DbWeight::get().reads(7 as u64))
+			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 	fn mint_lands() -> Weight {
-		(156_300_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(8 as Weight))
-			.saturating_add(T::DbWeight::get().writes(10 as Weight))
+		Weight::from_parts(156_300_000, 0)
+			.saturating_add(T::DbWeight::get().reads(8 as u64))
+			.saturating_add(T::DbWeight::get().writes(10 as u64))
 	}
 	fn transfer_land() -> Weight {
-		(80_300_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(5 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+		Weight::from_parts(80_300_000, 0)
+			.saturating_add(T::DbWeight::get().reads(5 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	fn mint_estate() -> Weight {
-		(111_800_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(9 as Weight))
-			.saturating_add(T::DbWeight::get().writes(11 as Weight))
+		Weight::from_parts(111_800_000, 0)
+			.saturating_add(T::DbWeight::get().reads(9 as u64))
+			.saturating_add(T::DbWeight::get().writes(11 as u64))
 	}
 	fn dissolve_estate() -> Weight {
-		(137_200_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(12 as Weight))
-			.saturating_add(T::DbWeight::get().writes(12 as Weight))
+		Weight::from_parts(137_200_000,0)
+			.saturating_add(T::DbWeight::get().reads(12 as u64))
+			.saturating_add(T::DbWeight::get().writes(12 as u64))
 	}
 	fn add_land_unit_to_estate() -> Weight {
-		(85_500_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))
+		Weight::from_parts(85_500_000, 0)
+			.saturating_add(T::DbWeight::get().reads(7 as u64))
+			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
 	fn remove_land_unit_from_estate() -> Weight {
-		(115_400_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(10 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+		Weight::from_parts(115_400_000, 0)
+			.saturating_add(T::DbWeight::get().reads(10 as u64))
+			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 	fn create_estate() -> Weight {
-		(217_800_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(12 as Weight))
-			.saturating_add(T::DbWeight::get().writes(16 as Weight))
+		Weight::from_parts(217_800_000, 0)
+			.saturating_add(T::DbWeight::get().reads(12 as u64))
+			.saturating_add(T::DbWeight::get().writes(16 as u64))
 	}
 	fn transfer_estate() -> Weight {
-		(96_400_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+		Weight::from_parts(96_400_000, 0)
+			.saturating_add(T::DbWeight::get().reads(6 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	fn issue_undeployed_land_blocks() -> Weight {
-		(308_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(42 as Weight))
+		Weight::from_parts(308_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(42 as u64))
 	}
 	fn freeze_undeployed_land_blocks() -> Weight {
-		(33_600_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(33_600_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn unfreeze_undeployed_land_blocks() -> Weight {
-		(28_800_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(28_800_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn approve_undeployed_land_blocks() -> Weight {
-		(29_700_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(29_700_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn unapprove_undeployed_land_blocks() -> Weight {
-		(29_600_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(29_600_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn transfer_undeployed_land_blocks() -> Weight {
-		(66_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(66_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn deploy_land_block() -> Weight {
-		(373_900_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(11 as Weight))
-			.saturating_add(T::DbWeight::get().writes(10 as Weight))
+		Weight::from_parts(373_900_000, 0)
+			.saturating_add(T::DbWeight::get().reads(11 as u64))
+			.saturating_add(T::DbWeight::get().writes(10 as u64))
 	}
 	fn on_initialize() -> Weight {
-		(900_000 as Weight)
+		Weight::from_parts(900_000, 0)
 	}
 	fn burn_undeployed_land_blocks() -> Weight {
-		(36_600_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(36_600_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn create_lease_offer() -> Weight {
-		(159_200_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(159_200_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn accept_lease_offer() -> Weight {
-		(155_300_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(5 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(155_300_000, 0)
+			.saturating_add(T::DbWeight::get().reads(5 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn cancel_lease() -> Weight {
-		(131_600_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(131_600_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn remove_expired_lease() -> Weight {
-		(246_800_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(246_800_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn remove_lease_offer() -> Weight {
-		(173_100_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(173_100_000, 0)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn collect_rent() -> Weight {
-		(168_600_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(168_600_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 }

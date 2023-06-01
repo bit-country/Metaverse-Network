@@ -9,56 +9,56 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {
 	fn create_new_auction() -> Weight {
-		(50_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(10 as Weight))
-			.saturating_add(T::DbWeight::get().writes(8 as Weight))
+		Weight::from_parts(50_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(10 as u64))
+			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}
 	fn create_new_buy_now() -> Weight {
-		(49_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(10 as Weight))
-			.saturating_add(T::DbWeight::get().writes(8 as Weight))
+		Weight::from_parts(49_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(10 as u64))
+			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}
 	fn bid() -> Weight {
-		(38_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(6 as Weight))
+		Weight::from_parts(38_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(6 as u64))
 	}
 	fn buy_now() -> Weight {
-		(100_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(13 as Weight))
-			.saturating_add(T::DbWeight::get().writes(13 as Weight))
+		Weight::from_parts(100_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(13 as u64))
+			.saturating_add(T::DbWeight::get().writes(13 as u64))
 	}
 	fn cancel_listing() -> Weight {
-		(38_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(5 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+		Weight::from_parts(38_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(5 as u64))
+			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 	fn authorise_metaverse_collection() -> Weight {
-		(16_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(16_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn remove_authorise_metaverse_collection() -> Weight {
-		(16_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(16_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn make_offer() -> Weight {
-		(30_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(5 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(30_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(5 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn withdraw_offer() -> Weight {
-		(23_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(23_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn accept_offer() -> Weight {
-		(55_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+		Weight::from_parts(55_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(7 as u64))
+			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 	fn on_finalize() -> Weight {
-		(2_000_000 as Weight)
+		Weight::from_parts(2_000_000, 0)
 	}
 }

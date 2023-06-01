@@ -11,86 +11,86 @@ use sp_std::marker::PhantomData;
 pub struct WeightInfo<T>(PhantomData<T>);
 impl<T: frame_system::Config> reward::WeightInfo for WeightInfo<T> {
 	fn create_campaign() -> Weight {
-		(41_707_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+		Weight::from_parts(41_707_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 	fn create_nft_campaign() -> Weight {
-		(43_668_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(8 as Weight))
+		Weight::from_parts(43_668_000, 0)
+			.saturating_add(T::DbWeight::get().reads(6 as u64))
+			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}
 	fn claim_reward() -> Weight {
-		(35_006_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+		Weight::from_parts(35_006_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	fn claim_reward_root() -> Weight {
-		(42_272_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+		Weight::from_parts(42_272_000, 0)
+			.saturating_add(T::DbWeight::get().reads(6 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	fn claim_nft_reward() -> Weight {
-		(39_669_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+		Weight::from_parts(39_669_000, 0)
+			.saturating_add(T::DbWeight::get().reads(7 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	fn claim_nft_reward_root() -> Weight {
-		(44_661_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(8 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(44_661_000, 0)
+			.saturating_add(T::DbWeight::get().reads(8 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn set_reward() -> Weight {
-		(21_354_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(21_354_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn set_reward_root() -> Weight {
-		(22_813_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(5 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+		Weight::from_parts(22_813_000, 0)
+			.saturating_add(T::DbWeight::get().reads(5 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	fn set_nft_reward() -> Weight {
-		(22_278_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(22_278_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn set_nft_reward_root() -> Weight {
-		(22_938_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+		Weight::from_parts(22_938_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	fn close_campaign() -> Weight {
-		(50_279_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(7 as Weight))
+		Weight::from_parts(50_279_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(7 as u64))
 	}
 	fn close_nft_campaign() -> Weight {
-		(47_338_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(8 as Weight))
+		Weight::from_parts(47_338_000, 0)
+			.saturating_add(T::DbWeight::get().reads(6 as u64))
+			.saturating_add(T::DbWeight::get().writes(8 as u64))
 	}
 	fn cancel_campaign() -> Weight {
-		(38_746_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(3 as Weight))
+		Weight::from_parts(38_746_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(3 as u64))
 	}
 	fn cancel_nft_campaign() -> Weight {
-		(31_672_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(4 as Weight))
-			.saturating_add(T::DbWeight::get().writes(4 as Weight))
+		Weight::from_parts(31_672_000, 0)
+			.saturating_add(T::DbWeight::get().reads(4 as u64))
+			.saturating_add(T::DbWeight::get().writes(4 as u64))
 	}
 	fn add_set_reward_origin() -> Weight {
-		(11_374_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(11_374_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn remove_set_reward_origin() -> Weight {
-		(11_973_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(11_973_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn on_finalize() -> Weight {
-		(13_598_000 as Weight).saturating_add(T::DbWeight::get().reads(2 as Weight))
+		Weight::from_parts(13_598_000, 0).saturating_add(T::DbWeight::get().reads(2 as u64))
 	}
 }

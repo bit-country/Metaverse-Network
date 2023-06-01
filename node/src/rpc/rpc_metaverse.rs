@@ -205,7 +205,7 @@ where
 	io.merge(Web3::new(client.clone()).into_rpc())?;
 
 	io.merge(EthPubSub::new(pool, client, network, subscription_task_executor, overrides).into_rpc())?;
-	
+
 	//io.extend_with(ContractsApi::to_delegate(Contracts::new(client.clone())));
 
 	#[cfg(feature = "manual-seal")]

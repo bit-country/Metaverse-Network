@@ -45,55 +45,55 @@ use sp_std::marker::PhantomData;
 /// Weight functions for estate.
 pub struct WeightInfo<T>(PhantomData<T>);
 
-impl<T: frame_system::Config> metaverse::WeightInfo for WeightInfo<T> {
+impl<T: frame_system::Config> metaverse::WeightInfo for WeightInfo<T>{
 	fn create_metaverse() -> Weight {
-		(138_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(6 as Weight))
-			.saturating_add(T::DbWeight::get().writes(11 as Weight))
+		Weight::from_parts(138_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(6 as u64))
+			.saturating_add(T::DbWeight::get().writes(11 as u64))
 	}
 	fn transfer_metaverse() -> Weight {
-		(14_100_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(14_100_000, 0)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn freeze_metaverse() -> Weight {
-		(28_100_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(28_100_000, 0)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn unfreeze_metaverse() -> Weight {
-		(28_000_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(28_000_000, 0)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn destroy_metaverse() -> Weight {
-		(33_300_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(1 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(33_300_000, 0)
+			.saturating_add(T::DbWeight::get().reads(1 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn register_metaverse() -> Weight {
-		(80_200_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(80_200_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 	fn stake() -> Weight {
-		(116_300_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))	
+		Weight::from_parts(116_300_000, 0)
+			.saturating_add(T::DbWeight::get().reads(7 as u64))
+			.saturating_add(T::DbWeight::get().writes(5 as u64))	
 	}
 	fn unstake_and_withdraw() -> Weight {
-		(108_100_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(7 as Weight))
-			.saturating_add(T::DbWeight::get().writes(5 as Weight))
+		Weight::from_parts(108_100_000, 0)
+			.saturating_add(T::DbWeight::get().reads(7 as u64))
+			.saturating_add(T::DbWeight::get().writes(5 as u64))
 	}
 	fn update_metaverse_listing_fee() -> Weight {
-		(47_500_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(2 as Weight))
-			.saturating_add(T::DbWeight::get().writes(1 as Weight))
+		Weight::from_parts(47_500_000, 0)
+			.saturating_add(T::DbWeight::get().reads(2 as u64))
+			.saturating_add(T::DbWeight::get().writes(1 as u64))
 	}
 	fn withdraw_from_metaverse_fund() -> Weight {
-		(117_100_000 as Weight)
-			.saturating_add(T::DbWeight::get().reads(3 as Weight))
-			.saturating_add(T::DbWeight::get().writes(2 as Weight))
+		Weight::from_parts(117_100_000, 0)
+			.saturating_add(T::DbWeight::get().reads(3 as u64))
+			.saturating_add(T::DbWeight::get().writes(2 as u64))
 	}
 }
