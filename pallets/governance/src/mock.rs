@@ -76,10 +76,10 @@ pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
@@ -122,9 +122,9 @@ parameter_types! {
 }
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
@@ -457,11 +457,11 @@ impl Default for ProposalType {
 	}
 }
 
-impl InstanceFilter<Call> for ProposalType {
-	fn filter(&self, c: &Call) -> bool {
+impl InstanceFilter<RuntimeCall> for ProposalType {
+	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProposalType::Any => true,
-			ProposalType::JustTransfer => matches!(c, Call::Metaverse(..)),
+			ProposalType::JustTransfer => matches!(c, RuntimeCall::Metaverse(..)),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -483,7 +483,7 @@ impl Config for Runtime {
 	type Slash = ();
 	type MetaverseInfo = MetaverseInfo;
 	type PalletsOrigin = OriginCaller;
-	type Proposal = Call;
+	type Proposal = RuntimeCall;
 	type Scheduler = Scheduler;
 	type MetaverseLandInfo = MetaverseLandInfo;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;

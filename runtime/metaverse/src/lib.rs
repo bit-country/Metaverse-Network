@@ -280,18 +280,18 @@ pub struct MaintenanceFilter;
 impl Contains<RuntimeCall> for MaintenanceFilter {
 	fn contains(c: &RuntimeCall) -> bool {
 		match c {
-			Call::Auction(_) => false,
-			Call::Balances(_) => false,
-			Call::Currencies(_) => false,
-			Call::Crowdloan(_) => false,
-			Call::Continuum(_) => false,
-			Call::Economy(_) => false,
-			Call::Estate(_) => false,
-			Call::Mining(_) => false,
-			Call::Metaverse(_) => false,
-			Call::Nft(_) => false,
-			Call::Treasury(_) => false,
-			Call::Vesting(_) => false,
+			RuntimeCall::Auction(_) => false,
+			RuntimeCall::Balances(_) => false,
+			RuntimeCall::Currencies(_) => false,
+			RuntimeCall::Crowdloan(_) => false,
+			RuntimeCall::Continuum(_) => false,
+			RuntimeCall::Economy(_) => false,
+			RuntimeCall::Estate(_) => false,
+			RuntimeCall::Mining(_) => false,
+			RuntimeCall::Metaverse(_) => false,
+			RuntimeCall::Nft(_) => false,
+			RuntimeCall::Treasury(_) => false,
+			RuntimeCall::Vesting(_) => false,
 			_ => true,
 		}
 	}
@@ -957,19 +957,19 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 			ProxyType::CancelProxy => matches!(c, RuntimeCall::Proxy(pallet_proxy::Call::reject_announcement { .. })),
 			ProxyType::Governance => matches!(
 				c,
-				Call::Democracy(..) | Call::Council(..) | Call::TechnicalCommittee(..)
+				RuntimeCall::Democracy(..) | RuntimeCall::Council(..) | RuntimeCall::TechnicalCommittee(..)
 			),
 			ProxyType::Auction => matches!(
 				c,
-				Call::Auction(auction::Call::bid { .. }) | Call::Auction(auction::Call::buy_now { .. })
+				RuntimeCall::Auction(auction::Call::bid { .. }) | RuntimeCall::Auction(auction::Call::buy_now { .. })
 			),
 			ProxyType::Economy => matches!(
 				c,
-				Call::Economy(economy::Call::stake { .. }) | Call::Economy(economy::Call::unstake { .. })
+				RuntimeCall::Economy(economy::Call::stake { .. }) | RuntimeCall::Economy(economy::Call::unstake { .. })
 			),
 			ProxyType::Nft => matches!(
 				c,
-				Call::Nft(nft::Call::transfer { .. }) | Call::Nft(nft::Call::transfer_batch { .. })
+				RuntimeCall::Nft(nft::Call::transfer { .. }) | RuntimeCall::Nft(nft::Call::transfer_batch { .. })
 			),
 		}
 	}
@@ -986,7 +986,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
 
 impl pallet_proxy::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
 	type ProxyType = ProxyType;
 	type ProxyDepositBase = ProxyDepositBase;
@@ -1011,11 +1011,11 @@ impl Default for ProposalType {
 	}
 }
 
-impl InstanceFilter<Call> for ProposalType {
-	fn filter(&self, c: &Call) -> bool {
+impl InstanceFilter<RuntimeCall> for ProposalType {
+	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProposalType::Any => true,
-			ProposalType::JustMetaverse => matches!(c, Call::Metaverse(..)),
+			ProposalType::JustMetaverse => matches!(c, RuntimeCall::Metaverse(..)),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -1037,7 +1037,7 @@ impl governance::Config for Runtime {
 	type Slash = ();
 	type MetaverseInfo = Metaverse;
 	type PalletsOrigin = OriginCaller;
-	type Proposal = Call;
+	type Proposal = RuntimeCall;
 	type Scheduler = Scheduler;
 	type MetaverseLandInfo = Estate;
 	type MetaverseCouncil = EnsureRootOrMetaverseTreasury;
@@ -1179,9 +1179,9 @@ impl pallet_ethereum::Config for Runtime {
 
 pub struct RPCCallFilter;
 
-impl Contains<Call> for RPCCallFilter {
-	fn contains(c: &Call) -> bool {
-		matches!(c, Call::Currencies(..))
+impl Contains<RuntimeCall> for RPCCallFilter {
+	fn contains(c: &RuntimeCall) -> bool {
+		matches!(c, RuntimeCall::Currencies(..))
 	}
 }
 
@@ -1271,7 +1271,7 @@ impl pallet_contracts::Config for Runtime {
 	type Randomness = RandomnessCollectiveFlip;
 	type Currency = Balances;
 	type RuntimeEvent = RuntimeEvent;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	/// The safest default is to allow no calls at all.
 	///
 	/// Runtimes should whitelist dispatchables that are allowed to be called from contracts
@@ -1507,26 +1507,26 @@ mod benches {
 }
 
 /// Unchecked extrinsic type as expected by this runtime.
-pub type UncheckedExtrinsic = fp_self_contained::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
+pub type UncheckedExtrinsic = fp_self_contained::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// The payload being signed in transactions.
-pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
+pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
 pub type Executive =
 	frame_executive::Executive<Runtime, Block, frame_system::ChainContext<Runtime>, Runtime, AllPalletsWithSystem>;
 
-impl fp_self_contained::SelfContainedCall for Call {
+impl fp_self_contained::SelfContainedCall for RuntimeCall {
 	type SignedInfo = H160;
 
 	fn is_self_contained(&self) -> bool {
 		match self {
-			Call::Ethereum(call) => call.is_self_contained(),
+			RuntimeCall::Ethereum(call) => call.is_self_contained(),
 			_ => false,
 		}
 	}
 
 	fn check_self_contained(&self) -> Option<Result<Self::SignedInfo, TransactionValidityError>> {
 		match self {
-			Call::Ethereum(call) => call.check_self_contained(),
+			RuntimeCall::Ethereum(call) => call.check_self_contained(),
 			_ => None,
 		}
 	}
@@ -1538,7 +1538,7 @@ impl fp_self_contained::SelfContainedCall for Call {
 		len: usize,
 	) -> Option<TransactionValidity> {
 		match self {
-			Call::Ethereum(call) => call.validate_self_contained(origin, dispatch_info, len),
+			RuntimeCall::Ethereum(call) => call.validate_self_contained(origin, dispatch_info, len),
 			_ => None,
 		}
 	}
@@ -1546,11 +1546,11 @@ impl fp_self_contained::SelfContainedCall for Call {
 	fn pre_dispatch_self_contained(
 		&self,
 		info: &Self::SignedInfo,
-		dispatch_info: &DispatchInfoOf<Call>,
+		dispatch_info: &DispatchInfoOf<RuntimeCall>,
 		len: usize,
 	) -> Option<Result<(), TransactionValidityError>> {
 		match self {
-			Call::Ethereum(call) => call.pre_dispatch_self_contained(info, dispatch_info, len),
+			RuntimeCall::Ethereum(call) => call.pre_dispatch_self_contained(info, dispatch_info, len),
 			_ => None,
 		}
 	}
@@ -1560,7 +1560,7 @@ impl fp_self_contained::SelfContainedCall for Call {
 		info: Self::SignedInfo,
 	) -> Option<sp_runtime::DispatchResultWithInfo<PostDispatchInfoOf<Self>>> {
 		match self {
-			call @ Call::Ethereum(pallet_ethereum::Call::transact { .. }) => {
+			call @ RuntimeCall::Ethereum(pallet_ethereum::Call::transact { .. }) => {
 				Some(call.dispatch(Origin::from(pallet_ethereum::RawOrigin::EthereumTransaction(info))))
 			}
 			_ => None,
@@ -1763,7 +1763,7 @@ impl_runtime_apis! {
 			xts: Vec<<Block as BlockT>::Extrinsic>,
 		) -> Vec<EthereumTransaction> {
 			xts.into_iter().filter_map(|xt| match xt.0.function {
-				Call::Ethereum(transact{transaction}) => Some(transaction),
+				RuntimeCall::Ethereum(transact{transaction}) => Some(transaction),
 				_ => None
 			}).collect::<Vec<EthereumTransaction>>()
 		}

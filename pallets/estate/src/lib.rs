@@ -95,7 +95,7 @@ pub mod pallet {
 		type MinimumLandPrice: Get<BalanceOf<Self>>;
 
 		/// Council origin which allows to update max bound
-		type CouncilOrigin: EnsureOrigin<Self::Origin>;
+		type CouncilOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// Auction handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;

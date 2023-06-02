@@ -141,10 +141,10 @@ pub type SignedExtra = (
 );
 
 /// Unchecked extrinsic type as expected by this runtime.
-pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;
+pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 
 /// Extrinsic type that has already been checked.
-pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, Call, SignedExtra>;
+pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -244,34 +244,34 @@ pub fn native_version() -> NativeVersion {
 // Other calls will be disallowed
 pub struct NormalCallFilter;
 
-impl Contains<Call> for NormalCallFilter {
-	fn contains(c: &Call) -> bool {
+impl Contains<RuntimeCall> for NormalCallFilter {
+	fn contains(c: &RuntimeCall) -> bool {
 		let is_core = matches!(
 			c,
 			// Calls from Sudo
-			Call::Sudo(..)
+			RuntimeCall::Sudo(..)
 			// Calls for runtime upgrade.
-			| Call::System(..)
-			| Call::Timestamp(..)
+			| RuntimeCall::System(..)
+			| RuntimeCall::Timestamp(..)
 			// Calls that are present in each block
-			| Call::ParachainSystem(..)
+			| RuntimeCall::ParachainSystem(..)
 			// Enable session
-			| Call::Session(..)
+			| RuntimeCall::Session(..)
 			// Enable collator selection
-			| Call::CollatorSelection(..)
+			| RuntimeCall::CollatorSelection(..)
 			// Enable vesting
-			| Call::Vesting(..)
+			| RuntimeCall::Vesting(..)
 			// Enable ultility
-			| Call::Utility{..}
+			| RuntimeCall::Utility{..}
 			// Enable multisign
-			| Call::Multisig(..)
+			| RuntimeCall::Multisig(..)
 			// Enable Crowdloan
-			| Call::Crowdloan{..}
+			| RuntimeCall::Crowdloan{..}
 			// Polkadot XCM
-			| Call::PolkadotXcm{..}
+			| RuntimeCall::PolkadotXcm{..}
 			// Orml XCM wrapper
-			| Call::OrmlXcm{..}
-			| Call::Balances(..)
+			| RuntimeCall::OrmlXcm{..}
+			| RuntimeCall::Balances(..)
 		);
 
 		if is_core {
@@ -291,24 +291,24 @@ impl Contains<Call> for NormalCallFilter {
 /// Maintenance mode Call filter
 pub struct MaintenanceFilter;
 
-impl Contains<Call> for MaintenanceFilter {
-	fn contains(c: &Call) -> bool {
+impl Contains<RuntimeCall> for MaintenanceFilter {
+	fn contains(c: &RuntimeCall) -> bool {
 		match c {
-			Call::Auction(_) => false,
-			Call::Balances(_) => false,
-			Call::Currencies(_) => false,
-			Call::Crowdloan(_) => false,
-			Call::Continuum(_) => false,
-			Call::Economy(_) => false,
-			Call::Estate(_) => false,
-			Call::Mining(_) => false,
-			Call::Metaverse(_) => false,
-			Call::Nft(_) => false,
-			Call::OrmlXcm(_) => false,
-			Call::PolkadotXcm(_) => false,
-			Call::Treasury(_) => false,
-			Call::Vesting(_) => false,
-			Call::XTokens(_) => false,
+			RuntimeCall::Auction(_) => false,
+			RuntimeCall::Balances(_) => false,
+			RuntimeCall::Currencies(_) => false,
+			RuntimeCall::Crowdloan(_) => false,
+			RuntimeCall::Continuum(_) => false,
+			RuntimeCall::Economy(_) => false,
+			RuntimeCall::Estate(_) => false,
+			RuntimeCall::Mining(_) => false,
+			RuntimeCall::Metaverse(_) => false,
+			RuntimeCall::Nft(_) => false,
+			RuntimeCall::OrmlXcm(_) => false,
+			RuntimeCall::PolkadotXcm(_) => false,
+			RuntimeCall::Treasury(_) => false,
+			RuntimeCall::Vesting(_) => false,
+			RuntimeCall::XTokens(_) => false,
 			_ => true,
 		}
 	}
@@ -350,7 +350,7 @@ impl frame_system::Config for Runtime {
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The aggregated dispatch type that is available for extrinsics.
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
 	type Lookup = AccountIdLookup<AccountId, ()>;
 	/// The index type for storing how many extrinsics an account has signed.
@@ -475,7 +475,7 @@ impl pallet_transaction_payment::Config for Runtime {
 
 impl pallet_sudo::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 }
 
 // Currencies implementation
@@ -585,7 +585,7 @@ parameter_types! {
 
 impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Proposal = Call;
+	type Proposal = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type MotionDuration = CouncilMotionDuration;
 	type MaxProposals = CouncilMaxProposals;
@@ -602,7 +602,7 @@ parameter_types! {
 
 impl pallet_collective::Config<TechnicalCommitteeCollective> for Runtime {
 	type RuntimeOrigin = RuntimeOrigin;
-	type Proposal = Call;
+	type Proposal = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type MotionDuration = TechnicalCommitteeMotionDuration;
 	type MaxProposals = TechnicalCommitteeMaxProposals;
@@ -625,7 +625,7 @@ parameter_types! {
 }
 
 impl pallet_democracy::Config for Runtime {
-	type Proposal = Call;
+	type Proposal = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EnactmentPeriod = EnactmentPeriod;
@@ -732,7 +732,7 @@ impl orml_xtokens::Config for Runtime {
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
 	type XcmExecutor = XcmExecutor<XcmConfig>;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type BaseXcmWeight = BaseXcmWeight;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
@@ -1083,14 +1083,14 @@ impl xcm_executor::Config for XcmConfig {
 	// How to withdraw and deposit an asset.
 	type AssetTransactor = LocalAssetTransactor;
 	type Barrier = Barrier;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type XcmSender = XcmRouter;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
 	type LocationInverter = LocationInverter<Ancestry>;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader = Trader;
 	type ResponseHandler = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
@@ -1122,10 +1122,10 @@ impl pallet_xcm::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type XcmTeleportFilter = Nothing;
 	type XcmReserveTransferFilter = Everything;
-	type Weigher = FixedWeightBounds<UnitWeightCost, Call, MaxInstructions>;
+	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type RuntimeOrigin = RuntimeOrigin;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 
 	const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
@@ -1209,7 +1209,7 @@ impl pallet_collator_selection::Config for Runtime {
 
 impl pallet_utility::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type PalletsOrigin = OriginCaller;
 	type WeightInfo = ();
 }
@@ -1224,7 +1224,7 @@ parameter_types! {
 
 impl pallet_multisig::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Currency = Balances;
 	type DepositBase = DepositBase;
 	type DepositFactor = DepositFactor;
@@ -1286,7 +1286,7 @@ impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
