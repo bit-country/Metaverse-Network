@@ -118,7 +118,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinContribution: Get<BalanceOf<Self>>;
 		/// Origin to add new metaverse
-		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
+		type MetaverseCouncil: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Mininum deposit for registering a metaverse
 		type MetaverseRegistrationDeposit: Get<BalanceOf<Self>>;
 		/// Mininum staking amount
