@@ -2048,7 +2048,7 @@ impl<T: Config> Pallet<T> {
 		NextEstateId::<T>::put(1);
 		AllLandUnitsCount::<T>::put(0);
 		AllEstatesCount::<T>::put(0);
-		0
+		Weight::from_ref_time(0)
 	}
 
 	fn collect_network_fee(

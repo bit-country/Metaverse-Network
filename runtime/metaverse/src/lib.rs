@@ -91,7 +91,7 @@ use core_primitives::{NftAssetData, NftClassData};
 use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 use evm_mapping::EvmAddressMapping;
-use metaverse_runtime_common::precompiles::MetaverseNetworkPrecompiles;
+use metaverse_runtime_common::{precompiles::MetaverseNetworkPrecompiles, CurrencyHooks};
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
 //use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use primitives::evm::{
@@ -537,13 +537,11 @@ impl orml_tokens::Config for Runtime {
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type CurrencyHooks = CurrencyHooks<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = MaxLocks;
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 parameter_types! {

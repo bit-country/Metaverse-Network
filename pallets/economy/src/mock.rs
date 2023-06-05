@@ -3,6 +3,7 @@
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
+use orml_traits::currency::MutationHooks;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
@@ -244,13 +245,11 @@ impl orml_tokens::Config for Runtime {
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type CurrencyHooks = ();
 	type MaxLocks = ();
 	type DustRemovalWhitelist = Nothing;
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;

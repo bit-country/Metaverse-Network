@@ -40,6 +40,7 @@ crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", ve
 economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
+metaverse-runtime-common = { path = "../common", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }

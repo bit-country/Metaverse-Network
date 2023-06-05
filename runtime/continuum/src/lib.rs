@@ -84,6 +84,7 @@ use primitives::{Amount, ClassId, FungibleTokenId, Moment, NftId, RoundIndex};
 
 use crate::constants::parachains;
 use crate::constants::xcm_fees::{ksm_per_second, native_per_second};
+use metaverse_runtime_common::CurrencyHooks;
 use scale_info::prelude::vec;
 
 // Make the WASM binary available.
@@ -683,13 +684,11 @@ impl orml_tokens::Config for Runtime {
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type CurrencyHooks = CurrencyHooks<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = MaxLocks;
 	type MaxReserves = ();
 	type ReserveIdentifier = [u8; 8];
 	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 parameter_types! {

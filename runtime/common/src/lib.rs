@@ -22,6 +22,7 @@ use frame_support::{
 	traits::Get,
 	weights::{constants::WEIGHT_PER_SECOND, Weight},
 };
+use orml_traits::currency::MutationHooks;
 use polkadot_parachain::primitives::RelayChainBlockNumber;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{marker::PhantomData, prelude::*};
@@ -153,4 +154,20 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> Drop for FixedRateO
 			);
 		}
 	}
+}
+
+pub struct CurrencyHooks<T, DustAccount>(PhantomData<T>, DustAccount);
+impl<T, DustAccount> MutationHooks<T::AccountId, T::CurrencyId, T::Balance> for CurrencyHooks<T, DustAccount>
+where
+	T: orml_tokens::Config,
+	DustAccount: Get<<T as frame_system::Config>::AccountId>,
+{
+	type OnDust = orml_tokens::TransferDust<T, DustAccount>;
+	type OnSlash = ();
+	type PreDeposit = ();
+	type PostDeposit = ();
+	type PreTransfer = ();
+	type PostTransfer = ();
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }

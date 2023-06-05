@@ -106,7 +106,7 @@ impl EvmData for Junction {
 
 				let network = encoded_junction.read_till_end()?.to_vec();
 				Ok(Junction::AccountId32 {
-					network: network_id_from_bytes(network)?,
+					network: Some(network_id_from_bytes(network)?),
 					id: account,
 				})
 			}
@@ -117,7 +117,7 @@ impl EvmData for Junction {
 				// Now we read the network
 				let network = encoded_junction.read_till_end()?.to_vec();
 				Ok(Junction::AccountIndex64 {
-					network: network_id_from_bytes(network)?,
+					network: Some(network_id_from_bytes(network)?),
 					index: u64::from_be_bytes(index),
 				})
 			}
@@ -128,7 +128,7 @@ impl EvmData for Junction {
 
 				let network = encoded_junction.read_till_end()?.to_vec();
 				Ok(Junction::AccountKey20 {
-					network: network_id_from_bytes(network)?,
+					network: Some(network_id_from_bytes(network)?),
 					key: account,
 				})
 			}

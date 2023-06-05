@@ -43,7 +43,7 @@ where
 	/// Return an error if there are not enough gas, or if the call fails.
 	/// If successful returns the used gas using the Runtime GasWeightMapping.
 	pub fn try_dispatch<RuntimeCall>(
-		handle: &mut impl PrecompileHandle, 
+		handle: &mut impl PrecompileHandle,
 		origin: <Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin,
 		call: RuntimeCall,
 	) -> EvmResult<()>
