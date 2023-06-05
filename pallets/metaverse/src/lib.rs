@@ -604,7 +604,7 @@ impl<T: Config> Pallet<T> {
 			Some(v2)
 		});
 		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
-		0
+		Weight::from_ref_time(0)
 	}
 
 	/// Internal update of metaverse info to v3
@@ -634,7 +634,7 @@ impl<T: Config> Pallet<T> {
 		});
 		log::info!("{} metaverses in total:", total_metaverse_items);
 		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
-		0
+		Weight::from_ref_time(0)
 	}
 }
 

@@ -922,7 +922,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		//		fn on_runtime_upgrade() -> Weight {
 		//			Self::storage_migration_fix_locking_issue();
-		//			0
+		//			Weight::from_ref_time(0)
 		//		}
 	}
 }
@@ -1227,7 +1227,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
-		0
+		Weight::from_ref_time(0)
 	}
 
 	/// Upgrading lock of each nft
@@ -1262,7 +1262,7 @@ impl<T: Config> Pallet<T> {
 			},
 		);
 		log::info!("Tokens upgraded: {}", num_nft_tokens);
-		0
+		Weight::from_ref_time(0)
 	}
 }
 

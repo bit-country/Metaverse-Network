@@ -348,9 +348,9 @@ pub mod pallet {
 				Round::<T>::put(round);
 				CurrentMiningResourceAllocation::<T>::put(allocation_range);
 				Self::deposit_event(Event::NewMiningRound(round.current, allocation_range));
-				0
+				Weight::from_ref_time(0)
 			} else {
-				0
+				Weight::from_ref_time(0)
 			}
 		}
 	}
