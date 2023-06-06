@@ -28,6 +28,7 @@ use {
 		weights::Weight,
 	},
 	pallet_evm::GasWeightMapping,
+	sp_weights::OldWeight,
 };
 
 /// Helper functions requiring a Substrate runtime.
@@ -56,7 +57,7 @@ where
 
 		// Make sure there is enough gas.
 		let remaining_gas = handle.remaining_gas();
-		let required_gas = Runtime::GasWeightMapping::weight_to_gas(dispatch_info.weight.into());
+		let required_gas = Runtime::GasWeightMapping::weight_to_gas(dispatch_info.weight);
 		if required_gas > remaining_gas {
 			return Err(PrecompileFailure::Error {
 				exit_status: ExitError::OutOfGas,
@@ -73,7 +74,7 @@ where
 			.map_err(|e| revert(alloc::format!("Dispatched call failed with error: {:?}", e)))?
 			.actual_weight;
 
-		let used_gas = Runtime::GasWeightMapping::weight_to_gas(used_weight.unwrap_or(dispatch_info.weight).into());
+		let used_gas = Runtime::GasWeightMapping::weight_to_gas(used_weight.unwrap_or(dispatch_info.weight));
 
 		handle.record_cost(used_gas)?;
 
@@ -88,14 +89,14 @@ where
 	/// Cost of a Substrate DB write in gas.
 	pub fn db_write_gas_cost() -> u64 {
 		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(
-			<Runtime as frame_system::Config>::DbWeight::get().write.into(),
+			<Runtime as frame_system::Config>::DbWeight::get().write,
 		)
 	}
 
 	/// Cost of a Substrate DB read in gas.
 	pub fn db_read_gas_cost() -> u64 {
 		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(
-			<Runtime as frame_system::Config>::DbWeight::get().read.into(),
+			<Runtime as frame_system::Config>::DbWeight::get().read,
 		)
 	}
 }

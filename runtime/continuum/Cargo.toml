@@ -184,6 +184,7 @@ std = [
     'crowdloan/std',
     "economy/std",
     "emergency/std",
+    "metaverse-runtime-common/std",
     'pallet-collator-selection/std',
     "pallet-preimage/std"
 ]

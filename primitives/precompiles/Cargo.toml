@@ -45,5 +45,6 @@ std = [
 	"sp-core/std",
 	"sp-io/std",
 	"sp-std/std",
+	"sp-weights/std",
 ]
 #testing = [ "similar-asserts", "std" ]

@@ -128,7 +128,7 @@ pub mod pallet {
 		type MaxSetRewardsListLength: Get<u64>;
 
 		/// Accounts that can set rewards
-		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		type AdminOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
@@ -1149,7 +1149,7 @@ pub mod pallet {
 		/// Hook that is called every time the runtime is upgraded.
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_campaign_info_v3();
-			0
+			Weight::from_ref_time(0)
 		}
 	}
 }
@@ -1338,7 +1338,7 @@ impl<T: Config> Pallet<T> {
 				},
 			);
 			log::info!("{} campaigns upgraded:", upgraded_campaign_items);
-			0
+			Weight::from_ref_time(0)
 		}
 	*/
 
@@ -1370,6 +1370,6 @@ impl<T: Config> Pallet<T> {
 			},
 		);
 		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
-		0
+		Weight::from_ref_time(0)
 	}
 }
