@@ -33,7 +33,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
 
-use xcm::v2::MultiLocation;
+use xcm::v3::MultiLocation;
 
 pub mod continuum;
 pub mod estate;

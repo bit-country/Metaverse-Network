@@ -38,7 +38,7 @@ use {
 pub(crate) fn network_id_to_bytes(network_id: Option<NetworkId>) -> Vec<u8> {
 	let mut encoded: Vec<u8> = Vec::new();
 	match network_id.clone() {
-		/* 
+		/*
 		Some(NetworkId::Any) => {
 			encoded.push(0u8);
 			encoded
@@ -51,7 +51,7 @@ pub(crate) fn network_id_to_bytes(network_id: Option<NetworkId>) -> Vec<u8> {
 		*/
 		None => {
 			encoded.push(1u8);
-			encoded	
+			encoded
 		}
 		Some(NetworkId::Polkadot) => {
 			encoded.push(2u8);
@@ -64,8 +64,7 @@ pub(crate) fn network_id_to_bytes(network_id: Option<NetworkId>) -> Vec<u8> {
 		_ => {
 			encoded.push(0u8);
 			encoded
-		}
-		// TO DO: Implement byte conversion for other network ID types
+		} // TO DO: Implement byte conversion for other network ID types
 	}
 }
 
@@ -77,7 +76,7 @@ pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> EvmResult<Option<
 	let network_selector = encoded_network_id.read_raw_bytes(1)?;
 
 	match network_selector[0] {
-		/* 
+		/*
 		0 => Ok(NetworkId::Any),
 		1 => Ok(NetworkId::Named(WeakBoundedVec::force_from(
 			encoded_network_id.read_till_end()?.to_vec(),
@@ -159,11 +158,8 @@ impl EvmData for Junction {
 				data.copy_from_slice(&encoded_junction.read_raw_bytes(32)?);
 
 				let length: u8 = encoded_junction.read_raw_bytes(1)?[0];
-				Ok(Junction::GeneralKey {
-					length,
-					data,	
-				})
-			} 
+				Ok(Junction::GeneralKey { length, data })
+			}
 			7 => Ok(Junction::OnlyChild),
 			_ => Err(revert("No selector for this")),
 		}
@@ -205,7 +201,7 @@ impl EvmData for Junction {
 				encoded.append(&mut id.to_be_bytes().to_vec());
 				encoded.as_slice().into()
 			}
-			Junction::GeneralKey{length, data} => {
+			Junction::GeneralKey { length, data } => {
 				encoded.push(6u8);
 				encoded.append(&mut data.to_vec());
 				encoded.as_slice().into()

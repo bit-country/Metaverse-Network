@@ -117,7 +117,7 @@ pub mod pallet {
 		type BitMiningResourceId: Get<FungibleTokenId>;
 		/// Origin used to administer the pallet
 		type EstateHandler: Estate<Self::AccountId>;
-		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		type AdminOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
 		// Mining staking reward for treasury
 		type TreasuryStakingReward: Get<Perbill>;
@@ -370,7 +370,7 @@ impl<T: Config> Pallet<T> {
 		minting_origin == Some(())
 	}
 
-	pub fn ensure_admin(o: T::Origin) -> DispatchResult {
+	pub fn ensure_admin(o: T::RuntimeOrigin) -> DispatchResult {
 		T::AdminOrigin::try_origin(o).map(|_| ()).or_else(ensure_root)?;
 		Ok(())
 	}

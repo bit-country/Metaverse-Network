@@ -137,7 +137,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type SpotAuctionChillingDuration: Get<Self::BlockNumber>;
 		/// Emergency shutdown origin which allow cancellation in an emergency
-		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
+		type EmergencyOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Auction Handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber, Balance = BalanceOf<Self>>
 			+ CheckAuctionItemHandler<BalanceOf<Self>>;

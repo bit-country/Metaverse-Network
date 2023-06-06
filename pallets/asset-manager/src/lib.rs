@@ -34,7 +34,7 @@ use frame_system::pallet_prelude::*;
 use scale_info::prelude::format;
 use sp_runtime::{traits::One, ArithmeticError, FixedPointNumber, FixedU128};
 use sp_std::{boxed::Box, vec::Vec};
-use xcm::v1::MultiLocation;
+use xcm::v3::MultiLocation;
 use xcm::VersionedMultiLocation;
 
 pub use pallet::*;

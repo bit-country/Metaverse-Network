@@ -24,7 +24,8 @@ use {
 	fp_evm::{ExitError, PrecompileFailure, PrecompileHandle},
 	frame_support::{
 		dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
-		traits::Get, weights::Weight,
+		traits::Get,
+		weights::Weight,
 	},
 	pallet_evm::GasWeightMapping,
 };
