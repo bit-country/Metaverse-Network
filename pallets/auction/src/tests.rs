@@ -13,7 +13,11 @@ use super::*;
 
 fn init_test_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
-	assert_ok!(NFTModule::<Runtime>::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
+	assert_ok!(NFTModule::<Runtime>::create_group(
+		RuntimeOrigin::root(),
+		vec![1],
+		vec![1]
+	));
 
 	assert_ok!(NFTModule::<Runtime>::create_class(
 		owner.clone(),
@@ -314,7 +318,11 @@ fn create_auction_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(ALICE);
 
-		assert_ok!(NFTModule::<Runtime>::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
+		assert_ok!(NFTModule::<Runtime>::create_group(
+			RuntimeOrigin::root(),
+			vec![1],
+			vec![1]
+		));
 
 		assert_ok!(NFTModule::<Runtime>::create_class(
 			owner.clone(),
@@ -565,7 +573,10 @@ fn bid_works() {
 				end: Some(101),
 			})
 		);
-		assert_eq!(last_event(), RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
 	});
 }
@@ -604,7 +615,10 @@ fn bid_anti_snipe_duration_works() {
 		);
 		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
 		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
-		assert_eq!(last_event(), RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 
 		// Move to the next block, test if auction keeps extending
 		run_to_block(97);
@@ -655,7 +669,10 @@ fn bid_anti_snipe_duration_works_with_local_auction() {
 		);
 		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
 		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
-		assert_eq!(last_event(), RuntimeEvent::AuctionModule(crate::Event::Bid(0, BOB, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, BOB, 200))
+		);
 
 		// Move to the next block, test if auction keeps extending
 		run_to_block(97);
@@ -696,7 +713,10 @@ fn bid_multicurrency_works() {
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 
 		assert_eq!(
 			Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).reserved,
@@ -797,7 +817,10 @@ fn asset_transfers_after_auction() {
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 
 		// BOB should have 500 - 1 (network reserve fee) - 3 minting fee = 496
 		assert_eq!(Balances::free_balance(BOB), 496);
@@ -848,7 +871,10 @@ fn asset_transfers_after_multicurrency_auction() {
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 
 		// BOB should have 500 - 1 (network reserve fee) - 3 minting fee = 496
 		assert_eq!(Balances::free_balance(BOB), 496);

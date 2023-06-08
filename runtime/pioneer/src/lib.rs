@@ -53,7 +53,7 @@ use scale_info::TypeInfo;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata, ConstBool};
+use sp_core::{crypto::KeyTypeId, ConstBool, OpaqueMetadata};
 use sp_runtime::traits::{AccountIdConversion, ConstU32, Convert, ConvertInto};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;

@@ -84,7 +84,8 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for Fi
 
 			if let Some(ratio) = M::calculate_rate(multi_location.clone()) {
 				// The WEIGHT_REF_TIME_PER_SECOND is non-zero.
-				let weight_ratio = FixedU128::saturating_from_rational(weight .ref_time() as u128, WEIGHT_REF_TIME_PER_SECOND as u128);
+				let weight_ratio =
+					FixedU128::saturating_from_rational(weight.ref_time() as u128, WEIGHT_REF_TIME_PER_SECOND as u128);
 				let amount = ratio.saturating_mul_int(weight_ratio.saturating_mul_int(FixedRate::get()));
 
 				let required = MultiAsset {
@@ -118,7 +119,8 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for Fi
 			weight, self.weight, self.amount, self.ratio, self.multi_location
 		);
 		let weight = weight.min(self.weight);
-		let weight_ratio = FixedU128::saturating_from_rational(weight .ref_time() as u128, WEIGHT_REF_TIME_PER_SECOND as u128);
+		let weight_ratio =
+			FixedU128::saturating_from_rational(weight.ref_time() as u128, WEIGHT_REF_TIME_PER_SECOND as u128);
 		let amount = self
 			.ratio
 			.saturating_mul_int(weight_ratio.saturating_mul_int(FixedRate::get()));

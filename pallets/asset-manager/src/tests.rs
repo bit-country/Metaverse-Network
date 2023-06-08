@@ -26,7 +26,7 @@ use std::str::{from_utf8, FromStr};
 use frame_support::{assert_noop, assert_ok};
 use sp_core::H160;
 
-use mock::{AssetManager, CouncilAccount, RuntimeEvent, ExtBuilder, RuntimeOrigin, Runtime, System};
+use mock::{AssetManager, CouncilAccount, ExtBuilder, Runtime, RuntimeEvent, RuntimeOrigin, System};
 use primitives::evm::{CurrencyIdType, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN};
 use primitives::FungibleTokenId::FungibleToken;
 use primitives::{TokenId, TokenSymbol};
@@ -50,16 +50,18 @@ fn register_foreign_asset_work() {
 		));
 
 		let location: MultiLocation = v0_location.try_into().unwrap();
-		System::assert_last_event(RuntimeEvent::AssetManager(crate::RuntimeEvent::ForeignAssetRegistered {
-			asset_id: 0,
-			asset_address: location.clone(),
-			metadata: AssetMetadata {
-				name: b"TNEER".to_vec(),
-				symbol: b"TNEER".to_vec(),
-				decimals: 18,
-				minimal_balance: 1,
+		System::assert_last_event(RuntimeEvent::AssetManager(
+			crate::RuntimeEvent::ForeignAssetRegistered {
+				asset_id: 0,
+				asset_address: location.clone(),
+				metadata: AssetMetadata {
+					name: b"TNEER".to_vec(),
+					symbol: b"TNEER".to_vec(),
+					decimals: 18,
+					minimal_balance: 1,
+				},
 			},
-		}));
+		));
 
 		assert_eq!(ForeignAssetLocations::<Runtime>::get(0), Some(location.clone()));
 		assert_eq!(
@@ -109,16 +111,18 @@ fn register_foreign_asset_fail() {
 		);
 
 		let location: MultiLocation = v0_location.try_into().unwrap();
-		System::assert_last_event(RuntimeEvent::AssetManager(crate::RuntimeEvent::ForeignAssetRegistered {
-			asset_id: 0,
-			asset_address: location.clone(),
-			metadata: AssetMetadata {
-				name: b"TNEER".to_vec(),
-				symbol: b"TNEER".to_vec(),
-				decimals: 18,
-				minimal_balance: 1,
+		System::assert_last_event(RuntimeEvent::AssetManager(
+			crate::RuntimeEvent::ForeignAssetRegistered {
+				asset_id: 0,
+				asset_address: location.clone(),
+				metadata: AssetMetadata {
+					name: b"TNEER".to_vec(),
+					symbol: b"TNEER".to_vec(),
+					decimals: 18,
+					minimal_balance: 1,
+				},
 			},
-		}));
+		));
 
 		assert_eq!(ForeignAssetLocations::<Runtime>::get(0), Some(location.clone()));
 		assert_eq!(

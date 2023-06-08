@@ -50,7 +50,7 @@ use polkadot_runtime_common::{BlockHashCount, SlowAdjustingFeeUpdate};
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata, ConstBool};
+use sp_core::{crypto::KeyTypeId, ConstBool, OpaqueMetadata};
 use sp_runtime::traits::{AccountIdConversion, Convert, ConvertInto};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -667,7 +667,6 @@ impl pallet_democracy::Config for Runtime {
 	type Preimages = Preimage;
 	type MaxDeposits = MaxDeposits;
 	type MaxBlacklisted = MaxBlacklisted;
-	
 }
 
 parameter_type_with_key! {
