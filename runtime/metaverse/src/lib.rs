@@ -33,9 +33,9 @@ use fp_rpc::TransactionStatus;
 use frame_benchmarking::frame_support::pallet_prelude::Get;
 pub use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ConstU32, EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo},
+	traits::{ConstU32, EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo, WithdrawReasons},
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		ConstantMultiplier, DispatchClass, DispatchInfo, IdentityFee, Weight, WeightToFeePolynomial,
 	},
 	PalletId, RuntimeDebug, StorageValue,
@@ -47,12 +47,12 @@ use frame_support::traits::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	Config, EnsureRoot, RawOrigin,
+	Config, EnsureRoot, EnsureSigned, RawOrigin,
 };
 // EVM imports
 use orml_traits::parameter_type_with_key;
 pub use pallet_balances::Call as BalancesCall;
-use pallet_contracts::{weights::WeightInfo, DefaultContractAccessWeight};
+use pallet_contracts::{weights::WeightInfo};
 use pallet_ethereum::{Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction};
 use pallet_evm::{
 	Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner,
@@ -67,6 +67,7 @@ use sp_core::{
 	crypto::{KeyTypeId, Public},
 	sp_std::marker::PhantomData,
 	OpaqueMetadata, H160, H256, U256,
+	ConstBool,
 };
 use sp_runtime::traits::DispatchInfoOf;
 #[cfg(any(feature = "std", test))]
@@ -74,7 +75,7 @@ pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{
-		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, Dispatchable, IdentifyAccount,
+		AccountIdConversion, AccountIdLookup, BlakeTwo256, Block as BlockT, Bounded, ConvertInto, Dispatchable, IdentifyAccount,
 		NumberFor, OpaqueKeys, PostDispatchInfoOf, UniqueSaturatedInto, Verify, Zero,
 	},
 	transaction_validity::{InvalidTransaction, TransactionSource, TransactionValidity, TransactionValidityError},
@@ -199,7 +200,7 @@ const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 /// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// We allow for 2 seconds of compute with a 3 second average block time.
-const MAXIMUM_BLOCK_WEIGHT: Weight = 2 * WEIGHT_PER_SECOND;
+const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_ref_time(2 * WEIGHT_REF_TIME_PER_SECOND);
 
 // Prints debug output of the `contracts` pallet to stdout if the node is
 // started with `-lruntime::contracts=debug`.
@@ -360,6 +361,7 @@ parameter_types! {
 	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
 	pub const BridgeSovereignPalletId: PalletId = PalletId(*b"bit/brgd");
 	pub const MaxAuthorities: u32 = 50;
+	pub const MaxSetIdSessionEntries: u64 = u64::MAX;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -372,7 +374,6 @@ impl pallet_aura::Config for Runtime {
 
 impl pallet_grandpa::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
-	type RuntimeCall = RuntimeCall;
 
 	type KeyOwnerProofSystem = ();
 
@@ -385,6 +386,7 @@ impl pallet_grandpa::Config for Runtime {
 
 	type WeightInfo = ();
 	type MaxAuthorities = MaxAuthorities;
+	type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -431,6 +433,7 @@ parameter_types! {
 	pub const TargetBlockFullness: Perquintill = Perquintill::from_percent(25);
 	pub AdjustmentVariable: Multiplier = Multiplier::saturating_from_rational(1, 100_000);
 	pub MinimumMultiplier: Multiplier = Multiplier::saturating_from_rational(1, 1_000_000_000u128);
+	pub MaximumMultiplier: Multiplier = Bounded::max_value();
 }
 
 impl pallet_transaction_payment::Config for Runtime {
@@ -439,7 +442,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type LengthToFee = ConstantMultiplier<Balance, TransactionByteFee>;
 	type OperationalFeeMultiplier = OperationalFeeMultiplier;
 	type WeightToFee = IdentityFee<Balance>;
-	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier>;
+	type FeeMultiplierUpdate = TargetedFeeAdjustment<Self, TargetBlockFullness, AdjustmentVariable, MinimumMultiplier, MaximumMultiplier>;
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -730,6 +733,8 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureRootOrMetaverseTreasury {
 
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 10;
+	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
 }
 
 impl pallet_vesting::Config for Runtime {
@@ -738,6 +743,7 @@ impl pallet_vesting::Config for Runtime {
 	type BlockNumberToBalance = ConvertInto;
 	type MinVestedTransfer = MinVestedTransfer;
 	type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+	type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
 	const MAX_VESTING_SCHEDULES: u32 = 100;
 }
 
@@ -803,9 +809,8 @@ impl pallet_collator_selection::Config for Runtime {
 }
 
 parameter_types! {
-	/// Max size 4MB allowed for a preimage.
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
 	pub PreimageBaseDeposit: Balance = deposit(2, 64);
+	pub PreimageByteDeposit: Balance = 1 * CENTS;
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -813,7 +818,6 @@ impl pallet_preimage::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
-	type MaxSize = PreimageMaxSize;
 	type BaseDeposit = PreimageBaseDeposit;
 	type ByteDeposit = PreimageByteDeposit;
 }
@@ -848,7 +852,6 @@ parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
 		RuntimeBlockWeights::get().max_block;
 	pub const MaxScheduledPerBlock: u32 = 50;
-	pub const NoPreimagePostponement: Option<u32> = Some(5 * MINUTES);
 }
 
 impl pallet_scheduler::Config for Runtime {
@@ -861,8 +864,7 @@ impl pallet_scheduler::Config for Runtime {
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = pallet_scheduler::weights::SubstrateWeight<Runtime>;
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
-	type PreimageProvider = Preimage;
-	type NoPreimagePostponement = NoPreimagePostponement;
+	type Preimages = Preimage;
 }
 
 parameter_types! {
@@ -873,13 +875,13 @@ parameter_types! {
 	pub const MinimumDeposit: Balance = 1000 * DOLLARS;
 	pub const EnactmentPeriod: BlockNumber = 6 * HOURS;
 	pub const CooloffPeriod: BlockNumber = 1 * HOURS;
-	pub const PreimageByteDeposit: Balance = 1 * CENTS;
 	pub const MaxVotes: u32 = 50;
 	pub const MaxProposals: u32 = 50;
+	pub const MaxBlacklisted: u32 = 100;
+	pub const MaxDeposits: u32 = 100;
 }
 
 impl pallet_democracy::Config for Runtime {
-	type Proposal = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EnactmentPeriod = EnactmentPeriod;
@@ -895,6 +897,7 @@ impl pallet_democracy::Config for Runtime {
 	/// A unanimous council can have the next scheduled referendum be a straight default-carries
 	/// (NTB) vote.
 	type ExternalDefaultOrigin = EnsureRootOrAllCouncilCollective;
+	//type SubmitOrigin = EnsureSigned<AccountId>;
 	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
 	/// be tabled immediately and with a shorter voting/enactment period.
 	type FastTrackOrigin = EnsureRootOrTwoThirdsTechnicalCommittee;
@@ -911,14 +914,15 @@ impl pallet_democracy::Config for Runtime {
 	// only do it once and it lasts only for the cool-off period.
 	type VetoOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
 	type CooloffPeriod = CooloffPeriod;
-	type PreimageByteDeposit = PreimageByteDeposit;
-	type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
 	type Slash = ();
 	type Scheduler = Scheduler;
 	type PalletsOrigin = OriginCaller;
 	type MaxVotes = MaxVotes;
 	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
 	type MaxProposals = MaxProposals;
+	type Preimages = Preimage;
+	type MaxDeposits = MaxDeposits;
+	type MaxBlacklisted = MaxBlacklisted;
 }
 
 parameter_types! {
@@ -1117,8 +1121,9 @@ impl orml_oracle::Config<MiningRewardDataProvider> for Runtime {
 
 parameter_types! {
 	// Tells `pallet_base_fee` whether to calculate a new BaseFee `on_finalize` or not.
-	pub IsActive: bool = false;
 	pub DefaultBaseFeePerGas: U256 = (10 * CENTS).into();
+	// Not using dynamic fee calculation
+	pub DefaultElasticity: Permill = Permill::zero();
 }
 
 pub struct BaseFeeThreshold;
@@ -1138,8 +1143,8 @@ impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
 impl pallet_base_fee::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Threshold = BaseFeeThreshold;
-	type IsActive = IsActive;
 	type DefaultBaseFeePerGas = DefaultBaseFeePerGas;
+	type DefaultElasticity = DefaultElasticity;
 }
 
 parameter_types! {
@@ -1279,7 +1284,6 @@ impl pallet_contracts::Config for Runtime {
 	type CallFilter = RPCCallFilter;
 	type DepositPerItem = DepositPerItem;
 	type DepositPerByte = DepositPerByte;
-	type ContractAccessWeight = DefaultContractAccessWeight<RuntimeBlockWeights>;
 	type WeightPrice = pallet_transaction_payment::Pallet<Self>;
 	type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
 	type ChainExtension = ();
@@ -1290,7 +1294,8 @@ impl pallet_contracts::Config for Runtime {
 	type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
 	type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
 	type MaxStorageKeyLen = ConstU32<1024>;
-	type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
+	type UnsafeUnstableInterface = ConstBool<false>;
+	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
 }
 
 // Treasury and Bounty
@@ -1559,7 +1564,7 @@ impl fp_self_contained::SelfContainedCall for RuntimeCall {
 	) -> Option<sp_runtime::DispatchResultWithInfo<PostDispatchInfoOf<Self>>> {
 		match self {
 			call @ RuntimeCall::Ethereum(pallet_ethereum::Call::transact { .. }) => {
-				Some(call.dispatch(Origin::from(pallet_ethereum::RawOrigin::EthereumTransaction(info))))
+				Some(call.dispatch(RuntimeOrigin::from(pallet_ethereum::RawOrigin::EthereumTransaction(info))))
 			}
 			_ => None,
 		}

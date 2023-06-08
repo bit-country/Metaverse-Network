@@ -27,7 +27,7 @@ use frame_support::traits::{
 };
 use frame_support::{
 	construct_runtime, match_type, parameter_types,
-	traits::{Everything, Imbalance},
+	traits::{Everything, Imbalance, WithdrawReasons},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
@@ -37,7 +37,7 @@ use frame_support::{
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
-	EnsureRoot, RawOrigin,
+	EnsureRoot, EnsureSigned, RawOrigin,
 };
 use orml_traits::location::{AbsoluteReserveProvider, RelativeReserveProvider, Reserve};
 use orml_traits::{arithmetic::Zero, parameter_type_with_key, MultiCurrency};
@@ -53,7 +53,7 @@ use scale_info::TypeInfo;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata, ConstBool};
 use sp_runtime::traits::{AccountIdConversion, ConstU32, Convert, ConvertInto};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
@@ -630,13 +630,13 @@ parameter_types! {
 	pub const MinimumDeposit: Balance = 10000 * DOLLARS;
 	pub const EnactmentPeriod: BlockNumber = 7 * DAYS;
 	pub const CooloffPeriod: BlockNumber = 7 * MINUTES;
-	pub const PreimageByteDeposit: Balance = 10 * CENTS;
 	pub const MaxVotes: u32 = 100;
 	pub const MaxProposals: u32 = 50;
+	pub const MaxBlacklisted: u32 = 100;
+	pub const MaxDeposits: u32 = 100;
 }
 
 impl pallet_democracy::Config for Runtime {
-	type Proposal = RuntimeCall;
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type EnactmentPeriod = EnactmentPeriod;
@@ -651,6 +651,7 @@ impl pallet_democracy::Config for Runtime {
 	/// A unanimous council can have the next scheduled referendum be a straight default-carries
 	/// (NTB) vote.
 	type ExternalDefaultOrigin = EnsureRootOrAllCouncilCollective;
+	//type SubmitOrigin = EnsureSigned<AccountId>;
 	/// Two thirds of the technical committee can have an ExternalMajority/ExternalDefault vote
 	/// be tabled immediately and with a shorter voting/enactment period.
 	type FastTrackOrigin = EnsureRootOrTwoThirdsTechnicalCommittee;
@@ -668,13 +669,15 @@ impl pallet_democracy::Config for Runtime {
 	type VetoOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
 	type CooloffPeriod = CooloffPeriod;
 	type PreimageByteDeposit = PreimageByteDeposit;
-	type OperationalPreimageOrigin = pallet_collective::EnsureMember<AccountId, CouncilCollective>;
 	type Slash = ();
 	type Scheduler = Scheduler;
 	type PalletsOrigin = OriginCaller;
 	type MaxVotes = MaxVotes;
 	type WeightInfo = pallet_democracy::weights::SubstrateWeight<Runtime>;
 	type MaxProposals = MaxProposals;
+	type Preimages = Preimage;
+	type MaxDeposits = MaxDeposits;
+	type MaxBlacklisted = MaxBlacklisted;
 }
 
 parameter_type_with_key! {
@@ -1277,9 +1280,8 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureRootOrMetaverseTreasury {
 }
 
 parameter_types! {
-	/// Max size 4MB allowed for a preimage.
-	pub const PreimageMaxSize: u32 = 4096 * 1024;
 	pub PreimageBaseDeposit: Balance = deposit(2, 64);
+	pub PreimageByteDeposit: Balance = 10 * CENTS;
 }
 
 impl pallet_preimage::Config for Runtime {
@@ -1287,7 +1289,6 @@ impl pallet_preimage::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type ManagerOrigin = EnsureRoot<AccountId>;
-	type MaxSize = PreimageMaxSize;
 	type BaseDeposit = PreimageBaseDeposit;
 	type ByteDeposit = PreimageByteDeposit;
 }
@@ -1296,8 +1297,6 @@ parameter_types! {
 	pub MaximumSchedulerWeight: Weight = Perbill::from_percent(80) *
 		RuntimeBlockWeights::get().max_block;
 	pub const MaxScheduledPerBlock: u32 = 50;
-	// Retry a scheduled item every 25 blocks (5 minute) until the preimage exists.
-	pub const NoPreimagePostponement: Option<u32> = Some(5 * MINUTES);
 }
 
 impl pallet_scheduler::Config for Runtime {
@@ -1310,12 +1309,13 @@ impl pallet_scheduler::Config for Runtime {
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = MaxScheduledPerBlock;
 	type WeightInfo = ();
-	type PreimageProvider = Preimage;
-	type NoPreimagePostponement = NoPreimagePostponement;
+	type Preimages = Preimage;
 }
 
 parameter_types! {
 	pub const MinVestedTransfer: Balance = 10 * DOLLARS;
+	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
 }
 
 impl pallet_vesting::Config for Runtime {
@@ -1324,6 +1324,7 @@ impl pallet_vesting::Config for Runtime {
 	type BlockNumberToBalance = ConvertInto;
 	type MinVestedTransfer = MinVestedTransfer;
 	type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+	type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
 	const MAX_VESTING_SCHEDULES: u32 = 100;
 }
 

@@ -9883,7 +9883,6 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-std",
- "sp-weights",
  "xcm",
 ]
 
