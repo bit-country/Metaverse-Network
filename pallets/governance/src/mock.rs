@@ -118,7 +118,7 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = 128;
+	pub MaximumSchedulerWeight: Weight = Weight::from_ref_time(128);
 }
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -130,8 +130,7 @@ impl pallet_scheduler::Config for Runtime {
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
-	type PreimageProvider = ();
-	type NoPreimagePostponement = ();
+	type Preimages= ();
 }
 
 pub struct MetaverseInfo {}
@@ -523,7 +522,7 @@ parameter_types! {
 }
 
 impl currencies::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
@@ -581,7 +580,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
@@ -601,7 +600,7 @@ pub fn run_to_block(n: u64) {
 }
 
 pub fn set_balance_proposal(value: u64) -> Vec<u8> {
-	Call::Balances(pallet_balances::Call::set_balance {
+	RuntimeCall::Balances(pallet_balances::Call::set_balance {
 		who: BOB,
 		new_free: value,
 		new_reserved: 100,
@@ -610,7 +609,7 @@ pub fn set_balance_proposal(value: u64) -> Vec<u8> {
 }
 
 pub fn set_freeze_metaverse_proposal(value: u64) -> Vec<u8> {
-	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse { metaverse_id: value }).encode()
+	RuntimeCall::Metaverse(pallet_metaverse::Call::freeze_metaverse { metaverse_id: value }).encode()
 }
 
 pub fn set_balance_proposal_hash(value: u64) -> H256 {

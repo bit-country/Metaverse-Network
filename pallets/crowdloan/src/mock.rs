@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_support::traits::WithdrawReasons;
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::traits::{ConvertInto, Identity};
@@ -95,12 +96,18 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = ();
 }
 
+parameter_types! {
+	pub UnvestedFundsAllowedWithdrawReasons: WithdrawReasons =
+		WithdrawReasons::except(WithdrawReasons::TRANSFER | WithdrawReasons::RESERVE);
+}
+
 impl pallet_vesting::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type BlockNumberToBalance = ConvertInto;
 	type MinVestedTransfer = MinVestedTransfer;
 	type WeightInfo = ();
+	type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
 	const MAX_VESTING_SCHEDULES: u32 = 20;
 }
 
@@ -196,7 +203,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")

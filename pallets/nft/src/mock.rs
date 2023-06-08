@@ -215,7 +215,7 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = 128;
+	pub MaximumSchedulerWeight: Weight = Weight::from_ref_time(128);
 }
 impl pallet_scheduler::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -320,5 +320,5 @@ pub fn last_event() -> RuntimeEvent {
 }
 
 pub fn transfer_balance_encode(to: AccountId, value: u128) -> Vec<u8> {
-	Call::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
+	RuntimeCall::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
 }

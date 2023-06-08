@@ -4,7 +4,7 @@ use sp_runtime::traits::BadOrigin;
 use sp_runtime::{AccountId32, Perbill};
 use sp_std::vec::Vec;
 
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 use primitives::Balance;
 
 // Unit testing for metaverse currency, metaverse treasury

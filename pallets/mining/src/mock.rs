@@ -260,7 +260,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Module::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
