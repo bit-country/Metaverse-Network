@@ -58,7 +58,7 @@ impl frame_system::Config for Runtime {
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -81,7 +81,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -213,7 +213,7 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
@@ -307,7 +307,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 }
 
 impl Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type AuctionTimeToClose = AuctionTimeToClose;
 	type Handler = AuctionModule;
 	type Currency = Balances;
@@ -355,8 +355,6 @@ impl pallet_scheduler::Config for Runtime {
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
-	type PreimageProvider = ();
-	type NoPreimagePostponement = ();
 }
 
 parameter_types! {

@@ -67,7 +67,7 @@ pub const UNDEPLOYED_LAND_BLOCK_ID_EXIST: UndeployedLandBlockId = 4;
 pub const UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST: UndeployedLandBlockId = 5;
 
 impl frame_system::Config for Runtime {
-	type Runtimeorigin = Runtimeorigin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
 	type RuntimeCall = RuntimeCall;
@@ -248,7 +248,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")

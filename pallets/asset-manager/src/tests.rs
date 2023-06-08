@@ -26,7 +26,7 @@ use std::str::{from_utf8, FromStr};
 use frame_support::{assert_noop, assert_ok};
 use sp_core::H160;
 
-use mock::{AssetManager, CouncilAccount, Event, ExtBuilder, Origin, Runtime, System};
+use mock::{AssetManager, CouncilAccount, RuntimeEvent, ExtBuilder, RuntimeOrigin, Runtime, System};
 use primitives::evm::{CurrencyIdType, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN};
 use primitives::FungibleTokenId::FungibleToken;
 use primitives::{TokenId, TokenSymbol};
@@ -39,7 +39,7 @@ fn register_foreign_asset_work() {
 		let v0_location = VersionedMultiLocation::V0(xcm::v0::MultiLocation::X1(xcm::v0::Junction::Parachain(2096)));
 
 		assert_ok!(AssetManager::register_foreign_asset(
-			Origin::signed(CouncilAccount::get()),
+			RuntimeOrigin::signed(CouncilAccount::get()),
 			Box::new(v0_location.clone()),
 			Box::new(AssetMetadata {
 				name: b"TNEER".to_vec(),
@@ -50,7 +50,7 @@ fn register_foreign_asset_work() {
 		));
 
 		let location: MultiLocation = v0_location.try_into().unwrap();
-		System::assert_last_event(Event::AssetManager(crate::Event::ForeignAssetRegistered {
+		System::assert_last_event(RuntimeEvent::AssetManager(crate::RuntimeEvent::ForeignAssetRegistered {
 			asset_id: 0,
 			asset_address: location.clone(),
 			metadata: AssetMetadata {
@@ -84,7 +84,7 @@ fn register_foreign_asset_fail() {
 		let v0_location = VersionedMultiLocation::V0(xcm::v0::MultiLocation::X1(xcm::v0::Junction::Parachain(2096)));
 
 		assert_ok!(AssetManager::register_foreign_asset(
-			Origin::signed(CouncilAccount::get()),
+			RuntimeOrigin::signed(CouncilAccount::get()),
 			Box::new(v0_location.clone()),
 			Box::new(AssetMetadata {
 				name: b"TNEER".to_vec(),
@@ -96,7 +96,7 @@ fn register_foreign_asset_fail() {
 
 		assert_noop!(
 			AssetManager::register_foreign_asset(
-				Origin::signed(CouncilAccount::get()),
+				RuntimeOrigin::signed(CouncilAccount::get()),
 				Box::new(v0_location.clone()),
 				Box::new(AssetMetadata {
 					name: b"TNEER".to_vec(),
@@ -109,7 +109,7 @@ fn register_foreign_asset_fail() {
 		);
 
 		let location: MultiLocation = v0_location.try_into().unwrap();
-		System::assert_last_event(Event::AssetManager(crate::Event::ForeignAssetRegistered {
+		System::assert_last_event(RuntimeEvent::AssetManager(crate::RuntimeEvent::ForeignAssetRegistered {
 			asset_id: 0,
 			asset_address: location.clone(),
 			metadata: AssetMetadata {

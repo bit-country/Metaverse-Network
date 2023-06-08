@@ -29,8 +29,8 @@ fn test_attributes(x: u8) -> Attributes {
 	attr
 }
 
-fn init_test_nft(owner: Origin) {
-	Nft::create_group(Origin::root(), vec![1], vec![1]);
+fn init_test_nft(owner: RuntimeOrigin) {
+	Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1]);
 	Nft::create_class(
 		owner.clone(),
 		vec![1],
@@ -52,7 +52,7 @@ fn get_nft_metadata_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
 
 			let nft_metadata: NftMetadata = vec![2u8];
 
@@ -77,7 +77,7 @@ fn get_nft_address_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
 
 			precompiles()
 				.prepare_test(
@@ -100,7 +100,7 @@ fn get_nft_owner_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
 
 			precompiles()
 				.prepare_test(
@@ -123,13 +123,13 @@ fn get_class_fund_balance_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
 
 			let class_fund: AccountId =
 				<Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
 
 			Currencies::update_balance(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				class_fund.clone(),
 				FungibleTokenId::NativeToken(0),
 				1000,
@@ -155,10 +155,10 @@ fn create_class_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
 
 			assert_eq!(NftModule::<Runtime>::classes(CLASS_ID_2), None);
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 
 			precompiles()
 				.prepare_test(
@@ -185,10 +185,10 @@ fn mint_nft_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
 
 			assert_eq!(NftModule::<Runtime>::tokens(CLASS_ID, TOKEN_ID_2), None);
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 
 			let nft_metadata: NftMetadata = vec![3u8];
 			precompiles()
@@ -215,14 +215,14 @@ fn transfer_nft_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
 
 			assert_eq!(
 				NftModule::<Runtime>::tokens(CLASS_ID, TOKEN_ID).unwrap().owner,
 				alice_account_id()
 			);
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
-			EvmMapping::claim_default_account(Origin::signed(bob_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(bob_account_id()));
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -250,8 +250,8 @@ fn burn_nft_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -274,13 +274,13 @@ fn withdraw_from_class_fund_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			init_test_nft(Origin::signed(alice_account_id()));
+			init_test_nft(RuntimeOrigin::signed(alice_account_id()));
 
 			let class_fund: AccountId =
 				<Runtime as nft_pallet::Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
 
 			Currencies::update_balance(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				class_fund.clone(),
 				FungibleTokenId::NativeToken(0),
 				1000,
@@ -289,7 +289,7 @@ fn withdraw_from_class_fund_works() {
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
 				1000
 			);
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 
 			precompiles()
 				.prepare_test(

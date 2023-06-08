@@ -72,7 +72,7 @@ where
 		>>::Balance,
 	>,
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
-	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+	<<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin: OriginTrait,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
 		let address = handle.code_address();
@@ -135,7 +135,7 @@ where
 		>>::Balance,
 	>,
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
-	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+	<<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin: OriginTrait,
 {
 	fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
 		let address = handle.code_address();
