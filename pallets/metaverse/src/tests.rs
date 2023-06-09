@@ -21,7 +21,7 @@ use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
 use sp_runtime::Perbill;
 
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 use primitives::staking::RoundInfo;
 
 #[cfg(test)]
@@ -34,7 +34,7 @@ fn free_native_balance(who: AccountId) -> Balance {
 #[test]
 fn create_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_eq!(
 			MetaverseModule::get_metaverse(&METAVERSE_ID),
 			Some(MetaverseInfo {
@@ -47,7 +47,7 @@ fn create_metaverse_should_work() {
 				listing_fee: Perbill::from_percent(0u32)
 			})
 		);
-		let event = Event::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
+		let event = RuntimeEvent::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -55,7 +55,7 @@ fn create_metaverse_should_work() {
 #[test]
 fn verify_is_metaverse_owner_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_eq!(
 			MetaverseModule::get_metaverse(&METAVERSE_ID),
 			Some(MetaverseInfo {
@@ -68,7 +68,7 @@ fn verify_is_metaverse_owner_should_work() {
 				listing_fee: Perbill::from_percent(0u32)
 			})
 		);
-		let event = Event::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
+		let event = RuntimeEvent::Metaverse(crate::Event::NewMetaverseCreated(METAVERSE_ID, ALICE));
 		assert_eq!(last_event(), event);
 		assert!(MetaverseModule::is_metaverse_owner(&ALICE));
 		assert!(!MetaverseModule::is_metaverse_owner(&BOB));
@@ -78,21 +78,21 @@ fn verify_is_metaverse_owner_should_work() {
 #[test]
 fn transfer_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::transfer_metaverse(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			BOB,
 			METAVERSE_ID
 		));
-		let event = Event::Metaverse(crate::Event::TransferredMetaverse(METAVERSE_ID, ALICE, BOB));
+		let event = RuntimeEvent::Metaverse(crate::Event::TransferredMetaverse(METAVERSE_ID, ALICE, BOB));
 		assert_eq!(last_event(), event);
 		// Make sure 2 ways transfer works
 		assert_ok!(MetaverseModule::transfer_metaverse(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			ALICE,
 			METAVERSE_ID
 		));
-		let event = Event::Metaverse(crate::Event::TransferredMetaverse(METAVERSE_ID, BOB, ALICE));
+		let event = RuntimeEvent::Metaverse(crate::Event::TransferredMetaverse(METAVERSE_ID, BOB, ALICE));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -100,9 +100,9 @@ fn transfer_metaverse_should_work() {
 #[test]
 fn transfer_metaverse_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_noop!(
-			MetaverseModule::transfer_metaverse(Origin::signed(BOB), ALICE, METAVERSE_ID),
+			MetaverseModule::transfer_metaverse(RuntimeOrigin::signed(BOB), ALICE, METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
 	})
@@ -111,9 +111,9 @@ fn transfer_metaverse_should_fail() {
 #[test]
 fn freeze_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::freeze_metaverse(Origin::signed(ALICE), METAVERSE_ID));
-		let event = Event::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::freeze_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		let event = RuntimeEvent::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -121,10 +121,10 @@ fn freeze_metaverse_should_work() {
 #[test]
 fn freeze_metaverse_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		//Country owner tries to freeze their own metaverse
 		assert_noop!(
-			MetaverseModule::freeze_metaverse(Origin::signed(BOB), METAVERSE_ID),
+			MetaverseModule::freeze_metaverse(RuntimeOrigin::signed(BOB), METAVERSE_ID),
 			BadOrigin
 		);
 	})
@@ -133,12 +133,12 @@ fn freeze_metaverse_should_fail() {
 #[test]
 fn unfreeze_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::freeze_metaverse(Origin::signed(ALICE), METAVERSE_ID));
-		let event = Event::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::freeze_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		let event = RuntimeEvent::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
-		assert_ok!(MetaverseModule::unfreeze_metaverse(Origin::signed(ALICE), METAVERSE_ID));
-		let event = Event::Metaverse(crate::Event::MetaverseUnfreezed(METAVERSE_ID));
+		assert_ok!(MetaverseModule::unfreeze_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		let event = RuntimeEvent::Metaverse(crate::Event::MetaverseUnfreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -146,10 +146,10 @@ fn unfreeze_metaverse_should_work() {
 #[test]
 fn destroy_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::freeze_metaverse(Origin::signed(ALICE), METAVERSE_ID));
-		assert_ok!(MetaverseModule::destroy_metaverse(Origin::signed(ALICE), METAVERSE_ID));
-		let event = Event::Metaverse(crate::Event::MetaverseDestroyed(METAVERSE_ID));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::freeze_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::destroy_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		let event = RuntimeEvent::Metaverse(crate::Event::MetaverseDestroyed(METAVERSE_ID));
 		assert_eq!(MetaverseModule::get_metaverse(&METAVERSE_ID), None);
 		assert_eq!(last_event(), event);
 	})
@@ -158,9 +158,9 @@ fn destroy_metaverse_should_work() {
 #[test]
 fn destroy_metaverse_without_root_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_noop!(
-			MetaverseModule::destroy_metaverse(Origin::signed(2), METAVERSE_ID),
+			MetaverseModule::destroy_metaverse(RuntimeOrigin::signed(2), METAVERSE_ID),
 			BadOrigin
 		);
 	})
@@ -169,9 +169,9 @@ fn destroy_metaverse_without_root_should_fail() {
 #[test]
 fn destroy_metaverse_with_no_id_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_noop!(
-			MetaverseModule::destroy_metaverse(Origin::signed(ALICE), COUNTRY_ID_NOT_EXIST),
+			MetaverseModule::destroy_metaverse(RuntimeOrigin::signed(ALICE), COUNTRY_ID_NOT_EXIST),
 			Error::<Runtime>::MetaverseInfoNotFound
 		);
 	})
@@ -180,9 +180,9 @@ fn destroy_metaverse_with_no_id_should_fail() {
 #[test]
 fn update_metaverse_listing_fee_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_ok!(MetaverseModule::update_metaverse_listing_fee(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			METAVERSE_ID,
 			Perbill::from_percent(10u32)
 		));
@@ -196,10 +196,10 @@ fn update_metaverse_listing_fee_should_work() {
 #[test]
 fn update_metaverse_listing_fee_should_fail_if_exceed_25_percents() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_noop!(
 			MetaverseModule::update_metaverse_listing_fee(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				METAVERSE_ID,
 				Perbill::from_percent(26u32)
 			),
@@ -211,10 +211,10 @@ fn update_metaverse_listing_fee_should_fail_if_exceed_25_percents() {
 #[test]
 fn update_metaverse_listing_fee_should_fail_if_not_metaverse_owner() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_noop!(
 			MetaverseModule::update_metaverse_listing_fee(
-				Origin::signed(BOB),
+				RuntimeOrigin::signed(BOB),
 				METAVERSE_ID,
 				Perbill::from_percent(10u32)
 			),
@@ -227,12 +227,12 @@ fn update_metaverse_listing_fee_should_fail_if_not_metaverse_owner() {
 fn do_withdraw_funds_from_metaverse_treasury_fund_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			MetaverseModule::withdraw_from_metaverse_fund(Origin::signed(ALICE), METAVERSE_ID),
+			MetaverseModule::withdraw_from_metaverse_fund(RuntimeOrigin::signed(ALICE), METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		assert_noop!(
-			MetaverseModule::withdraw_from_metaverse_fund(Origin::signed(BOB), METAVERSE_ID),
+			MetaverseModule::withdraw_from_metaverse_fund(RuntimeOrigin::signed(BOB), METAVERSE_ID),
 			Error::<Runtime>::NoPermission
 		);
 	})
@@ -241,8 +241,8 @@ fn do_withdraw_funds_from_metaverse_treasury_fund_should_fail() {
 #[test]
 fn do_withdraw_from_metaverse_fund_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-		assert_ok!(MetaverseModule::create_metaverse(Origin::signed(ALICE), vec![1]));
+		let origin = RuntimeOrigin::signed(ALICE);
+		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
 		let metaverse_fund: AccountId =
 			<Runtime as Config>::MetaverseTreasury::get().into_sub_account_truncating(METAVERSE_ID);
 		assert_ok!(<Runtime as Config>::Currency::transfer(

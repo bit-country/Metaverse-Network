@@ -24,15 +24,15 @@ use sp_std::default::Default;
 
 use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, TokenType};
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 use primitives::staking::Bond;
 use primitives::GroupCollectionId;
 
 use super::*;
 
-fn init_test_nft(owner: Origin, collection_id: GroupCollectionId, class_id: ClassId) {
+fn init_test_nft(owner: RuntimeOrigin, collection_id: GroupCollectionId, class_id: ClassId) {
 	//Create group collection before class
-	assert_ok!(NFTModule::create_group(Origin::root(), vec![1], vec![1]));
+	assert_ok!(NFTModule::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
 
 	assert_ok!(NFTModule::create_class(
 		owner.clone(),
@@ -66,7 +66,7 @@ fn get_mining_currency() -> FungibleTokenId {
 fn set_bit_power_exchange_rate_should_fail_bad_origin() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::set_bit_power_exchange_rate(Origin::signed(BOB), EXCHANGE_RATE),
+			EconomyModule::set_bit_power_exchange_rate(RuntimeOrigin::signed(BOB), EXCHANGE_RATE),
 			BadOrigin
 		);
 	});
@@ -76,7 +76,7 @@ fn set_bit_power_exchange_rate_should_fail_bad_origin() {
 fn set_bit_power_exchange_rate_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::set_bit_power_exchange_rate(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			EXCHANGE_RATE
 		));
 
@@ -88,7 +88,7 @@ fn set_bit_power_exchange_rate_should_work() {
 fn stake_should_fail_insufficient_balance() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::stake(Origin::signed(ALICE), STAKE_EXCESS_BALANCE, None),
+			EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_EXCESS_BALANCE, None),
 			Error::<Runtime>::InsufficientBalanceForStaking
 		);
 	});
@@ -101,7 +101,7 @@ fn stake_should_fail_exit_queue_scheduled() {
 		ExitQueue::<Runtime>::insert(ALICE, CURRENT_ROUND, STAKE_BALANCE);
 
 		assert_noop!(
-			EconomyModule::stake(Origin::signed(ALICE), STAKE_BELOW_MINIMUM_BALANCE, None),
+			EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BELOW_MINIMUM_BALANCE, None),
 			Error::<Runtime>::ExitQueueAlreadyScheduled
 		);
 	});
@@ -111,7 +111,7 @@ fn stake_should_fail_exit_queue_scheduled() {
 fn stake_should_fail_below_minimum() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::stake(Origin::signed(ALICE), STAKE_BELOW_MINIMUM_BALANCE, None),
+			EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BELOW_MINIMUM_BALANCE, None),
 			Error::<Runtime>::StakeBelowMinimum
 		);
 	});
@@ -121,7 +121,7 @@ fn stake_should_fail_below_minimum() {
 fn stake_should_fail_for_non_existing_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(8u32.into())),
+			EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, Some(8u32.into())),
 			Error::<Runtime>::StakeEstateDoesNotExist
 		);
 	});
@@ -131,7 +131,7 @@ fn stake_should_fail_for_non_existing_estate() {
 fn stake_should_fail_for_estate_not_owned_by_staker() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(EXISTING_ESTATE_ID)),
+			EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, Some(EXISTING_ESTATE_ID)),
 			Error::<Runtime>::StakerNotEstateOwner
 		);
 	});
@@ -147,7 +147,7 @@ fn stake_should_fail_for_estate_owned_by_staker_but_having_previously_staked_bon
 		EstateStakingInfo::<Runtime>::insert(&OWNED_ESTATE_ID, prepopulated_bond);
 
 		assert_noop!(
-			EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
+			EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
 			Error::<Runtime>::PreviousOwnerStillStakesAtEstate
 		);
 	});
@@ -156,11 +156,11 @@ fn stake_should_fail_for_estate_owned_by_staker_but_having_previously_staked_bon
 #[test]
 fn stake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
 		assert_eq!(
 			last_event(),
-			Event::Economy(crate::Event::SelfStakedToEconomy101(ALICE, STAKE_BALANCE))
+			RuntimeEvent::Economy(crate::Event::SelfStakedToEconomy101(ALICE, STAKE_BALANCE))
 		);
 
 		assert_eq!(Balances::reserved_balance(ALICE), STAKE_BALANCE);
@@ -175,14 +175,14 @@ fn stake_should_work() {
 fn stake_should_work_for_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			STAKE_BALANCE,
 			Some(OWNED_ESTATE_ID)
 		));
 
 		assert_eq!(
 			last_event(),
-			Event::Economy(crate::Event::EstateStakedToEconomy101(
+			RuntimeEvent::Economy(crate::Event::EstateStakedToEconomy101(
 				ALICE,
 				OWNED_ESTATE_ID,
 				STAKE_BALANCE
@@ -206,9 +206,9 @@ fn stake_should_work_for_estate() {
 #[test]
 fn stake_should_work_with_more_operations() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), 100, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), 100, None));
 
 		let total_staked_balance = STAKE_BALANCE + 100u128;
 
@@ -224,7 +224,7 @@ fn stake_should_work_with_more_operations() {
 fn unstake_should_fail_exceeds_staked_amount() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None),
+			EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None),
 			Error::<Runtime>::UnstakeAmountExceedStakedAmount
 		);
 	});
@@ -233,10 +233,10 @@ fn unstake_should_fail_exceeds_staked_amount() {
 #[test]
 fn unstake_should_fail_unstake_zero() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
 		assert_noop!(
-			EconomyModule::unstake(Origin::signed(ALICE), 0u128, None),
+			EconomyModule::unstake(RuntimeOrigin::signed(ALICE), 0u128, None),
 			Error::<Runtime>::UnstakeAmountIsZero
 		);
 	});
@@ -246,7 +246,7 @@ fn unstake_should_fail_unstake_zero() {
 fn unstake_should_fail_for_non_existing_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EconomyModule::unstake(Origin::signed(ALICE), STAKE_BALANCE, Some(8u32.into())),
+			EconomyModule::unstake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, Some(8u32.into())),
 			Error::<Runtime>::StakeEstateDoesNotExist
 		);
 	});
@@ -263,7 +263,7 @@ fn unstake_should_fail_for_estate_the_account_has_not_staked_in() {
 		EstateStakingInfo::<Runtime>::insert(&OWNED_ESTATE_ID, prepopulated_bond);
 
 		assert_noop!(
-			EconomyModule::unstake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
+			EconomyModule::unstake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
 			Error::<Runtime>::NoFundsStakedAtEstate
 		);
 	});
@@ -272,13 +272,13 @@ fn unstake_should_fail_for_estate_the_account_has_not_staked_in() {
 #[test]
 fn unstake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None));
+		assert_ok!(EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None));
 
 		assert_eq!(
 			last_event(),
-			Event::Economy(crate::Event::SelfStakingRemovedFromEconomy101(ALICE, UNSTAKE_AMOUNT))
+			RuntimeEvent::Economy(crate::Event::SelfStakingRemovedFromEconomy101(ALICE, UNSTAKE_AMOUNT))
 		);
 
 		let total_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
@@ -297,25 +297,25 @@ fn unstake_should_work() {
 fn unstake_should_work_for_estate() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			STAKE_BALANCE,
 			Some(OWNED_ESTATE_ID)
 		));
 
 		assert_noop!(
-			EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
+			EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)),
 			Error::<Runtime>::StakeAmountExceedMaximumAmount
 		);
 
 		assert_ok!(EconomyModule::unstake(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			UNSTAKE_AMOUNT,
 			Some(OWNED_ESTATE_ID)
 		));
 
 		assert_eq!(
 			last_event(),
-			Event::Economy(crate::Event::EstateStakingRemovedFromEconomy101(
+			RuntimeEvent::Economy(crate::Event::EstateStakingRemovedFromEconomy101(
 				ALICE,
 				OWNED_ESTATE_ID,
 				UNSTAKE_AMOUNT
@@ -344,13 +344,13 @@ fn unstake_should_work_for_estate() {
 #[test]
 fn withdraw_unstake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None));
+		assert_ok!(EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None));
 
 		assert_eq!(
 			last_event(),
-			Event::Economy(crate::Event::SelfStakingRemovedFromEconomy101(ALICE, UNSTAKE_AMOUNT))
+			RuntimeEvent::Economy(crate::Event::SelfStakingRemovedFromEconomy101(ALICE, UNSTAKE_AMOUNT))
 		);
 
 		let total_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
@@ -365,7 +365,7 @@ fn withdraw_unstake_should_work() {
 
 		// Default round length is 20 blocks so moving 25 blocks will move to the next round
 		run_to_block(25);
-		assert_ok!(EconomyModule::withdraw_unreserved(Origin::signed(ALICE), next_round));
+		assert_ok!(EconomyModule::withdraw_unreserved(RuntimeOrigin::signed(ALICE), next_round));
 		// ALICE balance free_balance was 9000 and added 9010 after withdraw unreserved
 		assert_eq!(Balances::free_balance(ALICE), FREE_BALANCE);
 	});
@@ -374,11 +374,11 @@ fn withdraw_unstake_should_work() {
 #[test]
 fn unstake_should_work_with_single_round() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None));
+		assert_ok!(EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None));
 
-		assert_ok!(EconomyModule::stake(Origin::signed(BOB), 200, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(BOB), 200, None));
 
 		let alice_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
 
@@ -392,11 +392,11 @@ fn unstake_should_work_with_single_round() {
 #[test]
 fn unstake_should_fail_with_existing_queue() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None));
+		assert_ok!(EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None));
 
-		assert_ok!(EconomyModule::stake(Origin::signed(BOB), 200, None));
+		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(BOB), 200, None));
 
 		let alice_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
 
@@ -406,7 +406,7 @@ fn unstake_should_fail_with_existing_queue() {
 		assert_eq!(EconomyModule::total_stake(), total_staked_balance);
 
 		assert_noop!(
-			EconomyModule::unstake(Origin::signed(ALICE), UNSTAKE_AMOUNT, None),
+			EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None),
 			Error::<Runtime>::ExitQueueAlreadyScheduled
 		);
 	});
@@ -415,9 +415,9 @@ fn unstake_should_fail_with_existing_queue() {
 #[test]
 fn unstake_new_estate_owner_should_fail_if_estate_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
-		//assert_ok!(EconomyModule::stake(Origin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)));
+		//assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)));
 		assert_noop!(
-			EconomyModule::unstake_new_estate_owner(Origin::signed(ALICE), 1000u64),
+			EconomyModule::unstake_new_estate_owner(RuntimeOrigin::signed(ALICE), 1000u64),
 			Error::<Runtime>::StakeEstateDoesNotExist
 		);
 	});
@@ -427,12 +427,12 @@ fn unstake_new_estate_owner_should_fail_if_estate_does_not_exist() {
 fn unstake_new_estate_owner_should_fail_if_not_estate_owner() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			STAKE_BALANCE,
 			Some(OWNED_ESTATE_ID)
 		));
 		assert_noop!(
-			EconomyModule::unstake_new_estate_owner(Origin::signed(BOB), OWNED_ESTATE_ID),
+			EconomyModule::unstake_new_estate_owner(RuntimeOrigin::signed(BOB), OWNED_ESTATE_ID),
 			Error::<Runtime>::StakerNotEstateOwner
 		);
 	});
@@ -442,12 +442,12 @@ fn unstake_new_estate_owner_should_fail_if_not_estate_owner() {
 fn unstake_new_estate_owner_should_fail_if_no_previous_owner_has_staked_balance_left() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			STAKE_BALANCE,
 			Some(OWNED_ESTATE_ID)
 		));
 		assert_noop!(
-			EconomyModule::unstake_new_estate_owner(Origin::signed(ALICE), OWNED_ESTATE_ID),
+			EconomyModule::unstake_new_estate_owner(RuntimeOrigin::signed(ALICE), OWNED_ESTATE_ID),
 			Error::<Runtime>::StakerNotPreviousOwner
 		);
 	});
@@ -463,12 +463,12 @@ fn unstake_new_estate_owner_should_work() {
 
 		EstateStakingInfo::<Runtime>::insert(&OWNED_ESTATE_ID, prepopulated_bond);
 		assert_ok!(EconomyModule::unstake_new_estate_owner(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			OWNED_ESTATE_ID
 		));
 		assert_eq!(
 			last_event(),
-			Event::Economy(crate::Event::EstateStakingRemovedFromEconomy101(
+			RuntimeEvent::Economy(crate::Event::EstateStakingRemovedFromEconomy101(
 				ALICE,
 				OWNED_ESTATE_ID,
 				STAKE_BALANCE
