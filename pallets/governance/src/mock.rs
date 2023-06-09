@@ -130,7 +130,7 @@ impl pallet_scheduler::Config for Runtime {
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
-	type Preimages= ();
+	type Preimages = ();
 }
 
 pub struct MetaverseInfo {}

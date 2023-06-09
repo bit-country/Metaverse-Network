@@ -203,6 +203,7 @@ impl EvmData for Junction {
 			}
 			Junction::GeneralKey { length, data } => {
 				encoded.push(6u8);
+				encoded.append(&mut length.to_be_bytes().to_vec());
 				encoded.append(&mut data.to_vec());
 				encoded.as_slice().into()
 			}

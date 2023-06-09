@@ -1,7 +1,7 @@
 #![cfg(test)]
 
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_support::traits::WithdrawReasons;
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;
 use sp_runtime::traits::{ConvertInto, Identity};

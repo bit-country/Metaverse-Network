@@ -28,7 +28,7 @@ use frame_support::{
 	construct_runtime, match_type, parameter_types,
 	traits::{Everything, Imbalance, WithdrawReasons},
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
@@ -56,7 +56,7 @@ use sp_runtime::traits::{AccountIdConversion, Convert, ConvertInto};
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, ConstU32, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult, MultiSignature,
 };
@@ -69,11 +69,11 @@ use xcm::latest::prelude::*;
 use xcm_builder::{
 	AccountId32Aliases, AllowKnownQueryResponses, AllowSubscriptionsFrom, AllowTopLevelPaidExecutionFrom,
 	AllowUnpaidExecutionFrom, CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible, FixedWeightBounds, IsConcrete,
-	LocationInverter, NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
+	NativeAsset, ParentAsSuperuser, ParentIsPreset, RelayChainAsNative, SiblingParachainAsNative,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32, SovereignSignedViaLocation,
 	TakeRevenue, TakeWeightCredit, UsingComponents,
 };
-use xcm_executor::{Config, XcmExecutor};
+use xcm_executor::{traits::WithOriginFilter, Config, XcmExecutor};
 
 pub use constants::{currency::*, time::*};
 use core_primitives::{NftAssetData, NftClassData};
@@ -160,7 +160,7 @@ pub type Executive = frame_executive::Executive<
 pub struct OnRuntimeUpgrade;
 
 impl frame_support::traits::OnRuntimeUpgrade for OnRuntimeUpgrade {
-	fn on_runtime_upgrade() -> u64 {
+	fn on_runtime_upgrade() -> Weight {
 		frame_support::migrations::migrate_from_pallet_version_to_storage_version::<AllPalletsWithSystem>(
 			&RocksDbWeight::get(),
 		)
@@ -185,7 +185,7 @@ impl WeightToFeePolynomial for WeightToFee {
 		// in Rococo, extrinsic base weight (smallest non-zero weight) is mapped to 1 CENTS:
 		// in our template, we map to 1/10 of that, or 1/10 MILLIUNIT
 		let p = RELAY_CENTS;
-		let q = Balance::from(ExtrinsicBaseWeight::get());
+		let q = Balance::from(ExtrinsicBaseWeight::get().ref_time());
 		smallvec![WeightToFeeCoefficient {
 			degree: 1,
 			negative: false,
@@ -415,8 +415,6 @@ parameter_types! {
 
 impl pallet_authorship::Config for Runtime {
 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
-	type UncleGenerations = UncleGenerations;
-	type FilterUncle = ();
 	type EventHandler = CollatorSelection;
 }
 
@@ -694,9 +692,10 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BaseXcmWeight: Weight = 100_000_000;
+	pub const BaseXcmWeight: Weight = Weight::from_ref_time(100_000_000);
 	pub const MaxAssetsForTransfer: usize = 2;
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
+	pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
 }
 
 pub struct AccountIdToMultiLocation;
@@ -704,7 +703,7 @@ pub struct AccountIdToMultiLocation;
 impl Convert<AccountId, MultiLocation> for AccountIdToMultiLocation {
 	fn convert(account: AccountId) -> MultiLocation {
 		X1(AccountId32 {
-			network: NetworkId::Any,
+			network: None,
 			id: account.into(),
 		})
 		.into()
@@ -735,7 +734,7 @@ impl orml_xtokens::Config for Runtime {
 	type XcmExecutor = XcmExecutor<XcmConfig>;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type BaseXcmWeight = BaseXcmWeight;
-	type LocationInverter = LocationInverter<Ancestry>;
+	type UniversalLocation = UniversalLocation;
 	type MaxAssetsForTransfer = MaxAssetsForTransfer;
 	type MinXcmFee = ParachainMinFee;
 	type MultiLocationsFilter = MultiLocationsFilter;
@@ -764,8 +763,8 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
-	pub const ReservedDmpWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 4;
+	pub const ReservedXcmpWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 4);
+	pub const ReservedDmpWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -795,71 +794,80 @@ parameter_types! {
 }
 
 parameter_types! {
-	pub KsmPerSecond: (AssetId, u128) = (MultiLocation::parent().into(), ksm_per_second());
-	pub GenericNeerPerSecond: (AssetId, u128) = (
+	pub KsmPerSecond: (AssetId, u128, u128) = (MultiLocation::parent().into(), ksm_per_second(), 0);
+	pub GenericNeerPerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(ParachainInfo::parachain_id().into()), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None)))
+			X2(Parachain(ParachainInfo::parachain_id().into()), Junction::from(BoundedVec::try_from(FungibleTokenId::NativeToken(0).encode()).unwrap())) //WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None)
 		).into(),
-		native_per_second()
+		native_per_second(),
+		0
 	);
-	pub NeerPerSecond: (AssetId, u128) = (
+	pub NeerPerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(2096), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None)))
+			X2(Parachain(2096), Junction::from(BoundedVec::try_from(FungibleTokenId::NativeToken(0).encode()).unwrap()))
 		).into(),
-		native_per_second()
+		native_per_second(),
+		0
 	);
-	pub NeerX0PerSecond: (AssetId, u128) = (
+	pub NeerX0PerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			0,
-			X1(GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None)))
+			X1(Junction::from(BoundedVec::try_from(FungibleTokenId::NativeToken(0).encode()).unwrap()))
 		).into(),
-		native_per_second()
+		native_per_second(),
+		0
 	);
-	pub NeerX1PerSecond: (AssetId, u128) = (
+	pub NeerX1PerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(3096), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None))),
+			X2(Parachain(3096), Junction::from(BoundedVec::try_from(FungibleTokenId::NativeToken(0).encode()).unwrap())),
 		).into(),
-		native_per_second()
+		native_per_second(),
+		0
 	);
-	pub NeerX2PerSecond: (AssetId, u128) = (
+	pub NeerX2PerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(parachains::karura::ID), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::NativeToken(0).encode(), None)))
+			X2(Parachain(parachains::karura::ID), Junction::from(BoundedVec::try_from(FungibleTokenId::NativeToken(0).encode()).unwrap()))
 		).into(),
-		native_per_second()
+		native_per_second(),
+		0
 	);
-	pub BitPerSecond: (AssetId, u128) = (
+	pub BitPerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(2096), GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::MiningResource(0).encode(), None)))
+			X2(Parachain(2096), Junction::from(BoundedVec::try_from(FungibleTokenId::MiningResource(0).encode()).unwrap()))
 		).into(),
-		native_per_second()
+		native_per_second(),
+		0
 	);
-	pub BitX1PerSecond: (AssetId, u128) = (
+	pub BitX1PerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			0,
-			X1(GeneralKey(WeakBoundedVec::force_from(FungibleTokenId::MiningResource(0).encode(), None))),
+			X1(Junction::from(BoundedVec::try_from(FungibleTokenId::MiningResource(0).encode()).unwrap())),
 		).into(),
-		native_per_second()
+		native_per_second(),
+		0
 	);
-	pub KUsdPerSecond: (AssetId, u128) = (
+	pub KUsdPerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(parachains::karura::ID), GeneralKey(WeakBoundedVec::force_from(parachains::karura::KUSD_KEY.to_vec(), None)))
+			X2(Parachain(parachains::karura::ID), Junction::from(BoundedVec::try_from(parachains::karura::KUSD_KEY.to_vec()).unwrap()))
 		).into(),
 		// kUSD:KSM = 400:1
-		ksm_per_second() * 400
+		ksm_per_second() * 400,
+		0
 	);
-	pub KarPerSecond: (AssetId, u128) = (
+	pub KarPerSecond: (AssetId, u128, u128) = (
 		MultiLocation::new(
 			1,
-			X2(Parachain(parachains::karura::ID), GeneralKey(WeakBoundedVec::force_from(parachains::karura::KAR_KEY.to_vec(), None)))
+			X2(Parachain(parachains::karura::ID), Junction::from(BoundedVec::try_from(parachains::karura::KAR_KEY.to_vec()).unwrap()))
 		).into(),
 		// KAR:KSM = 50:1
-		ksm_per_second() * 50
+		ksm_per_second() * 50,
+		0
 	);
 }
 
@@ -950,7 +958,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
 	// One XCM operation is 100_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = 100_000_000;
+	pub UnitWeightCost: Weight = Weight::from_ref_time(100_000_000);
 	pub const MaxInstructions: u32 = 100;
 }
 
@@ -966,7 +974,7 @@ fn native_currency_location(id: FungibleTokenId) -> MultiLocation {
 		1,
 		X2(
 			Parachain(ParachainInfo::parachain_id().into()),
-			GeneralKey(WeakBoundedVec::force_from(id.encode(), None)),
+			Junction::from(BoundedVec::try_from(id.encode()).unwrap()),
 		),
 	)
 }
@@ -987,14 +995,14 @@ impl Convert<FungibleTokenId, Option<MultiLocation>> for FungibleTokenIdConvert 
 				1,
 				X2(
 					Parachain(parachains::karura::ID),
-					GeneralKey(WeakBoundedVec::force_from(parachains::karura::KAR_KEY.to_vec(), None)),
+					Junction::from(BoundedVec::try_from(parachains::karura::KAR_KEY.to_vec()).unwrap()),
 				),
 			)),
 			Stable(0) => Some(MultiLocation::new(
 				1,
 				X2(
 					Parachain(parachains::karura::ID),
-					GeneralKey(WeakBoundedVec::force_from(parachains::karura::KUSD_KEY.to_vec(), None)),
+					Junction::from(BoundedVec::try_from(parachains::karura::KUSD_KEY.to_vec()).unwrap()),
 				),
 			)),
 			_ => Some(native_currency_location(id)),
@@ -1025,16 +1033,16 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 		match location.clone() {
 			MultiLocation {
 				parents: 1,
-				interior: X2(Parachain(para_id), GeneralKey(key)),
+				interior: X2(Parachain(para_id), GeneralKey { length, data }),
 			} => match para_id {
 				// Local testing para chain id
-				2096 | 3096 => match FungibleTokenId::decode(&mut &key[..]) {
+				2096 | 3096 => match FungibleTokenId::decode(&mut &data[..]) {
 					Ok(NativeToken(0)) => Some(FungibleTokenId::NativeToken(0)),
 					Ok(MiningResource(0)) => Some(FungibleTokenId::MiningResource(0)),
 					_ => None,
 				},
 
-				parachains::karura::ID => match &key[..] {
+				parachains::karura::ID => match &data[..] {
 					parachains::karura::KAR_KEY => Some(FungibleTokenId::NativeToken(2)),
 					parachains::karura::KUSD_KEY => Some(FungibleTokenId::Stable(0)),
 					_ => None,
@@ -1043,9 +1051,9 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 				_ => None,
 			},
 			MultiLocation { parents, interior } if parents == 0 => match interior {
-				X1(GeneralKey(key)) => {
+				X1(GeneralKey { length, data }) => {
 					// decode the general key
-					if let Ok(currency_id) = FungibleTokenId::decode(&mut &key[..]) {
+					if let Ok(currency_id) = FungibleTokenId::decode(&mut &data[..]) {
 						match currency_id {
 							NativeToken(0) | MiningResource(0) => Some(currency_id),
 							_ => None,
@@ -1076,6 +1084,50 @@ impl Convert<MultiAsset, Option<FungibleTokenId>> for FungibleTokenIdConvert {
 
 pub type Barrier = (TakeWeightCredit, AllowTopLevelPaidExecutionFrom<Everything>);
 
+// A call filter for the XCM Transact instruction. This is a temporary measure until we properly
+/// account for proof size weights.
+///
+/// Calls that are allowed through this filter must:
+/// 1. Have a fixed weight;
+/// 2. Cannot lead to another call being made
+/// 3. Have a defined proof size weight, e.g. no unbounded vecs in call parameters. - TODO:
+/// shouldn't max XCM weight handle this?
+pub struct SafeCallFilter;
+
+impl SafeCallFilter {
+	// 1. RuntimeCall::Multisig(..) - contains `Vec` in argument so we should avoid this
+	// 2. RuntimeCall::EVM(..) & RuntimeCall::Ethereum(..) have to be prohibited since we cannot measure
+	// PoV size properly 3. RuntimeCall::Contracts(..) it should be safe to allow for such calls but
+	// perhaps it's better to do more delibrate testing on Shibuya/RocStar.
+
+	/// Checks whether the base (non-composite) call is allowed to be executed via `Transact` XCM
+	/// instruction.
+	pub fn allow_base_call(call: &RuntimeCall) -> bool {
+		match call {
+			RuntimeCall::System(..)
+			| RuntimeCall::Balances(..)
+			| RuntimeCall::Vesting(..)
+			| RuntimeCall::Currencies(..)
+			| RuntimeCall::PolkadotXcm(..)
+			| RuntimeCall::Session(..) => true,
+			_ => false,
+		}
+	}
+}
+
+impl Contains<RuntimeCall> for SafeCallFilter {
+	fn contains(call: &RuntimeCall) -> bool {
+		#[cfg(feature = "runtime-benchmarks")]
+		{
+			if matches!(call, RuntimeCall::System(frame_system::Call::remark_with_event { .. })) {
+				return true;
+			}
+		}
+
+		Self::allow_base_call(call)
+	}
+}
+
 pub struct XcmConfig;
 
 impl xcm_executor::Config for XcmConfig {
@@ -1090,29 +1142,43 @@ impl xcm_executor::Config for XcmConfig {
 	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
 	type IsTeleporter = ();
 	// Should be enough to allow teleportation of ROC
-	type LocationInverter = LocationInverter<Ancestry>;
+	type UniversalLocation = UniversalLocation;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
 	type Trader = Trader;
 	type ResponseHandler = PolkadotXcm;
 	type SubscriptionService = PolkadotXcm;
+	type PalletInstancesInfo = AllPalletsWithSystem;
+	type MaxAssetsIntoHolding = ConstU32<64>;
+	type AssetLocker = ();
+	type AssetExchanger = ();
+	type FeeManager = ();
+	type MessageExporter = ();
+	type UniversalAliases = Nothing;
+	type CallDispatcher = WithOriginFilter<SafeCallFilter>;
+	type SafeCallFilter = SafeCallFilter;
 }
 
 parameter_types! {
-	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT / 10;
-	pub const AnyNetwork: NetworkId = NetworkId::Any;
+	pub const MaxDownwardMessageWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 10);
+	pub const RelayNetworkId: NetworkId = NetworkId::Kusama;
 }
 
 /// No local origins on this chain are allowed to dispatch XCM sends/executions.
-pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, AnyNetwork>;
+pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, RelayNetworkId>;
 
 /// The means for routing XCM messages which are not for local execution into the right message
 /// queues.
 pub type XcmRouter = (
 	// Two routers - use UMP to communicate with the relay chain:
-	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, ()>,
+	cumulus_primitives_utility::ParentAsUmp<ParachainSystem, PolkadotXcm, ()>,
 	// ..and XCMP to communicate with the sibling chains.
 	XcmpQueue,
 );
+
+#[cfg(feature = "runtime-benchmarks")]
+parameter_types! {
+	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
+}
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -1124,12 +1190,20 @@ impl pallet_xcm::Config for Runtime {
 	type XcmTeleportFilter = Nothing;
 	type XcmReserveTransferFilter = Everything;
 	type Weigher = FixedWeightBounds<UnitWeightCost, RuntimeCall, MaxInstructions>;
-	type LocationInverter = LocationInverter<Ancestry>;
+	type UniversalLocation = UniversalLocation;
 	type RuntimeOrigin = RuntimeOrigin;
 	type RuntimeCall = RuntimeCall;
-
 	const VERSION_DISCOVERY_QUEUE_SIZE: u32 = 100;
 	type AdvertisedXcmVersion = pallet_xcm::CurrentXcmVersion;
+
+	type Currency = Balances;
+	type CurrencyMatcher = ();
+	type TrustedLockers = ();
+	type SovereignAccountOf = ();
+	type MaxLockers = ConstU32<8>;
+	type WeightInfo = pallet_xcm::TestWeightInfo;
+	#[cfg(feature = "runtime-benchmarks")]
+	type ReachableDest = ReachableDest;
 }
 
 impl cumulus_pallet_xcm::Config for Runtime {
@@ -1145,6 +1219,7 @@ impl cumulus_pallet_xcmp_queue::Config for Runtime {
 	type ExecuteOverweightOrigin = EnsureRoot<AccountId>;
 	type ControllerOrigin = EnsureRoot<AccountId>;
 	type ControllerOriginConverter = XcmOriginToTransactDispatchOrigin;
+	type PriceForSiblingDelivery = ();
 	type WeightInfo = ();
 }
 
@@ -1586,7 +1661,7 @@ construct_runtime!(
 
 
 		// Collator support. The order of these 4 are important and shall not change.
-		Authorship: pallet_authorship::{Pallet, Call, Storage} = 20,
+		Authorship: pallet_authorship::{Pallet, Storage} = 20,
 		CollatorSelection: pallet_collator_selection::{Pallet, Call, Storage, Event<T>, Config<T>} = 21,
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 22,
 		Aura: pallet_aura::{Pallet, Storage, Config<T>} = 23,
@@ -1727,6 +1802,12 @@ impl_runtime_apis! {
 			len: u32,
 		) -> pallet_transaction_payment::FeeDetails<Balance> {
 			TransactionPayment::query_fee_details(uxt, len)
+		}
+		fn query_weight_to_fee(weight: Weight) -> Balance {
+			TransactionPayment::weight_to_fee(weight)
+		}
+		fn query_length_to_fee(length: u32) -> Balance {
+			TransactionPayment::length_to_fee(length)
 		}
 	}
 
