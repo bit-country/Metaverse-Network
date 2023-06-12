@@ -154,23 +154,23 @@ pub enum Subcommand {
 	// FrontierDb(fc_cli::FrontierDbCmd),
 
 	/// Export the genesis state of the parachain.
-	//#[arg(alias = "export-genesis-state")]
-	ExportGenesisState(cumulus_client_cli::ExportGenesisStateCommand),
+	#[command(alias = "export-genesis-state")]
+	ExportGenesisState(ExportGenesisStateCommand),
 
 	/// Export the genesis wasm of the parachain.
-	//#[arg(alias = "export-genesis-wasm")]
-	ExportGenesisWasm(cumulus_client_cli::ExportGenesisWasmCommand),
+	#[command(alias = "export-genesis-wasm")]
+	ExportGenesisWasm(ExportGenesisWasmCommand),
 
 	/// Try some command against runtime state.
 	#[cfg(feature = "try-runtime")]
 	TryRuntime(try_runtime_cli::TryRuntimeCmd),
 }
-/*
+
 /// Command for exporting the genesis state of the parachain
-#[derive(Debug, <Arg as Parser>::parse(clap::Parser, from_os_str))]
+#[derive(Debug, clap::Parser)]
 pub struct ExportGenesisStateCommand {
 	/// Output file name or stdout if unspecified.
-	#[arg(<Arg as Parser>::parse(clap::Parser,from_os_str))]
+	#[arg()]
 	pub output: Option<PathBuf>,
 
 	/// Write output in binary. Default is to write in hex.
@@ -180,13 +180,17 @@ pub struct ExportGenesisStateCommand {
 	/// The name of the chain for that the genesis state should be exported.
 	#[arg(long)]
 	pub chain: Option<String>,
+
+	#[allow(missing_docs)]
+	#[command(flatten)]
+	pub shared_params: sc_cli::SharedParams,
 }
 
 /// Command for exporting the genesis wasm file.
-#[derive(Debug, <Arg as Parser>::parse(clap::Parser, from_os_str))]
+#[derive(Debug, clap::Parser)]
 pub struct ExportGenesisWasmCommand {
 	/// Output file name or stdout if unspecified.
-	#[arg(parse(from_os_str))]
+	#[arg()]
 	pub output: Option<PathBuf>,
 
 	/// Write output in binary. Default is to write in hex.
@@ -196,8 +200,12 @@ pub struct ExportGenesisWasmCommand {
 	/// The name of the chain for that the genesis wasm file should be exported.
 	#[arg(long)]
 	pub chain: Option<String>,
+
+	#[allow(missing_docs)]
+	#[command(flatten)]
+	pub shared_params: sc_cli::SharedParams,
 }
- */
+
 #[derive(Debug)]
 pub struct RelayChainCli {
 	/// The actual relay chain cli object.

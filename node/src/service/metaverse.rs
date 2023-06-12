@@ -132,7 +132,7 @@ pub fn new_partial(
 		telemetry.as_ref().map(|x| x.handle()),
 	)?;
 
-	let frontier_backend = crate::rpc::open_frontier_backend(config)?;
+	let frontier_backend = crate::rpc::open_frontier_backend(client.clone(), config)?;
 	let frontier_block_import =
 		FrontierBlockImport::new(grandpa_block_import.clone(), client.clone(), frontier_backend.clone());
 
