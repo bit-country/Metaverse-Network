@@ -112,7 +112,10 @@ fn transfer_metaverse_should_fail() {
 fn freeze_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::freeze_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::freeze_metaverse(
+			RuntimeOrigin::signed(ALICE),
+			METAVERSE_ID
+		));
 		let event = RuntimeEvent::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
 	})
@@ -134,10 +137,16 @@ fn freeze_metaverse_should_fail() {
 fn unfreeze_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::freeze_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::freeze_metaverse(
+			RuntimeOrigin::signed(ALICE),
+			METAVERSE_ID
+		));
 		let event = RuntimeEvent::Metaverse(crate::Event::MetaverseFreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
-		assert_ok!(MetaverseModule::unfreeze_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::unfreeze_metaverse(
+			RuntimeOrigin::signed(ALICE),
+			METAVERSE_ID
+		));
 		let event = RuntimeEvent::Metaverse(crate::Event::MetaverseUnfreezed(METAVERSE_ID));
 		assert_eq!(last_event(), event);
 	})
@@ -147,8 +156,14 @@ fn unfreeze_metaverse_should_work() {
 fn destroy_metaverse_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(MetaverseModule::create_metaverse(RuntimeOrigin::signed(ALICE), vec![1]));
-		assert_ok!(MetaverseModule::freeze_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
-		assert_ok!(MetaverseModule::destroy_metaverse(RuntimeOrigin::signed(ALICE), METAVERSE_ID));
+		assert_ok!(MetaverseModule::freeze_metaverse(
+			RuntimeOrigin::signed(ALICE),
+			METAVERSE_ID
+		));
+		assert_ok!(MetaverseModule::destroy_metaverse(
+			RuntimeOrigin::signed(ALICE),
+			METAVERSE_ID
+		));
 		let event = RuntimeEvent::Metaverse(crate::Event::MetaverseDestroyed(METAVERSE_ID));
 		assert_eq!(MetaverseModule::get_metaverse(&METAVERSE_ID), None);
 		assert_eq!(last_event(), event);

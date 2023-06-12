@@ -394,7 +394,12 @@ fn set_reward_root_works() {
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
 
-		assert_ok!(Reward::set_reward_root(RuntimeOrigin::signed(ALICE), 0, 5, test_hash(1u64)));
+		assert_ok!(Reward::set_reward_root(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			5,
+			test_hash(1u64)
+		));
 
 		let campaign_info = CampaignInfo {
 			creator: ALICE,
@@ -444,7 +449,12 @@ fn set_nft_reward_works() {
 		assert_eq!(Balances::free_balance(ALICE), 9993);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
-		assert_ok!(Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(BOB, 1)], 1));
+		assert_ok!(Reward::set_nft_reward(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			vec![(BOB, 1)],
+			1
+		));
 
 		let campaign_info_2 = CampaignInfo {
 			creator: ALICE,
@@ -459,7 +469,8 @@ fn set_nft_reward_works() {
 
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info_2));
 
-		let event = mock::RuntimeEvent::Reward(crate::Event::SetNftReward(campaign_id, vec![(BOB, vec![(0u32, 1u64)])]));
+		let event =
+			mock::RuntimeEvent::Reward(crate::Event::SetNftReward(campaign_id, vec![(BOB, vec![(0u32, 1u64)])]));
 		assert_eq!(last_event(), event)
 	});
 }
@@ -496,7 +507,11 @@ fn set_nft_reward_root_works() {
 		assert_eq!(Balances::free_balance(ALICE), 9990);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
-		assert_ok!(Reward::set_nft_reward_root(RuntimeOrigin::signed(ALICE), 0, test_hash(1u64)));
+		assert_ok!(Reward::set_nft_reward_root(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			test_hash(1u64)
+		));
 
 		let campaign_info_2 = CampaignInfo {
 			creator: ALICE,
@@ -638,7 +653,12 @@ fn set_reward_root_fails() {
 			Error::<Runtime>::RewardExceedCap
 		);
 
-		assert_ok!(Reward::set_reward_root(RuntimeOrigin::signed(ALICE), 0, 5, test_hash(1u64)));
+		assert_ok!(Reward::set_reward_root(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			5,
+			test_hash(1u64)
+		));
 
 		assert_noop!(
 			Reward::set_reward_root(RuntimeOrigin::signed(ALICE), 0, 5, test_hash(1u64)),
@@ -723,14 +743,24 @@ fn set_nft_reward_fails() {
 			Error::<Runtime>::InvalidTotalNftRewardAmountParameter
 		);
 
-		assert_ok!(Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(BOB, 1)], 2));
+		assert_ok!(Reward::set_nft_reward(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			vec![(BOB, 1)],
+			2
+		));
 
 		assert_noop!(
 			Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(BOB, 1)], 1),
 			Error::<Runtime>::AccountAlreadyRewarded
 		);
 
-		assert_ok!(Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(106, 2)], 2));
+		assert_ok!(Reward::set_nft_reward(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			vec![(106, 2)],
+			2
+		));
 
 		assert_noop!(
 			Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(100, 1)], 1),
@@ -782,7 +812,11 @@ fn set_nft_reward_root_fails() {
 			Error::<Runtime>::CampaignIsNotFound
 		);
 
-		assert_ok!(Reward::set_nft_reward_root(RuntimeOrigin::signed(ALICE), 0, test_hash(1u64)));
+		assert_ok!(Reward::set_nft_reward_root(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			test_hash(1u64)
+		));
 
 		assert_noop!(
 			Reward::set_nft_reward_root(RuntimeOrigin::signed(ALICE), 0, test_hash(1u64)),
@@ -967,7 +1001,12 @@ fn claim_nft_reward_works() {
 		assert_eq!(Balances::free_balance(ALICE), 9993);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
-		assert_ok!(Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(BOB, 1)], 1));
+		assert_ok!(Reward::set_nft_reward(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			vec![(BOB, 1)],
+			1
+		));
 
 		run_to_block(17);
 
@@ -1182,7 +1221,12 @@ fn claim_reward_fails() {
 			vec![1],
 		));
 
-		assert_ok!(Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 1, vec![(BOB, 1)], 1));
+		assert_ok!(Reward::set_nft_reward(
+			RuntimeOrigin::signed(ALICE),
+			1,
+			vec![(BOB, 1)],
+			1
+		));
 
 		run_to_block(37);
 
@@ -1272,7 +1316,12 @@ fn claim_reward_root_fails() {
 			vec![1],
 		));
 
-		assert_ok!(Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 1, vec![(BOB, 1)], 1));
+		assert_ok!(Reward::set_nft_reward(
+			RuntimeOrigin::signed(ALICE),
+			1,
+			vec![(BOB, 1)],
+			1
+		));
 
 		run_to_block(37);
 
@@ -1339,7 +1388,12 @@ fn claim_nft_reward_fails() {
 			vec![1],
 		));
 
-		assert_ok!(Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(BOB, 1)], 1));
+		assert_ok!(Reward::set_nft_reward(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			vec![(BOB, 1)],
+			1
+		));
 
 		run_to_block(9);
 
@@ -1600,7 +1654,11 @@ fn close_nft_campaign_with_merkle_root_works() {
 
 		assert_eq!(Balances::free_balance(ALICE), 9993);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
-		assert_ok!(Reward::set_nft_reward_root(RuntimeOrigin::signed(ALICE), 0, test_hash(1u64)));
+		assert_ok!(Reward::set_nft_reward_root(
+			RuntimeOrigin::signed(ALICE),
+			0,
+			test_hash(1u64)
+		));
 		assert_eq!(CampaignMerkleRoots::<Runtime>::get(campaign_id), vec![test_hash(1u64)]);
 
 		run_to_block(100);

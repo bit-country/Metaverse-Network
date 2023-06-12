@@ -23,7 +23,9 @@ use std::str::FromStr;
 
 use frame_support::{assert_noop, assert_ok};
 
-use mock::{alice, bob, secp_utils::*, EVMMapping, RuntimeEvent, ExtBuilder, RuntimeOrigin, Runtime, System, ALICE, BOB};
+use mock::{
+	alice, bob, secp_utils::*, EVMMapping, ExtBuilder, Runtime, RuntimeEvent, RuntimeOrigin, System, ALICE, BOB,
+};
 
 use super::*;
 

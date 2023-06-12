@@ -457,7 +457,10 @@ fn remove_vote_work() {
 			0,
 			BOB_COUNTRY_ID
 		));
-		assert_eq!(last_event(), RuntimeEvent::Governance(crate::Event::VoteRemoved(BOB, 0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Governance(crate::Event::VoteRemoved(BOB, 0))
+		);
 	});
 }
 
@@ -502,7 +505,10 @@ fn emergency_cancel_referendum_work() {
 			0
 		));
 		assert_eq!(Balances::free_balance(&ALICE), 100000);
-		assert_eq!(last_event(), RuntimeEvent::Governance(crate::Event::ReferendumCancelled(0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Governance(crate::Event::ReferendumCancelled(0))
+		);
 	});
 }
 
@@ -570,7 +576,10 @@ fn referendum_proposal_passes() {
 				title: PROPOSAL_DESCRIPTION.to_vec()
 			})
 		);
-		assert_eq!(last_event(), RuntimeEvent::Governance(crate::Event::ReferendumPassed(0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Governance(crate::Event::ReferendumPassed(0))
+		);
 	});
 }
 
@@ -604,7 +613,10 @@ fn referendum_proposal_is_rejected() {
 				title: PROPOSAL_DESCRIPTION.to_vec()
 			})
 		);
-		assert_eq!(last_event(), RuntimeEvent::Governance(crate::Event::ReferendumNotPassed(0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Governance(crate::Event::ReferendumNotPassed(0))
+		);
 	});
 }
 

@@ -50,18 +50,16 @@ fn register_foreign_asset_work() {
 		));
 
 		let location: MultiLocation = v2_location.try_into().unwrap();
-		System::assert_last_event(RuntimeEvent::AssetManager(
-			crate::Event::ForeignAssetRegistered {
-				asset_id: 0,
-				asset_address: location.clone(),
-				metadata: AssetMetadata {
-					name: b"TNEER".to_vec(),
-					symbol: b"TNEER".to_vec(),
-					decimals: 18,
-					minimal_balance: 1,
-				},
+		System::assert_last_event(RuntimeEvent::AssetManager(crate::Event::ForeignAssetRegistered {
+			asset_id: 0,
+			asset_address: location.clone(),
+			metadata: AssetMetadata {
+				name: b"TNEER".to_vec(),
+				symbol: b"TNEER".to_vec(),
+				decimals: 18,
+				minimal_balance: 1,
 			},
-		));
+		}));
 
 		assert_eq!(ForeignAssetLocations::<Runtime>::get(0), Some(location.clone()));
 		assert_eq!(
@@ -111,18 +109,16 @@ fn register_foreign_asset_fail() {
 		);
 
 		let location: MultiLocation = v2_location.try_into().unwrap();
-		System::assert_last_event(RuntimeEvent::AssetManager(
-			crate::Event::ForeignAssetRegistered {
-				asset_id: 0,
-				asset_address: location.clone(),
-				metadata: AssetMetadata {
-					name: b"TNEER".to_vec(),
-					symbol: b"TNEER".to_vec(),
-					decimals: 18,
-					minimal_balance: 1,
-				},
+		System::assert_last_event(RuntimeEvent::AssetManager(crate::Event::ForeignAssetRegistered {
+			asset_id: 0,
+			asset_address: location.clone(),
+			metadata: AssetMetadata {
+				name: b"TNEER".to_vec(),
+				symbol: b"TNEER".to_vec(),
+				decimals: 18,
+				minimal_balance: 1,
 			},
-		));
+		}));
 
 		assert_eq!(ForeignAssetLocations::<Runtime>::get(0), Some(location.clone()));
 		assert_eq!(

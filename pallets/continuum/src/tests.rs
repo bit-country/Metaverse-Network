@@ -56,7 +56,11 @@ fn issue_continuum_spot_should_fail_when_no_root() {
 		assert_ok!(ContinuumModule::set_allow_buy_now(root, true));
 
 		assert_noop!(
-			ContinuumModule::issue_map_slot(RuntimeOrigin::signed(ALICE), CONTINUUM_MAP_COORDINATE, TokenType::Transferable),
+			ContinuumModule::issue_map_slot(
+				RuntimeOrigin::signed(ALICE),
+				CONTINUUM_MAP_COORDINATE,
+				TokenType::Transferable
+			),
 			BadOrigin
 		);
 	})

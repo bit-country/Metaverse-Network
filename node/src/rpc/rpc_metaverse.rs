@@ -31,9 +31,12 @@ use substrate_frame_rpc_system::{System, SystemApiServer};
 use metaverse_runtime::{opaque::Block, AccountId, Hash, Index};
 use primitives::*;
 
-pub fn open_frontier_backend<C>(client: Arc<C>, config: &sc_service::Configuration) -> Result<Arc<fc_db::Backend<Block>>, String>
+pub fn open_frontier_backend<C>(
+	client: Arc<C>,
+	config: &sc_service::Configuration,
+) -> Result<Arc<fc_db::Backend<Block>>, String>
 where
-	C: sp_blockchain::HeaderBackend<Block>, 
+	C: sp_blockchain::HeaderBackend<Block>,
 {
 	let config_dir = config
 		.base_path
@@ -43,11 +46,14 @@ where
 			sc_service::BasePath::from_project("", "", "metaverse-node").config_dir(config.chain_spec.id())
 		});
 	let path = config_dir.join("frontier").join("db");
-	//let client = 
+	//let client =
 
-	Ok(Arc::new(fc_db::Backend::<Block>::new(client, &fc_db::DatabaseSettings {
-		source: sc_client_db::DatabaseSource::RocksDb { path, cache_size: 0 },
-	})?))
+	Ok(Arc::new(fc_db::Backend::<Block>::new(
+		client,
+		&fc_db::DatabaseSettings {
+			source: sc_client_db::DatabaseSource::RocksDb { path, cache_size: 0 },
+		},
+	)?))
 }
 
 pub fn overrides_handle<C, BE>(client: Arc<C>) -> Arc<OverrideHandle<Block>>
@@ -178,7 +184,7 @@ where
 			block_data_cache.clone(),
 			fee_history_cache,
 			fee_history_limit,
-		Default::default(),
+			Default::default(),
 		)
 		.into_rpc(),
 	)?;

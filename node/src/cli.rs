@@ -69,7 +69,6 @@ pub struct RunCmd {
 	#[arg(long, conflicts_with = "validator")]
 	pub collator: bool,
 
-	
 	/// Relay chain arguments
 	#[arg(
 		long,

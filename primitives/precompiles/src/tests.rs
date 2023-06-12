@@ -834,10 +834,7 @@ fn junction_decoder_works() {
 
 #[test]
 fn network_id_decoder_works() {
-	assert_eq!(
-		network_id_from_bytes(network_id_to_bytes(None)),
-		Ok(None)
-	);
+	assert_eq!(network_id_from_bytes(network_id_to_bytes(None)), Ok(None));
 
 	assert_eq!(
 		network_id_from_bytes(network_id_to_bytes(Some(NetworkId::Kusama))),

@@ -220,15 +220,16 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		Vec::default(),
 	));
 
-	let (network, system_rpc_tx, transaction_handler, network_starter) = sc_service::build_network(sc_service::BuildNetworkParams {
-		config: &config,
-		client: client.clone(),
-		transaction_pool: transaction_pool.clone(),
-		spawn_handle: task_manager.spawn_handle(),
-		import_queue: import_queue,
-		block_announce_validator_builder: None,
-		warp_sync: Some(warp_sync),
-	})?;
+	let (network, system_rpc_tx, transaction_handler, network_starter) =
+		sc_service::build_network(sc_service::BuildNetworkParams {
+			config: &config,
+			client: client.clone(),
+			transaction_pool: transaction_pool.clone(),
+			spawn_handle: task_manager.spawn_handle(),
+			import_queue: import_queue,
+			block_announce_validator_builder: None,
+			warp_sync: Some(warp_sync),
+		})?;
 
 	if config.offchain_worker.enabled {
 		sc_service::build_offchain_workers(&config, task_manager.spawn_handle(), client.clone(), network.clone());

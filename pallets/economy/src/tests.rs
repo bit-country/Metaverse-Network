@@ -274,7 +274,11 @@ fn unstake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None));
+		assert_ok!(EconomyModule::unstake(
+			RuntimeOrigin::signed(ALICE),
+			UNSTAKE_AMOUNT,
+			None
+		));
 
 		assert_eq!(
 			last_event(),
@@ -346,7 +350,11 @@ fn withdraw_unstake_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None));
+		assert_ok!(EconomyModule::unstake(
+			RuntimeOrigin::signed(ALICE),
+			UNSTAKE_AMOUNT,
+			None
+		));
 
 		assert_eq!(
 			last_event(),
@@ -365,7 +373,10 @@ fn withdraw_unstake_should_work() {
 
 		// Default round length is 20 blocks so moving 25 blocks will move to the next round
 		run_to_block(25);
-		assert_ok!(EconomyModule::withdraw_unreserved(RuntimeOrigin::signed(ALICE), next_round));
+		assert_ok!(EconomyModule::withdraw_unreserved(
+			RuntimeOrigin::signed(ALICE),
+			next_round
+		));
 		// ALICE balance free_balance was 9000 and added 9010 after withdraw unreserved
 		assert_eq!(Balances::free_balance(ALICE), FREE_BALANCE);
 	});
@@ -376,7 +387,11 @@ fn unstake_should_work_with_single_round() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None));
+		assert_ok!(EconomyModule::unstake(
+			RuntimeOrigin::signed(ALICE),
+			UNSTAKE_AMOUNT,
+			None
+		));
 
 		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(BOB), 200, None));
 
@@ -394,7 +409,11 @@ fn unstake_should_fail_with_existing_queue() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, None));
 
-		assert_ok!(EconomyModule::unstake(RuntimeOrigin::signed(ALICE), UNSTAKE_AMOUNT, None));
+		assert_ok!(EconomyModule::unstake(
+			RuntimeOrigin::signed(ALICE),
+			UNSTAKE_AMOUNT,
+			None
+		));
 
 		assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(BOB), 200, None));
 
@@ -415,7 +434,8 @@ fn unstake_should_fail_with_existing_queue() {
 #[test]
 fn unstake_new_estate_owner_should_fail_if_estate_does_not_exist() {
 	ExtBuilder::default().build().execute_with(|| {
-		//assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE, Some(OWNED_ESTATE_ID)));
+		//assert_ok!(EconomyModule::stake(RuntimeOrigin::signed(ALICE), STAKE_BALANCE,
+		// Some(OWNED_ESTATE_ID)));
 		assert_noop!(
 			EconomyModule::unstake_new_estate_owner(RuntimeOrigin::signed(ALICE), 1000u64),
 			Error::<Runtime>::StakeEstateDoesNotExist

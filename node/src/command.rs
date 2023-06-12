@@ -557,13 +557,19 @@ pub fn run() -> sc_cli::Result<()> {
 						let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
 						cmd.run(client)
 					}
+					BenchmarkCmd::Storage(_cmd) => Err("Unsupported benchmarking command".into()),
+					/*
+					// TO DO: To be updated to extract db / storage information. Currently results in build error
 					BenchmarkCmd::Storage(cmd) => {
-						let PartialComponents { client, backend, .. } = service::new_partial(&config, &cli)?;
-						let db = backend.expose_db();
-						let storage = backend.expose_storage();
+						//let PartialComponents<Client, > { client, backend, .. } = service::new_partial(&config, &cli)?;
+						let params = service::new_partial(&config, &cli)?;
+						let db = params.backend. expose_db();
+						let storage = params.backend.expose_storage();
 
-						cmd.run(config, client, db, storage)
+						cmd.run(config, params.client, db, storage)
 					}
+					*/
+					BenchmarkCmd::Extrinsic(_cmd) => Err("Unsupported benchmarking command".into()),
 					BenchmarkCmd::Overhead(_cmd) => Err("Unsupported benchmarking command".into()),
 					BenchmarkCmd::Machine(cmd) => cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
 				}
@@ -787,10 +793,6 @@ impl CliConfiguration<Self> for RelayChainCli {
 
 	fn transaction_pool(&self, is_dev: bool) -> Result<sc_service::config::TransactionPoolOptions> {
 		self.base.base.transaction_pool(is_dev)
-	}
-
-	fn state_cache_child_ratio(&self) -> Result<Option<usize>> {
-		self.base.base.state_cache_child_ratio()
 	}
 
 	fn rpc_methods(&self) -> Result<sc_service::config::RpcMethods> {

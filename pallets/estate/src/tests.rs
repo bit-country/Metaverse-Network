@@ -32,7 +32,12 @@ fn estate_sub_account(estate_id: mock::EstateId) -> AccountId {
 fn mint_land_should_reject_non_root() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			EstateModule::mint_land(RuntimeOrigin::signed(ALICE), BENEFICIARY_ID, METAVERSE_ID, COORDINATE_IN_1),
+			EstateModule::mint_land(
+				RuntimeOrigin::signed(ALICE),
+				BENEFICIARY_ID,
+				METAVERSE_ID,
+				COORDINATE_IN_1
+			),
 			BadOrigin
 		);
 	});
@@ -138,7 +143,12 @@ fn mint_lands_should_reject_with_duplicate_coordinates() {
 
 		assert_eq!(EstateModule::all_land_units_count(), 2);
 		assert_noop!(
-			EstateModule::mint_lands(RuntimeOrigin::root(), BENEFICIARY_ID, METAVERSE_ID, vec![COORDINATE_IN_1]),
+			EstateModule::mint_lands(
+				RuntimeOrigin::root(),
+				BENEFICIARY_ID,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1]
+			),
 			Error::<Runtime>::LandUnitIsNotAvailable
 		);
 	});
@@ -394,7 +404,12 @@ fn mint_estate_should_fail_for_minted_land() {
 		));
 
 		assert_err!(
-			EstateModule::mint_estate(RuntimeOrigin::root(), BENEFICIARY_ID, METAVERSE_ID, vec![COORDINATE_IN_1]),
+			EstateModule::mint_estate(
+				RuntimeOrigin::root(),
+				BENEFICIARY_ID,
+				METAVERSE_ID,
+				vec![COORDINATE_IN_1]
+			),
 			Error::<Runtime>::LandUnitIsNotAvailable
 		);
 	});
@@ -430,7 +445,10 @@ fn dissolve_estate_should_work() {
 		);
 
 		// Destroy estate
-		assert_ok!(EstateModule::dissolve_estate(RuntimeOrigin::signed(BENEFICIARY_ID), estate_id,));
+		assert_ok!(EstateModule::dissolve_estate(
+			RuntimeOrigin::signed(BENEFICIARY_ID),
+			estate_id,
+		));
 
 		assert_eq!(EstateModule::all_estates_count(), 0);
 		assert_eq!(EstateModule::get_estates(estate_id), None);
@@ -1089,7 +1107,10 @@ fn freeze_undeployed_land_block_should_work() {
 
 		assert_ok!(EstateModule::freeze_undeployed_land_blocks(RuntimeOrigin::root(), 0));
 
-		assert_eq!(last_event(), RuntimeEvent::Estate(crate::Event::UndeployedLandBlockFreezed(0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Estate(crate::Event::UndeployedLandBlockFreezed(0))
+		);
 
 		assert_eq!(EstateModule::get_undeployed_land_block_owner(BOB, 0), Some(()));
 
@@ -1119,7 +1140,10 @@ fn freeze_undeployed_land_block_should_fail_already_freezed() {
 
 		assert_ok!(EstateModule::freeze_undeployed_land_blocks(RuntimeOrigin::root(), 0));
 
-		assert_eq!(last_event(), RuntimeEvent::Estate(crate::Event::UndeployedLandBlockFreezed(0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Estate(crate::Event::UndeployedLandBlockFreezed(0))
+		);
 
 		assert_noop!(
 			EstateModule::freeze_undeployed_land_blocks(RuntimeOrigin::root(), 0),
@@ -1361,7 +1385,11 @@ fn transfer_undeployed_land_block_should_fail_if_already_in_auction() {
 		}
 
 		assert_noop!(
-			EstateModule::transfer_undeployed_land_blocks(RuntimeOrigin::signed(BOB), ALICE, UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			EstateModule::transfer_undeployed_land_blocks(
+				RuntimeOrigin::signed(BOB),
+				ALICE,
+				UNDEPLOYED_LAND_BLOCK_IN_AUCTION
+			),
 			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
 	});
@@ -1701,7 +1729,11 @@ fn approve_undeployed_land_block_should_fail_if_already_in_auction() {
 		}
 
 		assert_noop!(
-			EstateModule::approve_undeployed_land_blocks(RuntimeOrigin::signed(BOB), ALICE, UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			EstateModule::approve_undeployed_land_blocks(
+				RuntimeOrigin::signed(BOB),
+				ALICE,
+				UNDEPLOYED_LAND_BLOCK_IN_AUCTION
+			),
 			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
 	});
@@ -1862,7 +1894,10 @@ fn unapprove_undeployed_land_block_should_fail_if_already_in_auction() {
 		}
 
 		assert_noop!(
-			EstateModule::unapprove_undeployed_land_blocks(RuntimeOrigin::signed(BOB), UNDEPLOYED_LAND_BLOCK_IN_AUCTION),
+			EstateModule::unapprove_undeployed_land_blocks(
+				RuntimeOrigin::signed(BOB),
+				UNDEPLOYED_LAND_BLOCK_IN_AUCTION
+			),
 			Error::<Runtime>::UndeployedLandBlockAlreadyInAuction
 		);
 	});
@@ -2524,7 +2559,12 @@ fn cancel_lease_should_work() {
 
 		run_to_block(5);
 
-		assert_ok!(EstateModule::cancel_lease(RuntimeOrigin::root(), BENEFICIARY_ID, 0u64, ALICE));
+		assert_ok!(EstateModule::cancel_lease(
+			RuntimeOrigin::root(),
+			BENEFICIARY_ID,
+			0u64,
+			ALICE
+		));
 
 		assert_eq!(
 			last_event(),
@@ -2845,9 +2885,16 @@ fn collect_rent_should_work() {
 
 		run_to_block(4);
 
-		assert_ok!(EstateModule::collect_rent(RuntimeOrigin::signed(BENEFICIARY_ID), 0u64, ALICE));
+		assert_ok!(EstateModule::collect_rent(
+			RuntimeOrigin::signed(BENEFICIARY_ID),
+			0u64,
+			ALICE
+		));
 
-		assert_eq!(last_event(), RuntimeEvent::Estate(crate::Event::EstateRentCollected(0, 30)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Estate(crate::Event::EstateRentCollected(0, 30))
+		);
 
 		lease.unclaimed_rent = 50u128;
 
