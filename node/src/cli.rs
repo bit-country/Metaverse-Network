@@ -83,7 +83,7 @@ pub struct RunCmd {
 		conflicts_with = "eve",
 		conflicts_with = "ferdie"
 	)]
-	pub relay_chain_rpc_url: Option<Url>,
+	pub relay_chain_rpc_urls: Vec<Url>,
 }
 
 impl RunCmd {
@@ -100,7 +100,7 @@ impl RunCmd {
 	/// Create [`CollatorOptions`] representing options only relevant to parachain collator nodes
 	pub fn collator_options(&self) -> cumulus_client_cli::CollatorOptions {
 		cumulus_client_cli::CollatorOptions {
-			relay_chain_rpc_url: self.relay_chain_rpc_url.clone(),
+			relay_chain_rpc_urls: self.relay_chain_rpc_urls.clone(),
 		}
 	}
 }

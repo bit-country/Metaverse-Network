@@ -174,6 +174,7 @@ where
 			block_data_cache.clone(),
 			fee_history_cache,
 			fee_history_limit,
+			execute_gas_limit_multiplier: 1u64,
 		)
 		.into_rpc(),
 	)?;

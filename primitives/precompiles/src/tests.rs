@@ -840,14 +840,6 @@ fn network_id_decoder_works() {
 	);
 
 	assert_eq!(
-		network_id_from_bytes(network_id_to_bytes(NetworkId::Named(WeakBoundedVec::force_from(
-			b"myname".to_vec(),
-			None
-		)))),
-		Ok(NetworkId::Named(WeakBoundedVec::force_from(b"myname".to_vec(), None)))
-	);
-
-	assert_eq!(
 		network_id_from_bytes(network_id_to_bytes(Some(NetworkId::Kusama))),
 		Ok(Some(NetworkId::Kusama))
 	);
