@@ -60,6 +60,7 @@ sc-finality-grandpa = { git = "https://github.com/paritytech/substrate", branch 
 sc-finality-grandpa-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 sc-network = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+sc-network-common = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 sc-tracing = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
@@ -110,6 +111,7 @@ cumulus-client-service = { git = 'https://github.com/paritytech/cumulus', branch
 cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-relay-chain-interface = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
+cumulus-relay-chain-minimal-node = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-relay-chain-rpc-interface = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-relay-chain-inprocess-interface = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 # Polkadot dependencies

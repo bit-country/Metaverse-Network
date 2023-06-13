@@ -12,13 +12,14 @@ use cumulus_client_service::{
 use cumulus_primitives_core::ParaId;
 use cumulus_relay_chain_inprocess_interface::build_inprocess_relay_chain;
 use cumulus_relay_chain_interface::{RelayChainError, RelayChainInterface, RelayChainResult};
-use cumulus_relay_chain_rpc_interface::RelayChainRPCInterface;
+use cumulus_relay_chain_minimal_node::build_minimal_relay_chain_node;
+use cumulus_relay_chain_rpc_interface::RelayChainRpcInterface;
 use jsonrpsee::RpcModule;
 use polkadot_service::CollatorPair;
 // Substrate Imports
 use sc_client_api::ExecutorProvider;
 use sc_executor::NativeElseWasmExecutor;
-use sc_network::NetworkService;
+use sc_network::{NetworkBlock, NetworkService};
 use sc_service::{Configuration, PartialComponents, Role, TFullBackend, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryHandle, TelemetryWorker, TelemetryWorkerHandle};
 use sp_api::ConstructRuntimeApi;
@@ -64,7 +65,11 @@ pub fn new_partial<RuntimeApi, Executor, BIQ>(
 		(),
 		sc_consensus::DefaultImportQueue<Block, TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
 		sc_transaction_pool::FullPool<Block, TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<Executor>>>,
-		(Option<Telemetry>, Option<TelemetryWorkerHandle>),
+		(
+			ParachainBlockImport<RuntimeApi>,
+			Option<Telemetry>,
+			Option<TelemetryWorkerHandle>,
+		),
 	>,
 	sc_service::Error,
 >
@@ -159,18 +164,16 @@ async fn build_relay_chain_interface(
 	task_manager: &mut TaskManager,
 	collator_options: CollatorOptions,
 ) -> RelayChainResult<(Arc<(dyn RelayChainInterface + 'static)>, Option<CollatorPair>)> {
-	match collator_options.relay_chain_rpc_url {
-		Some(relay_chain_url) => Ok((
-			Arc::new(RelayChainRPCInterface::new(relay_chain_url).await?) as Arc<_>,
-			None,
-		)),
-		None => build_inprocess_relay_chain(
+	if !collator_options.relay_chain_rpc_urls.is_empty() {
+		build_minimal_relay_chain_node(polkadot_config, task_manager, collator_options.relay_chain_rpc_urls).await
+	} else {
+		build_inprocess_relay_chain(
 			polkadot_config,
 			parachain_config,
 			telemetry_worker_handle,
 			task_manager,
 			None,
-		),
+		)
 	}
 }
 
@@ -228,10 +231,6 @@ where
 		bool,
 	) -> Result<Box<dyn ParachainConsensus<Block>>, sc_service::Error>,
 {
-	if matches!(parachain_config.role, Role::Light) {
-		return Err("Light client not supported!".into());
-	}
-
 	let parachain_config = prepare_node_config(parachain_config);
 
 	let params = new_partial::<RuntimeApi, Executor, BIQ>(&parachain_config, build_import_queue)?;
@@ -249,10 +248,7 @@ where
 		collator_options.clone(),
 	)
 	.await
-	.map_err(|e| match e {
-		RelayChainError::ServiceError(polkadot_service::Error::Sub(x)) => x,
-		s => s.to_string().into(),
-	})?;
+	.map_err(|e| sc_service::Error::Application(Box::new(e) as Box<_>))?;
 
 	let block_announce_validator = BlockAnnounceValidator::new(relay_chain_interface.clone(), id);
 
@@ -260,16 +256,17 @@ where
 	let validator = parachain_config.role.is_authority();
 	let prometheus_registry = parachain_config.prometheus_registry().cloned();
 	let transaction_pool = params.transaction_pool.clone();
-	let import_queue = cumulus_client_service::SharedImportQueue::new(params.import_queue);
-	let (network, system_rpc_tx, start_network) = sc_service::build_network(sc_service::BuildNetworkParams {
-		config: &parachain_config,
-		client: client.clone(),
-		transaction_pool: transaction_pool.clone(),
-		spawn_handle: task_manager.spawn_handle(),
-		import_queue: import_queue.clone(),
-		block_announce_validator_builder: Some(Box::new(|_| Box::new(block_announce_validator))),
-		warp_sync: None,
-	})?;
+	let import_queue_service = params.import_queue.service();
+	let (network, system_rpc_tx, tx_handler_controller, start_network) =
+		sc_service::build_network(sc_service::BuildNetworkParams {
+			config: &parachain_config,
+			client: client.clone(),
+			transaction_pool: transaction_pool.clone(),
+			spawn_handle: task_manager.spawn_handle(),
+			import_queue: params.import_queue,
+			block_announce_validator_builder: Some(Box::new(|_| Box::new(block_announce_validator))),
+			warp_sync: None,
+		})?;
 
 	let rpc_builder = {
 		let client = client.clone();
@@ -287,15 +284,16 @@ where
 	};
 
 	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-		rpc_builder,
-		client: client.clone(),
-		transaction_pool: transaction_pool.clone(),
-		task_manager: &mut task_manager,
-		config: parachain_config,
-		keystore: params.keystore_container.sync_keystore(),
-		backend: backend.clone(),
 		network: network.clone(),
+		client: client.clone(),
+		keystore: params.keystore_container.sync_keystore(),
+		task_manager: &mut task_manager,
+		transaction_pool: transaction_pool.clone(),
+		rpc_builder: rpc_builder,
+		backend: backend.clone(),
 		system_rpc_tx,
+		tx_handler_controller,
+		config: parachain_config,
 		telemetry: telemetry.as_mut(),
 	})?;
 
@@ -330,7 +328,7 @@ where
 			relay_chain_interface,
 			spawner,
 			parachain_consensus,
-			import_queue,
+			import_queue: import_queue_service,
 			collator_key: collator_key.expect("Command line arguments do not allow this. qed"),
 			relay_chain_slot_duration,
 		};
@@ -344,8 +342,8 @@ where
 			para_id: id,
 			relay_chain_interface,
 			relay_chain_slot_duration,
-			import_queue,
-			collator_options,
+			import_queue: import_queue_service,
+			recovery_handle: Box::new(overseer_handle),
 		};
 
 		start_full_node(params)?;
@@ -384,11 +382,10 @@ pub fn parachain_build_import_queue(
 					slot_duration,
 				);
 
-				Ok((time, slot))
+				Ok((slot, time))
 			},
-			registry: config.prometheus_registry(),
-			can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
 			spawner: &task_manager.spawn_essential_handle(),
+			registry: config.prometheus_registry(),
 			telemetry,
 		},
 	)
@@ -462,7 +459,7 @@ pub async fn start_parachain_node(
 						let parachain_inherent = parachain_inherent.ok_or_else(|| {
 							Box::<dyn std::error::Error + Send + Sync>::from("Failed to create parachain inherent")
 						})?;
-						Ok((time, slot, parachain_inherent))
+						Ok((slot, time, parachain_inherent))
 					}
 				},
 				block_import: client.clone(),

@@ -36,7 +36,10 @@ use super::*;
 #[test]
 fn register_foreign_asset_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let v2_location = VersionedMultiLocation::V2(xcm::v2::MultiLocation::X1(xcm::v2::Junction::Parachain(2096)));
+		let v2_location = VersionedMultiLocation::V2(xcm::v2::MultiLocation::new(
+			0,
+			xcm::v2::Junctions::X1(xcm::v2::Junction::Parachain(2096)),
+		));
 
 		assert_ok!(AssetManager::register_foreign_asset(
 			RuntimeOrigin::signed(CouncilAccount::get()),
@@ -81,7 +84,10 @@ fn register_foreign_asset_work() {
 #[test]
 fn register_foreign_asset_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let v2_location = VersionedMultiLocation::V2(xcm::v2::MultiLocation::X1(xcm::v2::Junction::Parachain(2096)));
+		let v2_location = VersionedMultiLocation::V2(xcm::v2::MultiLocation::new(
+			0,
+			xcm::v2::Junctions::X1(xcm::v2::Junction::Parachain(2096)),
+		));
 
 		assert_ok!(AssetManager::register_foreign_asset(
 			RuntimeOrigin::signed(CouncilAccount::get()),
@@ -141,7 +147,10 @@ fn register_foreign_asset_fail() {
 fn versioned_multi_location_convert_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		// v2
-		let v2_location = VersionedMultiLocation::V2(xcm::v2::MultiLocation::X1(xcm::v2::Junction::Parachain(2096)));
+		let v2_location = VersionedMultiLocation::V2(xcm::v2::MultiLocation::new(
+			0,
+			xcm::v2::Junctions::X1(xcm::v2::Junction::Parachain(2096)),
+		));
 		let location: MultiLocation = v2_location.try_into().unwrap();
 		assert_eq!(
 			location,
