@@ -135,7 +135,6 @@ where
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: fp_rpc::ConvertTransactionRuntimeApi<Block>,
 	C::Api: fp_rpc::EthereumRuntimeRPCApi<Block>,
-	//C::Api: pallet_contracts::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber>,
 	P: TransactionPool<Block = Block> + 'static,
 	A: ChainApi<Block = Block> + 'static,
 {
@@ -216,8 +215,6 @@ where
 	io.merge(Web3::new(client.clone()).into_rpc())?;
 
 	io.merge(EthPubSub::new(pool, client, network, subscription_task_executor, overrides).into_rpc())?;
-
-	//io.extend_with(ContractsApi::to_delegate(Contracts::new(client.clone())));
 
 	#[cfg(feature = "manual-seal")]
 	if let Some(command_sink) = command_sink {

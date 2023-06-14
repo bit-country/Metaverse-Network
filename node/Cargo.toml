@@ -135,9 +135,6 @@ fc-db = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v
 pallet-dynamic-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
 pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
 
-# ink! Contracts specific packages
-#pallet-contracts-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", optional = true }
-pallet-contracts = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", optional = true }
 
 [build-dependencies]
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
@@ -160,7 +157,6 @@ with-metaverse-runtime = [
     "fp-storage",
     "pallet-dynamic-fee",
     "pallet-ethereum",
-    #"pallet-contracts-rpc",
 ]
 
 with-pioneer-runtime = [
@@ -172,6 +168,7 @@ with-continuum-runtime = [
 ]
 
 runtime-benchmarks = [
+    "polkadot-service/runtime-benchmarks",
     "metaverse-runtime/runtime-benchmarks",
     "polkadot-cli/runtime-benchmarks",
 ]
