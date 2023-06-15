@@ -77,7 +77,7 @@ fn bridge_in_fungible() {
 			Perbill::from_percent(1)
 		));
 
-		assert_eq!(Balances::free_balance(ALICE), 100000);
+		assert_eq!(Balances::free_balance(ALICE), 1000000);
 		assert_ok!(BridgeModule::bridge_in_fungible(
 			RuntimeOrigin::signed(ALICE),
 			vec![1],
@@ -94,13 +94,13 @@ fn bridge_in_nft_works() {
 		let resource_id = H160::from_str("0x0000000000000000000200000000000000000000")
 			.ok()
 			.unwrap();
+		assert_ok!(BridgeModule::add_bridge_origin(RuntimeOrigin::root(), ALICE));
 		assert_ok!(BridgeModule::oracle_change_fee(RuntimeOrigin::root(), 100, 1, 0));
 		assert_ok!(BridgeModule::register_new_nft_resource_id(
 			RuntimeOrigin::root(),
 			resource_id,
 			0
 		));
-		assert_ok!(BridgeModule::add_bridge_origin(RuntimeOrigin::root(), ALICE));
 
 		assert_eq!(Balances::free_balance(ALICE), 100000);
 		assert_ok!(BridgeModule::bridge_in_nft(

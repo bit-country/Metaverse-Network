@@ -114,7 +114,7 @@ runtime-benchmarks = [
     "xcm-builder/runtime-benchmarks",
     'frame-benchmarking',
     'frame-support/runtime-benchmarks',
-    'frame-system-benchmarking',
+    'frame-system-benchmarking/runtime-benchmarks',
     'frame-system/runtime-benchmarks',
     'pallet-balances/runtime-benchmarks',
     "pallet-collator-selection/runtime-benchmarks",
