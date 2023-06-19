@@ -1970,8 +1970,8 @@ impl_runtime_apis! {
 			use frame_benchmarking::{Benchmarking, BenchmarkBatch, add_benchmark, TrackedStorageKey};
 			use orml_benchmarking::add_benchmark as orml_add_benchmark;
 
-			//use frame_system_benchmarking::Pallet as SystemBench;
-			//impl frame_system_benchmarking::Config for Runtime {}
+			use frame_system_benchmarking::Pallet as SystemBench;
+			impl frame_system_benchmarking::Config for Runtime {}
 
 			use nft::benchmarking::Pallet as NftBench;
 			use mining::benchmarking::MiningModule as MiningBench;
