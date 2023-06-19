@@ -10,7 +10,6 @@ use fc_rpc_core::types::{FeeHistoryCache, FeeHistoryCacheLimit, FilterPool};
 use fp_storage::EthereumStorageSchema;
 use jsonrpc_pubsub::manager::SubscriptionManager;
 use jsonrpsee::RpcModule;
-//use pallet_contracts_rpc;
 use pallet_transaction_payment_rpc;
 use sc_cli::SubstrateCli;
 // Substrate

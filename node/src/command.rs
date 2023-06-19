@@ -557,18 +557,18 @@ pub fn run() -> sc_cli::Result<()> {
 						let PartialComponents { client, .. } = service::new_partial(&config, &cli)?;
 						cmd.run(client)
 					}
-					BenchmarkCmd::Storage(_cmd) => Err("Unsupported benchmarking command".into()),
-					/*
-					// TO DO: To be updated to extract db / storage information. Currently results in build error
+					#[cfg(not(feature = "runtime-benchmarks"))]
+					BenchmarkCmd::Storage(_) => {
+						Err("Storage benchmarking can be enabled with `--features runtime-benchmarks`.".into())
+					}
+					#[cfg(feature = "runtime-benchmarks")]
 					BenchmarkCmd::Storage(cmd) => {
-						//let PartialComponents<Client, > { client, backend, .. } = service::new_partial(&config, &cli)?;
 						let params = service::new_partial(&config, &cli)?;
-						let db = params.backend. expose_db();
+						let db = params.backend.expose_db();
 						let storage = params.backend.expose_storage();
 
 						cmd.run(config, params.client, db, storage)
 					}
-					*/
 					BenchmarkCmd::Extrinsic(_cmd) => Err("Unsupported benchmarking command".into()),
 					BenchmarkCmd::Overhead(_cmd) => Err("Unsupported benchmarking command".into()),
 					BenchmarkCmd::Machine(cmd) => cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
