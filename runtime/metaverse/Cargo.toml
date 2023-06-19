@@ -107,6 +107,9 @@ modules-bridge = { path = "../../modules/bridge", default-features = false }
 pallet-contracts = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.38" }
 pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.38" }
 
+# XCM builder ( need to be used to build the runtime benchmarking correctly)
+xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 
@@ -139,6 +142,7 @@ std = [
     "pallet-treasury/std",
     "pallet-proxy/std",
     "sp-api/std",
+    "xcm-builder/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",
     "sp-core/std",
@@ -184,6 +188,7 @@ std = [
     "modules-bridge/std"
 ]
 runtime-benchmarks = [
+    "xcm-builder/runtime-benchmarks",
     "orml-benchmarking",
     "frame-benchmarking",
     "frame-support/runtime-benchmarks",

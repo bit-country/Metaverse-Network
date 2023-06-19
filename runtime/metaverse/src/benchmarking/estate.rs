@@ -16,7 +16,7 @@ use super::utils::{
 	create_nft_group, dollar, issue_new_undeployed_land_block, mint_NFT, set_balance,
 	set_metaverse_treasury_initial_balance,
 };
-use crate::{Call, Currencies, Estate, Event, Metaverse, MinimumStake, Runtime, System};
+use crate::{Currencies, Estate, Metaverse, MinimumStake, Runtime, RuntimeCall, RuntimeEvent, System};
 
 //pub type AccountId = u128;
 pub type LandId = u64;

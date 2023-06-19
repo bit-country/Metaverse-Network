@@ -724,7 +724,7 @@ impl EnsureOrigin<RuntimeOrigin> for EnsureRootOrMetaverseTreasury {
 	}
 
 	#[cfg(feature = "runtime-benchmarks")]
-	fn try_successful_origin() -> RuntimeOrigin {
+	fn try_successful_origin() -> Result<RuntimeOrigin, ()> {
 		let zero_account_id = AccountId::decode(&mut sp_runtime::traits::TrailingZeroInput::zeroes())
 			.expect("infinite length input; no invalid inputs for type; qed");
 		Ok(RuntimeOrigin::from(RawOrigin::Signed(zero_account_id)))

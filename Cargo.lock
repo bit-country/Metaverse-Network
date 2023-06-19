@@ -5817,6 +5817,7 @@ dependencies = [
  "sp-version",
  "substrate-wasm-builder",
  "try-runtime-cli",
+ "xcm-builder",
 ]
 
 [[package]]
