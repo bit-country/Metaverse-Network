@@ -462,6 +462,7 @@ pub mod pallet {
 					}
 				} else {
 					T::Slash::on_unbalanced(T::Currency::slash_reserved(&provider, deposit).0);
+					Self::deposit_event(Event::<T>::ProposalRefused(metaverse_id, preimage_hash));
 					Err(Error::<T>::PreimageInvalid.into())
 				}
 			} else {

@@ -2,7 +2,7 @@
 
 use codec::Encode;
 use frame_support::dispatch::DispatchError;
-use frame_support::traits::{EqualPrivilegeOnly, Nothing};
+use frame_support::traits::{ConstU32, EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -128,7 +128,7 @@ impl pallet_scheduler::Config for Runtime {
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
-	type MaxScheduledPerBlock = ();
+	type MaxScheduledPerBlock = ConstU32<10>;
 	type WeightInfo = ();
 	type Preimages = ();
 }
