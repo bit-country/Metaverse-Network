@@ -181,6 +181,19 @@ pub mod pallet {
 	/// Index locked collections by class ID
 	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn reserved_stackable_nft_balances)]
+	/// Reserved stackable nft balance
+	pub(super) type ReservedStackableNftBalance<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		Twox64Concat,
+		(ClassIdOf<T>, TokenIdOf<T>),
+		BalanceOf<T>,
+		ValueQuery,
+	>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {}
 
@@ -571,6 +584,11 @@ pub mod pallet {
 			ensure!(
 				Self::check_item_on_listing(asset_id.0, asset_id.1)? == false,
 				Error::<T>::AssetAlreadyInAuction
+			);
+
+			ensure!(
+				amount <= Self::get_free_stackable_nft_balance(&sender, &asset_id),
+				Error::<T>::InvalidStackableNftTransfer
 			);
 
 			let transfer_result = NftModule::<T>::transfer_stackable_nft(&sender, &to, asset_id, amount);
@@ -1469,5 +1487,42 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		));
 
 		Ok(minted_token_id)
+	}
+
+	fn get_free_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {
+		let total_balance = NftModule::<T>::get_stackable_collections_balances((asset_id.0, asset_id.1, who));
+		let reserved_balance = Self::reserved_stackable_nft_balances(who, asset_id);
+		total_balance.saturating_sub(reserved_balance)
+	}
+
+	fn reserve_stackable_nft_balance(
+		who: &T::AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: BalanceOf<T>,
+	) -> sp_runtime::DispatchResult {
+		let reserved_balance = Self::reserved_stackable_nft_balances(who, asset_id);
+		ReservedStackableNftBalance::<T>::insert(who, asset_id, reserved_balance.saturating_add(amount));
+		Ok(())
+	}
+
+	fn unreserve_stackable_nft_balance(
+		who: &T::AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: BalanceOf<T>,
+	) -> sp_runtime::DispatchResult {
+		let reserved_balance = Self::reserved_stackable_nft_balances(who, asset_id);
+		ReservedStackableNftBalance::<T>::insert(who, asset_id, reserved_balance.saturating_sub(amount));
+		Ok(())
+	}
+
+	fn transfer_stackable_nft(
+		sender: &T::AccountId,
+		to: &T::AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: BalanceOf<T>,
+	) -> DispatchResult {
+		NftModule::<T>::transfer_stackable_nft(&sender, &to, *asset_id, amount);
+
+		Ok(())
 	}
 }

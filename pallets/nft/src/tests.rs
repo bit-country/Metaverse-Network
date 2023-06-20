@@ -452,7 +452,14 @@ fn transfer_stackable_nft_should_fail() {
 		);
 
 		assert_noop!(
-			Nft::transfer_stackable_nft(origin, BOB, (0, 0), 101u32.into()),
+			Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 0), 101u32.into()),
+			Error::<Runtime>::InvalidStackableNftTransfer
+		);
+
+		ReservedStackableNftBalance::<Runtime>::insert(ALICE, (0, 0), 70);
+
+		assert_noop!(
+			Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 0), 71u128),
 			Error::<Runtime>::InvalidStackableNftTransfer
 		);
 
@@ -460,6 +467,10 @@ fn transfer_stackable_nft_should_fail() {
 			Nft::transfer_stackable_nft(failing_origin, ALICE, (0, 0), 10u32.into()),
 			Error::<Runtime>::InvalidStackableNftTransfer
 		);
+
+		ReservedStackableNftBalance::<Runtime>::insert(ALICE, (0, 0), 0);
+
+		assert_ok!(Nft::transfer_stackable_nft(origin, BOB, (0, 0), 71u32.into()));
 	})
 }
 

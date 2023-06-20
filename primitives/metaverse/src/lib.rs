@@ -144,6 +144,7 @@ pub const ESTATE_CLASS_ID: ClassId = 16;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId<Balance> {
 	NFT(ClassId, TokenId),
+	StackableNFT(ClassId, TokenId, Balance),
 	Spot(MapSpotId, MetaverseId),
 	Metaverse(MetaverseId),
 	Block(u64),
