@@ -53,22 +53,22 @@ pub trait WeightInfo {	fn set_bit_power_exchange_rate() -> Weight;	fn set_power_
 /// Weights for economy using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn set_bit_power_exchange_rate() -> Weight {
-	Weight::from_parts(36_400_000, 0)			.saturating_add(T::DbWeight::get().reads(1 as u64))			.saturating_add(T::DbWeight::get().writes(2 as u64))	}	fn set_power_balance() -> Weight {
-	Weight::from_parts(40_400_000, 0)			.saturating_add(T::DbWeight::get().reads(1 as u64))			.saturating_add(T::DbWeight::get().writes(2 as u64))	}	fn stake_a() -> Weight {
-	Weight::from_parts(85_100_000, 0)			.saturating_add(T::DbWeight::get().reads(5 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}	fn stake_b() -> Weight {
-	Weight::from_parts(109_700_000, 0)			.saturating_add(T::DbWeight::get().reads(8 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}	fn unstake_a() -> Weight {
-	Weight::from_parts(59_500_000, 0)			.saturating_add(T::DbWeight::get().reads(5 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn unstake_b() -> Weight {
-	Weight::from_parts(62_200_000, 0)			.saturating_add(T::DbWeight::get().reads(5 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn unstake_new_estate_owner() -> Weight {
-	Weight::from_parts(81_200_000, 0)			.saturating_add(T::DbWeight::get().reads(7 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn withdraw_unreserved() -> Weight {
-	Weight::from_parts(76_400_000, 0)			.saturating_add(T::DbWeight::get().reads(2 as u64))			.saturating_add(T::DbWeight::get().writes(2 as u64))	}}
+	Weight::from_ref_time(36_400_000)			.saturating_add(T::DbWeight::get().reads(1))			.saturating_add(T::DbWeight::get().writes(2))	}	fn set_power_balance() -> Weight {
+	Weight::from_ref_time(40_400_000)			.saturating_add(T::DbWeight::get().reads(1))			.saturating_add(T::DbWeight::get().writes(2))	}	fn stake_a() -> Weight {
+	Weight::from_ref_time(85_100_000)			.saturating_add(T::DbWeight::get().reads(5))			.saturating_add(T::DbWeight::get().writes(3))	}	fn stake_b() -> Weight {
+	Weight::from_ref_time(109_700_000)			.saturating_add(T::DbWeight::get().reads(8))			.saturating_add(T::DbWeight::get().writes(3))	}	fn unstake_a() -> Weight {
+	Weight::from_ref_time(59_500_000)			.saturating_add(T::DbWeight::get().reads(5))			.saturating_add(T::DbWeight::get().writes(4))	}	fn unstake_b() -> Weight {
+	Weight::from_ref_time(62_200_000)			.saturating_add(T::DbWeight::get().reads(5))			.saturating_add(T::DbWeight::get().writes(4))	}	fn unstake_new_estate_owner() -> Weight {
+	Weight::from_ref_time(81_200_000)			.saturating_add(T::DbWeight::get().reads(7))			.saturating_add(T::DbWeight::get().writes(4))	}	fn withdraw_unreserved() -> Weight {
+	Weight::from_ref_time(76_400_000)			.saturating_add(T::DbWeight::get().reads(2))			.saturating_add(T::DbWeight::get().writes(2))	}}
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn set_bit_power_exchange_rate() -> Weight {
-	Weight::from_parts(36_400_000, 0)			.saturating_add(RocksDbWeight::get().reads(1 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn set_power_balance() -> Weight {
-	Weight::from_parts(40_400_000, 0)			.saturating_add(RocksDbWeight::get().reads(1 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn stake_a() -> Weight {
-	Weight::from_parts(85_100_000, 0)			.saturating_add(RocksDbWeight::get().reads(5 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}	fn stake_b() -> Weight {
-	Weight::from_parts(109_700_000, 0)			.saturating_add(RocksDbWeight::get().reads(8 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}	fn unstake_a() -> Weight {
-	Weight::from_parts(59_500_000, 0)			.saturating_add(RocksDbWeight::get().reads(5 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn unstake_b() -> Weight {
-	Weight::from_parts(62_200_000, 0)				.saturating_add(RocksDbWeight::get().reads(5 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn unstake_new_estate_owner() -> Weight {
-	Weight::from_parts(81_200_000, 0)			.saturating_add(RocksDbWeight::get().reads(7 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn withdraw_unreserved() -> Weight {
-	Weight::from_parts(76_400_000, 0)			.saturating_add(RocksDbWeight::get().reads(2 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}}
+	Weight::from_ref_time(36_400_000)			.saturating_add(RocksDbWeight::get().reads(1))			.saturating_add(RocksDbWeight::get().writes(2))	}	fn set_power_balance() -> Weight {
+	Weight::from_ref_time(40_400_000)			.saturating_add(RocksDbWeight::get().reads(1))			.saturating_add(RocksDbWeight::get().writes(2))	}	fn stake_a() -> Weight {
+	Weight::from_ref_time(85_100_000)			.saturating_add(RocksDbWeight::get().reads(5))			.saturating_add(RocksDbWeight::get().writes(3))	}	fn stake_b() -> Weight {
+	Weight::from_ref_time(109_700_000)			.saturating_add(RocksDbWeight::get().reads(8))			.saturating_add(RocksDbWeight::get().writes(3))	}	fn unstake_a() -> Weight {
+	Weight::from_ref_time(59_500_000)			.saturating_add(RocksDbWeight::get().reads(5))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn unstake_b() -> Weight {
+	Weight::from_ref_time(62_200_000)				.saturating_add(RocksDbWeight::get().reads(5))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn unstake_new_estate_owner() -> Weight {
+	Weight::from_ref_time(81_200_000)			.saturating_add(RocksDbWeight::get().reads(7))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn withdraw_unreserved() -> Weight {
+	Weight::from_ref_time(76_400_000)			.saturating_add(RocksDbWeight::get().reads(2))			.saturating_add(RocksDbWeight::get().writes(2))	}}

@@ -49,18 +49,18 @@ pub trait WeightInfo {	fn claim_eth_account() -> Weight;	fn claim_default_accoun
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn claim_eth_account() -> Weight {
-		Weight::from_parts(345_800_000, 0)
-			.saturating_add(T::DbWeight::get().reads(3 as u64))
-			.saturating_add(T::DbWeight::get().writes(2 as u64))
+		Weight::from_ref_time(345_800_000)
+			.saturating_add(T::DbWeight::get().reads(3))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	fn claim_default_account() -> Weight {
-		Weight::from_parts(33_600_000, 0)
-			.saturating_add(T::DbWeight::get().reads(1 as u64))
-			.saturating_add(T::DbWeight::get().writes(2 as u64))
+		Weight::from_ref_time(33_600_000)
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(2))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn claim_eth_account() -> Weight {
-		Weight::from_parts(345_800_000, 0)			.saturating_add(RocksDbWeight::get().reads(3 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn claim_default_account() -> Weight {
-		Weight::from_parts(33_600_000, 0)			.saturating_add(RocksDbWeight::get().reads(1 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}}
+		Weight::from_ref_time(345_800_000)			.saturating_add(RocksDbWeight::get().reads(3))			.saturating_add(RocksDbWeight::get().writes(2))	}	fn claim_default_account() -> Weight {
+		Weight::from_ref_time(33_600_000)			.saturating_add(RocksDbWeight::get().reads(1))			.saturating_add(RocksDbWeight::get().writes(2))	}}

@@ -49,18 +49,18 @@ pub trait WeightInfo {	fn emergency_stop() -> Weight;	fn emergency_unstop() -> W
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn emergency_stop() -> Weight {
-		Weight::from_parts(21_500_000, 0)
-			.saturating_add(T::DbWeight::get().reads(1 as u64))
-			.saturating_add(T::DbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(21_500_000)
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn emergency_unstop() -> Weight {
-		Weight::from_parts(26_100_000, 0)
-			.saturating_add(T::DbWeight::get().reads(1 as u64))
-			.saturating_add(T::DbWeight::get().writes(1 as u64))
+		Weight::from_ref_time(26_100_000)
+			.saturating_add(T::DbWeight::get().reads(1))
+			.saturating_add(T::DbWeight::get().writes(1))
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn emergency_stop() -> Weight {
-	Weight::from_parts(21_500_000, 0)			.saturating_add(RocksDbWeight::get().reads(1 as u64))			.saturating_add(RocksDbWeight::get().writes(1 as u64))	}	fn emergency_unstop() -> Weight {
-	Weight::from_parts(26_100_000, 0)			.saturating_add(RocksDbWeight::get().reads(1 as u64))			.saturating_add(RocksDbWeight::get().writes(1 as u64))	}}
+	Weight::from_ref_time(21_500_000)			.saturating_add(RocksDbWeight::get().reads(1))			.saturating_add(RocksDbWeight::get().writes(1))	}	fn emergency_unstop() -> Weight {
+	Weight::from_ref_time(26_100_000)			.saturating_add(RocksDbWeight::get().reads(1))			.saturating_add(RocksDbWeight::get().writes(1))	}}

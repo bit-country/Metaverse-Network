@@ -49,16 +49,16 @@ pub trait WeightInfo {	fn set_distributor_origin() -> Weight;	fn remove_distribu
 /// Weights for crowdloan using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn set_distributor_origin() -> Weight {
-		Weight::from_parts(11_000_000, 0)			.saturating_add(T::DbWeight::get().reads(1 as u64))			.saturating_add(T::DbWeight::get().writes(1 as u64))	}	fn remove_distributor_origin() -> Weight {
-		Weight::from_parts(12_000_000, 0)			.saturating_add(T::DbWeight::get().reads(1 as u64))			.saturating_add(T::DbWeight::get().writes(1 as u64))	}	fn transfer_unlocked_reward() -> Weight {
-		Weight::from_parts(30_000_000, 0)			.saturating_add(T::DbWeight::get().reads(3 as u64))			.saturating_add(T::DbWeight::get().writes(2 as u64))	}	fn transfer_vested_reward() -> Weight {
-		Weight::from_parts(47_000_000, 0)			.saturating_add(T::DbWeight::get().reads(5 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn remove_vested_reward() -> Weight {
-		Weight::from_parts(28_000_000, 0)			.saturating_add(T::DbWeight::get().reads(3 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}}
+		Weight::from_ref_time(11_000_000)			.saturating_add(T::DbWeight::get().reads(1))			.saturating_add(T::DbWeight::get().writes(1))	}	fn remove_distributor_origin() -> Weight {
+		Weight::from_ref_time(12_000_000)			.saturating_add(T::DbWeight::get().reads(1))			.saturating_add(T::DbWeight::get().writes(1))	}	fn transfer_unlocked_reward() -> Weight {
+		Weight::from_ref_time(30_000_000)			.saturating_add(T::DbWeight::get().reads(3))			.saturating_add(T::DbWeight::get().writes(2))	}	fn transfer_vested_reward() -> Weight {
+		Weight::from_ref_time(47_000_000)			.saturating_add(T::DbWeight::get().reads(5))			.saturating_add(T::DbWeight::get().writes(4))	}	fn remove_vested_reward() -> Weight {
+		Weight::from_ref_time(28_000_000)			.saturating_add(T::DbWeight::get().reads(3))			.saturating_add(T::DbWeight::get().writes(3))	}}
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn set_distributor_origin() -> Weight {
-		Weight::from_parts(11_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(1 as u64))			.saturating_add(RocksDbWeight::get().writes(1 as u64))	}	fn remove_distributor_origin() -> Weight {
-		Weight::from_parts(12_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(1 as u64))			.saturating_add(RocksDbWeight::get().writes(1 as u64))	}	fn transfer_unlocked_reward() -> Weight {
-		Weight::from_parts(30_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(3 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn transfer_vested_reward() -> Weight {
-		Weight::from_parts(47_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(5 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn remove_vested_reward() -> Weight {
-		Weight::from_parts(28_000_000, 0)			.saturating_add(RocksDbWeight::get().reads(3 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}}
+		Weight::from_ref_time(11_000_000)			.saturating_add(RocksDbWeight::get().reads(1))			.saturating_add(RocksDbWeight::get().writes(1))	}	fn remove_distributor_origin() -> Weight {
+		Weight::from_ref_time(12_000_000)			.saturating_add(RocksDbWeight::get().reads(1))			.saturating_add(RocksDbWeight::get().writes(1))	}	fn transfer_unlocked_reward() -> Weight {
+		Weight::from_ref_time(30_000_000)			.saturating_add(RocksDbWeight::get().reads(3))			.saturating_add(RocksDbWeight::get().writes(2))	}	fn transfer_vested_reward() -> Weight {
+		Weight::from_ref_time(47_000_000)			.saturating_add(RocksDbWeight::get().reads(5))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn remove_vested_reward() -> Weight {
+		Weight::from_ref_time(28_000_000)			.saturating_add(RocksDbWeight::get().reads(3))			.saturating_add(RocksDbWeight::get().writes(3))	}}

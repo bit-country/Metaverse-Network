@@ -53,40 +53,40 @@ pub trait WeightInfo {	fn create_campaign() -> Weight;	fn create_nft_campaign() 
 /// Weights for reward using the for collator node and recommended hardware.
 pub struct SubstrateWeight<T>(PhantomData<T>);
 impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	fn create_campaign() -> Weight {
-		Weight::from_parts(41_707_000, 0)			.saturating_add(T::DbWeight::get().reads(4 as u64))			.saturating_add(T::DbWeight::get().writes(7 as u64))	}	fn create_nft_campaign() -> Weight {
-		Weight::from_parts(43_668_000, 0)			.saturating_add(T::DbWeight::get().reads(6 as u64))			.saturating_add(T::DbWeight::get().writes(8 as u64))	}	fn claim_reward() -> Weight {
-		Weight::from_parts(35_006_000, 0)			.saturating_add(T::DbWeight::get().reads(4 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn claim_reward_root() -> Weight {
-		Weight::from_parts(42_272_000, 0)			.saturating_add(T::DbWeight::get().reads(6 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn claim_nft_reward() -> Weight {
-		Weight::from_parts(39_669_000, 0)			.saturating_add(T::DbWeight::get().reads(7 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn claim_nft_reward_root() -> Weight {
-		Weight::from_parts(44_661_000, 0)			.saturating_add(T::DbWeight::get().reads(8 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}	fn set_reward() -> Weight {
-		Weight::from_parts(21_354_000, 0)			.saturating_add(T::DbWeight::get().reads(4 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}	fn set_reward_root() -> Weight {
-		Weight::from_parts(22_813_000, 0)			.saturating_add(T::DbWeight::get().reads(5 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn set_nft_reward() -> Weight {
-		Weight::from_parts(22_278_000, 0)			.saturating_add(T::DbWeight::get().reads(4 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}	fn set_nft_reward_root() -> Weight {
-		Weight::from_parts(22_938_000, 0)			.saturating_add(T::DbWeight::get().reads(4 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn close_campaign() -> Weight {
-		Weight::from_parts(50_279_000, 0)			.saturating_add(T::DbWeight::get().reads(4 as u64))			.saturating_add(T::DbWeight::get().writes(7 as u64))	}	fn close_nft_campaign() -> Weight {
-		Weight::from_parts(47_338_000, 0)			.saturating_add(T::DbWeight::get().reads(6 as u64))			.saturating_add(T::DbWeight::get().writes(8 as u64))	}	fn cancel_campaign() -> Weight {
-		Weight::from_parts(38_746_000, 0)			.saturating_add(T::DbWeight::get().reads(3 as u64))			.saturating_add(T::DbWeight::get().writes(3 as u64))	}	fn cancel_nft_campaign() -> Weight {
-		Weight::from_parts(31_672_000, 0)			.saturating_add(T::DbWeight::get().reads(4 as u64))			.saturating_add(T::DbWeight::get().writes(4 as u64))	}	fn add_set_reward_origin() -> Weight {
-		Weight::from_parts(11_374_000, 0)			.saturating_add(T::DbWeight::get().reads(2 as u64))			.saturating_add(T::DbWeight::get().writes(2 as u64))	}	fn remove_set_reward_origin() -> Weight {
-		Weight::from_parts(11_973_000, 0)			.saturating_add(T::DbWeight::get().reads(2 as u64))			.saturating_add(T::DbWeight::get().writes(2 as u64))	}	fn on_finalize() -> Weight {
-		Weight::from_parts(13_598_000, 0)			.saturating_add(T::DbWeight::get().reads(2 as u64))	}}
+		Weight::from_ref_time(41_707_000)			.saturating_add(T::DbWeight::get().reads(4))			.saturating_add(T::DbWeight::get().writes(7))	}	fn create_nft_campaign() -> Weight {
+		Weight::from_ref_time(43_668_000)			.saturating_add(T::DbWeight::get().reads(6))			.saturating_add(T::DbWeight::get().writes(8))	}	fn claim_reward() -> Weight {
+		Weight::from_ref_time(35_006_000)			.saturating_add(T::DbWeight::get().reads(4))			.saturating_add(T::DbWeight::get().writes(4))	}	fn claim_reward_root() -> Weight {
+		Weight::from_ref_time(42_272_000)			.saturating_add(T::DbWeight::get().reads(6))			.saturating_add(T::DbWeight::get().writes(4))	}	fn claim_nft_reward() -> Weight {
+		Weight::from_ref_time(39_669_000)			.saturating_add(T::DbWeight::get().reads(7))			.saturating_add(T::DbWeight::get().writes(4))	}	fn claim_nft_reward_root() -> Weight {
+		Weight::from_ref_time(44_661_000)			.saturating_add(T::DbWeight::get().reads(8))			.saturating_add(T::DbWeight::get().writes(3))	}	fn set_reward() -> Weight {
+		Weight::from_ref_time(21_354_000)			.saturating_add(T::DbWeight::get().reads(4))			.saturating_add(T::DbWeight::get().writes(3))	}	fn set_reward_root() -> Weight {
+		Weight::from_ref_time(22_813_000)			.saturating_add(T::DbWeight::get().reads(5))			.saturating_add(T::DbWeight::get().writes(4))	}	fn set_nft_reward() -> Weight {
+		Weight::from_ref_time(22_278_000)			.saturating_add(T::DbWeight::get().reads(4))			.saturating_add(T::DbWeight::get().writes(3))	}	fn set_nft_reward_root() -> Weight {
+		Weight::from_ref_time(22_938_000)			.saturating_add(T::DbWeight::get().reads(4))			.saturating_add(T::DbWeight::get().writes(4))	}	fn close_campaign() -> Weight {
+		Weight::from_ref_time(50_279_000)			.saturating_add(T::DbWeight::get().reads(4))			.saturating_add(T::DbWeight::get().writes(7))	}	fn close_nft_campaign() -> Weight {
+		Weight::from_ref_time(47_338_000)			.saturating_add(T::DbWeight::get().reads(6))			.saturating_add(T::DbWeight::get().writes(8))	}	fn cancel_campaign() -> Weight {
+		Weight::from_ref_time(38_746_000)			.saturating_add(T::DbWeight::get().reads(3))			.saturating_add(T::DbWeight::get().writes(3))	}	fn cancel_nft_campaign() -> Weight {
+		Weight::from_ref_time(31_672_000)			.saturating_add(T::DbWeight::get().reads(4))			.saturating_add(T::DbWeight::get().writes(4))	}	fn add_set_reward_origin() -> Weight {
+		Weight::from_ref_time(11_374_000)			.saturating_add(T::DbWeight::get().reads(2))			.saturating_add(T::DbWeight::get().writes(2))	}	fn remove_set_reward_origin() -> Weight {
+		Weight::from_ref_time(11_973_000)			.saturating_add(T::DbWeight::get().reads(2))			.saturating_add(T::DbWeight::get().writes(2))	}	fn on_finalize() -> Weight {
+		Weight::from_ref_time(13_598_000)			.saturating_add(T::DbWeight::get().reads(2))	}}
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn create_campaign() -> Weight {
-		Weight::from_parts(41_707_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(7 as u64))	}	fn create_nft_campaign() -> Weight {
-		Weight::from_parts(43_668_000, 0)			.saturating_add(RocksDbWeight::get().reads(6 as u64))			.saturating_add(RocksDbWeight::get().writes(8 as u64))	}	fn claim_reward() -> Weight {
-		Weight::from_parts(35_006_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn claim_reward_root() -> Weight {
-		Weight::from_parts(42_272_000, 0)			.saturating_add(RocksDbWeight::get().reads(6 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn claim_nft_reward() -> Weight {
-		Weight::from_parts(39_669_000, 0)			.saturating_add(RocksDbWeight::get().reads(7 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn claim_nft_reward_root() -> Weight {
-		Weight::from_parts(44_661_000, 0)			.saturating_add(RocksDbWeight::get().reads(8 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}	fn set_reward() -> Weight {
-		Weight::from_parts(21_354_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}	fn set_reward_root() -> Weight {
-		Weight::from_parts(22_813_000, 0)			.saturating_add(RocksDbWeight::get().reads(5 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn set_nft_reward() -> Weight {
-		Weight::from_parts(22_278_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}	fn set_nft_reward_root() -> Weight {
-		Weight::from_parts(22_938_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn close_campaign() -> Weight {
-		Weight::from_parts(50_279_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(7 as u64))	}	fn close_nft_campaign() -> Weight {
-		Weight::from_parts(47_338_000, 0)			.saturating_add(RocksDbWeight::get().reads(6 as u64))			.saturating_add(RocksDbWeight::get().writes(8 as u64))	}	fn cancel_campaign() -> Weight {
-		Weight::from_parts(38_746_000, 0)			.saturating_add(RocksDbWeight::get().reads(3 as u64))			.saturating_add(RocksDbWeight::get().writes(3 as u64))	}	fn cancel_nft_campaign() -> Weight {
-		Weight::from_parts(31_672_000, 0)			.saturating_add(RocksDbWeight::get().reads(4 as u64))			.saturating_add(RocksDbWeight::get().writes(4 as u64))	}	fn add_set_reward_origin() -> Weight {
-		Weight::from_parts(11_374_000, 0)			.saturating_add(RocksDbWeight::get().reads(2 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn remove_set_reward_origin() -> Weight {
-		Weight::from_parts(11_973_000, 0)			.saturating_add(RocksDbWeight::get().reads(2 as u64))			.saturating_add(RocksDbWeight::get().writes(2 as u64))	}	fn on_finalize() -> Weight {
-		Weight::from_parts(13_598_000, 0)			.saturating_add(RocksDbWeight::get().reads(2 as u64))	}}
+		Weight::from_ref_time(41_707_000)			.saturating_add(RocksDbWeight::get().reads(4))			.saturating_add(RocksDbWeight::get().writes(7))	}	fn create_nft_campaign() -> Weight {
+		Weight::from_ref_time(43_668_000)			.saturating_add(RocksDbWeight::get().reads(6))			.saturating_add(RocksDbWeight::get().writes(8))	}	fn claim_reward() -> Weight {
+		Weight::from_ref_time(35_006_000)			.saturating_add(RocksDbWeight::get().reads(4))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn claim_reward_root() -> Weight {
+		Weight::from_ref_time(42_272_000)			.saturating_add(RocksDbWeight::get().reads(6))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn claim_nft_reward() -> Weight {
+		Weight::from_ref_time(39_669_000)			.saturating_add(RocksDbWeight::get().reads(7))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn claim_nft_reward_root() -> Weight {
+		Weight::from_ref_time(44_661_000)			.saturating_add(RocksDbWeight::get().reads(8))			.saturating_add(RocksDbWeight::get().writes(3))	}	fn set_reward() -> Weight {
+		Weight::from_ref_time(21_354_000)			.saturating_add(RocksDbWeight::get().reads(4))			.saturating_add(RocksDbWeight::get().writes(3))	}	fn set_reward_root() -> Weight {
+		Weight::from_ref_time(22_813_000)			.saturating_add(RocksDbWeight::get().reads(5))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn set_nft_reward() -> Weight {
+		Weight::from_ref_time(22_278_000)			.saturating_add(RocksDbWeight::get().reads(4))			.saturating_add(RocksDbWeight::get().writes(3))	}	fn set_nft_reward_root() -> Weight {
+		Weight::from_ref_time(22_938_000)			.saturating_add(RocksDbWeight::get().reads(4))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn close_campaign() -> Weight {
+		Weight::from_ref_time(50_279_000)			.saturating_add(RocksDbWeight::get().reads(4))			.saturating_add(RocksDbWeight::get().writes(7))	}	fn close_nft_campaign() -> Weight {
+		Weight::from_ref_time(47_338_000)			.saturating_add(RocksDbWeight::get().reads(6))			.saturating_add(RocksDbWeight::get().writes(8))	}	fn cancel_campaign() -> Weight {
+		Weight::from_ref_time(38_746_000)			.saturating_add(RocksDbWeight::get().reads(3))			.saturating_add(RocksDbWeight::get().writes(3))	}	fn cancel_nft_campaign() -> Weight {
+		Weight::from_ref_time(31_672_000)			.saturating_add(RocksDbWeight::get().reads(4))			.saturating_add(RocksDbWeight::get().writes(4))	}	fn add_set_reward_origin() -> Weight {
+		Weight::from_ref_time(11_374_000)			.saturating_add(RocksDbWeight::get().reads(2))			.saturating_add(RocksDbWeight::get().writes(2))	}	fn remove_set_reward_origin() -> Weight {
+		Weight::from_ref_time(11_973_000)			.saturating_add(RocksDbWeight::get().reads(2))			.saturating_add(RocksDbWeight::get().writes(2))	}	fn on_finalize() -> Weight {
+		Weight::from_ref_time(13_598_000)			.saturating_add(RocksDbWeight::get().reads(2))	}}
