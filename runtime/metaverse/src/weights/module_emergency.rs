@@ -12,12 +12,12 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> emergency::WeightInfo for WeightInfo<T> {
 	fn emergency_stop() -> Weight {
-		Weight::from_ref_time(21_500_000)
+		Weight::from_parts(9_299_000, 2584)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn emergency_unstop() -> Weight {
-		Weight::from_ref_time(26_100_000)
+		Weight::from_parts(9_956_000, 2641)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
