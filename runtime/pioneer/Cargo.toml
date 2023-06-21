@@ -103,6 +103,7 @@ pallet-collator-selection = { default-features = false, git = "https://github.co
 
 # Polkadot Dependencies
 polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
+polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
 xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
 xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
 xcm-executor = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }

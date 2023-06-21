@@ -22,6 +22,7 @@ pub mod time {
 	use frame_support::dispatch::Weight;
 	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND};
 
+	use polkadot_primitives::v2::MAX_POV_SIZE;
 	use primitives::{BlockNumber, Moment};
 
 	use crate::{Balance, Perbill, CENTS};
@@ -58,7 +59,8 @@ pub mod time {
 	pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 	/// We allow for 0.5 of a second of compute with a 12 second average block time.
-	pub const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_ref_time(WEIGHT_REF_TIME_PER_SECOND / 2);
+	pub const MAXIMUM_BLOCK_WEIGHT: Weight =
+		Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_div(2), MAX_POV_SIZE as u64);
 }
 
 pub mod xcm_fees {
