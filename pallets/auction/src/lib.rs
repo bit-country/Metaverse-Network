@@ -803,7 +803,7 @@ pub mod pallet {
 
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_auction_item_data_v3();
-			0
+			Weight::from_ref_time(0u64)
 		}
 	}
 

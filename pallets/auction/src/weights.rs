@@ -77,8 +77,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `3359`
 		//  Estimated: `54013`
-		// Minimum execution time: 59_666 nanoseconds.
-		Weight::from_parts(61_964_000, 54013)
+		// Minimum execution time: 75_737 nanoseconds.
+		Weight::from_parts(83_359_000, 54013)
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
@@ -108,8 +108,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `3359`
 		//  Estimated: `54013`
-		// Minimum execution time: 59_511 nanoseconds.
-		Weight::from_parts(60_960_000, 54013)
+		// Minimum execution time: 58_587 nanoseconds.
+		Weight::from_parts(60_938_000, 54013)
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
@@ -125,8 +125,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `3236`
 		//  Estimated: `17254`
-		// Minimum execution time: 50_440 nanoseconds.
-		Weight::from_parts(57_509_000, 17254)
+		// Minimum execution time: 50_075 nanoseconds.
+		Weight::from_parts(52_851_000, 17254)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
@@ -156,8 +156,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `4659`
 		//  Estimated: `74974`
-		// Minimum execution time: 115_699 nanoseconds.
-		Weight::from_parts(119_730_000, 74974)
+		// Minimum execution time: 113_286 nanoseconds.
+		Weight::from_parts(117_267_000, 74974)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(12))
 	}
@@ -177,8 +177,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `3664`
 		//  Estimated: `28348`
-		// Minimum execution time: 47_798 nanoseconds.
-		Weight::from_parts(48_570_000, 28348)
+		// Minimum execution time: 50_526 nanoseconds.
+		Weight::from_parts(76_276_000, 28348)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
@@ -190,8 +190,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `1307`
 		//  Estimated: `7564`
-		// Minimum execution time: 20_927 nanoseconds.
-		Weight::from_parts(22_121_000, 7564)
+		// Minimum execution time: 30_845 nanoseconds.
+		Weight::from_parts(35_078_000, 7564)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -203,8 +203,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `1360`
 		//  Estimated: `7670`
-		// Minimum execution time: 21_997 nanoseconds.
-		Weight::from_parts(23_031_000, 7670)
+		// Minimum execution time: 22_308 nanoseconds.
+		Weight::from_parts(24_963_000, 7670)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -220,8 +220,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `1805`
 		//  Estimated: `15443`
-		// Minimum execution time: 35_728 nanoseconds.
-		Weight::from_parts(36_729_000, 15443)
+		// Minimum execution time: 36_403 nanoseconds.
+		Weight::from_parts(38_021_000, 15443)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -233,8 +233,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `1534`
 		//  Estimated: `6612`
-		// Minimum execution time: 28_146 nanoseconds.
-		Weight::from_parts(29_063_000, 6612)
+		// Minimum execution time: 28_040 nanoseconds.
+		Weight::from_parts(29_056_000, 6612)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -256,8 +256,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `2326`
 		//  Estimated: `31537`
-		// Minimum execution time: 67_116 nanoseconds.
-		Weight::from_parts(68_958_000, 31537)
+		// Minimum execution time: 67_215 nanoseconds.
+		Weight::from_parts(69_244_000, 31537)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
@@ -265,63 +265,63 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Me
 		// Proof Size summary in bytes:
 		//  Measured:  `774`
 		//  Estimated: `0`
-		// Minimum execution time: 5_046 nanoseconds.
-		Weight::from_parts(5_727_000, 0)
+		// Minimum execution time: 5_355 nanoseconds.
+		Weight::from_parts(6_116_000, 0)
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn create_new_auction() -> Weight {
-		Weight::from_parts(61_964_000, 54013)
+		Weight::from_parts(83_359_000, 54013)
 			.saturating_add(RocksDbWeight::get().reads(9))
 			.saturating_add(RocksDbWeight::get().writes(7))
 	}
 	fn create_new_buy_now() -> Weight {
-		Weight::from_parts(60_960_000, 54013)
+		Weight::from_parts(60_938_000, 54013)
 			.saturating_add(RocksDbWeight::get().reads(9))
 			.saturating_add(RocksDbWeight::get().writes(7))
 	}
 	fn bid() -> Weight {
-		Weight::from_parts(57_509_000, 17254)
+		Weight::from_parts(52_851_000, 17254)
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(5))
 	}
 	fn buy_now() -> Weight {
-		Weight::from_parts(119_730_000, 74974)
+		Weight::from_parts(117_267_000, 74974)
 			.saturating_add(RocksDbWeight::get().reads(13))
 			.saturating_add(RocksDbWeight::get().writes(12))
 	}
 	fn cancel_listing() -> Weight {
-		Weight::from_parts(48_570_000, 28348)
+		Weight::from_parts(76_276_000, 28348)
 			.saturating_add(RocksDbWeight::get().reads(4))
 			.saturating_add(RocksDbWeight::get().writes(6))
 	}
 	fn authorise_metaverse_collection() -> Weight {
-		Weight::from_parts(22_121_000, 7564)
+		Weight::from_parts(35_078_000, 7564)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn remove_authorise_metaverse_collection() -> Weight {
-		Weight::from_parts(23_031_000, 7670)
+		Weight::from_parts(24_963_000, 7670)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn make_offer() -> Weight {
-		Weight::from_parts(36_729_000, 15443)
+		Weight::from_parts(38_021_000, 15443)
 			.saturating_add(RocksDbWeight::get().reads(4))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	fn withdraw_offer() -> Weight {
-		Weight::from_parts(29_063_000, 6612)
+		Weight::from_parts(29_056_000, 6612)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	fn accept_offer() -> Weight {
-		Weight::from_parts(68_958_000, 31537)
+		Weight::from_parts(69_244_000, 31537)
 			.saturating_add(RocksDbWeight::get().reads(7))
 			.saturating_add(RocksDbWeight::get().writes(6))
 	}
 	fn on_finalize() -> Weight {
-		Weight::from_parts(5_727_000, 0)
+		Weight::from_parts(6_116_000, 0)
 	}
 }

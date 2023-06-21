@@ -39,9 +39,13 @@ fn init_test_nft(owner: RuntimeOrigin) {
 	));
 }
 
-fn init_test_stackable_nft(owner: Origin) {
+fn init_test_stackable_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
-	assert_ok!(NFTModule::<Runtime>::create_group(Origin::root(), vec![1], vec![1]));
+	assert_ok!(NFTModule::<Runtime>::create_group(
+		RuntimeOrigin::root(),
+		vec![1],
+		vec![1]
+	));
 
 	assert_ok!(NFTModule::<Runtime>::create_class(
 		owner.clone(),
@@ -216,7 +220,7 @@ fn create_new_multicurrency_auction_bundle_work() {
 // Creating auction should work
 fn create_new_stackable_nft_auction_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
 		assert_eq!(
@@ -387,7 +391,7 @@ fn create_new_multicurrency_buy_now_bundle_work() {
 // Creating auction should work
 fn create_new_stackable_nft_buy_now_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
 		assert_eq!(
@@ -643,7 +647,7 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 // Creating auction should work
 fn create_new_auction_stackable_nft_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
 		assert_noop!(
@@ -1372,8 +1376,8 @@ fn multicurrency_buy_now_with_bundle_should_work() {
 // Buy now should work
 fn buy_now_stackable_nft_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let buyer = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let buyer = RuntimeOrigin::signed(ALICE);
 
 		init_test_stackable_nft(owner.clone());
 
@@ -1420,7 +1424,7 @@ fn buy_now_stackable_nft_work() {
 		assert_eq!(Balances::free_balance(BOB), 693);
 
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
 		assert_eq!(last_event(), event);
 
 		// check of auction item is still valid
