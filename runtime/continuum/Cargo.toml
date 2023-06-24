@@ -40,7 +40,8 @@ crowdloan = { package = "pallet-crowdloan", path = "../../pallets/crowdloan", ve
 economy = { package = "pallet-economy", path = "../../pallets/economy", version = "2.0.0-rc6", default-features = false }
 emergency = { package = "pallet-emergency", path = "../../pallets/emergency", version = "2.0.0-rc6", default-features = false }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
-metaverse-runtime-common = { path = "../common", default-features = false }
+asset-manager = { path = "../../pallets/asset-manager", default-features = false }
+reward = { package = "pallet-reward", path = "../../pallets/reward", version = "2.0.0-rc6", default-features = false }
 
 ## Substrate Primitive Dependencies
 sp-api = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
@@ -85,6 +86,7 @@ pallet-utility = { git = 'https://github.com/paritytech/substrate', branch = 'po
 pallet-bounties = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
 pallet-preimage = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
 pallet-membership = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+pallet-proxy = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
 
 # Cumulus Dependencies
 cumulus-pallet-aura-ext = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38', default-features = false }
@@ -107,13 +109,14 @@ xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "releas
 xcm-executor = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
 pallet-xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
 polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
+metaverse-runtime-common = { path = "../common", default-features = false }
 
 [features]
 default = ['std']
 runtime-benchmarks = [
+    'frame-benchmarking',
     'sp-runtime/runtime-benchmarks',
     "xcm-builder/runtime-benchmarks",
-    'frame-benchmarking',
     'frame-support/runtime-benchmarks',
     'frame-system-benchmarking/runtime-benchmarks',
     'frame-system/runtime-benchmarks',
@@ -157,6 +160,7 @@ std = [
     "pallet-multisig/std",
     "pallet-membership/std",
     "pallet-utility/std",
+    "pallet-proxy/std",
     "parachain-info/std",
     "cumulus-pallet-aura-ext/std",
     "cumulus-pallet-parachain-system/std",
@@ -185,7 +189,9 @@ std = [
     'crowdloan/std',
     "economy/std",
     "emergency/std",
-    "metaverse-runtime-common/std",
+    "asset-manager/std",
+    "reward/std",
     'pallet-collator-selection/std',
-    "pallet-preimage/std"
+    "pallet-preimage/std",
+    "metaverse-runtime-common/std"
 ]
