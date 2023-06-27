@@ -18,14 +18,14 @@ sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkad
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false, optional = true }
 
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
+orml-traits = { workspace = true }
 
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 [dev-dependencies]
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
+orml-currencies = { workspace = true }
+orml-tokens = { workspace = true }
 
 [features]
 default = ["std"]

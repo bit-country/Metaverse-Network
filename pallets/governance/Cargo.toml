@@ -31,9 +31,9 @@ metaverse-primitive = { package = "core-primitives", path = "../../traits/core-p
 pallet-metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
 
 # Orml packages
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
+orml-traits = { workspace = true }
+orml-currencies = { workspace = true }
+orml-tokens = { workspace = true }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 
 [features]

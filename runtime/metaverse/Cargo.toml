@@ -76,12 +76,12 @@ fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-
 fp-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", default-features = false }
 
 # external crates - orml packages
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-benchmarking = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false, optional = true }
+orml-currencies = { workspace = true }
+orml-tokens = { workspace = true }
+orml-traits = { workspace = true }
+orml-nft = { workspace = true }
+orml-oracle = { workspace = true }
+orml-benchmarking = { workspace = true, optional = true }
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }

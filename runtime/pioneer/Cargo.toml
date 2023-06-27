@@ -16,17 +16,18 @@ serde = { version = '1.0.140', optional = true, features = ['derive'] }
 scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 smallvec = "1.8.0"
 hex-literal = { version = "0.3.4" }
+getrandom = { workspace = true }
 
 # external crates - orml packages
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-unknown-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-oracle = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
+orml-currencies = { workspace = true }
+orml-tokens = { workspace = true }
+orml-traits = { workspace = true }
+orml-nft = { workspace = true }
+orml-unknown-tokens = { workspace = true }
+orml-xtokens = { workspace = true }
+orml-xcm = { workspace = true }
+orml-xcm-support = { workspace = true }
+orml-oracle = { workspace = true }
 # Metaverse Dependencies
 primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
 metaverse = { package = 'pallet-metaverse', path = '../../pallets/metaverse', default-features = false }

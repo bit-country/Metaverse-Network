@@ -29,7 +29,7 @@ jsonrpsee = { version = "0.16.2", features = ["server"] }
 parity-util-mem = { version = "0.12.0", default-features = false, features = ["jemalloc-global"] }
 url = "2.3.1"
 tracing-core = "0.1.28"
-
+getrandom = { workspace = true }
 
 sc-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 sc-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }

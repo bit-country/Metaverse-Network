@@ -45,10 +45,10 @@ xcm-executor = { git = "https://github.com/paritytech/polkadot", branch = "relea
 xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.38", default-features = false }
 
 # external crates - orml packages
-orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
-orml-nft = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false }
+orml-currencies = { workspace = true }
+orml-tokens = { workspace = true }
+orml-traits = { workspace = true }
+orml-nft = { workspace = true }
 
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
