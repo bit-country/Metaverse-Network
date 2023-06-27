@@ -162,16 +162,16 @@ cumulus-test-relay-sproof-builder = { git = 'https://github.com/paritytech/cumul
 statemine-runtime = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 # Polkadot
 polkadot-cli = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-polkadot-runtime-parachains = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
 polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-xcm-executor = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-pallet-xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-kusama-runtime = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.38"}
+polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" , default-features = false }
+polkadot-runtime-parachains = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" , default-features = false }
+polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" , default-features = false }
+xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" , default-features = false }
+xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" , default-features = false }
+xcm-executor = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" , default-features = false }
+pallet-xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" , default-features = false }
+polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
+kusama-runtime = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.38", default-features = false }
 
 # ORML
 orml-currencies = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.38", default-features = false  }

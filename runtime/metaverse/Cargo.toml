@@ -57,7 +57,7 @@ pallet-collator-selection = { default-features = false, git = "https://github.co
 pallet-proxy = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
 frame-try-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38", optional = true, default-features = false }
 try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38", optional = true, default-features = false }
-polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
+polkadot-primitives = { workspace = true }
 
 # Used for the node template"s RPCs
 frame-system-rpc-runtime-api = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
@@ -109,7 +109,7 @@ pallet-contracts = { git = "https://github.com/paritytech/substrate", default-fe
 pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.38" }
 
 # XCM builder ( need to be used to build the runtime benchmarking correctly)
-xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
+xcm-builder = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }

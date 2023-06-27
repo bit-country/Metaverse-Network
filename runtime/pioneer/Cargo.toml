@@ -103,13 +103,13 @@ parachain-info = { git = 'https://github.com/paritytech/cumulus', branch = 'polk
 pallet-collator-selection = { default-features = false, git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 
 # Polkadot Dependencies
-polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
-polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
-xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
-xcm-builder = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
-xcm-executor = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
-pallet-xcm = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
-polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38", default-features = false }
+polkadot-parachain = { workspace = true }
+polkadot-primitives = { workspace = true }
+xcm = { workspace = true }
+xcm-builder = { workspace = true }
+xcm-executor = { workspace = true }
+pallet-xcm = { workspace = true }
+polkadot-runtime-common = { workspace = true }
 metaverse-runtime-common = { path = "../common", default-features = false }
 
 [features]

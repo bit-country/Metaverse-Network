@@ -115,11 +115,11 @@ cumulus-relay-chain-minimal-node = { git = 'https://github.com/paritytech/cumulu
 cumulus-relay-chain-rpc-interface = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-relay-chain-inprocess-interface = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 # Polkadot dependencies
-polkadot-cli = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-polkadot-parachain = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-polkadot-primitives = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-polkadot-service = { git = 'https://github.com/paritytech/polkadot', branch = "release-v0.9.38" }
-xcm = { git = "https://github.com/paritytech/polkadot", default-features = false, branch = "release-v0.9.38" }
+polkadot-cli = { workspace = true }
+polkadot-parachain = { workspace = true, default-features = true }
+polkadot-primitives = { workspace = true, default-features = true }
+polkadot-service = { workspace = true }
+xcm = { workspace = true }
 
 # EVM dependencies
 fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
@@ -131,7 +131,6 @@ fc-rpc-core = { git = "https://github.com/justinphamnz/frontier", branch = "polk
 fc-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
 fc-mapping-sync = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
 fc-db = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-
 pallet-dynamic-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
 pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
 
