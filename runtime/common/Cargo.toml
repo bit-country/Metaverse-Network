@@ -23,7 +23,7 @@ sp-io = { default-features = false, git = "https://github.com/paritytech/substra
 
 # Polkadot & Cumulus pallets
 polkadot-parachain = { workspace = true }
-cumulus-pallet-parachain-system = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38', default-features = false }
+cumulus-pallet-parachain-system = { workspace = true, default-features = false }
 
 # FRAME pallets
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
