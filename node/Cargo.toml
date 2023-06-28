@@ -122,17 +122,17 @@ polkadot-service = { workspace = true }
 xcm = { workspace = true }
 
 # EVM dependencies
-fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-fp-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-fp-storage = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-fc-cli = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-fc-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-fc-rpc-core = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-fc-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-fc-mapping-sync = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-fc-db = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-pallet-dynamic-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
-pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", optional = true }
+fp-rpc = { workspace = true, default-features = true, optional = true }
+fp-consensus = { workspace = true, optional = true }
+fp-storage = { workspace = true, optional = true }
+fc-cli = { workspace = true, optional = true }
+fc-rpc = { workspace = true, optional = true }
+fc-rpc-core = { workspace = true, optional = true }
+fc-consensus = { workspace = true, optional = true }
+fc-mapping-sync = { workspace = true, optional = true }
+fc-db = { workspace = true, optional = true }
+pallet-dynamic-fee = { workspace = true, optional = true }
+pallet-ethereum = { workspace = true, default-features = true, optional = true }
 
 
 [build-dependencies]

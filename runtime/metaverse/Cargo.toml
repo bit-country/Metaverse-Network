@@ -68,12 +68,12 @@ frame-benchmarking = { default-features = false, git = "https://github.com/parit
 frame-system-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", optional = true }
 
 # EVM pallets
-pallet-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", default-features = false }
-pallet-ethereum = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", default-features = false }
-pallet-base-fee = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", default-features = false }
-fp-self-contained = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", default-features = false }
-fp-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", default-features = false }
-fp-evm = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v0.9.38", default-features = false }
+pallet-evm = { workspace = true }
+pallet-ethereum = { workspace = true }
+pallet-base-fee = { workspace = true }
+fp-self-contained = { workspace = true }
+fp-rpc = { workspace = true }
+fp-evm = { workspace = true }
 
 # external crates - orml packages
 orml-currencies = { workspace = true }
