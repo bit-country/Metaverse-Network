@@ -132,16 +132,16 @@ pub fn local_testnet_config() -> ChainSpec {
 	)
 }
 
-pub fn pioneer_network_config_json() -> Result<ChainSpec, String> {
-	ChainSpec::from_json_bytes(&include_bytes!("../../../node/res/pioneer-live-raw-spec.json")[..])
+pub fn continuum_network_config_json() -> Result<ChainSpec, String> {
+	ChainSpec::from_json_bytes(&include_bytes!("../../../node/res/continuum-live-raw-spec.json")[..])
 }
 
 pub fn continuum_genesis_config() -> ChainSpec {
 	ChainSpec::from_genesis(
 		// Name
-		"Pioneer Network",
+		"Continuum Network",
 		// ID
-		"pioneer-live",
+		"continuum-live",
 		ChainType::Live,
 		move || {
 			continuum_genesis(

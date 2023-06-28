@@ -20,8 +20,9 @@ use codec::Encode;
 use cumulus_pallet_parachain_system::CheckAssociatedRelayNumber;
 use frame_support::{
 	traits::Get,
-	weights::{constants::WEIGHT_PER_SECOND, Weight},
+	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
+use orml_traits::currency::MutationHooks;
 use polkadot_parachain::primitives::RelayChainBlockNumber;
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{marker::PhantomData, prelude::*};
@@ -60,7 +61,7 @@ pub struct FixedRateOfAsset<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRa
 impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for FixedRateOfAsset<FixedRate, R, M> {
 	fn new() -> Self {
 		Self {
-			weight: 0,
+			weight: Weight::from_ref_time(0),
 			amount: 0,
 			ratio: Default::default(),
 			multi_location: None,
@@ -82,8 +83,9 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for Fi
 			log::debug!(target: "xcm::weight", "buy_weight multi_location: {:?}", multi_location);
 
 			if let Some(ratio) = M::calculate_rate(multi_location.clone()) {
-				// The WEIGHT_PER_SECOND is non-zero.
-				let weight_ratio = FixedU128::saturating_from_rational(weight as u128, WEIGHT_PER_SECOND as u128);
+				// The WEIGHT_REF_TIME_PER_SECOND is non-zero.
+				let weight_ratio =
+					FixedU128::saturating_from_rational(weight.ref_time() as u128, WEIGHT_REF_TIME_PER_SECOND as u128);
 				let amount = ratio.saturating_mul_int(weight_ratio.saturating_mul_int(FixedRate::get()));
 
 				let required = MultiAsset {
@@ -117,7 +119,8 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> WeightTrader for Fi
 			weight, self.weight, self.amount, self.ratio, self.multi_location
 		);
 		let weight = weight.min(self.weight);
-		let weight_ratio = FixedU128::saturating_from_rational(weight as u128, WEIGHT_PER_SECOND as u128);
+		let weight_ratio =
+			FixedU128::saturating_from_rational(weight.ref_time() as u128, WEIGHT_REF_TIME_PER_SECOND as u128);
 		let amount = self
 			.ratio
 			.saturating_mul_int(weight_ratio.saturating_mul_int(FixedRate::get()));
@@ -153,4 +156,20 @@ impl<FixedRate: Get<u128>, R: TakeRevenue, M: BuyWeightRate> Drop for FixedRateO
 			);
 		}
 	}
+}
+
+pub struct CurrencyHooks<T, DustAccount>(PhantomData<T>, DustAccount);
+impl<T, DustAccount> MutationHooks<T::AccountId, T::CurrencyId, T::Balance> for CurrencyHooks<T, DustAccount>
+where
+	T: orml_tokens::Config,
+	DustAccount: Get<<T as frame_system::Config>::AccountId>,
+{
+	type OnDust = orml_tokens::TransferDust<T, DustAccount>;
+	type OnSlash = ();
+	type PreDeposit = ();
+	type PostDeposit = ();
+	type PreTransfer = ();
+	type PostTransfer = ();
+	type OnNewTokenAccount = ();
+	type OnKilledTokenAccount = ();
 }

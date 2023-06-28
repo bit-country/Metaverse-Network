@@ -20,8 +20,9 @@ pub mod currency {
 /// Time.
 pub mod time {
 	use frame_support::dispatch::Weight;
-	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND};
+	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND};
 
+	use polkadot_primitives::v2::MAX_POV_SIZE;
 	use primitives::{BlockNumber, Moment};
 
 	use crate::{Balance, Perbill, CENTS};
@@ -58,11 +59,12 @@ pub mod time {
 	pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 
 	/// We allow for 0.5 of a second of compute with a 12 second average block time.
-	pub const MAXIMUM_BLOCK_WEIGHT: Weight = WEIGHT_PER_SECOND / 2;
+	pub const MAXIMUM_BLOCK_WEIGHT: Weight =
+		Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_div(2), MAX_POV_SIZE as u64);
 }
 
 pub mod xcm_fees {
-	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_PER_SECOND};
+	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND};
 
 	use primitives::{Balance, FungibleTokenId};
 
@@ -82,8 +84,8 @@ pub mod xcm_fees {
 	}
 
 	fn base_tx_per_second(currency: FungibleTokenId) -> Balance {
-		let base_weight = Balance::from(ExtrinsicBaseWeight::get());
-		let base_tx_per_second = (WEIGHT_PER_SECOND as u128) / base_weight;
+		let base_weight = Balance::from(ExtrinsicBaseWeight::get().ref_time());
+		let base_tx_per_second = (WEIGHT_REF_TIME_PER_SECOND as u128) / base_weight;
 		base_tx_per_second * base_tx(currency)
 	}
 

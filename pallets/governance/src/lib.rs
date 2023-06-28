@@ -68,7 +68,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Constant equivalent to one block
 		#[pallet::constant]
@@ -119,7 +119,7 @@ pub mod pallet {
 		type PalletsOrigin: From<frame_system::RawOrigin<Self::AccountId>>;
 
 		/// The proposal.
-		type Proposal: Parameter + Dispatchable<Origin = Self::Origin> + From<Call<Self>>;
+		type Proposal: Parameter + Dispatchable<RuntimeOrigin = Self::RuntimeOrigin> + From<Call<Self>>;
 
 		/// The proposal type for filtering preimages
 		type ProposalType: Parameter + Member + Default + InstanceFilter<Self::Proposal>;
@@ -128,7 +128,7 @@ pub mod pallet {
 		type Scheduler: ScheduleNamed<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
 
 		/// Metaverse Council which collective of members
-		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
+		type MetaverseCouncil: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
 	#[pallet::pallet]
@@ -321,7 +321,7 @@ pub mod pallet {
 		/// - `new_referendum_parameters`: the updated referendum parameters
 		///
 		/// Emits `ReferendumParametersUpdated` if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0)  + T::DbWeight::get().writes(1))]
 		pub fn update_referendum_parameters(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -348,7 +348,7 @@ pub mod pallet {
 		///
 		/// Emits `PreimageNoted` if successful and preimage is valid.
 		/// Emits `ProposalRefused` if successful and preimage is invalid.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn note_preimage(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -375,7 +375,7 @@ pub mod pallet {
 		/// - `proposal_description`: description of the proposal encoded as vector of numbers
 		///
 		/// Emits `Tabled` if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0)+ T::DbWeight::get().writes(1))]
 		pub fn propose(
 			origin: OriginFor<T>,
 			metaverse_id: MetaverseId,
@@ -480,7 +480,7 @@ pub mod pallet {
 		/// - `metaverse_id`: the metaverse ID of the proposal
 		///
 		/// Emits `ProposalCancelled` if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn cancel_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,
@@ -509,7 +509,7 @@ pub mod pallet {
 		/// - `metaverse_id`: the metaverse ID of the proposal
 		///
 		/// Emits `ProposalFastTracked` if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn fast_track_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,
@@ -535,7 +535,7 @@ pub mod pallet {
 		/// - `seconds_upper_bound`: selected upper bound for proposal seconding
 		///
 		/// Emits `Seconded` if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn second(origin: OriginFor<T>, proposal: ProposalId, seconds_upper_bound: u32) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -560,7 +560,7 @@ pub mod pallet {
 		/// - `vote`: the vote value, balance, and conviction
 		///
 		/// Emits `VoteRecorded` if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn try_vote(
 			origin: OriginFor<T>,
 			metaverse: MetaverseId,
@@ -610,7 +610,7 @@ pub mod pallet {
 		/// - `metaverse`: the metaverse ID of the local referendum
 		///
 		/// Emits `VoteRemoved` if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn try_remove_vote(
 			origin: OriginFor<T>,
 			referendum: ReferendumId,
@@ -664,7 +664,7 @@ pub mod pallet {
 		/// - `referendum`: the referendum ID which will be canceled
 		///
 		/// Emits `ReferendumCancelled` if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn emergency_cancel_referendum(
 			origin: OriginFor<T>,
 			metaverse: MetaverseId,
@@ -692,7 +692,7 @@ pub mod pallet {
 		/// - `target`: the account which funds will be unlocked
 		///
 		/// Emits nothing if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn unlock_balance(origin: OriginFor<T>, target: T::AccountId) -> DispatchResult {
 			ensure_signed(origin)?;
 			Self::update_lock(&target);
@@ -708,7 +708,7 @@ pub mod pallet {
 		/// - `proposal_hash`: the hash of the proposal
 		///
 		/// Emits `ProposalEnacted` and 'PreimageEnacted' if successful.
-		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_parts(10000, 0) + T::DbWeight::get().writes(1))]
 		pub fn enact_proposal(
 			origin: OriginFor<T>,
 			proposal: ProposalId,

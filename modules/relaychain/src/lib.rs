@@ -154,13 +154,13 @@ where
 				weight_limit: Unlimited,
 			},
 			Transact {
-				origin_type: OriginKind::SovereignAccount,
+				origin_kind: OriginKind::SovereignAccount,
 				require_weight_at_most: weight,
 				call: call.encode().into(),
 			},
 			DepositAsset {
 				assets: All.into(),
-				max_assets: u32::max_value(),
+				//max_assets: u32::max_value(),
 				beneficiary: MultiLocation {
 					parents: 0,
 					interior: X1(Parachain(ParachainId::get().into())),

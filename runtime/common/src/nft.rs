@@ -83,7 +83,7 @@ where
 	ClassIdOf<Runtime>: TryFrom<U256> + Into<ClassId> + EvmData,
 	TokenIdOf<Runtime>: TryFrom<U256> + Into<<Runtime as orml_nft::Config>::TokenId> + EvmData,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
-	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+	<<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin: OriginTrait,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
 		let result = {
@@ -136,7 +136,7 @@ where
 	ClassIdOf<Runtime>: TryFrom<U256> + Into<ClassId> + EvmData,
 	TokenIdOf<Runtime>: TryFrom<U256> + Into<<Runtime as orml_nft::Config>::TokenId> + EvmData,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
-	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+	<<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin: OriginTrait,
 {
 	fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
 		let result = {

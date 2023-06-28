@@ -79,7 +79,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Land treasury source
 		#[pallet::constant]
@@ -95,7 +95,7 @@ pub mod pallet {
 		type MinimumLandPrice: Get<BalanceOf<Self>>;
 
 		/// Council origin which allows to update max bound
-		type CouncilOrigin: EnsureOrigin<Self::Origin>;
+		type CouncilOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 
 		/// Auction handler
 		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
@@ -2048,7 +2048,7 @@ impl<T: Config> Pallet<T> {
 		NextEstateId::<T>::put(1);
 		AllLandUnitsCount::<T>::put(0);
 		AllEstatesCount::<T>::put(0);
-		0
+		Weight::from_ref_time(0)
 	}
 
 	fn collect_network_fee(

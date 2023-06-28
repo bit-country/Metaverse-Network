@@ -98,7 +98,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The currency type
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
 			+ ReservableCurrency<Self::AccountId>;
@@ -118,7 +118,7 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinContribution: Get<BalanceOf<Self>>;
 		/// Origin to add new metaverse
-		type MetaverseCouncil: EnsureOrigin<Self::Origin>;
+		type MetaverseCouncil: EnsureOrigin<Self::RuntimeOrigin>;
 		/// Mininum deposit for registering a metaverse
 		type MetaverseRegistrationDeposit: Get<BalanceOf<Self>>;
 		/// Mininum staking amount
@@ -604,7 +604,7 @@ impl<T: Config> Pallet<T> {
 			Some(v2)
 		});
 		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
-		0
+		Weight::from_ref_time(0)
 	}
 
 	/// Internal update of metaverse info to v3
@@ -634,7 +634,7 @@ impl<T: Config> Pallet<T> {
 		});
 		log::info!("{} metaverses in total:", total_metaverse_items);
 		log::info!("{} metaverses upgraded:", upgraded_metaverse_items);
-		0
+		Weight::from_ref_time(0)
 	}
 }
 

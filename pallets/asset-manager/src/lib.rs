@@ -34,7 +34,7 @@ use frame_system::pallet_prelude::*;
 use scale_info::prelude::format;
 use sp_runtime::{traits::One, ArithmeticError, FixedPointNumber, FixedU128};
 use sp_std::{boxed::Box, vec::Vec};
-use xcm::v1::MultiLocation;
+use xcm::v3::MultiLocation;
 use xcm::VersionedMultiLocation;
 
 pub use pallet::*;
@@ -57,13 +57,13 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// The overarching event type.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Currency type for withdraw and balance storage.
 		type Currency: Currency<Self::AccountId>;
 
 		/// Required origin for registering asset.
-		type RegisterOrigin: EnsureOrigin<Self::Origin>;
+		type RegisterOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 	}
 
 	#[pallet::error]

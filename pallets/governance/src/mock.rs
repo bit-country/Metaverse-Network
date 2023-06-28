@@ -2,7 +2,7 @@
 
 use codec::Encode;
 use frame_support::dispatch::DispatchError;
-use frame_support::traits::{EqualPrivilegeOnly, Nothing};
+use frame_support::traits::{ConstU32, EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -76,16 +76,16 @@ pub const ALICE_METAVERSE_ID: MetaverseId = 1;
 pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -107,7 +107,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -118,20 +118,19 @@ impl pallet_balances::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = 128;
+	pub MaximumSchedulerWeight: Weight = Weight::from_ref_time(128);
 }
 impl pallet_scheduler::Config for Runtime {
-	type Event = Event;
-	type Origin = Origin;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
-	type MaxScheduledPerBlock = ();
+	type MaxScheduledPerBlock = ConstU32<10>;
 	type WeightInfo = ();
-	type PreimageProvider = ();
-	type NoPreimagePostponement = ();
+	type Preimages = ();
 }
 
 pub struct MetaverseInfo {}
@@ -459,7 +458,7 @@ parameter_types! {
 }
 
 impl pallet_metaverse::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
 	type MetaverseTreasury = MetaverseFundPalletId;
@@ -485,11 +484,11 @@ impl Default for ProposalType {
 	}
 }
 
-impl InstanceFilter<Call> for ProposalType {
-	fn filter(&self, c: &Call) -> bool {
+impl InstanceFilter<RuntimeCall> for ProposalType {
+	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
 			ProposalType::Any => true,
-			ProposalType::JustTransfer => matches!(c, Call::Metaverse(..)),
+			ProposalType::JustTransfer => matches!(c, RuntimeCall::Metaverse(..)),
 		}
 	}
 	fn is_superset(&self, o: &Self) -> bool {
@@ -503,7 +502,7 @@ impl Config for Runtime {
 	type DefaultProposalLaunchPeriod = DefaultProposalLaunchPeriod;
 	type DefaultMaxProposalsPerMetaverse = DefaultMaxProposalsPerMetaverse;
 	type DefaultLocalVoteLockingPeriod = DefaultLocalVoteLockingPeriod;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
 	type MinimumProposalDeposit = MinimumProposalDeposit;
 	type OneBlock = OneBlock;
@@ -511,7 +510,7 @@ impl Config for Runtime {
 	type Slash = ();
 	type MetaverseInfo = MetaverseInfo;
 	type PalletsOrigin = OriginCaller;
-	type Proposal = Call;
+	type Proposal = RuntimeCall;
 	type Scheduler = Scheduler;
 	type MetaverseLandInfo = MetaverseLandInfo;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
@@ -530,19 +529,17 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type CurrencyHooks = ();
 	type MaxLocks = ();
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -553,7 +550,7 @@ parameter_types! {
 }
 
 impl currencies::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
@@ -611,7 +608,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
@@ -631,7 +628,7 @@ pub fn run_to_block(n: u64) {
 }
 
 pub fn set_balance_proposal(value: u64) -> Vec<u8> {
-	Call::Balances(pallet_balances::Call::set_balance {
+	RuntimeCall::Balances(pallet_balances::Call::set_balance {
 		who: BOB,
 		new_free: value,
 		new_reserved: 100,
@@ -640,7 +637,7 @@ pub fn set_balance_proposal(value: u64) -> Vec<u8> {
 }
 
 pub fn set_freeze_metaverse_proposal(value: u64) -> Vec<u8> {
-	Call::Metaverse(pallet_metaverse::Call::freeze_metaverse { metaverse_id: value }).encode()
+	RuntimeCall::Metaverse(pallet_metaverse::Call::freeze_metaverse { metaverse_id: value }).encode()
 }
 
 pub fn set_balance_proposal_hash(value: u64) -> H256 {

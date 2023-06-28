@@ -3,13 +3,13 @@
 use super::*;
 use frame_support::sp_runtime::DispatchError::BadOrigin;
 use frame_support::{assert_err, assert_noop, assert_ok};
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 
 // Update country referendum parameters tests
 #[test]
 fn update_country_referendum_parameters_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(BOB);
+		let origin = RuntimeOrigin::signed(BOB);
 		assert_ok!(GovernanceModule::update_referendum_parameters(
 			origin.clone(),
 			BOB_COUNTRY_ID,
@@ -17,7 +17,7 @@ fn update_country_referendum_parameters_work() {
 		));
 		assert_eq!(
 			last_event(),
-			Event::Governance(crate::Event::ReferendumParametersUpdated(BOB_COUNTRY_ID))
+			RuntimeEvent::Governance(crate::Event::ReferendumParametersUpdated(BOB_COUNTRY_ID))
 		);
 	});
 }
@@ -25,7 +25,7 @@ fn update_country_referendum_parameters_work() {
 #[test]
 fn update_country_referendum_parameters_when_not_country_owner_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		assert_noop!(
 			GovernanceModule::update_referendum_parameters(origin.clone(), BOB_COUNTRY_ID, REFERENDUM_PARAMETERS),
 			Error::<Runtime>::AccountIsNotMetaverseOwner
@@ -37,7 +37,7 @@ fn update_country_referendum_parameters_when_not_country_owner_does_not_work() {
 #[test]
 fn create_new_preimage_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let encoded_proposal = set_freeze_metaverse_proposal(4);
 		assert_ok!(GovernanceModule::note_preimage(
 			origin.clone(),
@@ -49,7 +49,7 @@ fn create_new_preimage_work() {
 		let hash = set_freeze_metaverse_proposal_hash(4);
 		assert_eq!(
 			last_event(),
-			Event::Governance(crate::Event::PreimageNoted(BOB_COUNTRY_ID, hash, ALICE, 10))
+			RuntimeEvent::Governance(crate::Event::PreimageNoted(BOB_COUNTRY_ID, hash, ALICE, 10))
 		);
 	});
 }
@@ -58,7 +58,7 @@ fn create_new_preimage_work() {
 #[test]
 fn create_new_proposal_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -70,7 +70,7 @@ fn create_new_proposal_work() {
 		));
 		assert_eq!(
 			last_event(),
-			Event::Governance(crate::Event::ReferendumStarted(
+			RuntimeEvent::Governance(crate::Event::ReferendumStarted(
 				BOB_COUNTRY_ID,
 				0,
 				0,
@@ -84,7 +84,7 @@ fn create_new_proposal_work() {
 #[test]
 fn create_local_metaverse_proposal_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(0);
 		add_metaverse_preimage(hash);
 		println!("{:#x}", hash);
@@ -97,7 +97,7 @@ fn create_local_metaverse_proposal_work() {
 		));
 		assert_eq!(
 			last_event(),
-			Event::Governance(crate::Event::ReferendumStarted(
+			RuntimeEvent::Governance(crate::Event::ReferendumStarted(
 				BOB_COUNTRY_ID,
 				0,
 				0,
@@ -110,7 +110,7 @@ fn create_local_metaverse_proposal_work() {
 #[test]
 fn create_new_proposal_when_not_enough_funds_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(BOB);
+		let origin = RuntimeOrigin::signed(BOB);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_noop!(
@@ -129,7 +129,7 @@ fn create_new_proposal_when_not_enough_funds_does_not_work() {
 #[test]
 fn create_new_proposal_with_out_of_scope_preimage_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_balance_proposal_hash(1);
 		add_preimage(hash);
 		assert_err!(
@@ -142,17 +142,13 @@ fn create_new_proposal_with_out_of_scope_preimage_does_not_work() {
 			),
 			Error::<Runtime>::PreimageInvalid
 		);
-		assert_eq!(
-			last_event(),
-			Event::Governance(crate::Event::ProposalRefused(BOB_COUNTRY_ID, hash))
-		);
 	});
 }
 
 #[test]
 fn create_new_proposal_when_too_small_deposit_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(BOB);
+		let origin = RuntimeOrigin::signed(BOB);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_noop!(
@@ -175,7 +171,7 @@ fn create_new_proposal_when_not_country_member_does_not_work() {
 		add_freeze_metaverse_preimage(hash);
 		assert_noop!(
 			GovernanceModule::propose(
-				Origin::signed(5).clone(),
+				RuntimeOrigin::signed(5).clone(),
 				ALICE_COUNTRY_ID,
 				400,
 				hash.clone(),
@@ -189,7 +185,7 @@ fn create_new_proposal_when_not_country_member_does_not_work() {
 #[test]
 fn create_new_proposal_when_queue_full_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(BOB);
+		let origin = RuntimeOrigin::signed(BOB);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		let parameters = ReferendumParameters {
@@ -222,7 +218,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 // #[test]
 // fn cancel_proposal_work() {
 // 	ExtBuilder::default().build().execute_with(|| {
-// 		let origin = Origin::signed(ALICE);
+// 		let origin = RuntimeOrigin::signed(ALICE);
 // 		let hash = set_freeze_metaverse_proposal_hash(1);
 // 		let hash2 = set_freeze_metaverse_proposal_hash(2);
 // 		add_freeze_metaverse_preimage(hash);
@@ -245,7 +241,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 // 		assert_eq!(Balances::free_balance(&ALICE), 100000);
 // 		assert_eq!(
 // 			last_event(),
-// 			Event::Governance(crate::Event::ProposalCancelled(ALICE, 1))
+// 			RuntimeEvent::Governance(crate::Event::ProposalCancelled(ALICE, 1))
 // 		);
 // 	});
 // }
@@ -253,7 +249,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 // #[test]
 // fn cancel_non_existing_proposal_does_not_work() {
 // 	ExtBuilder::default().build().execute_with(|| {
-// 		let origin = Origin::signed(ALICE);
+// 		let origin = RuntimeOrigin::signed(ALICE);
 // 		assert_noop!(
 // 			GovernanceModule::cancel_proposal(origin.clone(), 0, BOB_COUNTRY_ID),
 // 			Error::<Runtime>::ProposalDoesNotExist
@@ -264,7 +260,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 //#[test]
 // fn cancel_proposal_that_you_have_not_submitted_does_not_work() {
 // 	ExtBuilder::default().build().execute_with(|| {
-// 		let origin = Origin::signed(ALICE);
+// 		let origin = RuntimeOrigin::signed(ALICE);
 // 		let hash = set_freeze_metaverse_proposal_hash(1);
 // 		let hash2 = set_freeze_metaverse_proposal_hash(2);
 // 		add_freeze_metaverse_preimage(hash);
@@ -284,7 +280,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 // 			PROPOSAL_DESCRIPTION.to_vec()
 // 		));
 // 		assert_noop!(
-// 			GovernanceModule::cancel_proposal(Origin::signed(BOB), 1, BOB_COUNTRY_ID),
+// 			GovernanceModule::cancel_proposal(RuntimeOrigin::signed(BOB), 1, BOB_COUNTRY_ID),
 // 			Error::<Runtime>::NotProposalCreator
 // 		);
 // 	});
@@ -294,7 +290,7 @@ fn create_new_proposal_when_queue_full_does_not_work() {
 #[test]
 fn fast_track_proposal_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		let hash2 = set_freeze_metaverse_proposal_hash(2);
 		add_freeze_metaverse_preimage(hash);
@@ -314,13 +310,13 @@ fn fast_track_proposal_work() {
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
 		assert_ok!(GovernanceModule::fast_track_proposal(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,
 			BOB_COUNTRY_ID
 		));
 		assert_eq!(
 			last_event(),
-			Event::Governance(crate::Event::ProposalFastTracked(BOB_COUNTRY_ID, 1))
+			RuntimeEvent::Governance(crate::Event::ProposalFastTracked(BOB_COUNTRY_ID, 1))
 		);
 	});
 }
@@ -328,7 +324,7 @@ fn fast_track_proposal_work() {
 #[test]
 fn fast_track_proposal_when_not_country_owner_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		let hash2 = set_freeze_metaverse_proposal_hash(2);
 		add_freeze_metaverse_preimage(hash);
@@ -348,7 +344,7 @@ fn fast_track_proposal_when_not_country_owner_does_not_work() {
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
 		assert_noop!(
-			GovernanceModule::fast_track_proposal(Origin::signed(BOB), 1, BOB_COUNTRY_ID),
+			GovernanceModule::fast_track_proposal(RuntimeOrigin::signed(BOB), 1, BOB_COUNTRY_ID),
 			BadOrigin
 		);
 	});
@@ -358,7 +354,7 @@ fn fast_track_proposal_when_not_country_owner_does_not_work() {
 #[test]
 fn vote_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -370,7 +366,7 @@ fn vote_work() {
 		));
 		run_to_block(2);
 		assert_ok!(GovernanceModule::try_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			BOB_COUNTRY_ID,
 			0,
 			VOTE_FOR
@@ -378,7 +374,7 @@ fn vote_work() {
 		assert_eq!(Balances::usable_balance(&BOB), 490);
 		assert_eq!(
 			last_event(),
-			Event::Governance(crate::Event::VoteRecorded(BOB, 0, true))
+			RuntimeEvent::Governance(crate::Event::VoteRecorded(BOB, 0, true))
 		);
 	});
 }
@@ -386,11 +382,11 @@ fn vote_work() {
 #[test]
 fn vote_when_not_country_member_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(BOB);
+		let origin = RuntimeOrigin::signed(BOB);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage_alice(hash);
 		assert_ok!(GovernanceModule::propose(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			ALICE_COUNTRY_ID,
 			100,
 			hash.clone(),
@@ -398,7 +394,7 @@ fn vote_when_not_country_member_does_not_work() {
 		));
 		run_to_block(16);
 		assert_noop!(
-			GovernanceModule::try_vote(Origin::signed(BOB), ALICE_COUNTRY_ID, 0, VOTE_FOR),
+			GovernanceModule::try_vote(RuntimeOrigin::signed(BOB), ALICE_COUNTRY_ID, 0, VOTE_FOR),
 			Error::<Runtime>::AccountIsNotMetaverseMember
 		);
 	});
@@ -407,7 +403,7 @@ fn vote_when_not_country_member_does_not_work() {
 #[test]
 fn vote_more_than_once_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -419,13 +415,13 @@ fn vote_more_than_once_does_not_work() {
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			BOB_COUNTRY_ID,
 			0,
 			VOTE_FOR
 		));
 		assert_noop!(
-			GovernanceModule::try_vote(Origin::signed(BOB), BOB_COUNTRY_ID, 0, VOTE_FOR),
+			GovernanceModule::try_vote(RuntimeOrigin::signed(BOB), BOB_COUNTRY_ID, 0, VOTE_FOR),
 			Error::<Runtime>::AccountAlreadyVoted
 		);
 	});
@@ -435,7 +431,7 @@ fn vote_more_than_once_does_not_work() {
 #[test]
 fn remove_vote_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -447,24 +443,27 @@ fn remove_vote_work() {
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			BOB_COUNTRY_ID,
 			0,
 			VOTE_FOR
 		));
 		assert_ok!(GovernanceModule::try_remove_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			0,
 			BOB_COUNTRY_ID
 		));
-		assert_eq!(last_event(), Event::Governance(crate::Event::VoteRemoved(BOB, 0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Governance(crate::Event::VoteRemoved(BOB, 0))
+		);
 	});
 }
 
 #[test]
 fn remove_vote_when_you_have_not_voted_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -476,7 +475,7 @@ fn remove_vote_when_you_have_not_voted_does_not_work() {
 		));
 		run_to_block(16);
 		assert_noop!(
-			GovernanceModule::try_remove_vote(Origin::signed(BOB), 0, BOB_COUNTRY_ID),
+			GovernanceModule::try_remove_vote(RuntimeOrigin::signed(BOB), 0, BOB_COUNTRY_ID),
 			Error::<Runtime>::AccountHasNotVoted
 		);
 	});
@@ -485,7 +484,7 @@ fn remove_vote_when_you_have_not_voted_does_not_work() {
 #[test]
 fn emergency_cancel_referendum_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -502,14 +501,17 @@ fn emergency_cancel_referendum_work() {
 			0
 		));
 		assert_eq!(Balances::free_balance(&ALICE), 100000);
-		assert_eq!(last_event(), Event::Governance(crate::Event::ReferendumCancelled(0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Governance(crate::Event::ReferendumCancelled(0))
+		);
 	});
 }
 
 #[test]
 fn emergency_cancel_non_existing_referendum_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		assert_noop!(
 			GovernanceModule::emergency_cancel_referendum(origin.clone(), 0, 3),
 			Error::<Runtime>::ReferendumDoesNotExist
@@ -520,7 +522,7 @@ fn emergency_cancel_non_existing_referendum_does_not_work() {
 #[test]
 fn emergency_cancel_referendum_when_not_having_privileges_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 
@@ -533,7 +535,7 @@ fn emergency_cancel_referendum_when_not_having_privileges_does_not_work() {
 		));
 		run_to_block(17);
 		assert_noop!(
-			GovernanceModule::emergency_cancel_referendum(Origin::signed(BOB), 0, 0),
+			GovernanceModule::emergency_cancel_referendum(RuntimeOrigin::signed(BOB), 0, 0),
 			BadOrigin
 		);
 	});
@@ -543,7 +545,7 @@ fn emergency_cancel_referendum_when_not_having_privileges_does_not_work() {
 #[test]
 fn referendum_proposal_passes() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -555,7 +557,7 @@ fn referendum_proposal_passes() {
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			BOB_COUNTRY_ID,
 			0,
 			VOTE_FOR
@@ -570,14 +572,17 @@ fn referendum_proposal_passes() {
 				title: PROPOSAL_DESCRIPTION.to_vec()
 			})
 		);
-		assert_eq!(last_event(), Event::Governance(crate::Event::ReferendumPassed(0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Governance(crate::Event::ReferendumPassed(0))
+		);
 	});
 }
 
 #[test]
 fn referendum_proposal_is_rejected() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -589,7 +594,7 @@ fn referendum_proposal_is_rejected() {
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			BOB_COUNTRY_ID,
 			0,
 			VOTE_AGAINST
@@ -604,15 +609,18 @@ fn referendum_proposal_is_rejected() {
 				title: PROPOSAL_DESCRIPTION.to_vec()
 			})
 		);
-		assert_eq!(last_event(), Event::Governance(crate::Event::ReferendumNotPassed(0)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Governance(crate::Event::ReferendumNotPassed(0))
+		);
 	});
 }
 
 #[test]
 fn referendum_proposal_is_enacted() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
-		let proposer = Origin::signed(ALICE);
+		let root = RuntimeOrigin::root();
+		let proposer = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -631,7 +639,7 @@ fn referendum_proposal_is_enacted() {
 		));
 		assert_eq!(
 			last_event(),
-			Event::Governance(crate::Event::ProposalEnacted(BOB_COUNTRY_ID, 0))
+			RuntimeEvent::Governance(crate::Event::ProposalEnacted(BOB_COUNTRY_ID, 0))
 		);
 	});
 }
@@ -639,7 +647,7 @@ fn referendum_proposal_is_enacted() {
 #[test]
 fn referendum_proposal_rejected_as_out_of_scope() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 		let preimage_hash = set_balance_proposal_hash(1);
 		add_preimage(preimage_hash);
 		add_out_of_scope_proposal(preimage_hash);
@@ -653,7 +661,7 @@ fn referendum_proposal_rejected_as_out_of_scope() {
 		));
 		assert_eq!(
 			last_event(),
-			Event::Governance(crate::Event::PreimageInvalid(BOB_COUNTRY_ID, preimage_hash.clone(), 0))
+			RuntimeEvent::Governance(crate::Event::PreimageInvalid(BOB_COUNTRY_ID, preimage_hash.clone(), 0))
 		);
 	});
 }
@@ -661,7 +669,7 @@ fn referendum_proposal_rejected_as_out_of_scope() {
 #[test]
 fn unlocking_balance_after_removing_vote_works() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -673,7 +681,7 @@ fn unlocking_balance_after_removing_vote_works() {
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			BOB_COUNTRY_ID,
 			0,
 			VOTE_FOR
@@ -681,11 +689,11 @@ fn unlocking_balance_after_removing_vote_works() {
 		assert_eq!(Balances::usable_balance(&BOB), 490);
 		run_to_block(26);
 		assert_ok!(GovernanceModule::try_remove_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			0,
 			BOB_COUNTRY_ID
 		));
-		assert_ok!(GovernanceModule::unlock_balance(Origin::signed(BOB), BOB));
+		assert_ok!(GovernanceModule::unlock_balance(RuntimeOrigin::signed(BOB), BOB));
 		assert_eq!(Balances::usable_balance(&BOB), 500);
 	});
 }
@@ -693,7 +701,7 @@ fn unlocking_balance_after_removing_vote_works() {
 #[test]
 fn unlocking_balance_after_referendum_is_over_works() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage(hash);
 		assert_ok!(GovernanceModule::propose(
@@ -705,7 +713,7 @@ fn unlocking_balance_after_referendum_is_over_works() {
 		));
 		run_to_block(16);
 		assert_ok!(GovernanceModule::try_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			BOB_COUNTRY_ID,
 			0,
 			VOTE_FOR
@@ -713,11 +721,11 @@ fn unlocking_balance_after_referendum_is_over_works() {
 		assert_eq!(Balances::usable_balance(&BOB), 490);
 		run_to_block(30);
 		assert_ok!(GovernanceModule::try_remove_vote(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			0,
 			BOB_COUNTRY_ID
 		));
-		assert_ok!(GovernanceModule::unlock_balance(Origin::signed(BOB), BOB));
+		assert_ok!(GovernanceModule::unlock_balance(RuntimeOrigin::signed(BOB), BOB));
 		assert_eq!(Balances::usable_balance(&BOB), 500);
 	});
 }
@@ -725,8 +733,8 @@ fn unlocking_balance_after_referendum_is_over_works() {
 #[test]
 fn second_proposal_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-		let seconder = Origin::signed(BOB);
+		let origin = RuntimeOrigin::signed(ALICE);
+		let seconder = RuntimeOrigin::signed(BOB);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		let hash2 = set_freeze_metaverse_proposal_hash(2);
 		add_freeze_metaverse_preimage(hash);
@@ -746,15 +754,15 @@ fn second_proposal_work() {
 			PROPOSAL_DESCRIPTION.to_vec()
 		));
 		assert_ok!(GovernanceModule::second(seconder.clone(), 1, 1));
-		assert_eq!(last_event(), Event::Governance(crate::Event::Seconded(BOB, 1)));
+		assert_eq!(last_event(), RuntimeEvent::Governance(crate::Event::Seconded(BOB, 1)));
 	});
 }
 
 #[test]
 fn second_proposal_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-		let seconder = Origin::signed(BOB);
+		let origin = RuntimeOrigin::signed(ALICE);
+		let seconder = RuntimeOrigin::signed(BOB);
 		assert_noop!(
 			GovernanceModule::second(seconder.clone(), 1, 1),
 			Error::<Runtime>::ProposalMissing
@@ -787,8 +795,8 @@ fn second_proposal_does_not_work() {
 #[test]
 fn get_next_proposal_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
-		let seconder = Origin::signed(BOB);
+		let origin = RuntimeOrigin::signed(ALICE);
+		let seconder = RuntimeOrigin::signed(BOB);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		let hash2 = set_freeze_metaverse_proposal_hash(2);
 		let hash3 = set_freeze_metaverse_proposal_hash(3);

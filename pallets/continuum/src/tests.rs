@@ -22,7 +22,7 @@ use sp_runtime::traits::BadOrigin;
 
 use core_primitives::TokenType;
 use mock::BlockNumber as MBlockNumber;
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 
 use super::*;
 
@@ -51,12 +51,16 @@ fn find_neighborhood_spot_should_work() {
 #[test]
 fn issue_continuum_spot_should_fail_when_no_root() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root, true));
 
 		assert_noop!(
-			ContinuumModule::issue_map_slot(Origin::signed(ALICE), CONTINUUM_MAP_COORDINATE, TokenType::Transferable),
+			ContinuumModule::issue_map_slot(
+				RuntimeOrigin::signed(ALICE),
+				CONTINUUM_MAP_COORDINATE,
+				TokenType::Transferable
+			),
 			BadOrigin
 		);
 	})
@@ -65,7 +69,7 @@ fn issue_continuum_spot_should_fail_when_no_root() {
 #[test]
 fn issue_continuum_spot_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account_truncating();
 		assert_ok!(ContinuumModule::issue_map_slot(
 			root,
@@ -86,7 +90,7 @@ fn issue_continuum_spot_should_work() {
 #[test]
 fn create_buy_now_for_continuum_spot_should_fail_when_no_root() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
 		assert_ok!(ContinuumModule::issue_map_slot(
@@ -96,7 +100,7 @@ fn create_buy_now_for_continuum_spot_should_fail_when_no_root() {
 		));
 		assert_noop!(
 			ContinuumModule::create_new_auction(
-				Origin::signed(ALICE),
+				RuntimeOrigin::signed(ALICE),
 				CONTINUUM_MAP_COORDINATE,
 				AuctionType::BuyNow,
 				100,
@@ -110,7 +114,7 @@ fn create_buy_now_for_continuum_spot_should_fail_when_no_root() {
 #[test]
 fn create_buy_now_continuum_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
@@ -133,7 +137,7 @@ fn create_buy_now_continuum_should_work() {
 #[test]
 fn create_auction_continuum_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
@@ -156,7 +160,7 @@ fn create_auction_continuum_should_work() {
 #[test]
 fn buy_now_continuum_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
@@ -175,7 +179,7 @@ fn buy_now_continuum_should_work() {
 		));
 
 		assert_ok!(ContinuumModule::buy_map_spot(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,
 			100,
 			ALICE_METAVERSE_ID
@@ -195,7 +199,7 @@ fn buy_now_continuum_should_work() {
 #[test]
 fn bid_auction_continuum_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		assert_ok!(ContinuumModule::issue_map_slot(
 			root.clone(),
@@ -212,7 +216,7 @@ fn bid_auction_continuum_should_work() {
 		));
 
 		assert_ok!(ContinuumModule::bid_map_spot(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,
 			200,
 			ALICE_METAVERSE_ID
@@ -237,7 +241,7 @@ fn bid_auction_continuum_should_work() {
 #[test]
 fn buy_now_continuum_should_fail_if_already_got_spot() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		MetaverseMap::<Runtime>::insert(ALICE_METAVERSE_ID, (0, 1));
 
@@ -258,7 +262,7 @@ fn buy_now_continuum_should_fail_if_already_got_spot() {
 		));
 
 		assert_noop!(
-			ContinuumModule::buy_map_spot(Origin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
+			ContinuumModule::buy_map_spot(RuntimeOrigin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
 			Error::<Runtime>::MetaverseAlreadyGotSpot
 		);
 	})
@@ -267,7 +271,7 @@ fn buy_now_continuum_should_fail_if_already_got_spot() {
 #[test]
 fn bid_auction_continuum_should_fail_if_already_got_spot() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		MetaverseMap::<Runtime>::insert(ALICE_METAVERSE_ID, (0, 1));
 
@@ -288,7 +292,7 @@ fn bid_auction_continuum_should_fail_if_already_got_spot() {
 		));
 
 		assert_noop!(
-			ContinuumModule::bid_map_spot(Origin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
+			ContinuumModule::bid_map_spot(RuntimeOrigin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
 			Error::<Runtime>::MetaverseAlreadyGotSpot
 		);
 	})
@@ -297,7 +301,7 @@ fn bid_auction_continuum_should_fail_if_already_got_spot() {
 #[test]
 fn buy_now_continuum_should_fail_if_has_not_deploy_land() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
@@ -316,7 +320,7 @@ fn buy_now_continuum_should_fail_if_has_not_deploy_land() {
 		));
 
 		assert_noop!(
-			ContinuumModule::buy_map_spot(Origin::signed(CHARLIE), 1, 100, CHARLIE_METAVERSE_ID),
+			ContinuumModule::buy_map_spot(RuntimeOrigin::signed(CHARLIE), 1, 100, CHARLIE_METAVERSE_ID),
 			Error::<Runtime>::MetaverseHasNotDeployedAnyLand
 		);
 	})
@@ -325,7 +329,7 @@ fn buy_now_continuum_should_fail_if_has_not_deploy_land() {
 #[test]
 fn bid_auction_continuum_should_fail_if_has_not_deployed_land() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		assert_ok!(ContinuumModule::issue_map_slot(
 			root.clone(),
@@ -342,7 +346,7 @@ fn bid_auction_continuum_should_fail_if_has_not_deployed_land() {
 		));
 
 		assert_noop!(
-			ContinuumModule::bid_map_spot(Origin::signed(CHARLIE), 1, 100, CHARLIE_METAVERSE_ID),
+			ContinuumModule::bid_map_spot(RuntimeOrigin::signed(CHARLIE), 1, 100, CHARLIE_METAVERSE_ID),
 			Error::<Runtime>::MetaverseHasNotDeployedAnyLand
 		);
 	})
@@ -351,7 +355,7 @@ fn bid_auction_continuum_should_fail_if_has_not_deployed_land() {
 #[test]
 fn bid_auction_continuum_should_fail_if_has_leading_bid() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		MetaverseLeadingBid::<Runtime>::insert((0, 1), ALICE_METAVERSE_ID, ());
 
@@ -372,7 +376,7 @@ fn bid_auction_continuum_should_fail_if_has_leading_bid() {
 		));
 
 		assert_noop!(
-			ContinuumModule::bid_map_spot(Origin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
+			ContinuumModule::bid_map_spot(RuntimeOrigin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
 			Error::<Runtime>::MetaverseHasBidLeading
 		);
 	})
@@ -381,7 +385,7 @@ fn bid_auction_continuum_should_fail_if_has_leading_bid() {
 #[test]
 fn buy_now_continuum_should_fail_if_has_any_leading_bid() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		MetaverseLeadingBid::<Runtime>::insert((0, 1), ALICE_METAVERSE_ID, ());
 
@@ -402,7 +406,7 @@ fn buy_now_continuum_should_fail_if_has_any_leading_bid() {
 		));
 
 		assert_noop!(
-			ContinuumModule::buy_map_spot(Origin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
+			ContinuumModule::buy_map_spot(RuntimeOrigin::signed(ALICE), 1, 100, ALICE_METAVERSE_ID),
 			Error::<Runtime>::MetaverseHasBidLeading
 		);
 	})
@@ -411,7 +415,7 @@ fn buy_now_continuum_should_fail_if_has_any_leading_bid() {
 #[test]
 fn metaverse_leading_bid_inserted_on_new_bid() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		// Enable Allow BuyNow
 		assert_ok!(ContinuumModule::set_allow_buy_now(root.clone(), true));
@@ -430,7 +434,7 @@ fn metaverse_leading_bid_inserted_on_new_bid() {
 		));
 
 		assert_ok!(ContinuumModule::bid_map_spot(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,
 			100,
 			ALICE_METAVERSE_ID
@@ -446,7 +450,7 @@ fn metaverse_leading_bid_inserted_on_new_bid() {
 #[test]
 fn bid_auction_continuum_should_replace_another_leading_bid() {
 	ExtBuilder::default().build().execute_with(|| {
-		let root = Origin::root();
+		let root = RuntimeOrigin::root();
 
 		assert_ok!(ContinuumModule::issue_map_slot(
 			root.clone(),
@@ -463,7 +467,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 		));
 
 		assert_ok!(ContinuumModule::bid_map_spot(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,
 			200,
 			ALICE_METAVERSE_ID
@@ -475,7 +479,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 		));
 
 		assert_ok!(ContinuumModule::bid_map_spot(
-			Origin::signed(BOB),
+			RuntimeOrigin::signed(BOB),
 			1,
 			300,
 			BOB_METAVERSE_ID
@@ -494,7 +498,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 
 		// Ensure Alice can bid again
 		assert_ok!(ContinuumModule::bid_map_spot(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			1,
 			400,
 			ALICE_METAVERSE_ID

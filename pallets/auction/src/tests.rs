@@ -5,15 +5,19 @@ use sp_std::collections::btree_map::BTreeMap;
 
 use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, NFTTrait, TokenType};
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 use primitives::ItemId::NFT;
 use primitives::{ClassId, FungibleTokenId};
 
 use super::*;
 
-fn init_test_nft(owner: Origin) {
+fn init_test_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
-	assert_ok!(NFTModule::<Runtime>::create_group(Origin::root(), vec![1], vec![1]));
+	assert_ok!(NFTModule::<Runtime>::create_group(
+		RuntimeOrigin::root(),
+		vec![1],
+		vec![1]
+	));
 
 	assert_ok!(NFTModule::<Runtime>::create_class(
 		owner.clone(),
@@ -35,9 +39,13 @@ fn init_test_nft(owner: Origin) {
 	));
 }
 
-fn init_test_stackable_nft(owner: Origin) {
+fn init_test_stackable_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
-	assert_ok!(NFTModule::<Runtime>::create_group(Origin::root(), vec![1], vec![1]));
+	assert_ok!(NFTModule::<Runtime>::create_group(
+		RuntimeOrigin::root(),
+		vec![1],
+		vec![1]
+	));
 
 	assert_ok!(NFTModule::<Runtime>::create_class(
 		owner.clone(),
@@ -69,7 +77,7 @@ fn test_attributes(x: u8) -> Attributes {
 // Creating auction should work
 fn create_new_auction_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 
 		assert_ok!(AuctionModule::create_auction(
@@ -101,7 +109,7 @@ fn create_new_auction_work() {
 // Creating auction should work
 fn create_new_multicurrency_auction_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 
 		assert_ok!(AuctionModule::create_auction(
@@ -133,7 +141,7 @@ fn create_new_multicurrency_auction_work() {
 // Creating auction should work
 fn create_new_auction_bundle_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
@@ -172,7 +180,7 @@ fn create_new_auction_bundle_work() {
 // Creating auction should work
 fn create_new_multicurrency_auction_bundle_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
@@ -212,7 +220,7 @@ fn create_new_multicurrency_auction_bundle_work() {
 // Creating auction should work
 fn create_new_stackable_nft_auction_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
 		assert_eq!(
@@ -258,7 +266,7 @@ fn create_new_stackable_nft_auction_work() {
 // Creating auction should work
 fn create_new_auction_bundle_from_listed_nft_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
 
@@ -305,7 +313,7 @@ fn create_new_auction_bundle_from_listed_nft_should_fail() {
 // Creating auction should work
 fn create_new_buy_now_bundle_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
@@ -344,7 +352,7 @@ fn create_new_buy_now_bundle_work() {
 // Creating auction should work
 fn create_new_multicurrency_buy_now_bundle_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
 		init_test_nft(origin.clone());
@@ -383,7 +391,7 @@ fn create_new_multicurrency_buy_now_bundle_work() {
 // Creating auction should work
 fn create_new_stackable_nft_buy_now_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
 		assert_eq!(
@@ -430,9 +438,13 @@ fn create_new_stackable_nft_buy_now_work() {
 // Private create_auction should work
 fn create_auction_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(ALICE);
 
-		assert_ok!(NFTModule::<Runtime>::create_group(Origin::root(), vec![1], vec![1]));
+		assert_ok!(NFTModule::<Runtime>::create_group(
+			RuntimeOrigin::root(),
+			vec![1],
+			vec![1]
+		));
 
 		assert_ok!(NFTModule::<Runtime>::create_class(
 			owner.clone(),
@@ -540,7 +552,7 @@ fn create_auction_fail() {
 // Creating auction should work
 fn create_new_auction_should_fail_when_exceed_finality_limit() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 
 		// Create 4 nfts
 
@@ -635,7 +647,7 @@ fn create_new_auction_should_fail_when_exceed_finality_limit() {
 // Creating auction should work
 fn create_new_auction_stackable_nft_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_stackable_nft(origin.clone());
 
 		assert_noop!(
@@ -730,7 +742,7 @@ fn create_new_auction_stackable_nft_fails() {
 // Private remove_auction should work
 fn remove_auction_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -753,8 +765,8 @@ fn remove_auction_work() {
 // Walk the happy path
 fn bid_works() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -778,7 +790,10 @@ fn bid_works() {
 				end: Some(101),
 			})
 		);
-		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 		assert_eq!(Balances::reserved_balance(ALICE), 200);
 	});
 }
@@ -787,8 +802,8 @@ fn bid_works() {
 // Walk the happy path
 fn bid_anti_snipe_duration_works() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -817,7 +832,10 @@ fn bid_anti_snipe_duration_works() {
 		);
 		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
 		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
-		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 
 		// Move to the next block, test if auction keeps extending
 		run_to_block(97);
@@ -830,7 +848,7 @@ fn bid_anti_snipe_duration_works() {
 		// Verify if auction finalized with new end time.
 		assert_eq!(
 			last_event(),
-			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 201))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 201))
 		);
 	});
 }
@@ -839,8 +857,8 @@ fn bid_anti_snipe_duration_works() {
 // Walk the happy path
 fn bid_anti_snipe_duration_works_with_local_auction() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(ALICE);
-		let bidder = Origin::signed(BOB);
+		let owner = RuntimeOrigin::signed(ALICE);
+		let bidder = RuntimeOrigin::signed(BOB);
 
 		init_test_nft(owner.clone());
 
@@ -868,7 +886,10 @@ fn bid_anti_snipe_duration_works_with_local_auction() {
 		);
 		assert_eq!(AuctionModule::auction_end_time(106, 0), Some(()));
 		assert_eq!(AuctionModule::auction_end_time(101, 0), None);
-		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, BOB, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, BOB, 200))
+		);
 
 		// Move to the next block, test if auction keeps extending
 		run_to_block(97);
@@ -883,7 +904,7 @@ fn bid_anti_snipe_duration_works_with_local_auction() {
 		// Verify if auction finalized with new end time.
 		assert_eq!(
 			last_event(),
-			Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 201))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 201))
 		);
 	});
 }
@@ -892,8 +913,8 @@ fn bid_anti_snipe_duration_works_with_local_auction() {
 // Walk the happy path
 fn bid_multicurrency_works() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -909,7 +930,10 @@ fn bid_multicurrency_works() {
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 
 		assert_eq!(
 			Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).reserved,
@@ -922,7 +946,7 @@ fn bid_multicurrency_works() {
 fn cannot_bid_on_non_existent_auction() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			AuctionModule::bid(Origin::signed(ALICE), 0, 10),
+			AuctionModule::bid(RuntimeOrigin::signed(ALICE), 0, 10),
 			Error::<Runtime>::AuctionDoesNotExist
 		);
 
@@ -933,8 +957,8 @@ fn cannot_bid_on_non_existent_auction() {
 #[test]
 fn cannot_bid_with_insufficient_funds() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -961,7 +985,7 @@ fn cannot_bid_with_insufficient_funds() {
 #[test]
 fn cannot_bid_on_own_auction() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(ALICE);
 
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -986,8 +1010,8 @@ fn cannot_bid_on_own_auction() {
 #[test]
 fn asset_transfers_after_auction() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 
 		// Make sure balances start off as we expect
 		assert_eq!(Balances::free_balance(BOB), 500);
@@ -1010,7 +1034,10 @@ fn asset_transfers_after_auction() {
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 
 		// BOB should have 500 - 1 (network reserve fee) - 3 minting fee = 496
 		assert_eq!(Balances::free_balance(BOB), 496);
@@ -1019,7 +1046,7 @@ fn asset_transfers_after_auction() {
 		// Verify asset transfers to alice after end of auction
 		assert_eq!(
 			last_event(),
-			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
 		);
 
 		// Verify transfer of fund (minus gas)
@@ -1037,8 +1064,8 @@ fn asset_transfers_after_auction() {
 #[test]
 fn asset_transfers_after_multicurrency_auction() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 
 		// Make sure balances start off as we expect
 		assert_eq!(Balances::free_balance(BOB), 500);
@@ -1061,7 +1088,10 @@ fn asset_transfers_after_multicurrency_auction() {
 		));
 
 		assert_ok!(AuctionModule::bid(bidder, 0, 200));
-		assert_eq!(last_event(), Event::AuctionModule(crate::Event::Bid(0, ALICE, 200)));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::AuctionModule(crate::Event::Bid(0, ALICE, 200))
+		);
 
 		// BOB should have 500 - 1 (network reserve fee) - 3 minting fee = 496
 		assert_eq!(Balances::free_balance(BOB), 496);
@@ -1070,7 +1100,7 @@ fn asset_transfers_after_multicurrency_auction() {
 		// Verify asset transfers to alice after end of auction
 		assert_eq!(
 			last_event(),
-			Event::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
 		);
 
 		// Verify transfer of fund
@@ -1086,8 +1116,8 @@ fn asset_transfers_after_multicurrency_auction() {
 #[test]
 fn cannot_bid_on_ended_auction() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -1114,8 +1144,8 @@ fn cannot_bid_on_ended_auction() {
 // Buy now should work
 fn buy_now_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let buyer = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let buyer = RuntimeOrigin::signed(ALICE);
 
 		init_test_nft(owner.clone());
 
@@ -1173,7 +1203,7 @@ fn buy_now_work() {
 		assert_eq!(Balances::free_balance(BOB), 888);
 
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(1, ALICE, 200));
 		assert_eq!(last_event(), event);
 
 		// check of auction item is still valid
@@ -1190,8 +1220,8 @@ fn buy_now_work() {
 // Buy now should work
 fn multicurrency_buy_now_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let buyer = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let buyer = RuntimeOrigin::signed(ALICE);
 
 		init_test_nft(owner.clone());
 
@@ -1218,7 +1248,7 @@ fn multicurrency_buy_now_work() {
 		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9800);
 
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
 		assert_eq!(last_event(), event);
 
 		// check of auction item is still valid
@@ -1235,8 +1265,8 @@ fn multicurrency_buy_now_work() {
 // Test if buying now bundle should work
 fn buy_now_with_bundle_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let buyer = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let buyer = RuntimeOrigin::signed(ALICE);
 
 		// create 3 nfts
 		init_test_nft(owner.clone());
@@ -1278,7 +1308,7 @@ fn buy_now_with_bundle_should_work() {
 		assert_eq!(Balances::free_balance(BOB), 686);
 
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
 		assert_eq!(last_event(), event);
 
 		// Check that auction is over
@@ -1293,8 +1323,8 @@ fn buy_now_with_bundle_should_work() {
 // Test if buying now bundle should work
 fn multicurrency_buy_now_with_bundle_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let buyer = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let buyer = RuntimeOrigin::signed(ALICE);
 
 		// create 3 nfts
 		init_test_nft(owner.clone());
@@ -1331,7 +1361,7 @@ fn multicurrency_buy_now_with_bundle_should_work() {
 		assert_eq!(Tokens::accounts(ALICE, FungibleTokenId::MiningResource(0)).free, 9800);
 
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
 		assert_eq!(last_event(), event);
 
 		// Check that auction is over
@@ -1346,8 +1376,8 @@ fn multicurrency_buy_now_with_bundle_should_work() {
 // Buy now should work
 fn buy_now_stackable_nft_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let buyer = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let buyer = RuntimeOrigin::signed(ALICE);
 
 		init_test_stackable_nft(owner.clone());
 
@@ -1394,7 +1424,7 @@ fn buy_now_stackable_nft_work() {
 		assert_eq!(Balances::free_balance(BOB), 693);
 
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::BuyNowFinalised(0, ALICE, 200));
 		assert_eq!(last_event(), event);
 
 		// check of auction item is still valid
@@ -1413,8 +1443,8 @@ fn buy_now_stackable_nft_work() {
 // Private bid_auction should work
 fn buy_now_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let buyer = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let buyer = RuntimeOrigin::signed(ALICE);
 		// we need this to test auction not started scenario
 		System::set_block_number(1);
 		init_test_nft(owner.clone());
@@ -1500,10 +1530,10 @@ fn buy_now_should_fail() {
 // Private bid_auction should work
 fn invalid_auction_type() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
+		let owner = RuntimeOrigin::signed(BOB);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
-		let participant = Origin::signed(ALICE);
+		let participant = RuntimeOrigin::signed(ALICE);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::BuyNow,
 			ItemId::NFT(0, 0),
@@ -1542,8 +1572,8 @@ fn invalid_auction_type() {
 // Private auction_bid_handler should work
 fn on_finalize_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -1575,7 +1605,7 @@ fn on_finalize_should_work() {
 		// auction item should not in storage
 		assert_eq!(AuctionItems::<Runtime>::get(0), None);
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 100));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -1584,8 +1614,8 @@ fn on_finalize_should_work() {
 // Auction finalize with listing fee works
 fn on_finalize_with_listing_fee_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(ALICE);
-		let bidder = Origin::signed(BOB);
+		let owner = RuntimeOrigin::signed(ALICE);
+		let bidder = RuntimeOrigin::signed(BOB);
 		init_test_nft(owner.clone());
 		// After minting new NFT, it costs 3 unit
 		assert_eq!(Balances::free_balance(ALICE), 99997);
@@ -1618,7 +1648,7 @@ fn on_finalize_with_listing_fee_should_work() {
 		// asset is not longer in auction
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 100));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 100));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -1626,8 +1656,8 @@ fn on_finalize_with_listing_fee_should_work() {
 #[test]
 fn auction_bundle_should_update_new_price_according_new_bid() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(ALICE);
-		let bidder = Origin::signed(BOB);
+		let owner = RuntimeOrigin::signed(ALICE);
+		let bidder = RuntimeOrigin::signed(BOB);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 
@@ -1666,8 +1696,8 @@ fn auction_bundle_should_update_new_price_according_new_bid() {
 // Auction finalize with bundle and listing fee works
 fn on_finalize_with_bundle_with_listing_fee_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(ALICE);
-		let bidder = Origin::signed(BOB);
+		let owner = RuntimeOrigin::signed(ALICE);
+		let bidder = RuntimeOrigin::signed(BOB);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 
@@ -1716,7 +1746,7 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 		// Free balance of Alice is 99994 + 352 = 100346
 		assert_eq!(Balances::free_balance(ALICE), 100346);
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 400));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 400));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -1725,7 +1755,7 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 // Auction finalize with bundle and listing fee works
 fn on_finalize_with_undeployed_land_block_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let bidder = Origin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(BOB);
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
 			ItemId::UndeployedLandBlock(UNDEPLOYED_LAND_BLOCK_ID_EXIST),
@@ -1745,7 +1775,7 @@ fn on_finalize_with_undeployed_land_block_should_work() {
 		run_to_block(102);
 		assert_eq!(AuctionModule::auctions(0), None);
 		// event was triggered
-		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 200));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, BOB, 200));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -1754,7 +1784,7 @@ fn on_finalize_with_undeployed_land_block_should_work() {
 // List item on local marketplace should work if metaverse owner
 fn list_item_on_auction_local_marketplace_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 		assert_ok!(AuctionModule::create_new_auction(
 			origin,
@@ -1772,7 +1802,7 @@ fn list_item_on_auction_local_marketplace_should_work() {
 // List item on local marketplace should work if metaverse owner
 fn list_item_on_buy_now_local_marketplace_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		init_test_nft(origin.clone());
 		assert_ok!(AuctionModule::create_new_auction(
 			origin,
@@ -1849,11 +1879,11 @@ fn bidding_for_undeployed_land_block_should_work() {
 		);
 
 		// bidding should work
-		assert_ok!(AuctionModule::bid(Origin::signed(BOB.clone()), 0, 200));
+		assert_ok!(AuctionModule::bid(RuntimeOrigin::signed(BOB.clone()), 0, 200));
 
 		// bidding should fail if not metaverse owner
 		assert_noop!(
-			AuctionModule::bid(Origin::signed(NO_METAVERSE_OWNER.clone()), 0, 300),
+			AuctionModule::bid(RuntimeOrigin::signed(NO_METAVERSE_OWNER.clone()), 0, 300),
 			Error::<Runtime>::MetaverseOwnerOnly
 		);
 	});
@@ -1923,7 +1953,7 @@ fn buy_now_for_undeployed_land_block_should_fail_if_not_metaverse_owner() {
 
 		// bidding should fail if not metaverse owner
 		assert_noop!(
-			AuctionModule::buy_now(Origin::signed(NO_METAVERSE_OWNER.clone()), 0, 100),
+			AuctionModule::buy_now(RuntimeOrigin::signed(NO_METAVERSE_OWNER.clone()), 0, 100),
 			Error::<Runtime>::MetaverseOwnerOnly
 		);
 	});
@@ -1933,9 +1963,9 @@ fn buy_now_for_undeployed_land_block_should_fail_if_not_metaverse_owner() {
 // Making offer for a NFT should fail
 fn make_offer_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(Origin::signed(ALICE));
+		init_test_nft(RuntimeOrigin::signed(ALICE));
 		assert_noop!(
-			AuctionModule::make_offer(Origin::signed(ALICE), (0, 0), 150),
+			AuctionModule::make_offer(RuntimeOrigin::signed(ALICE), (0, 0), 150),
 			Error::<Runtime>::NoPermissionToMakeOffer
 		);
 
@@ -1951,14 +1981,14 @@ fn make_offer_should_fail() {
 			FungibleTokenId::NativeToken(0),
 		));
 		assert_noop!(
-			AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150),
+			AuctionModule::make_offer(RuntimeOrigin::signed(BOB), (0, 0), 150),
 			Error::<Runtime>::NoPermissionToMakeOffer
 		);
 
-		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 1), 150));
+		init_test_nft(RuntimeOrigin::signed(ALICE));
+		assert_ok!(AuctionModule::make_offer(RuntimeOrigin::signed(BOB), (0, 1), 150));
 		assert_noop!(
-			AuctionModule::make_offer(Origin::signed(BOB), (0, 1), 150),
+			AuctionModule::make_offer(RuntimeOrigin::signed(BOB), (0, 1), 150),
 			Error::<Runtime>::OfferAlreadyExists
 		);
 		assert_eq!(Balances::free_balance(BOB), 350);
@@ -1969,10 +1999,10 @@ fn make_offer_should_fail() {
 // Making offer for a NFT should work
 fn make_offer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
+		init_test_nft(RuntimeOrigin::signed(ALICE));
+		assert_ok!(AuctionModule::make_offer(RuntimeOrigin::signed(BOB), (0, 0), 150));
 
-		let event = mock::Event::AuctionModule(crate::Event::NftOfferMade(0, 0, BOB, 150));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::NftOfferMade(0, 0, BOB, 150));
 		assert_eq!(last_event(), event);
 
 		let offer = NftOffer {
@@ -1989,11 +2019,11 @@ fn make_offer_should_work() {
 // Accepting offer for a NFT should fail
 fn accept_offer_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
+		init_test_nft(RuntimeOrigin::signed(ALICE));
+		assert_ok!(AuctionModule::make_offer(RuntimeOrigin::signed(BOB), (0, 0), 150));
 		assert_eq!(Balances::free_balance(BOB), 350);
 		assert_noop!(
-			AuctionModule::accept_offer(Origin::signed(BOB), (0, 0), BOB),
+			AuctionModule::accept_offer(RuntimeOrigin::signed(BOB), (0, 0), BOB),
 			Error::<Runtime>::NoPermissionToAcceptOffer
 		);
 
@@ -2009,15 +2039,15 @@ fn accept_offer_should_fail() {
 			FungibleTokenId::NativeToken(0),
 		));
 		assert_noop!(
-			AuctionModule::accept_offer(Origin::signed(ALICE), (0, 0), BOB),
+			AuctionModule::accept_offer(RuntimeOrigin::signed(ALICE), (0, 0), BOB),
 			Error::<Runtime>::NoPermissionToAcceptOffer
 		);
 
-		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 1), 150));
+		init_test_nft(RuntimeOrigin::signed(ALICE));
+		assert_ok!(AuctionModule::make_offer(RuntimeOrigin::signed(BOB), (0, 1), 150));
 		run_to_block(100);
 		assert_noop!(
-			AuctionModule::accept_offer(Origin::signed(ALICE), (0, 1), BOB),
+			AuctionModule::accept_offer(RuntimeOrigin::signed(ALICE), (0, 1), BOB),
 			Error::<Runtime>::OfferIsExpired
 		);
 	});
@@ -2027,12 +2057,12 @@ fn accept_offer_should_fail() {
 // Accepting offer for a NFT should work
 fn accept_offer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
+		init_test_nft(RuntimeOrigin::signed(ALICE));
+		assert_ok!(AuctionModule::make_offer(RuntimeOrigin::signed(BOB), (0, 0), 150));
 		assert_eq!(Balances::free_balance(BOB), 350);
-		assert_ok!(AuctionModule::accept_offer(Origin::signed(ALICE), (0, 0), BOB));
+		assert_ok!(AuctionModule::accept_offer(RuntimeOrigin::signed(ALICE), (0, 0), BOB));
 
-		let event = mock::Event::AuctionModule(crate::Event::NftOfferAccepted(0, 0, BOB));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::NftOfferAccepted(0, 0, BOB));
 		assert_eq!(last_event(), event);
 
 		assert_eq!(Offers::<Runtime>::get((0, 0), BOB), None);
@@ -2045,9 +2075,9 @@ fn accept_offer_should_work() {
 // Withdrawing offer for a NFT should work
 fn withdraw_offer_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(Origin::signed(ALICE));
+		init_test_nft(RuntimeOrigin::signed(ALICE));
 		assert_noop!(
-			AuctionModule::withdraw_offer(Origin::signed(BOB), (0, 0)),
+			AuctionModule::withdraw_offer(RuntimeOrigin::signed(BOB), (0, 0)),
 			Error::<Runtime>::OfferDoesNotExist
 		);
 		assert_eq!(Balances::free_balance(BOB), 500);
@@ -2058,13 +2088,13 @@ fn withdraw_offer_should_fail() {
 // Withdrawing offer for a NFT should work
 fn withdraw_offer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		init_test_nft(Origin::signed(ALICE));
-		assert_ok!(AuctionModule::make_offer(Origin::signed(BOB), (0, 0), 150));
+		init_test_nft(RuntimeOrigin::signed(ALICE));
+		assert_ok!(AuctionModule::make_offer(RuntimeOrigin::signed(BOB), (0, 0), 150));
 
 		assert_eq!(Balances::free_balance(BOB), 350);
-		assert_ok!(AuctionModule::withdraw_offer(Origin::signed(BOB), (0, 0)));
+		assert_ok!(AuctionModule::withdraw_offer(RuntimeOrigin::signed(BOB), (0, 0)));
 
-		let event = mock::Event::AuctionModule(crate::Event::NftOfferWithdrawn(0, 0, BOB));
+		let event = mock::RuntimeEvent::AuctionModule(crate::Event::NftOfferWithdrawn(0, 0, BOB));
 		assert_eq!(last_event(), event);
 
 		assert_eq!(Offers::<Runtime>::get((0, 0), BOB), None);
@@ -2075,8 +2105,8 @@ fn withdraw_offer_should_work() {
 #[test]
 fn finalize_auction_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -2094,19 +2124,19 @@ fn finalize_auction_should_fail() {
 		run_to_block(10);
 
 		assert_noop!(
-			AuctionModule::finalize_auction(Origin::signed(BOB), 100),
+			AuctionModule::finalize_auction(RuntimeOrigin::signed(BOB), 100),
 			Error::<Runtime>::AuctionDoesNotExist
 		);
 
 		assert_noop!(
-			AuctionModule::finalize_auction(Origin::signed(BOB), 0),
+			AuctionModule::finalize_auction(RuntimeOrigin::signed(BOB), 0),
 			Error::<Runtime>::AuctionIsNotExpired
 		);
 
 		run_to_block(102);
 
 		assert_noop!(
-			AuctionModule::finalize_auction(Origin::signed(BOB), 0),
+			AuctionModule::finalize_auction(RuntimeOrigin::signed(BOB), 0),
 			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});
@@ -2115,8 +2145,8 @@ fn finalize_auction_should_fail() {
 #[test]
 fn cancel_listing_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -2141,13 +2171,13 @@ fn cancel_listing_should_work() {
 		);
 
 		run_to_block(2);
-		assert_ok!(AuctionModule::cancel_listing(Origin::signed(BOB), 0));
+		assert_ok!(AuctionModule::cancel_listing(RuntimeOrigin::signed(BOB), 0));
 		assert_eq!(Balances::free_balance(BOB), 497);
 
 		assert_eq!(AuctionModule::items_in_auction(ItemId::NFT(0, 0)), None);
 		assert_eq!(AuctionModule::auctions(0), None);
 
-		let event = mock::Event::AuctionModule(crate::Event::AuctionFinalizedNoBid(0));
+		let event = RuntimeEvent::AuctionModule(crate::Event::AuctionFinalizedNoBid(0));
 		assert_eq!(last_event(), event);
 	});
 }
@@ -2155,8 +2185,8 @@ fn cancel_listing_should_work() {
 #[test]
 fn cancel_listing_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let owner = Origin::signed(BOB);
-		let bidder = Origin::signed(ALICE);
+		let owner = RuntimeOrigin::signed(BOB);
+		let bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -2174,12 +2204,12 @@ fn cancel_listing_should_fail() {
 		run_to_block(10);
 
 		assert_noop!(
-			AuctionModule::cancel_listing(Origin::signed(ALICE), 0),
+			AuctionModule::cancel_listing(RuntimeOrigin::signed(ALICE), 0),
 			Error::<Runtime>::NoPermissionToCancelAuction
 		);
 
 		assert_noop!(
-			AuctionModule::cancel_listing(Origin::signed(BOB), 1),
+			AuctionModule::cancel_listing(RuntimeOrigin::signed(BOB), 1),
 			Error::<Runtime>::AuctionDoesNotExist
 		);
 	});

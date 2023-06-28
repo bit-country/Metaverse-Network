@@ -132,7 +132,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// Default auction close time if there is no end time specified
 		#[pallet::constant]
@@ -803,7 +803,7 @@ pub mod pallet {
 
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_auction_item_data_v3();
-			0
+			Weight::from_ref_time(0u64)
 		}
 	}
 
@@ -1889,7 +1889,7 @@ pub mod pallet {
 			);
 
 			log::info!("{} auction items upgraded:", num_auction_items);
-			0
+			Weight::from_ref_time(0)
 		}
 
 		// Runtime upgrade V1 - may required for production release
@@ -1930,7 +1930,7 @@ pub mod pallet {
 		//			);
 		//
 		//			log::info!("Asset Item in Auction upgraded: {}", num_auction_item);
-		//			0
+		//			Weight::from_ref_time(0)
 		//		}
 
 		pub fn swap_new_bid(
