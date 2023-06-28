@@ -5632,7 +5632,7 @@ dependencies = [
 
 [[package]]
 name = "metaverse-node"
-version = "0.0.15"
+version = "0.0.38"
 dependencies = [
  "async-trait",
  "bit-country-primitives",
