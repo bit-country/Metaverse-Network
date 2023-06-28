@@ -262,6 +262,7 @@ pub fn run_to_block(n: u64) {
 		System::on_initialize(System::block_number());
 	}
 }
+
 fn test_attributes(x: u8) -> Attributes {
 	let mut attr: Attributes = BTreeMap::new();
 	attr.insert(vec![x, x + 5], vec![x, x + 10]);
