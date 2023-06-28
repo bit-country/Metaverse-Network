@@ -13,7 +13,7 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 codec = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
 log = { version = "0.4.17", default-features = false }
 serde = { version = '1.0.140', optional = true, features = ['derive'] }
-scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
+scale-info = { workspace = true }
 smallvec = "1.8.0"
 hex-literal = { version = "0.3.4" }
 getrandom = { workspace = true }

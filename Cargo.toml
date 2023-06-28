@@ -19,8 +19,9 @@ members = [
 [workspace.dependencies]
 # General 
 codec = { package = 'parity-scale-codec', version = '3.1.5', features = ['derive'] }
+serde = { version = "1.0.140", features = ["derive"] }
+scale-info = { version = "2.1.2", features = ["derive"], default-features = false }
 log = { version = "0.4.17" }
-scale-info = { version = "2.1.2", features = ["derive"] }
 smallvec = "1.8.0"
 hex-literal = { version = "0.3.4" }
 clap = { version = "4.2.4", features = ["derive"] }
