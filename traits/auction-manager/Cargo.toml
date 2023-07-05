@@ -14,7 +14,7 @@ codec = { package = "parity-scale-codec", version = "3.1.5", default-features = 
 sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+frame-support = { workspace = true }
 # Used for the node's RPCs
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 

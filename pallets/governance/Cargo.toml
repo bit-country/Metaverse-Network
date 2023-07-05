@@ -20,15 +20,17 @@ sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v
 sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-frame-executive = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+frame-executive = { workspace = true }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 # local packages
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 metaverse-primitive = { package = "core-primitives", path = "../../traits/core-primitives", default-features = false }
 pallet-metaverse = { package = "pallet-metaverse", path = "../../pallets/metaverse", default-features = false }
+
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+
 
 # Orml packages
 orml-traits = { workspace = true }
