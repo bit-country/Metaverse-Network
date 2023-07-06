@@ -17,8 +17,8 @@ targets = ['x86_64-unknown-linux-gnu']
 name = "metaverse-node"
 
 [dependencies]
-codec = { workspace = true }
-serde = { workspace = true }
+codec = { workspace = true, default-features = true }
+serde = { workspace = true, features = ["derive"] }
 futures = { workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true, default-features = true }
