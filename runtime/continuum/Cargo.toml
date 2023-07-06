@@ -60,7 +60,7 @@ sp-version = { workspace = true }
 
 ## Substrate FRAME Dependencies
 frame-executive = { workspace = true }
-frame-benchmarking = { workspace = true , optional = true }
+frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-system-benchmarking = { workspace = true, optional = true }

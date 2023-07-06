@@ -34,6 +34,7 @@ getrandom = { version = "0.2.7", features = ["js"]}
 blake2-rfc = { version = "0.2.18", default-features = false }
 hex = { version = "0.4", default-features = false }
 funty = { version = "=1.1.0", default-features = false }
+similar-asserts = { version = "1.1.0" }
 
 # General (ethereum)
 ethabi = { version = "18.0.0", default-features = false }
