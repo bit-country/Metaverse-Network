@@ -27,8 +27,8 @@ substrate-fixed =  { workspace = true }
 # local packages
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false, optional = true }
-pallet-vesting = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+pallet-balances = { workspace = true, optional = true }
+pallet-vesting = { workspace = true }
 
 
 [dependencies.auction-manager]

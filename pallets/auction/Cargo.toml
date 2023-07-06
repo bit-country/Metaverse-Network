@@ -21,10 +21,10 @@ sp-io = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false, optional = true }
+pallet-balances = { workspace = true }
+pallet-timestamp = { workspace = true }
+pallet-transaction-payment = { workspace = true }
+pallet-scheduler = { workspace = true, optional = true }
 frame-executive = { workspace = true }
 sp-core = { workspace = true }
 sp-version = { workspace = true }

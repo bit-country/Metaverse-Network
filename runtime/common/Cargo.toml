@@ -26,8 +26,8 @@ polkadot-parachain = { workspace = true }
 cumulus-pallet-parachain-system = { workspace = true, default-features = false }
 
 # FRAME pallets
-pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+pallet-timestamp = { workspace = true }
+pallet-balances = { workspace = true }
 
 # EVM pallets
 pallet-evm = { workspace = true }

@@ -24,7 +24,7 @@ frame-benchmarking = { workspace = true, optional = true }
 [dev-dependencies]
 sp-core = { workspace = true }
 sp-io = { workspace = true }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+pallet-balances = { workspace = true }
 smallvec = { workspace = true }
 
 [features]

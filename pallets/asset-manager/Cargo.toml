@@ -25,8 +25,8 @@ serde_json = { workspace = true }
 hex = { workspace = true }
 sp-core = { workspace = true, default-features = true }
 sp-io = { workspace = true, default-features = true }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+pallet-balances = { workspace = true, default-features = true }
+pallet-timestamp = { workspace = true, default-features = true }
 
 [features]
 default = ["std"]

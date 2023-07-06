@@ -26,11 +26,11 @@ primitives = { package = "bit-country-primitives", path = "../../primitives/meta
 orml-traits = { workspace = true }
 orml-nft = { workspace = true }
 orml-tokens = { workspace = true }
-pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false, optional = true }
+pallet-timestamp = { workspace = true }
+pallet-scheduler = { workspace = true, optional = true }
 
 sp-core = { workspace = true }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+pallet-balances = { workspace = true }
 auction-manager = { package = "auction-manager", path = "../../traits/auction-manager", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 primitive-traits = { package = "core-primitives", path = "../../traits/core-primitives", default-features = false }

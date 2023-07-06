@@ -67,27 +67,27 @@ frame-system-benchmarking = { workspace = true, optional = true }
 frame-system-rpc-runtime-api = { workspace = true }
 
 ## Substrate Pallet Dependencies
-pallet-aura = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-pallet-balances = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-collective = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-democracy = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-randomness-collective-flip = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-sudo = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-multisig = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-timestamp = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-transaction-payment = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-transaction-payment-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-treasury = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-vesting = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-pallet-authorship = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-pallet-grandpa = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-pallet-utility = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-bounties = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-preimage = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
-pallet-membership = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-pallet-proxy = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
+pallet-aura = { workspace = true }
+pallet-balances = { workspace = true }
+pallet-collective = { workspace = true }
+pallet-democracy = { workspace = true }
+pallet-randomness-collective-flip = { workspace = true }
+pallet-sudo = { workspace = true }
+pallet-multisig = { workspace = true }
+pallet-timestamp = { workspace = true }
+pallet-transaction-payment = { workspace = true }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+pallet-treasury = { workspace = true }
+pallet-vesting = { workspace = true }
+pallet-authorship = { workspace = true }
+pallet-session = { workspace = true }
+pallet-scheduler = { workspace = true }
+pallet-grandpa = { workspace = true }
+pallet-utility = { workspace = true }
+pallet-bounties = { workspace = true }
+pallet-preimage = { workspace = true }
+pallet-membership = { workspace = true }
+pallet-proxy = { workspace = true }
 
 # Cumulus Dependencies
 cumulus-pallet-aura-ext = { workspace = true }

@@ -36,7 +36,7 @@ pallet-nft = { path = "../../pallets/nft", default-features = false }
 orml-nft = { workspace = true }
 orml-tokens = { workspace = true }
 currencies = { package = "currencies", path = "../../pallets/currencies", default-features = false }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+pallet-balances = { workspace = true }
 auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
 
 [features]

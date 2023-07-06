@@ -23,8 +23,8 @@ sp-version = { workspace = true }
 frame-executive = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-pallet-scheduler = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+pallet-balances = { workspace = true }
+pallet-scheduler = { workspace = true }
 
 # local packages
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }

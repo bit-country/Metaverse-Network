@@ -24,7 +24,7 @@ sp-version = { workspace = true }
 sp-std = { workspace = true }
 sp-io = { workspace = true }
 substrate-fixed = { workspace = true }
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false, optional = true }
+pallet-balances = { workspace = true, optional = true }
 
 # local packages
 core-primitives = { path = "../../traits/core-primitives", default-features = false }

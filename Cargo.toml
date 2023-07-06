@@ -114,7 +114,6 @@ sp-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polk
 sp-application-crypto = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false  }
 sp-arithmetic = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false  }
 
-
 # Substrate Utilities
 node-primitives = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38"}
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
@@ -155,7 +154,7 @@ pallet-preimage = { git = 'https://github.com/paritytech/substrate', branch = 'p
 pallet-membership = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 pallet-proxy = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.38', default-features = false }
 
-# Cumulus
+# Cumulus (node -only)
 cumulus-client-consensus-aura = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-client-consensus-common = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-client-collator = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
@@ -167,6 +166,8 @@ cumulus-relay-chain-minimal-node = { git = 'https://github.com/paritytech/cumulu
 cumulus-relay-chain-rpc-interface = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-relay-chain-inprocess-interface = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
 cumulus-primitives-parachain-inherent = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38' }
+
+# Cumulus
 cumulus-primitives-core = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38', default-features = false }
 cumulus-pallet-aura-ext = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38', default-features = false }
 cumulus-pallet-parachain-system = { git = 'https://github.com/paritytech/cumulus', branch = 'polkadot-v0.9.38', default-features = false }
