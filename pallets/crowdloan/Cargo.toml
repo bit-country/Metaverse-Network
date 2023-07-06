@@ -18,12 +18,12 @@ scale-info = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-substrate-fixed = { default-features = false, git = "https://github.com/encointer/substrate-fixed" }
+sp-core = { workspace = true }
+sp-runtime = { workspace = true }
+sp-version = { workspace = true }
+sp-std = { workspace = true }
+sp-io = { workspace = true }
+substrate-fixed =  { workspace = true }
 # local packages
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }

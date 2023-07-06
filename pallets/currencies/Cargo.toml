@@ -19,10 +19,10 @@ pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "p
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
+sp-io = { workspace = true }
+sp-core = { workspace = true }
 # Orml packages
 orml-traits = { workspace = true }
 

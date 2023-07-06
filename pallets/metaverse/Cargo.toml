@@ -15,24 +15,24 @@ targets = ['x86_64-unknown-linux-gnu']
 serde = { version = "1.0.140", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive"] }
 scale-info = { workspace = true }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true }
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 pallet-randomness-collective-flip = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 pallet-sudo = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
 pallet-transaction-payment = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-session = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+sp-io = { workspace = true }
+sp-core = { workspace = true }
+sp-session = { workspace = true }
+sp-version = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 
 # local packages
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 # Orml packages
 orml-traits = { workspace = true }
