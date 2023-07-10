@@ -1108,11 +1108,10 @@ pub mod pallet {
 					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(estate_id);
 					// Check land unit ownership
 					for land_unit in land_units.clone() {
+						let metaverse_land_unit = Self::get_land_units(estate_info.metaverse_id, land_unit)
+							.ok_or(Error::<T>::UndeployedLandBlockNotFound)?;
 						ensure!(
-							Self::check_if_land_or_estate_owner(
-								&who,
-								&Self::get_land_units(estate_info.metaverse_id, land_unit).unwrap(),
-							),
+							Self::check_if_land_or_estate_owner(&who, &metaverse_land_unit,),
 							Error::<T>::LandUnitDoesNotExist
 						);
 						// Mint land unit
@@ -1189,7 +1188,11 @@ pub mod pallet {
 								LandUnitStatus::RemovedFromEstate,
 							)?;
 							// Remove coordinates from estate
-							let index = mut_estate_info.land_units.iter().position(|x| *x == land_unit).unwrap();
+							let index = mut_estate_info
+								.land_units
+								.iter()
+								.position(|x| *x == land_unit)
+								.ok_or(Error::<T>::LandUnitIsNotAvailable)?;
 							mut_estate_info.land_units.remove(index);
 						}
 
@@ -2005,10 +2008,10 @@ impl<T: Config> Pallet<T> {
 		let mut vec_axis = land_unit_coordinates.iter().map(|lu| lu.0).collect::<Vec<_>>();
 		let mut vec_yaxis = land_unit_coordinates.iter().map(|lu| lu.1).collect::<Vec<_>>();
 
-		let max_axis = vec_axis.iter().max().unwrap();
-		let max_yaxis = vec_yaxis.iter().max().unwrap();
-		let min_axis = vec_axis.iter().min().unwrap();
-		let min_yaxis = vec_yaxis.iter().min().unwrap();
+		let max_axis = vec_axis.iter().max().unwrap_or(&i32::MAX);
+		let max_yaxis = vec_yaxis.iter().max().unwrap_or(&i32::MAX);
+		let min_axis = vec_axis.iter().min().unwrap_or(&i32::MIN);
+		let min_yaxis = vec_yaxis.iter().min().unwrap_or(&i32::MIN);
 
 		let top_left_axis = block_coordinate
 			.0

@@ -1096,9 +1096,11 @@ impl<T: Config> Pallet<T> {
 			last_token_id = token_id;
 		}
 
+		let first_token_id = last_token_id.saturating_sub(quantity.into());
+
 		Self::deposit_event(Event::<T>::NewNftMinted(
-			*new_asset_ids.first().unwrap(),
-			*new_asset_ids.last().unwrap(),
+			(class_id, first_token_id),
+			(class_id, last_token_id),
 			sender.clone(),
 			class_id,
 			quantity,
