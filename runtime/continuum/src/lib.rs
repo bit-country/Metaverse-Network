@@ -679,7 +679,7 @@ impl pallet_democracy::Config for Runtime {
 
 parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: FungibleTokenId| -> Balance {
-		Zero::zero()
+		EXISTENTIAL_DEPOSIT
 	};
 }
 
