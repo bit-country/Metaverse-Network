@@ -8,7 +8,7 @@ version = "0.1.0"
 impl-trait-for-tuples = { workspace = true }
 log = { workspace = true, default-features = true }
 num_enum = { workspace = true }
-sha3 = { workspace = true, default-features = false }
+sha3 = { version = "0.9", default-features = false }
 similar-asserts = { workspace = true, optional = true }
 
 # Moonbeam
