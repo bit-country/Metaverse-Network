@@ -206,6 +206,7 @@ impl pallet_mining::Config for Runtime {
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type MetaverseStakingHandler = MetaverseStakingHandler;
 	type TreasuryStakingReward = TreasuryStakingReward;
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
 	type StorageDepositFee = StorageDepositFee;
 	type Currency = Balances;
 	type WeightInfo = ();

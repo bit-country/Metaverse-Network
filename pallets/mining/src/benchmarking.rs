@@ -55,6 +55,8 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
 	let initial_balance = dollar(100);
 
+	T::Currency::make_free_balance_be(&caller, dollar(1_000_000_000_000_000_000).unique_saturated_into());
+
 	T::MiningCurrency::update_balance(
 		FungibleTokenId::MiningResource(0),
 		&caller,

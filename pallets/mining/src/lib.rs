@@ -25,6 +25,7 @@ use frame_support::{
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
+	traits::ExistenceRequirement,
 	transactional, Parameter,
 };
 use frame_system::pallet_prelude::*;
@@ -124,6 +125,10 @@ pub mod pallet {
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
 		// Mining staking reward for treasury
 		type TreasuryStakingReward: Get<Perbill>;
+
+		/// The network treasury account
+		#[pallet::constant]
+		type NetworkTreasuryAccount: Get<Self::AccountId>;
 
 		/// Storage deposit free charged when saving data into the blockchain.
 		/// The fee will be unreserved after the storage is freed.
@@ -460,7 +465,13 @@ impl<T: Config> Pallet<T> {
 
 	fn do_add_minting_origin(who: T::AccountId) -> DispatchResult {
 		ensure!(!Self::is_mining_origin(&who), Error::<T>::OriginsAlreadyExist);
-
+		// Transfer storage deposit fee
+		<T as Config>::Currency::transfer(
+			&who,
+			&T::NetworkTreasuryAccount::get(),
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
 		MintingOrigins::<T>::insert(who.clone(), ());
 		Self::deposit_event(Event::AddNewMiningOrigin(who));
 		Ok(())
@@ -468,6 +479,13 @@ impl<T: Config> Pallet<T> {
 
 	fn do_remove_minting_origin(who: T::AccountId) -> DispatchResult {
 		ensure!(Self::is_mining_origin(&who), Error::<T>::OriginsIsNotExist);
+		// Transfer back storage deposit fee
+		<T as Config>::Currency::transfer(
+			&T::NetworkTreasuryAccount::get(),
+			&who,
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
 
 		MintingOrigins::<T>::remove(who.clone());
 		Self::deposit_event(Event::RemoveMiningOrigin(who));

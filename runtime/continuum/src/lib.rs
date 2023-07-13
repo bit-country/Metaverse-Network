@@ -99,6 +99,9 @@ mod weights;
 /// Constant values used within the runtime.
 pub mod constants;
 
+/// Base storage fee
+pub const BASE_STORAGE_FEE: Balance = 1 * DOLLARS;
+
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
 pub type Signature = MultiSignature;
 
@@ -1407,6 +1410,7 @@ parameter_types! {
 	//Mining Resource Currency Id
 	pub const MiningResourceCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
+	pub MiningStorageDeposit: Balance = BASE_STORAGE_FEE;
 }
 
 impl mining::Config for Runtime {
@@ -1418,7 +1422,8 @@ impl mining::Config for Runtime {
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
 	type TreasuryStakingReward = TreasuryStakingReward;
-	type StorageDepositFee = StorageDepositFee;
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
+	type StorageDepositFee = MiningStorageDeposit;
 	type Currency = Balances;
 	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }

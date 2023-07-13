@@ -216,6 +216,7 @@ impl Config for Runtime {
 	type MetaverseStakingHandler = MetaverseStakingHandler;
 	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = ();
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
 	type StorageDepositFee = StorageDepositFee;
 	type Currency = Balances;
 }
@@ -252,7 +253,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000)],
+			balances: vec![(ALICE, 100000), (BOB, 1000), (TreasuryModuleAccount::get(), 100)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
