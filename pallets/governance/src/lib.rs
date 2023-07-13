@@ -129,6 +129,11 @@ pub mod pallet {
 
 		/// Metaverse Council which collective of members
 		type MetaverseCouncil: EnsureOrigin<Self::RuntimeOrigin>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::pallet]

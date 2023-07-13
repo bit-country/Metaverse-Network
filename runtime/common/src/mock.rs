@@ -390,6 +390,7 @@ impl CheckAuctionItemHandler<Balance> for MockAuctionManager {
 parameter_types! {
 	pub MaxClassMetadata: u32 = 1024;
 	pub MaxTokenMetadata: u32 = 1024;
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl orml_nft::Config for Runtime {
@@ -409,6 +410,8 @@ impl evm_mapping::Config for Runtime {
 	type ChainId = ();
 	type TransferAll = OrmlCurrencies;
 	type WeightInfo = ();
+	type StorageDepositFee = StorageDepositFee;
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
 }
 
 parameter_types! {
@@ -435,6 +438,7 @@ impl nft_pallet::Config for Runtime {
 	type MiningResourceId = MiningCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 // Configure a mock runtime to test the pallet.

@@ -198,6 +198,11 @@ pub mod pallet {
 		/// Anti-snipe duration
 		#[pallet::constant]
 		type AntiSnipeDuration: Get<Self::BlockNumber>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]

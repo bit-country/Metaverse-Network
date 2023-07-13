@@ -133,6 +133,11 @@ pub mod pallet {
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
 		/// Weight info
 		type WeightInfo: WeightInfo;
 	}

@@ -1418,6 +1418,8 @@ impl mining::Config for Runtime {
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
 	type TreasuryStakingReward = TreasuryStakingReward;
+	type StorageDepositFee = StorageDepositFee;
+	type Currency = Balances;
 	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
@@ -1427,6 +1429,7 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
+	pub StorageDepositFee: Balance = 1 * DOLLARS;
 }
 
 impl nft::Config for Runtime {
@@ -1443,6 +1446,7 @@ impl nft::Config for Runtime {
 	type MiningResourceId = MiningResourceCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {
@@ -1479,6 +1483,7 @@ impl metaverse::Config for Runtime {
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type MultiCurrency = Currencies;
 	type NFTHandler = Nft;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {
@@ -1515,6 +1520,7 @@ impl estate::Config for Runtime {
 	type MaxLeasePeriod = MaxLeasePeriod;
 	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
 	type BlockNumberToBalance = ConvertInto;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {
@@ -1550,6 +1556,7 @@ impl auction::Config for Runtime {
 	type OfferDuration = OfferDuration;
 	type MinimumListingPrice = MinimumListingPrice;
 	type AntiSnipeDuration = AntiSnipeDuration;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 impl continuum::Config for Runtime {
@@ -1562,6 +1569,7 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
+	type StorageDepositFee = StorageDepositFee;
 	type WeightInfo = weights::module_continuum::WeightInfo<Runtime>;
 }
 
@@ -1744,6 +1752,7 @@ impl reward::Config for Runtime {
 	type MaxSetRewardsListLength = MaxSetRewardsListLength;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
+	type StorageDepositFee = StorageDepositFee;
 	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 

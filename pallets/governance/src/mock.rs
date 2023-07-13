@@ -455,6 +455,7 @@ parameter_types! {
 	pub const MaxTokenMetadata: u32 = 1024;
 	pub const MinContribution: Balance = 1;
 	pub const MaxNumberOfStakersPerMetaverse: u32 = 512;
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl pallet_metaverse::Config for Runtime {
@@ -470,6 +471,7 @@ impl pallet_metaverse::Config for Runtime {
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type WeightInfo = ();
 	type NFTHandler = MockNFTHandler;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
@@ -515,6 +517,7 @@ impl Config for Runtime {
 	type MetaverseLandInfo = MetaverseLandInfo;
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 	type ProposalType = ProposalType;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_type_with_key! {

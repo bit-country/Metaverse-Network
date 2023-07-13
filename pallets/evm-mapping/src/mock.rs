@@ -30,7 +30,7 @@ use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
 	testing::Header,
-	traits::{BlakeTwo256, Hash, IdentityLookup},
+	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
 };
 
 use primitives::{Amount, Balance, FungibleTokenId};
@@ -118,6 +118,9 @@ impl orml_tokens::Config for Runtime {
 
 parameter_types! {
 	pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
+	pub StorageDepositFee: Balance = 1;
+	pub const MetaverseTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub TreasuryModuleAccount: AccountId = MetaverseTreasuryPalletId::get().into_account_truncating();
 }
 
 impl orml_currencies::Config for Runtime {
@@ -138,6 +141,8 @@ impl Config for Runtime {
 	type ChainId = ();
 	type AddressMapping = EvmAddressMapping<Runtime>;
 	type TransferAll = Currencies;
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
+	type StorageDepositFee = StorageDepositFee;
 	type WeightInfo = ();
 }
 
@@ -198,7 +203,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(bob_account_id(), 100000)],
+			balances: vec![(bob_account_id(), 100000), (ALICE, 10000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

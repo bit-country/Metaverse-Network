@@ -152,6 +152,12 @@ pub mod pallet {
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
 		/// Source of Metaverse Network Info
 		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
 	}

@@ -108,6 +108,9 @@ pub mod pallet {
 		Balance,
 	);
 
+	pub(crate) type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -121,6 +124,15 @@ pub mod pallet {
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
 		// Mining staking reward for treasury
 		type TreasuryStakingReward: Get<Perbill>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
+		/// The Currency for managing storage deposits.
+		type Currency: Currency<Self::AccountId>;
+
 		// Weight implementation for mining extrinsics
 		type WeightInfo: WeightInfo;
 	}

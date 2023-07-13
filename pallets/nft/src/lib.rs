@@ -131,6 +131,10 @@ pub mod pallet {
 		/// Fungible token id for promotion incentive
 		#[pallet::constant]
 		type MiningResourceId: Get<FungibleTokenId>;
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;

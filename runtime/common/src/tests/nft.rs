@@ -212,7 +212,7 @@ fn mint_nft_works() {
 #[test]
 fn transfer_nft_works() {
 	ExtBuilder::default()
-		.with_balances(vec![(alice_account_id(), 100000)])
+		.with_balances(vec![(alice_account_id(), 100000), (bob_account_id(), 15000)])
 		.build()
 		.execute_with(|| {
 			init_test_nft(RuntimeOrigin::signed(alice_account_id()));

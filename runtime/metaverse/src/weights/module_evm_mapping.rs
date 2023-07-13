@@ -23,13 +23,11 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> evm_mapping::WeightInfo for WeightInfo<T> {
 	fn claim_eth_account() -> Weight {
-		Weight::from_parts(39_571_000, 7673)
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(2))
+		Weight::from_parts(53_285_000, 12879)
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	fn claim_default_account() -> Weight {
-		Weight::from_parts(10_980_000, 2535)
-			.saturating_add(T::DbWeight::get().reads(1))
-			.saturating_add(T::DbWeight::get().writes(2))
+		Weight::from_parts(24_582_000, 7741).saturating_add(T::DbWeight::get().reads(3))
 	}
 }

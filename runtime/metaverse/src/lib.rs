@@ -207,6 +207,9 @@ const MAXIMUM_BLOCK_WEIGHT: Weight =
 // started with `-lruntime::contracts=debug`.
 pub const CONTRACTS_DEBUG_OUTPUT: bool = true;
 
+/// Base storage fee
+pub const BASE_STORAGE_FEE: Balance = 10 * CENTS;
+
 parameter_types! {
 //	pub const Version: RuntimeVersion = VERSION;
 //	pub const BlockHashCount: BlockNumber = 2400;
@@ -567,6 +570,7 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
+	pub const StorageDepositFee: Balance = 10 * CENTS;
 }
 
 impl nft::Config for Runtime {
@@ -583,6 +587,7 @@ impl nft::Config for Runtime {
 	type MiningResourceId = MiningResourceCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {
@@ -619,6 +624,7 @@ impl metaverse::Config for Runtime {
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakerPerMetaverse;
 	type MultiCurrency = Currencies;
 	type NFTHandler = Nft;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {
@@ -656,6 +662,7 @@ impl estate::Config for Runtime {
 	type MaxLeasePeriod = MaxLeasePeriod;
 	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
 	type BlockNumberToBalance = ConvertInto;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {
@@ -691,6 +698,7 @@ impl auction::Config for Runtime {
 	type OfferDuration = OfferDuration;
 	type MinimumListingPrice = MinimumListingPrice;
 	type AntiSnipeDuration = AntiSnipeDuration;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 impl continuum::Config for Runtime {
@@ -703,6 +711,7 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
+	type StorageDepositFee = StorageDepositFee;
 	type WeightInfo = weights::module_continuum::WeightInfo<Runtime>;
 }
 
@@ -764,6 +773,8 @@ impl mining::Config for Runtime {
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type MetaverseStakingHandler = Metaverse;
 	type TreasuryStakingReward = TreasuryStakingReward;
+	type StorageDepositFee = StorageDepositFee;
+	type Currency = Balances;
 	type WeightInfo = weights::module_mining::WeightInfo<Runtime>;
 }
 
@@ -1045,6 +1056,7 @@ impl governance::Config for Runtime {
 	type MetaverseLandInfo = Estate;
 	type MetaverseCouncil = EnsureRootOrMetaverseTreasury;
 	type ProposalType = ProposalType;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 impl crowdloan::Config for Runtime {
@@ -1363,6 +1375,7 @@ impl reward::Config for Runtime {
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
 	type MaxLeafNodes = MaxLeafNodes;
+	type StorageDepositFee = StorageDepositFee;
 	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 
@@ -1381,12 +1394,19 @@ impl orml_currencies::Config for Runtime {
 	type WeightInfo = ();
 }
 
+parameter_types! {
+	pub EvmMappingStorageFee: Balance = 2 * BASE_STORAGE_FEE; // Each extrinsic in the pallet has exactly 2 storage inserts
+
+}
+
 impl evm_mapping::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type AddressMapping = EvmAddressMapping<Runtime>;
 	type ChainId = ChainId;
 	type TransferAll = OrmlCurrencies;
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
+	type StorageDepositFee = EvmMappingStorageFee;
 	type WeightInfo = weights::module_evm_mapping::WeightInfo<Runtime>;
 }
 

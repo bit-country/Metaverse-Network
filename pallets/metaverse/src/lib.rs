@@ -129,6 +129,10 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 		/// NFT handler required for minting classes for lands and estates when creating a metaverse
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]

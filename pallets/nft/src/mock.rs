@@ -234,6 +234,7 @@ parameter_types! {
 	pub AssetMintingFee: Balance = 1;
 	pub ClassMintingFee: Balance = 2;
 	pub const MetaverseNetworkTreasuryPalletId: PalletId = PalletId(*b"bit/trsy");
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl Config for Runtime {
@@ -250,6 +251,7 @@ impl Config for Runtime {
 	type MiningResourceId = MiningCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {
