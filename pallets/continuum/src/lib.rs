@@ -48,6 +48,7 @@ use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::DispatchResult,
 	ensure, log,
+	traits::ExistenceRequirement,
 	traits::{Currency, Get, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
@@ -109,7 +110,6 @@ pub struct AuctionSlot<BlockNumber, AccountId> {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::ExistenceRequirement;
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::OriginFor;
 	use sp_arithmetic::traits::UniqueSaturatedInto;
@@ -438,11 +438,35 @@ pub mod pallet {
 				.get_map_spot_detail()
 				.ok_or(Error::<T>::InvalidSpotAuction)?;
 
+			// Refund storage fee to the previous bidder (if exist)
+			match T::AuctionHandler::auction_info(auction_id) {
+				Some(auction_info) => match auction_info.bid {
+					Some(last_bid) => {
+						<T as Config>::Currency::transfer(
+							&Self::account_id(),
+							&last_bid.0,
+							T::StorageDepositFee::get(),
+							ExistenceRequirement::KeepAlive,
+						)?;
+					}
+					None => {}
+				},
+				None => {}
+			}
+
 			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
-			T::AuctionHandler::auction_bid_handler(sender, auction_id, value)?;
+			T::AuctionHandler::auction_bid_handler(sender.clone(), auction_id, value)?;
 
 			// Remove leading bid of this spot
 			MetaverseLeadingBid::<T>::remove_prefix(spot_detail.0, None);
+
+			// Charge storage few to the current bidder
+			<T as Config>::Currency::transfer(
+				&sender,
+				&Self::account_id(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			// Add metaverse leading bid
 			MetaverseLeadingBid::<T>::insert(spot_detail.0, metaverse_id, ());
@@ -512,9 +536,15 @@ impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
 			spot.owner = to.clone().0;
 			spot.metaverse_id = Some(to.1);
 
-			Self::deposit_event(Event::<T>::ContinuumSpotTransferred(from, to.0, spot_id));
+			Self::deposit_event(Event::<T>::ContinuumSpotTransferred(from, to.0.clone(), spot_id));
 			MetaverseMap::<T>::insert(to.1, spot_id);
 			MetaverseLeadingBid::<T>::remove_prefix(spot_id, None);
+			<T as Config>::Currency::transfer(
+				&treasury,
+				&to.0,
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 			Ok(spot_id)
 		})
 	}

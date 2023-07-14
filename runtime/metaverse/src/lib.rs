@@ -677,6 +677,7 @@ parameter_types! {
 	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
 	pub const MinimumListingPrice: Balance = DOLLARS;
 	pub const AntiSnipeDuration: BlockNumber = 50; // Minimum anti snipe duration is 50 blocks
+	pub const ContinuumStorageDeposit: Balance = BASE_STORAGE_FEE;
 }
 
 impl auction::Config for Runtime {
@@ -711,7 +712,7 @@ impl continuum::Config for Runtime {
 	type ContinuumTreasury = MetaverseNetworkTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = Metaverse;
-	type StorageDepositFee = StorageDepositFee;
+	type StorageDepositFee = ContinuumStorageDeposit;
 	type WeightInfo = weights::module_continuum::WeightInfo<Runtime>;
 }
 
