@@ -438,7 +438,7 @@ pub mod pallet {
 				.get_map_spot_detail()
 				.ok_or(Error::<T>::InvalidSpotAuction)?;
 
-			// Refund storage fee to the previous bidder (if exist)
+			/* // Refund storage fee to the previous bidder (if exist)
 			match T::AuctionHandler::auction_info(auction_id) {
 				Some(auction_info) => match auction_info.bid {
 					Some(last_bid) => {
@@ -453,7 +453,7 @@ pub mod pallet {
 				},
 				None => {}
 			}
-
+			*/
 			T::AuctionHandler::update_auction_item(auction_id, ItemId::Spot(*spot_detail.0, metaverse_id))?;
 			T::AuctionHandler::auction_bid_handler(sender.clone(), auction_id, value)?;
 
@@ -539,12 +539,14 @@ impl<T: Config> MapTrait<T::AccountId> for Pallet<T> {
 			Self::deposit_event(Event::<T>::ContinuumSpotTransferred(from, to.0.clone(), spot_id));
 			MetaverseMap::<T>::insert(to.1, spot_id);
 			MetaverseLeadingBid::<T>::remove_prefix(spot_id, None);
+			/* // Storage fee refund
 			<T as Config>::Currency::transfer(
 				&treasury,
 				&to.0,
 				T::StorageDepositFee::get(),
 				ExistenceRequirement::KeepAlive,
 			)?;
+			*/
 			Ok(spot_id)
 		})
 	}

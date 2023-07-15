@@ -490,8 +490,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 			CONTINUUM_MAP_COORDINATE,
 			BOB_METAVERSE_ID
 		));
-		assert_eq!(Balances::free_balance(ALICE), 100000);
-		assert_eq!(Balances::free_balance(ALICE), 499);
+		assert_eq!(Balances::free_balance(BOB), 499);
 
 		// Alice leading bid should be removed
 		assert!(!MetaverseLeadingBid::<Runtime>::contains_key(
@@ -517,8 +516,7 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 			CONTINUUM_MAP_COORDINATE,
 			BOB_METAVERSE_ID
 		));
-		assert_eq!(Balances::free_balance(ALICE), 99999);
-		assert_eq!(Balances::free_balance(ALICE), 500);
+		assert_eq!(Balances::free_balance(ALICE), 99998);
 
 		let treasury = <Runtime as Config>::ContinuumTreasury::get().into_account_truncating();
 		ContinuumModule::transfer_spot(CONTINUUM_MAP_COORDINATE, treasury, (BOB, BOB_METAVERSE_ID));
@@ -527,7 +525,6 @@ fn bid_auction_continuum_should_replace_another_leading_bid() {
 		assert_eq!(
 			MetaverseLeadingBid::<Runtime>::iter_prefix(CONTINUUM_MAP_COORDINATE).count(),
 			0
-		);
-		assert_eq!(Balances::free_balance(ALICE), 99600)
+		)
 	})
 }

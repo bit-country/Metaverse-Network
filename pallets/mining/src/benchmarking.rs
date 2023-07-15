@@ -46,7 +46,7 @@ const MINING_RESOURCE_RATE_INFO: MiningResourceRateInfo = MiningResourceRateInfo
 	mining_reward: Perbill::from_percent(70u32),
 };
 
-fn dollar(d: u32) -> Balance {
+fn dollar(d: u64) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(10)
 }
@@ -55,7 +55,7 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
 	let initial_balance = dollar(100);
 
-	T::Currency::make_free_balance_be(&caller, dollar(1_000_000_000_000_000_000).unique_saturated_into());
+	T::Currency::make_free_balance_be(&caller, dollar(3_000_000_000_000_000_000).unique_saturated_into());
 
 	T::MiningCurrency::update_balance(
 		FungibleTokenId::MiningResource(0),
