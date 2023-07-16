@@ -674,6 +674,15 @@ pub mod pallet {
 				ExistenceRequirement::KeepAlive,
 			)?;
 
+			let network_treasury = T::Treasury::get().into_account_truncating();
+			// Transfer storage deposit fee
+			<T as orml_nft::Config>::Currency::transfer(
+				&sender,
+				&network_treasury,
+				T::StorageDepositFee::get().into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
 					let supporters = supporters.as_mut().ok_or(Error::<T>::EmptySupporters)?;
@@ -1165,6 +1174,15 @@ impl<T: Config> Pallet<T> {
 		};
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
+
+		let network_treasury = T::Treasury::get().into_account_truncating();
+		// Transfer storage deposit fee
+		<T as orml_nft::Config>::Currency::transfer(
+			sender,
+			&network_treasury,
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
 		ClassDataCollection::<T>::insert(next_class_id, collection_id);
 
 		Self::deposit_event(Event::<T>::NewNftClassCreated(sender.clone(), next_class_id));

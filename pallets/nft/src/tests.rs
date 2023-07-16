@@ -173,7 +173,11 @@ fn create_class_should_work() {
 		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
 		assert_eq!(last_event(), event);
 
-		assert_eq!(free_native_balance(class_id_account()), class_deposit);
+		assert_eq!(
+			free_native_balance(class_id_account()),
+			class_deposit + <Runtime as Config>::StorageDepositFee::get()
+		);
+		assert_eq!(Balances::free_balance(ALICE), 99997);
 	});
 }
 
@@ -213,7 +217,11 @@ fn create_class_with_royalty_fee_should_work() {
 		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
 		assert_eq!(last_event(), event);
 
-		assert_eq!(free_native_balance(class_id_account()), class_deposit);
+		assert_eq!(
+			free_native_balance(class_id_account()),
+			class_deposit + <Runtime as Config>::StorageDepositFee::get()
+		);
+		assert_eq!(Balances::free_balance(ALICE), 99997);
 	});
 }
 
@@ -224,7 +232,7 @@ fn mint_asset_should_work() {
 		assert_ok!(Nft::enable_promotion(RuntimeOrigin::root(), true));
 		init_test_nft(origin.clone());
 
-		assert_eq!(free_native_balance(class_id_account()), 3);
+		assert_eq!(free_native_balance(class_id_account()), 4);
 		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
 
 		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftMinted((0, 0), (0, 0), ALICE, CLASS_ID, 1, 0));
@@ -273,7 +281,7 @@ fn mint_stackable_asset_should_work() {
 		assert_ok!(Nft::enable_promotion(RuntimeOrigin::root(), true));
 		init_test_stackable_nft(origin.clone());
 
-		assert_eq!(free_native_balance(class_id_account()), 3);
+		assert_eq!(free_native_balance(class_id_account()), 4);
 		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
 
 		assert_eq!(
@@ -696,10 +704,10 @@ fn do_withdraw_funds_from_class_fund_should_work() {
 		init_test_nft(origin.clone());
 		let class_fund: AccountId = <Runtime as Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
 		assert_ok!(<Runtime as Config>::Currency::transfer(origin.clone(), class_fund, 100));
-		assert_eq!(free_native_balance(ALICE), 99897);
+		assert_eq!(free_native_balance(ALICE), 99896);
 		assert_eq!(free_native_balance(class_fund), 100);
 		assert_ok!(Nft::withdraw_funds_from_class_fund(origin.clone(), CLASS_ID));
-		assert_eq!(free_native_balance(ALICE), 99996);
+		assert_eq!(free_native_balance(ALICE), 99995);
 		assert_eq!(free_native_balance(class_fund), 1);
 	})
 }

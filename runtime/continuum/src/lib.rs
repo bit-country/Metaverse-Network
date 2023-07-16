@@ -1434,7 +1434,7 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
-	pub StorageDepositFee: Balance = 1 * DOLLARS;
+	pub StorageDepositFee: Balance = BASE_STORAGE_FEE;
 }
 
 impl nft::Config for Runtime {

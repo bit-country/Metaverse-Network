@@ -183,7 +183,7 @@ fn create_nft_campaign_works() {
 			cap: RewardType::NftAssets(vec![(0u32, 1u64)]),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(Balances::free_balance(ALICE), 9991);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
 		let event = mock::RuntimeEvent::Reward(crate::Event::NewRewardCampaignCreated(campaign_id, ALICE));
@@ -446,7 +446,7 @@ fn set_nft_reward_works() {
 			cap: RewardType::NftAssets(vec![(0u32, 1u64)]),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(Balances::free_balance(ALICE), 9991);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
 		assert_ok!(Reward::set_nft_reward(
@@ -504,7 +504,7 @@ fn set_nft_reward_root_works() {
 			cap: RewardType::NftAssets(vec![(0u32, 2u64), (0u32, 1u64)]),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_eq!(Balances::free_balance(ALICE), 9990);
+		assert_eq!(Balances::free_balance(ALICE), 9987);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
 		assert_ok!(Reward::set_nft_reward_root(
@@ -998,7 +998,7 @@ fn claim_nft_reward_works() {
 			cap: RewardType::NftAssets(vec![(0u32, 1u64)]),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(Balances::free_balance(ALICE), 9991);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
 		assert_ok!(Reward::set_nft_reward(
@@ -1059,7 +1059,7 @@ fn claim_nft_reward_root_works() {
 			cap: RewardType::NftAssets(vec![(0u32, 1u64)]),
 		};
 		assert_eq!(Reward::campaigns(campaign_id), Some(campaign_info));
-		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(Balances::free_balance(ALICE), 9991);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
 		assert_ok!(Reward::set_nft_reward_root(
@@ -1617,14 +1617,14 @@ fn close_nft_campaign_works() {
 			vec![1],
 		));
 
-		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(Balances::free_balance(ALICE), 9991);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
 		run_to_block(100);
 
 		assert_ok!(Reward::close_nft_campaign(RuntimeOrigin::signed(ALICE), 0, 1));
 
-		assert_eq!(Balances::free_balance(ALICE), 9994);
+		assert_eq!(Balances::free_balance(ALICE), 9992);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, false);
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
@@ -1652,7 +1652,7 @@ fn close_nft_campaign_with_merkle_root_works() {
 			vec![1],
 		));
 
-		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(Balances::free_balance(ALICE), 9991);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 		assert_ok!(Reward::set_nft_reward_root(
 			RuntimeOrigin::signed(ALICE),
@@ -1665,7 +1665,7 @@ fn close_nft_campaign_with_merkle_root_works() {
 
 		assert_ok!(Reward::close_nft_campaign(RuntimeOrigin::signed(ALICE), 0, 1));
 
-		assert_eq!(Balances::free_balance(ALICE), 9994);
+		assert_eq!(Balances::free_balance(ALICE), 9992);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, false);
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
@@ -1999,14 +1999,14 @@ fn cancel_nft_campaign_works() {
 			vec![1],
 		));
 
-		assert_eq!(Balances::free_balance(ALICE), 9993);
+		assert_eq!(Balances::free_balance(ALICE), 9991);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, true);
 
 		run_to_block(5);
 
 		assert_ok!(Reward::cancel_nft_campaign(RuntimeOrigin::signed(ALICE), 0, 1));
 
-		assert_eq!(Balances::free_balance(ALICE), 9994);
+		assert_eq!(Balances::free_balance(ALICE), 9992);
 		assert_eq!(OrmlNft::tokens(0u32, 1u64).unwrap().data.is_locked, false);
 
 		assert_eq!(Campaigns::<Runtime>::get(campaign_id), None);
