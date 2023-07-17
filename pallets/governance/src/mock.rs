@@ -462,6 +462,7 @@ impl pallet_metaverse::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
+	type NetworkTreasury = TreasuryModuleAccount;
 	type MetaverseTreasury = MetaverseFundPalletId;
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;

@@ -93,6 +93,7 @@ parameter_types! {
 	pub const MinStakingAmount: Balance = 100;
 	pub const MaxNumberOfStakersPerMetaverse: u32 = 1;
 	pub StorageDepositFee: Balance = 1;
+
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -319,6 +320,7 @@ impl Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
+	type NetworkTreasury = TreasuryModuleAccount;
 	type MetaverseTreasury = MetaverseFundPalletId;
 	type MaxMetaverseMetadata = MaxTokenMetadata;
 	type MinContribution = MinContribution;

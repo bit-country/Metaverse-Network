@@ -47,37 +47,37 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> metaverse::WeightInfo for WeightInfo<T>{
 	fn create_metaverse() -> Weight {
-		Weight::from_parts(73_237_000, 27361)
+		Weight::from_parts(144_874_000, 27361)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(12))
 	}
 	fn transfer_metaverse() -> Weight {
-		Weight::from_parts(21_461_000, 7534)
-			.saturating_add(T::DbWeight::get().reads(2))
-			.saturating_add(T::DbWeight::get().writes(3))
+		Weight::from_parts(53_412_000, 13860)
+			.saturating_add(T::DbWeight::get().reads(4))
+			.saturating_add(T::DbWeight::get().writes(5))
 	}
 	fn freeze_metaverse() -> Weight {
-		Weight::from_parts(18_064_000, 3722)
+		Weight::from_parts(26_870_000, 3722)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn unfreeze_metaverse() -> Weight {
-		Weight::from_parts(16_778_000, 3722)
+		Weight::from_parts(27_836_000, 3722)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn destroy_metaverse() -> Weight {
-		Weight::from_parts(18_411_000, 4969)
+		Weight::from_parts(28_903_000, 4969)
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	fn update_metaverse_listing_fee() -> Weight {
-		Weight::from_parts(19_747_000, 7534)
+		Weight::from_parts(30_034_000, 7534)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn withdraw_from_metaverse_fund() -> Weight {
-		Weight::from_parts(34_242_000, 9444)
+		Weight::from_parts(47_894_000, 9444)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}

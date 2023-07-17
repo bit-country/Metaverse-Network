@@ -1473,10 +1473,12 @@ parameter_types! {
 	pub MaxMetaverseMetadata: u32 = 1024;
 	pub MinContribution: Balance = 50 * DOLLARS;
 	pub MaxNumberOfStakersPerMetaverse: u32 = 512;
+	pub MetaverseStorageFee: Balance = 2 * BASE_STORAGE_FEE;
 }
 
 impl metaverse::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
+	type NetworkTreasury = TreasuryModuleAccount;
 	type MetaverseTreasury = LocalMetaverseFundPalletId;
 	type Currency = Balances;
 	type MaxMetaverseMetadata = MaxMetaverseMetadata;
@@ -1488,7 +1490,7 @@ impl metaverse::Config for Runtime {
 	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakersPerMetaverse;
 	type MultiCurrency = Currencies;
 	type NFTHandler = Nft;
-	type StorageDepositFee = StorageDepositFee;
+	type StorageDepositFee = MetaverseStorageFee;
 }
 
 parameter_types! {
