@@ -1368,8 +1368,7 @@ pub mod pallet {
 
 					lease.start_block = <frame_system::Pallet<T>>::block_number();
 					lease.end_block = lease.start_block + lease.duration.into();
-					// 200% storage fee since there are 2  storage inserts and storage fee is set to equivalent of 1
-					// insert
+					// 200% storage fee since there are 2  storage inserts
 					let storage_fee: BalanceOf<T> = Perbill::from_percent(200) * T::StorageDepositFee::get();
 					T::Currency::transfer(
 						&who,
@@ -1723,6 +1722,15 @@ impl<T: Config> Pallet<T> {
 		to: &T::AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
+		// 200% storage fee since there are 2  storage inserts
+		let storage_fee: BalanceOf<T> = Perbill::from_percent(200) * T::StorageDepositFee::get();
+		T::Currency::transfer(
+			&who,
+			&T::MetaverseInfoSource::get_network_treasury(),
+			storage_fee.saturated_into(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+
 		UndeployedLandBlocks::<T>::try_mutate(
 			&undeployed_land_block_id,
 			|undeployed_land_block| -> Result<UndeployedLandBlockId, DispatchError> {
@@ -1746,13 +1754,6 @@ impl<T: Config> Pallet<T> {
 				);
 
 				undeployed_land_block_record.owner = to.clone();
-
-				T::Currency::transfer(
-					&who,
-					&T::MetaverseInfoSource::get_network_treasury(),
-					T::StorageDepositFee::get(),
-					ExistenceRequirement::KeepAlive,
-				)?;
 
 				UndeployedLandBlocksOwner::<T>::remove(who.clone(), &undeployed_land_block_id);
 				UndeployedLandBlocksOwner::<T>::insert(to.clone(), &undeployed_land_block_id, ());

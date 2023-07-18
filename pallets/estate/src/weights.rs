@@ -73,8 +73,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `2339`
 		//  Estimated: `36660`
-		// Minimum execution time: 56_568 nanoseconds.
-		Weight::from_parts(59_793_000, 36660)
+		// Minimum execution time: 56_882 nanoseconds.
+		Weight::from_parts(59_273_000, 36660)
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
@@ -100,8 +100,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `2339`
 		//  Estimated: `41610`
-		// Minimum execution time: 83_330 nanoseconds.
-		Weight::from_parts(86_245_000, 41610)
+		// Minimum execution time: 82_026 nanoseconds.
+		Weight::from_parts(83_541_000, 41610)
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().writes(10))
 	}
@@ -123,8 +123,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `1915`
 		//  Estimated: `28255`
-		// Minimum execution time: 48_424 nanoseconds.
-		Weight::from_parts(49_607_000, 28255)
+		// Minimum execution time: 46_193 nanoseconds.
+		Weight::from_parts(47_423_000, 28255)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -158,8 +158,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `2356`
 		//  Estimated: `47210`
-		// Minimum execution time: 285_053 nanoseconds.
-		Weight::from_parts(298_073_000, 47210)
+		// Minimum execution time: 62_931 nanoseconds.
+		Weight::from_parts(64_479_000, 47210)
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().writes(11))
 	}
@@ -191,8 +191,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `3118`
 		//  Estimated: `67224`
-		// Minimum execution time: 99_366 nanoseconds.
-		Weight::from_parts(101_964_000, 67224)
+		// Minimum execution time: 99_063 nanoseconds.
+		Weight::from_parts(110_008_000, 67224)
 			.saturating_add(T::DbWeight::get().reads(14))
 			.saturating_add(T::DbWeight::get().writes(13))
 	}
@@ -216,8 +216,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `2593`
 		//  Estimated: `38079`
-		// Minimum execution time: 71_547 nanoseconds.
-		Weight::from_parts(73_251_000, 38079)
+		// Minimum execution time: 69_608 nanoseconds.
+		Weight::from_parts(71_706_000, 38079)
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
@@ -247,8 +247,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `3027`
 		//  Estimated: `60226`
-		// Minimum execution time: 88_391 nanoseconds.
-		Weight::from_parts(102_249_000, 60226)
+		// Minimum execution time: 86_578 nanoseconds.
+		Weight::from_parts(90_257_000, 60226)
 			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
@@ -280,8 +280,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `3192`
 		//  Estimated: `66058`
-		// Minimum execution time: 123_633 nanoseconds.
-		Weight::from_parts(136_636_000, 66058)
+		// Minimum execution time: 121_302 nanoseconds.
+		Weight::from_parts(131_741_000, 66058)
 			.saturating_add(T::DbWeight::get().reads(14))
 			.saturating_add(T::DbWeight::get().writes(17))
 	}
@@ -307,8 +307,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `2025`
 		//  Estimated: `38025`
-		// Minimum execution time: 52_752 nanoseconds.
-		Weight::from_parts(54_850_000, 38025)
+		// Minimum execution time: 52_643 nanoseconds.
+		Weight::from_parts(54_808_000, 38025)
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -326,8 +326,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `1558`
 		//  Estimated: `9825`
-		// Minimum execution time: 162_361 nanoseconds.
-		Weight::from_parts(167_382_000, 9825)
+		// Minimum execution time: 159_581 nanoseconds.
+		Weight::from_parts(162_875_000, 9825)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(43))
 	}
@@ -339,8 +339,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `1442`
 		//  Estimated: `7834`
-		// Minimum execution time: 47_864 nanoseconds.
-		Weight::from_parts(49_391_000, 7834)
+		// Minimum execution time: 21_762 nanoseconds.
+		Weight::from_parts(22_833_000, 7834)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -352,8 +352,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `1442`
 		//  Estimated: `7834`
-		// Minimum execution time: 21_647 nanoseconds.
-		Weight::from_parts(23_457_000, 7834)
+		// Minimum execution time: 20_225 nanoseconds.
+		Weight::from_parts(21_423_000, 7834)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -365,8 +365,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `1442`
 		//  Estimated: `7834`
-		// Minimum execution time: 79_818 nanoseconds.
-		Weight::from_parts(90_711_000, 7834)
+		// Minimum execution time: 20_246 nanoseconds.
+		Weight::from_parts(21_819_000, 7834)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
@@ -378,25 +378,25 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `1475`
 		//  Estimated: `7900`
-		// Minimum execution time: 61_885 nanoseconds.
-		Weight::from_parts(71_293_000, 7900)
+		// Minimum execution time: 20_346 nanoseconds.
+		Weight::from_parts(21_237_000, 7900)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	// Storage: Auction ItemsInAuction (r:1 w:0)
 	// Proof Skipped: Auction ItemsInAuction (max_values: None, max_size: None, mode: Measured)
-	// Storage: Estate UndeployedLandBlocks (r:1 w:1)
-	// Proof Skipped: Estate UndeployedLandBlocks (max_values: None, max_size: None, mode: Measured)
 	// Storage: System Account (r:1 w:1)
 	// Proof: System Account (max_values: None, max_size: Some(128), added: 2603, mode: MaxEncodedLen)
+	// Storage: Estate UndeployedLandBlocks (r:1 w:1)
+	// Proof Skipped: Estate UndeployedLandBlocks (max_values: None, max_size: None, mode: Measured)
 	// Storage: Estate UndeployedLandBlocksOwner (r:0 w:2)
 	// Proof Skipped: Estate UndeployedLandBlocksOwner (max_values: None, max_size: None, mode: Measured)
 	fn transfer_undeployed_land_blocks() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `2040`
 		//  Estimated: `13673`
-		// Minimum execution time: 39_836 nanoseconds.
-		Weight::from_parts(87_163_000, 13673)
+		// Minimum execution time: 38_679 nanoseconds.
+		Weight::from_parts(41_173_000, 13673)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -432,8 +432,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `2802`
 		//  Estimated: `64897`
-		// Minimum execution time: 91_849 nanoseconds.
-		Weight::from_parts(96_826_000, 64897)
+		// Minimum execution time: 91_163 nanoseconds.
+		Weight::from_parts(100_659_000, 64897)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(11))
 	}
@@ -449,8 +449,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `1304`
 		//  Estimated: `10661`
-		// Minimum execution time: 22_671 nanoseconds.
-		Weight::from_parts(23_654_000, 10661)
+		// Minimum execution time: 23_162 nanoseconds.
+		Weight::from_parts(32_196_000, 10661)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
@@ -470,8 +470,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `1986`
 		//  Estimated: `27383`
-		// Minimum execution time: 43_084 nanoseconds.
-		Weight::from_parts(45_166_000, 27383)
+		// Minimum execution time: 94_497 nanoseconds.
+		Weight::from_parts(98_902_000, 27383)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -493,8 +493,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `2311`
 		//  Estimated: `28844`
-		// Minimum execution time: 59_120 nanoseconds.
-		Weight::from_parts(140_591_000, 28844)
+		// Minimum execution time: 53_956 nanoseconds.
+		Weight::from_parts(57_019_000, 28844)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
@@ -512,8 +512,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `4017`
 		//  Estimated: `28571`
-		// Minimum execution time: 56_548 nanoseconds.
-		Weight::from_parts(122_983_000, 28571)
+		// Minimum execution time: 55_907 nanoseconds.
+		Weight::from_parts(57_720_000, 28571)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -531,8 +531,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `4017`
 		//  Estimated: `28571`
-		// Minimum execution time: 57_454 nanoseconds.
-		Weight::from_parts(63_992_000, 28571)
+		// Minimum execution time: 56_789 nanoseconds.
+		Weight::from_parts(57_681_000, 28571)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
@@ -544,8 +544,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `3250`
 		//  Estimated: `8328`
-		// Minimum execution time: 31_219 nanoseconds.
-		Weight::from_parts(42_433_000, 8328)
+		// Minimum execution time: 33_999 nanoseconds.
+		Weight::from_parts(41_923_000, 8328)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -563,8 +563,8 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `4017`
 		//  Estimated: `28571`
-		// Minimum execution time: 52_984 nanoseconds.
-		Weight::from_parts(55_081_000, 28571)
+		// Minimum execution time: 51_821 nanoseconds.
+		Weight::from_parts(53_171_000, 28571)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
@@ -572,128 +572,128 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {	// Storage: Es
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 183 nanoseconds.
-		Weight::from_parts(200_000, 0)
+		// Minimum execution time: 176 nanoseconds.
+		Weight::from_parts(191_000, 0)
 	}
 }
 
 // For backwards compatibility and tests
 impl WeightInfo for () {	fn mint_land() -> Weight {
-		Weight::from_parts(59_793_000, 36660)
+		Weight::from_parts(59_273_000, 36660)
 			.saturating_add(RocksDbWeight::get().reads(8))
 			.saturating_add(RocksDbWeight::get().writes(7))
 	}
 	fn mint_lands() -> Weight {
-		Weight::from_parts(86_245_000, 41610)
+		Weight::from_parts(83_541_000, 41610)
 			.saturating_add(RocksDbWeight::get().reads(10))
 			.saturating_add(RocksDbWeight::get().writes(10))
 	}
 	fn transfer_land() -> Weight {
-		Weight::from_parts(49_607_000, 28255)
+		Weight::from_parts(47_423_000, 28255)
 			.saturating_add(RocksDbWeight::get().reads(6))
 			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 	fn mint_estate() -> Weight {
-		Weight::from_parts(298_073_000, 47210)
+		Weight::from_parts(64_479_000, 47210)
 			.saturating_add(RocksDbWeight::get().reads(10))
 			.saturating_add(RocksDbWeight::get().writes(11))
 	}
 	fn dissolve_estate() -> Weight {
-		Weight::from_parts(101_964_000, 67224)
+		Weight::from_parts(110_008_000, 67224)
 			.saturating_add(RocksDbWeight::get().reads(14))
 			.saturating_add(RocksDbWeight::get().writes(13))
 	}
 	fn add_land_unit_to_estate() -> Weight {
-		Weight::from_parts(73_251_000, 38079)
+		Weight::from_parts(71_706_000, 38079)
 			.saturating_add(RocksDbWeight::get().reads(8))
 			.saturating_add(RocksDbWeight::get().writes(6))
 	}
 	fn remove_land_unit_from_estate() -> Weight {
-		Weight::from_parts(102_249_000, 60226)
+		Weight::from_parts(90_257_000, 60226)
 			.saturating_add(RocksDbWeight::get().reads(12))
 			.saturating_add(RocksDbWeight::get().writes(8))
 	}
 	fn create_estate() -> Weight {
-		Weight::from_parts(136_636_000, 66058)
+		Weight::from_parts(131_741_000, 66058)
 			.saturating_add(RocksDbWeight::get().reads(14))
 			.saturating_add(RocksDbWeight::get().writes(17))
 	}
 	fn transfer_estate() -> Weight {
-		Weight::from_parts(54_850_000, 38025)
+		Weight::from_parts(54_808_000, 38025)
 			.saturating_add(RocksDbWeight::get().reads(8))
 			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 	fn issue_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(167_382_000, 9825)
+		Weight::from_parts(162_875_000, 9825)
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(43))
 	}
 	fn freeze_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(49_391_000, 7834)
+		Weight::from_parts(22_833_000, 7834)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn unfreeze_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(23_457_000, 7834)
+		Weight::from_parts(21_423_000, 7834)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn approve_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(90_711_000, 7834)
+		Weight::from_parts(21_819_000, 7834)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn unapprove_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(71_293_000, 7900)
+		Weight::from_parts(21_237_000, 7900)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn transfer_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(87_163_000, 13673)
+		Weight::from_parts(41_173_000, 13673)
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 	fn deploy_land_block() -> Weight {
-		Weight::from_parts(96_826_000, 64897)
+		Weight::from_parts(100_659_000, 64897)
 			.saturating_add(RocksDbWeight::get().reads(13))
 			.saturating_add(RocksDbWeight::get().writes(11))
 	}
 	fn burn_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(23_654_000, 10661)
+		Weight::from_parts(32_196_000, 10661)
 			.saturating_add(RocksDbWeight::get().reads(3))
 			.saturating_add(RocksDbWeight::get().writes(3))
 	}
 	fn create_lease_offer() -> Weight {
-		Weight::from_parts(45_166_000, 27383)
+		Weight::from_parts(98_902_000, 27383)
 			.saturating_add(RocksDbWeight::get().reads(7))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	fn accept_lease_offer() -> Weight {
-		Weight::from_parts(140_591_000, 28844)
+		Weight::from_parts(57_019_000, 28844)
 			.saturating_add(RocksDbWeight::get().reads(6))
 			.saturating_add(RocksDbWeight::get().writes(5))
 	}
 	fn cancel_lease() -> Weight {
-		Weight::from_parts(122_983_000, 28571)
+		Weight::from_parts(57_720_000, 28571)
 			.saturating_add(RocksDbWeight::get().reads(5))
 			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 	fn remove_expired_lease() -> Weight {
-		Weight::from_parts(63_992_000, 28571)
+		Weight::from_parts(57_681_000, 28571)
 			.saturating_add(RocksDbWeight::get().reads(5))
 			.saturating_add(RocksDbWeight::get().writes(4))
 	}
 	fn remove_lease_offer() -> Weight {
-		Weight::from_parts(42_433_000, 8328)
+		Weight::from_parts(41_923_000, 8328)
 			.saturating_add(RocksDbWeight::get().reads(2))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	fn collect_rent() -> Weight {
-		Weight::from_parts(55_081_000, 28571)
+		Weight::from_parts(53_171_000, 28571)
 			.saturating_add(RocksDbWeight::get().reads(5))
 			.saturating_add(RocksDbWeight::get().writes(2))
 	}
 	fn on_initialize() -> Weight {
-		Weight::from_parts(200_000, 0)
+		Weight::from_parts(191_000, 0)
 	}
 }

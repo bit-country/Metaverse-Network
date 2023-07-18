@@ -48,121 +48,121 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> estate::WeightInfo for WeightInfo<T>  {
 	fn mint_land() -> Weight {
-		Weight::from_parts(59_793_000, 36660)
+		Weight::from_parts(59_273_000, 36660)
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
 	fn mint_lands() -> Weight {
-		Weight::from_parts(86_245_000, 41610)
+		Weight::from_parts(83_541_000, 41610)
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().writes(10))
 	}
 	fn transfer_land() -> Weight {
-		Weight::from_parts(49_607_000, 28255)
+		Weight::from_parts(47_423_000, 28255)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	fn mint_estate() -> Weight {
-		Weight::from_parts(298_073_000, 47210)
+		Weight::from_parts(64_479_000, 47210)
 			.saturating_add(T::DbWeight::get().reads(10))
 			.saturating_add(T::DbWeight::get().writes(11))
 	}
 	fn dissolve_estate() -> Weight {
-		Weight::from_parts(101_964_000, 67224)
+		Weight::from_parts(110_008_000, 67224)
 			.saturating_add(T::DbWeight::get().reads(14))
 			.saturating_add(T::DbWeight::get().writes(13))
 	}
 	fn add_land_unit_to_estate() -> Weight {
-		Weight::from_parts(73_251_000, 38079)
+		Weight::from_parts(71_706_000, 38079)
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
 	fn remove_land_unit_from_estate() -> Weight {
-		Weight::from_parts(102_249_000, 60226)
+		Weight::from_parts(90_257_000, 60226)
 			.saturating_add(T::DbWeight::get().reads(12))
 			.saturating_add(T::DbWeight::get().writes(8))
 	}
 	fn create_estate() -> Weight {
-		Weight::from_parts(136_636_000, 66058)
+		Weight::from_parts(131_741_000, 66058)
 			.saturating_add(T::DbWeight::get().reads(14))
 			.saturating_add(T::DbWeight::get().writes(17))
 	}
 	fn transfer_estate() -> Weight {
-		Weight::from_parts(54_850_000, 38025)
+		Weight::from_parts(54_808_000, 38025)
 			.saturating_add(T::DbWeight::get().reads(8))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	fn issue_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(167_382_000, 9825)
+		Weight::from_parts(162_875_000, 9825)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(43))
 	}
 	fn freeze_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(49_391_000, 7834)
+		Weight::from_parts(22_833_000, 7834)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn unfreeze_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(23_457_000, 7834)
+		Weight::from_parts(21_423_000, 7834)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn approve_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(90_711_000, 7834)
+		Weight::from_parts(21_819_000, 7834)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn unapprove_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(71_293_000, 7900)
+		Weight::from_parts(21_237_000, 7900)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn transfer_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(87_163_000, 13673)
+		Weight::from_parts(41_173_000, 13673)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	fn deploy_land_block() -> Weight {
-		Weight::from_parts(96_826_000, 64897)
+		Weight::from_parts(100_659_000, 64897)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(11))
 	}
 	fn burn_undeployed_land_blocks() -> Weight {
-		Weight::from_parts(23_654_000, 10661)
+		Weight::from_parts(32_196_000, 10661)
 			.saturating_add(T::DbWeight::get().reads(3))
 			.saturating_add(T::DbWeight::get().writes(3))
 	}
 	fn create_lease_offer() -> Weight {
-		Weight::from_parts(45_166_000, 27383)
+		Weight::from_parts(98_902_000, 27383)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	fn accept_lease_offer() -> Weight {
-		Weight::from_parts(140_591_000, 28844)
+		Weight::from_parts(57_019_000, 28844)
 			.saturating_add(T::DbWeight::get().reads(6))
 			.saturating_add(T::DbWeight::get().writes(5))
 	}
 	fn cancel_lease() -> Weight {
-		Weight::from_parts(122_983_000, 28571)
+		Weight::from_parts(57_720_000, 28571)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	fn remove_expired_lease() -> Weight {
-		Weight::from_parts(63_992_000, 28571)
+		Weight::from_parts(57_681_000, 28571)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(4))
 	}
 	fn remove_lease_offer() -> Weight {
-		Weight::from_parts(42_433_000, 8328)
+		Weight::from_parts(41_923_000, 8328)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	fn collect_rent() -> Weight {
-		Weight::from_parts(55_081_000, 28571)
+		Weight::from_parts(53_171_000, 28571)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	fn on_initialize() -> Weight {
-		Weight::from_parts(200_000, 0)
+		Weight::from_parts(191_000, 0)
 	}
 }
