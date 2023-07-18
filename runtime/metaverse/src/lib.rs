@@ -1365,6 +1365,7 @@ parameter_types! {
 	pub const MinimumCampaignDuration: BlockNumber = 1; // 7 * 7200 Around a week in blocktime
 	pub const MaxLeafNodes: u64 = 30;
 	pub const MaxSetRewardsListLength: u64 = 500;
+	pub const RewardStorageFee: Balance = BASE_STORAGE_FEE;
 }
 
 impl reward::Config for Runtime {

@@ -1745,6 +1745,7 @@ parameter_types! {
 	pub const MinimumCampaignDuration: BlockNumber = 30 * MINUTES;
 	pub const MaxSetRewardsListLength: u64 = 200;
 	pub const MaxLeafNodes: u32 = 30;
+	pub const RewardStorageFee: Balance = BASE_STORAGE_FEE;
 }
 
 impl reward::Config for Runtime {
@@ -1761,7 +1762,7 @@ impl reward::Config for Runtime {
 	type MaxSetRewardsListLength = MaxSetRewardsListLength;
 	type AdminOrigin = EnsureRootOrMetaverseTreasury;
 	type NFTHandler = Nft;
-	type StorageDepositFee = StorageDepositFee;
+	type StorageDepositFee = RewardStorageFee;
 	type WeightInfo = weights::module_reward::WeightInfo<Runtime>;
 }
 

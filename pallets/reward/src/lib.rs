@@ -330,6 +330,17 @@ pub mod pallet {
 
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
+			// 3 storage inserts
+			let storage_fee: BalanceOf<T> =
+				Perbill::from_percent(3u32.saturating_mul(100)) * T::StorageDepositFee::get();
+
+			T::Currency::transfer(
+				&depositor,
+				&Self::network_treasury_account_id(),
+				storage_fee.saturated_into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			Campaigns::<T>::insert(
 				campaign_id,
 				CampaignInfo {
@@ -416,6 +427,17 @@ pub mod pallet {
 			let next_campaign_id = campaign_id.checked_add(1).ok_or(ArithmeticError::Overflow)?;
 
 			T::Currency::transfer(&depositor, &fund_account, T::CampaignDeposit::get(), AllowDeath)?;
+
+			// 3 storage inserts
+			let storage_fee: BalanceOf<T> =
+				Perbill::from_percent(3u32.saturating_mul(100)) * T::StorageDepositFee::get();
+
+			T::Currency::transfer(
+				&depositor,
+				&Self::network_treasury_account_id(),
+				storage_fee.saturated_into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			Campaigns::<T>::insert(
 				campaign_id,
@@ -878,6 +900,13 @@ pub mod pallet {
 
 			let now = frame_system::Pallet::<T>::block_number();
 
+			T::Currency::transfer(
+				&who,
+				&Self::network_treasury_account_id(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			<Campaigns<T>>::try_mutate_exists(id, |campaign| -> DispatchResult {
 				let mut campaign = campaign.as_mut().ok_or(Error::<T>::CampaignIsNotFound)?;
 
@@ -1108,6 +1137,13 @@ pub mod pallet {
 				Error::<T>::SetRewardOriginAlreadyAdded
 			);
 
+			T::Currency::transfer(
+				&account,
+				&Self::network_treasury_account_id(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			SetRewardOrigins::<T>::insert(account.clone(), ());
 
 			Self::deposit_event(Event::<T>::SetRewardOriginAdded(account));
@@ -1166,6 +1202,11 @@ impl<T: Config> Pallet<T> {
 	/// value and only call this once.
 	pub fn fund_account_id(id: CampaignId) -> T::AccountId {
 		T::PalletId::get().into_sub_account_truncating(id)
+	}
+
+	/// The account ID of the network treasury
+	pub fn network_treasury_account_id() -> T::AccountId {
+		T::PalletId::get().into_account_truncating()
 	}
 
 	/// Generate unique ChildInfo IDs
