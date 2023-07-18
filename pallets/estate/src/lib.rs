@@ -27,10 +27,10 @@ use frame_support::{
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
-use sp_runtime::traits::Zero;
+
 use sp_runtime::{
-	traits::{AccountIdConversion, Convert, One, Saturating},
-	ArithmeticError, DispatchError,
+	traits::{AccountIdConversion, Convert, One, Saturating, Zero},
+	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
 };
 use sp_std::vec::Vec;
 
@@ -150,7 +150,7 @@ pub mod pallet {
 		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
 	}
 
-	type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 	#[pallet::storage]
 	#[pallet::getter(fn all_land_units_count)]
@@ -600,7 +600,7 @@ pub mod pallet {
 		/// - `coordinates`: list of land units coordinates
 		///
 		/// Emits `NewEstateMinted` if successful.
-		#[pallet::weight(T::WeightInfo::create_estate() * coordinates.len() as u64)]
+		#[pallet::weight(T::WeightInfo::create_estate().saturating_mul(coordinates.len() as u64))]
 		#[transactional]
 		pub fn create_estate(
 			origin: OriginFor<T>,
@@ -625,6 +625,15 @@ pub mod pallet {
 			let token_id: TokenId =
 				T::NFTTokenizationSource::mint_token(&who, class_id, token_properties.0, token_properties.1)?;
 			let beneficiary = OwnerId::Token(class_id, token_id);
+
+			let storage_fee: BalanceOf<T> =
+				Perbill::from_percent(100u32.saturating_mul(coordinates.len() as u32)) * T::StorageDepositFee::get();
+			T::Currency::transfer(
+				&who,
+				&T::MetaverseInfoSource::get_network_treasury(),
+				storage_fee.saturated_into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			// Mint land units
 			for coordinate in coordinates.clone() {
@@ -1056,6 +1065,15 @@ pub mod pallet {
 						// Mint new land tokens to replace the lands in the dissolved estate
 						let estate_account_id: T::AccountId =
 							T::LandTreasury::get().into_sub_account_truncating(estate_id);
+						let storage_fee: BalanceOf<T> =
+							Perbill::from_percent(100u32.saturating_mul(estate_info.land_units.len() as u32))
+								* T::StorageDepositFee::get();
+						T::Currency::transfer(
+							&who,
+							&T::MetaverseInfoSource::get_network_treasury(),
+							storage_fee.saturated_into(),
+							ExistenceRequirement::KeepAlive,
+						)?;
 						for land_unit in estate_info.land_units {
 							// Transfer land unit from treasury to estate owner
 							Self::mint_land_unit(
@@ -1111,6 +1129,17 @@ pub mod pallet {
 
 					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(estate_id);
+
+					let storage_fee: BalanceOf<T> =
+						Perbill::from_percent(100u32.saturating_mul(land_units.len() as u32))
+							* T::StorageDepositFee::get();
+					T::Currency::transfer(
+						&who,
+						&T::MetaverseInfoSource::get_network_treasury(),
+						storage_fee.saturated_into(),
+						ExistenceRequirement::KeepAlive,
+					)?;
+
 					// Check land unit ownership
 					for land_unit in land_units.clone() {
 						let metaverse_land_unit = Self::get_land_units(estate_info.metaverse_id, land_unit)
@@ -1119,6 +1148,7 @@ pub mod pallet {
 							Self::check_if_land_or_estate_owner(&who, &metaverse_land_unit,),
 							Error::<T>::LandUnitDoesNotExist
 						);
+
 						// Mint land unit
 						Self::mint_land_unit(
 							estate_info.metaverse_id,
@@ -1178,10 +1208,20 @@ pub mod pallet {
 					);
 					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(estate_id);
+
 					// Mutate estates
 					Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
 						let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
 
+						let storage_fee: BalanceOf<T> =
+							Perbill::from_percent(100u32.saturating_mul(land_units.len() as u32))
+								* T::StorageDepositFee::get();
+						T::Currency::transfer(
+							&who,
+							&T::MetaverseInfoSource::get_network_treasury(),
+							storage_fee.saturated_into(),
+							ExistenceRequirement::KeepAlive,
+						)?;
 						// Mutate land unit ownership
 						for land_unit in land_units.clone() {
 							// Transfer land unit from treasury to estate owner
@@ -1328,6 +1368,15 @@ pub mod pallet {
 
 					lease.start_block = <frame_system::Pallet<T>>::block_number();
 					lease.end_block = lease.start_block + lease.duration.into();
+					// 200% storage fee since there are 2  storage inserts and storage fee is set to equivalent of 1
+					// insert
+					let storage_fee: BalanceOf<T> = Perbill::from_percent(200) * T::StorageDepositFee::get();
+					T::Currency::transfer(
+						&who,
+						&T::MetaverseInfoSource::get_network_treasury(),
+						storage_fee.saturated_into(),
+						ExistenceRequirement::KeepAlive,
+					)?;
 
 					EstateLeaseOffers::<T>::remove_prefix(estate_id, None);
 					EstateLeases::<T>::insert(estate_id, lease.clone());
@@ -1574,6 +1623,7 @@ impl<T: Config> Pallet<T> {
 							// Ensure not locked
 							T::NFTTokenizationSource::set_lock_nft((class_id, token_id), false)?;
 							T::NFTTokenizationSource::burn_nft(&a, &(class_id, token_id));
+
 							LandUnits::<T>::insert(metaverse_id, coordinate, token_owner.clone());
 						}
 						_ => (),
@@ -1602,6 +1652,7 @@ impl<T: Config> Pallet<T> {
 				);
 
 				owner = token_owner.clone();
+
 				LandUnits::<T>::insert(metaverse_id, coordinate, token_owner.clone());
 			}
 			LandUnitStatus::RemovedFromEstate => {
@@ -1696,6 +1747,13 @@ impl<T: Config> Pallet<T> {
 
 				undeployed_land_block_record.owner = to.clone();
 
+				T::Currency::transfer(
+					&who,
+					&T::MetaverseInfoSource::get_network_treasury(),
+					T::StorageDepositFee::get(),
+					ExistenceRequirement::KeepAlive,
+				)?;
+
 				UndeployedLandBlocksOwner::<T>::remove(who.clone(), &undeployed_land_block_id);
 				UndeployedLandBlocksOwner::<T>::insert(to.clone(), &undeployed_land_block_id, ());
 
@@ -1774,6 +1832,18 @@ impl<T: Config> Pallet<T> {
 		undeployed_land_block_type: UndeployedLandBlockType,
 	) -> Result<Vec<UndeployedLandBlockId>, DispatchError> {
 		let mut undeployed_land_block_ids: Vec<UndeployedLandBlockId> = Vec::new();
+
+		// 2 inserts per land blocks
+		let storage_fee: BalanceOf<T> =
+			Perbill::from_percent(number_of_land_block.saturating_mul(2).saturating_mul(100))
+				* T::StorageDepositFee::get();
+
+		T::Currency::transfer(
+			beneficiary,
+			&T::MetaverseInfoSource::get_network_treasury(),
+			storage_fee.saturated_into(),
+			ExistenceRequirement::KeepAlive,
+		)?;
 
 		for _ in 0..number_of_land_block {
 			let new_undeployed_land_block_id = Self::get_new_undeployed_land_block_id()?;

@@ -1505,6 +1505,7 @@ parameter_types! {
 	pub const MinLeasePricePerBlock: Balance = 1 * CENTS;
 	pub const MaxLeasePeriod: u32 = 1000000;
 	pub const LeaseOfferExpiryPeriod: u32 = 10000;
+	pub const EstateStorageFee: Balance = BASE_STORAGE_FEE;
 }
 
 impl estate::Config for Runtime {
@@ -1527,7 +1528,7 @@ impl estate::Config for Runtime {
 	type MaxLeasePeriod = MaxLeasePeriod;
 	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
 	type BlockNumberToBalance = ConvertInto;
-	type StorageDepositFee = StorageDepositFee;
+	type StorageDepositFee = EstateStorageFee;
 }
 
 parameter_types! {
