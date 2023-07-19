@@ -519,6 +519,7 @@ impl Config for Runtime {
 	type MetaverseCouncil = EnsureSignedBy<One, AccountId>;
 	type ProposalType = ProposalType;
 	type StorageDepositFee = StorageDepositFee;
+	type NetworkTreasury = TreasuryModuleAccount;
 }
 
 parameter_type_with_key! {

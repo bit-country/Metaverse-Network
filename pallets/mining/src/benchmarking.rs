@@ -68,7 +68,7 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 benchmarks! {
 	// add minting origin
 	add_minting_origin {
-		let who: T::AccountId = account("target", 0, SEED);
+		let who: T::AccountId = funded_account::<T>("target", 0);
 	}: _(RawOrigin::Root, who.clone())
 	verify {
 		assert_eq!(crate::Pallet::<T>::ensure_admin(RawOrigin::Root.into()), Ok(()));
@@ -77,7 +77,7 @@ benchmarks! {
 
 	// remove minting origin
 	remove_minting_origin {
-		let who: T::AccountId = account("target", 0, SEED);
+		let who: T::AccountId = funded_account::<T>("target", 0);
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), who.clone());
 	}: _(RawOrigin::Root, who.clone())

@@ -1043,6 +1043,10 @@ impl InstanceFilter<RuntimeCall> for ProposalType {
 	}
 }
 
+parameter_types! {
+	pub GovernanceStorageFee: Balance = BASE_STORAGE_FEE;
+}
+
 impl governance::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type DefaultPreimageByteDeposit = DefaultPreimageByteDeposit;
@@ -1062,7 +1066,8 @@ impl governance::Config for Runtime {
 	type MetaverseLandInfo = Estate;
 	type MetaverseCouncil = EnsureRootOrMetaverseTreasury;
 	type ProposalType = ProposalType;
-	type StorageDepositFee = StorageDepositFee;
+	type NetworkTreasury = TreasuryModuleAccount;
+	type StorageDepositFee = GovernanceStorageFee;
 }
 
 impl crowdloan::Config for Runtime {
