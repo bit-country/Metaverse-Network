@@ -12,56 +12,56 @@ pub struct WeightInfo<T>(PhantomData<T>);
 
 impl<T: frame_system::Config> auction::WeightInfo for WeightInfo<T> {
 	fn create_new_auction() -> Weight {
-		Weight::from_parts(83_359_000, 54013)
+		Weight::from_parts(61_885_000, 57373)
 			.saturating_add(T::DbWeight::get().reads(9))
 			.saturating_add(T::DbWeight::get().writes(7))
 	}
 	fn create_new_buy_now() -> Weight {
-		Weight::from_parts(60_938_000, 54013)
-			.saturating_add(T::DbWeight::get().reads(9))
-			.saturating_add(T::DbWeight::get().writes(7))
+		Weight::from_parts(74_722_000, 61706)
+			.saturating_add(T::DbWeight::get().reads(10))
+			.saturating_add(T::DbWeight::get().writes(8))
 	}
 	fn bid() -> Weight {
-		Weight::from_parts(52_851_000, 17254)
-			.saturating_add(T::DbWeight::get().reads(3))
-			.saturating_add(T::DbWeight::get().writes(5))
+		Weight::from_parts(75_918_000, 25151)
+			.saturating_add(T::DbWeight::get().reads(5))
+			.saturating_add(T::DbWeight::get().writes(7))
 	}
 	fn buy_now() -> Weight {
-		Weight::from_parts(117_267_000, 74974)
+		Weight::from_parts(121_030_000, 78754)
 			.saturating_add(T::DbWeight::get().reads(13))
 			.saturating_add(T::DbWeight::get().writes(12))
 	}
 	fn cancel_listing() -> Weight {
-		Weight::from_parts(76_276_000, 28348)
+		Weight::from_parts(50_823_000, 30028)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
 	fn authorise_metaverse_collection() -> Weight {
-		Weight::from_parts(35_078_000, 7564)
+		Weight::from_parts(23_046_000, 7564)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn remove_authorise_metaverse_collection() -> Weight {
-		Weight::from_parts(24_963_000, 7670)
+		Weight::from_parts(23_607_000, 7670)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
 	fn make_offer() -> Weight {
-		Weight::from_parts(38_021_000, 15443)
+		Weight::from_parts(38_079_000, 15443)
 			.saturating_add(T::DbWeight::get().reads(4))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	fn withdraw_offer() -> Weight {
-		Weight::from_parts(29_056_000, 6612)
+		Weight::from_parts(28_621_000, 6612)
 			.saturating_add(T::DbWeight::get().reads(2))
 			.saturating_add(T::DbWeight::get().writes(2))
 	}
 	fn accept_offer() -> Weight {
-		Weight::from_parts(69_244_000, 31537)
+		Weight::from_parts(72_454_000, 31537)
 			.saturating_add(T::DbWeight::get().reads(7))
 			.saturating_add(T::DbWeight::get().writes(6))
 	}
 	fn on_finalize() -> Weight {
-		Weight::from_parts(6_116_000, 0)
+		Weight::from_parts(7_467_000, 0)
 	}
 }

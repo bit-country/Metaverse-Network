@@ -1053,7 +1053,7 @@ fn asset_transfers_after_auction() {
 		// BOB only receive 200 - 2 (1% royalty fee) - 2 (1% network fee) - 4 (minting fee) = 193
 		// 500 + 193 = 693
 		assert_eq!(Balances::free_balance(BOB), 692);
-		assert_eq!(Balances::free_balance(ALICE), 99800);
+		assert_eq!(Balances::free_balance(ALICE), 99799);
 
 		// Verify Alice has the NFT and Bob doesn't
 		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
@@ -1595,7 +1595,7 @@ fn on_finalize_should_work() {
 		// check account received asset
 		assert_eq!(NFTModule::<Runtime>::check_ownership(&ALICE, &(0, 0)), Ok(true));
 		// check balances were transferred
-		assert_eq!(Balances::free_balance(ALICE), 99900);
+		assert_eq!(Balances::free_balance(ALICE), 99899);
 		// BOB's initial balance is 500
 		// 100 - 1 (1% of 100 as royalty fee) - 1 (1% of 100 as network fee) - 3 minting fee = 96
 		// 500 + 95 = 595
@@ -1639,8 +1639,8 @@ fn on_finalize_with_listing_fee_should_work() {
 		// check account received asset
 		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 0)), Ok(true));
 		// check balances were transferred
-		// Bob bid 100 for item, his new balance will be 500 - 100
-		assert_eq!(Balances::free_balance(BOB), 400);
+		// Bob bid 100 for item, his new balance will be 500 - 100 - 1
+		assert_eq!(Balances::free_balance(BOB), 399);
 		// Alice only receive 88 for item sold:
 		// cost breakdown 100 - 10 (listing fee) - 1 (1% network fee) - 1 (1% royalty fee) - 1 unit (class
 		// stroage fee) Free balance of Alice is 99996 + 88 = 100084
@@ -1740,7 +1740,7 @@ fn on_finalize_with_bundle_with_listing_fee_should_work() {
 		assert_eq!(NFTModule::<Runtime>::check_ownership(&BOB, &(0, 1)), Ok(true));
 		// check balances were transferred
 		// Bob bid 400 for item, his new balance will be 500 - 400
-		assert_eq!(Balances::free_balance(BOB), 100);
+		assert_eq!(Balances::free_balance(BOB), 99);
 		// Alice only receive 176 for item solds
 		// Cost breakdown 400 - 4 (royalty) - 4 (1% network fee) - 40 (listing fee) = 352
 		// Free balance of Alice is 99992 + 352 = 100344

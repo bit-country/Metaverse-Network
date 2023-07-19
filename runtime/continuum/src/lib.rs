@@ -1543,7 +1543,7 @@ parameter_types! {
 	pub const OfferDuration: BlockNumber = 100800; // Default 100800 Blocks
 	pub const MinimumListingPrice: Balance = DOLLARS;
 	pub const AntiSnipeDuration: BlockNumber = 50; // Minimum anti snipe duration is 50 blocks
-	pub const ContinuumStorageDeposit: Balance = BASE_STORAGE_FEE;
+	pub const AuctionStorageFee: Balance = 3 * BASE_STORAGE_FEE;
 }
 
 impl auction::Config for Runtime {
@@ -1565,9 +1565,12 @@ impl auction::Config for Runtime {
 	type OfferDuration = OfferDuration;
 	type MinimumListingPrice = MinimumListingPrice;
 	type AntiSnipeDuration = AntiSnipeDuration;
-	type StorageDepositFee = StorageDepositFee;
+	type StorageDepositFee = AuctionStorageFee;
 }
 
+parameter_types! {
+	pub const ContinuumStorageDeposit: Balance = BASE_STORAGE_FEE;
+}
 impl continuum::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type SessionDuration = ContinuumSessionDuration;
