@@ -67,6 +67,10 @@ run-dev:
 	./target/release/metaverse-node purge-chain --dev
 	./target/release/metaverse-node --dev --tmp --alice -lruntime=debug
 
+.PHONY: run-chopsticks-pioneer
+run-chopsticks-pioneer:
+	npx @acala-network/chopsticks --config=scripts/chopsticks_pioneer.yml
+
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))
 
