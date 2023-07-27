@@ -4,20 +4,20 @@ version = "2.0.0-rc6"
 edition = "2021"
 
 [dependencies]
-serde = { version = "1.0.140", optional = true }
+serde = { workspace = true, optional = true }
 codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-frame-system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+sp-runtime = { workspace = true }
+sp-std = { workspace = true}
+frame-support = { workspace = true }
+frame-system = { workspace = true }
 module-support = { path = "../support", default-features = false }
 primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.38", default-features = false }
-cumulus-primitives-core = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.38", default-features = false }
+xcm = { workspace = true }
+cumulus-primitives-core = { workspace = true }
 
 [dev-dependencies]
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+sp-core = { workspace = true, default-features = true }
+sp-io = { workspace = true }
 
 [features]
 default = ["std"]

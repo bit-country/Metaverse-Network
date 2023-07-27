@@ -4,15 +4,15 @@ version = "2.0.0-rc6"
 edition = "2021"
 
 [dependencies]
-impl-trait-for-tuples = "0.2.2"
+impl-trait-for-tuples = { workspace = true }
 codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-std = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38", default-features = false }
+sp-runtime = { workspace = true }
+frame-support = { workspace = true }
+sp-std = { workspace = true }
+sp-core = { workspace = true }
+sp-io = { workspace = true }
 primitives = { package = 'bit-country-primitives', path = '../../primitives/metaverse', default-features = false }
-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.38", default-features = false }
+xcm = { workspace = true }
 
 [features]
 default = ["std"]
