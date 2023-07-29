@@ -312,7 +312,7 @@ pub fn authority_keys_from_seed(s: &str) -> (AccountId, AuraId) {
 pub fn continuum_properties() -> Properties {
 	let mut properties = Properties::new();
 
-	properties.insert("ss58Format".into(), 268.into());
+	properties.insert("ss58Format".into(), 0.into());
 	properties.insert("tokenDecimals".into(), 18.into());
 	properties.insert("tokenSymbol".into(), "NUUM".into());
 
