@@ -29,7 +29,7 @@ pub type ChainSpec = sc_service::GenericChainSpec<continuum_runtime::GenesisConf
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
-pub const PARA_ID: u32 = 2050;
+pub const PARA_ID: u32 = 3346;
 
 /// Generate the session keys from individual elements.
 ///
@@ -312,7 +312,7 @@ pub fn authority_keys_from_seed(s: &str) -> (AccountId, AuraId) {
 pub fn continuum_properties() -> Properties {
 	let mut properties = Properties::new();
 
-	properties.insert("ss58Format".into(), 268.into());
+	properties.insert("ss58Format".into(), 42.into());
 	properties.insert("tokenDecimals".into(), 18.into());
 	properties.insert("tokenSymbol".into(), "NUUM".into());
 
