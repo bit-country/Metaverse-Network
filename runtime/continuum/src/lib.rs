@@ -274,9 +274,9 @@ impl Contains<RuntimeCall> for NormalCallFilter {
 			// Polkadot XCM
 			| RuntimeCall::PolkadotXcm{..}
 			// Orml XCM wrapper
-			| RuntimeCall::OrmlXcm{..}
-			| RuntimeCall::Balances(..)
-			| RuntimeCall::XTokens(..)
+			//| RuntimeCall::OrmlXcm{..}
+			//| RuntimeCall::Balances(..)
+			//| RuntimeCall::XTokens(..)
 		);
 
 		if is_core {
@@ -289,7 +289,7 @@ impl Contains<RuntimeCall> for NormalCallFilter {
 			// Not allow stopped tx
 			return false;
 		}
-		true
+		false // Change back to true after token transfer enable
 	}
 }
 
