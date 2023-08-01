@@ -499,7 +499,7 @@ pub fn run() -> sc_cli::Result<()> {
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let spec = load_spec(&params.chain.clone().unwrap_or_default())?;
+			let spec = load_spec(&params.shared_params.chain.clone().unwrap_or_default())?;
 			let state_version = Cli::native_runtime_version(&spec).state_version();
 			let block: Block = generate_genesis_block(spec.as_ref(), state_version)?;
 			let raw_header = block.header().encode();
@@ -522,7 +522,8 @@ pub fn run() -> sc_cli::Result<()> {
 			builder.with_profiling(sc_tracing::TracingReceiver::Log, "");
 			let _ = builder.init();
 
-			let raw_wasm_blob = extract_genesis_wasm(&cli.load_spec(&params.chain.clone().unwrap_or_default())?)?;
+			let raw_wasm_blob =
+				extract_genesis_wasm(&cli.load_spec(&params.shared_params.chain.clone().unwrap_or_default())?)?;
 			let output_buf = if params.raw {
 				raw_wasm_blob
 			} else {

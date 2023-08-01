@@ -154,55 +154,15 @@ pub enum Subcommand {
 
 	/// Export the genesis state of the parachain.
 	#[command(alias = "export-genesis-state")]
-	ExportGenesisState(ExportGenesisStateCommand),
+	ExportGenesisState(cumulus_client_cli::ExportGenesisStateCommand),
 
 	/// Export the genesis wasm of the parachain.
 	#[command(alias = "export-genesis-wasm")]
-	ExportGenesisWasm(ExportGenesisWasmCommand),
+	ExportGenesisWasm(cumulus_client_cli::ExportGenesisWasmCommand),
 
 	/// Try some command against runtime state.
 	#[cfg(feature = "try-runtime")]
 	TryRuntime(try_runtime_cli::TryRuntimeCmd),
-}
-
-/// Command for exporting the genesis state of the parachain
-#[derive(Debug, clap::Parser)]
-pub struct ExportGenesisStateCommand {
-	/// Output file name or stdout if unspecified.
-	#[arg()]
-	pub output: Option<PathBuf>,
-
-	/// Write output in binary. Default is to write in hex.
-	#[arg(short, long)]
-	pub raw: bool,
-
-	/// The name of the chain for that the genesis state should be exported.
-	#[arg(long)]
-	pub chain: Option<String>,
-
-	#[allow(missing_docs)]
-	#[command(flatten)]
-	pub shared_params: sc_cli::SharedParams,
-}
-
-/// Command for exporting the genesis wasm file.
-#[derive(Debug, clap::Parser)]
-pub struct ExportGenesisWasmCommand {
-	/// Output file name or stdout if unspecified.
-	#[arg()]
-	pub output: Option<PathBuf>,
-
-	/// Write output in binary. Default is to write in hex.
-	#[arg(short, long)]
-	pub raw: bool,
-
-	/// The name of the chain for that the genesis wasm file should be exported.
-	#[arg(long)]
-	pub chain: Option<String>,
-
-	#[allow(missing_docs)]
-	#[command(flatten)]
-	pub shared_params: sc_cli::SharedParams,
 }
 
 #[derive(Debug)]
