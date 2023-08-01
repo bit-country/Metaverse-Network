@@ -143,7 +143,7 @@ jobs:
     environment:
       name: continuum
 
-    if: ${{  github.event.inputs.runtime == 'pioneer' }}
+    if: ${{  github.event.inputs.runtime == 'continuum' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
