@@ -1,6 +1,16 @@
 endpoint: wss://pioneer-api-2.mercury-nodes.net
 mock-signature-host: true
-block: ${env.PIONEER_BLOCK_NUMBER}
+block: 3559156
 db: ./db.sqlite
 
-     
+import-storage:
+  Sudo:
+    Key: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY # ALICE
+  System:
+    Account:
+      -
+        -
+          - 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+        - providers: 1
+          data:
+            free: '1000000000000000000000000000'
