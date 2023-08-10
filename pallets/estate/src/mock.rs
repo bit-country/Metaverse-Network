@@ -548,6 +548,7 @@ parameter_types! {
 	pub const MinLeasePricePerBlock: Balance = 1u128;
 	pub const MaxLeasePeriod: u32 = 9;
 	pub const LeaseOfferExpiryPeriod: u32 = 6;
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl Config for Runtime {
@@ -570,6 +571,7 @@ impl Config for Runtime {
 	type MaxLeasePeriod = MaxLeasePeriod;
 	type LeaseOfferExpiryPeriod = LeaseOfferExpiryPeriod;
 	type BlockNumberToBalance = ConvertInto;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 construct_runtime!(

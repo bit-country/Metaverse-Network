@@ -108,6 +108,9 @@ pub mod pallet {
 			CurrencyId = FungibleTokenId,
 			Balance = BalanceOf<Self>,
 		>;
+		/// The network treasury account
+		#[pallet::constant]
+		type NetworkTreasury: Get<Self::AccountId>;
 		/// The metaverse treasury pallet
 		#[pallet::constant]
 		type MetaverseTreasury: Get<PalletId>;
@@ -129,6 +132,10 @@ pub mod pallet {
 		type WeightInfo: WeightInfo;
 		/// NFT handler required for minting classes for lands and estates when creating a metaverse
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]
@@ -292,6 +299,13 @@ pub mod pallet {
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			let who = ensure_signed(origin)?;
+
+			T::Currency::transfer(
+				&who.clone(),
+				&T::NetworkTreasury::get(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 			// Get owner of the metaverse
 			MetaverseOwner::<T>::try_mutate_exists(
 				&who,
@@ -480,7 +494,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		ensure!(
-			T::Currency::free_balance(who) >= T::MinContribution::get(),
+			T::Currency::free_balance(who) >= T::MinContribution::get() + T::StorageDepositFee::get(),
 			Error::<T>::InsufficientContribution
 		);
 
@@ -490,6 +504,14 @@ impl<T: Config> Pallet<T> {
 			T::MinContribution::get(),
 			ExistenceRequirement::KeepAlive,
 		)?;
+
+		T::Currency::transfer(
+			who,
+			&T::NetworkTreasury::get(),
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
+
 		let metaverse_id = Self::new_metaverse(&who, metadata)?;
 
 		MetaverseOwner::<T>::insert(who.clone(), metaverse_id, ());

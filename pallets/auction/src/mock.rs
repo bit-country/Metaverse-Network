@@ -325,6 +325,7 @@ impl Config for Runtime {
 	type OfferDuration = OfferDuration;
 	type MinimumListingPrice = MinimumListingPrice;
 	type AntiSnipeDuration = AntiSnipeDuration;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -365,6 +366,7 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 3;
 	pub MaxBatchMinting: u32 = 2000;
 	pub MaxMetadata: u32 = 10;
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl pallet_nft::Config for Runtime {
@@ -381,6 +383,7 @@ impl pallet_nft::Config for Runtime {
 	type MiningResourceId = MiningCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {

@@ -222,6 +222,7 @@ parameter_types! {
 	pub const SessionDuration: BlockNumber = 10;
 	// Default 43200 Blocks
 	pub const SpotAuctionChillingDuration: BlockNumber = 10;
+	pub StorageDepositFee: Balance = 1;
 }
 
 pub struct MetaverseInfoSource {}
@@ -309,6 +310,7 @@ impl Config for Runtime {
 	type ContinuumTreasury = ContinuumTreasuryPalletId;
 	type Currency = Balances;
 	type MetaverseInfoSource = MetaverseInfoSource;
+	type StorageDepositFee = StorageDepositFee;
 	type WeightInfo = ();
 }
 

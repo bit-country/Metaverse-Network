@@ -28,11 +28,12 @@ use frame_support::{
 	pallet_prelude::*,
 	traits::{
 		schedule::{DispatchTime, Named as ScheduleNamed},
-		Currency, Get, InstanceFilter, LockIdentifier, LockableCurrency, OnUnbalanced, ReservableCurrency,
-		WithdrawReasons,
+		Currency, ExistenceRequirement, Get, InstanceFilter, LockIdentifier, LockableCurrency, OnUnbalanced,
+		ReservableCurrency, WithdrawReasons,
 	},
 };
 use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
+use sp_runtime::{Perbill, SaturatedConversion};
 use sp_std::prelude::*;
 
 use metaverse_primitive::MetaverseTrait;
@@ -129,6 +130,15 @@ pub mod pallet {
 
 		/// Metaverse Council which collective of members
 		type MetaverseCouncil: EnsureOrigin<Self::RuntimeOrigin>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
+
+		/// Network treasury account
+		#[pallet::constant]
+		type NetworkTreasury: Get<Self::AccountId>;
 	}
 
 	#[pallet::pallet]
@@ -333,6 +343,12 @@ pub mod pallet {
 				Error::<T>::AccountIsNotMetaverseOwner
 			);
 			<ReferendumParametersOf<T>>::remove(metaverse_id);
+			T::Currency::transfer(
+				&from,
+				&T::NetworkTreasury::get(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 			<ReferendumParametersOf<T>>::insert(metaverse_id, new_referendum_parameters);
 			Self::deposit_event(Event::ReferendumParametersUpdated(metaverse_id));
 			Ok(().into())
@@ -421,6 +437,17 @@ pub mod pallet {
 						};
 
 						let proposal_id = Self::get_next_proposal_id()?;
+
+						// 2 storage inserts
+						let storage_fee: BalanceOf<T> =
+							Perbill::from_percent(2u32.saturating_mul(100)) * T::StorageDepositFee::get();
+
+						T::Currency::transfer(
+							&from,
+							&T::NetworkTreasury::get(),
+							storage_fee.saturated_into(),
+							ExistenceRequirement::KeepAlive,
+						)?;
 						<Proposals<T>>::insert(metaverse_id, proposal_id, proposal_info);
 
 						Self::update_proposals_per_metaverse_number(metaverse_id, true);
@@ -521,6 +548,14 @@ pub mod pallet {
 
 			let current_block_number = <frame_system::Pallet<T>>::block_number();
 			proposal_info.referendum_launch_block = current_block_number + T::OneBlock::get();
+
+			T::Currency::transfer(
+				&proposal_info.proposed_by,
+				&T::NetworkTreasury::get(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			<Proposals<T>>::remove(metaverse_id, proposal);
 			<Proposals<T>>::insert(metaverse_id, proposal, proposal_info);
 			Self::deposit_event(Event::ProposalFastTracked(metaverse_id, proposal));
@@ -626,6 +661,12 @@ pub mod pallet {
 						match info {
 							Some(ReferendumInfo::Ongoing(mut status)) => {
 								status.tally.remove(vote).ok_or(Error::<T>::TallyOverflow)?;
+								T::Currency::transfer(
+									&from,
+									&T::NetworkTreasury::get(),
+									T::StorageDepositFee::get(),
+									ExistenceRequirement::KeepAlive,
+								)?;
 								ReferendumInfoOf::<T>::insert(&metaverse, &referendum, ReferendumInfo::Ongoing(status));
 								Self::deposit_event(Event::VoteRemoved(from, referendum));
 							}

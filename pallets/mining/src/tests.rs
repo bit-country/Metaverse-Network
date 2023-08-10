@@ -185,3 +185,13 @@ fn update_mining_config_should_work() {
 		assert_eq!(last_event(), event);
 	});
 }
+
+#[test]
+fn adding_and_removing_mining_origin_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(MiningModule::add_minting_origin(RuntimeOrigin::signed(ALICE), BOB));
+		assert_eq!(Balances::free_balance(BOB), 999);
+		assert_ok!(MiningModule::remove_minting_origin(RuntimeOrigin::signed(ALICE), BOB));
+		assert_eq!(Balances::free_balance(BOB), 1000);
+	});
+}

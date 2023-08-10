@@ -198,6 +198,11 @@ pub mod pallet {
 		/// Anti-snipe duration
 		#[pallet::constant]
 		type AntiSnipeDuration: Get<Self::BlockNumber>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	#[pallet::storage]
@@ -388,6 +393,13 @@ pub mod pallet {
 				Error::<T>::AuctionTypeIsNotSupported
 			);
 
+			T::Currency::transfer(
+				&from,
+				&T::MetaverseInfoSource::get_network_treasury(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			Self::auction_bid_handler(from, id, value)?;
 
 			Ok(().into())
@@ -521,6 +533,13 @@ pub mod pallet {
 			if let ListingLevel::Local(metaverse_id) = listing_level {
 				listing_fee = T::MetaverseInfoSource::get_metaverse_marketplace_listing_fee(metaverse_id)?;
 			}
+
+			T::Currency::transfer(
+				&from,
+				&T::MetaverseInfoSource::get_network_treasury(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			Self::create_auction(
 				AuctionType::BuyNow,

@@ -194,6 +194,7 @@ impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
 
 parameter_types! {
 	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl pallet_mining::Config for Runtime {
@@ -205,6 +206,9 @@ impl pallet_mining::Config for Runtime {
 	type AdminOrigin = EnsureSignedBy<One, AccountId>;
 	type MetaverseStakingHandler = MetaverseStakingHandler;
 	type TreasuryStakingReward = TreasuryStakingReward;
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
+	type StorageDepositFee = StorageDepositFee;
+	type Currency = Balances;
 	type WeightInfo = ();
 }
 
@@ -371,6 +375,7 @@ impl pallet_nft::Config for Runtime {
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {

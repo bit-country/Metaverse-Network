@@ -46,7 +46,7 @@ const MINING_RESOURCE_RATE_INFO: MiningResourceRateInfo = MiningResourceRateInfo
 	mining_reward: Perbill::from_percent(70u32),
 };
 
-fn dollar(d: u32) -> Balance {
+fn dollar(d: u64) -> Balance {
 	let d: Balance = d.into();
 	d.saturating_mul(10)
 }
@@ -54,6 +54,8 @@ fn dollar(d: u32) -> Balance {
 fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
 	let initial_balance = dollar(100);
+
+	T::Currency::make_free_balance_be(&caller, dollar(3_000_000_000_000_000_000).unique_saturated_into());
 
 	T::MiningCurrency::update_balance(
 		FungibleTokenId::MiningResource(0),
@@ -66,7 +68,7 @@ fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 benchmarks! {
 	// add minting origin
 	add_minting_origin {
-		let who: T::AccountId = account("target", 0, SEED);
+		let who: T::AccountId = funded_account::<T>("target", 0);
 	}: _(RawOrigin::Root, who.clone())
 	verify {
 		assert_eq!(crate::Pallet::<T>::ensure_admin(RawOrigin::Root.into()), Ok(()));
@@ -75,7 +77,7 @@ benchmarks! {
 
 	// remove minting origin
 	remove_minting_origin {
-		let who: T::AccountId = account("target", 0, SEED);
+		let who: T::AccountId = funded_account::<T>("target", 0);
 
 		crate::Pallet::<T>::add_minting_origin(RawOrigin::Root.into(), who.clone());
 	}: _(RawOrigin::Root, who.clone())

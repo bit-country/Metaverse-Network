@@ -131,6 +131,10 @@ pub mod pallet {
 		/// Fungible token id for promotion incentive
 		#[pallet::constant]
 		type MiningResourceId: Get<FungibleTokenId>;
+		/// Storage deposit free charged when saving data into the blockchain.
+		/// The fee will be unreserved after the storage is freed.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 	}
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
@@ -670,6 +674,15 @@ pub mod pallet {
 				ExistenceRequirement::KeepAlive,
 			)?;
 
+			let network_treasury = T::Treasury::get().into_account_truncating();
+			// Transfer storage deposit fee
+			<T as orml_nft::Config>::Currency::transfer(
+				&sender,
+				&network_treasury,
+				T::StorageDepositFee::get().into(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			if AssetSupporters::<T>::contains_key(&asset_id) {
 				AssetSupporters::<T>::try_mutate(asset_id, |supporters| -> DispatchResult {
 					let supporters = supporters.as_mut().ok_or(Error::<T>::EmptySupporters)?;
@@ -1096,9 +1109,11 @@ impl<T: Config> Pallet<T> {
 			last_token_id = token_id;
 		}
 
+		let first_token_id = last_token_id.saturating_sub(quantity.into());
+
 		Self::deposit_event(Event::<T>::NewNftMinted(
-			*new_asset_ids.first().unwrap(),
-			*new_asset_ids.last().unwrap(),
+			(class_id, first_token_id),
+			(class_id, last_token_id),
 			sender.clone(),
 			class_id,
 			quantity,
@@ -1159,6 +1174,15 @@ impl<T: Config> Pallet<T> {
 		};
 
 		NftModule::<T>::create_class(&sender, metadata, class_data)?;
+
+		let network_treasury = T::Treasury::get().into_account_truncating();
+		// Transfer storage deposit fee
+		<T as orml_nft::Config>::Currency::transfer(
+			sender,
+			&network_treasury,
+			T::StorageDepositFee::get(),
+			ExistenceRequirement::KeepAlive,
+		)?;
 		ClassDataCollection::<T>::insert(next_class_id, collection_id);
 
 		Self::deposit_event(Event::<T>::NewNftClassCreated(sender.clone(), next_class_id));

@@ -26,7 +26,7 @@ fn dollar(d: u32) -> Balance {
 
 fn funded_account<T: Config>(name: &'static str, index: u32) -> T::AccountId {
 	let caller: T::AccountId = account(name, index, SEED);
-	T::Currency::deposit_into_existing(&caller, dollar(100).unique_saturated_into());
+	T::Currency::make_free_balance_be(&caller, dollar(30000).unique_saturated_into());
 	caller
 }
 
@@ -54,6 +54,7 @@ fn funded_bob<T: Config>() -> T::AccountId {
 */
 
 benchmarks! {
+
 	claim_eth_account {
 		let caller = funded_account::<T>("caller", 0);
 		let eth = funded_account::<T>("eth", 1);

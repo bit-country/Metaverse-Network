@@ -203,6 +203,7 @@ impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
 
 parameter_types! {
 	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl Config for Runtime {
@@ -215,6 +216,9 @@ impl Config for Runtime {
 	type MetaverseStakingHandler = MetaverseStakingHandler;
 	type TreasuryStakingReward = TreasuryStakingReward;
 	type WeightInfo = ();
+	type NetworkTreasuryAccount = TreasuryModuleAccount;
+	type StorageDepositFee = StorageDepositFee;
+	type Currency = Balances;
 }
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -249,7 +253,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000)],
+			balances: vec![(ALICE, 100000), (BOB, 1000), (TreasuryModuleAccount::get(), 100)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

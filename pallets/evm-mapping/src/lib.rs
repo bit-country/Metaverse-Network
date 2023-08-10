@@ -31,25 +31,25 @@ use codec::Encode;
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
-	traits::{Currency, IsType, OnKilledAccount},
+	traits::{Currency, ExistenceRequirement, IsType, OnKilledAccount},
 	transactional,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::currency::TransferAll;
+pub use pallet::*;
+use primitives::{AccountIndex, EvmAddress};
 use sp_core::crypto::AccountId32;
 use sp_core::{H160, H256};
 use sp_io::{
 	crypto::secp256k1_ecdsa_recover,
 	hashing::{blake2_256, keccak_256},
 };
+use sp_runtime::traits::Saturating;
 use sp_runtime::{
-	traits::{LookupError, StaticLookup, Zero},
+	traits::{LookupError, StaticLookup},
 	MultiAddress,
 };
 use sp_std::{marker::PhantomData, vec::Vec};
-
-pub use pallet::*;
-use primitives::{AccountIndex, EvmAddress};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -108,6 +108,9 @@ pub trait AddressMapping<AccountId> {
 pub mod pallet {
 	use super::*;
 
+	pub(crate) type BalanceOf<T> =
+		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -122,8 +125,16 @@ pub mod pallet {
 		#[pallet::constant]
 		type ChainId: Get<u64>;
 
+		/// The network treasury account
+		#[pallet::constant]
+		type NetworkTreasuryAccount: Get<Self::AccountId>;
+
 		/// Merge free balance from source to dest.
 		type TransferAll: TransferAll<Self::AccountId>;
+
+		/// Storage deposit free charged when saving data into the blockchain.
+		#[pallet::constant]
+		type StorageDepositFee: Get<BalanceOf<Self>>;
 
 		/// Weight implementation for evm mapping extrinsics
 		type WeightInfo: WeightInfo;
@@ -210,6 +221,14 @@ pub mod pallet {
 				T::TransferAll::transfer_all(&account_id, &who)?;
 			}
 
+			// Transfer storage deposit fee
+			<T as Config>::Currency::transfer(
+				&who,
+				&T::NetworkTreasuryAccount::get(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
+
 			Accounts::<T>::insert(eth_address, &who);
 			EvmAddresses::<T>::insert(&who, eth_address);
 
@@ -225,11 +244,20 @@ pub mod pallet {
 		/// address based off of those accounts.
 		/// Ensure eth_address has not been mapped
 		#[pallet::weight(T::WeightInfo::claim_default_account())]
+		#[transactional]
 		pub fn claim_default_account(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			// ensure account_id has not been mapped
 			ensure!(!EvmAddresses::<T>::contains_key(&who), Error::<T>::AccountIdHasMapped);
+
+			// Transfer storage deposit fee
+			<T as Config>::Currency::transfer(
+				&who,
+				&T::NetworkTreasuryAccount::get(),
+				T::StorageDepositFee::get(),
+				ExistenceRequirement::KeepAlive,
+			)?;
 
 			let eth_address = T::AddressMapping::get_or_create_evm_address(&who);
 

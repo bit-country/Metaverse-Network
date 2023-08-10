@@ -265,13 +265,13 @@ fn do_withdraw_from_metaverse_fund_should_work() {
 			metaverse_fund,
 			100
 		));
-		assert_eq!(free_native_balance(ALICE), 9999999999999999899);
+		assert_eq!(free_native_balance(ALICE), 9999999999999999898);
 		assert_eq!(free_native_balance(metaverse_fund), 101);
 		assert_ok!(MetaverseModule::withdraw_from_metaverse_fund(
 			origin.clone(),
 			METAVERSE_ID
 		));
-		assert_eq!(free_native_balance(ALICE), 9999999999999999999);
+		assert_eq!(free_native_balance(ALICE), 9999999999999999998);
 		assert_eq!(free_native_balance(metaverse_fund), 1);
 	})
 }

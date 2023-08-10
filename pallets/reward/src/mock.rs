@@ -97,6 +97,7 @@ parameter_types! {
 	pub const MinimumCampaignDuration: BlockNumber = 5;
 	pub const MaxLeafNodes: u64 = 30;
 	pub const MaxSetRewardsListLength: u64 = 2;
+	pub StorageDepositFee: Balance = 1;
 }
 
 impl Config for Runtime {
@@ -114,6 +115,7 @@ impl Config for Runtime {
 	type NFTHandler = NFTModule;
 	type MaxLeafNodes = MaxLeafNodes;
 	type WeightInfo = ();
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_type_with_key! {
@@ -259,6 +261,7 @@ impl pallet_nft::Config for Runtime {
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+	type StorageDepositFee = StorageDepositFee;
 }
 
 parameter_types! {
