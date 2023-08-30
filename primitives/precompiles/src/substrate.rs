@@ -25,6 +25,7 @@ use {
 	frame_support::{
 		dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
 		traits::Get,
+		weights::Weight,
 	},
 	pallet_evm::GasWeightMapping,
 };
@@ -37,20 +38,20 @@ pub struct RuntimeHelper<Runtime>(PhantomData<Runtime>);
 impl<Runtime> RuntimeHelper<Runtime>
 where
 	Runtime: pallet_evm::Config,
-	Runtime::Call: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
+	Runtime::RuntimeCall: Dispatchable<PostInfo = PostDispatchInfo> + GetDispatchInfo,
 {
 	/// Try to dispatch a Substrate call.
 	/// Return an error if there are not enough gas, or if the call fails.
 	/// If successful returns the used gas using the Runtime GasWeightMapping.
-	pub fn try_dispatch<Call>(
+	pub fn try_dispatch<RuntimeCall>(
 		handle: &mut impl PrecompileHandle,
-		origin: <Runtime::Call as Dispatchable>::Origin,
-		call: Call,
+		origin: <Runtime::RuntimeCall as Dispatchable>::RuntimeOrigin,
+		call: RuntimeCall,
 	) -> EvmResult<()>
 	where
-		Runtime::Call: From<Call>,
+		Runtime::RuntimeCall: From<RuntimeCall>,
 	{
-		let call = Runtime::Call::from(call);
+		let call = Runtime::RuntimeCall::from(call);
 		let dispatch_info = call.get_dispatch_info();
 
 		// Make sure there is enough gas.
@@ -82,19 +83,19 @@ where
 
 impl<Runtime> RuntimeHelper<Runtime>
 where
-	Runtime: pallet_evm::Config,
+	Runtime: pallet_evm::Config + frame_system::Config,
 {
 	/// Cost of a Substrate DB write in gas.
 	pub fn db_write_gas_cost() -> u64 {
-		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(
+		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(Weight::from_ref_time(
 			<Runtime as frame_system::Config>::DbWeight::get().write,
-		)
+		))
 	}
 
 	/// Cost of a Substrate DB read in gas.
 	pub fn db_read_gas_cost() -> u64 {
-		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(
+		<Runtime as pallet_evm::Config>::GasWeightMapping::weight_to_gas(Weight::from_ref_time(
 			<Runtime as frame_system::Config>::DbWeight::get().read,
-		)
+		))
 	}
 }

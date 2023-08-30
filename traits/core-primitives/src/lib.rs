@@ -9,8 +9,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use primitives::staking::RoundInfo;
 use primitives::{
-	AssetId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, MetaverseId, TokenId, UndeployedLandBlockId,
-	UndeployedLandBlockType,
+	ClassId, FungibleTokenId, GroupCollectionId, MetaverseId, UndeployedLandBlockId, UndeployedLandBlockType,
 };
 
 #[derive(Encode, Decode, Copy, Clone, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
@@ -267,6 +266,16 @@ pub trait NFTTrait<AccountId, Balance> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError>;
+
+	/// Mint NFT token
+	fn mint_token_with_id(
+		sender: &AccountId,
+		class_id: Self::ClassId,
+		token_id: Self::TokenId,
+		metadata: NftMetadata,
+		attributes: Attributes,
+	) -> Result<Self::TokenId, DispatchError>;
+
 	/// Burn nft
 	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult;
 	/// Check if item is on listing
@@ -287,6 +296,27 @@ pub trait NFTTrait<AccountId, Balance> {
 	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError>;
 	/// Get nft asset owner
 	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError>;
+	/// Get stackable nft balance
+	fn get_free_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance;
+	/// Reserve stackable nft balance
+	fn reserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult;
+	/// Unreserve stackable nft balance
+	fn unreserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult;
+	/// transfer stackable nft
+	fn transfer_stackable_nft(
+		sender: &AccountId,
+		to: &AccountId,
+		nft: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult;
 }
 
 pub trait RoundTrait<BlockNumber> {

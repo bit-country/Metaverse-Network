@@ -89,16 +89,16 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -121,7 +121,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -472,6 +472,73 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError> {
 		Ok(ALICE)
 	}
+
+	fn mint_token_with_id(
+		sender: &AccountId,
+		class_id: Self::ClassId,
+		token_id: Self::TokenId,
+		metadata: core_primitives::NftMetadata,
+		attributes: core_primitives::Attributes,
+	) -> Result<Self::TokenId, DispatchError> {
+		match *sender {
+			ALICE => Ok(1),
+			BOB => Ok(2),
+			BENEFICIARY_ID => {
+				if class_id == METAVERSE_LAND_CLASS {
+					return Ok(ASSET_ID_1);
+				} else if class_id == METAVERSE_ESTATE_CLASS {
+					return Ok(ASSET_ID_2);
+				} else {
+					return Ok(200);
+				}
+			}
+			AUCTION_BENEFICIARY_ID => {
+				if class_id == METAVERSE_LAND_CLASS {
+					return Ok(METAVERSE_LAND_IN_AUCTION_TOKEN);
+				} else if class_id == METAVERSE_ESTATE_CLASS {
+					return Ok(METAVERSE_ESTATE_IN_AUCTION_TOKEN);
+				} else {
+					return Ok(201);
+				}
+			}
+			_ => {
+				if class_id == 0 {
+					return Ok(1000);
+				} else {
+					return Ok(1001);
+				}
+			}
+		}
+	}
+
+	fn get_free_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
+		1000
+	}
+
+	fn reserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn unreserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+
+	fn transfer_stackable_nft(
+		sender: &AccountId,
+		to: &AccountId,
+		nft: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
 }
 
 parameter_types! {
@@ -488,7 +555,7 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type LandTreasury = LandTreasuryPalletId;
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type Currency = Balances;
@@ -552,7 +619,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")

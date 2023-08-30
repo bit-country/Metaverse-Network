@@ -1,18 +1,18 @@
+use asset_manager::BalanceOf;
 use frame_support::assert_noop;
 use hex_literal::hex;
-use sp_core::{ByteArray, H160, U256};
+use sp_core::{H160, U256};
+use sp_runtime::traits::Zero;
+use sp_std::boxed::Box;
 
-use precompile_utils::data::{Address, EvmDataWriter};
+use precompile_utils::data::{Address, Bytes, EvmDataWriter};
 use precompile_utils::testing::*;
-use primitives::FungibleTokenId;
+use primitives::{AssetMetadata, FungibleTokenId};
 
 use crate::currencies::Action;
 use crate::mock::*;
 use orml_traits::BasicCurrency;
 use orml_traits::MultiCurrency;
-//use pallet_evm::AddressMapping;
-use evm_mapping::AddressMapping;
-//use currencies_pallet::MultiSocialCurrency;
 
 fn precompiles() -> Precompiles<Runtime> {
 	PrecompilesValue::get()
@@ -35,13 +35,145 @@ fn handles_invalid_currency_id() {
 }
 
 #[test]
+fn handles_non_supported_allowance() {
+	ExtBuilder::default().build().execute_with(|| {
+		precompiles()
+			.prepare_test(
+				alice_evm_addr(),
+				neer_evm_address(),
+				EvmDataWriter::new_with_selector(Action::Allowance).build(),
+			)
+			.expect_cost(0)
+			.expect_no_logs()
+			.execute_error(pallet_evm::ExitError::Other("not supported".into()))
+	});
+}
+
+#[test]
+fn handles_non_supported_approve() {
+	ExtBuilder::default().build().execute_with(|| {
+		precompiles()
+			.prepare_test(
+				alice_evm_addr(),
+				neer_evm_address(),
+				EvmDataWriter::new_with_selector(Action::Approve).build(),
+			)
+			.expect_cost(0)
+			.expect_no_logs()
+			.execute_error(pallet_evm::ExitError::Other("not supported".into()))
+	});
+}
+
+#[test]
+fn handles_non_supported_transfer_from() {
+	ExtBuilder::default().build().execute_with(|| {
+		precompiles()
+			.prepare_test(
+				alice_evm_addr(),
+				neer_evm_address(),
+				EvmDataWriter::new_with_selector(Action::TransferFrom).build(),
+			)
+			.expect_cost(0)
+			.expect_no_logs()
+			.execute_error(pallet_evm::ExitError::Other("not supported".into()))
+	});
+}
+
+#[test]
+fn name_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			let asset_metadata = AssetMetadata {
+				name: "NEER".as_bytes().to_vec(),
+				symbol: "NEER".as_bytes().to_vec(),
+				decimals: 18u8,
+				minimal_balance: Zero::zero(),
+			};
+			AssetManager::update_native_asset_metadata(
+				RuntimeOrigin::root(),
+				FungibleTokenId::NativeToken(0),
+				Box::new(asset_metadata),
+			);
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					neer_evm_address(),
+					EvmDataWriter::new_with_selector(Action::Name).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(Bytes::from("NEER".as_bytes())).build());
+		});
+}
+
+#[test]
+fn symbol_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			let asset_metadata = AssetMetadata {
+				name: "NEER".as_bytes().to_vec(),
+				symbol: "NEER".as_bytes().to_vec(),
+				decimals: 18u8,
+				minimal_balance: Zero::zero(),
+			};
+			AssetManager::update_native_asset_metadata(
+				RuntimeOrigin::root(),
+				FungibleTokenId::NativeToken(0),
+				Box::new(asset_metadata),
+			);
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					neer_evm_address(),
+					EvmDataWriter::new_with_selector(Action::Symbol).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(Bytes::from("NEER".as_bytes())).build());
+		});
+}
+
+#[test]
+fn decimals_works() {
+	ExtBuilder::default()
+		.with_balances(vec![(alice_account_id(), 100000)])
+		.build()
+		.execute_with(|| {
+			let asset_metadata = AssetMetadata {
+				name: "NEER".as_bytes().to_vec(),
+				symbol: "NEER".as_bytes().to_vec(),
+				decimals: 18u8,
+				minimal_balance: Zero::zero(),
+			};
+			AssetManager::update_native_asset_metadata(
+				RuntimeOrigin::root(),
+				FungibleTokenId::NativeToken(0),
+				Box::new(asset_metadata),
+			);
+			precompiles()
+				.prepare_test(
+					alice_evm_addr(),
+					neer_evm_address(),
+					EvmDataWriter::new_with_selector(Action::Decimals).build(),
+				)
+				.expect_cost(0)
+				.expect_no_logs()
+				.execute_returns(EvmDataWriter::new().write(U256::from(18)).build());
+		});
+}
+
+#[test]
 fn total_supply_of_foreign_currencies_works() {
 	ExtBuilder::default()
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
 			Currencies::update_balance(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				alice_account_id(),
 				FungibleTokenId::MiningResource(0),
 				100000,
@@ -80,12 +212,12 @@ fn total_supply_of_native_currencies_works() {
 fn balance_of_foreign_currencies_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		Currencies::update_balance(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			alice_account_id(),
 			FungibleTokenId::MiningResource(0),
 			100000,
 		);
-		EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+		EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 
 		precompiles()
 			.prepare_test(
@@ -108,7 +240,7 @@ fn balance_of_native_currencies_works() {
 		.build()
 		.execute_with(|| {
 			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -130,19 +262,19 @@ fn transfer_foreign_currencies_works() {
 		.build()
 		.execute_with(|| {
 			Currencies::update_balance(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				alice_account_id(),
 				FungibleTokenId::MiningResource(0),
 				100000,
 			);
 			Currencies::update_balance(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				bob_account_id(),
 				FungibleTokenId::MiningResource(0),
 				150000,
 			);
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
-			EvmMapping::claim_default_account(Origin::signed(bob_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(bob_account_id()));
 
 			let mut evm_writer = EvmDataWriter::new_with_selector(Action::Transfer);
 			evm_writer.write_pointer(1000u64.to_be_bytes().to_vec());
@@ -184,8 +316,8 @@ fn transfer_native_currencies_works() {
 		.with_balances(vec![(alice_account_id(), 100000), (bob_account_id(), 150000)])
 		.build()
 		.execute_with(|| {
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
-			EvmMapping::claim_default_account(Origin::signed(bob_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(bob_account_id()));
 
 			precompiles()
 				.prepare_test(

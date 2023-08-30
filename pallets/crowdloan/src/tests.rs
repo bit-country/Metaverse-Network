@@ -20,7 +20,7 @@
 use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
 
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 
 use super::*;
 
@@ -28,7 +28,7 @@ use super::*;
 fn set_distribution_origin_reject_non_root() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			CrowdloanModule::set_distributor_origin(Origin::signed(ALICE), BOB),
+			CrowdloanModule::set_distributor_origin(RuntimeOrigin::signed(ALICE), BOB),
 			BadOrigin
 		);
 	});
@@ -37,11 +37,11 @@ fn set_distribution_origin_reject_non_root() {
 #[test]
 fn set_distribution_origin_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+		assert_ok!(CrowdloanModule::set_distributor_origin(RuntimeOrigin::root(), ALICE));
 
 		assert_eq!(
 			last_event(),
-			Event::Crowdloan(crate::Event::AddedDistributorOrigin(ALICE))
+			RuntimeEvent::Crowdloan(crate::Event::AddedDistributorOrigin(ALICE))
 		);
 
 		assert_eq!(CrowdloanModule::is_accepted_origin(&ALICE), true);
@@ -51,17 +51,17 @@ fn set_distribution_origin_should_work() {
 #[test]
 fn remove_distribution_origin_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+		assert_ok!(CrowdloanModule::set_distributor_origin(RuntimeOrigin::root(), ALICE));
 
 		assert_eq!(
 			last_event(),
-			Event::Crowdloan(crate::Event::AddedDistributorOrigin(ALICE))
+			RuntimeEvent::Crowdloan(crate::Event::AddedDistributorOrigin(ALICE))
 		);
 
-		assert_ok!(CrowdloanModule::remove_distributor_origin(Origin::root(), ALICE));
+		assert_ok!(CrowdloanModule::remove_distributor_origin(RuntimeOrigin::root(), ALICE));
 		assert_eq!(
 			last_event(),
-			Event::Crowdloan(crate::Event::RemovedDistributorOrigin(ALICE))
+			RuntimeEvent::Crowdloan(crate::Event::RemovedDistributorOrigin(ALICE))
 		);
 
 		assert_eq!(CrowdloanModule::is_accepted_origin(&ALICE), false);
@@ -72,7 +72,7 @@ fn remove_distribution_origin_should_work() {
 fn remove_distribution_origin_not_exist_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			CrowdloanModule::remove_distributor_origin(Origin::root(), ALICE),
+			CrowdloanModule::remove_distributor_origin(RuntimeOrigin::root(), ALICE),
 			Error::<Runtime>::DistributorOriginDoesNotExist
 		);
 	});
@@ -81,10 +81,10 @@ fn remove_distribution_origin_not_exist_should_fail() {
 #[test]
 fn transfer_unlocked_reward_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+		assert_ok!(CrowdloanModule::set_distributor_origin(RuntimeOrigin::root(), ALICE));
 
 		assert_ok!(CrowdloanModule::transfer_unlocked_reward(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			BOB,
 			100
 		));
@@ -97,7 +97,7 @@ fn transfer_unlocked_reward_should_work() {
 fn transfer_unlocked_reward_non_accepted_origin_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			CrowdloanModule::transfer_unlocked_reward(Origin::signed(ALICE), BOB, 100),
+			CrowdloanModule::transfer_unlocked_reward(RuntimeOrigin::signed(ALICE), BOB, 100),
 			Error::<Runtime>::NoPermission
 		);
 	});
@@ -109,7 +109,7 @@ fn transfer_vested_reward_non_accepted_origin_should_fail() {
 		let vested_schedule = VestingInfo::new(100, 10, 1);
 
 		assert_noop!(
-			CrowdloanModule::transfer_vested_reward(Origin::signed(ALICE), BOB, vested_schedule),
+			CrowdloanModule::transfer_vested_reward(RuntimeOrigin::signed(ALICE), BOB, vested_schedule),
 			Error::<Runtime>::NoPermission
 		);
 	});
@@ -118,12 +118,12 @@ fn transfer_vested_reward_non_accepted_origin_should_fail() {
 #[test]
 fn transfer_vested_reward_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+		assert_ok!(CrowdloanModule::set_distributor_origin(RuntimeOrigin::root(), ALICE));
 
 		let vested_schedule = VestingInfo::new(100, 10, 1);
 
 		assert_ok!(CrowdloanModule::transfer_vested_reward(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			BOB,
 			vested_schedule
 		));
@@ -134,18 +134,18 @@ fn transfer_vested_reward_should_work() {
 #[test]
 fn remove_vested_reward_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+		assert_ok!(CrowdloanModule::set_distributor_origin(RuntimeOrigin::root(), ALICE));
 
 		let vested_schedule = VestingInfo::new(100, 10, 1);
 
 		assert_ok!(CrowdloanModule::transfer_vested_reward(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			BOB,
 			vested_schedule
 		));
 		assert_eq!(Vesting::vesting_balance(&BOB), Some(100));
 
-		assert_ok!(CrowdloanModule::remove_vested_reward(Origin::root(), BOB, 0));
+		assert_ok!(CrowdloanModule::remove_vested_reward(RuntimeOrigin::root(), BOB, 0));
 		// remove vesting balance
 		assert_eq!(Vesting::vesting_balance(&BOB), None);
 	});
@@ -154,19 +154,19 @@ fn remove_vested_reward_should_work() {
 #[test]
 fn remove_vested_reward_should_fail_for_non_root() {
 	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(CrowdloanModule::set_distributor_origin(Origin::root(), ALICE));
+		assert_ok!(CrowdloanModule::set_distributor_origin(RuntimeOrigin::root(), ALICE));
 
 		let vested_schedule = VestingInfo::new(100, 10, 1);
 
 		assert_ok!(CrowdloanModule::transfer_vested_reward(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			BOB,
 			vested_schedule
 		));
 		assert_eq!(Vesting::vesting_balance(&BOB), Some(100));
 
 		assert_noop!(
-			CrowdloanModule::remove_vested_reward(Origin::signed(ALICE), BOB, 0),
+			CrowdloanModule::remove_vested_reward(RuntimeOrigin::signed(ALICE), BOB, 0),
 			BadOrigin
 		);
 	});

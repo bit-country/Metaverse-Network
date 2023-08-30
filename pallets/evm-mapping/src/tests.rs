@@ -23,7 +23,9 @@ use std::str::FromStr;
 
 use frame_support::{assert_noop, assert_ok};
 
-use mock::{alice, bob, secp_utils::*, EVMMapping, Event, ExtBuilder, Origin, Runtime, System, ALICE, BOB};
+use mock::{
+	alice, bob, secp_utils::*, EVMMapping, ExtBuilder, Runtime, RuntimeEvent, RuntimeOrigin, System, ALICE, BOB,
+};
 
 use super::*;
 
@@ -31,11 +33,11 @@ use super::*;
 fn claim_account_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(EVMMapping::claim_eth_account(
-			Origin::signed(ALICE),
+			RuntimeOrigin::signed(ALICE),
 			eth(&alice()),
 			sig::<Runtime>(&alice(), &eth(&alice()).encode(), &[][..])
 		));
-		System::assert_last_event(Event::EVMMapping(crate::Event::ClaimAccount {
+		System::assert_last_event(RuntimeEvent::EVMMapping(crate::Event::ClaimAccount {
 			account_id: ALICE,
 			evm_address: eth(&alice()),
 		}));

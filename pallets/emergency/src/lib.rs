@@ -42,14 +42,14 @@ pub mod module {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The origin which may set filter.
-		type EmergencyOrigin: EnsureOrigin<Self::Origin>;
+		type EmergencyOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// The base call filter to be used in normal operating mode
-		type NormalCallFilter: Contains<Self::Call>;
+		type NormalCallFilter: Contains<Self::RuntimeCall>;
 		/// The base call filter to be used when we are in the middle of migrations
-		type MaintenanceCallFilter: Contains<Self::Call>;
+		type MaintenanceCallFilter: Contains<Self::RuntimeCall>;
 		/// Extrinsics' weights
 		type WeightInfo: WeightInfo;
 	}
@@ -178,8 +178,8 @@ pub mod module {
 		}
 	}
 
-	impl<T: Config> Contains<T::Call> for Pallet<T> {
-		fn contains(call: &T::Call) -> bool {
+	impl<T: Config> Contains<T::RuntimeCall> for Pallet<T> {
+		fn contains(call: &T::RuntimeCall) -> bool {
 			if MaintenanceMode::<T>::get() {
 				T::MaintenanceCallFilter::contains(call)
 			} else {
@@ -191,11 +191,11 @@ pub mod module {
 
 pub struct EmergencyStoppedFilter<T>(sp_std::marker::PhantomData<T>);
 
-impl<T: Config> Contains<T::Call> for EmergencyStoppedFilter<T>
+impl<T: Config> Contains<T::RuntimeCall> for EmergencyStoppedFilter<T>
 where
-	<T as frame_system::Config>::Call: GetCallMetadata,
+	<T as frame_system::Config>::RuntimeCall: GetCallMetadata,
 {
-	fn contains(call: &T::Call) -> bool {
+	fn contains(call: &T::RuntimeCall) -> bool {
 		let CallMetadata {
 			function_name,
 			pallet_name,

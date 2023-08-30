@@ -2,7 +2,7 @@ use codec::{Decode, Encode};
 use sp_runtime::DispatchResult;
 use sp_std::vec::Vec;
 
-use crate::{AccountId, MetaverseId, RoundIndex, RuntimeDebug, TypeInfo};
+use crate::{RoundIndex, RuntimeDebug, TypeInfo};
 
 #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
 /// The current round index and transition information

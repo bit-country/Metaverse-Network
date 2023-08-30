@@ -40,50 +40,43 @@ impl Default for Sealing {
 #[derive(Debug, clap::Parser)]
 pub struct RunCmd {
 	#[allow(missing_docs)]
-	#[clap(flatten)]
+	#[command(flatten)]
 	pub base: sc_cli::RunCmd,
 
 	/// Choose sealing method.
 	#[cfg(feature = "manual-seal")]
-	#[clap(long, arg_enum, ignore_case = true)]
+	#[arg(long, arg_enum, ignore_case = true)]
 	pub sealing: Sealing,
 
-	#[clap(long)]
+	#[arg(long)]
 	pub enable_dev_signer: bool,
 
 	/// Maximum number of logs in a query.
-	#[clap(long, default_value = "10000")]
+	#[arg(long, default_value = "10000")]
 	pub max_past_logs: u32,
 
 	/// Maximum fee history cache size.
-	#[clap(long, default_value = "2048")]
+	#[arg(long, default_value = "2048")]
 	pub fee_history_limit: u64,
 
 	/// The dynamic-fee pallet target gas price set by block author
-	#[clap(long, default_value = "1")]
+	#[arg(long, default_value = "1")]
 	pub target_gas_price: u64,
 
 	/// Run node as collator.
 	///
 	/// Note that this is the same as running with `--validator`.
-	#[clap(long, conflicts_with = "validator")]
+	#[arg(long, conflicts_with = "validator")]
 	pub collator: bool,
 
-	/// EXPERIMENTAL: Specify an URL to a relay chain full node to communicate with.
-	#[clap(
+	/// Relay chain arguments
+	#[arg(
 		long,
-		parse(try_from_str),
-		validator = validate_relay_chain_url,
-		conflicts_with = "collator",
-		conflicts_with = "validator",
-		conflicts_with = "alice",
-		conflicts_with = "bob",
-		conflicts_with = "charlie",
-		conflicts_with = "dave",
-		conflicts_with = "eve",
-		conflicts_with = "ferdie"
+		value_parser = validate_relay_chain_url,
+		num_args = 0..,
+		alias = "relay-chain-rpc-url"
 	)]
-	pub relay_chain_rpc_url: Option<Url>,
+	pub relay_chain_rpc_urls: Vec<Url>,
 }
 
 impl RunCmd {
@@ -100,33 +93,33 @@ impl RunCmd {
 	/// Create [`CollatorOptions`] representing options only relevant to parachain collator nodes
 	pub fn collator_options(&self) -> cumulus_client_cli::CollatorOptions {
 		cumulus_client_cli::CollatorOptions {
-			relay_chain_rpc_url: self.relay_chain_rpc_url.clone(),
+			relay_chain_rpc_urls: self.relay_chain_rpc_urls.clone().into(),
 		}
 	}
 }
 
 #[derive(Debug, Parser)]
-#[clap(
+#[command(
 	propagate_version = true,
 	args_conflicts_with_subcommands = true,
 	subcommand_negates_reqs = true
 )]
 pub struct Cli {
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	pub subcommand: Option<Subcommand>,
 
-	#[clap(flatten)]
+	#[command(flatten)]
 	pub run: RunCmd,
 
 	/// Relaychain arguments
-	#[clap(raw = true)]
+	#[arg(raw = true)]
 	pub relaychain_args: Vec<String>,
 }
 
 #[derive(Debug, clap::Subcommand)]
 pub enum Subcommand {
 	/// Key management cli utilities
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	Key(sc_cli::KeySubcommand),
 	/// Build a chain specification.
 	BuildSpec(sc_cli::BuildSpecCmd),
@@ -153,18 +146,18 @@ pub enum Subcommand {
 	Revert(sc_cli::RevertCmd),
 
 	/// The custom benchmark subcommand benchmarking runtime pallets.
-	#[clap(subcommand)]
+	#[command(subcommand)]
 	Benchmark(frame_benchmarking_cli::BenchmarkCmd),
 
 	/// Db meta columns information.
 	// FrontierDb(fc_cli::FrontierDbCmd),
 
 	/// Export the genesis state of the parachain.
-	#[clap(name = "export-genesis-state")]
+	#[command(alias = "export-genesis-state")]
 	ExportGenesisState(ExportGenesisStateCommand),
 
 	/// Export the genesis wasm of the parachain.
-	#[clap(name = "export-genesis-wasm")]
+	#[command(alias = "export-genesis-wasm")]
 	ExportGenesisWasm(ExportGenesisWasmCommand),
 
 	/// Try some command against runtime state.
@@ -173,35 +166,43 @@ pub enum Subcommand {
 }
 
 /// Command for exporting the genesis state of the parachain
-#[derive(Debug, Parser)]
+#[derive(Debug, clap::Parser)]
 pub struct ExportGenesisStateCommand {
 	/// Output file name or stdout if unspecified.
-	#[clap(parse(from_os_str))]
+	#[arg()]
 	pub output: Option<PathBuf>,
 
 	/// Write output in binary. Default is to write in hex.
-	#[clap(short, long)]
+	#[arg(short, long)]
 	pub raw: bool,
 
 	/// The name of the chain for that the genesis state should be exported.
-	#[clap(long)]
+	#[arg(long)]
 	pub chain: Option<String>,
+
+	#[allow(missing_docs)]
+	#[command(flatten)]
+	pub shared_params: sc_cli::SharedParams,
 }
 
 /// Command for exporting the genesis wasm file.
-#[derive(Debug, Parser)]
+#[derive(Debug, clap::Parser)]
 pub struct ExportGenesisWasmCommand {
 	/// Output file name or stdout if unspecified.
-	#[clap(parse(from_os_str))]
+	#[arg()]
 	pub output: Option<PathBuf>,
 
 	/// Write output in binary. Default is to write in hex.
-	#[clap(short, long)]
+	#[arg(short, long)]
 	pub raw: bool,
 
 	/// The name of the chain for that the genesis wasm file should be exported.
-	#[clap(long)]
+	#[arg(long)]
 	pub chain: Option<String>,
+
+	#[allow(missing_docs)]
+	#[command(flatten)]
+	pub shared_params: sc_cli::SharedParams,
 }
 
 #[derive(Debug)]

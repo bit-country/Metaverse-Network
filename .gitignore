@@ -12,6 +12,8 @@
 # The cache for chain data in container
 .local
 
+# chopsticks DB
+db.sqlite
 
 .vscode
 *.code-workspace

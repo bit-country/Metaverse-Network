@@ -82,7 +82,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The currency type
 		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
@@ -128,7 +128,7 @@ pub mod pallet {
 		type MaxSetRewardsListLength: Get<u64>;
 
 		/// Accounts that can set rewards
-		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		type AdminOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 
 		/// NFT trait type that handler NFT implementation
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
@@ -488,10 +488,10 @@ pub mod pallet {
 		/// - `campaign_id`: the ID of the campaign for which the account is claiming reward.
 		/// - `balance`: the amount of tokens which the account will claim (required for
 		///   merkle-proof calculation).
-		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
+		/// - `leaf_nodes`: list of the merkle tree nodes required for merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_reward_root()  * (1u64 + leaf_nodes.len() as u64))]
+		#[pallet::weight(T::WeightInfo::claim_reward_root() * (1u64 + leaf_nodes.len() as u64))]
 		#[transactional]
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
@@ -614,12 +614,12 @@ pub mod pallet {
 		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_nft_reward_root() * (1u64 + tokens.len() as u64))]
+		#[pallet::weight(T::WeightInfo::claim_nft_reward_root() * (1u64 + reward_tokens.len() as u64))]
 		#[transactional]
 		pub fn claim_nft_reward_root(
 			origin: OriginFor<T>,
 			id: CampaignId,
-			tokens: Vec<(ClassId, TokenId)>,
+			reward_tokens: Vec<(ClassId, TokenId)>,
 			leaf_nodes: Vec<Hash>,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -639,7 +639,7 @@ pub mod pallet {
 					RewardType::NftAssets(reward) => match campaign.claimed.clone() {
 						RewardType::NftAssets(claimed) => {
 							let merkle_proof: Hash =
-								Self::calculate_nft_rewards_merkle_proof(&who, &tokens, &leaf_nodes)?;
+								Self::calculate_nft_rewards_merkle_proof(&who, &reward_tokens, &leaf_nodes)?;
 
 							ensure!(
 								Self::campaign_merkle_roots(id).contains(&merkle_proof),
@@ -650,7 +650,7 @@ pub mod pallet {
 							ensure!(!tokens.is_empty(), Error::<T>::NoRewardFound);
 
 							let mut new_claimed = claimed;
-							for token in tokens.clone() {
+							for token in reward_tokens.clone() {
 								ensure!(
 									reward.contains(&token) && !new_claimed.contains(&token),
 									Error::<T>::NoRewardFound
@@ -663,7 +663,7 @@ pub mod pallet {
 
 							campaign.claimed = RewardType::NftAssets(new_claimed);
 
-							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, tokens));
+							Self::deposit_event(Event::<T>::NftRewardClaimed(id, who, reward_tokens));
 							Ok(())
 						}
 						_ => Err(Error::<T>::InvalidCampaignType.into()),
@@ -1149,7 +1149,7 @@ pub mod pallet {
 		/// Hook that is called every time the runtime is upgraded.
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_campaign_info_v3();
-			0
+			Weight::from_ref_time(0)
 		}
 	}
 }
@@ -1280,7 +1280,7 @@ impl<T: Config> Pallet<T> {
 	/// Internal merkle proof calculation out of leaf node and vector of hashes of relevant leaf
 	/// nodes and branches
 	fn build_merkle_proof(raw_leaf: Vec<u8>, proof_nodes: &Vec<Hash>) -> Result<Hash, DispatchError> {
-		let mut proof: Hash = keccak_256(&raw_leaf).into();
+		let mut proof: Hash = keccak_256(&keccak_256(&raw_leaf)).into();
 
 		for leaf_node in proof_nodes {
 			proof = Self::sorted_hash_of(&proof, leaf_node);
@@ -1338,7 +1338,7 @@ impl<T: Config> Pallet<T> {
 				},
 			);
 			log::info!("{} campaigns upgraded:", upgraded_campaign_items);
-			0
+			Weight::from_ref_time(0)
 		}
 	*/
 
@@ -1370,6 +1370,6 @@ impl<T: Config> Pallet<T> {
 			},
 		);
 		log::info!("{} campaigns upgraded:", upgraded_campaign_items);
-		0
+		Weight::from_ref_time(0)
 	}
 }

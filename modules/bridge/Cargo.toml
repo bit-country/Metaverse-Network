@@ -1,0 +1,64 @@
+[package]
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet bridge token and nft transfer.'
+edition = '2021'
+homepage = 'https://metaverse.network'
+license = 'Unlicense'
+name = 'modules-bridge'
+repository = 'https://github.com/bit-country'
+version = '0.0.1'
+
+[dependencies]
+# third-party dependencies
+codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive", "max-encoded-len"] }
+serde = { workspace = true, optional = true }
+hex = { workspace = true }
+scale-info = { workspace = true }
+# primitives
+sp-std = { workspace = true}
+sp-runtime = { workspace = true}
+sp-io = { workspace = true}
+sp-core = { workspace = true}
+sp-arithmetic = { workspace = true}
+
+# frame dependencies
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
+orml-traits = { workspace = true }
+
+[dev-dependencies]
+blake2-rfc = { workspace = true }
+hex-literal = { workspace = true }
+pallet-nft = { path = "../../pallets/nft", default-features = false }
+orml-nft = { workspace = true }
+orml-tokens = { workspace = true }
+currencies = { package = "currencies", path = "../../pallets/currencies", default-features = false }
+pallet-balances = { workspace = true }
+auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "serde",
+    "scale-info/std",
+    "sp-std/std",
+    "sp-runtime/std",
+    "sp-io/std",
+    "sp-core/std",
+    "sp-arithmetic/std",
+    "frame-support/std",
+    "frame-system/std",
+    "primitives/std",
+    "core-primitives/std",
+    "orml-traits/std",
+    "orml-nft/std",
+    "pallet-nft/std",
+    "currencies/std",
+    "orml-tokens/std",
+    "pallet-balances/std",
+    "auction-manager/std"
+]

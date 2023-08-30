@@ -12,7 +12,8 @@ use sp_std::vec::Vec;
 use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance};
 
 use crate::{
-	Call, Event, MinimumCampaignCoolingOffPeriod, MinimumCampaignDuration, MinimumRewardPool, Reward, Runtime, System,
+	MinimumCampaignCoolingOffPeriod, MinimumCampaignDuration, MinimumRewardPool, Reward, Runtime, RuntimeCall,
+	RuntimeEvent, System,
 };
 
 const CURRENCY_ID: FungibleTokenId = FungibleTokenId::NativeToken(0);
@@ -36,13 +37,13 @@ pub fn get_hash(value: u64) -> Hash {
 pub fn get_claim_hash(who: AccountId, balance: Balance) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
 	leaf.extend(balance.encode());
-	keccak_256(&leaf).into()
+	keccak_256(&keccak_256(&leaf)).into()
 }
 
 pub fn get_claim_nft_hash(who: AccountId, token: (ClassId, TokenId)) -> Hash {
 	let mut leaf: Vec<u8> = who.encode();
 	leaf.extend(token.encode());
-	keccak_256(&leaf).into()
+	keccak_256(&keccak_256(&leaf)).into()
 }
 
 runtime_benchmarks! {

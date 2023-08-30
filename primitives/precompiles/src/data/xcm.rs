@@ -24,6 +24,7 @@ use {
 	frame_support::{ensure, WeakBoundedVec},
 	sp_std::vec::Vec,
 	xcm::latest::{Junction, Junctions, MultiLocation, NetworkId},
+	xcm::opaque::v2::Junction::GeneralKey,
 };
 // Function to convert network id to bytes
 // We don't implement EVMData here as these bytes will be appended only
@@ -34,44 +35,58 @@ use {
 // In this case, only Named requires additional non-bounded data.
 // In such a case, since NetworkIds will be appended at the end, we will read the buffer until the
 // end to recover the name
-pub(crate) fn network_id_to_bytes(network_id: NetworkId) -> Vec<u8> {
+pub(crate) fn network_id_to_bytes(network_id: Option<NetworkId>) -> Vec<u8> {
 	let mut encoded: Vec<u8> = Vec::new();
 	match network_id.clone() {
-		NetworkId::Any => {
+		/*
+		Some(NetworkId::Any) => {
 			encoded.push(0u8);
 			encoded
 		}
-		NetworkId::Named(mut name) => {
+		Some(NetworkId::Named(mut name)) => {
 			encoded.push(1u8);
 			encoded.append(&mut name.to_vec());
 			encoded
 		}
-		NetworkId::Polkadot => {
+		*/
+		None => {
+			encoded.push(1u8);
+			encoded
+		}
+		Some(NetworkId::Polkadot) => {
 			encoded.push(2u8);
 			encoded
 		}
-		NetworkId::Kusama => {
+		Some(NetworkId::Kusama) => {
 			encoded.push(3u8);
 			encoded
 		}
+		_ => {
+			encoded.push(0u8);
+			encoded
+		} // TO DO: Implement byte conversion for other network ID types
 	}
 }
 
 // Function to convert bytes to networkId
-pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> EvmResult<NetworkId> {
+pub(crate) fn network_id_from_bytes(encoded_bytes: Vec<u8>) -> EvmResult<Option<NetworkId>> {
 	ensure!(encoded_bytes.len() > 0, revert("Junctions cannot be empty"));
 	let mut encoded_network_id = EvmDataReader::new(&encoded_bytes);
 
 	let network_selector = encoded_network_id.read_raw_bytes(1)?;
 
 	match network_selector[0] {
+		/*
 		0 => Ok(NetworkId::Any),
 		1 => Ok(NetworkId::Named(WeakBoundedVec::force_from(
 			encoded_network_id.read_till_end()?.to_vec(),
 			None,
 		))),
-		2 => Ok(NetworkId::Polkadot),
-		3 => Ok(NetworkId::Kusama),
+		*/
+		1 => Ok(None),
+		2 => Ok(Some(NetworkId::Polkadot)),
+		3 => Ok(Some(NetworkId::Kusama)),
+		// TO DO: Implement byte conversion for other network ID types
 		_ => Err(revert("Non-valid Network Id")),
 	}
 }
@@ -138,10 +153,13 @@ impl EvmData for Junction {
 				general_index.copy_from_slice(&encoded_junction.read_raw_bytes(16)?);
 				Ok(Junction::GeneralIndex(u128::from_be_bytes(general_index)))
 			}
-			6 => Ok(Junction::GeneralKey(WeakBoundedVec::force_from(
-				encoded_junction.read_till_end()?.to_vec(),
-				None,
-			))),
+			6 => {
+				let mut data: [u8; 32] = Default::default();
+				data.copy_from_slice(&encoded_junction.read_raw_bytes(32)?);
+
+				let length: u8 = encoded_junction.read_raw_bytes(1)?[0];
+				Ok(Junction::GeneralKey { length, data })
+			}
 			7 => Ok(Junction::OnlyChild),
 			_ => Err(revert("No selector for this")),
 		}
@@ -183,9 +201,10 @@ impl EvmData for Junction {
 				encoded.append(&mut id.to_be_bytes().to_vec());
 				encoded.as_slice().into()
 			}
-			Junction::GeneralKey(mut key) => {
+			Junction::GeneralKey { length, data } => {
 				encoded.push(6u8);
-				encoded.append(&mut key.to_vec());
+				encoded.append(&mut length.to_be_bytes().to_vec());
+				encoded.append(&mut data.to_vec());
 				encoded.as_slice().into()
 			}
 			Junction::OnlyChild => {
