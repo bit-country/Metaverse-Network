@@ -27,7 +27,7 @@ pub enum Action {
 	GetMetaverseFundBalance = "getMetaverseFundBalance(uint256)",
 	CreateMetaverse = "createMetaverse(address,bytes)",
 	WithdrawFromMetaverseFund = "withdrawFromMetaverseFund(address,uint256)",
-	//TransferMetaverse = "transferMetaverse()",
+	TransferMetaverse = "transferMetaverse(address,uint256)",
 	//UpdateMetaverseListingFee = "updateMetaverseListingFee()",
 }
 
@@ -49,9 +49,16 @@ pub enum Action {
 /// - Update metaverse listing fee. Rest `input` bytes: `meatverse_id`, `new_fee`.
 pub struct MetaversePrecompile<Runtime>(PhantomData<Runtime>);
 
-impl<Runtime> Precompile for MetaversePrecompile<Runtime>
+impl<Runtime> Default for MetaversePrecompile<Runtime> {
+	fn default() -> Self {
+		Self(PhantomData)
+	}
+}
+
+#[cfg(test)]
+impl<Runtime> PrecompileSet for MetaversePrecompile<Runtime>
 where
-	Runtime: metaverse_pallet::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
+	Runtime: metaverse_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
 	Runtime: Erc20Mapping,
 	U256: From<
 		<<Runtime as metaverse_pallet::Config>::Currency as frame_support::traits::Currency<
@@ -59,7 +66,51 @@ where
 		>>::Balance,
 	>,
 	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
-	<<Runtime as frame_system::Config>::Call as Dispatchable>::Origin: OriginTrait,
+	<<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin: OriginTrait,
+{
+	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
+		let result = {
+			let selector = match handle.read_selector() {
+				Ok(selector) => selector,
+				Err(e) => return Some(Err(e)),
+			};
+
+			if let Err(err) = handle.check_function_modifier(match selector {
+				Action::CreateMetaverse | Action::WithdrawFromMetaverseFund => FunctionModifier::NonPayable,
+				_ => FunctionModifier::View,
+			}) {
+				return Some(Err(err));
+			}
+
+			match selector {
+				Action::GetMetaverse => Self::metaverse_info(handle),
+				//Action::GetMetaverseOwner => Self::metaverse_owner(handle),
+				Action::GetMetaverseFundBalance => Self::fund_balance(handle),
+				Action::CreateMetaverse => Self::create_metaverse(handle),
+				Action::WithdrawFromMetaverseFund => Self::withdraw_funds(handle),
+				Action::TransferMetaverse => Self::transfer(handle),
+				//Action::UpdateMetaverseListingFee => Self::transfer(metaverse_id, handle),
+			}
+		};
+		Some(result)
+	}
+
+	fn is_precompile(&self, address: H160) -> bool {
+		todo!()
+	}
+}
+
+impl<Runtime> Precompile for MetaversePrecompile<Runtime>
+where
+	Runtime: metaverse_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
+	Runtime: Erc20Mapping,
+	U256: From<
+		<<Runtime as metaverse_pallet::Config>::Currency as frame_support::traits::Currency<
+			<Runtime as frame_system::Config>::AccountId,
+		>>::Balance,
+	>,
+	//BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
+	<<Runtime as frame_system::Config>::RuntimeCall as Dispatchable>::RuntimeOrigin: OriginTrait,
 {
 	fn execute(handle: &mut impl PrecompileHandle) -> PrecompileResult {
 		let result = {
@@ -82,20 +133,17 @@ where
 				Action::GetMetaverseFundBalance => Self::fund_balance(handle),
 				Action::CreateMetaverse => Self::create_metaverse(handle),
 				Action::WithdrawFromMetaverseFund => Self::withdraw_funds(handle),
-				//Action::TransferMetaverse => Self::transfer(metaverse_id, handle),
+				Action::TransferMetaverse => Self::transfer(handle),
 				//Action::UpdateMetaverseListingFee => Self::transfer(metaverse_id, handle),
 			}
 		};
-		Err(PrecompileFailure::Revert {
-			exit_status: ExitRevert::Reverted,
-			output: "invalid metaverse action".into(),
-		})
+		result
 	}
 }
 
 impl<Runtime> MetaversePrecompile<Runtime>
 where
-	Runtime: metaverse_pallet::Config + pallet_evm::Config + frame_system::Config, //+ evm_mapping::Config,
+	Runtime: metaverse_pallet::Config + pallet_evm::Config + frame_system::Config + evm_mapping::Config,
 	U256: From<
 		<<Runtime as metaverse_pallet::Config>::Currency as frame_support::traits::Currency<
 			<Runtime as frame_system::Config>::AccountId,
@@ -238,35 +286,33 @@ where
 		Ok(succeed(EvmDataWriter::new().write(true).build()))
 	}
 
-	/*
-		fn transfer(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
-			handle.record_log_costs_manual(3, 32)?;
+	fn transfer(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
+		handle.record_log_costs_manual(3, 32)?;
 
-			// Parse input of index 1 (owner)
-			let mut input = handle.read_input()?;
-			input.expect_arguments(2)?;
+		// Parse input of index 1 (owner)
+		let mut input = handle.read_input()?;
+		input.expect_arguments(2)?;
 
-			let to: H160 = input.read::<Address>()?.into();
-			let amount = input.read::<BalanceOf<Runtime>>()?;
+		let to: H160 = input.read::<Address>()?.into();
+		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?;
 
-			// Build call info
-			let origin = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
-			let to = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(to);
+		// Build call info
+		let origin = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(handle.context().caller);
+		let to = <Runtime as pallet_evm::Config>::AddressMapping::into_account_id(to);
 
-			log::debug!(target: "evm", "meatverse: transfer from: {:?}, to: {:?}, amount: {:?}", origin, to, amount);
+		log::debug!(target: "evm", "meatverse: transfer from: {:?}, to: {:?}, metaverse_id: {:?}", origin, to, metaverse_id);
 
-			<metaverse_pallet::Pallet<Runtime> as MetaverseTrait<Runtime::AccountId>>::transfer(
-				metaverse_id,
-				&origin,
-				&to,
-			)
-			.map_err(|e| PrecompileFailure::Revert {
-				exit_status: ExitRevert::Reverted,
-				output: Into::<&str>::into(e).as_bytes().to_vec(),
-			})?;
+		<metaverse_pallet::Pallet<Runtime>>::transfer_metaverse(	
+			RawOrigin::Signed(origin).into(),
+			to,
+			metaverse_id,
+		)
+		.map_err(|e| PrecompileFailure::Revert {
+			exit_status: ExitRevert::Reverted,
+			output: Into::<&str>::into(e).as_bytes().to_vec(),
+		})?;
 
-			// Build output.
-			Ok(succeed(EvmDataWriter::new().write(true).build()))
-		}
-	*/
+		// Build output.
+		Ok(succeed(EvmDataWriter::new().write(true).build()))
+	}
 }
