@@ -3,8 +3,7 @@ use std::ptr::hash;
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchResult,
-	parameter_types,
-	ord_parameter_types,
+	ord_parameter_types, parameter_types,
 	traits::{AsEnsureOriginWithArg, Everything, Nothing},
 	weights::Weight,
 	PalletId,
@@ -27,15 +26,18 @@ use evm_mapping::EvmAddressMapping;
 
 use precompile_utils::precompile_set::*;
 use precompile_utils::EvmResult;
-use primitives::{evm::{
-	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
-	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
-}, MetaverseId};
+use primitives::{
+	evm::{
+		CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
+		H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
+	},
+	MetaverseId,
+};
 use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
-use crate::nft::NftPrecompile;
 use crate::metaverse::MetaversePrecompile;
+use crate::nft::NftPrecompile;
 use crate::precompiles::MetaverseNetworkPrecompiles;
 
 use super::*;
@@ -58,8 +60,6 @@ pub const METAVERSE_ID_2: MetaverseId = 1u64;
 pub const ALICE_ACCOUNT: AccountId = AccountId::new([1u8; 32]);
 pub const BOB_ACCOUNT: AccountId = AccountId::new([2u8; 32]);
 pub const CHARLIE_ACCOUNT: AccountId = AccountId::new([3u8; 32]);
-
-
 
 parameter_types! {
 	pub const BlockHashCount: u32 = 250;
@@ -129,7 +129,6 @@ pub const METAVERSE_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[1u8; 9];
 /// The NFT precompile address prefix. Addresses that match against this prefix will be routed
 /// to NftPrecompile
 pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
-
 
 #[derive(Default)]
 pub struct Precompiles<R>(PhantomData<R>);
