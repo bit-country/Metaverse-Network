@@ -291,18 +291,18 @@ where
 	}
 
 	fn transfer(handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
-		handle.record_log_costs_manual(3, 32)?;
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 
 		// Parse input of index 1 (owner)
 		let mut input = handle.read_input()?;
 		input.expect_arguments(2)?;
 
-		let receiver_evm_address: H160 = input.read::<Address>()?.into();
+		let to: H160 = input.read::<Address>()?.into();
 		let metaverse_id: MetaverseId = input.read::<MetaverseId>()?.into();
 
 		// Build call info
 		let origin = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&handle.context().caller);
-		let to = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&receiver_evm_address);
+		let to = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&to);
 
 		log::debug!(target: "evm", "meatverse: transfer from: {:?}, to: {:?}, metaverse_id: {:?}", origin, to, metaverse_id);
 
