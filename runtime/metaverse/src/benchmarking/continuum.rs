@@ -10,7 +10,7 @@ use auction_manager::AuctionType;
 use core_primitives::TokenType;
 use primitives::{AccountId, Balance, FungibleTokenId};
 
-use crate::{Call, Continuum, Currencies, Estate, Event, Metaverse, Runtime, System};
+use crate::{Continuum, Currencies, Estate, Metaverse, Runtime, RuntimeCall, RuntimeEvent, System};
 
 use super::utils::{create_nft_group, dollar, set_balance, set_metaverse_treasury_initial_balance};
 

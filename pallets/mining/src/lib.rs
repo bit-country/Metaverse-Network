@@ -110,14 +110,14 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		type MiningCurrency: MultiCurrencyExtended<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>;
 		#[pallet::constant]
 		type BitMiningTreasury: Get<PalletId>;
 		type BitMiningResourceId: Get<FungibleTokenId>;
 		/// Origin used to administer the pallet
 		type EstateHandler: Estate<Self::AccountId>;
-		type AdminOrigin: EnsureOrigin<Self::Origin, Success = Self::AccountId>;
+		type AdminOrigin: EnsureOrigin<Self::RuntimeOrigin, Success = Self::AccountId>;
 		type MetaverseStakingHandler: MetaverseStakingTrait<Balance>;
 		// Mining staking reward for treasury
 		type TreasuryStakingReward: Get<Perbill>;
@@ -348,9 +348,9 @@ pub mod pallet {
 				Round::<T>::put(round);
 				CurrentMiningResourceAllocation::<T>::put(allocation_range);
 				Self::deposit_event(Event::NewMiningRound(round.current, allocation_range));
-				0
+				Weight::from_ref_time(0)
 			} else {
-				0
+				Weight::from_ref_time(0)
 			}
 		}
 	}
@@ -370,7 +370,7 @@ impl<T: Config> Pallet<T> {
 		minting_origin == Some(())
 	}
 
-	pub fn ensure_admin(o: T::Origin) -> DispatchResult {
+	pub fn ensure_admin(o: T::RuntimeOrigin) -> DispatchResult {
 		T::AdminOrigin::try_origin(o).map(|_| ()).or_else(ensure_root)?;
 		Ok(())
 	}

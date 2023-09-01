@@ -89,16 +89,16 @@ parameter_types! {
 }
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -121,7 +121,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -204,6 +204,10 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 
 	fn is_metaverse_owner(who: &AccountId) -> bool {
 		true
+	}
+
+	fn withdraw_metaverse_treasury_funds(who: &AccountId, metaverse_id: &MetaverseId) -> Result<(), DispatchError> {
+		Ok(())
 	}
 }
 
@@ -506,6 +510,35 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 			}
 		}
 	}
+
+	fn get_free_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
+		1000
+	}
+
+	fn reserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> DispatchResult {
+		Ok(())
+	}
+
+	fn unreserve_stackable_nft_balance(
+		who: &AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
+
+	fn transfer_stackable_nft(
+		sender: &AccountId,
+		to: &AccountId,
+		nft: &(Self::ClassId, Self::TokenId),
+		amount: Balance,
+	) -> sp_runtime::DispatchResult {
+		Ok(())
+	}
 }
 
 parameter_types! {
@@ -522,7 +555,7 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type LandTreasury = LandTreasuryPalletId;
 	type MetaverseInfoSource = MetaverseInfoSource;
 	type Currency = Balances;
@@ -586,7 +619,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")

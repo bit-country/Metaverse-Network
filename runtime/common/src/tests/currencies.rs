@@ -92,7 +92,7 @@ fn name_works() {
 				minimal_balance: Zero::zero(),
 			};
 			AssetManager::update_native_asset_metadata(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				FungibleTokenId::NativeToken(0),
 				Box::new(asset_metadata),
 			);
@@ -121,7 +121,7 @@ fn symbol_works() {
 				minimal_balance: Zero::zero(),
 			};
 			AssetManager::update_native_asset_metadata(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				FungibleTokenId::NativeToken(0),
 				Box::new(asset_metadata),
 			);
@@ -150,7 +150,7 @@ fn decimals_works() {
 				minimal_balance: Zero::zero(),
 			};
 			AssetManager::update_native_asset_metadata(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				FungibleTokenId::NativeToken(0),
 				Box::new(asset_metadata),
 			);
@@ -173,7 +173,7 @@ fn total_supply_of_foreign_currencies_works() {
 		.build()
 		.execute_with(|| {
 			Currencies::update_balance(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				alice_account_id(),
 				FungibleTokenId::MiningResource(0),
 				100000,
@@ -212,12 +212,12 @@ fn total_supply_of_native_currencies_works() {
 fn balance_of_foreign_currencies_works() {
 	ExtBuilder::default().build().execute_with(|| {
 		Currencies::update_balance(
-			Origin::root(),
+			RuntimeOrigin::root(),
 			alice_account_id(),
 			FungibleTokenId::MiningResource(0),
 			100000,
 		);
-		EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+		EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 
 		precompiles()
 			.prepare_test(
@@ -240,7 +240,7 @@ fn balance_of_native_currencies_works() {
 		.build()
 		.execute_with(|| {
 			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 			precompiles()
 				.prepare_test(
 					alice_evm_addr(),
@@ -262,19 +262,19 @@ fn transfer_foreign_currencies_works() {
 		.build()
 		.execute_with(|| {
 			Currencies::update_balance(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				alice_account_id(),
 				FungibleTokenId::MiningResource(0),
 				100000,
 			);
 			Currencies::update_balance(
-				Origin::root(),
+				RuntimeOrigin::root(),
 				bob_account_id(),
 				FungibleTokenId::MiningResource(0),
 				150000,
 			);
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
-			EvmMapping::claim_default_account(Origin::signed(bob_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(bob_account_id()));
 
 			let mut evm_writer = EvmDataWriter::new_with_selector(Action::Transfer);
 			evm_writer.write_pointer(1000u64.to_be_bytes().to_vec());
@@ -316,8 +316,8 @@ fn transfer_native_currencies_works() {
 		.with_balances(vec![(alice_account_id(), 100000), (bob_account_id(), 150000)])
 		.build()
 		.execute_with(|| {
-			EvmMapping::claim_default_account(Origin::signed(alice_account_id()));
-			EvmMapping::claim_default_account(Origin::signed(bob_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
+			EvmMapping::claim_default_account(RuntimeOrigin::signed(bob_account_id()));
 
 			precompiles()
 				.prepare_test(

@@ -4,7 +4,7 @@ use sp_runtime::traits::BadOrigin;
 use sp_runtime::{AccountId32, Perbill};
 use sp_std::vec::Vec;
 
-use mock::{Event, *};
+use mock::{RuntimeEvent, *};
 use primitives::Balance;
 
 // Unit testing for metaverse currency, metaverse treasury
@@ -21,7 +21,7 @@ fn get_mining_balance_of(who: &AccountId) -> Balance {
 
 fn setup_minting_resource() -> DispatchResult {
 	// Add ALICE as minting resource
-	MiningModule::add_minting_origin(Origin::signed(ALICE), ALICE);
+	MiningModule::add_minting_origin(RuntimeOrigin::signed(ALICE), ALICE);
 	Ok(())
 }
 
@@ -30,14 +30,14 @@ fn mint_mining_resource_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(setup_minting_resource());
 
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
 
 		assert_ok!(MiningModule::mint(origin, BOB, 1000));
 
 		assert_eq!(get_mining_balance(), 1000);
 
-		let event = mock::Event::MiningModule(crate::Event::MiningResourceMintedTo(BOB, 1000));
+		let event = mock::RuntimeEvent::MiningModule(crate::Event::MiningResourceMintedTo(BOB, 1000));
 
 		assert_eq!(last_event(), event);
 	});
@@ -48,20 +48,20 @@ fn burn_mining_resource_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(setup_minting_resource());
 
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
 
 		assert_ok!(MiningModule::mint(origin.clone(), BOB, 1000));
 
 		assert_eq!(get_mining_balance(), 1000);
 
-		let event = mock::Event::MiningModule(crate::Event::MiningResourceMintedTo(BOB, 1000));
+		let event = mock::RuntimeEvent::MiningModule(crate::Event::MiningResourceMintedTo(BOB, 1000));
 
 		assert_ok!(MiningModule::burn(origin, BOB, 300));
 		assert_eq!(get_mining_balance(), 700);
 		assert_eq!(
 			last_event(),
-			mock::Event::MiningModule(crate::Event::MiningResourceBurnFrom(BOB, 300))
+			mock::RuntimeEvent::MiningModule(crate::Event::MiningResourceBurnFrom(BOB, 300))
 		);
 	});
 }
@@ -71,20 +71,20 @@ fn withdraw_mining_resource_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(setup_minting_resource());
 
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
 		let treasury_id = MiningModule::bit_treasury_account_id();
 		assert_ok!(MiningModule::mint(origin.clone(), treasury_id, 1000));
 		assert_eq!(
 			last_event(),
-			mock::Event::MiningModule(crate::Event::MiningResourceMintedTo(treasury_id, 1000))
+			mock::RuntimeEvent::MiningModule(crate::Event::MiningResourceMintedTo(treasury_id, 1000))
 		);
 		assert_eq!(get_mining_balance(), 1000);
 		assert_eq!(get_mining_balance_of(&DAVE), 0);
 		assert_ok!(MiningModule::withdraw(origin, DAVE, 300));
 		assert_eq!(get_mining_balance_of(&DAVE), 300);
 
-		let event = mock::Event::MiningModule(crate::Event::WithdrawMiningResource(DAVE, 300));
+		let event = mock::RuntimeEvent::MiningModule(crate::Event::WithdrawMiningResource(DAVE, 300));
 
 		assert_eq!(last_event(), event);
 	});
@@ -94,7 +94,7 @@ fn withdraw_mining_resource_should_work() {
 fn mint_mining_resource_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			MiningModule::mint(Origin::signed(ALICE), BOB, 1000),
+			MiningModule::mint(RuntimeOrigin::signed(ALICE), BOB, 1000),
 			crate::Error::<Runtime>::NoPermission
 		);
 	})
@@ -104,7 +104,7 @@ fn mint_mining_resource_should_fail() {
 fn burn_mining_resource_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			MiningModule::burn(Origin::signed(ALICE), BOB, 1000),
+			MiningModule::burn(RuntimeOrigin::signed(ALICE), BOB, 1000),
 			crate::Error::<Runtime>::NoPermission
 		);
 	})
@@ -114,7 +114,7 @@ fn burn_mining_resource_should_fail() {
 fn deposit_mining_resource_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			MiningModule::deposit(Origin::signed(ALICE), 1000),
+			MiningModule::deposit(RuntimeOrigin::signed(ALICE), 1000),
 			crate::Error::<Runtime>::BalanceLow
 		);
 	})
@@ -124,7 +124,7 @@ fn deposit_mining_resource_should_fail() {
 fn withdraw_mining_resource_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			MiningModule::withdraw(Origin::signed(ALICE), BOB, 1000),
+			MiningModule::withdraw(RuntimeOrigin::signed(ALICE), BOB, 1000),
 			crate::Error::<Runtime>::NoPermission
 		);
 	})
@@ -135,7 +135,7 @@ fn deposit_mining_resource_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_ok!(setup_minting_resource());
 
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		assert_eq!(get_mining_balance(), 0);
 		let treasury_id = MiningModule::bit_treasury_account_id();
 		assert_ok!(MiningModule::mint(origin.clone(), treasury_id, 1000));
@@ -144,7 +144,7 @@ fn deposit_mining_resource_should_work() {
 
 		//Transfer to BOB 300
 		assert_ok!(Currencies::transfer(
-			Origin::signed(treasury_id),
+			RuntimeOrigin::signed(treasury_id),
 			BOB,
 			MiningCurrencyId::get(),
 			300
@@ -152,12 +152,12 @@ fn deposit_mining_resource_should_work() {
 		//BOB balance now is 300
 		assert_eq!(get_mining_balance_of(&BOB), 300);
 		//BOB deposit to treasury so his hot wallet will be 100
-		assert_ok!(MiningModule::deposit(Origin::signed(BOB), 100));
+		assert_ok!(MiningModule::deposit(RuntimeOrigin::signed(BOB), 100));
 		assert_eq!(get_mining_balance_of(&BOB), 200);
 
 		assert_eq!(get_mining_balance_of(&treasury_id), 800);
 
-		let event = mock::Event::MiningModule(crate::Event::DepositMiningResource(BOB, 100));
+		let event = mock::RuntimeEvent::MiningModule(crate::Event::DepositMiningResource(BOB, 100));
 
 		assert_eq!(last_event(), event);
 	});
@@ -167,7 +167,7 @@ fn deposit_mining_resource_should_work() {
 fn update_mining_config_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		setup_minting_resource();
-		let origin = Origin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(ALICE);
 		let mining_config = MiningResourceRateInfo {
 			rate: Perbill::from_percent(10),
 			staking_reward: Perbill::from_percent(30),
@@ -180,7 +180,7 @@ fn update_mining_config_should_work() {
 
 		assert_eq!(MiningModule::mining_ratio_config(), mining_config.clone());
 
-		let event = mock::Event::MiningModule(crate::Event::MiningConfigUpdated(1, mining_config));
+		let event = mock::RuntimeEvent::MiningModule(crate::Event::MiningConfigUpdated(1, mining_config));
 
 		assert_eq!(last_event(), event);
 	});

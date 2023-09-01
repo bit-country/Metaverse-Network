@@ -93,7 +93,7 @@ pub mod pallet {
 		frame_system::Config
 		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
 	{
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The data deposit per byte to calculate fee
 		/// Default minting price per NFT token
 		#[pallet::constant]
@@ -180,6 +180,19 @@ pub mod pallet {
 	#[pallet::getter(fn get_locked_collection)]
 	/// Index locked collections by class ID
 	pub(super) type LockedCollection<T: Config> = StorageMap<_, Blake2_128Concat, ClassIdOf<T>, (), OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn reserved_stackable_nft_balances)]
+	/// Reserved stackable nft balance
+	pub(super) type ReservedStackableNftBalance<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		T::AccountId,
+		Twox64Concat,
+		(ClassIdOf<T>, TokenIdOf<T>),
+		BalanceOf<T>,
+		ValueQuery,
+	>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {}
@@ -573,6 +586,11 @@ pub mod pallet {
 				Error::<T>::AssetAlreadyInAuction
 			);
 
+			ensure!(
+				amount <= Self::get_free_stackable_nft_balance(&sender, &asset_id),
+				Error::<T>::InvalidStackableNftTransfer
+			);
+
 			let transfer_result = NftModule::<T>::transfer_stackable_nft(&sender, &to, asset_id, amount);
 
 			ensure!(transfer_result.is_ok(), Error::<T>::InvalidStackableNftTransfer);
@@ -922,7 +940,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		//		fn on_runtime_upgrade() -> Weight {
 		//			Self::storage_migration_fix_locking_issue();
-		//			0
+		//			Weight::from_ref_time(0)
 		//		}
 	}
 }
@@ -1227,7 +1245,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
-		0
+		Weight::from_ref_time(0)
 	}
 
 	/// Upgrading lock of each nft
@@ -1262,7 +1280,7 @@ impl<T: Config> Pallet<T> {
 			},
 		);
 		log::info!("Tokens upgraded: {}", num_nft_tokens);
-		0
+		Weight::from_ref_time(0)
 	}
 }
 
@@ -1469,5 +1487,42 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		));
 
 		Ok(minted_token_id)
+	}
+
+	fn get_free_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {
+		let total_balance = NftModule::<T>::get_stackable_collections_balances((asset_id.0, asset_id.1, who));
+		let reserved_balance = Self::reserved_stackable_nft_balances(who, asset_id);
+		total_balance.saturating_sub(reserved_balance)
+	}
+
+	fn reserve_stackable_nft_balance(
+		who: &T::AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: BalanceOf<T>,
+	) -> sp_runtime::DispatchResult {
+		let reserved_balance = Self::reserved_stackable_nft_balances(who, asset_id);
+		ReservedStackableNftBalance::<T>::insert(who, asset_id, reserved_balance.saturating_add(amount));
+		Ok(())
+	}
+
+	fn unreserve_stackable_nft_balance(
+		who: &T::AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: BalanceOf<T>,
+	) -> sp_runtime::DispatchResult {
+		let reserved_balance = Self::reserved_stackable_nft_balances(who, asset_id);
+		ReservedStackableNftBalance::<T>::insert(who, asset_id, reserved_balance.saturating_sub(amount));
+		Ok(())
+	}
+
+	fn transfer_stackable_nft(
+		sender: &T::AccountId,
+		to: &T::AccountId,
+		asset_id: &(Self::ClassId, Self::TokenId),
+		amount: BalanceOf<T>,
+	) -> DispatchResult {
+		NftModule::<T>::transfer_stackable_nft(&sender, &to, *asset_id, amount);
+
+		Ok(())
 	}
 }

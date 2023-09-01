@@ -29,7 +29,7 @@ pub type ChainSpec = sc_service::GenericChainSpec<continuum_runtime::GenesisConf
 /// The default XCM version to set in genesis config.
 const SAFE_XCM_VERSION: u32 = xcm::prelude::XCM_VERSION;
 
-pub const PARA_ID: u32 = 2050;
+pub const PARA_ID: u32 = 3346;
 
 /// Generate the session keys from individual elements.
 ///
@@ -132,16 +132,16 @@ pub fn local_testnet_config() -> ChainSpec {
 	)
 }
 
-pub fn pioneer_network_config_json() -> Result<ChainSpec, String> {
-	ChainSpec::from_json_bytes(&include_bytes!("../../../node/res/pioneer-live-raw-spec.json")[..])
+pub fn continuum_network_config_json() -> Result<ChainSpec, String> {
+	ChainSpec::from_json_bytes(&include_bytes!("../../../node/res/continuum-live-raw-spec.json")[..])
 }
 
 pub fn continuum_genesis_config() -> ChainSpec {
 	ChainSpec::from_genesis(
 		// Name
-		"Pioneer Network",
+		"Continuum Network",
 		// ID
-		"pioneer-live",
+		"continuum-live",
 		ChainType::Live,
 		move || {
 			continuum_genesis(
@@ -312,7 +312,7 @@ pub fn authority_keys_from_seed(s: &str) -> (AccountId, AuraId) {
 pub fn continuum_properties() -> Properties {
 	let mut properties = Properties::new();
 
-	properties.insert("ss58Format".into(), 268.into());
+	properties.insert("ss58Format".into(), 42.into());
 	properties.insert("tokenDecimals".into(), 18.into());
 	properties.insert("tokenSymbol".into(), "NUUM".into());
 

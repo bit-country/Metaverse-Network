@@ -33,7 +33,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
 
-use xcm::v1::MultiLocation;
+use xcm::v3::MultiLocation;
 
 pub mod continuum;
 pub mod estate;
@@ -144,6 +144,7 @@ pub const ESTATE_CLASS_ID: ClassId = 16;
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub enum ItemId<Balance> {
 	NFT(ClassId, TokenId),
+	StackableNFT(ClassId, TokenId, Balance),
 	Spot(MapSpotId, MetaverseId),
 	Metaverse(MetaverseId),
 	Block(u64),

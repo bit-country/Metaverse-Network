@@ -41,10 +41,10 @@ pub mod pallet {
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Specifies the origin check provided by the bridge for calls that can only be called by
 		/// the bridge pallet
-		type BridgeOrigin: EnsureOrigin<Self::Origin>;
+		type BridgeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// The currency mechanism.
 		type Currency: ReservableCurrency<Self::AccountId>
 			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
@@ -161,7 +161,7 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		pub fn oracle_change_fee(
 			origin: OriginFor<T>,
 			min_fee: BalanceOf<T>,
@@ -179,7 +179,7 @@ pub mod pallet {
 
 		/// Transfers some amount of the native token to some recipient on a (whitelisted)
 		/// destination chain.
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000)  + T::DbWeight::get().writes(1))]
 		pub fn bridge_out_fungible(
 			origin: OriginFor<T>,
 			amount: BalanceOf<T>,
@@ -230,7 +230,7 @@ pub mod pallet {
 		}
 
 		/// Executes a simple currency transfer from user account to bridge account
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		pub fn bridge_in_fungible(
 			origin: OriginFor<T>,
 			from: Vec<u8>,
@@ -266,7 +266,7 @@ pub mod pallet {
 		//
 
 		/// Execute NFT minting using bridge account as the source
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		pub fn bridge_in_nft(
 			origin: OriginFor<T>,
 			from: Vec<u8>,
@@ -322,7 +322,7 @@ pub mod pallet {
 		}
 
 		/// Executes a simple currency transfer using the bridge account as the source
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		pub fn bridge_out_nft(
 			origin: OriginFor<T>,
 			to: Vec<u8>,
@@ -353,7 +353,7 @@ pub mod pallet {
 		}
 
 		/// Register new resource token id for bridge
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn register_new_token_id(
 			origin: OriginFor<T>,
@@ -373,7 +373,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000)  + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn remove_resource_token_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
@@ -386,7 +386,7 @@ pub mod pallet {
 		}
 
 		/// Register new resource token id for bridge
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn register_new_nft_resource_id(
 			origin: OriginFor<T>,
@@ -405,7 +405,7 @@ pub mod pallet {
 			Ok(())
 		}
 
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		#[transactional]
 		pub fn remove_resource_nft_id(origin: OriginFor<T>, resource_id: ResourceId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
@@ -420,7 +420,7 @@ pub mod pallet {
 		}
 
 		/// Add new Bridge origin to execute bridge only request
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		pub fn add_bridge_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
 			ensure!(!Self::is_bridge_origin(&who), Error::<T>::BridgeOriginAlreadyExist);
@@ -432,7 +432,7 @@ pub mod pallet {
 		}
 
 		/// Remove Bridge origin that used to execute bridge only request
-		#[pallet::weight(195_000 + T::DbWeight::get().writes(1))]
+		#[pallet::weight(Weight::from_ref_time(195_000) + T::DbWeight::get().writes(1))]
 		pub fn remove_bridge_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			T::BridgeOrigin::ensure_origin(origin)?;
 			ensure!(Self::is_bridge_origin(&who), Error::<T>::BridgeOriginDoesNotExist);

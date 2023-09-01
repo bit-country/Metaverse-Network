@@ -23,15 +23,15 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Set-Up
-        run: sudo apt install -y cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
+        run: sudo apt install -y protobuf-compiler cmake pkg-config libssl-dev git build-essential clang libclang-dev curl
 
       - name: Install Rustup
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           source ~/.cargo/env
           rustup default nightly && rustup update
-          rustup default nightly-2022-05-11
-          rustup target add wasm32-unknown-unknown --toolchain nightly-2022-05-11
+          rustup default nightly-2023-01-24
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2023-01-24
       - name: Check Rust version
         run: rustup show
       - name: Check Format

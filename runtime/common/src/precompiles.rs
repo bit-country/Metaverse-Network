@@ -11,14 +11,24 @@ use sp_std::fmt::Debug;
 use sp_std::marker::PhantomData;
 
 use crate::currencies::MultiCurrencyPrecompile;
+use crate::metaverse::MetaversePrecompile;
 use crate::nft::NftPrecompile;
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
 pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
+/// The metaverse precompile address prefix. Addresses that match against this prefix will be routed
+/// to MetaversePrecompile
+pub const METAVERSE_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[1u8; 9];
 /// The NFT precompile address prefix. Addresses that match against this prefix will be routed
 /// to NftPrecompile
 pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
+/// The auction precompile address prefix. Addresses that match against this prefix will be routed
+/// to AuctionPrecompile
+pub const AUCTION_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[3u8; 9];
+/// The estate precompile address prefix. Addresses that match against this prefix will be routed
+/// to EstatePrecompile
+pub const ESTATE_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[4u8; 9];
 /// The PrecompileSet installed in the Metaverse runtime.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MetaverseNetworkPrecompiles<R>(PhantomData<R>);
@@ -34,9 +44,10 @@ impl<R> MetaverseNetworkPrecompiles<R> {
 /// 1024-2047 Precompiles that are not in Ethereum Mainnet
 impl<R> PrecompileSet for MetaverseNetworkPrecompiles<R>
 where
-	R: pallet_evm::Config + currencies_pallet::Config + nft_pallet::Config,
+	R: pallet_evm::Config + currencies_pallet::Config + nft_pallet::Config + metaverse_pallet::Config,
 	MultiCurrencyPrecompile<R>: Precompile,
 	NftPrecompile<R>: Precompile,
+	MetaversePrecompile<R>: Precompile,
 	Dispatch<R>: Precompile,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
@@ -69,6 +80,9 @@ where
 			// If the address matches asset prefix, the we route through the asset precompile set
 			a if &a.to_fixed_bytes()[0..9] == ASSET_PRECOMPILE_ADDRESS_PREFIX => {
 				Some(MultiCurrencyPrecompile::<R>::execute(handle))
+			}
+			a if &a.to_fixed_bytes()[0..9] == METAVERSE_PRECOMPILE_ADDRESS_PREFIX => {
+				Some(MetaversePrecompile::<R>::execute(handle))
 			}
 			a if &a.to_fixed_bytes()[0..9] == NFT_PRECOMPILE_ADDRESS_PREFIX => {
 				Some(NftPrecompile::<R>::execute(handle))

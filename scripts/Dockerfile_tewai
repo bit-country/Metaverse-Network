@@ -15,12 +15,13 @@ COPY . /metaverse
 
 RUN apt-get update && \
 	apt-get dist-upgrade -y -o Dpkg::Options::="--force-confold" && \
-	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev
+	apt-get install -y cmake pkg-config libssl-dev git clang libclang-dev protobuf-compiler
+
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
 	export PATH="$PATH:$HOME/.cargo/bin" && \
-	rustup default nightly-2022-05-11 && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly-2022-05-11 && \
+	rustup default nightly-2023-01-24 && \
+	rustup target add wasm32-unknown-unknown --toolchain nightly-2023-01-24 && \
 	cargo build "--$PROFILE" --features=with-tewai-runtime
 
 # ===== SECOND STAGE ======

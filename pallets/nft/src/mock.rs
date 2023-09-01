@@ -37,16 +37,16 @@ pub const TOKEN_ID_2: <Runtime as orml_nft::Config>::TokenId = 2;
 pub const COLLECTION_ID: u64 = 0;
 
 impl frame_system::Config for Runtime {
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = ::sp_runtime::traits::BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = Header;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type BlockWeights = ();
 	type BlockLength = ();
@@ -69,7 +69,7 @@ parameter_types! {
 
 impl pallet_balances::Config for Runtime {
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -186,19 +186,17 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type CurrencyHooks = ();
 	type MaxLocks = ();
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 pub type AdaptedBasicCurrency = currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -209,7 +207,7 @@ parameter_types! {
 }
 
 impl currencies::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
@@ -217,20 +215,19 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub MaximumSchedulerWeight: Weight = 128;
+	pub MaximumSchedulerWeight: Weight = Weight::from_ref_time(128);
 }
 impl pallet_scheduler::Config for Runtime {
-	type Event = Event;
-	type Origin = Origin;
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeOrigin = RuntimeOrigin;
 	type PalletsOrigin = OriginCaller;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type MaximumWeight = MaximumSchedulerWeight;
 	type ScheduleOrigin = EnsureRoot<AccountId>;
 	type OriginPrivilegeCmp = EqualPrivilegeOnly;
 	type MaxScheduledPerBlock = ();
 	type WeightInfo = ();
-	type PreimageProvider = ();
-	type NoPreimagePostponement = ();
+	type Preimages = ();
 }
 
 parameter_types! {
@@ -240,7 +237,7 @@ parameter_types! {
 }
 
 impl Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Treasury = MetaverseNetworkTreasuryPalletId;
 	type PalletId = NftPalletId;
@@ -315,7 +312,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
@@ -323,5 +320,5 @@ pub fn last_event() -> Event {
 }
 
 pub fn transfer_balance_encode(to: AccountId, value: u128) -> Vec<u8> {
-	Call::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
+	RuntimeCall::Balances(pallet_balances::Call::transfer { dest: to, value: value }).encode()
 }

@@ -12,7 +12,8 @@ use sp_std::vec::Vec;
 use super::utils::{create_nft_group, dollar, mint_NFT, set_balance, set_metaverse_treasury_initial_balance};
 
 use crate::{
-	Call, Event, MinimumCampaignCoolingOffPeriod, MinimumCampaignDuration, MinimumRewardPool, Reward, Runtime, System,
+	MinimumCampaignCoolingOffPeriod, MinimumCampaignDuration, MinimumRewardPool, Reward, Runtime, RuntimeCall,
+	RuntimeEvent, System,
 };
 
 const CURRENCY_ID: FungibleTokenId = FungibleTokenId::NativeToken(0);

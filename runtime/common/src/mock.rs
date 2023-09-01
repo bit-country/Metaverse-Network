@@ -3,12 +3,12 @@ use std::ptr::hash;
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchResult,
-	parameter_types,
+	ord_parameter_types, parameter_types,
 	traits::{AsEnsureOriginWithArg, Everything, Nothing},
 	weights::Weight,
 	PalletId,
 };
-use frame_system::{EnsureNever, EnsureRoot};
+use frame_system::{EnsureNever, EnsureRoot, EnsureSignedBy};
 use hex_literal::hex;
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{AddressMapping, PrecompileHandle, PrecompileOutput};
@@ -26,13 +26,17 @@ use evm_mapping::EvmAddressMapping;
 
 use precompile_utils::precompile_set::*;
 use precompile_utils::EvmResult;
-use primitives::evm::{
-	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
-	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
+use primitives::{
+	evm::{
+		CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
+		H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
+	},
+	MetaverseId,
 };
 use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
+use crate::metaverse::MetaversePrecompile;
 use crate::nft::NftPrecompile;
 use crate::precompiles::MetaverseNetworkPrecompiles;
 
@@ -51,6 +55,8 @@ pub const CLASS_ID: ClassId = 0u32;
 pub const CLASS_ID_2: ClassId = 1u32;
 pub const TOKEN_ID: TokenId = 0u64;
 pub const TOKEN_ID_2: TokenId = 1u64;
+pub const METAVERSE_ID: MetaverseId = 0u64;
+pub const METAVERSE_ID_2: MetaverseId = 1u64;
 pub const ALICE_ACCOUNT: AccountId = AccountId::new([1u8; 32]);
 pub const BOB_ACCOUNT: AccountId = AccountId::new([2u8; 32]);
 pub const CHARLIE_ACCOUNT: AccountId = AccountId::new([3u8; 32]);
@@ -63,16 +69,16 @@ parameter_types! {
 impl frame_system::Config for Runtime {
 	type BaseCallFilter = Everything;
 	type DbWeight = ();
-	type Origin = Origin;
+	type RuntimeOrigin = RuntimeOrigin;
 	type Index = u64;
 	type BlockNumber = BlockNumber;
-	type Call = Call;
+	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
 	type AccountId = AccountId;
 	type Lookup = IdentityLookup<Self::AccountId>;
 	type Header = sp_runtime::generic::Header<BlockNumber, BlakeTwo256>;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type BlockHashCount = BlockHashCount;
 	type Version = ();
 	type PalletInfo = PalletInfo;
@@ -107,7 +113,7 @@ impl pallet_balances::Config for Runtime {
 	type ReserveIdentifier = [u8; 8];
 	type MaxLocks = ();
 	type Balance = Balance;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
@@ -117,6 +123,9 @@ impl pallet_balances::Config for Runtime {
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
 /// to MultiCurrencyPrecompile
 pub const ASSET_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[0u8; 9];
+/// The metaverse precompile address prefix. Addresses that match against this prefix will be routed
+/// to MetaversePrecompile
+pub const METAVERSE_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[1u8; 9];
 /// The NFT precompile address prefix. Addresses that match against this prefix will be routed
 /// to NftPrecompile
 pub const NFT_PRECOMPILE_ADDRESS_PREFIX: &[u8] = &[2u8; 9];
@@ -128,6 +137,7 @@ impl<R> PrecompileSet for Precompiles<R>
 where
 	MultiCurrencyPrecompile<R>: PrecompileSet,
 	NftPrecompile<R>: PrecompileSet,
+	MetaversePrecompile<R>: PrecompileSet,
 {
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<EvmResult<PrecompileOutput>> {
 		match handle.code_address() {
@@ -136,6 +146,9 @@ where
 			}
 			a if &a.to_fixed_bytes()[0..9] == NFT_PRECOMPILE_ADDRESS_PREFIX => {
 				NftPrecompile::<R>::default().execute(handle)
+			}
+			a if &a.to_fixed_bytes()[0..9] == METAVERSE_PRECOMPILE_ADDRESS_PREFIX => {
+				MetaversePrecompile::<R>::default().execute(handle)
 			}
 			_ => None,
 		}
@@ -146,14 +159,25 @@ where
 	}
 }
 
+/// Current approximation of the gas/s consumption considering
+/// EVM execution over compiled WASM (on 4.4Ghz CPU).
+/// Given the 500ms Weight, from which 75% only are used for transactions,
+/// the total EVM execution gas limit is: GAS_PER_SECOND * 0.500 * 0.75 ~= 15_000_000.
+pub const GAS_PER_SECOND: u64 = 40_000_000;
+
+/// Approximate ratio of the amount of Weight per Gas.
+/// u64 works for approximations because Weight is a very small unit compared to gas.
+pub const WEIGHT_PER_GAS: u64 = WEIGHT_REF_TIME_PER_SECOND.saturating_div(GAS_PER_SECOND);
+
 parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
 	pub PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
+	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
 }
 
 impl pallet_evm::Config for Runtime {
 	type FeeCalculator = ();
-	type GasWeightMapping = ();
+	type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
 	type ChainId = ();
 	type OnChargeTransaction = ();
 	type FindAuthor = ();
@@ -161,12 +185,13 @@ impl pallet_evm::Config for Runtime {
 	type WithdrawOrigin = EnsureAddressNever<AccountId>;
 	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
 	type Currency = Balances;
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
 	type PrecompilesType = Precompiles<Self>;
 	type PrecompilesValue = PrecompilesValue;
 	type BlockGasLimit = BlockGasLimit;
 	type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
+	type WeightPerGas = WeightPerGas;
 }
 
 parameter_type_with_key! {
@@ -181,19 +206,17 @@ parameter_types! {
 }
 
 impl orml_tokens::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
 	type Amount = Amount;
 	type CurrencyId = FungibleTokenId;
 	type WeightInfo = ();
 	type ExistentialDeposits = ExistentialDeposits;
-	type OnDust = orml_tokens::TransferDust<Runtime, TreasuryModuleAccount>;
+	type CurrencyHooks = CurrencyHooks<Runtime, TreasuryModuleAccount>;
 	type MaxLocks = ();
 	type ReserveIdentifier = [u8; 8];
 	type MaxReserves = ();
 	type DustRemovalWhitelist = Nothing;
-	type OnNewTokenAccount = ();
-	type OnKilledTokenAccount = ();
 }
 
 pub type AdaptedBasicCurrency = orml_currencies::BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
@@ -211,7 +234,7 @@ impl orml_currencies::Config for Runtime {
 }
 
 impl currencies_pallet::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type MultiSocialCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type GetNativeCurrencyId = NativeCurrencyId;
@@ -285,7 +308,7 @@ impl Erc20Mapping for Runtime {
 }
 
 impl asset_manager::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type RegisterOrigin = EnsureRoot<AccountId>;
 }
@@ -393,7 +416,7 @@ impl orml_nft::Config for Runtime {
 }
 
 impl evm_mapping::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type AddressMapping = EvmAddressMapping<Runtime>;
 	type ChainId = ();
@@ -412,7 +435,7 @@ parameter_types! {
 }
 
 impl nft_pallet::Config for Runtime {
-	type Event = Event;
+	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
 	type Treasury = MetaverseNetworkTreasuryPalletId;
@@ -425,6 +448,28 @@ impl nft_pallet::Config for Runtime {
 	type MiningResourceId = MiningCurrencyId;
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
+}
+
+parameter_types! {
+	pub MaxMetaverseMetadata: u32 = 1024;
+	pub MinContribution: Balance = 1;
+	pub MaxNumberOfStakerPerMetaverse: u32 = 512;
+	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
+}
+
+impl metaverse_pallet::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type MetaverseTreasury = LocalMetaverseFundPalletId;
+	type Currency = Balances;
+	type MaxMetaverseMetadata = MaxMetaverseMetadata;
+	type MinContribution = MinContribution;
+	type MetaverseCouncil = EnsureRoot<AccountId>;
+	type WeightInfo = ();
+	type MetaverseRegistrationDeposit = MinContribution;
+	type MinStakingAmount = MinContribution;
+	type MaxNumberOfStakersPerMetaverse = MaxNumberOfStakerPerMetaverse;
+	type MultiCurrency = Currencies;
+	type NFTHandler = Nft;
 }
 
 // Configure a mock runtime to test the pallet.
@@ -447,6 +492,7 @@ construct_runtime!(
 
 		Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>},
 		Nft: nft_pallet::{Pallet, Storage, Call, Event<T>},
+		Metaverse: metaverse_pallet::{Pallet, Storage, Call, Event<T>},
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
 	}
 );
@@ -485,7 +531,7 @@ impl ExtBuilder {
 	}
 }
 
-pub fn last_event() -> Event {
+pub fn last_event() -> RuntimeEvent {
 	frame_system::Pallet::<Runtime>::events()
 		.pop()
 		.expect("Event expected")
@@ -508,6 +554,10 @@ pub fn neer_evm_address() -> H160 {
 
 pub fn nft_precompile_address() -> H160 {
 	H160::from(hex_literal::hex!("0202020202020202020000000000000000000000"))
+}
+
+pub fn metaverse_precompile_address() -> H160 {
+	H160::from(hex_literal::hex!("0101010101010101010000000000000000000000"))
 }
 
 pub fn nft_address() -> H160 {

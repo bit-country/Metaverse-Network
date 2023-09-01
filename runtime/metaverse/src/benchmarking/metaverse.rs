@@ -1,8 +1,8 @@
 use super::utils::{create_nft_group, dollar, set_balance, set_metaverse_treasury_initial_balance};
 #[allow(unused)]
 use crate::{
-	Balances, Event, LocalMetaverseFundPalletId, Metaverse, MetaverseNetworkTreasuryPalletId, MinContribution, Nft,
-	Runtime,
+	Balances, LocalMetaverseFundPalletId, Metaverse, MetaverseNetworkTreasuryPalletId, MinContribution, Nft, Runtime,
+	RuntimeEvent,
 };
 use core_primitives::MetaverseInfo;
 use frame_benchmarking::{account, whitelisted_caller};
