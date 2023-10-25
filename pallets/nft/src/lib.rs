@@ -52,7 +52,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData, NftAssetDataV1, NftClassDataV1};
+use primitive_traits::{CollectionType, NftAssetData, NftAssetDataV1, NftClassDataV1, PreSignedMint};
 use primitives::{AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId};
 pub use weights::WeightInfo;
 
@@ -81,7 +81,9 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedSub, IdentifyAccount, Verify};
 	use sp_runtime::ArithmeticError;
 
-	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
+	use primitive_traits::{
+		CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, PreSignedMint, TokenType,
+	};
 	use primitives::FungibleTokenId;
 
 	use super::*;
@@ -154,9 +156,9 @@ pub mod pallet {
 	pub type BalanceOf<T> =
 		<<T as orml_nft::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 	/// A type alias for the pre-signed minting configuration for a specified collection.
-	pub(super) type PreSignedMintOf<T, I = ()> = PreSignedMint<
-		<T as Config>::CollectionId,
-		<T as Config>::ItemId,
+	pub(super) type PreSignedMintOf<T> = PreSignedMint<
+		ClassIdOf<T>,
+		TokenIdOf<T>,
 		<T as frame_system::Config>::AccountId,
 		BlockNumberFor<T>,
 		BalanceOf<T>,

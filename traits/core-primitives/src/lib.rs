@@ -162,6 +162,22 @@ pub struct MetaverseFund<AccountId, Balance> {
 	pub currency_id: FungibleTokenId,
 }
 
+#[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct PreSignedMint<ClassId, TokenId, AccountId, Deadline, Balance> {
+	/// A collection of the item to be minted.
+	pub(super) collection: ClassId,
+	/// Item's ID.
+	pub(super) item: TokenId,
+	/// Additional item's key-value attributes.
+	pub(super) attributes: Vec<(Vec<u8>, Vec<u8>)>,
+	/// Additional item's metadata.
+	pub(super) metadata: Vec<u8>,
+	/// Restrict the claim to a particular account.
+	pub(super) only_account: Option<AccountId>,
+	/// An optional price the claimer would need to pay for the mint.
+	pub(super) mint_price: Option<Balance>,
+}
+
 pub trait MetaverseTrait<AccountId> {
 	/// Create metaverse
 	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId;
