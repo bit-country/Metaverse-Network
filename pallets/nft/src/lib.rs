@@ -153,6 +153,14 @@ pub mod pallet {
 	pub type TokenIdOf<T> = <T as orml_nft::Config>::TokenId;
 	pub type BalanceOf<T> =
 		<<T as orml_nft::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	/// A type alias for the pre-signed minting configuration for a specified collection.
+	pub(super) type PreSignedMintOf<T, I = ()> = PreSignedMint<
+		<T as Config>::CollectionId,
+		<T as Config>::ItemId,
+		<T as frame_system::Config>::AccountId,
+		BlockNumberFor<T>,
+		BalanceOf<T>,
+	>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn get_group_collection)]
@@ -395,8 +403,9 @@ pub mod pallet {
 		/// Invalid stackable NFT amount
 		InvalidStackableNftAmount,
 		/// Invalid current total issuance
-		/// Invalid current total issuance
 		InvalidCurrentTotalIssuance,
+		/// Wrong signature
+		WrongSignature,
 	}
 
 	#[pallet::call]

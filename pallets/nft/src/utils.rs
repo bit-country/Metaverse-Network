@@ -36,8 +36,6 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		// NOTE: for security reasons modern UIs implicitly wrap the data requested to sign into
-		// <Bytes></Bytes>, that's why we support both wrapped and raw versions.
 		let prefix = b"<Bytes>";
 		let suffix = b"</Bytes>";
 		let mut wrapped: Vec<u8> = Vec::with_capacity(data.len() + prefix.len() + suffix.len());
@@ -45,7 +43,7 @@ impl<T: Config> Pallet<T> {
 		wrapped.extend(data);
 		wrapped.extend(suffix);
 
-		ensure!(signature.verify(&*wrapped, &signer), Error::<T, I>::WrongSignature);
+		ensure!(signature.verify(&*wrapped, &signer), Error::<T>::WrongSignature);
 
 		Ok(())
 	}
