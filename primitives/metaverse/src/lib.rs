@@ -32,7 +32,6 @@ use sp_runtime::{FixedU128, OpaqueExtrinsic as UncheckedExtrinsic};
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::prelude::*;
 use sp_std::vec::Vec;
-
 use xcm::v3::MultiLocation;
 
 pub mod continuum;
