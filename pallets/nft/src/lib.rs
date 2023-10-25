@@ -157,10 +157,9 @@ pub mod pallet {
 		<<T as orml_nft::Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 	/// A type alias for the pre-signed minting configuration for a specified collection.
 	pub(super) type PreSignedMintOf<T> = PreSignedMint<
-		ClassIdOf<T>,
-		TokenIdOf<T>,
+		<T as orml_nft::Config>::ClassId,
+		<T as orml_nft::Config>::TokenId,
 		<T as frame_system::Config>::AccountId,
-		BlockNumberFor<T>,
 		BalanceOf<T>,
 	>;
 
@@ -970,6 +969,28 @@ pub mod pallet {
 				Ok(())
 			})
 		}
+
+		/// Mint an item by providing the pre-signed approval.
+		///
+		/// Origin must be Signed.
+		///
+		/// - `mint_data`: The pre-signed approval that consists of the information about the item,
+		///   its metadata, attributes, who can mint it (`None` for anyone) and until what block
+		///   number.
+		/// - `signature`: The signature of the `data` object.
+		/// - `signer`: The `data` object's signer. Should be an Issuer of the collection.
+		#[pallet::call_index(37)]
+		#[pallet::weight(T::WeightInfo::mint_pre_signed(mint_data.attributes.len() as u32))]
+		pub fn mint_pre_signed(
+			origin: OriginFor<T>,
+			mint_data: Box<PreSignedMintOf<T>>,
+			signature: T::OffchainSignature,
+			signer: T::AccountId,
+		) -> DispatchResult {
+			let origin = ensure_signed(origin)?;
+			Self::validate_signature(&Encode::encode(&mint_data), &signature, &signer)?;
+			Self::do_mint_pre_signed(origin, *mint_data, signer)
+		}
 	}
 
 	#[pallet::hooks]
@@ -1144,6 +1165,90 @@ impl<T: Config> Pallet<T> {
 		));
 
 		Ok((new_asset_ids, last_token_id))
+	}
+
+	// Mint with pre-signed approval from collection owner
+	pub(crate) fn do_mint_pre_signed(
+		mint_to: T::AccountId,
+		mint_data: PreSignedMintOf<T>,
+		signer: T::AccountId,
+	) -> DispatchResult {
+		let PreSignedMint {
+			class_id,
+			token_id,
+			attributes,
+			metadata,
+			only_account,
+			mint_price,
+		} = mint_data;
+
+		// Make sure collection is not locked
+		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
+
+		// Check metadata length
+		ensure!(
+			attributes.len() <= T::MaxMetadata::get() as usize,
+			Error::<T>::ExceedMaximumMetadataLength
+		);
+
+		// If specific account recipient specified, this will make sure requirement pass
+		if let Some(account) = only_account {
+			ensure!(account == mint_to, Error::<T>::NoPermission);
+		}
+
+		// Get class info of the collection
+		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+
+		// Ensure signer is owner of collection
+		ensure!(&signer == class_info.owner, Error::<T>::NoPermission);
+
+		// If minting price is specified, this will transfer token to collection owner.
+		if let Some(price) = mint_price {
+			<T as orml_nft::Config>::Currency::transfer(
+				&mint_to,
+				&class_info.owner,
+				price,
+				ExistenceRequirement::KeepAlive,
+			)?;
+		}
+
+		// Update class total issuance
+		Self::update_class_total_issuance(&sender, &class_id, One::one())?;
+
+		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(One::one()));
+		<T as orml_nft::Config>::Currency::transfer(&mint_to, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+
+		let new_nft_data = NftAssetData {
+			deposit,
+			attributes: attributes,
+			is_locked: false,
+		};
+
+		// Mint specific token id
+		NftModule::<T>::mint_with_token_id(&sender, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
+
+		// Emit New Nft minted event
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, token_id),
+			(class_id, token_id),
+			mint_to.clone(),
+			class_id,
+			One::one(),
+			token_id,
+		));
+
+		Ok(())
+	}
+
+	/// A helper method to construct metadata.
+	///
+	/// # Errors
+	///
+	/// This function returns an [`IncorrectMetadata`](crate::Error::IncorrectMetadata) dispatch
+	/// error if the provided metadata is too long.
+	pub fn construct_metadata(metadata: Vec<u8>) -> Result<BoundedVec<u8, T::MaxMetadata>, DispatchError> {
+		Ok(BoundedVec::try_from(metadata).map_err(|_| Error::<T>::ExceedMaximumMetadataLength)?)
 	}
 
 	/// Internal NFT class creation
