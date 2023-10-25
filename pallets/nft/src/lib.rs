@@ -62,6 +62,7 @@ pub mod benchmarking;
 mod mock;
 #[cfg(test)]
 mod tests;
+mod utils;
 
 pub mod weights;
 
@@ -75,8 +76,9 @@ pub enum StorageVersion {
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_system::offchain::Signer;
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
-	use sp_runtime::traits::CheckedSub;
+	use sp_runtime::traits::{CheckedSub, IdentifyAccount, Verify};
 	use sp_runtime::ArithmeticError;
 
 	use primitive_traits::{CollectionType, NftAssetData, NftGroupCollectionData, NftMetadata, TokenType};
@@ -135,6 +137,16 @@ pub mod pallet {
 		/// The fee will be unreserved after the storage is freed.
 		#[pallet::constant]
 		type StorageDepositFee: Get<BalanceOf<Self>>;
+
+		/// Off-Chain signature type.
+		///
+		/// Can verify whether an `Self::OffchainPublic` created a signature.
+		type OffchainSignature: Verify<Signer = Self::OffchainPublic> + Parameter;
+
+		/// Off-Chain public key.
+		///
+		/// Must identify as an on-chain `Self::AccountId`.
+		type OffchainPublic: IdentifyAccount<AccountId = Self::AccountId>;
 	}
 
 	pub type ClassIdOf<T> = <T as orml_nft::Config>::ClassId;
