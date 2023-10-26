@@ -979,8 +979,7 @@ pub mod pallet {
 		///   number.
 		/// - `signature`: The signature of the `data` object.
 		/// - `signer`: The `data` object's signer. Should be an Issuer of the collection.
-		#[pallet::call_index(37)]
-		#[pallet::weight(T::WeightInfo::mint_pre_signed(mint_data.attributes.len() as u32))]
+		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
 		pub fn mint_pre_signed(
 			origin: OriginFor<T>,
 			mint_data: Box<PreSignedMintOf<T>>,
@@ -1200,7 +1199,7 @@ impl<T: Config> Pallet<T> {
 		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
 
 		// Ensure signer is owner of collection
-		ensure!(&signer == class_info.owner, Error::<T>::NoPermission);
+		ensure!(signer == class_info.owner, Error::<T>::NoPermission);
 
 		// If minting price is specified, this will transfer token to collection owner.
 		if let Some(price) = mint_price {
@@ -1213,10 +1212,10 @@ impl<T: Config> Pallet<T> {
 		}
 
 		// Update class total issuance
-		Self::update_class_total_issuance(&sender, &class_id, One::one())?;
+		Self::update_class_total_issuance(&signer, &class_id, One::one())?;
 
 		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
-		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(One::one()));
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1 as u32));
 		<T as orml_nft::Config>::Currency::transfer(&mint_to, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
 
 		let new_nft_data = NftAssetData {
@@ -1225,17 +1224,30 @@ impl<T: Config> Pallet<T> {
 			is_locked: false,
 		};
 
+		let mut new_token_id: TokenIdOf<T> = Default::default();
+
 		// Mint specific token id
-		NftModule::<T>::mint_with_token_id(&sender, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
+		if let Some(provided_token_id) = token_id {
+			NftModule::<T>::mint_with_token_id(
+				&mint_to,
+				class_id,
+				provided_token_id,
+				metadata.clone(),
+				new_nft_data.clone(),
+			)?;
+			new_token_id = provided_token_id
+		} else {
+			new_token_id = NftModule::<T>::mint(&mint_to, class_id, metadata.clone(), new_nft_data.clone())?;
+		}
 
 		// Emit New Nft minted event
 		Self::deposit_event(Event::<T>::NewNftMinted(
-			(class_id, token_id),
-			(class_id, token_id),
+			(class_id, new_token_id),
+			(class_id, new_token_id),
 			mint_to.clone(),
 			class_id,
 			One::one(),
-			token_id,
+			new_token_id,
 		));
 
 		Ok(())

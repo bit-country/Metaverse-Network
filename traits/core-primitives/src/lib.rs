@@ -165,17 +165,17 @@ pub struct MetaverseFund<AccountId, Balance> {
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct PreSignedMint<ClassId, TokenId, AccountId, Balance> {
 	/// A collection of the item to be minted.
-	pub(super) class_id: ClassId,
+	pub class_id: ClassId,
 	/// TokenId.
-	pub(super) token_id: TokenId,
+	pub token_id: Option<TokenId>,
 	/// Additional item's key-value attributes.
-	pub(super) attributes: Attributes,
+	pub attributes: Attributes,
 	/// Additional item's metadata.
-	pub(super) metadata: NftMetadata,
+	pub metadata: NftMetadata,
 	/// Restrict the claim to a particular account.
-	pub(super) only_account: Option<AccountId>,
+	pub only_account: Option<AccountId>,
 	/// An optional price the claimer would need to pay for the mint.
-	pub(super) mint_price: Option<Balance>,
+	pub mint_price: Option<Balance>,
 }
 
 pub trait MetaverseTrait<AccountId> {
