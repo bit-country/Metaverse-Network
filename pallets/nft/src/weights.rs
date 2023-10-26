@@ -37,7 +37,7 @@
 // --repeat
 // 10
 // --output
-// pallets/nft/weights.rs
+// pallets/nft/src/weights.rs
 
 #![cfg_attr(rustfmt, rustfmt_skip)]
 #![allow(unused_parens)]
