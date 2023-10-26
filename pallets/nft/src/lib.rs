@@ -979,7 +979,7 @@ pub mod pallet {
 		///   number.
 		/// - `signature`: The signature of the `data` object.
 		/// - `signer`: The `data` object's signer. Should be an Issuer of the collection.
-		#[pallet::weight(T::WeightInfo::force_update_total_issuance())]
+		#[pallet::weight(T::WeightInfo::mint_pre_signed())]
 		pub fn mint_pre_signed(
 			origin: OriginFor<T>,
 			mint_data: Box<PreSignedMintOf<T>>,
