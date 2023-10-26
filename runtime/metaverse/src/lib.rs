@@ -60,6 +60,8 @@ use pallet_evm::{
 };
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
+//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
+use polkadot_primitives::v2::MAX_POV_SIZE;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -92,13 +94,11 @@ use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 use evm_mapping::EvmAddressMapping;
 use metaverse_runtime_common::{precompiles::MetaverseNetworkPrecompiles, CurrencyHooks};
-use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
-//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
-use polkadot_primitives::v2::MAX_POV_SIZE;
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
 	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN, H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
+use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
 
 // primitives imports
 use crate::opaque::SessionKeys;
@@ -588,6 +588,8 @@ impl nft::Config for Runtime {
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = <Signature as Verify>::Signer;
 }
 
 parameter_types! {
