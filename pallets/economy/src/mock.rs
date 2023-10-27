@@ -5,8 +5,9 @@ use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Pal
 use frame_system::EnsureSignedBy;
 use orml_traits::currency::MutationHooks;
 use orml_traits::parameter_type_with_key;
+use sp_core::crypto::AccountId32;
 use sp_core::H256;
-use sp_runtime::traits::Verify;
+use sp_runtime::traits::{IdentifyAccount, Verify};
 use sp_runtime::{testing::Header, traits::IdentityLookup, MultiSignature, Perbill};
 
 use auction_manager::*;
@@ -19,15 +20,15 @@ use crate as economy;
 
 use super::*;
 
-pub type AccountId = u128;
+pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 pub type Balance = u128;
 pub type BlockNumber = u64;
 type Signature = MultiSignature;
 type AccountPublic = <Signature as Verify>::Signer;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const FREEDY: AccountId = 3;
+pub const ALICE: AccountId = AccountId32::new([1; 32]);
+pub const BOB: AccountId = AccountId32::new([2; 32]);
+pub const FREEDY: AccountId = AccountId32::new([3; 32]);
 
 pub const DISTRIBUTOR_COLLECTION_ID: u64 = 0;
 pub const DISTRIBUTOR_CLASS_ID: ClassId = 0;
@@ -124,15 +125,15 @@ impl pallet_balances::Config for Runtime {
 
 pub struct EstateHandler;
 
-impl Estate<u128> for EstateHandler {
-	fn transfer_estate(estate_id: EstateId, _from: &u128, _to: &u128) -> Result<EstateId, DispatchError> {
+impl Estate<AccountId> for EstateHandler {
+	fn transfer_estate(estate_id: EstateId, _from: &AccountId, _to: &AccountId) -> Result<EstateId, DispatchError> {
 		Ok(estate_id)
 	}
 
 	fn transfer_landunit(
 		coordinate: (i32, i32),
-		_from: &u128,
-		_to: &(u128, primitives::MetaverseId),
+		_from: &AccountId,
+		_to: &(AccountId, primitives::MetaverseId),
 	) -> Result<(i32, i32), DispatchError> {
 		Ok(coordinate)
 	}
@@ -216,8 +217,8 @@ impl pallet_mining::Config for Runtime {
 }
 
 ord_parameter_types! {
-	pub const One: AccountId = 1;
-	pub const Two: AccountId = 2;
+	pub const One: AccountId = AccountId32::new([1;32]);
+	pub const Two: AccountId = AccountId32::new([2;32]);
 	pub const PowerAmountPerBlock: u32 = 10;
 }
 impl Config for Runtime {
@@ -279,7 +280,7 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<AccountId, Self::Balance, u64>> {
 		None
 	}
 
@@ -287,7 +288,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<AccountId, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -296,7 +297,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn new_auction(
-		_recipient: u128,
+		_recipient: AccountId,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_end: Option<u64>,
@@ -308,7 +309,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_auction_type: AuctionType,
 		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
-		_recipient: u128,
+		_recipient: AccountId,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
@@ -331,8 +332,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn local_auction_bid_handler(
 		_now: u64,
 		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
+		_new_bid: (AccountId, Self::Balance),
+		_last_bid: Option<(AccountId, Self::Balance)>,
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
@@ -340,7 +341,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
-		_high_bidder: &u128,
+		_high_bidder: &AccountId,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
