@@ -18,14 +18,15 @@
 #![cfg(test)]
 
 use frame_support::{assert_err, assert_noop, assert_ok, sp_runtime::runtime_logger};
+use hex_literal::hex;
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 
-use super::*;
 use core_primitives::Attributes;
-use hex_literal::hex;
 use mock::{Balance, RuntimeEvent, *};
 use primitives::{CampaignInfo, FungibleTokenId, Hash};
+
+use super::*;
 
 fn init_test_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
@@ -572,7 +573,11 @@ fn set_reward_fails() {
 		);
 
 		assert_noop!(
-			Reward::set_reward(RuntimeOrigin::signed(ALICE), 0, vec![(BOB, 3), (100, 3), (102, 3)]),
+			Reward::set_reward(
+				RuntimeOrigin::signed(ALICE),
+				0,
+				vec![(BOB, 3), ([100; 32].into(), 3), ([102; 32].into(), 3)]
+			),
 			Error::<Runtime>::RewardsListSizeAboveMaximum
 		);
 
@@ -584,7 +589,7 @@ fn set_reward_fails() {
 		);
 
 		assert_noop!(
-			Reward::set_reward(RuntimeOrigin::signed(3), 0, vec![(BOB, 5)]),
+			Reward::set_reward(RuntimeOrigin::signed(CHARLIE), 0, vec![(BOB, 5)]),
 			Error::<Runtime>::InvalidSetRewardOrigin
 		);
 
@@ -674,7 +679,7 @@ fn set_reward_root_fails() {
 		);
 
 		assert_noop!(
-			Reward::set_reward_root(RuntimeOrigin::signed(3), 0, 5, test_hash(2u64)),
+			Reward::set_reward_root(RuntimeOrigin::signed(CHARLIE), 0, 5, test_hash(2u64)),
 			Error::<Runtime>::InvalidSetRewardOrigin
 		);
 
@@ -722,12 +727,17 @@ fn set_nft_reward_fails() {
 		));
 
 		assert_noop!(
-			Reward::set_nft_reward(RuntimeOrigin::signed(3), 0, vec![(BOB, 1)], 1),
+			Reward::set_nft_reward(RuntimeOrigin::signed(CHARLIE), 0, vec![(BOB, 1)], 1),
 			Error::<Runtime>::InvalidSetRewardOrigin
 		);
 
 		assert_noop!(
-			Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(BOB, 1), (102, 1), (100, 1)], 3),
+			Reward::set_nft_reward(
+				RuntimeOrigin::signed(ALICE),
+				0,
+				vec![(BOB, 1), (CHARLIE, 1), (DONNA, 1)],
+				3
+			),
 			Error::<Runtime>::RewardsListSizeAboveMaximum
 		);
 
@@ -761,12 +771,12 @@ fn set_nft_reward_fails() {
 		assert_ok!(Reward::set_nft_reward(
 			RuntimeOrigin::signed(ALICE),
 			0,
-			vec![(106, 2)],
+			vec![([106; 32].into(), 2)],
 			2
 		));
 
 		assert_noop!(
-			Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(100, 1)], 1),
+			Reward::set_nft_reward(RuntimeOrigin::signed(ALICE), 0, vec![(CHARLIE, 1)], 1),
 			Error::<Runtime>::RewardExceedCap
 		);
 
@@ -837,7 +847,7 @@ fn set_nft_reward_root_fails() {
 		));
 
 		assert_noop!(
-			Reward::set_nft_reward_root(RuntimeOrigin::signed(3), 1, test_hash(2u64)),
+			Reward::set_nft_reward_root(RuntimeOrigin::signed(CHARLIE), 1, test_hash(2u64)),
 			Error::<Runtime>::InvalidSetRewardOrigin
 		);
 
@@ -1742,7 +1752,7 @@ fn close_campaign_using_merkle_root_works() {
 			RuntimeOrigin::signed(ALICE),
 			0,
 			4,
-			test_claim_hash(3, 3)
+			test_claim_hash(CHARLIE, 3)
 		));
 
 		run_to_block(11);
@@ -1875,7 +1885,7 @@ fn close_campaign_using_merkle_root_fails() {
 			RuntimeOrigin::signed(ALICE),
 			0,
 			4,
-			test_claim_hash(3, 3)
+			test_claim_hash(CHARLIE, 3)
 		));
 
 		run_to_block(17);
