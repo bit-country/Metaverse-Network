@@ -1,7 +1,9 @@
 use frame_support::{assert_noop, assert_ok};
 use orml_nft::Pallet as NftModule;
 use orml_traits::MultiCurrency;
-use sp_runtime::traits::BadOrigin;
+use sp_core::Pair;
+use sp_runtime::traits::{BadOrigin, IdentifyAccount};
+use sp_runtime::{MultiSignature, MultiSigner};
 use sp_std::default::Default;
 
 use mock::*;
@@ -977,5 +979,33 @@ fn force_updating_new_royal_fee_should_fail() {
 			Nft::force_update_royalty_fee(RuntimeOrigin::root(), CLASS_ID, Perbill::from_percent(u32::MAX)),
 			Error::<Runtime>::RoyaltyFeeExceedLimit
 		);
+	})
+}
+
+#[test]
+fn validate_signature() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
+		let alice_signer = MultiSigner::Sr25519(alice_pair.public());
+		let alice = alice_signer.clone().into_account();
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, u64> = PreSignedMint {
+			class_id: 0,
+			attributes: test_attributes(1),
+			metadata: vec![],
+			only_account: None,
+			mint_price: None,
+			token_id: None,
+		};
+		let encoded_data = Encode::encode(&mint_data);
+		let signature = MultiSignature::Sr25519(alice_pair.sign(&encoded_data));
+		assert_ok!(Nft::validate_signature(&encoded_data, &signature, &alice));
+
+		let mut wrapped_data: Vec<u8> = Vec::new();
+		wrapped_data.extend(b"<Bytes>");
+		wrapped_data.extend(&encoded_data);
+		wrapped_data.extend(b"</Bytes>");
+
+		let signature = MultiSignature::Sr25519(alice_pair.sign(&wrapped_data));
+		assert_ok!(Nft::validate_signature(&encoded_data, &signature, &alice));
 	})
 }
