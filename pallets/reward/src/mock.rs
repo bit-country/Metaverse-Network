@@ -5,7 +5,8 @@ use frame_support::{construct_runtime, ord_parameter_types, parameter_types, Pal
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{testing::Header, traits::IdentityLookup, MultiSignature, Perbill};
 
 use auction_manager::*;
 use core_primitives::NftAssetData;
@@ -17,10 +18,12 @@ use crate as reward;
 
 use super::*;
 
-pub type AccountId = u128;
+pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 pub type Balance = u128;
 pub type BlockNumber = u64;
 pub type Hash = H256;
+type Signature = MultiSignature;
+type AccountPublic = <Signature as Verify>::Signer;
 
 pub const ALICE: AccountId = 1;
 pub const BOB: AccountId = 2;
@@ -262,6 +265,8 @@ impl pallet_nft::Config for Runtime {
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = AccountPublic;
 }
 
 parameter_types! {
