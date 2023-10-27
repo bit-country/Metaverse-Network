@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use frame_support::{assert_noop, assert_ok};
+use sp_core::crypto::AccountId32;
 use sp_std::collections::btree_map::BTreeMap;
 
 use auction_manager::ListingLevel;
@@ -10,6 +11,11 @@ use primitives::ItemId::NFT;
 use primitives::{ClassId, FungibleTokenId};
 
 use super::*;
+
+pub const ALICE: AccountId = AccountId32::new([1; 32]);
+pub const BOB: AccountId = AccountId32::new([2; 32]);
+pub const NO_METAVERSE_OWNER: AccountId = AccountId32::new([3; 32]);
+pub const GENERAL_METAVERSE_FUND: AccountId = AccountId32::new([102; 32]);
 
 fn init_test_nft(owner: RuntimeOrigin) {
 	//Create group collection before class
@@ -785,7 +791,7 @@ fn bid_works() {
 		assert_eq!(
 			AuctionModule::auctions(0),
 			Some(AuctionInfo {
-				bid: Some((1, 200)),
+				bid: Some((ALICE, 200)),
 				start: 1,
 				end: Some(101),
 			})
@@ -825,7 +831,7 @@ fn bid_anti_snipe_duration_works() {
 		assert_eq!(
 			AuctionModule::auctions(0),
 			Some(AuctionInfo {
-				bid: Some((1, 200)),
+				bid: Some((ALICE, 200)),
 				start: 1,
 				end: Some(106),
 			})
@@ -848,7 +854,7 @@ fn bid_anti_snipe_duration_works() {
 		// Verify if auction finalized with new end time.
 		assert_eq!(
 			last_event(),
-			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 201))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 201))
 		);
 	});
 }
@@ -1046,7 +1052,7 @@ fn asset_transfers_after_auction() {
 		// Verify asset transfers to alice after end of auction
 		assert_eq!(
 			last_event(),
-			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 200))
 		);
 
 		// Verify transfer of fund (minus gas)
@@ -1100,7 +1106,7 @@ fn asset_transfers_after_multicurrency_auction() {
 		// Verify asset transfers to alice after end of auction
 		assert_eq!(
 			last_event(),
-			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, 1, 200))
+			RuntimeEvent::AuctionModule(crate::Event::AuctionFinalized(0, ALICE, 200))
 		);
 
 		// Verify transfer of fund

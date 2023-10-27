@@ -11,7 +11,6 @@ use primitives::{Balance, FungibleTokenId};
 use super::*;
 
 type AccountIdOf<Runtime> = <Runtime as frame_system::Config>::AccountId;
-
 fn account(id: u8) -> AccountIdOf<Runtime> {
 	[id; 32].into()
 }
