@@ -1009,3 +1009,39 @@ fn validate_signature() {
 		assert_ok!(Nft::validate_signature(&encoded_data, &signature, &alice));
 	})
 }
+
+#[test]
+fn pre_signed_mints_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice = account(1);
+		let user_1_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
+		let user_1_signer = MultiSigner::Sr25519(user_1_pair.public());
+		let user_1 = user_1_signer.clone().into_account();
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+			class_id: 0,
+			attributes: test_attributes(1),
+			metadata: vec![],
+			only_account: None,
+			mint_price: None,
+			token_id: None,
+		};
+		let message = Encode::encode(&mint_data);
+		let signature = MultiSignature::Sr25519(user_1_pair.sign(&message));
+		assert_ok!(Balances::transfer(
+			RuntimeOrigin::signed(alice.clone()),
+			user_1.clone(),
+			100
+		));
+
+		init_test_nft(RuntimeOrigin::signed(user_1.clone()));
+
+		// User id already signed message so Alice should able to mint nft from pre-signed message
+		assert_ok!(Nft::mint_pre_signed(
+			RuntimeOrigin::signed(alice.clone()),
+			Box::new(mint_data.clone()),
+			signature.clone(),
+			user_1.clone(),
+		));
+		assert_eq!(OrmlNft::tokens_by_owner((alice, 0, 0)), ());
+	})
+}
