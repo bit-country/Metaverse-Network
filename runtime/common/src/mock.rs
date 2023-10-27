@@ -16,14 +16,13 @@ use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Pr
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_core::{Blake2Hasher, Decode, Encode, Hasher, MaxEncodedLen, H160, H256, U256};
-use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, ConstU32, IdentityLookup};
-use sp_runtime::{AccountId32, DispatchError, Perbill};
+use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, ConstU32, IdentityLookup, Verify};
+use sp_runtime::{AccountId32, DispatchError, MultiSignature, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{NftAssetData, NftClassData};
 use evm_mapping::AddressMapping as AddressMappingEvm;
 use evm_mapping::EvmAddressMapping;
-
 use precompile_utils::precompile_set::*;
 use precompile_utils::EvmResult;
 use primitives::evm::{
@@ -45,6 +44,8 @@ pub type Balance = u128;
 pub type BlockNumber = u32;
 pub type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 pub type Block = frame_system::mocking::MockBlock<Runtime>;
+type Signature = MultiSignature;
+type AccountPublic = <Signature as Verify>::Signer;
 
 pub const COLLECTION_ID: u64 = 0;
 pub const CLASS_ID: ClassId = 0u32;
@@ -439,6 +440,8 @@ impl nft_pallet::Config for Runtime {
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = AccountPublic;
 }
 
 // Configure a mock runtime to test the pallet.

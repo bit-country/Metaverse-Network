@@ -128,7 +128,7 @@ fn create_group() -> Weight {
 		Weight::from_parts(49_000_000, 15931)
 			.saturating_add(T::DbWeight::get().reads(5))
 			.saturating_add(T::DbWeight::get().writes(8))
-	}
+	} 
 	// Storage: Auction ItemsInAuction (r:1 w:0)
 	// Proof Skipped: Auction ItemsInAuction (max_values: None, max_size: None, mode: Measured)
 	// Storage: Nft LockedCollection (r:1 w:0)
