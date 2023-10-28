@@ -2288,7 +2288,7 @@ fn js_generated_leafs_match_blockchain_generated_leafs() {
 }
 
 #[test]
-fn merkle_proof_based_cmapaing_works_with_js_generated_root() {
+fn merkle_proof_based_campaign_works_with_js_generated_root() {
 	ExtBuilder::default().build().execute_with(|| {
 		let campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(RuntimeOrigin::signed(ALICE), ALICE));
