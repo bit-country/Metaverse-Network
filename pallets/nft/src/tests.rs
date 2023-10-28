@@ -1043,5 +1043,26 @@ fn pre_signed_mints_should_work() {
 			user_1.clone(),
 		));
 		assert_eq!(OrmlNft::tokens_by_owner((alice, 0, 0)), ());
+
+		// validate the `only_account` field
+		let only_account_mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+			class_id: 0,
+			attributes: test_attributes(1),
+			metadata: vec![],
+			only_account: Some(account(2)),
+			mint_price: None,
+			token_id: None,
+		};
+
+		// can't mint with the wrong signature
+		assert_noop!(
+			Nft::mint_pre_signed(
+				RuntimeOrigin::signed(account(3).clone()),
+				Box::new(only_account_mint_data.clone()),
+				signature.clone(),
+				user_1.clone(),
+			),
+			Error::<Runtime>::WrongSignature
+		);
 	})
 }
