@@ -1043,9 +1043,17 @@ fn pre_signed_mints_should_work() {
 			user_1.clone(),
 		));
 		assert_eq!(OrmlNft::tokens_by_owner((alice, 0, 0)), ());
+	})
+}
 
-		// validate the `only_account` field
-		let only_account_mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+#[test]
+fn pre_signed_mint_should_work_with_only_account() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice = account(1);
+		let user_1_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
+		let user_1_signer = MultiSigner::Sr25519(user_1_pair.public());
+		let user_1 = user_1_signer.clone().into_account();
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
 			class_id: 0,
 			attributes: test_attributes(1),
 			metadata: vec![],
@@ -1053,16 +1061,32 @@ fn pre_signed_mints_should_work() {
 			mint_price: None,
 			token_id: None,
 		};
+		let message = Encode::encode(&mint_data);
+		let signature = MultiSignature::Sr25519(user_1_pair.sign(&message));
+		assert_ok!(Balances::transfer(
+			RuntimeOrigin::signed(alice.clone()),
+			user_1.clone(),
+			100
+		));
 
-		// can't mint with the wrong signature
+		init_test_nft(RuntimeOrigin::signed(user_1.clone()));
+
 		assert_noop!(
 			Nft::mint_pre_signed(
-				RuntimeOrigin::signed(account(3).clone()),
-				Box::new(only_account_mint_data.clone()),
+				RuntimeOrigin::signed(alice.clone()),
+				Box::new(mint_data.clone()),
 				signature.clone(),
 				user_1.clone(),
 			),
-			Error::<Runtime>::WrongSignature
+			Error::<Runtime>::NoPermission
 		);
+
+		assert_ok!(Nft::mint_pre_signed(
+			RuntimeOrigin::signed(account(2)),
+			Box::new(mint_data.clone()),
+			signature.clone(),
+			user_1.clone(),
+		));
+		assert_eq!(OrmlNft::tokens_by_owner((account(2), 0, 0)), ());
 	})
 }
