@@ -5,10 +5,11 @@ use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, parameter_types};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
+use sp_core::crypto::AccountId32;
 use sp_core::H256;
 use sp_runtime::testing::Header;
-use sp_runtime::traits::IdentityLookup;
-use sp_runtime::Perbill;
+use sp_runtime::traits::{IdentifyAccount, IdentityLookup, Verify};
+use sp_runtime::{MultiSignature, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
 pub use primitive_traits::{CollectionType, NftAssetData, NftClassData};
@@ -22,12 +23,12 @@ parameter_types! {
 	pub const BlockHashCount: u32 = 256;
 }
 
-pub type AccountId = u128;
+pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 pub type Balance = u128;
 pub type BlockNumber = u64;
+pub type Signature = MultiSignature;
+pub type AccountPublic = <Signature as Verify>::Signer;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
 pub const CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 0;
 pub const CLASS_ID_1: <Runtime as orml_nft::Config>::ClassId = 1;
 pub const NON_EXISTING_CLASS_ID: <Runtime as orml_nft::Config>::ClassId = 1000;
@@ -94,7 +95,7 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<AccountId32, Self::Balance, u64>> {
 		None
 	}
 
@@ -102,7 +103,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<AccountId32, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -111,7 +112,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn new_auction(
-		_recipient: u128,
+		_recipient: AccountId32,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_end: Option<u64>,
@@ -123,7 +124,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_auction_type: AuctionType,
 		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
-		_recipient: u128,
+		_recipient: AccountId32,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
@@ -161,7 +162,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
-		_high_bidder: &u128,
+		_high_bidder: &AccountId32,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
@@ -252,6 +253,8 @@ impl Config for Runtime {
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = AccountPublic;
 }
 
 parameter_types! {
@@ -303,7 +306,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 1000)],
+			balances: vec![([0; 32].into(), 100), ([1; 32].into(), 100000), ([2; 32].into(), 1000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();

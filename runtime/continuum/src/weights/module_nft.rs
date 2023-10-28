@@ -66,4 +66,9 @@ impl<T: frame_system::Config> nft::WeightInfo for WeightInfo<T> {
 			.saturating_add(T::DbWeight::get().reads(1))
 			.saturating_add(T::DbWeight::get().writes(1))
 	}
+	fn mint_pre_signed() -> Weight {
+		Weight::from_parts(91_000_000, 19036)
+			.saturating_add(T::DbWeight::get().reads(6))
+			.saturating_add(T::DbWeight::get().writes(6))
+	}
 }

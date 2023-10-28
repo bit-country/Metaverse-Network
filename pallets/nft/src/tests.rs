@@ -1,7 +1,9 @@
 use frame_support::{assert_noop, assert_ok};
 use orml_nft::Pallet as NftModule;
 use orml_traits::MultiCurrency;
-use sp_runtime::traits::BadOrigin;
+use sp_core::Pair;
+use sp_runtime::traits::{BadOrigin, IdentifyAccount};
+use sp_runtime::{MultiSignature, MultiSigner};
 use sp_std::default::Default;
 
 use mock::*;
@@ -9,6 +11,11 @@ use primitives::{Balance, FungibleTokenId};
 
 #[cfg(test)]
 use super::*;
+
+type AccountIdOf<Runtime> = <Runtime as frame_system::Config>::AccountId;
+fn account(id: u8) -> AccountIdOf<Runtime> {
+	[id; 32].into()
+}
 
 fn free_bit_balance(who: &AccountId) -> Balance {
 	<Runtime as Config>::MultiCurrency::free_balance(mining_resource_id(), &who)
@@ -131,7 +138,7 @@ fn create_group_should_work() {
 #[test]
 fn create_group_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 
 		assert_noop!(Nft::create_group(origin, vec![1], vec![1]), BadOrigin);
 	});
@@ -140,7 +147,7 @@ fn create_group_should_fail() {
 #[test]
 fn create_class_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
@@ -170,21 +177,21 @@ fn create_class_should_work() {
 			}
 		);
 
-		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
+		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftClassCreated(account(1), CLASS_ID));
 		assert_eq!(last_event(), event);
 
 		assert_eq!(
 			free_native_balance(class_id_account()),
 			class_deposit + <Runtime as Config>::StorageDepositFee::get()
 		);
-		assert_eq!(Balances::free_balance(ALICE), 99997);
+		assert_eq!(Balances::free_balance(account(1)), 99997);
 	});
 }
 
 #[test]
 fn create_class_with_royalty_fee_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
@@ -214,82 +221,87 @@ fn create_class_with_royalty_fee_should_work() {
 			}
 		);
 
-		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftClassCreated(ALICE, CLASS_ID));
+		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftClassCreated(account(1), CLASS_ID));
 		assert_eq!(last_event(), event);
 
 		assert_eq!(
 			free_native_balance(class_id_account()),
 			class_deposit + <Runtime as Config>::StorageDepositFee::get()
 		);
-		assert_eq!(Balances::free_balance(ALICE), 99997);
+		assert_eq!(Balances::free_balance(account(1)), 99997);
 	});
 }
 
 #[test]
 fn mint_asset_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		assert_ok!(Nft::enable_promotion(RuntimeOrigin::root(), true));
 		init_test_nft(origin.clone());
 
 		assert_eq!(free_native_balance(class_id_account()), 4);
-		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((account(1), 0, 0)), ());
 
-		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftMinted((0, 0), (0, 0), ALICE, CLASS_ID, 1, 0));
+		let event = mock::RuntimeEvent::Nft(crate::Event::NewNftMinted((0, 0), (0, 0), account(1), CLASS_ID, 1, 0));
 		assert_eq!(last_event(), event);
 
 		// mint two assets
 		assert_ok!(Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 2));
 
 		// bit balance should be 0 (minted 2 NFT)
-		assert_eq!(free_bit_balance(&ALICE), 0);
+		assert_eq!(free_bit_balance(&account(1)), 0);
 
-		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
-		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 1)), ());
-		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 2)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((account(1), 0, 0)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((account(1), 0, 1)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((account(1), 0, 2)), ());
 	})
 }
 
 #[test]
 fn mint_asset_with_promotion_enabled_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		assert_ok!(Nft::enable_promotion(RuntimeOrigin::root(), true));
 		init_test_nft(origin.clone());
 
 		// bit balance should be 0 (minted 1 NFT)
-		assert_eq!(free_bit_balance(&ALICE), 0);
+		assert_eq!(free_bit_balance(&account(1)), 0);
 	})
 }
 
 #[test]
 fn mint_asset_with_promotion_disabled_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		assert_ok!(Nft::enable_promotion(RuntimeOrigin::root(), false));
 		init_test_nft(origin.clone());
 
 		// bit balance should be 1 (minted 1 NFT)
-		assert_eq!(free_bit_balance(&ALICE), 0);
+		assert_eq!(free_bit_balance(&account(1)), 0);
 	})
 }
 
 #[test]
 fn mint_stackable_asset_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		assert_ok!(Nft::enable_promotion(RuntimeOrigin::root(), true));
 		init_test_stackable_nft(origin.clone());
 
 		assert_eq!(free_native_balance(class_id_account()), 4);
-		assert_eq!(OrmlNft::tokens_by_owner((ALICE, 0, 0)), ());
+		assert_eq!(OrmlNft::tokens_by_owner((account(1), 0, 0)), ());
 
 		assert_eq!(
-			OrmlNft::get_stackable_collections_balances((0, 0, ALICE)),
+			OrmlNft::get_stackable_collections_balances((0, 0, account(1))),
 			100u32.into()
 		);
 
-		let event = mock::RuntimeEvent::Nft(crate::Event::NewStackableNftMinted(ALICE, CLASS_ID, 0, 100u32.into()));
+		let event = mock::RuntimeEvent::Nft(crate::Event::NewStackableNftMinted(
+			account(1),
+			CLASS_ID,
+			0,
+			100u32.into(),
+		));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -297,8 +309,8 @@ fn mint_stackable_asset_should_work() {
 #[test]
 fn mint_asset_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
-		let invalid_owner = RuntimeOrigin::signed(BOB);
+		let origin = RuntimeOrigin::signed(account(1));
+		let invalid_owner = RuntimeOrigin::signed(account(2));
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -328,7 +340,7 @@ fn mint_asset_should_fail() {
 #[test]
 fn mint_exceed_max_minting_limit_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -355,8 +367,8 @@ fn mint_exceed_max_minting_limit_should_fail() {
 #[test]
 fn mint_stackable_asset_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
-		let invalid_owner = RuntimeOrigin::signed(BOB);
+		let origin = RuntimeOrigin::signed(account(1));
+		let invalid_owner = RuntimeOrigin::signed(account(2));
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -392,7 +404,7 @@ fn mint_stackable_asset_should_fail() {
 #[test]
 fn mint_exceed_max_batch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1]));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -414,10 +426,10 @@ fn mint_exceed_max_batch_should_fail() {
 #[test]
 fn transfer_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		init_test_nft(origin.clone());
-		assert_ok!(Nft::transfer(origin, BOB, (0, 0)));
-		let event = mock::RuntimeEvent::Nft(crate::Event::TransferedNft(ALICE, BOB, 0, (0, 0)));
+		assert_ok!(Nft::transfer(origin, account(2), (0, 0)));
+		let event = mock::RuntimeEvent::Nft(crate::Event::TransferedNft(account(1), account(2), 0, (0, 0)));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -425,18 +437,29 @@ fn transfer_should_work() {
 #[test]
 fn transfer_stackable_nft_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		init_test_stackable_nft(origin.clone());
 		assert_eq!(
-			OrmlNft::get_stackable_collections_balances((0, 0, ALICE)),
+			OrmlNft::get_stackable_collections_balances((0, 0, account(1))),
 			100u32.into()
 		);
 
-		assert_ok!(Nft::transfer_stackable_nft(origin, BOB, (0, 0), 50u32.into()));
-		assert_eq!(OrmlNft::get_stackable_collections_balances((0, 0, BOB)), 50u32.into());
-		assert_eq!(OrmlNft::get_stackable_collections_balances((0, 0, ALICE)), 50u32.into());
+		assert_ok!(Nft::transfer_stackable_nft(origin, account(2), (0, 0), 50u32.into()));
+		assert_eq!(
+			OrmlNft::get_stackable_collections_balances((0, 0, account(2))),
+			50u32.into()
+		);
+		assert_eq!(
+			OrmlNft::get_stackable_collections_balances((0, 0, account(1))),
+			50u32.into()
+		);
 
-		let event = mock::RuntimeEvent::Nft(crate::Event::TransferedStackableNft(ALICE, BOB, (0, 0), 50u32.into()));
+		let event = mock::RuntimeEvent::Nft(crate::Event::TransferedStackableNft(
+			account(1),
+			account(2),
+			(0, 0),
+			50u32.into(),
+		));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -444,48 +467,48 @@ fn transfer_stackable_nft_should_work() {
 #[test]
 fn transfer_stackable_nft_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
-		let failing_origin = RuntimeOrigin::signed(BOB);
+		let origin = RuntimeOrigin::signed(account(1));
+		let failing_origin = RuntimeOrigin::signed(account(2));
 		init_test_stackable_nft(origin.clone());
 		init_test_nft(origin.clone());
 
 		assert_noop!(
-			Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 1), 0u32.into()),
+			Nft::transfer_stackable_nft(origin.clone(), account(2), (0, 1), 0u32.into()),
 			Error::<Runtime>::InvalidStackableNftTransfer
 		);
 
 		assert_noop!(
-			Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 1), 10u32.into()),
+			Nft::transfer_stackable_nft(origin.clone(), account(2), (0, 1), 10u32.into()),
 			Error::<Runtime>::InvalidStackableNftTransfer
 		);
 
 		assert_noop!(
-			Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 0), 101u32.into()),
+			Nft::transfer_stackable_nft(origin.clone(), account(2), (0, 0), 101u32.into()),
 			Error::<Runtime>::InvalidStackableNftTransfer
 		);
 
-		ReservedStackableNftBalance::<Runtime>::insert(ALICE, (0, 0), 70);
+		ReservedStackableNftBalance::<Runtime>::insert(account(1), (0, 0), 70);
 
 		assert_noop!(
-			Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 0), 71u128),
+			Nft::transfer_stackable_nft(origin.clone(), account(2), (0, 0), 71u128),
 			Error::<Runtime>::InvalidStackableNftTransfer
 		);
 
 		assert_noop!(
-			Nft::transfer_stackable_nft(failing_origin, ALICE, (0, 0), 10u32.into()),
+			Nft::transfer_stackable_nft(failing_origin, account(1), (0, 0), 10u32.into()),
 			Error::<Runtime>::InvalidStackableNftTransfer
 		);
 
-		ReservedStackableNftBalance::<Runtime>::insert(ALICE, (0, 0), 0);
+		ReservedStackableNftBalance::<Runtime>::insert(account(1), (0, 0), 0);
 
-		assert_ok!(Nft::transfer_stackable_nft(origin, BOB, (0, 0), 71u32.into()));
+		assert_ok!(Nft::transfer_stackable_nft(origin, account(2), (0, 0), 71u32.into()));
 	})
 }
 
 #[test]
 fn burn_nft_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::mint(origin.clone(), CLASS_ID, vec![1], test_attributes(1), 1));
 		assert_ok!(Nft::burn(origin, (0, 1)));
@@ -497,13 +520,18 @@ fn burn_nft_should_work() {
 #[test]
 fn burn_nft_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 
 		init_test_stackable_nft(origin.clone());
 
 		assert_noop!(Nft::burn(origin.clone(), (0, 0)), Error::<Runtime>::InvalidAssetType);
 
-		assert_ok!(Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 0), 100u32.into()));
+		assert_ok!(Nft::transfer_stackable_nft(
+			origin.clone(),
+			account(2),
+			(0, 0),
+			100u32.into()
+		));
 
 		assert_noop!(Nft::burn(origin.clone(), (0, 0)), Error::<Runtime>::InvalidAssetType);
 	})
@@ -512,7 +540,7 @@ fn burn_nft_should_fail() {
 #[test]
 fn transfer_batch_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -525,8 +553,11 @@ fn transfer_batch_should_work() {
 			None
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
-		assert_ok!(Nft::transfer_batch(origin, vec![(BOB, (1, 0)), (BOB, (1, 1))]));
-		let event = mock::RuntimeEvent::Nft(crate::Event::TransferedNft(ALICE, BOB, 1, (1, 1)));
+		assert_ok!(Nft::transfer_batch(
+			origin,
+			vec![(account(2), (1, 0)), (account(2), (1, 1))]
+		));
+		let event = mock::RuntimeEvent::Nft(crate::Event::TransferedNft(account(1), account(2), 1, (1, 1)));
 		assert_eq!(last_event(), event);
 	})
 }
@@ -534,7 +565,7 @@ fn transfer_batch_should_work() {
 #[test]
 fn transfer_batch_exceed_length_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -548,7 +579,15 @@ fn transfer_batch_exceed_length_should_fail() {
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 4));
 		assert_noop!(
-			Nft::transfer_batch(origin, vec![(BOB, (0, 0)), (BOB, (0, 1)), (BOB, (0, 2)), (BOB, (0, 3))]),
+			Nft::transfer_batch(
+				origin,
+				vec![
+					(account(2), (0, 0)),
+					(account(2), (0, 1)),
+					(account(2), (0, 2)),
+					(account(2), (0, 3))
+				]
+			),
 			Error::<Runtime>::ExceedMaximumBatchTransfer
 		);
 	})
@@ -557,7 +596,7 @@ fn transfer_batch_exceed_length_should_fail() {
 #[test]
 fn transfer_batch_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		init_test_stackable_nft(origin.clone());
 		init_test_nft(origin.clone());
 		assert_ok!(Nft::create_class(
@@ -572,11 +611,11 @@ fn transfer_batch_should_fail() {
 		));
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 		assert_noop!(
-			Nft::transfer_batch(origin.clone(), vec![(BOB, (0, 0)), (BOB, (0, 1))]),
+			Nft::transfer_batch(origin.clone(), vec![(account(2), (0, 0)), (account(2), (0, 1))]),
 			Error::<Runtime>::InvalidAssetType
 		);
 		assert_noop!(
-			Nft::transfer_batch(origin.clone(), vec![(BOB, (0, 3)), (BOB, (0, 6))]),
+			Nft::transfer_batch(origin.clone(), vec![(account(2), (0, 3)), (account(2), (0, 6))]),
 			Error::<Runtime>::AssetInfoNotFound
 		);
 	})
@@ -596,13 +635,19 @@ fn do_create_group_collection_should_work() {
 
 #[test]
 fn do_transfer_should_fail() {
-	let origin = RuntimeOrigin::signed(ALICE);
+	let origin = RuntimeOrigin::signed(account(1));
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 0)), Error::<Runtime>::ClassIdNotFound);
+		assert_noop!(
+			Nft::do_transfer(account(1), account(2), (0, 0)),
+			Error::<Runtime>::ClassIdNotFound
+		);
 
 		init_test_nft(origin.clone());
 
-		assert_noop!(Nft::do_transfer(BOB, ALICE, (0, 0)), Error::<Runtime>::NoPermission);
+		assert_noop!(
+			Nft::do_transfer(account(2), account(1), (0, 0)),
+			Error::<Runtime>::NoPermission
+		);
 
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -617,46 +662,63 @@ fn do_transfer_should_fail() {
 		assert_ok!(Nft::mint(origin.clone(), 1, vec![1], test_attributes(1), 1));
 
 		assert_noop!(
-			Nft::do_transfer(ALICE, BOB, (0, 1)),
+			Nft::do_transfer(account(1), account(2), (0, 1)),
 			Error::<Runtime>::AssetInfoNotFound
 		);
 
 		init_test_stackable_nft(origin.clone());
 
-		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 1)), Error::<Runtime>::InvalidAssetType);
+		assert_noop!(
+			Nft::do_transfer(account(1), account(2), (0, 1)),
+			Error::<Runtime>::InvalidAssetType
+		);
 
-		assert_ok!(Nft::transfer_stackable_nft(origin.clone(), BOB, (0, 1), 100u32.into()));
+		assert_ok!(Nft::transfer_stackable_nft(
+			origin.clone(),
+			account(2),
+			(0, 1),
+			100u32.into()
+		));
 
-		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 1)), Error::<Runtime>::InvalidAssetType);
+		assert_noop!(
+			Nft::do_transfer(account(1), account(2), (0, 1)),
+			Error::<Runtime>::InvalidAssetType
+		);
 	})
 }
 
 #[test]
 fn do_transfer_should_fail_if_bound_to_address() {
-	let origin = RuntimeOrigin::signed(ALICE);
+	let origin = RuntimeOrigin::signed(account(1));
 	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(Nft::do_transfer(ALICE, BOB, (0, 0)), Error::<Runtime>::ClassIdNotFound);
+		assert_noop!(
+			Nft::do_transfer(account(1), account(2), (0, 0)),
+			Error::<Runtime>::ClassIdNotFound
+		);
 
 		init_bound_to_address_nft(origin.clone());
 
 		// Owner allowed to transfer
-		assert_ok!(Nft::transfer(origin.clone(), BOB, (0, 0)));
+		assert_ok!(Nft::transfer(origin.clone(), account(2), (0, 0)));
 
-		let event = mock::RuntimeEvent::Nft(crate::Event::TransferedNft(ALICE, BOB, 0, (0, 0)));
+		let event = mock::RuntimeEvent::Nft(crate::Event::TransferedNft(account(1), account(2), 0, (0, 0)));
 		assert_eq!(last_event(), event);
 
-		// Reject ownership if BOB tries to transfer
-		assert_noop!(Nft::do_transfer(BOB, ALICE, (0, 0)), Error::<Runtime>::NonTransferable);
+		// Reject ownership if account(2) tries to transfer
+		assert_noop!(
+			Nft::do_transfer(account(2), account(1), (0, 0)),
+			Error::<Runtime>::NonTransferable
+		);
 	})
 }
 
 #[test]
 fn do_check_nft_ownership_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		init_test_nft(origin.clone());
-		assert_ok!(Nft::check_nft_ownership(&ALICE, &(CLASS_ID, TOKEN_ID)), true);
-		assert_ok!(Nft::check_nft_ownership(&BOB, &(CLASS_ID, TOKEN_ID)), false);
+		assert_ok!(Nft::check_nft_ownership(&account(1), &(CLASS_ID, TOKEN_ID)), true);
+		assert_ok!(Nft::check_nft_ownership(&account(2), &(CLASS_ID, TOKEN_ID)), false);
 	})
 }
 
@@ -664,7 +726,7 @@ fn do_check_nft_ownership_should_work() {
 fn do_check_nft_ownership_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
-			Nft::check_nft_ownership(&ALICE, &(CLASS_ID, TOKEN_ID)),
+			Nft::check_nft_ownership(&account(1), &(CLASS_ID, TOKEN_ID)),
 			Error::<Runtime>::AssetInfoNotFound
 		);
 	})
@@ -673,7 +735,7 @@ fn do_check_nft_ownership_should_fail() {
 #[test]
 fn do_withdraw_funds_from_class_fund_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		assert_noop!(
 			Nft::withdraw_funds_from_class_fund(origin.clone(), NON_EXISTING_CLASS_ID),
 			Error::<Runtime>::ClassIdNotFound
@@ -689,7 +751,7 @@ fn do_withdraw_funds_from_class_fund_should_fail() {
 			Perbill::from_percent(0u32),
 			None
 		));
-		let non_class_owner_origin = RuntimeOrigin::signed(BOB);
+		let non_class_owner_origin = RuntimeOrigin::signed(account(2));
 		assert_noop!(
 			Nft::withdraw_funds_from_class_fund(non_class_owner_origin, CLASS_ID),
 			Error::<Runtime>::NoPermission
@@ -700,14 +762,18 @@ fn do_withdraw_funds_from_class_fund_should_fail() {
 #[test]
 fn do_withdraw_funds_from_class_fund_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		init_test_nft(origin.clone());
 		let class_fund: AccountId = <Runtime as Config>::PalletId::get().into_sub_account_truncating(CLASS_ID);
-		assert_ok!(<Runtime as Config>::Currency::transfer(origin.clone(), class_fund, 100));
-		assert_eq!(free_native_balance(ALICE), 99896);
-		assert_eq!(free_native_balance(class_fund), 100);
+		assert_ok!(<Runtime as Config>::Currency::transfer(
+			origin.clone(),
+			class_fund.clone(),
+			100
+		));
+		assert_eq!(free_native_balance(account(1)), 99896);
+		assert_eq!(free_native_balance(class_fund.clone()), 100);
 		assert_ok!(Nft::withdraw_funds_from_class_fund(origin.clone(), CLASS_ID));
-		assert_eq!(free_native_balance(ALICE), 99995);
+		assert_eq!(free_native_balance(account(1)), 99995);
 		assert_eq!(free_native_balance(class_fund), 1);
 	})
 }
@@ -715,8 +781,8 @@ fn do_withdraw_funds_from_class_fund_should_work() {
 #[test]
 fn setting_hard_limit_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
-		let failing_origin = RuntimeOrigin::signed(BOB);
+		let origin = RuntimeOrigin::signed(account(1));
+		let failing_origin = RuntimeOrigin::signed(account(2));
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -761,7 +827,7 @@ fn setting_hard_limit_should_fail() {
 #[test]
 fn setting_hard_limit_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
@@ -796,7 +862,7 @@ fn setting_hard_limit_should_work() {
 #[test]
 fn force_updating_total_issuance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
@@ -827,7 +893,7 @@ fn force_updating_total_issuance_should_work() {
 #[test]
 fn force_updating_total_issuance_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
@@ -855,7 +921,7 @@ fn force_updating_total_issuance_should_fail() {
 #[test]
 fn force_updating_new_royal_fee_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(ALICE);
+		let origin = RuntimeOrigin::signed(account(1));
 		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
@@ -889,7 +955,7 @@ fn force_updating_new_royal_fee_should_work() {
 #[test]
 fn force_updating_new_royal_fee_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(BOB);
+		let origin = RuntimeOrigin::signed(account(2));
 		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
@@ -904,7 +970,7 @@ fn force_updating_new_royal_fee_should_fail() {
 		));
 		// Non-root signer is not allowed
 		assert_noop!(
-			Nft::force_update_royalty_fee(RuntimeOrigin::signed(ALICE), CLASS_ID, Perbill::from_percent(0u32)),
+			Nft::force_update_royalty_fee(RuntimeOrigin::signed(account(1)), CLASS_ID, Perbill::from_percent(0u32)),
 			BadOrigin
 		);
 
@@ -913,5 +979,154 @@ fn force_updating_new_royal_fee_should_fail() {
 			Nft::force_update_royalty_fee(RuntimeOrigin::root(), CLASS_ID, Perbill::from_percent(u32::MAX)),
 			Error::<Runtime>::RoyaltyFeeExceedLimit
 		);
+	})
+}
+
+#[test]
+fn validate_signature() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
+		let alice_signer = MultiSigner::Sr25519(alice_pair.public());
+		let alice = alice_signer.clone().into_account();
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, u64> = PreSignedMint {
+			class_id: 0,
+			attributes: test_attributes(1),
+			metadata: vec![],
+			only_account: None,
+			mint_price: None,
+			token_id: None,
+		};
+		let encoded_data = Encode::encode(&mint_data);
+		let signature = MultiSignature::Sr25519(alice_pair.sign(&encoded_data));
+		assert_ok!(Nft::validate_signature(&encoded_data, &signature, &alice));
+
+		let mut wrapped_data: Vec<u8> = Vec::new();
+		wrapped_data.extend(b"<Bytes>");
+		wrapped_data.extend(&encoded_data);
+		wrapped_data.extend(b"</Bytes>");
+
+		let signature = MultiSignature::Sr25519(alice_pair.sign(&wrapped_data));
+		assert_ok!(Nft::validate_signature(&encoded_data, &signature, &alice));
+	})
+}
+
+#[test]
+fn pre_signed_mints_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice = account(1);
+		let user_1_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
+		let user_1_signer = MultiSigner::Sr25519(user_1_pair.public());
+		let user_1 = user_1_signer.clone().into_account();
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+			class_id: 0,
+			attributes: test_attributes(1),
+			metadata: vec![],
+			only_account: None,
+			mint_price: None,
+			token_id: None,
+		};
+		let message = Encode::encode(&mint_data);
+		let signature = MultiSignature::Sr25519(user_1_pair.sign(&message));
+		assert_ok!(Balances::transfer(
+			RuntimeOrigin::signed(alice.clone()),
+			user_1.clone(),
+			100
+		));
+
+		init_test_nft(RuntimeOrigin::signed(user_1.clone()));
+
+		// User id already signed message so Alice should able to mint nft from pre-signed message
+		assert_ok!(Nft::mint_pre_signed(
+			RuntimeOrigin::signed(alice.clone()),
+			Box::new(mint_data.clone()),
+			signature.clone(),
+			user_1.clone(),
+		));
+		assert_eq!(OrmlNft::tokens_by_owner((alice, 0, 0)), ());
+	})
+}
+
+#[test]
+fn pre_signed_mint_should_work_with_only_account() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice = account(1);
+		let user_1_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
+		let user_1_signer = MultiSigner::Sr25519(user_1_pair.public());
+		let user_1 = user_1_signer.clone().into_account();
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+			class_id: 0,
+			attributes: test_attributes(1),
+			metadata: vec![],
+			only_account: Some(account(2)),
+			mint_price: None,
+			token_id: None,
+		};
+		let message = Encode::encode(&mint_data);
+		let signature = MultiSignature::Sr25519(user_1_pair.sign(&message));
+		assert_ok!(Balances::transfer(
+			RuntimeOrigin::signed(alice.clone()),
+			user_1.clone(),
+			100
+		));
+
+		init_test_nft(RuntimeOrigin::signed(user_1.clone()));
+
+		assert_noop!(
+			Nft::mint_pre_signed(
+				RuntimeOrigin::signed(alice.clone()),
+				Box::new(mint_data.clone()),
+				signature.clone(),
+				user_1.clone(),
+			),
+			Error::<Runtime>::NoPermission
+		);
+
+		assert_ok!(Nft::mint_pre_signed(
+			RuntimeOrigin::signed(account(2)),
+			Box::new(mint_data.clone()),
+			signature.clone(),
+			user_1.clone(),
+		));
+		assert_eq!(OrmlNft::tokens_by_owner((account(2), 0, 0)), ());
+	})
+}
+
+#[test]
+fn pre_signed_mint_should_collect_fee_with_mint_price() {
+	ExtBuilder::default().build().execute_with(|| {
+		let alice = account(1);
+		let user_1_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
+		let user_1_signer = MultiSigner::Sr25519(user_1_pair.public());
+		let user_1 = user_1_signer.clone().into_account();
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+			class_id: 0,
+			attributes: test_attributes(1),
+			metadata: vec![],
+			only_account: None,
+			mint_price: Some(50),
+			token_id: None,
+		};
+		let message = Encode::encode(&mint_data);
+		let signature = MultiSignature::Sr25519(user_1_pair.sign(&message));
+		assert_ok!(Balances::transfer(
+			RuntimeOrigin::signed(alice.clone()),
+			user_1.clone(),
+			100
+		));
+		assert_eq!(Balances::free_balance(user_1.clone()), 100);
+		assert_eq!(Balances::free_balance(alice.clone()), 99900);
+
+		init_test_nft(RuntimeOrigin::signed(user_1.clone()));
+		assert_eq!(Balances::free_balance(user_1.clone()), 96); // Deduct fee
+
+		assert_ok!(Nft::mint_pre_signed(
+			RuntimeOrigin::signed(alice.clone()),
+			Box::new(mint_data.clone()),
+			signature.clone(),
+			user_1.clone(),
+		));
+		assert_eq!(Balances::free_balance(user_1.clone()), 146); // Get 50 mint fees from NFT
+		assert_eq!(Balances::free_balance(alice.clone()), 99849); // Pay 1 mint fee for protocol and 50 mint price = 99900 - 51
+		assert_eq!(OrmlNft::tokens_by_owner((account(2), 0, 0)), ());
 	})
 }

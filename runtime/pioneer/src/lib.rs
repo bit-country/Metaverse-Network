@@ -1452,6 +1452,8 @@ impl nft::Config for Runtime {
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = <Signature as Verify>::Signer;
 }
 
 parameter_types! {

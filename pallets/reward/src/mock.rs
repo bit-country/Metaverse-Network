@@ -4,8 +4,10 @@ use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
+use sp_core::crypto::AccountId32;
 use sp_core::H256;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{testing::Header, traits::IdentityLookup, MultiSignature, Perbill};
 
 use auction_manager::*;
 use core_primitives::NftAssetData;
@@ -17,16 +19,18 @@ use crate as reward;
 
 use super::*;
 
-pub type AccountId = u128;
+pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 pub type Balance = u128;
 pub type BlockNumber = u64;
 pub type Hash = H256;
+type Signature = MultiSignature;
+type AccountPublic = <Signature as Verify>::Signer;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const CHARLIE: AccountId = 3;
-pub const DONNA: AccountId = 4;
-pub const EVA: AccountId = 5;
+pub const ALICE: AccountId = AccountId32::new([1; 32]);
+pub const BOB: AccountId = AccountId32::new([2; 32]);
+pub const CHARLIE: AccountId = AccountId32::new([3; 32]);
+pub const DONNA: AccountId = AccountId32::new([4; 32]);
+pub const EVA: AccountId = AccountId32::new([5; 32]);
 
 pub const COLLECTION_ID: u64 = 0;
 pub const CLASS_ID: u32 = 0;
@@ -162,7 +166,7 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<AccountId, Self::Balance, u64>> {
 		None
 	}
 
@@ -170,7 +174,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<AccountId, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -179,7 +183,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn new_auction(
-		_recipient: u128,
+		_recipient: AccountId,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_end: Option<u64>,
@@ -191,7 +195,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_auction_type: AuctionType,
 		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
-		_recipient: u128,
+		_recipient: AccountId,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
@@ -214,8 +218,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn local_auction_bid_handler(
 		_now: u64,
 		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
+		_new_bid: (AccountId, Self::Balance),
+		_last_bid: Option<(AccountId, Self::Balance)>,
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
@@ -223,7 +227,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
-		_high_bidder: &u128,
+		_high_bidder: &AccountId,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
@@ -262,6 +266,8 @@ impl pallet_nft::Config for Runtime {
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = AccountPublic;
 }
 
 parameter_types! {

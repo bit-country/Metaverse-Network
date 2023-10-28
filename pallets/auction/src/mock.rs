@@ -4,9 +4,10 @@ use frame_support::traits::{EqualPrivilegeOnly, Nothing};
 use frame_support::{construct_runtime, pallet_prelude::Hooks, parameter_types, PalletId};
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
+use sp_core::crypto::AccountId32;
 use sp_core::H256;
-use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
+use sp_runtime::traits::{AccountIdConversion, IdentifyAccount, Verify};
+use sp_runtime::{testing::Header, traits::IdentityLookup, MultiSignature, Perbill};
 
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
@@ -23,14 +24,13 @@ parameter_types! {
 	pub const BlockHashCount: u32 = 256;
 }
 
-pub type AccountId = u128;
+pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 pub type Balance = u128;
 pub type BlockNumber = u64;
 pub type MetaverseId = u64;
+type Signature = MultiSignature;
+type AccountPublic = <Signature as Verify>::Signer;
 
-pub const ALICE: AccountId = 1;
-pub const BOB: AccountId = 2;
-pub const NO_METAVERSE_OWNER: AccountId = 3;
 pub const CLASS_ID: u32 = 0;
 pub const COLLECTION_ID: u64 = 0;
 pub const ALICE_METAVERSE_ID: MetaverseId = 1;
@@ -42,8 +42,6 @@ pub const ESTATE_ID_NOT_EXIST: EstateId = 99;
 pub const LAND_UNIT_EXIST: (i32, i32) = (0, 0);
 pub const LAND_UNIT_EXIST_1: (i32, i32) = (1, 1);
 pub const LAND_UNIT_NOT_EXIST: (i32, i32) = (99, 99);
-
-pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 pub const UNDEPLOYED_LAND_BLOCK_ID_EXIST: UndeployedLandBlockId = 4;
 pub const UNDEPLOYED_LAND_BLOCK_ID_NOT_EXIST: UndeployedLandBlockId = 5;
@@ -93,7 +91,7 @@ impl pallet_balances::Config for Runtime {
 
 pub struct Continuumm;
 
-impl MapTrait<u128> for Continuumm {
+impl MapTrait<AccountId32> for Continuumm {
 	fn transfer_spot(
 		_spot_id: MapSpotId,
 		_from: AccountId,
@@ -105,7 +103,7 @@ impl MapTrait<u128> for Continuumm {
 
 pub struct EstateHandler;
 
-impl Estate<u128> for EstateHandler {
+impl Estate<AccountId32> for EstateHandler {
 	fn transfer_estate(_estate_id: EstateId, _from: &AccountId, _to: &AccountId) -> Result<EstateId, DispatchError> {
 		Ok(1)
 	}
@@ -183,8 +181,8 @@ impl AuctionHandler<AccountId, Balance, BlockNumber, AuctionId> for Handler {
 		new_bid: (AccountId, Balance),
 		_last_bid: Option<(AccountId, Balance)>,
 	) -> OnNewBidResult<BlockNumber> {
-		// Test with Alice bid
-		if new_bid.0 == ALICE || new_bid.0 == BOB {
+		// Test with [1,32].into() bid
+		if new_bid.0 == [1; 32].into() || new_bid.0 == [2; 32].into() {
 			OnNewBidResult {
 				accept_bid: true,
 				auction_end_change: Change::NoChange,
@@ -248,14 +246,16 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn check_ownership(who: &AccountId, metaverse_id: &MetaverseId) -> bool {
-		match *who {
-			ALICE => *metaverse_id == ALICE_METAVERSE_ID,
-			BOB => *metaverse_id == BOB_METAVERSE_ID,
-			_ => false,
+		if who == &AccountId32::new([1; 32]) {
+			*metaverse_id == ALICE_METAVERSE_ID
+		} else if who == &AccountId32::new([2; 32]) {
+			*metaverse_id == BOB_METAVERSE_ID
+		} else {
+			false
 		}
 	}
 
-	fn get_metaverse(_metaverse_id: u64) -> Option<MetaverseInfo<u128>> {
+	fn get_metaverse(_metaverse_id: u64) -> Option<MetaverseInfo<AccountId>> {
 		None
 	}
 
@@ -280,11 +280,11 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
-		GENERAL_METAVERSE_FUND
+		[102; 32].into()
 	}
 
 	fn get_network_treasury() -> AccountId {
-		GENERAL_METAVERSE_FUND
+		[102; 32].into()
 	}
 
 	fn check_if_metaverse_estate(
@@ -302,7 +302,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn is_metaverse_owner(who: &AccountId) -> bool {
-		who != &NO_METAVERSE_OWNER
+		who != &[3; 32].into()
 	}
 }
 
@@ -384,6 +384,8 @@ impl pallet_nft::Config for Runtime {
 	type AssetMintingFee = AssetMintingFee;
 	type ClassMintingFee = ClassMintingFee;
 	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = AccountPublic;
 }
 
 parameter_types! {
@@ -442,15 +444,15 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 500), (NO_METAVERSE_OWNER, 500)],
+			balances: vec![([1; 32].into(), 100000), ([2; 32].into(), 500), ([3; 32].into(), 500)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
 
 		orml_tokens::GenesisConfig::<Runtime> {
 			balances: vec![
-				(ALICE, FungibleTokenId::MiningResource(0), 10000),
-				(BOB, FungibleTokenId::MiningResource(0), 5000),
+				([1; 32].into(), FungibleTokenId::MiningResource(0), 10000),
+				([2; 32].into(), FungibleTokenId::MiningResource(0), 5000),
 			],
 		}
 		.assimilate_storage(&mut t)
@@ -484,7 +486,7 @@ pub struct MockAuctionManager;
 impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	type Balance = Balance;
 
-	fn auction_info(_id: u64) -> Option<AuctionInfo<u128, Self::Balance, u64>> {
+	fn auction_info(_id: u64) -> Option<AuctionInfo<AccountId, Self::Balance, u64>> {
 		None
 	}
 
@@ -492,7 +494,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn update_auction(_id: u64, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: u64, _info: AuctionInfo<AccountId, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -501,7 +503,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	}
 
 	fn new_auction(
-		_recipient: u128,
+		_recipient: AccountId,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_end: Option<u64>,
@@ -513,7 +515,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		_auction_type: AuctionType,
 		_item_id: ItemId<Balance>,
 		_end: Option<u64>,
-		_recipient: u128,
+		_recipient: AccountId,
 		_initial_amount: Self::Balance,
 		_start: u64,
 		_listing_level: ListingLevel<AccountId>,
@@ -544,8 +546,8 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn local_auction_bid_handler(
 		_now: u64,
 		_id: u64,
-		_new_bid: (u128, Self::Balance),
-		_last_bid: Option<(u128, Self::Balance)>,
+		_new_bid: (AccountId, Self::Balance),
+		_last_bid: Option<(AccountId, Self::Balance)>,
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
 		Ok(())
@@ -553,7 +555,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn collect_royalty_fee(
 		_high_bid_price: &Self::Balance,
-		_high_bidder: &u128,
+		_high_bidder: &AccountId,
 		_asset_id: &(u32, u64),
 		_social_currency_id: FungibleTokenId,
 	) -> DispatchResult {
