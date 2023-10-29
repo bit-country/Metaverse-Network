@@ -400,3 +400,7 @@ impl MiningResourceRateInfo {
 		self.mining_reward = mining_reward;
 	}
 }
+
+pub trait CurrencyIdManagement<CurrencyId> {
+	fn check_token_exist(currency_id: CurrencyId) -> bool;
+}

@@ -19,7 +19,7 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::{Perbill, RuntimeDebug};
+use sp_runtime::{Perbill, Permill, RuntimeDebug};
 
 use crate::{AllLandUnitsCount, TotalUndeployedLandUnit};
 // Helper methods to compute the issuance rate for undeployed land.
@@ -28,6 +28,17 @@ use crate::pallet::{Config, Pallet};
 const SECONDS_PER_YEAR: u32 = 31557600;
 const SECONDS_PER_BLOCK: u32 = 12;
 const BLOCKS_PER_YEAR: u32 = SECONDS_PER_YEAR / SECONDS_PER_BLOCK;
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
+pub struct PoolInfo<CurrencyId, AccountId> {
+	pub creator: AccountId,
+	pub commission: Permill,
+	/// Currency id of the pool
+	pub currency_id: CurrencyId,
+	/// Max total supply
+	pub max: u32,
+}
 
 fn rounds_per_year<T: Config>() -> u32 {
 	let blocks_per_round = <Pallet<T>>::round().length;

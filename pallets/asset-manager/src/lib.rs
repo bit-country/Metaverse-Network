@@ -37,6 +37,7 @@ use sp_std::{boxed::Box, vec::Vec};
 use xcm::v3::MultiLocation;
 use xcm::VersionedMultiLocation;
 
+use core_primitives::CurrencyIdManagement;
 pub use pallet::*;
 use primitives::{
 	AssetIds, AssetMetadata, BuyWeightRate, CurrencyId, ForeignAssetIdMapping, FungibleTokenId, Ratio, TokenId,
@@ -344,5 +345,11 @@ where
 			}
 		}
 		None
+	}
+}
+
+impl<T: Config> CurrencyIdManagement<TokenId> for ForeignAssetMapping<T> {
+	fn check_token_exist(currency_id: CurrencyId) -> bool {
+		return true;
 	}
 }

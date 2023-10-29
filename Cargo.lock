@@ -411,6 +411,7 @@ name = "asset-manager"
 version = "0.1.0"
 dependencies = [
  "bit-country-primitives",
+ "core-primitives",
  "frame-support",
  "frame-system",
  "hex",

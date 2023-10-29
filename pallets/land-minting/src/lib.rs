@@ -42,7 +42,7 @@ use primitives::{
 	Attributes, ClassId, EstateId, FungibleTokenId, ItemId, MetaverseId, NftMetadata, TokenId, UndeployedLandBlock,
 	UndeployedLandBlockId, UndeployedLandBlockType,
 };
-pub use rate::{MintingRateInfo, Range};
+pub use utils::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -50,7 +50,7 @@ pub use weights::WeightInfo;
 
 #[cfg(test)]
 mod mock;
-mod rate;
+mod utils;
 
 #[cfg(test)]
 mod tests;
@@ -68,7 +68,7 @@ pub mod pallet {
 	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
 	use primitives::{Balance, CurrencyId, RoundIndex, UndeployedLandBlockId};
 
-	use crate::rate::{round_issuance_range, MintingRateInfo};
+	use crate::utils::{round_issuance_range, MintingRateInfo};
 
 	use super::*;
 
@@ -155,47 +155,53 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// New staking round started [Starting Block, Round, Total Land Unit]
 		NewRound(T::BlockNumber, RoundIndex, u64),
+		/// New pool created
+		PoolCreated(T::AccountId, ClassId, u32, CurrencyIdOf<T>),
 	}
 
 	#[pallet::error]
 	pub enum Error<T> {
 		/// No permission
 		NoPermission,
+		/// Currency is not supported
+		CurrencyIsNotSupported,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Minting of a land unit, only used by council to manually mint single land for
-		/// beneficiary
-		///
-		/// The dispatch origin for this call must be _Root_.
-		/// - `beneficiary`: the account which will be the owner of the land unit
-		/// - `metaverse_id`: the metaverse id that the land united will be minted on
-		/// - `coordinate`: coordinate of the land unit
-		///
-		/// Emits `NewLandsMinted` if successful.
 		#[pallet::weight(T::WeightInfo::mint_land())]
-		pub fn mint_land(
-			origin: OriginFor<T>,
-			beneficiary: T::AccountId,
-			metaverse_id: MetaverseId,
-			coordinate: (i32, i32),
-		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
+		pub fn create_pool(origin: OriginFor<T>, max_supply: u32, currency_id: CurrencyIdOf<T>) -> DispatchResult {
+			// Check if user signed
+			// Emit events
+			// Check if user signed
+			let who = ensure_signed(origin)?;
 
+			// Ensure currency_id supported
+			ensure!(
+				currency_id == FungibleTokenId::NativeToken(0) || currency_id == FungibleTokenId::NativeToken(1),
+				Error::<T>::CurrencyIsNotSupported
+			);
+
+			// Collect pool creation fee
+			Self::collect_pool_creation_fee(&who)?;
+
+			// Create new NFT collection
+			// This will return a unique collection ID for the new pool
+			let class_id = T::NFTTokenizationSource.create_collection(who.clone(), max_supply, currency_id)?;
+
+			// Add tuple class_id, currency_id
+			TokenPool::<T>::insert((class_id, currency_id), Zero::zero);
+
+			// Emit event for pool creation
+			Self::deposit_event(Event::PoolCreated(who, class_id, max_supply, currency_id));
+			Ok(().into())
+		}
+
+		#[pallet::weight(T::WeightInfo::mint_land())]
+		pub fn deposit(origin: OriginFor<T>, class_id: ClassId, amount: BalanceOf<T>) -> DispatchResult {
 			Ok(().into())
 		}
 	}
 }
 
-impl<T: Config> Pallet<T> {
-	/// Internal getter for new estate ID
-	fn get_new_estate_id() -> Result<EstateId, DispatchError> {
-		let estate_id = NextEstateId::<T>::try_mutate(|id| -> Result<EstateId, DispatchError> {
-			let current_id = *id;
-			*id = id.checked_add(One::one()).ok_or(Error::<T>::NoAvailableEstateId)?;
-			Ok(current_id)
-		})?;
-		Ok(estate_id)
-	}
-}
+impl<T: Config> Pallet<T> {}
