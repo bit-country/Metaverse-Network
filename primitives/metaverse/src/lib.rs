@@ -132,6 +132,8 @@ pub type TrieIndex = u32;
 pub type CampaignId = u32;
 /// Index used for claim rewrads for merkle root campaigns
 pub type ClaimId = u64;
+/// Pool Id to keep track of each pool
+pub type PoolId = u32;
 
 /// Land Token Class Id
 pub const LAND_CLASS_ID: ClassId = 15;

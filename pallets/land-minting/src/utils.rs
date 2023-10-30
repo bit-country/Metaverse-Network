@@ -36,7 +36,7 @@ pub struct PoolInfo<CurrencyId, AccountId> {
 	pub commission: Permill,
 	/// Currency id of the pool
 	pub currency_id: CurrencyId,
-	/// Max total supply
+	/// Max nft rewards
 	pub max: u32,
 }
 
