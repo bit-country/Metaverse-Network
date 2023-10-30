@@ -66,9 +66,9 @@ pub mod pallet {
 
 	use primitives::estate::EstateInfo;
 	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
-	use primitives::{Balance, CurrencyId, RoundIndex, UndeployedLandBlockId};
+	use primitives::{AccountId, Balance, CurrencyId, PoolId, RoundIndex, UndeployedLandBlockId};
 
-	use crate::utils::{round_issuance_range, MintingRateInfo};
+	use crate::utils::{round_issuance_range, MintingRateInfo, PoolInfo};
 
 	use super::*;
 
@@ -129,12 +129,16 @@ pub mod pallet {
 		<<T as Config>::MultiCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::CurrencyId;
 
 	#[pallet::storage]
+	#[pallet::getter(fn next_class_id)]
+	pub type NextPoolId<T: Config> = StorageValue<_, PoolId, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn fees)]
 	pub type Fees<T: Config> = StorageValue<_, (Permill, Permill), ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn token_pool)]
-	pub type TokenPool<T: Config> = StorageMap<_, Twox64Concat, (ClassId, CurrencyIdOf<T>), BalanceOf<T>, ValueQuery>;
+	pub type Pool<T: Config> = StorageMap<_, Twox64Concat, PoolId, PoolInfo<CurrencyIdOf<T>, T::AccountId>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -156,7 +160,7 @@ pub mod pallet {
 		/// New staking round started [Starting Block, Round, Total Land Unit]
 		NewRound(T::BlockNumber, RoundIndex, u64),
 		/// New pool created
-		PoolCreated(T::AccountId, ClassId, u32, CurrencyIdOf<T>),
+		PoolCreated(T::AccountId, u32, CurrencyIdOf<T>),
 	}
 
 	#[pallet::error]
@@ -165,15 +169,19 @@ pub mod pallet {
 		NoPermission,
 		/// Currency is not supported
 		CurrencyIsNotSupported,
+		/// No available next pool id
+		NoAvailablePoolId,
 	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(T::WeightInfo::mint_land())]
-		pub fn create_pool(origin: OriginFor<T>, max_supply: u32, currency_id: CurrencyIdOf<T>) -> DispatchResult {
-			// Check if user signed
-			// Emit events
-			// Check if user signed
+		pub fn create_pool(
+			origin: OriginFor<T>,
+			currency_id: CurrencyIdOf<T>,
+			max_nft_reward: u32,
+			commission: Permill,
+		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			// Ensure currency_id supported
@@ -182,23 +190,39 @@ pub mod pallet {
 				Error::<T>::CurrencyIsNotSupported
 			);
 
+			// TODO Check commission below threshold
+
 			// Collect pool creation fee
 			Self::collect_pool_creation_fee(&who)?;
 
-			// Create new NFT collection
-			// This will return a unique collection ID for the new pool
-			let class_id = T::NFTTokenizationSource.create_collection(who.clone(), max_supply, currency_id)?;
+			// Next pool id
+			let next_pool_id = NextPoolId::<T>::try_mutate(|id| -> Result<PoolId, DispatchError> {
+				let current_id = *id;
+				*id = id.checked_add(&1u32).ok_or(Error::<T>::NoAvailablePoolId)?;
+				Ok(current_id)
+			})?;
+
+			let new_pool = PoolInfo {
+				creator: who.clone(),
+				commission: commission,
+				currency_id: currency_id,
+				max: max_nft_reward,
+			};
 
 			// Add tuple class_id, currency_id
-			TokenPool::<T>::insert((class_id, currency_id), Zero::zero);
+			Pool::<T>::insert(next_pool_id, new_pool);
 
 			// Emit event for pool creation
-			Self::deposit_event(Event::PoolCreated(who, class_id, max_supply, currency_id));
+			Self::deposit_event(Event::PoolCreated(who, max_nft_reward, currency_id));
 			Ok(().into())
 		}
 
 		#[pallet::weight(T::WeightInfo::mint_land())]
 		pub fn deposit(origin: OriginFor<T>, class_id: ClassId, amount: BalanceOf<T>) -> DispatchResult {
+			// Ensure user is signed
+			// Check if pool is full from max supply
+			// Calculate exchange rate and take fee
+			// Mint new token
 			Ok(().into())
 		}
 	}
