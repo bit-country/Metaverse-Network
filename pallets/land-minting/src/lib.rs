@@ -61,6 +61,7 @@ pub mod weights;
 pub mod pallet {
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
+	use sp_core::U256;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
 	use sp_runtime::Permill;
 
@@ -122,6 +123,9 @@ pub mod pallet {
 
 		/// Allows converting block numbers into balance
 		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
+
+		#[pallet::constant]
+		type PoolAccount: Get<PalletId>;
 	}
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -136,9 +140,20 @@ pub mod pallet {
 	#[pallet::getter(fn fees)]
 	pub type Fees<T: Config> = StorageValue<_, (Permill, Permill), ValueQuery>;
 
+	/// Keep track of Pool detail
 	#[pallet::storage]
-	#[pallet::getter(fn token_pool)]
+	#[pallet::getter(fn pool)]
 	pub type Pool<T: Config> = StorageMap<_, Twox64Concat, PoolId, PoolInfo<CurrencyIdOf<T>, T::AccountId>, ValueQuery>;
+
+	/// Pool ledger that keeps track of Pool id and balance
+	#[pallet::storage]
+	#[pallet::getter(fn pool_ledger)]
+	pub type PoolLedger<T: Config> = StorageMap<_, Twox64Concat, PoolId, BalanceOf<T>, ValueQuery>;
+
+	/// Network ledger
+	#[pallet::storage]
+	#[pallet::getter(fn network_ledger)]
+	pub type NetworkLedger<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -171,6 +186,10 @@ pub mod pallet {
 		CurrencyIsNotSupported,
 		/// No available next pool id
 		NoAvailablePoolId,
+		/// Pool doesn't exists
+		PoolDoesNotExist,
+		/// Overflow
+		Overflow,
 	}
 
 	#[pallet::call]
@@ -198,7 +217,7 @@ pub mod pallet {
 			// Next pool id
 			let next_pool_id = NextPoolId::<T>::try_mutate(|id| -> Result<PoolId, DispatchError> {
 				let current_id = *id;
-				*id = id.checked_add(&1u32).ok_or(Error::<T>::NoAvailablePoolId)?;
+				*id = id.checked_add(1u32).ok_or(Error::<T>::NoAvailablePoolId)?;
 				Ok(current_id)
 			})?;
 
@@ -218,11 +237,61 @@ pub mod pallet {
 		}
 
 		#[pallet::weight(T::WeightInfo::mint_land())]
-		pub fn deposit(origin: OriginFor<T>, class_id: ClassId, amount: BalanceOf<T>) -> DispatchResult {
+		pub fn deposit(origin: OriginFor<T>, pool_id: PoolId, amount: BalanceOf<T>) -> DispatchResult {
 			// Ensure user is signed
-			// Check if pool is full from max supply
-			// Calculate exchange rate and take fee
-			// Mint new token
+			// Check if pool is exists
+			// Get pool detail and add it to pool_instance
+			// Get currencyId from pool detail
+			// Get network ledger balance from currency id
+			// Collect deposit fee for protocol
+			// Calculate vAmount as receipt of amount locked. The formula based on vAmount = (amount * vAmount
+			// total issuance)/network ledger balance Deposit vAmount to user using T::MultiCurrency::deposit
+			// Transfer amount to PoolAccount using T::MultiCurrency::transfer
+			// Emit deposit event
+
+			// Ensure user is signed
+			let who = ensure_signed(origin)?;
+			// Check if pool exists
+			let pool_instance = Pool::<T>::get(pool_id).ok_or(Error::<T>::PoolDoesNotExist)?;
+
+			// Get currencyId from pool detail
+			let currency_id = pool_instance.currency_id;
+
+			// Get network ledger balance from currency id
+			let network_ledger_balance = Self::network_ledger(currency_id);
+
+			// Collect deposit fee for protocol
+			// Assuming there's a function `collect_deposit_fee` that deducts a fee for deposits.
+			Self::collect_deposit_fee(&who, amount)?;
+
+			let v_currency_id = T::CurrencyIdManagement::convert_to_vcurrency(currency_id)
+				.map_err(|_| Error::<T>::NotSupportTokenType)?;
+			// Calculate vAmount as receipt of amount locked. The formula based on vAmount = (amount * vAmount
+			// total issuance)/network ledger balance
+			let v_amount_total_issuance = T::MultiCurrency::total_issuance(v_currency_id);
+			let v_amount = U256::from(amount.saturated_into::<u128>())
+				.saturating_mul(v_amount_total_issuance.saturated_into::<u128>().into())
+				.checked_div(network_ledger_balance.saturated_into::<u128>().into())
+				.ok_or(Error::<T>::CalculationOverflow)?
+				.as_u128()
+				.saturated_into();
+
+			// Deposit vAmount to user using T::MultiCurrency::deposit
+			T::MultiCurrency::deposit(currency_id, &who, vamount)?;
+
+			// Transfer amount to PoolAccount using T::MultiCurrency::transfer
+			// Assuming `PoolAccount` is an associated type that represents the pool's account ID or a method to
+			// get it.
+			T::MultiCurrency::transfer(
+				currency_id,
+				&who,
+				&T::PoolAccount::get().into_account_truncating(),
+				amount,
+			)?;
+
+			// Emit deposit event
+			Self::deposit_event(Event::Deposited(who, pool_id, amount));
+
 			Ok(().into())
 		}
 	}
