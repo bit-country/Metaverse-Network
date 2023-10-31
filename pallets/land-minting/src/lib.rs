@@ -155,6 +155,10 @@ pub mod pallet {
 	#[pallet::getter(fn network_ledger)]
 	pub type NetworkLedger<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, BalanceOf<T>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn minimum_redeem)]
+	pub type MinimumRedeem<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, BalanceOf<T>, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
 		pub minting_rate_config: MintingRateInfo,
@@ -190,6 +194,8 @@ pub mod pallet {
 		PoolDoesNotExist,
 		/// Overflow
 		Overflow,
+		/// Below minimum redemption
+		BelowMinimumRedeem,
 	}
 
 	#[pallet::call]
@@ -239,17 +245,6 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::mint_land())]
 		pub fn deposit(origin: OriginFor<T>, pool_id: PoolId, amount: BalanceOf<T>) -> DispatchResult {
 			// Ensure user is signed
-			// Check if pool is exists
-			// Get pool detail and add it to pool_instance
-			// Get currencyId from pool detail
-			// Get network ledger balance from currency id
-			// Collect deposit fee for protocol
-			// Calculate vAmount as receipt of amount locked. The formula based on vAmount = (amount * vAmount
-			// total issuance)/network ledger balance Deposit vAmount to user using T::MultiCurrency::deposit
-			// Transfer amount to PoolAccount using T::MultiCurrency::transfer
-			// Emit deposit event
-
-			// Ensure user is signed
 			let who = ensure_signed(origin)?;
 			// Check if pool exists
 			let pool_instance = Pool::<T>::get(pool_id).ok_or(Error::<T>::PoolDoesNotExist)?;
@@ -262,22 +257,22 @@ pub mod pallet {
 
 			// Collect deposit fee for protocol
 			// Assuming there's a function `collect_deposit_fee` that deducts a fee for deposits.
-			Self::collect_deposit_fee(&who, amount)?;
+			let amount_after_fee = Self::collect_deposit_fee(&who, amount)?;
 
 			let v_currency_id = T::CurrencyIdManagement::convert_to_vcurrency(currency_id)
-				.map_err(|_| Error::<T>::NotSupportTokenType)?;
+				.map_err(|_| Error::<T>::CurrencyIsNotSupported)?;
 			// Calculate vAmount as receipt of amount locked. The formula based on vAmount = (amount * vAmount
 			// total issuance)/network ledger balance
 			let v_amount_total_issuance = T::MultiCurrency::total_issuance(v_currency_id);
-			let v_amount = U256::from(amount.saturated_into::<u128>())
+			let v_amount = U256::from(amount_after_fee.saturated_into::<u128>())
 				.saturating_mul(v_amount_total_issuance.saturated_into::<u128>().into())
 				.checked_div(network_ledger_balance.saturated_into::<u128>().into())
-				.ok_or(Error::<T>::CalculationOverflow)?
+				.ok_or(ArithmeticError::Overflow)?
 				.as_u128()
 				.saturated_into();
 
 			// Deposit vAmount to user using T::MultiCurrency::deposit
-			T::MultiCurrency::deposit(currency_id, &who, vamount)?;
+			T::MultiCurrency::deposit(currency_id, &who, v_amount)?;
 
 			// Transfer amount to PoolAccount using T::MultiCurrency::transfer
 			// Assuming `PoolAccount` is an associated type that represents the pool's account ID or a method to
@@ -291,7 +286,55 @@ pub mod pallet {
 
 			// Emit deposit event
 			Self::deposit_event(Event::Deposited(who, pool_id, amount));
+			Ok(().into())
+		}
 
+		#[pallet::weight(T::WeightInfo::mint_land())]
+		pub fn redeem(
+			origin: OriginFor<T>,
+			pool_id: PoolId,
+			vcurrency_id: CurrencyIdOf<T>,
+			vamount: BalanceOf<T>,
+		) -> DispatchResult {
+			// Ensure user is signed
+			let who = ensure_signed(origin)?;
+			ensure!(
+				vamount >= MinimumRedeem::<T>::get(vcurrency_id),
+				Error::<T>::BelowMinimumRedeem
+			);
+
+			let currency_id = T::CurrencyIdManagement::convert_to_currency(vcurrency_id)
+				.map_err(|_| Error::<T>::NotSupportTokenType)?;
+
+			// Check if pool exists
+			let pool_instance = Pool::<T>::get(pool_id).ok_or(Error::<T>::PoolDoesNotExist)?;
+
+			ensure!(
+				currency_id == pool_instance.currency_id,
+				Error::<T>::CurrencyIsNotSupported
+			);
+
+			// Get network ledger balance from currency id
+			let network_ledger_balance = Self::network_ledger(currency_id);
+
+			// Collect deposit fee for protocol
+			// Assuming there's a function `collect_deposit_fee` that deducts a fee for deposits.
+			let amount_after_fee = Self::collect_deposit_fee(&who, vamount)?;
+			let vamount = vamount
+				.checked_sub(&amount_after_fee)
+				.ok_or(ArithmeticError::Overflow)?;
+			// Calculate vAmount as receipt of amount locked. The formula based on vAmount = (amount * vAmount
+			// total issuance)/network ledger balance
+			let v_amount_total_issuance = T::MultiCurrency::total_issuance(vcurrency_id);
+			let currency_amount = U256::from(vamount.saturated_into::<u128>())
+				.saturating_mul(network_ledger_balance.saturated_into::<u128>().into())
+				.checked_div(v_amount_total_issuance.saturated_into::<u128>().into())
+				.ok_or(Error::<T>::CalculationOverflow)?
+				.as_u128()
+				.saturated_into();
+
+			// Emit deposit event
+			Self::deposit_event(Event::Deposited(who, pool_id, vamount));
 			Ok(().into())
 		}
 	}
