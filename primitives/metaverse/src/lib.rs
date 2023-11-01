@@ -462,3 +462,53 @@ pub struct CampaignInfo<AccountId, Balance, BlockNumber, FungibleTokenId, ClassI
 	/// A hard-cap on the each reward amount that may be contributed.
 	pub cap: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
 }
+// For multiple time calculation type
+#[derive(Encode, Decode, Clone, RuntimeDebug, Eq, TypeInfo, MaxEncodedLen)]
+pub enum StakingRound {
+	Era(#[codec(compact)] u32),
+	Round(#[codec(compact)] u32),
+	Epoch(#[codec(compact)] u32),
+	Hour(#[codec(compact)] u32),
+}
+
+impl Default for TimeUnit {
+	fn default() -> Self {
+		StakingRound::Era(0u32)
+	}
+}
+
+impl PartialEq for StakingRound {
+	fn eq(&self, other: &Self) -> bool {
+		match (&self, other) {
+			(Self::Era(a), Self::Era(b)) => a.eq(b),
+			(Self::Round(a), Self::Round(b)) => a.eq(b),
+			(Self::Epoch(a), Self::Epoch(b)) => a.eq(b),
+			(Self::Hour(a), Self::Hour(b)) => a.eq(b),
+			_ => false,
+		}
+	}
+}
+
+impl Ord for StakingRound {
+	fn cmp(&self, other: &Self) -> sp_std::cmp::Ordering {
+		match (&self, other) {
+			(Self::Era(a), Self::Era(b)) => a.cmp(b),
+			(Self::Round(a), Self::Round(b)) => a.cmp(b),
+			(Self::Epoch(a), Self::Epoch(b)) => a.cmp(b),
+			(Self::Hour(a), Self::Hour(b)) => a.cmp(b),
+			_ => sp_std::cmp::Ordering::Less,
+		}
+	}
+}
+
+impl PartialOrd for StakingRound {
+	fn partial_cmp(&self, other: &Self) -> Option<sp_std::cmp::Ordering> {
+		match (&self, other) {
+			(Self::Era(a), Self::Era(b)) => Some(a.cmp(b)),
+			(Self::Round(a), Self::Round(b)) => Some(a.cmp(b)),
+			(Self::Epoch(a), Self::Kblock(b)) => Some(a.cmp(b)),
+			(Self::Hour(a), Self::Hour(b)) => Some(a.cmp(b)),
+			_ => None,
+		}
+	}
+}
