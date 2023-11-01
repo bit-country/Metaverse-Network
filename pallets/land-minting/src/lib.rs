@@ -149,12 +149,12 @@ pub mod pallet {
 	#[pallet::getter(fn pool)]
 	pub type Pool<T: Config> = StorageMap<_, Twox64Concat, PoolId, PoolInfo<CurrencyIdOf<T>, T::AccountId>, ValueQuery>;
 
-	/// Pool ledger that keeps track of Pool id and balance
+	/// Pool ledger that keeps track of Pool id and balance of base currency
 	#[pallet::storage]
 	#[pallet::getter(fn pool_ledger)]
 	pub type PoolLedger<T: Config> = StorageMap<_, Twox64Concat, PoolId, BalanceOf<T>, ValueQuery>;
 
-	/// Network ledger
+	/// Network ledger that keep track of all staking across all pools
 	#[pallet::storage]
 	#[pallet::getter(fn network_ledger)]
 	pub type NetworkLedger<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, BalanceOf<T>, ValueQuery>;
@@ -318,6 +318,16 @@ pub mod pallet {
 			// Deposit vAmount to user using T::MultiCurrency::deposit
 			T::MultiCurrency::deposit(currency_id, &who, v_amount)?;
 
+			// Update this specific pool ledger to keep track of pool balance
+			PoolLedger::<T>::mutate(&pool_id, |pool| -> Result<(), Error<T>> {
+				*pool = pool.checked_add(&amount_after_fee).ok_or(ArithmeticError::Overflow)?;
+				Ok(())
+			})?;
+
+			NetworkLedger::<T>::mutate(&currency_id, |pool| -> Result<(), Error<T>> {
+				*pool = pool.checked_add(&amount_after_fee).ok_or(ArithmeticError::Overflow)?;
+				Ok(())
+			})?;
 			// Transfer amount to PoolAccount using T::MultiCurrency::transfer
 			// Assuming `PoolAccount` is an associated type that represents the pool's account ID or a method to
 			// get it.
@@ -377,8 +387,24 @@ pub mod pallet {
 				.as_u128()
 				.saturated_into();
 
+			// Check current staking era - only failed when there is no current staking era
+			// Staking era get checked and updated every blocks
 			match CurrentStakingRound::<T>::get(currency_id) {
-				Some(staking_round) => {}
+				Some(staking_round) => {
+					// Calculate the staking duration to be locked
+					let new_staking_round = Self::calculate_next_staking_round(
+						Self::unlock_duration(currency_id).ok_or(Error::<T>::UnlockDurationNotFound)?,
+						staking_round,
+					)?;
+					// Burn currency
+					T::MultiCurrency::withdraw(vcurrency_id, &who, vamount)?;
+
+					// Update pool ledger
+					PoolLedger::<T>::mutate(&pool_id, |pool| -> Result<(), Error<T>> {
+						*pool = pool.checked_sub(&currency_amount).ok_or(ArithmeticError::Overflow)?;
+						Ok(())
+					})?;
+				}
 				None => return Err(Error::<T>::NoCurrentStakingRound.into()),
 			}
 
