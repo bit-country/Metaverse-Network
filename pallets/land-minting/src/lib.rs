@@ -45,6 +45,7 @@ use primitives::{
 pub use utils::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
 
+pub type QueueId = u32;
 //#[cfg(feature = "runtime-benchmarks")]
 //pub mod benchmarking;
 
@@ -67,7 +68,7 @@ pub mod pallet {
 
 	use primitives::estate::EstateInfo;
 	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
-	use primitives::{AccountId, Balance, CurrencyId, PoolId, RoundIndex, UndeployedLandBlockId};
+	use primitives::{AccountId, Balance, CurrencyId, PoolId, RoundIndex, StakingRound, UndeployedLandBlockId};
 
 	use crate::utils::{round_issuance_range, MintingRateInfo, PoolInfo};
 
@@ -126,6 +127,9 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type PoolAccount: Get<PalletId>;
+
+		#[pallet::constant]
+		type MaximumQueue: Get<u32>;
 	}
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -158,6 +162,30 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn minimum_redeem)]
 	pub type MinimumRedeem<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn network_redeem_requests)]
+	pub type NetworkRedeemQueue<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		StakingRound,
+		Blake2_128Concat,
+		CurrencyIdOf<T>,
+		(BalanceOf<T>, BoundedVec<QueueId, T::MaximumQueue>, CurrencyIdOf<T>),
+		OptionQuery,
+	>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn user_unlock_request)]
+	pub type UserUnlockRequest<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		CurrencyIdOf<T>,
+		Blake2_128Concat,
+		QueueId,
+		(T::AccountId, BalanceOf<T>, StakingRound),
+		OptionQuery,
+	>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
@@ -329,9 +357,15 @@ pub mod pallet {
 			let currency_amount = U256::from(vamount.saturated_into::<u128>())
 				.saturating_mul(network_ledger_balance.saturated_into::<u128>().into())
 				.checked_div(v_amount_total_issuance.saturated_into::<u128>().into())
-				.ok_or(Error::<T>::CalculationOverflow)?
+				.ok_or(ArithmeticError::Overflow)?
 				.as_u128()
 				.saturated_into();
+
+			// Check if there is ongoing staking round in queue
+			// Burn v_amount from account
+			// Deduct total amount from PoolLedger
+			// Keep track of total unlock
+			//
 
 			// Emit deposit event
 			Self::deposit_event(Event::Deposited(who, pool_id, vamount));
