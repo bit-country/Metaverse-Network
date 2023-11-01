@@ -39,8 +39,8 @@ pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::{Estate, LandUnitStatus, LeaseContract, OwnerId},
-	Attributes, ClassId, EstateId, FungibleTokenId, ItemId, MetaverseId, NftMetadata, TokenId, UndeployedLandBlock,
-	UndeployedLandBlockId, UndeployedLandBlockType,
+	Attributes, ClassId, EstateId, FungibleTokenId, ItemId, MetaverseId, NftMetadata, StakingRound, TokenId,
+	UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
 };
 pub use utils::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
@@ -187,6 +187,18 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn unlock_duration)]
+	pub type UnlockDuration<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, StakingRound>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn current_staking_round)]
+	pub type CurrentStakingRound<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, StakingRound>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn queue_next_id)]
+	pub type QueueNextId<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, u32, ValueQuery>;
+
 	#[pallet::genesis_config]
 	pub struct GenesisConfig {
 		pub minting_rate_config: MintingRateInfo,
@@ -224,6 +236,10 @@ pub mod pallet {
 		Overflow,
 		/// Below minimum redemption
 		BelowMinimumRedeem,
+		/// No current staking round
+		NoCurrentStakingRound,
+		/// Unexpected
+		Unexpected,
 	}
 
 	#[pallet::call]
@@ -361,11 +377,10 @@ pub mod pallet {
 				.as_u128()
 				.saturated_into();
 
-			// Check if there is ongoing staking round in queue
-			// Burn v_amount from account
-			// Deduct total amount from PoolLedger
-			// Keep track of total unlock
-			//
+			match CurrentStakingRound::<T>::get(currency_id) {
+				Some(staking_round) => {}
+				None => return Err(Error::<T>::NoCurrentStakingRound.into()),
+			}
 
 			// Emit deposit event
 			Self::deposit_event(Event::Deposited(who, pool_id, vamount));
@@ -374,4 +389,36 @@ pub mod pallet {
 	}
 }
 
-impl<T: Config> Pallet<T> {}
+impl<T: Config> Pallet<T> {
+	#[transactional]
+	pub fn calculate_next_staking_round(a: StakingRound, b: StakingRound) -> Result<StakingRound, DispatchError> {
+		let result = match a {
+			StakingRound::Era(era_a) => match b {
+				StakingRound::Era(era_b) => {
+					StakingRound::Era(era_a.checked_add(era_b).ok_or(ArithmeticError::Overflow)?)
+				}
+				_ => return Err(Error::<T>::Unexpected.into()),
+			},
+			StakingRound::Round(round_a) => match b {
+				StakingRound::Round(round_b) => {
+					StakingRound::Round(round_a.checked_add(round_b).ok_or(ArithmeticError::Overflow)?)
+				}
+				_ => return Err(Error::<T>::Unexpected.into()),
+			},
+			StakingRound::Epoch(epoch_a) => match b {
+				StakingRound::Epoch(epoch_b) => {
+					StakingRound::Epoch(epoch_a.checked_add(epoch_b).ok_or(ArithmeticError::Overflow)?)
+				}
+				_ => return Err(Error::<T>::Unexpected.into()),
+			},
+			StakingRound::Hour(hour_a) => match b {
+				StakingRound::Hour(hour_b) => {
+					StakingRound::Hour(hour_a.checked_add(hour_b).ok_or(ArithmeticError::Overflow)?)
+				}
+				_ => return Err(Error::<T>::Unexpected.into()),
+			},
+		};
+
+		Ok(result)
+	}
+}
