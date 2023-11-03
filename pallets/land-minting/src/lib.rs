@@ -219,7 +219,11 @@ pub mod pallet {
 		/// New staking round started [Starting Block, Round, Total Land Unit]
 		NewRound(T::BlockNumber, RoundIndex, u64),
 		/// New pool created
-		PoolCreated(T::AccountId, u32, CurrencyIdOf<T>),
+		PoolCreated(T::AccountId, PoolId, CurrencyIdOf<T>),
+		/// Deposited
+		Deposited(T::AccountId, PoolId, BalanceOf<T>),
+		/// Redeemed
+		Redeemed(T::AccountId, PoolId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -404,12 +408,67 @@ pub mod pallet {
 						*pool = pool.checked_sub(&currency_amount).ok_or(ArithmeticError::Overflow)?;
 						Ok(())
 					})?;
+
+					let next_queue_id = Self::queue_next_id(currency_id);
+					UserUnlockRequest::<T>::insert(
+						&currency_id,
+						&next_queue_id,
+						(&who, currency_amount, &new_staking_round),
+					);
+
+					if UserUnlockRequest::<T>::get(&who, &currency_id).is_some() {
+						UserUnlockRequest::<T>::mutate(&who, &currency_id, |value| -> Result<(), Error<T>> {
+							if let Some((total_locked, ledger_list)) = value {
+								ledger_list.try_push(next_id).map_err(|_| Error::<T>::TooManyRedeems)?;
+
+								*total_locked = total_locked
+									.checked_add(&token_amount)
+									.ok_or(Error::<T>::CalculationOverflow)?;
+							};
+							Ok(())
+						})?;
+					} else {
+						let mut ledger_list_origin = BoundedVec::<QueueId, T::MaximumQueue>::default();
+						ledger_list_origin
+							.try_push(next_queue_id)
+							.map_err(|_| Error::<T>::TooManyRedeems)?;
+						UserUnlockRequest::<T>::insert(&who, &currency_id, (currency_amount, ledger_list_origin));
+					}
+
+					if let Some((_, _, _token_id)) = NetworkRedeemQueue::<T>::get(&new_staking_round, &currency_id) {
+						NetworkRedeemQueue::<T>::mutate(
+							&new_staking_round,
+							&currency_id,
+							|value| -> Result<(), Error<T>> {
+								if let Some((total_locked, ledger_list, _token_id)) = value {
+									ledger_list
+										.try_push(next_queue_id)
+										.map_err(|_| Error::<T>::TooManyRedeems)?;
+									*total_locked = total_locked
+										.checked_add(&currency_amount)
+										.ok_or(Error::<T>::CalculationOverflow)?;
+								};
+								Ok(())
+							},
+						)?;
+					} else {
+						let mut ledger_list_origin = BoundedVec::<QueueId, T::MaximumQueue>::default();
+						ledger_list_origin
+							.try_push(next_queue_id)
+							.map_err(|_| Error::<T>::TooManyRedeems)?;
+
+						NetworkRedeemQueue::<T>::insert(
+							&new_staking_round,
+							&currency_id,
+							(currency_amount, ledger_list_origin, currency_id),
+						);
+					}
 				}
 				None => return Err(Error::<T>::NoCurrentStakingRound.into()),
 			}
 
 			// Emit deposit event
-			Self::deposit_event(Event::Deposited(who, pool_id, vamount));
+			Self::deposit_event(Event::Redeemed(who, pool_id, vamount));
 			Ok(().into())
 		}
 	}
