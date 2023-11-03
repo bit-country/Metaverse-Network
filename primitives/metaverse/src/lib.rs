@@ -471,7 +471,7 @@ pub enum StakingRound {
 	Hour(#[codec(compact)] u32),
 }
 
-impl Default for TimeUnit {
+impl Default for StakingRound {
 	fn default() -> Self {
 		StakingRound::Era(0u32)
 	}
@@ -506,7 +506,7 @@ impl PartialOrd for StakingRound {
 		match (&self, other) {
 			(Self::Era(a), Self::Era(b)) => Some(a.cmp(b)),
 			(Self::Round(a), Self::Round(b)) => Some(a.cmp(b)),
-			(Self::Epoch(a), Self::Kblock(b)) => Some(a.cmp(b)),
+			(Self::Epoch(a), Self::Epoch(b)) => Some(a.cmp(b)),
 			(Self::Hour(a), Self::Hour(b)) => Some(a.cmp(b)),
 			_ => None,
 		}
