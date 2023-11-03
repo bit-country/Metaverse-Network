@@ -35,14 +35,12 @@ use sp_std::vec::Vec;
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 use core_primitives::*;
-pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::{Estate, LandUnitStatus, LeaseContract, OwnerId},
 	Attributes, ClassId, EstateId, FungibleTokenId, ItemId, MetaverseId, NftMetadata, StakingRound, TokenId,
 	UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
 };
-pub use utils::{MintingRateInfo, Range};
 pub use weights::WeightInfo;
 
 pub type QueueId = u32;
@@ -58,6 +56,7 @@ mod tests;
 
 pub mod weights;
 
+pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
@@ -70,7 +69,7 @@ pub mod pallet {
 	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
 	use primitives::{AccountId, Balance, CurrencyId, PoolId, RoundIndex, StakingRound, UndeployedLandBlockId};
 
-	use crate::utils::{round_issuance_range, MintingRateInfo, PoolInfo};
+	use crate::utils::PoolInfo;
 
 	use super::*;
 
@@ -198,20 +197,6 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn queue_next_id)]
 	pub type QueueNextId<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, u32, ValueQuery>;
-
-	#[pallet::genesis_config]
-	pub struct GenesisConfig {
-		pub minting_rate_config: MintingRateInfo,
-	}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			GenesisConfig {
-				minting_rate_config: Default::default(),
-			}
-		}
-	}
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
