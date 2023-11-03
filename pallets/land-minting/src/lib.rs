@@ -244,6 +244,8 @@ pub mod pallet {
 		NoCurrentStakingRound,
 		/// Unexpected
 		Unexpected,
+		/// Too many redeems
+		TooManyRedeems,
 	}
 
 	#[pallet::call]
@@ -419,11 +421,13 @@ pub mod pallet {
 					if UserUnlockRequest::<T>::get(&who, &currency_id).is_some() {
 						UserUnlockRequest::<T>::mutate(&who, &currency_id, |value| -> Result<(), Error<T>> {
 							if let Some((total_locked, ledger_list)) = value {
-								ledger_list.try_push(next_id).map_err(|_| Error::<T>::TooManyRedeems)?;
+								ledger_list
+									.try_push(next_queue_id)
+									.map_err(|_| Error::<T>::TooManyRedeems)?;
 
 								*total_locked = total_locked
-									.checked_add(&token_amount)
-									.ok_or(Error::<T>::CalculationOverflow)?;
+									.checked_add(&currency_amount)
+									.ok_or(ArithmeticError::Overflow)?;
 							};
 							Ok(())
 						})?;
@@ -446,7 +450,7 @@ pub mod pallet {
 										.map_err(|_| Error::<T>::TooManyRedeems)?;
 									*total_locked = total_locked
 										.checked_add(&currency_amount)
-										.ok_or(Error::<T>::CalculationOverflow)?;
+										.ok_or(ArithmeticError::Overflow)?;
 								};
 								Ok(())
 							},
