@@ -349,7 +349,7 @@ where
 }
 
 impl<T: Config> CurrencyIdManagement<TokenId> for ForeignAssetMapping<T> {
-	fn check_token_exist(currency_id: CurrencyId) -> bool {
+	fn check_token_exist(token_id: TokenId) -> bool {
 		return true;
 	}
 }
