@@ -26,7 +26,9 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
+use orml_traits::MultiCurrency;
 use scale_info::TypeInfo;
+use sp_runtime::traits::CheckedSub;
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, One, Saturating, Zero},
 	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
@@ -35,6 +37,7 @@ use sp_std::vec::Vec;
 
 use auction_manager::{Auction, CheckAuctionItemHandler};
 use core_primitives::*;
+pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::{Estate, LandUnitStatus, LeaseContract, OwnerId},
@@ -56,7 +59,6 @@ mod tests;
 
 pub mod weights;
 
-pub use pallet::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
@@ -112,7 +114,7 @@ pub mod pallet {
 		/// Default max bound for each metaverse mapping system, this could change through proposal
 		type DefaultMaxBound: Get<(i32, i32)>;
 
-		/// Network fee charged when deploying a land block or creating an estate
+		/// Network fee charged when depositing or redeeming
 		#[pallet::constant]
 		type NetworkFee: Get<BalanceOf<Self>>;
 
@@ -292,7 +294,7 @@ pub mod pallet {
 
 			// Collect deposit fee for protocol
 			// Assuming there's a function `collect_deposit_fee` that deducts a fee for deposits.
-			let amount_after_fee = Self::collect_deposit_fee(&who, amount)?;
+			let amount_after_fee = Self::collect_deposit_fee(&who, currency_id, amount)?;
 
 			let v_currency_id = T::CurrencyIdManagement::convert_to_vcurrency(currency_id)
 				.map_err(|_| Error::<T>::CurrencyIsNotSupported)?;
@@ -363,8 +365,8 @@ pub mod pallet {
 			let network_ledger_balance = Self::network_ledger(currency_id);
 
 			// Collect deposit fee for protocol
-			// Assuming there's a function `collect_deposit_fee` that deducts a fee for deposits.
-			let amount_after_fee = Self::collect_deposit_fee(&who, vamount)?;
+			// Assuming there's a function `collect_redeem_fee` that deducts a fee for deposits.
+			let amount_after_fee = Self::collect_redeem_fee(&who, vcurrency_id, vamount)?;
 			let vamount = vamount
 				.checked_sub(&amount_after_fee)
 				.ok_or(ArithmeticError::Overflow)?;
@@ -494,5 +496,34 @@ impl<T: Config> Pallet<T> {
 		};
 
 		Ok(result)
+	}
+
+	#[transactional]
+	pub fn collect_deposit_fee(
+		who: T::AccountId,
+		currency_id: BalanceOf<T>,
+		amount: BalanceOf<T>,
+	) -> Result<BalanceOf<T>, DispatchError> {
+		let (deposit_rate, _redeem_rate) = Fees::<T>::get();
+
+		let deposit_fee = deposit_rate * amount;
+		let amount_exclude_fee = amount.checked_sub(&deposit_fee).ok_or(ArithmeticError::Overflow)?;
+		T::MultiCurrency::transfer(currency_id, who, &T::NetworkFee::get(), deposit_fee)?;
+
+		return amount_exclude_fee;
+	}
+
+	#[transactional]
+	pub fn collect_redeem_fee(
+		who: T::AccountId,
+		currency_id: BalanceOf<T>,
+		amount: BalanceOf<T>,
+	) -> Result<BalanceOf<T>, DispatchError> {
+		let (_mint_rate, redeem_rate) = Fees::<T>::get();
+		let redeem_fee = redeem_rate * amount;
+		let amount_exclude_fee = amount.checked_sub(&deposit_fee).ok_or(ArithmeticError::Overflow)?;
+		T::MultiCurrency::transfer(currency_id, who, &T::NetworkFee::get(), redeem_fee)?;
+
+		return amount_exclude_fee;
 	}
 }
