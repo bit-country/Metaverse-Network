@@ -401,6 +401,8 @@ impl MiningResourceRateInfo {
 	}
 }
 
-pub trait CurrencyIdManagement<CurrencyId> {
-	fn check_token_exist(currency_id: CurrencyId) -> bool;
+pub trait CurrencyIdManagement {
+	fn check_token_exist(currency_id: FungibleTokenId) -> bool;
+	fn convert_to_rcurrency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()>;
+	fn convert_to_currency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()>;
 }

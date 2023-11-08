@@ -21,16 +21,18 @@ use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::{Perbill, Permill, RuntimeDebug};
 
+use primitives::FungibleTokenId;
+
 // Helper methods to compute the issuance rate for undeployed land.
 use crate::pallet::{Config, Pallet};
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Eq, PartialEq, Clone, Encode, Decode, Default, RuntimeDebug, TypeInfo)]
-pub struct PoolInfo<CurrencyId, AccountId> {
+#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct PoolInfo<AccountId> {
 	pub creator: AccountId,
 	pub commission: Permill,
 	/// Currency id of the pool
-	pub currency_id: CurrencyId,
+	pub currency_id: FungibleTokenId,
 	/// Max nft rewards
 	pub max: u32,
 }
