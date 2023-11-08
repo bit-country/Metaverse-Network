@@ -436,7 +436,7 @@ pub mod pallet {
 					CurrencyRedeemQueue::<T>::insert(
 						&currency_id,
 						&next_queue_id,
-						(who, currency_amount, new_staking_round),
+						(&who, currency_amount, &new_staking_round),
 					);
 
 					// Handle ledger of user and currency - user,currency: total_amount_unlocked, vec![queue_id]
@@ -495,7 +495,7 @@ pub mod pallet {
 						StakingRoundRedeemQueue::<T>::insert(
 							&new_staking_round,
 							&currency_id,
-							(currency_amount, ledger_list_origin, currency_id),
+							(currency_amount, new_queue, currency_id),
 						);
 					}
 				}
@@ -510,7 +510,6 @@ pub mod pallet {
 }
 
 impl<T: Config> Pallet<T> {
-	#[transactional]
 	pub fn calculate_next_staking_round(a: StakingRound, b: StakingRound) -> Result<StakingRound, DispatchError> {
 		let result = match a {
 			StakingRound::Era(era_a) => match b {
@@ -542,7 +541,6 @@ impl<T: Config> Pallet<T> {
 		Ok(result)
 	}
 
-	#[transactional]
 	pub fn collect_deposit_fee(
 		who: &T::AccountId,
 		currency_id: FungibleTokenId,
@@ -552,12 +550,16 @@ impl<T: Config> Pallet<T> {
 
 		let deposit_fee = deposit_rate * amount;
 		let amount_exclude_fee = amount.checked_sub(&deposit_fee).ok_or(Error::<T>::ArithmeticOverflow)?;
-		T::MultiCurrency::transfer(currency_id, who, &T::PoolAccount::get(), deposit_fee)?;
+		T::MultiCurrency::transfer(
+			currency_id,
+			who,
+			&T::PoolAccount::get().into_account_truncating(),
+			deposit_fee,
+		)?;
 
-		return amount_exclude_fee;
+		return Ok(amount_exclude_fee);
 	}
 
-	#[transactional]
 	pub fn collect_redeem_fee(
 		who: &T::AccountId,
 		currency_id: FungibleTokenId,
@@ -566,14 +568,23 @@ impl<T: Config> Pallet<T> {
 		let (_mint_rate, redeem_rate) = Fees::<T>::get();
 		let redeem_fee = redeem_rate * amount;
 		let amount_exclude_fee = amount.checked_sub(&redeem_fee).ok_or(Error::<T>::ArithmeticOverflow)?;
-		T::MultiCurrency::transfer(currency_id, who, &T::PoolAccount::get(), redeem_fee)?;
+		T::MultiCurrency::transfer(
+			currency_id,
+			who,
+			&T::PoolAccount::get().into_account_truncating(),
+			redeem_fee,
+		)?;
 
-		return amount_exclude_fee;
+		return Ok(amount_exclude_fee);
 	}
 
-	#[transactional]
 	pub fn collect_pool_creation_fee(who: &T::AccountId, currency_id: FungibleTokenId) -> DispatchResult {
 		let pool_fee = T::NetworkFee::get();
-		T::MultiCurrency::transfer(currency_id, who, &T::PoolAccount::get(), pool_fee)
+		T::MultiCurrency::transfer(
+			currency_id,
+			who,
+			&T::PoolAccount::get().into_account_truncating(),
+			pool_fee,
+		)
 	}
 }
