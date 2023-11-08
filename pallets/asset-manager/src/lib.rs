@@ -348,8 +348,19 @@ where
 	}
 }
 
-impl<T: Config> CurrencyIdManagement<TokenId> for ForeignAssetMapping<T> {
-	fn check_token_exist(token_id: TokenId) -> bool {
+impl<T: Config> CurrencyIdManagement for ForeignAssetMapping<T> {
+	fn check_token_exist(token_id: FungibleTokenId) -> bool {
 		return true;
+	}
+
+	fn convert_to_rcurrency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()> {
+		match currency_id {
+			FungibleTokenId::NativeToken(token_id) => Ok(FungibleTokenId::FungibleToken(token_id)),
+			_ => Err(()),
+		}
+	}
+
+	fn convert_to_currency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()> {
+		todo!()
 	}
 }
