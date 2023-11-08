@@ -95,7 +95,11 @@ pub mod pallet {
 		/// Currency type
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		/// Multi currencies type that handles different currency type in auction
-		type MultiCurrency: MultiReservableCurrency<Self::AccountId, CurrencyId = FungibleTokenId, Balance = Balance>;
+		type MultiCurrency: MultiReservableCurrency<
+			Self::AccountId,
+			CurrencyId = FungibleTokenId,
+			Balance = BalanceOf<Self>,
+		>;
 
 		/// Weight implementation for estate extrinsics
 		type WeightInfo: WeightInfo;
@@ -114,7 +118,7 @@ pub mod pallet {
 		/// Default max bound for each metaverse mapping system, this could change through proposal
 		type DefaultMaxBound: Get<(i32, i32)>;
 
-		/// Network fee charged when depositing or redeeming
+		/// Network fee charged on pool creation
 		#[pallet::constant]
 		type NetworkFee: Get<BalanceOf<Self>>;
 
@@ -131,11 +135,11 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type MaximumQueue: Get<u32>;
+
+		type CurrencyIdConversion: CurrencyIdManagement;
 	}
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-	pub type CurrencyIdOf<T> =
-		<<T as Config>::MultiCurrency as MultiCurrency<<T as frame_system::Config>::AccountId>>::CurrencyId;
 
 	#[pallet::storage]
 	#[pallet::getter(fn next_class_id)]
@@ -148,7 +152,7 @@ pub mod pallet {
 	/// Keep track of Pool detail
 	#[pallet::storage]
 	#[pallet::getter(fn pool)]
-	pub type Pool<T: Config> = StorageMap<_, Twox64Concat, PoolId, PoolInfo<CurrencyIdOf<T>, T::AccountId>, ValueQuery>;
+	pub type Pool<T: Config> = StorageMap<_, Twox64Concat, PoolId, PoolInfo<T::AccountId>, OptionQuery>;
 
 	/// Pool ledger that keeps track of Pool id and balance of base currency
 	#[pallet::storage]
@@ -158,30 +162,45 @@ pub mod pallet {
 	/// Network ledger that keep track of all staking across all pools
 	#[pallet::storage]
 	#[pallet::getter(fn network_ledger)]
-	pub type NetworkLedger<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, BalanceOf<T>, ValueQuery>;
+	pub type NetworkLedger<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn minimum_redeem)]
-	pub type MinimumRedeem<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, BalanceOf<T>, ValueQuery>;
+	pub type MinimumRedeem<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, BalanceOf<T>, ValueQuery>;
 
+	/// Keep track of each staking round, how many items in queue need to be redeem
 	#[pallet::storage]
-	#[pallet::getter(fn network_redeem_requests)]
-	pub type NetworkRedeemQueue<T: Config> = StorageDoubleMap<
+	#[pallet::getter(fn staking_round_redeem_requests)]
+	pub type StakingRoundRedeemQueue<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
 		StakingRound,
 		Blake2_128Concat,
-		CurrencyIdOf<T>,
-		(BalanceOf<T>, BoundedVec<QueueId, T::MaximumQueue>, CurrencyIdOf<T>),
+		FungibleTokenId,
+		(BalanceOf<T>, BoundedVec<QueueId, T::MaximumQueue>, FungibleTokenId),
 		OptionQuery,
 	>;
 
+	/// Keep track of user ledger that how many queue items that needs to be unlocked
 	#[pallet::storage]
-	#[pallet::getter(fn user_unlock_request)]
-	pub type UserUnlockRequest<T: Config> = StorageDoubleMap<
+	#[pallet::getter(fn user_redeem_requests)]
+	pub type UserCurrencyRedeemQueue<T: Config> = StorageDoubleMap<
 		_,
 		Blake2_128Concat,
-		CurrencyIdOf<T>,
+		T::AccountId,
+		Blake2_128Concat,
+		FungibleTokenId,
+		(BalanceOf<T>, BoundedVec<QueueId, T::MaximumQueue>),
+		OptionQuery,
+	>;
+
+	/// Keep track of queue item as well as account that locked amount of currency can be redeemed
+	#[pallet::storage]
+	#[pallet::getter(fn currency_redeem_requests)]
+	pub type CurrencyRedeemQueue<T: Config> = StorageDoubleMap<
+		_,
+		Blake2_128Concat,
+		FungibleTokenId,
 		Blake2_128Concat,
 		QueueId,
 		(T::AccountId, BalanceOf<T>, StakingRound),
@@ -190,15 +209,15 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn unlock_duration)]
-	pub type UnlockDuration<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, StakingRound>;
+	pub type UnlockDuration<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, StakingRound>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn current_staking_round)]
-	pub type CurrentStakingRound<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, StakingRound>;
+	pub type CurrentStakingRound<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, StakingRound>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn queue_next_id)]
-	pub type QueueNextId<T: Config> = StorageMap<_, Twox64Concat, CurrencyIdOf<T>, u32, ValueQuery>;
+	pub type QueueNextId<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, u32, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -206,7 +225,7 @@ pub mod pallet {
 		/// New staking round started [Starting Block, Round, Total Land Unit]
 		NewRound(T::BlockNumber, RoundIndex, u64),
 		/// New pool created
-		PoolCreated(T::AccountId, PoolId, CurrencyIdOf<T>),
+		PoolCreated(T::AccountId, PoolId, FungibleTokenId),
 		/// Deposited
 		Deposited(T::AccountId, PoolId, BalanceOf<T>),
 		/// Redeemed
@@ -233,6 +252,12 @@ pub mod pallet {
 		Unexpected,
 		/// Too many redeems
 		TooManyRedeems,
+		/// Arthimetic Overflow
+		ArithmeticOverflow,
+		/// Token type is not supported
+		NotSupportTokenType,
+		/// Unlock duration not found
+		UnlockDurationNotFound,
 	}
 
 	#[pallet::call]
@@ -240,7 +265,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::mint_land())]
 		pub fn create_pool(
 			origin: OriginFor<T>,
-			currency_id: CurrencyIdOf<T>,
+			currency_id: FungibleTokenId,
 			max_nft_reward: u32,
 			commission: Permill,
 		) -> DispatchResult {
@@ -255,7 +280,7 @@ pub mod pallet {
 			// TODO Check commission below threshold
 
 			// Collect pool creation fee
-			Self::collect_pool_creation_fee(&who)?;
+			Self::collect_pool_creation_fee(&who, currency_id)?;
 
 			// Next pool id
 			let next_pool_id = NextPoolId::<T>::try_mutate(|id| -> Result<PoolId, DispatchError> {
@@ -266,8 +291,8 @@ pub mod pallet {
 
 			let new_pool = PoolInfo {
 				creator: who.clone(),
-				commission: commission,
-				currency_id: currency_id,
+				commission,
+				currency_id,
 				max: max_nft_reward,
 			};
 
@@ -296,29 +321,33 @@ pub mod pallet {
 			// Assuming there's a function `collect_deposit_fee` that deducts a fee for deposits.
 			let amount_after_fee = Self::collect_deposit_fee(&who, currency_id, amount)?;
 
-			let v_currency_id = T::CurrencyIdManagement::convert_to_vcurrency(currency_id)
+			let r_currency_id = T::CurrencyIdConversion::convert_to_rcurrency(currency_id)
 				.map_err(|_| Error::<T>::CurrencyIsNotSupported)?;
-			// Calculate vAmount as receipt of amount locked. The formula based on vAmount = (amount * vAmount
+			// Calculate rAmount as receipt of amount locked. The formula based on rAmount = (amount * rAmount
 			// total issuance)/network ledger balance
-			let v_amount_total_issuance = T::MultiCurrency::total_issuance(v_currency_id);
-			let v_amount = U256::from(amount_after_fee.saturated_into::<u128>())
-				.saturating_mul(v_amount_total_issuance.saturated_into::<u128>().into())
+			let r_amount_total_issuance = T::MultiCurrency::total_issuance(r_currency_id);
+			let r_amount = U256::from(amount_after_fee.saturated_into::<u128>())
+				.saturating_mul(r_amount_total_issuance.saturated_into::<u128>().into())
 				.checked_div(network_ledger_balance.saturated_into::<u128>().into())
-				.ok_or(ArithmeticError::Overflow)?
+				.ok_or(Error::<T>::ArithmeticOverflow)?
 				.as_u128()
 				.saturated_into();
 
-			// Deposit vAmount to user using T::MultiCurrency::deposit
-			T::MultiCurrency::deposit(currency_id, &who, v_amount)?;
+			// Deposit rAmount to user using T::MultiCurrency::deposit
+			T::MultiCurrency::deposit(currency_id, &who, r_amount)?;
 
 			// Update this specific pool ledger to keep track of pool balance
 			PoolLedger::<T>::mutate(&pool_id, |pool| -> Result<(), Error<T>> {
-				*pool = pool.checked_add(&amount_after_fee).ok_or(ArithmeticError::Overflow)?;
+				*pool = pool
+					.checked_add(&amount_after_fee)
+					.ok_or(Error::<T>::ArithmeticOverflow)?;
 				Ok(())
 			})?;
 
 			NetworkLedger::<T>::mutate(&currency_id, |pool| -> Result<(), Error<T>> {
-				*pool = pool.checked_add(&amount_after_fee).ok_or(ArithmeticError::Overflow)?;
+				*pool = pool
+					.checked_add(&amount_after_fee)
+					.ok_or(Error::<T>::ArithmeticOverflow)?;
 				Ok(())
 			})?;
 			// Transfer amount to PoolAccount using T::MultiCurrency::transfer
@@ -328,7 +357,7 @@ pub mod pallet {
 				currency_id,
 				&who,
 				&T::PoolAccount::get().into_account_truncating(),
-				amount,
+				amount_after_fee,
 			)?;
 
 			// Emit deposit event
@@ -340,17 +369,17 @@ pub mod pallet {
 		pub fn redeem(
 			origin: OriginFor<T>,
 			pool_id: PoolId,
-			vcurrency_id: CurrencyIdOf<T>,
-			vamount: BalanceOf<T>,
+			v_currency_id: FungibleTokenId,
+			r_amount: BalanceOf<T>,
 		) -> DispatchResult {
 			// Ensure user is signed
 			let who = ensure_signed(origin)?;
 			ensure!(
-				vamount >= MinimumRedeem::<T>::get(vcurrency_id),
+				r_amount >= MinimumRedeem::<T>::get(v_currency_id),
 				Error::<T>::BelowMinimumRedeem
 			);
 
-			let currency_id = T::CurrencyIdManagement::convert_to_currency(vcurrency_id)
+			let currency_id = T::CurrencyIdConversion::convert_to_currency(v_currency_id)
 				.map_err(|_| Error::<T>::NotSupportTokenType)?;
 
 			// Check if pool exists
@@ -366,17 +395,17 @@ pub mod pallet {
 
 			// Collect deposit fee for protocol
 			// Assuming there's a function `collect_redeem_fee` that deducts a fee for deposits.
-			let amount_after_fee = Self::collect_redeem_fee(&who, vcurrency_id, vamount)?;
-			let vamount = vamount
+			let amount_after_fee = Self::collect_redeem_fee(&who, v_currency_id, r_amount)?;
+			let r_amount = r_amount
 				.checked_sub(&amount_after_fee)
-				.ok_or(ArithmeticError::Overflow)?;
-			// Calculate vAmount as receipt of amount locked. The formula based on vAmount = (amount * vAmount
+				.ok_or(Error::<T>::ArithmeticOverflow)?;
+			// Calculate rAmount as receipt of amount locked. The formula based on rAmount = (amount * rAmount
 			// total issuance)/network ledger balance
-			let v_amount_total_issuance = T::MultiCurrency::total_issuance(vcurrency_id);
-			let currency_amount = U256::from(vamount.saturated_into::<u128>())
+			let r_amount_total_issuance = T::MultiCurrency::total_issuance(v_currency_id);
+			let currency_amount = U256::from(r_amount.saturated_into::<u128>())
 				.saturating_mul(network_ledger_balance.saturated_into::<u128>().into())
-				.checked_div(v_amount_total_issuance.saturated_into::<u128>().into())
-				.ok_or(ArithmeticError::Overflow)?
+				.checked_div(r_amount_total_issuance.saturated_into::<u128>().into())
+				.ok_or(Error::<T>::ArithmeticOverflow)?
 				.as_u128()
 				.saturated_into();
 
@@ -390,65 +419,80 @@ pub mod pallet {
 						staking_round,
 					)?;
 					// Burn currency
-					T::MultiCurrency::withdraw(vcurrency_id, &who, vamount)?;
+					T::MultiCurrency::withdraw(v_currency_id, &who, amount_after_fee)?;
 
 					// Update pool ledger
 					PoolLedger::<T>::mutate(&pool_id, |pool| -> Result<(), Error<T>> {
-						*pool = pool.checked_sub(&currency_amount).ok_or(ArithmeticError::Overflow)?;
+						*pool = pool
+							.checked_sub(&currency_amount)
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
 						Ok(())
 					})?;
 
+					// Get current queue_id
 					let next_queue_id = Self::queue_next_id(currency_id);
-					UserUnlockRequest::<T>::insert(
+
+					// Add request into network currency redeem queue
+					CurrencyRedeemQueue::<T>::insert(
 						&currency_id,
 						&next_queue_id,
-						(&who, currency_amount, &new_staking_round),
+						(who, currency_amount, new_staking_round),
 					);
 
-					if UserUnlockRequest::<T>::get(&who, &currency_id).is_some() {
-						UserUnlockRequest::<T>::mutate(&who, &currency_id, |value| -> Result<(), Error<T>> {
-							if let Some((total_locked, ledger_list)) = value {
-								ledger_list
+					// Handle ledger of user and currency - user,currency: total_amount_unlocked, vec![queue_id]
+					// Check if you already has any redeem requests
+					if UserCurrencyRedeemQueue::<T>::get(&who, &currency_id).is_some() {
+						// Add new queue id into the list
+						UserCurrencyRedeemQueue::<T>::mutate(&who, &currency_id, |value| -> Result<(), Error<T>> {
+							//
+							if let Some((amount_need_unlocked, existing_queue)) = value {
+								existing_queue
 									.try_push(next_queue_id)
 									.map_err(|_| Error::<T>::TooManyRedeems)?;
 
-								*total_locked = total_locked
+								*amount_need_unlocked = amount_need_unlocked
 									.checked_add(&currency_amount)
-									.ok_or(ArithmeticError::Overflow)?;
+									.ok_or(Error::<T>::ArithmeticOverflow)?;
 							};
 							Ok(())
 						})?;
 					} else {
-						let mut ledger_list_origin = BoundedVec::<QueueId, T::MaximumQueue>::default();
-						ledger_list_origin
+						let mut new_queue = BoundedVec::<QueueId, T::MaximumQueue>::default();
+						new_queue
 							.try_push(next_queue_id)
 							.map_err(|_| Error::<T>::TooManyRedeems)?;
-						UserUnlockRequest::<T>::insert(&who, &currency_id, (currency_amount, ledger_list_origin));
+						UserCurrencyRedeemQueue::<T>::insert(&who, &currency_id, (currency_amount, new_queue));
 					}
 
-					if let Some((_, _, _token_id)) = NetworkRedeemQueue::<T>::get(&new_staking_round, &currency_id) {
-						NetworkRedeemQueue::<T>::mutate(
+					// Handle ledger of staking round - executed by hooks on every block - staking_round,currency:
+					// total_amount_unlocked, vec![queue_id], currency
+
+					// Check if there any existing claim of the next staking round
+					if let Some((_, _, _token_id)) = StakingRoundRedeemQueue::<T>::get(&new_staking_round, &currency_id)
+					{
+						StakingRoundRedeemQueue::<T>::mutate(
 							&new_staking_round,
 							&currency_id,
 							|value| -> Result<(), Error<T>> {
-								if let Some((total_locked, ledger_list, _token_id)) = value {
-									ledger_list
+								// Add new queue item
+								if let Some((amount_need_unlocked, existing_queue, _token_id)) = value {
+									existing_queue
 										.try_push(next_queue_id)
 										.map_err(|_| Error::<T>::TooManyRedeems)?;
-									*total_locked = total_locked
+									*amount_need_unlocked = amount_need_unlocked
 										.checked_add(&currency_amount)
-										.ok_or(ArithmeticError::Overflow)?;
+										.ok_or(Error::<T>::ArithmeticOverflow)?;
 								};
 								Ok(())
 							},
 						)?;
 					} else {
-						let mut ledger_list_origin = BoundedVec::<QueueId, T::MaximumQueue>::default();
-						ledger_list_origin
+						let mut new_queue = BoundedVec::<QueueId, T::MaximumQueue>::default();
+						new_queue
 							.try_push(next_queue_id)
 							.map_err(|_| Error::<T>::TooManyRedeems)?;
 
-						NetworkRedeemQueue::<T>::insert(
+						StakingRoundRedeemQueue::<T>::insert(
 							&new_staking_round,
 							&currency_id,
 							(currency_amount, ledger_list_origin, currency_id),
@@ -459,7 +503,7 @@ pub mod pallet {
 			}
 
 			// Emit deposit event
-			Self::deposit_event(Event::Redeemed(who, pool_id, vamount));
+			Self::deposit_event(Event::Redeemed(who, pool_id, r_amount));
 			Ok(().into())
 		}
 	}
@@ -471,25 +515,25 @@ impl<T: Config> Pallet<T> {
 		let result = match a {
 			StakingRound::Era(era_a) => match b {
 				StakingRound::Era(era_b) => {
-					StakingRound::Era(era_a.checked_add(era_b).ok_or(ArithmeticError::Overflow)?)
+					StakingRound::Era(era_a.checked_add(era_b).ok_or(Error::<T>::ArithmeticOverflow)?)
 				}
 				_ => return Err(Error::<T>::Unexpected.into()),
 			},
 			StakingRound::Round(round_a) => match b {
 				StakingRound::Round(round_b) => {
-					StakingRound::Round(round_a.checked_add(round_b).ok_or(ArithmeticError::Overflow)?)
+					StakingRound::Round(round_a.checked_add(round_b).ok_or(Error::<T>::ArithmeticOverflow)?)
 				}
 				_ => return Err(Error::<T>::Unexpected.into()),
 			},
 			StakingRound::Epoch(epoch_a) => match b {
 				StakingRound::Epoch(epoch_b) => {
-					StakingRound::Epoch(epoch_a.checked_add(epoch_b).ok_or(ArithmeticError::Overflow)?)
+					StakingRound::Epoch(epoch_a.checked_add(epoch_b).ok_or(Error::<T>::ArithmeticOverflow)?)
 				}
 				_ => return Err(Error::<T>::Unexpected.into()),
 			},
 			StakingRound::Hour(hour_a) => match b {
 				StakingRound::Hour(hour_b) => {
-					StakingRound::Hour(hour_a.checked_add(hour_b).ok_or(ArithmeticError::Overflow)?)
+					StakingRound::Hour(hour_a.checked_add(hour_b).ok_or(Error::<T>::ArithmeticOverflow)?)
 				}
 				_ => return Err(Error::<T>::Unexpected.into()),
 			},
@@ -500,30 +544,36 @@ impl<T: Config> Pallet<T> {
 
 	#[transactional]
 	pub fn collect_deposit_fee(
-		who: T::AccountId,
-		currency_id: BalanceOf<T>,
+		who: &T::AccountId,
+		currency_id: FungibleTokenId,
 		amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let (deposit_rate, _redeem_rate) = Fees::<T>::get();
 
 		let deposit_fee = deposit_rate * amount;
-		let amount_exclude_fee = amount.checked_sub(&deposit_fee).ok_or(ArithmeticError::Overflow)?;
-		T::MultiCurrency::transfer(currency_id, who, &T::NetworkFee::get(), deposit_fee)?;
+		let amount_exclude_fee = amount.checked_sub(&deposit_fee).ok_or(Error::<T>::ArithmeticOverflow)?;
+		T::MultiCurrency::transfer(currency_id, who, &T::PoolAccount::get(), deposit_fee)?;
 
 		return amount_exclude_fee;
 	}
 
 	#[transactional]
 	pub fn collect_redeem_fee(
-		who: T::AccountId,
-		currency_id: BalanceOf<T>,
+		who: &T::AccountId,
+		currency_id: FungibleTokenId,
 		amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let (_mint_rate, redeem_rate) = Fees::<T>::get();
 		let redeem_fee = redeem_rate * amount;
-		let amount_exclude_fee = amount.checked_sub(&deposit_fee).ok_or(ArithmeticError::Overflow)?;
-		T::MultiCurrency::transfer(currency_id, who, &T::NetworkFee::get(), redeem_fee)?;
+		let amount_exclude_fee = amount.checked_sub(&redeem_fee).ok_or(Error::<T>::ArithmeticOverflow)?;
+		T::MultiCurrency::transfer(currency_id, who, &T::PoolAccount::get(), redeem_fee)?;
 
 		return amount_exclude_fee;
+	}
+
+	#[transactional]
+	pub fn collect_pool_creation_fee(who: &T::AccountId, currency_id: FungibleTokenId) -> DispatchResult {
+		let pool_fee = T::NetworkFee::get();
+		T::MultiCurrency::transfer(currency_id, who, &T::PoolAccount::get(), pool_fee)
 	}
 }
