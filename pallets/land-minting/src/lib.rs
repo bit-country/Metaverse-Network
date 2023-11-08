@@ -502,6 +502,11 @@ pub mod pallet {
 				None => return Err(Error::<T>::NoCurrentStakingRound.into()),
 			}
 
+			QueueNextId::<T>::mutate(&currency_id, |queue_id| -> Result<(), Error<T>> {
+				*queue_id = queue_id.checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
+				Ok(())
+			})?;
+
 			// Emit deposit event
 			Self::deposit_event(Event::Redeemed(who, pool_id, r_amount));
 			Ok(().into())
