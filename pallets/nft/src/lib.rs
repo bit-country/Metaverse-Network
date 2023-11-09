@@ -26,8 +26,6 @@
 #![allow(clippy::upper_case_acronyms)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use core::result;
-
 use codec::Encode;
 use frame_support::traits::Len;
 use frame_support::{
@@ -39,7 +37,7 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
-use scale_info::TypeInfo;
+
 use sp_runtime::traits::Saturating;
 use sp_runtime::Perbill;
 use sp_runtime::{
@@ -52,8 +50,8 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*};
 use auction_manager::{Auction, CheckAuctionItemHandler};
 pub use pallet::*;
 pub use primitive_traits::{Attributes, NFTTrait, NftClassData, NftGroupCollectionData, NftMetadata, TokenType};
-use primitive_traits::{CollectionType, NftAssetData, NftAssetDataV1, NftClassDataV1, PreSignedMint};
-use primitives::{AssetId, BlockNumber, ClassId, GroupCollectionId, Hash, ItemId, TokenId};
+use primitive_traits::{CollectionType, NftAssetData, NftClassDataV1, PreSignedMint};
+use primitives::{AssetId, ClassId, GroupCollectionId, ItemId, TokenId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -76,7 +74,7 @@ pub enum StorageVersion {
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_system::offchain::Signer;
+
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 	use sp_runtime::traits::{CheckedSub, IdentifyAccount, Verify};
 	use sp_runtime::ArithmeticError;
@@ -474,7 +472,7 @@ pub mod pallet {
 			mint_limit: Option<u32>,
 		) -> DispatchResultWithPostInfo {
 			let sender = ensure_signed(origin)?;
-			let class_id = Self::do_create_class(
+			let _class_id = Self::do_create_class(
 				&sender,
 				metadata,
 				attributes,
@@ -556,7 +554,7 @@ pub mod pallet {
 			let result =
 				NftModule::<T>::mint_stackable_nft(&sender, class_id, metadata, new_stackable_nft_data, amount);
 			match result {
-				Ok((token_id, balance)) => {
+				Ok((token_id, _balance)) => {
 					Self::deposit_event(Event::<T>::NewStackableNftMinted(sender, class_id, token_id, amount));
 					Ok(().into())
 				}
@@ -1370,8 +1368,8 @@ impl<T: Config> Pallet<T> {
 		log::info!("Start upgrading nft class data v2");
 		log::info!("Start upgrading nft token data v2");
 		let mut num_nft_classes = 0;
-		let mut num_nft_tokens = 0;
-		let mut asset_by_owner_updates = 0;
+		let _num_nft_tokens = 0;
+		let _asset_by_owner_updates = 0;
 
 		Classes::<T>::translate(
 			|k,

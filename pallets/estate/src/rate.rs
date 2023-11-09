@@ -19,7 +19,7 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::{Perbill, Permill, RuntimeDebug};
+use sp_runtime::{Perbill, RuntimeDebug};
 
 use crate::{AllLandUnitsCount, TotalUndeployedLandUnit};
 // Helper methods to compute the issuance rate for undeployed land.

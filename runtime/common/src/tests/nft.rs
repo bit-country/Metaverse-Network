@@ -1,23 +1,20 @@
-use frame_support::assert_noop;
-use hex_literal::hex;
-use sp_core::{ByteArray, H160, U256};
-use sp_runtime::traits::{AccountIdConversion, Zero};
+use sp_core::{ByteArray, U256};
+use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::Perbill;
 use sp_std::collections::btree_map::BTreeMap;
 
 use precompile_utils::data::{Address, Bytes, EvmDataWriter};
 use precompile_utils::testing::*;
-use primitives::evm::Output;
+
 use primitives::FungibleTokenId;
 
 use crate::mock::*;
 use crate::nft::Action;
-use evm_mapping::AddressMapping as AddressMappingEvm;
+
 use orml_nft::Pallet as NftModule;
 use orml_traits::BasicCurrency;
-use pallet_evm::AddressMapping;
 
-use core_primitives::{Attributes, CollectionType, NftAssetData, NftClassData, NftMetadata, TokenType};
+use core_primitives::{Attributes, CollectionType, NftMetadata, TokenType};
 
 fn precompiles() -> Precompiles<Runtime> {
 	PrecompilesValue::get()

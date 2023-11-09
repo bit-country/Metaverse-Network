@@ -25,7 +25,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait};
-use primitives::FungibleTokenId::FungibleToken;
+
 use primitives::{AuctionId, ClassId, FungibleTokenId};
 
 use crate as continuum;
@@ -147,11 +147,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		return None;
 	}
 
-	fn update_auction(id: AuctionId, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
+	fn update_auction(_id: AuctionId, _info: AuctionInfo<u128, Self::Balance, u64>) -> DispatchResult {
 		Ok(())
 	}
 
-	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
+	fn update_auction_item(_id: AuctionId, _item_id: ItemId<Self::Balance>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -180,11 +180,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
-	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+	fn auction_bid_handler(_from: AccountId, _id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 
-	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
+	fn buy_now_handler(_from: AccountId, _auction_id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 
@@ -228,7 +228,7 @@ parameter_types! {
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
-	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+	fn create_metaverse(_who: &AccountId, _metadata: MetaverseMetadata) -> MetaverseId {
 		1u64
 	}
 
@@ -253,15 +253,15 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		Ok(())
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn get_metaverse_land_class(_metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(15u32)
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn get_metaverse_estate_class(_metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(16u32)
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+	fn get_metaverse_marketplace_listing_fee(_metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
 		Ok(Perbill::from_percent(1u32))
 	}
 
@@ -278,7 +278,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn check_if_metaverse_estate(
-		metaverse_id: primitives::MetaverseId,
+		_metaverse_id: primitives::MetaverseId,
 		class_id: &ClassId,
 	) -> Result<bool, DispatchError> {
 		if class_id == &15u32 || class_id == &16u32 {
@@ -295,7 +295,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		}
 	}
 
-	fn is_metaverse_owner(who: &AccountId) -> bool {
+	fn is_metaverse_owner(_who: &AccountId) -> bool {
 		true
 	}
 }

@@ -31,7 +31,7 @@ use frame_system::{self as system, ensure_signed};
 use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
-	traits::{CheckedDiv, One, Saturating, Zero},
+	traits::{One, Saturating, Zero},
 	DispatchError, DispatchResult, Perbill,
 };
 use sp_std::vec::Vec;
@@ -58,17 +58,13 @@ pub mod weights;
 pub struct AuctionLogicHandler;
 
 pub mod migration_v2 {
-	use codec::FullCodec;
+
 	use codec::{Decode, Encode};
 	use scale_info::TypeInfo;
 	#[cfg(feature = "std")]
 	use serde::{Deserialize, Serialize};
-	use sp_runtime::{traits::AtLeast32BitUnsigned, DispatchError, RuntimeDebug};
-	use sp_std::{
-		cmp::{Eq, PartialEq},
-		fmt::Debug,
-		vec::Vec,
-	};
+	use sp_runtime::RuntimeDebug;
+	use sp_std::cmp::{Eq, PartialEq};
 
 	use auction_manager::{AuctionType, ListingLevel};
 	use primitives::{AssetId, EstateId, FungibleTokenId, MetaverseId};
@@ -104,20 +100,18 @@ pub mod migration_v2 {
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
-	use frame_support::{dispatch::DispatchResultWithPostInfo, traits::tokens::currency};
-	use frame_system::ensure_root;
+
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_runtime::traits::CheckedAdd;
 	use sp_runtime::ArithmeticError;
 
-	use auction_manager::{AuctionItemV1, CheckAuctionItemHandler, ListingLevel};
+	use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 	use core_primitives::{MetaverseTrait, NFTTrait};
-	use primitives::{AssetId, Balance, ClassId, FungibleTokenId, MetaverseId, TokenId};
-
-	use crate::migration_v2::V1ItemId;
+	use primitives::{Balance, ClassId, FungibleTokenId, MetaverseId, TokenId};
 
 	use super::*;
 
@@ -1191,7 +1185,7 @@ pub mod pallet {
 
 		/// Internal auction bid handler
 		fn auction_bid_handler(from: T::AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
-			let mut auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
+			let auction_item: AuctionItem<T::AccountId, T::BlockNumber, BalanceOf<T>> =
 				Self::get_auction_item(id.clone()).ok_or(Error::<T>::AuctionDoesNotExist)?;
 			ensure!(
 				auction_item.auction_type == AuctionType::Auction,
@@ -1426,7 +1420,7 @@ pub mod pallet {
 			<T as Config>::Currency::unreserve(&auction_item.recipient, T::NetworkFeeReserve::get());
 
 			// Transfer balance from buy it now user to asset owner
-			let mut currency_transfer;
+			let currency_transfer;
 			if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
 				currency_transfer = <T as Config>::Currency::transfer(
 					&from,
@@ -1618,7 +1612,7 @@ pub mod pallet {
 					}
 
 					// Handle balance transfer
-					let mut currency_transfer;
+					let currency_transfer;
 					if auction_item.currency_id == FungibleTokenId::NativeToken(0) {
 						currency_transfer = <T as Config>::Currency::transfer(
 							&high_bidder,

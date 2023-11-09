@@ -19,34 +19,28 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-use frame_support::traits::{Currency, Get, WithdrawReasons};
+use frame_support::traits::{Currency, Get};
 use frame_support::PalletId;
 use frame_support::{
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
 	ensure,
 	pallet_prelude::*,
 	traits::ExistenceRequirement,
-	transactional, Parameter,
 };
 use frame_system::pallet_prelude::*;
 use frame_system::{self as system, ensure_signed};
-use orml_traits::{
-	arithmetic::{Signed, SimpleArithmetic},
-	BalanceStatus, BasicCurrency, BasicCurrencyExtended, BasicLockableCurrency, BasicReservableCurrency,
-	LockIdentifier, MultiCurrency, MultiCurrencyExtended, MultiLockableCurrency, MultiReservableCurrency,
-};
+use orml_traits::{BasicCurrency, LockIdentifier, MultiCurrency, MultiCurrencyExtended};
 use scale_info::TypeInfo;
 use sp_runtime::{
-	traits::{AccountIdConversion, AtLeast32Bit, One, StaticLookup, Zero},
-	DispatchError, Perbill,
+	traits::{AccountIdConversion, Zero},
+	DispatchError,
 };
 use sp_std::vec::Vec;
 
-use auction_manager::SwapManager;
 use core_primitives::*;
 pub use pallet::*;
 use primitives::staking::RoundInfo;
-use primitives::{Balance, CurrencyId, FungibleTokenId, MetaverseId};
+use primitives::{Balance, FungibleTokenId};
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -80,16 +74,15 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::sp_runtime::traits::Saturating;
-	use frame_support::sp_runtime::{FixedPointNumber, SaturatedConversion};
-	use frame_support::traits::OnUnbalanced;
-	use pallet_balances::NegativeImbalance;
+
+	use frame_support::sp_runtime::SaturatedConversion;
+
 	use sp_runtime::Perbill;
 	use sp_std::convert::TryInto;
 
 	use primitives::estate::Estate;
 	use primitives::staking::{MetaverseStakingTrait, RoundInfo};
-	use primitives::{FungibleTokenId, RoundIndex, TokenId, VestingSchedule};
+	use primitives::{FungibleTokenId, RoundIndex, VestingSchedule};
 
 	use crate::mining::round_issuance_range;
 

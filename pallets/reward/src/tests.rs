@@ -17,13 +17,13 @@
 
 #![cfg(test)]
 
-use frame_support::{assert_err, assert_noop, assert_ok, sp_runtime::runtime_logger};
+use frame_support::{assert_noop, assert_ok};
 use hex_literal::hex;
 use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 
 use core_primitives::Attributes;
-use mock::{Balance, RuntimeEvent, *};
+use mock::{Balance, *};
 use primitives::{CampaignInfo, FungibleTokenId, Hash};
 
 use super::*;
@@ -235,7 +235,7 @@ fn create_multicurrency_campaign_works() {
 #[test]
 fn create_nft_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		assert_noop!(
@@ -270,7 +270,7 @@ fn create_nft_campaign_fails() {
 #[test]
 fn create_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 
 		assert_noop!(
 			Reward::create_campaign(
@@ -718,7 +718,7 @@ fn set_reward_root_fails() {
 #[test]
 fn set_nft_reward_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(RuntimeOrigin::signed(ALICE), ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
@@ -814,7 +814,7 @@ fn set_nft_reward_fails() {
 #[test]
 fn set_nft_reward_root_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(RuntimeOrigin::signed(ALICE), ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
@@ -1397,7 +1397,7 @@ fn claim_reward_root_fails() {
 #[test]
 fn claim_nft_reward_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(RuntimeOrigin::signed(ALICE), ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
@@ -1480,7 +1480,7 @@ fn claim_nft_reward_fails() {
 #[test]
 fn claim_nft_reward_root_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(RuntimeOrigin::signed(ALICE), ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
@@ -1816,7 +1816,7 @@ fn close_multicurrency_campaign_works() {
 #[test]
 fn close_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		assert_ok!(Reward::create_campaign(
 			RuntimeOrigin::signed(ALICE),
 			BOB,
@@ -1869,7 +1869,7 @@ fn close_campaign_fails() {
 #[test]
 fn close_campaign_using_merkle_root_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		assert_ok!(Reward::add_set_reward_origin(RuntimeOrigin::signed(ALICE), ALICE));
 		assert_ok!(Reward::create_campaign(
 			RuntimeOrigin::signed(ALICE),
@@ -1951,7 +1951,7 @@ fn close_campaign_using_merkle_root_fails() {
 #[test]
 fn close_nft_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
@@ -2108,7 +2108,7 @@ fn cancel_multicurrency_campaign_works() {
 #[test]
 fn cancel_nft_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
 		init_test_nft(RuntimeOrigin::signed(ALICE));
@@ -2159,7 +2159,7 @@ fn cancel_nft_campaign_fails() {
 #[test]
 fn cancel_campaign_fails() {
 	ExtBuilder::default().build().execute_with(|| {
-		let campaign_id = 0;
+		let _campaign_id = 0;
 		assert_ok!(Reward::create_campaign(
 			RuntimeOrigin::signed(ALICE),
 			BOB,

@@ -17,7 +17,7 @@
 
 #![cfg(test)]
 
-use frame_support::{assert_err, assert_noop, assert_ok};
+use frame_support::{assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
 
 use mock::{RuntimeEvent, *};

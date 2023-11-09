@@ -17,12 +17,11 @@
 
 #![cfg(test)]
 
-use frame_support::{assert_err, assert_noop, assert_ok};
-use orml_nft::Tokens;
+use frame_support::{assert_noop, assert_ok};
+
 use sp_runtime::traits::BadOrigin;
 use sp_std::default::Default;
 
-use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, TokenType};
 use mock::{RuntimeEvent, *};
 use primitives::staking::Bond;
