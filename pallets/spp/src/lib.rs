@@ -28,7 +28,7 @@ use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use orml_traits::MultiCurrency;
 use scale_info::TypeInfo;
-use sp_runtime::traits::CheckedSub;
+use sp_runtime::traits::{CheckedAdd, CheckedSub};
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, One, Saturating, Zero},
 	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
@@ -216,22 +216,46 @@ pub mod pallet {
 	pub type CurrentStakingRound<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, StakingRound>;
 
 	#[pallet::storage]
+	#[pallet::getter(fn last_staking_round)]
+	pub type LastStakingRound<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, StakingRound, ValueQuery>;
+
+	#[pallet::storage]
 	#[pallet::getter(fn queue_next_id)]
 	pub type QueueNextId<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, u32, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn iteration_limit)]
+	pub type IterationLimit<T: Config> = StorageValue<_, u32, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
-		/// New staking round started [Starting Block, Round, Total Land Unit]
-		NewRound(T::BlockNumber, RoundIndex, u64),
 		/// New pool created
-		PoolCreated(T::AccountId, PoolId, FungibleTokenId),
+		PoolCreated {
+			from: T::AccountId,
+			pool_id: PoolId,
+			currency_id: FungibleTokenId,
+		},
 		/// Deposited
-		Deposited(T::AccountId, PoolId, BalanceOf<T>),
+		Deposited {
+			from: T::AccountId,
+			pool_id: PoolId,
+			amount: BalanceOf<T>,
+		},
 		/// Redeemed
-		Redeemed(T::AccountId, PoolId, BalanceOf<T>),
+		Redeemed {
+			from: T::AccountId,
+			pool_id: PoolId,
+			amount: BalanceOf<T>,
+		},
+		/// Redeemed success
+		RedeemSuccess {
+			queue_id: QueueId,
+			currency_id: FungibleTokenId,
+			to: T::AccountId,
+			token_amount: BalanceOf<T>,
+		},
 	}
-
 	#[pallet::error]
 	pub enum Error<T> {
 		/// No permission
@@ -258,6 +282,8 @@ pub mod pallet {
 		NotSupportTokenType,
 		/// Unlock duration not found
 		UnlockDurationNotFound,
+		/// Staking round not found
+		StakingRoundNotFound,
 	}
 
 	#[pallet::call]
@@ -361,7 +387,7 @@ pub mod pallet {
 			)?;
 
 			// Emit deposit event
-			Self::deposit_event(Event::Deposited(who, pool_id, amount));
+			Self::deposit_event(Event::Deposited { who, pool_id, amount });
 			Ok(().into())
 		}
 
@@ -508,7 +534,11 @@ pub mod pallet {
 			})?;
 
 			// Emit deposit event
-			Self::deposit_event(Event::Redeemed(who, pool_id, r_amount));
+			Self::deposit_event(Event::Redeemed {
+				who,
+				pool_id,
+				amount: r_amount,
+			});
 			Ok(().into())
 		}
 	}
@@ -591,5 +621,249 @@ impl<T: Config> Pallet<T> {
 			&T::PoolAccount::get().into_account_truncating(),
 			pool_fee,
 		)
+	}
+
+	#[transactional]
+	fn on_initialize() -> DispatchResult {
+		for currency in CurrentStakingRound::<T>::iter_keys() {
+			Self::handle_redeem_staking_round_hook(currency)?;
+		}
+		Ok(())
+	}
+
+	fn handle_redeem_staking_round_hook(currency: FungibleTokenId) -> DispatchResult {
+		let last_staking_round = LastStakingRound::<T>::get(currency);
+		let unlock_duration = match UnlockDuration::<T>::get(currency) {
+			Some(StakingRound::Era(unlock_duration_era)) => unlock_duration_era,
+			Some(StakingRound::Round(unlock_duration_round)) => unlock_duration_round,
+			Some(StakingRound::Epoch(unlock_duration_epoch)) => unlock_duration_epoch,
+			Some(StakingRound::Hour(unlock_duration_hour)) => unlock_duration_hour,
+			_ => 0,
+		};
+
+		let current_staking_round = match CurrentStakingRound::<T>::get(currency) {
+			Some(StakingRound::Era(unlock_duration_era)) => unlock_duration_era,
+			Some(StakingRound::Round(unlock_duration_round)) => unlock_duration_round,
+			Some(StakingRound::Epoch(unlock_duration_epoch)) => unlock_duration_epoch,
+			Some(StakingRound::Hour(unlock_duration_hour)) => unlock_duration_hour,
+			_ => 0,
+		};
+
+		// Check current staking round queue with last staking round if there is any pending redeem requests
+		if let Some((_total_locked, existing_queue, currency_id)) =
+			StakingRoundRedeemQueue::<T>::get(last_staking_round.clone(), currency)
+		{
+			for queue_id in existing_queue.iter().take(Self::iteration_limit() as usize) {
+				if let Some((account, unlock_amount, staking_round)) =
+					CurrencyRedeemQueue::<T>::get(currency_id, queue_id)
+				{
+					let pool_account_balance =
+						T::MultiCurrency::free_balance(currency_id, &T::PoolAccount::get().into_account_truncating());
+					if pool_account_balance != BalanceOf::<T>::zero() {
+						Self::update_queue_request(
+							currency_id,
+							account,
+							queue_id,
+							unlock_amount,
+							pool_account_balance,
+							staking_round,
+						)
+						.ok();
+					}
+				}
+			}
+		} else {
+			LastStakingRound::<T>::mutate(currency, |last_staking_round| -> Result<(), Error<T>> {
+				match last_staking_round {
+					StakingRound::Era(era) => {
+						if current_staking_round + unlock_duration > *era {
+							*era = era.checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
+						}
+						Ok(())
+					}
+					StakingRound::Round(round) => {
+						if current_staking_round + unlock_duration > *round {
+							*round = round.checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
+						}
+						Ok(())
+					}
+					StakingRound::Epoch(epoch) => {
+						if current_staking_round + unlock_duration > *epoch {
+							*kblock = kblock.checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
+						}
+						Ok(())
+					}
+					StakingRound::Hour(hour) => {
+						if current_staking_round + unlock_duration > *hour {
+							*hour = hour.checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
+						}
+						Ok(())
+					}
+					_ => Ok(()),
+				}
+			})?;
+		};
+
+		Ok(())
+	}
+
+	#[transactional]
+	fn update_queue_request(
+		currency_id: FungibleTokenId,
+		account: T::AccountId,
+		queue_id: &QueueId,
+		mut unlock_amount: BalanceOf<T>,
+		pool_account_balance: BalanceOf<T>,
+		staking_round: StakingRound,
+	) -> DispatchResult {
+		// Get minimum balance of currency
+		let ed = T::MultiCurrency::minimum_balance(currency_id);
+		let mut account_to_send = account.clone();
+
+		// If unlock amount less than existential deposit, to avoid error kill the process, transfer the
+		// unlock_amount to pool address instead
+		if unlock_amount < ed {
+			let receiver_balance = T::MultiCurrency::total_balance(currency_id, &account);
+
+			// Check if even after receiving unlock amount, account still below ED then transfer fund to
+			// PoolAccount
+			let receiver_balance_after = receiver_balance
+				.checked_add(&unlock_amount)
+				.ok_or(ArithmeticError::Overflow)?;
+			if receiver_balance_after < ed {
+				account_to_send = T::PoolAccount::get();
+			}
+		}
+
+		// If pool account balance greater than unlock amount
+		if pool_account_balance >= unlock_amount {
+			// Transfer amount from PoolAccount to users
+			T::MultiCurrency::transfer(
+				currency_id,
+				&T::PoolAccount::get().into_account_truncating(),
+				&account_to_send,
+				unlock_amount,
+			)?;
+
+			// Remove currency redeem queue
+			CurrencyRedeemQueue::<T>::remove(&currency_id, &queue_id);
+
+			// Edit staking round redeem queue with locked amount
+			StakingRoundRedeemQueue::<T>::mutate_exists(
+				&staking_round,
+				&currency_id,
+				|value| -> Result<(), Error<T>> {
+					if let Some((total_locked_origin, existing_queue, _)) = value {
+						// If total locked == unlock_amount, then set value to zero
+						if total_locked_origin == &unlock_amount {
+							*value = None;
+							return Ok(());
+						}
+						// Otherwise, deduct unlock amount
+						*total_locked_origin = total_locked_origin
+							.checked_sub(&unlock_amount)
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
+						// Only keep items that not with processed queue_id
+						existing_queue.retain(|x| x != queue_id);
+					} else {
+						return Err(Error::<T>::StakingRoundRedeemNotFound);
+					}
+					Ok(())
+				},
+			)?;
+
+			UserCurrencyRedeemQueue::<T>::mutate_exists(&account, &currency_id, |value| -> Result<(), Error<T>> {
+				if let Some((total_locked_origin, existing_queue)) = value {
+					if total_locked_origin == &unlock_amount {
+						*value = None;
+						return Ok(());
+					}
+					existing_queue.retain(|x| x != queue_id);
+					*total_locked_origin = total_locked_origin
+						.checked_sub(&unlock_amount)
+						.ok_or(Error::<T>::ArithmeticOverflow)?;
+				} else {
+					return Err(Error::<T>::UserCurrencyRedeemQueueNotFound);
+				}
+				Ok(())
+			})?;
+		} else {
+			// When pool account balance less than amount need to be unlocked then use pool remaining balance as
+			// unlock amount
+			unlock_amount = pool_account_balance;
+			T::MultiCurrency::transfer(
+				currency_id,
+				&T::PoolAccount::get().into_account_truncating(),
+				&account_to_send,
+				unlock_amount,
+			)?;
+
+			CurrencyRedeemQueue::<T>::mutate_exists(&currency_id, &queue_id, |value| -> Result<(), Error<T>> {
+				if let Some((_, total_locked_origin, _, _)) = value {
+					if total_locked_origin == &unlock_amount {
+						*value = None;
+						return Ok(());
+					}
+					*total_locked_origin = total_locked_origin
+						.checked_sub(&unlock_amount)
+						.ok_or(Error::<T>::ArithmeticOverflow)?;
+				} else {
+					return Err(Error::<T>::CurrencyRedeemQueueNotFound);
+				}
+				Ok(())
+			})?;
+
+			StakingRoundRedeemQueue::<T>::mutate_exists(
+				&staking_round,
+				&currency_id,
+				|value| -> Result<(), Error<T>> {
+					if let Some((total_locked_origin, _existing_queue, _)) = value {
+						if total_locked_origin == &unlock_amount {
+							*value = None;
+							return Ok(());
+						}
+						*total_locked_origin = total_locked_origin
+							.checked_sub(&unlock_amount)
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
+					} else {
+						return Err(Error::<T>::StakingRoundRedeemNotFound);
+					}
+					Ok(())
+				},
+			)?;
+
+			UserCurrencyRedeemQueue::<T>::mutate_exists(&account, &currency_id, |value| -> Result<(), Error<T>> {
+				if let Some((total_locked_origin, _existing_queue)) = value {
+					if total_locked_origin == &unlock_amount {
+						*value = None;
+						return Ok(());
+					}
+
+					*total_locked_origin = total_locked_origin
+						.checked_sub(&unlock_amount)
+						.ok_or(Error::<T>::ArithmeticOverflow)?;
+				} else {
+					return Err(Error::<T>::UserUnlockLedgerNotFound);
+				}
+				Ok(())
+			})?;
+		}
+
+		pool_account_balance
+			.checked_sub(&unlock_amount)
+			.ok_or(Error::<T>::ArithmeticOverflow)?;
+
+		PoolLedger::<T>::mutate(&currency_id, |pool| -> Result<(), Error<T>> {
+			*pool = pool.checked_sub(&unlock_amount).ok_or(Error::<T>::ArithmeticOverflow)?;
+			Ok(())
+		})?;
+
+		Self::deposit_event(Event::RedeemSuccess {
+			queue_id: *queue_id,
+			currency_id,
+			to: account_to_send,
+			token_amount: unlock_amount,
+		});
+		Ok(())
 	}
 }
