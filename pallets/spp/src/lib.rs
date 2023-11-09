@@ -284,6 +284,12 @@ pub mod pallet {
 		UnlockDurationNotFound,
 		/// Staking round not found
 		StakingRoundNotFound,
+		/// Staking round redeem queue not found
+		StakingRoundRedeemNotFound,
+		/// User currency redeem queue not found
+		UserCurrencyRedeemQueueNotFound,
+		/// Redeem queue per currency not found
+		CurrencyRedeemQueueNotFound,
 	}
 
 	#[pallet::call]
@@ -326,7 +332,11 @@ pub mod pallet {
 			Pool::<T>::insert(next_pool_id, new_pool);
 
 			// Emit event for pool creation
-			Self::deposit_event(Event::PoolCreated(who, max_nft_reward, currency_id));
+			Self::deposit_event(Event::PoolCreated {
+				from: who,
+				pool_id: next_pool_id,
+				currency_id,
+			});
 			Ok(().into())
 		}
 
@@ -387,7 +397,11 @@ pub mod pallet {
 			)?;
 
 			// Emit deposit event
-			Self::deposit_event(Event::Deposited { who, pool_id, amount });
+			Self::deposit_event(Event::Deposited {
+				from: who,
+				pool_id,
+				amount,
+			});
 			Ok(().into())
 		}
 
@@ -535,7 +549,7 @@ pub mod pallet {
 
 			// Emit deposit event
 			Self::deposit_event(Event::Redeemed {
-				who,
+				from: who,
 				pool_id,
 				amount: r_amount,
 			});
@@ -689,7 +703,7 @@ impl<T: Config> Pallet<T> {
 					}
 					StakingRound::Epoch(epoch) => {
 						if current_staking_round + unlock_duration > *epoch {
-							*kblock = kblock.checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
+							*epoch = epoch.checked_add(1).ok_or(Error::<T>::ArithmeticOverflow)?;
 						}
 						Ok(())
 					}
@@ -731,7 +745,7 @@ impl<T: Config> Pallet<T> {
 				.checked_add(&unlock_amount)
 				.ok_or(ArithmeticError::Overflow)?;
 			if receiver_balance_after < ed {
-				account_to_send = T::PoolAccount::get();
+				account_to_send = T::PoolAccount::get().into_account_truncating();
 			}
 		}
 
@@ -799,7 +813,7 @@ impl<T: Config> Pallet<T> {
 			)?;
 
 			CurrencyRedeemQueue::<T>::mutate_exists(&currency_id, &queue_id, |value| -> Result<(), Error<T>> {
-				if let Some((_, total_locked_origin, _, _)) = value {
+				if let Some((_, total_locked_origin, _)) = value {
 					if total_locked_origin == &unlock_amount {
 						*value = None;
 						return Ok(());
@@ -843,7 +857,7 @@ impl<T: Config> Pallet<T> {
 						.checked_sub(&unlock_amount)
 						.ok_or(Error::<T>::ArithmeticOverflow)?;
 				} else {
-					return Err(Error::<T>::UserUnlockLedgerNotFound);
+					return Err(Error::<T>::UserCurrencyRedeemQueueNotFound);
 				}
 				Ok(())
 			})?;
@@ -853,7 +867,7 @@ impl<T: Config> Pallet<T> {
 			.checked_sub(&unlock_amount)
 			.ok_or(Error::<T>::ArithmeticOverflow)?;
 
-		PoolLedger::<T>::mutate(&currency_id, |pool| -> Result<(), Error<T>> {
+		NetworkLedger::<T>::mutate(&currency_id, |pool| -> Result<(), Error<T>> {
 			*pool = pool.checked_sub(&unlock_amount).ok_or(Error::<T>::ArithmeticOverflow)?;
 			Ok(())
 		})?;
