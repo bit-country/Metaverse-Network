@@ -356,7 +356,7 @@ impl<T: Config> CurrencyIdManagement for ForeignAssetMapping<T> {
 		}
 	}
 
-	fn convert_to_currency(_currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()> {
+	fn convert_to_currency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()> {
 		match currency_id {
 			FungibleTokenId::FungibleToken(token_id) => Ok(FungibleTokenId::NativeToken(token_id)),
 			_ => Err(()),
