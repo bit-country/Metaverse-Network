@@ -19,12 +19,11 @@ use codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-use sp_runtime::{Perbill, Permill, RuntimeDebug};
+use sp_runtime::{Permill, RuntimeDebug};
 
 use primitives::FungibleTokenId;
 
 // Helper methods to compute the issuance rate for undeployed land.
-use crate::pallet::{Config, Pallet};
 
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 #[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]

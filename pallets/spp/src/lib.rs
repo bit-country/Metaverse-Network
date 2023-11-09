@@ -20,30 +20,24 @@
 use frame_support::pallet_prelude::*;
 use frame_support::{
 	dispatch::DispatchResult,
-	ensure, log,
-	traits::{Currency, ExistenceRequirement, Get},
+	ensure,
+	traits::{Currency, Get},
 	transactional, PalletId,
 };
+use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use frame_system::{ensure_root, ensure_signed};
 use orml_traits::MultiCurrency;
-use scale_info::TypeInfo;
+
 use sp_runtime::traits::{CheckedAdd, CheckedSub};
 use sp_runtime::{
-	traits::{AccountIdConversion, Convert, One, Saturating, Zero},
-	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
+	traits::{AccountIdConversion, Convert, Saturating, Zero},
+	ArithmeticError, DispatchError, SaturatedConversion,
 };
-use sp_std::vec::Vec;
 
-use auction_manager::{Auction, CheckAuctionItemHandler};
 use core_primitives::*;
 pub use pallet::*;
-use primitives::estate::EstateInfo;
-use primitives::{
-	estate::{Estate, LandUnitStatus, LeaseContract, OwnerId},
-	Attributes, ClassId, EstateId, FungibleTokenId, ItemId, MetaverseId, NftMetadata, StakingRound, TokenId,
-	UndeployedLandBlock, UndeployedLandBlockId, UndeployedLandBlockType,
-};
+
+use primitives::{ClassId, FungibleTokenId, StakingRound, TokenId};
 pub use weights::WeightInfo;
 
 pub type QueueId = u32;
@@ -61,15 +55,13 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
+	use frame_support::traits::{Currency, ReservableCurrency};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
+	use sp_runtime::traits::{CheckedAdd, CheckedSub};
 	use sp_runtime::Permill;
 
-	use primitives::estate::EstateInfo;
-	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
-	use primitives::{AccountId, Balance, CurrencyId, PoolId, RoundIndex, StakingRound, UndeployedLandBlockId};
+	use primitives::{PoolId, StakingRound};
 
 	use crate::utils::PoolInfo;
 
