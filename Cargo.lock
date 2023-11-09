@@ -7585,30 +7585,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-land-minting"
-version = "2.0.0-rc6"
-dependencies = [
- "auction-manager",
- "bit-country-primitives",
- "core-primitives",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "orml-tokens",
- "orml-traits",
- "pallet-balances",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-std",
- "sp-version",
- "substrate-fixed",
-]
-
-[[package]]
 name = "pallet-membership"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.38#bcff60a227d455d95b4712b6cb356ce56b1ff672"
@@ -8043,6 +8019,30 @@ dependencies = [
  "scale-info",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-spp"
+version = "2.0.0-rc6"
+dependencies = [
+ "auction-manager",
+ "bit-country-primitives",
+ "core-primitives",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
+ "substrate-fixed",
 ]
 
 [[package]]

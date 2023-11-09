@@ -4,7 +4,7 @@ description = 'Metaverse Network pallet for land minting logic.'
 edition = '2021'
 homepage = 'https://metaverse.network'
 license = 'Unlicense'
-name = 'pallet-land-minting'
+name = 'pallet-spp'
 repository = 'https://github.com/bit-country'
 version = '2.0.0-rc6'
 
