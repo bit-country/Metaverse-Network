@@ -341,12 +341,16 @@ pub mod pallet {
 			// Calculate rAmount as receipt of amount locked. The formula based on rAmount = (amount * rAmount
 			// total issuance)/network ledger balance
 			let r_amount_total_issuance = T::MultiCurrency::total_issuance(r_currency_id);
-			let r_amount = U256::from(amount_after_fee.saturated_into::<u128>())
-				.saturating_mul(r_amount_total_issuance.saturated_into::<u128>().into())
-				.checked_div(network_ledger_balance.saturated_into::<u128>().into())
-				.ok_or(Error::<T>::ArithmeticOverflow)?
-				.as_u128()
-				.saturated_into();
+			let mut r_amount = amount_after_fee;
+			// This will apply for subsequence deposits - the first deposit r_amount = amount_after_fee
+			if network_ledger_balance != BalanceOf::<T>::zero() {
+				r_amount = U256::from(amount_after_fee.saturated_into::<u128>())
+					.saturating_mul(r_amount_total_issuance.saturated_into::<u128>().into())
+					.checked_div(network_ledger_balance.saturated_into::<u128>().into())
+					.ok_or(Error::<T>::ArithmeticOverflow)?
+					.as_u128()
+					.saturated_into();
+			}
 
 			// Deposit rAmount to user using T::MultiCurrency::deposit
 			T::MultiCurrency::deposit(currency_id, &who, r_amount)?;
