@@ -31,7 +31,7 @@ orml-tokens = { workspace = true }
 # local packages
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
-
+currencies = { package = "currencies", path = "../currencies", default-features = false }
 
 [dependencies.auction-manager]
 default-features = false
@@ -61,6 +61,7 @@ std = [
     'sp-io/std',
     'pallet-balances/std',
     'auction-manager/std',
-    # 'pallet-nft/std',
-    'frame-benchmarking/std'
+    'frame-benchmarking/std',
+    'orml-tokens/std',
+    "currencies/std"
 ]

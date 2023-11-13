@@ -8028,6 +8028,7 @@ dependencies = [
  "auction-manager",
  "bit-country-primitives",
  "core-primitives",
+ "currencies",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
