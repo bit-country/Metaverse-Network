@@ -242,7 +242,9 @@ pub struct ExtBuilder {
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
-		ExtBuilder
+		Self {
+			endowed_accounts: vec![],
+		}
 	}
 }
 
