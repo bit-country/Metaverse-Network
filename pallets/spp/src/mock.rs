@@ -236,7 +236,9 @@ pub type SppModule = Pallet<Runtime>;
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
 
-pub struct ExtBuilder;
+pub struct ExtBuilder {
+	endowed_accounts: Vec<(AccountId, FungibleTokenId, Balance)>,
+}
 
 impl Default for ExtBuilder {
 	fn default() -> Self {
@@ -259,6 +261,18 @@ impl ExtBuilder {
 		let mut ext = sp_io::TestExternalities::new(t);
 		ext.execute_with(|| System::set_block_number(1));
 		ext
+	}
+
+	pub fn balances(mut self, endowed_accounts: Vec<(AccountId, FungibleTokenId, Balance)>) -> Self {
+		self.endowed_accounts = endowed_accounts;
+		self
+	}
+
+	pub fn ksm_setup_for_alice_and_bob(self) -> Self {
+		self.balances(vec![
+			(ALICE, FungibleTokenId::NativeToken(1), 1000000000000000000000), //KSM
+			(BOB, FungibleTokenId::FungibleToken(1), 1000),                   //rKSM
+		])
 	}
 }
 
