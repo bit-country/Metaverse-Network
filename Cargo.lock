@@ -8025,6 +8025,7 @@ dependencies = [
 name = "pallet-spp"
 version = "2.0.0-rc6"
 dependencies = [
+ "asset-manager",
  "auction-manager",
  "bit-country-primitives",
  "core-primitives",

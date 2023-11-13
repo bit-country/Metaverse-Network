@@ -32,6 +32,7 @@ orml-tokens = { workspace = true }
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
+asset-manager = { package = "asset-manager", path = "../asset-manager", default-features = false }
 
 [dependencies.auction-manager]
 default-features = false
@@ -63,5 +64,6 @@ std = [
     'auction-manager/std',
     'frame-benchmarking/std',
     'orml-tokens/std',
-    "currencies/std"
+    "currencies/std",
+    "asset-manager/std"
 ]

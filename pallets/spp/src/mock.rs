@@ -14,6 +14,7 @@ use sp_std::collections::btree_map::BTreeMap;
 use sp_std::default::Default;
 use sp_std::vec::Vec;
 
+use asset_manager::ForeignAssetMapping;
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{CollectionType, NftClassData, TokenType};
 use primitives::{
@@ -133,7 +134,7 @@ impl pallet_balances::Config for Runtime {
 parameter_types! {
 	pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
 	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
-	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
+	pub const PoolAccountPalletId: PalletId = PalletId(*b"bit/pool");
 	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
 }
 
@@ -178,6 +179,12 @@ impl currencies::Config for Runtime {
 	type WeightInfo = ();
 }
 
+impl asset_manager::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type RegisterOrigin = EnsureSignedBy<One, AccountId>;
+}
+
 parameter_types! {
 	pub const MinBlocksPerRound: u32 = 10;
 	pub const MinimumStake: Balance = 200;
@@ -190,6 +197,7 @@ parameter_types! {
 	pub const MaxLeasePeriod: u32 = 9;
 	pub const LeaseOfferExpiryPeriod: u32 = 6;
 	pub StorageDepositFee: Balance = 1;
+	pub const MaximumQueue: u32 = 50;
 }
 
 impl Config for Runtime {
@@ -203,9 +211,9 @@ impl Config for Runtime {
 	type BlockNumberToBalance = ConvertInto;
 	type StorageDepositFee = StorageDepositFee;
 	type MultiCurrency = Currencies;
-	type PoolAccount = ();
-	type MaximumQueue = ();
-	type CurrencyIdConversion = ();
+	type PoolAccount = PoolAccountPalletId;
+	type MaximumQueue = MaximumQueue;
+	type CurrencyIdConversion = ForeignAssetMapping<Runtime>;
 }
 
 construct_runtime!(
@@ -216,6 +224,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		AssetManager: asset_manager::{ Pallet, Storage, Call, Event<T>},
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Spp: spp:: {Pallet, Call, Storage, Event<T>},
@@ -263,7 +272,6 @@ pub fn last_event() -> RuntimeEvent {
 fn next_block() {
 	SppModule::on_finalize(System::block_number());
 	System::set_block_number(System::block_number() + 1);
-	SppModule::on_initialize(System::block_number()).unwrap();
 }
 
 pub fn run_to_block(n: u64) {
