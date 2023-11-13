@@ -85,8 +85,17 @@ fn deposit_ksm_works() {
 			);
 
 			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
-			let r_ksm_amount = Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free;
 			// This is true because fee hasn't been set up.
-			assert_eq!(r_ksm_amount, 10000)
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
+
+			// Deposit another 10000 KSM
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
 		});
 }
