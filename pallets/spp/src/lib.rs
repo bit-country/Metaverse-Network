@@ -27,7 +27,6 @@ use frame_support::{
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
 use orml_traits::MultiCurrency;
-
 use sp_runtime::traits::{CheckedAdd, CheckedSub};
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Saturating, Zero},
@@ -36,7 +35,6 @@ use sp_runtime::{
 
 use core_primitives::*;
 pub use pallet::*;
-
 use primitives::{ClassId, FungibleTokenId, StakingRound, TokenId};
 pub use weights::WeightInfo;
 
@@ -76,14 +74,6 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
-		/// Land treasury source
-		#[pallet::constant]
-		type LandTreasury: Get<PalletId>;
-
-		/// Source of metaverse info
-		type MetaverseInfoSource: MetaverseTrait<Self::AccountId>;
-
 		/// Currency type
 		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 		/// Multi currencies type that handles different currency type in auction
@@ -103,9 +93,6 @@ pub mod pallet {
 		/// Delay of staking reward payment (in number of rounds)
 		#[pallet::constant]
 		type RewardPaymentDelay: Get<u32>;
-
-		/// NFT trait required for land and estate tokenization
-		type NFTTokenizationSource: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 
 		/// Default max bound for each metaverse mapping system, this could change through proposal
 		type DefaultMaxBound: Get<(i32, i32)>;

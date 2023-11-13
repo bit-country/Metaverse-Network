@@ -37,7 +37,6 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use orml_nft::{ClassInfo, ClassInfoOf, Classes, Pallet as NftModule, TokenInfo, TokenInfoOf, TokenMetadataOf, Tokens};
-
 use sp_runtime::traits::Saturating;
 use sp_runtime::Perbill;
 use sp_runtime::{
@@ -74,7 +73,6 @@ pub enum StorageVersion {
 
 #[frame_support::pallet]
 pub mod pallet {
-
 	use orml_traits::{MultiCurrency, MultiCurrencyExtended};
 	use sp_runtime::traits::{CheckedSub, IdentifyAccount, Verify};
 	use sp_runtime::ArithmeticError;
