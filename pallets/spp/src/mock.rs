@@ -279,7 +279,7 @@ impl ExtBuilder {
 	pub fn ksm_setup_for_alice_and_bob(self) -> Self {
 		self.balances(vec![
 			(ALICE, FungibleTokenId::NativeToken(1), 1000000000000000000000), //KSM
-			(BOB, FungibleTokenId::FungibleToken(1), 1000),                   //rKSM
+			(BOB, FungibleTokenId::NativeToken(1), 1000000000000000000000),   //KSM//rKSM
 		])
 	}
 }

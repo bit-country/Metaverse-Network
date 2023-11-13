@@ -58,3 +58,35 @@ fn create_ksm_pool_works() {
 			)
 		});
 }
+
+#[test]
+fn deposit_ksm_works() {
+	ExtBuilder::default()
+		.ksm_setup_for_alice_and_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(SppModule::create_pool(
+				RuntimeOrigin::signed(ALICE),
+				FungibleTokenId::NativeToken(1),
+				50,
+				Permill::from_percent(5)
+			));
+
+			let next_pool_id = NextPoolId::<Runtime>::get();
+			assert_eq!(next_pool_id, 1);
+			assert_eq!(
+				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
+				PoolInfo::<AccountId> {
+					creator: ALICE,
+					commission: Permill::from_percent(5),
+					currency_id: FungibleTokenId::NativeToken(1),
+					max: 50
+				}
+			);
+
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			let r_ksm_amount = Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free;
+			// This is true because fee hasn't been set up.
+			assert_eq!(r_ksm_amount, 10000)
+		});
+}
