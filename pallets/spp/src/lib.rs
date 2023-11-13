@@ -353,7 +353,7 @@ pub mod pallet {
 			}
 
 			// Deposit rAmount to user using T::MultiCurrency::deposit
-			T::MultiCurrency::deposit(currency_id, &who, r_amount)?;
+			T::MultiCurrency::deposit(r_currency_id, &who, r_amount)?;
 
 			// Update this specific pool ledger to keep track of pool balance
 			PoolLedger::<T>::mutate(&pool_id, |pool| -> Result<(), Error<T>> {
