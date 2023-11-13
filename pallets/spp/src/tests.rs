@@ -19,12 +19,42 @@
 
 use frame_support::{assert_err, assert_noop, assert_ok};
 use sp_runtime::traits::BadOrigin;
+use sp_runtime::{Perbill, Permill};
 
 use mock::{RuntimeEvent, *};
+
+use crate::utils::PoolInfo;
 
 use super::*;
 
 #[test]
 fn test_one() {
 	ExtBuilder::default().build().execute_with(|| assert_eq!(1, 1));
+}
+
+#[test]
+fn create_ksm_pool_works() {
+	ExtBuilder::default()
+		.ksm_setup_for_alice_and_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(SppModule::create_pool(
+				RuntimeOrigin::signed(ALICE),
+				FungibleTokenId::NativeToken(1),
+				50,
+				Permill::from_percent(5)
+			));
+
+			let next_pool_id = NextPoolId::<Runtime>::get();
+			assert_eq!(next_pool_id, 1);
+			assert_eq!(
+				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
+				PoolInfo::<AccountId> {
+					creator: ALICE,
+					commission: Permill::from_percent(5),
+					currency_id: FungibleTokenId::NativeToken(1),
+					max: 50
+				}
+			)
+		});
 }

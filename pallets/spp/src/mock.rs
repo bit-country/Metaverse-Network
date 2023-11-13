@@ -255,7 +255,13 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 100000), (BENEFICIARY_ID, 1000000)],
+			balances: vec![(ALICE, 1000000000), (BOB, 100000), (BENEFICIARY_ID, 1000000)],
+		}
+		.assimilate_storage(&mut t)
+		.unwrap();
+
+		orml_tokens::GenesisConfig::<Runtime> {
+			balances: self.endowed_accounts.into_iter().collect::<Vec<_>>(),
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
