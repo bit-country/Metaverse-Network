@@ -163,5 +163,8 @@ fn redeem_rksm_request_works() {
 				FungibleTokenId::FungibleToken(1),
 				10000
 			));
+
+			// After Bob redeems, pool ledger 0 should have only 10000
+			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
 		});
 }
