@@ -581,6 +581,8 @@ pub mod pallet {
 			Ok(().into())
 		}
 
+		/// This function only for governance origin to execute when starting the protocol or
+		/// changes of era duration.
 		#[pallet::weight(< T as Config >::WeightInfo::mint_land())]
 		pub fn update_era_config(
 			origin: OriginFor<T>,

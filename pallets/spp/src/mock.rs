@@ -74,6 +74,7 @@ pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
+	pub const Admin: AccountId = ALICE;
 }
 
 // Configure a mock runtime to test the pallet.
@@ -185,6 +186,14 @@ impl asset_manager::Config for Runtime {
 	type RegisterOrigin = EnsureSignedBy<One, AccountId>;
 }
 
+impl BlockNumberProvider for MockRelayBlockNumberProvider {
+	type BlockNumber = BlockNumber;
+
+	fn current_block_number() -> Self::BlockNumber {
+		Self::get()
+	}
+}
+
 parameter_types! {
 	pub const MinBlocksPerRound: u32 = 10;
 	pub const MinimumStake: Balance = 200;
@@ -198,6 +207,7 @@ parameter_types! {
 	pub const LeaseOfferExpiryPeriod: u32 = 6;
 	pub StorageDepositFee: Balance = 1;
 	pub const MaximumQueue: u32 = 50;
+	pub static MockRelayBlockNumberProvider: BlockNumber = 0;
 }
 
 impl Config for Runtime {
@@ -214,6 +224,8 @@ impl Config for Runtime {
 	type PoolAccount = PoolAccountPalletId;
 	type MaximumQueue = MaximumQueue;
 	type CurrencyIdConversion = ForeignAssetMapping<Runtime>;
+	type RelayChainBlockNumber = MockRelayBlockNumberProvider;
+	type GovernanceOrigin = EnsureSignedBy<Admin, AccountId>;
 }
 
 construct_runtime!(
