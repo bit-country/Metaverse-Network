@@ -174,10 +174,17 @@ fn redeem_rksm_request_works() {
 			let mut queue_items = BoundedVec::default();
 			assert_ok!(queue_items.try_push(0));
 			let user_redeem_queue = UserCurrencyRedeemQueue::<Runtime>::get(BOB, FungibleTokenId::NativeToken(1));
-			let currency_redeem_queue = CurrencyRedeemQueue::<Runtime>::get(FungibleTokenId::NativeToken(1), queue_id);
+			let currency_redeem_queue = CurrencyRedeemQueue::<Runtime>::get(FungibleTokenId::NativeToken(1), 0);
 			let staking_round_redeem_queue =
-				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(1), FungibleTokenId::NativeToken(1));
-			assert_eq!(user_redeem_queue, Some(10000, queue_items));
-			assert_eq!(currency_redeem_queue, Some(BOB, 10000, StakingRound::Era(1)));
+				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(2), FungibleTokenId::NativeToken(1));
+			// Verify if user redeem queue has total unlocked and queue items
+			assert_eq!(user_redeem_queue, Some((10000, queue_items.clone())));
+			// If user redeem of Era 1, fund will be released at Era 2
+			assert_eq!(currency_redeem_queue, Some((BOB, 10000, StakingRound::Era(2))));
+			// Redeem added into staking round redeem queue for Era 2
+			assert_eq!(
+				staking_round_redeem_queue,
+				Some((10000, queue_items.clone(), FungibleTokenId::NativeToken(1)))
+			);
 		});
 }
