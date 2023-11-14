@@ -35,7 +35,7 @@ use sp_runtime::{
 
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{ClassId, EraIndex, EraIndex, FungibleTokenId, StakingRound, TokenId};
+use primitives::{ClassId, EraIndex, FungibleTokenId, StakingRound, TokenId};
 pub use weights::WeightInfo;
 
 pub type QueueId = u32;
@@ -254,6 +254,8 @@ pub mod pallet {
 			to: T::AccountId,
 			token_amount: BalanceOf<T>,
 		},
+		/// Current era updated
+		CurrentEraUpdated { new_era_index: EraIndex },
 	}
 
 	#[pallet::error]
