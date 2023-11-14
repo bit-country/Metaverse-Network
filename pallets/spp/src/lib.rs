@@ -56,7 +56,7 @@ pub mod pallet {
 	use frame_support::traits::{Currency, ReservableCurrency};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
-	use sp_runtime::traits::{CheckedAdd, CheckedSub};
+	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedSub};
 	use sp_runtime::Permill;
 
 	use primitives::{PoolId, StakingRound};
@@ -108,6 +108,9 @@ pub mod pallet {
 
 		/// Allows converting block numbers into balance
 		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
+
+		/// Block number provider for the relaychain.
+		type RelayChainBlockNumber: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
 
 		#[pallet::constant]
 		type PoolAccount: Get<PalletId>;
@@ -197,6 +200,16 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn last_staking_round)]
 	pub type LastStakingRound<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, StakingRound, ValueQuery>;
+
+	/// The relaychain block number of last staking round
+	#[pallet::storage]
+	#[pallet::getter(fn last_staking_round_updated_block)]
+	pub type LastEraUpdatedBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+	/// The internal of relaychain block number between era.
+	#[pallet::storage]
+	#[pallet::getter(fn update_staking_round_frequency)]
+	pub type UpdateEraFrequency<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn queue_next_id)]
