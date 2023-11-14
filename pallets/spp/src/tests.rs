@@ -166,5 +166,18 @@ fn redeem_rksm_request_works() {
 
 			// After Bob redeems, pool ledger 0 should have only 10000
 			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+
+			// Verify if redeem queue has requests
+
+			let queue_id = QueueNextId::<Runtime>::get(FungibleTokenId::NativeToken(1));
+			assert_eq!(queue_id, 1);
+			let mut queue_items = BoundedVec::default();
+			assert_ok!(queue_items.try_push(0));
+			let user_redeem_queue = UserCurrencyRedeemQueue::<Runtime>::get(BOB, FungibleTokenId::NativeToken(1));
+			let currency_redeem_queue = CurrencyRedeemQueue::<Runtime>::get(FungibleTokenId::NativeToken(1), queue_id);
+			let staking_round_redeem_queue =
+				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(1), FungibleTokenId::NativeToken(1));
+			assert_eq!(user_redeem_queue, Some(10000, queue_items));
+			assert_eq!(currency_redeem_queue, Some(BOB, 10000, StakingRound::Era(1)));
 		});
 }
