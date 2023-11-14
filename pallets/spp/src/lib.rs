@@ -119,6 +119,9 @@ pub mod pallet {
 		type MaximumQueue: Get<u32>;
 
 		type CurrencyIdConversion: CurrencyIdManagement;
+
+		/// Origin represented Governance
+		type GovernanceOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
 	}
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -256,6 +259,10 @@ pub mod pallet {
 		},
 		/// Current era updated
 		CurrentEraUpdated { new_era_index: EraIndex },
+		/// Last era updated
+		LastEraUpdated { last_era_block: BlockNumberFor<T> },
+		/// Update era frequency
+		UpdateEraFrequency { frequency: BlockNumberFor<T> },
 	}
 
 	#[pallet::error]
@@ -292,6 +299,8 @@ pub mod pallet {
 		UserCurrencyRedeemQueueNotFound,
 		/// Redeem queue per currency not found
 		CurrencyRedeemQueueNotFound,
+		/// The last era updated block is invalid
+		InvalidLastEraUpdatedBlock,
 	}
 
 	#[pallet::hooks]
@@ -570,6 +579,37 @@ pub mod pallet {
 				amount: r_amount,
 			});
 			Ok(().into())
+		}
+
+		#[pallet::weight(< T as Config >::WeightInfo::mint_land())]
+		pub fn update_era_config(
+			origin: OriginFor<T>,
+			last_era_updated_block: Option<BlockNumberFor<T>>,
+			frequency: Option<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			T::GovernanceOrigin::ensure_origin(origin)?;
+
+			if let Some(change) = frequency {
+				UpdateEraFrequency::<T>::put(change);
+				Self::deposit_event(Event::<T>::UpdateEraFrequency { frequency: change });
+			}
+
+			if let Some(change) = last_era_updated_block {
+				let update_era_frequency = UpdateEraFrequency::<T>::get();
+				let current_relay_chain_block = T::RelayChainBlockNumber::current_block_number();
+				if !update_era_frequency.is_zero() {
+					ensure!(
+						change > current_relay_chain_block.saturating_sub(update_era_frequency)
+							&& change <= current_relay_chain_block,
+						Error::<T>::InvalidLastEraUpdatedBlock
+					);
+
+					LastEraUpdatedBlock::<T>::put(change);
+					Self::deposit_event(Event::<T>::LastEraUpdated { last_era_block: change });
+				}
+			}
+
+			Ok(())
 		}
 	}
 }

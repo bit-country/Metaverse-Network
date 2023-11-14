@@ -188,3 +188,6 @@ fn redeem_rksm_request_works() {
 			);
 		});
 }
+
+#[test]
+fn current_era_update_works() {}
