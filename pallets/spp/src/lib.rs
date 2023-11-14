@@ -417,11 +417,8 @@ pub mod pallet {
 			let network_ledger_balance = Self::network_ledger(currency_id);
 
 			// Collect deposit fee for protocol
-			// Assuming there's a function `collect_redeem_fee` that deducts a fee for deposits.
 			let amount_after_fee = Self::collect_redeem_fee(&who, v_currency_id, r_amount)?;
-			let r_amount = r_amount
-				.checked_sub(&amount_after_fee)
-				.ok_or(Error::<T>::ArithmeticOverflow)?;
+			let r_amount = amount_after_fee;
 			// Calculate rAmount as receipt of amount locked. The formula based on rAmount = (amount * rAmount
 			// total issuance)/network ledger balance
 			let r_amount_total_issuance = T::MultiCurrency::total_issuance(v_currency_id);
