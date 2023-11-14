@@ -99,3 +99,69 @@ fn deposit_ksm_works() {
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
 		});
 }
+
+#[test]
+fn redeem_rksm_request_works() {
+	ExtBuilder::default()
+		.ksm_setup_for_alice_and_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(SppModule::create_pool(
+				RuntimeOrigin::signed(ALICE),
+				FungibleTokenId::NativeToken(1),
+				50,
+				Permill::from_percent(5)
+			));
+
+			let next_pool_id = NextPoolId::<Runtime>::get();
+			assert_eq!(next_pool_id, 1);
+			assert_eq!(
+				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
+				PoolInfo::<AccountId> {
+					creator: ALICE,
+					commission: Permill::from_percent(5),
+					currency_id: FungibleTokenId::NativeToken(1),
+					max: 50
+				}
+			);
+
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			// This is true because fee hasn't been set up.
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
+
+			// Deposit another 10000 KSM
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
+
+			assert_noop!(
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(1), 10000),
+				Error::<Runtime>::PoolDoesNotExist
+			);
+
+			assert_noop!(
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 0, FungibleTokenId::FungibleToken(0), 10000),
+				Error::<Runtime>::CurrencyIsNotSupported
+			);
+
+			assert_noop!(
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 0, FungibleTokenId::FungibleToken(1), 10000),
+				Error::<Runtime>::NoCurrentStakingRound
+			);
+
+			UnlockDuration::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1));
+			// Bump current staking round to 1
+			CurrentStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1));
+			assert_ok!(SppModule::redeem(
+				RuntimeOrigin::signed(BOB),
+				0,
+				FungibleTokenId::FungibleToken(1),
+				10000
+			));
+		});
+}
