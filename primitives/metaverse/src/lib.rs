@@ -104,6 +104,8 @@ pub type ReferendumId = u64;
 pub type LandId = u64;
 /// EstateId
 pub type EstateId = u64;
+/// Number of era on relaychain
+pub type EraIndex = u32;
 /// Social Token Id type
 pub type TokenId = u64;
 /// Undeployed LandBlock Id type

@@ -27,7 +27,7 @@ use frame_support::{
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
 use orml_traits::MultiCurrency;
-use sp_runtime::traits::{CheckedAdd, CheckedSub};
+use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedSub};
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Saturating, Zero},
 	ArithmeticError, DispatchError, SaturatedConversion,
@@ -35,7 +35,7 @@ use sp_runtime::{
 
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{ClassId, FungibleTokenId, StakingRound, TokenId};
+use primitives::{ClassId, EraIndex, EraIndex, FungibleTokenId, StakingRound, TokenId};
 pub use weights::WeightInfo;
 
 pub type QueueId = u32;
@@ -197,18 +197,25 @@ pub mod pallet {
 	#[pallet::getter(fn current_staking_round)]
 	pub type CurrentStakingRound<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, StakingRound>;
 
+	/// The current era of relaychain
+	///
+	/// RelayChainCurrentEra : EraIndex
+	#[pallet::storage]
+	#[pallet::getter(fn relay_chain_current_era)]
+	pub type RelayChainCurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
 	#[pallet::storage]
 	#[pallet::getter(fn last_staking_round)]
 	pub type LastStakingRound<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, StakingRound, ValueQuery>;
 
 	/// The relaychain block number of last staking round
 	#[pallet::storage]
-	#[pallet::getter(fn last_staking_round_updated_block)]
+	#[pallet::getter(fn last_era_updated_block)]
 	pub type LastEraUpdatedBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
 	/// The internal of relaychain block number between era.
 	#[pallet::storage]
-	#[pallet::getter(fn update_staking_round_frequency)]
+	#[pallet::getter(fn update_era_frequency)]
 	pub type UpdateEraFrequency<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
 	#[pallet::storage]
@@ -248,6 +255,7 @@ pub mod pallet {
 			token_amount: BalanceOf<T>,
 		},
 	}
+
 	#[pallet::error]
 	pub enum Error<T> {
 		/// No permission
@@ -282,6 +290,19 @@ pub mod pallet {
 		UserCurrencyRedeemQueueNotFound,
 		/// Redeem queue per currency not found
 		CurrencyRedeemQueueNotFound,
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+			let era_number = Self::get_era_index(T::RelayChainBlockNumber::current_block_number());
+			if !era_number.is_zero() {
+				let _ = Self::update_current_era(era_number);
+				Self::handle_redeem_requests().map_err(|err| {}).ok();
+			}
+
+			T::WeightInfo::on_initialize()
+		}
 	}
 
 	#[pallet::call]
@@ -630,15 +651,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
-	#[transactional]
-	fn on_initialize() -> DispatchResult {
-		for currency in CurrentStakingRound::<T>::iter_keys() {
-			Self::handle_redeem_staking_round_hook(currency)?;
-		}
-		Ok(())
-	}
-
-	fn handle_redeem_staking_round_hook(currency: FungibleTokenId) -> DispatchResult {
+	fn handle_update_staking_round(currency: FungibleTokenId) -> DispatchResult {
 		let last_staking_round = LastStakingRound::<T>::get(currency);
 		let unlock_duration = match UnlockDuration::<T>::get(currency) {
 			Some(StakingRound::Era(unlock_duration_era)) => unlock_duration_era,
@@ -871,6 +884,35 @@ impl<T: Config> Pallet<T> {
 			to: account_to_send,
 			token_amount: unlock_amount,
 		});
+		Ok(())
+	}
+
+	pub fn get_era_index(relaychain_block_number: BlockNumberFor<T>) -> EraIndex {
+		relaychain_block_number
+			.checked_sub(&Self::last_era_updated_block())
+			.and_then(|n| n.checked_div(&Self::update_era_frequency()))
+			.and_then(|n| TryInto::<EraIndex>::try_into(n).ok())
+			.unwrap_or_else(Zero::zero)
+	}
+
+	#[transactional]
+	fn handle_redeem_requests() -> DispatchResult {
+		for currency in CurrentStakingRound::<T>::iter_keys() {
+			Self::handle_update_staking_round(currency)?;
+		}
+		Ok(())
+	}
+
+	pub fn update_current_era(era_index: EraIndex) -> DispatchResult {
+		let previous_era = Self::relay_chain_current_era();
+		let new_era = previous_era.saturating_add(era_index);
+
+		RelayChainCurrentEra::<T>::put(new_era);
+		LastEraUpdatedBlock::<T>::put(T::RelayChainBlockNumber::current_block_number());
+		Self::deposit_event(Event::<T>::CurrentEraUpdated { new_era_index: new_era });
+
+		Self::handle_redeem_requests()?;
+
 		Ok(())
 	}
 }
