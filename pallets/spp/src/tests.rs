@@ -190,4 +190,116 @@ fn redeem_rksm_request_works() {
 }
 
 #[test]
-fn current_era_update_works() {}
+fn current_era_update_works() {
+	ExtBuilder::default()
+		.ksm_setup_for_alice_and_bob()
+		.build()
+		.execute_with(|| {
+			assert_eq!(SppModule::last_era_updated_block(), 0);
+			assert_eq!(SppModule::update_era_frequency(), 0);
+			assert_eq!(MockRelayBlockNumberProvider::current_block_number(), 0);
+			// Current relaychain block is 102.
+			MockRelayBlockNumberProvider::set(102);
+			RelayChainCurrentEra::<Runtime>::put(1);
+			IterationLimit::<Runtime>::put(50);
+			// The correct set up era config is the last era block records is 101 with duration is 100 blocks
+			assert_ok!(SppModule::update_era_config(
+				RuntimeOrigin::signed(Admin::get()),
+				Some(101),
+				Some(100),
+				StakingRound::Era(1),
+			));
+
+			assert_ok!(SppModule::create_pool(
+				RuntimeOrigin::signed(ALICE),
+				FungibleTokenId::NativeToken(1),
+				50,
+				Permill::from_percent(5)
+			));
+
+			let next_pool_id = NextPoolId::<Runtime>::get();
+			assert_eq!(next_pool_id, 1);
+			assert_eq!(
+				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
+				PoolInfo::<AccountId> {
+					creator: ALICE,
+					commission: Permill::from_percent(5),
+					currency_id: FungibleTokenId::NativeToken(1),
+					max: 50,
+				}
+			);
+
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			// This is true because fee hasn't been set up.
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
+
+			// Deposit another 10000 KSM
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
+
+			// Pool summary
+			// Pool Total deposited: 20000
+			// Network deposited: 20000, NativeToken(1)
+
+			// Bob summary
+			// Holding: 20000 FungibleToken(1) reciept token of NativeToken(1)
+
+			assert_noop!(
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(1), 10000),
+				Error::<Runtime>::PoolDoesNotExist
+			);
+
+			assert_noop!(
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 0, FungibleTokenId::FungibleToken(0), 10000),
+				Error::<Runtime>::CurrencyIsNotSupported
+			);
+
+			assert_noop!(
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 0, FungibleTokenId::FungibleToken(1), 10000),
+				Error::<Runtime>::NoCurrentStakingRound
+			);
+
+			UnlockDuration::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1)); // Bump current staking round to 1
+			CurrentStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1));
+
+			// Bob successfully redeemed
+			assert_ok!(SppModule::redeem(
+				RuntimeOrigin::signed(BOB),
+				0,
+				FungibleTokenId::FungibleToken(1),
+				10000
+			));
+
+			// After Bob redeems, pool ledger 0 should have only 10000
+			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+
+			// Verify if redeem queue has requests
+			let queue_id = QueueNextId::<Runtime>::get(FungibleTokenId::NativeToken(1));
+			assert_eq!(queue_id, 1);
+			let mut queue_items = BoundedVec::default();
+			assert_ok!(queue_items.try_push(0));
+			let user_redeem_queue = UserCurrencyRedeemQueue::<Runtime>::get(BOB, FungibleTokenId::NativeToken(1));
+			let currency_redeem_queue = CurrencyRedeemQueue::<Runtime>::get(FungibleTokenId::NativeToken(1), 0);
+			let staking_round_redeem_queue =
+				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(2), FungibleTokenId::NativeToken(1));
+			// Verify if user redeem queue has total unlocked and queue items
+			assert_eq!(user_redeem_queue, Some((10000, queue_items.clone())));
+			// If user redeem of Era 1, fund will be released at Era 2
+			assert_eq!(currency_redeem_queue, Some((BOB, 10000, StakingRound::Era(2))));
+			// Redeem added into staking round redeem queue for Era 2
+			assert_eq!(
+				staking_round_redeem_queue,
+				Some((10000, queue_items.clone(), FungibleTokenId::NativeToken(1)))
+			);
+
+			// Move to era 2 to allow user redeem token successfully
+			MockRelayBlockNumberProvider::set(202);
+			SppModule::on_initialize(100);
+		});
+}

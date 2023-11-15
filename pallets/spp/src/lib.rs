@@ -301,6 +301,8 @@ pub mod pallet {
 		CurrencyRedeemQueueNotFound,
 		/// The last era updated block is invalid
 		InvalidLastEraUpdatedBlock,
+		/// Fail to process redeem requests
+		FailedToProcessRedemption,
 	}
 
 	#[pallet::hooks]
@@ -309,7 +311,7 @@ pub mod pallet {
 			let era_number = Self::get_era_index(T::RelayChainBlockNumber::current_block_number());
 			if !era_number.is_zero() {
 				let _ = Self::update_current_era(era_number);
-				Self::handle_redeem_requests().map_err(|err| {}).ok();
+				Self::handle_redeem_requests(era_number).map_err(|err| {}).ok();
 			}
 
 			T::WeightInfo::on_initialize()
@@ -588,6 +590,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			last_era_updated_block: Option<BlockNumberFor<T>>,
 			frequency: Option<BlockNumberFor<T>>,
+			last_staking_round: StakingRound,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
@@ -607,6 +610,7 @@ pub mod pallet {
 					);
 
 					LastEraUpdatedBlock::<T>::put(change);
+					LastStakingRound::<T>::insert(FungibleTokenId::NativeToken(1), last_staking_round);
 					Self::deposit_event(Event::<T>::LastEraUpdated { last_era_block: change });
 				}
 			}
@@ -695,7 +699,7 @@ impl<T: Config> Pallet<T> {
 		)
 	}
 
-	fn handle_update_staking_round(currency: FungibleTokenId) -> DispatchResult {
+	fn handle_update_staking_round(era_index: EraIndex, currency: FungibleTokenId) -> DispatchResult {
 		let last_staking_round = LastStakingRound::<T>::get(currency);
 		let unlock_duration = match UnlockDuration::<T>::get(currency) {
 			Some(StakingRound::Era(unlock_duration_era)) => unlock_duration_era,
@@ -705,13 +709,7 @@ impl<T: Config> Pallet<T> {
 			_ => 0,
 		};
 
-		let current_staking_round = match CurrentStakingRound::<T>::get(currency) {
-			Some(StakingRound::Era(unlock_duration_era)) => unlock_duration_era,
-			Some(StakingRound::Round(unlock_duration_round)) => unlock_duration_round,
-			Some(StakingRound::Epoch(unlock_duration_epoch)) => unlock_duration_epoch,
-			Some(StakingRound::Hour(unlock_duration_hour)) => unlock_duration_hour,
-			_ => 0,
-		};
+		let current_staking_round = era_index;
 
 		// Check current staking round queue with last staking round if there is any pending redeem requests
 		if let Some((_total_locked, existing_queue, currency_id)) =
@@ -940,9 +938,9 @@ impl<T: Config> Pallet<T> {
 	}
 
 	#[transactional]
-	fn handle_redeem_requests() -> DispatchResult {
+	fn handle_redeem_requests(era_index: EraIndex) -> DispatchResult {
 		for currency in CurrentStakingRound::<T>::iter_keys() {
-			Self::handle_update_staking_round(currency)?;
+			Self::handle_update_staking_round(era_index, currency)?;
 		}
 		Ok(())
 	}
@@ -953,10 +951,8 @@ impl<T: Config> Pallet<T> {
 
 		RelayChainCurrentEra::<T>::put(new_era);
 		LastEraUpdatedBlock::<T>::put(T::RelayChainBlockNumber::current_block_number());
+		Self::handle_redeem_requests(new_era)?;
 		Self::deposit_event(Event::<T>::CurrentEraUpdated { new_era_index: new_era });
-
-		Self::handle_redeem_requests()?;
-
 		Ok(())
 	}
 }
