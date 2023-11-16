@@ -307,7 +307,6 @@ fn current_era_update_works() {
 			);
 
 			// Move to era 2 to allow user redeem token successfully
-			LastStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(0));
 			MockRelayBlockNumberProvider::set(202);
 			SppModule::on_initialize(200);
 
@@ -329,6 +328,35 @@ fn current_era_update_works() {
 			);
 			assert_eq!(
 				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(2), FungibleTokenId::NativeToken(1)),
+				None
+			);
+
+			// Move to era 3, make sure no double redeem process
+			MockRelayBlockNumberProvider::set(302);
+			SppModule::on_initialize(300);
+
+			// Pool account remain the same
+			assert_eq!(
+				Tokens::accounts(pool_account, FungibleTokenId::NativeToken(1)).free,
+				10001
+			);
+
+			// BOB balance remain the same
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 10000);
+			assert_eq!(
+				CurrencyRedeemQueue::<Runtime>::get(FungibleTokenId::NativeToken(1), 0),
+				None
+			);
+			assert_eq!(
+				UserCurrencyRedeemQueue::<Runtime>::get(BOB, FungibleTokenId::NativeToken(1)),
+				None
+			);
+			assert_eq!(
+				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(2), FungibleTokenId::NativeToken(1)),
+				None
+			);
+			assert_eq!(
+				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(3), FungibleTokenId::NativeToken(1)),
 				None
 			);
 		});
