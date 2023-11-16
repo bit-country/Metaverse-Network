@@ -228,10 +228,13 @@ fn current_era_update_works() {
 					max: 50,
 				}
 			);
-
+			// Verify BOB account with 20000 KSM
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 20000);
 			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
 			// This is true because fee hasn't been set up.
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
+			// Bob KSM balance become 10000
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 10000);
 
 			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
@@ -239,6 +242,8 @@ fn current_era_update_works() {
 			// Deposit another 10000 KSM
 			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
+			// Bob KSM now is 0
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 0);
 
 			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
@@ -279,6 +284,9 @@ fn current_era_update_works() {
 			// After Bob redeems, pool ledger 0 should have only 10000
 			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
 
+			// After Bob redeem, make sure BOB KSM balance remains the same as it will only released next era
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 0);
+
 			// Verify if redeem queue has requests
 			let queue_id = QueueNextId::<Runtime>::get(FungibleTokenId::NativeToken(1));
 			assert_eq!(queue_id, 1);
@@ -299,7 +307,29 @@ fn current_era_update_works() {
 			);
 
 			// Move to era 2 to allow user redeem token successfully
+			LastStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(0));
 			MockRelayBlockNumberProvider::set(202);
-			SppModule::on_initialize(100);
+			SppModule::on_initialize(200);
+
+			let pool_account = SppModule::get_pool_account();
+			assert_eq!(
+				Tokens::accounts(pool_account, FungibleTokenId::NativeToken(1)).free,
+				10001
+			);
+
+			// After KSM released, BOB balance now is
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 10000);
+			assert_eq!(
+				CurrencyRedeemQueue::<Runtime>::get(FungibleTokenId::NativeToken(1), 0),
+				None
+			);
+			assert_eq!(
+				UserCurrencyRedeemQueue::<Runtime>::get(BOB, FungibleTokenId::NativeToken(1)),
+				None
+			);
+			assert_eq!(
+				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(2), FungibleTokenId::NativeToken(1)),
+				None
+			);
 		});
 }
