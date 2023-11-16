@@ -61,7 +61,7 @@ pub mod pallet {
 
 	use primitives::{PoolId, StakingRound};
 
-	use crate::utils::PoolInfo;
+	use crate::utils::{BoostInfo, PoolInfo};
 
 	use super::*;
 
@@ -614,6 +614,12 @@ pub mod pallet {
 				}
 			}
 
+			Ok(())
+		}
+
+		/// This function allow reward voting for the pool
+		#[pallet::weight(< T as Config >::WeightInfo::mint_land())]
+		pub fn boost(origin: OriginFor<T>, pool_id: PoolId, vote: BoostInfo<BalanceOf<T>>) -> DispatchResult {
 			Ok(())
 		}
 	}

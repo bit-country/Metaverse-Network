@@ -27,6 +27,7 @@ substrate-fixed = { workspace = true }
 pallet-balances = { workspace = true, optional = true }
 orml-traits = { workspace = true }
 orml-tokens = { workspace = true }
+orml-rewards = { workspace = true }
 
 # local packages
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
@@ -65,5 +66,6 @@ std = [
     'frame-benchmarking/std',
     'orml-tokens/std',
     "currencies/std",
-    "asset-manager/std"
+    "asset-manager/std",
+    "orml-rewards/std"
 ]
