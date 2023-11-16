@@ -955,7 +955,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	pub fn get_pool_account() -> T::AccountId<T> {
-		(T::PoolAccount::get().into_account_truncating(),)
+	pub fn get_pool_account() -> T::AccountId {
+		T::PoolAccount::get().into_account_truncating()
 	}
 }
