@@ -310,8 +310,7 @@ pub mod pallet {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
 			let era_number = Self::get_era_index(T::RelayChainBlockNumber::current_block_number());
 			if !era_number.is_zero() {
-				let _ = Self::update_current_era(era_number);
-				Self::handle_redeem_requests(era_number).map_err(|err| {}).ok();
+				let _ = Self::update_current_era(era_number).map_err(|err| err).ok();
 			}
 
 			T::WeightInfo::on_initialize()
@@ -700,7 +699,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn handle_update_staking_round(era_index: EraIndex, currency: FungibleTokenId) -> DispatchResult {
-		let last_staking_round = LastStakingRound::<T>::get(currency);
+		let last_staking_round = StakingRound::Era(era_index as u32);
 		let unlock_duration = match UnlockDuration::<T>::get(currency) {
 			Some(StakingRound::Era(unlock_duration_era)) => unlock_duration_era,
 			Some(StakingRound::Round(unlock_duration_round)) => unlock_duration_round,
@@ -937,7 +936,6 @@ impl<T: Config> Pallet<T> {
 			.unwrap_or_else(Zero::zero)
 	}
 
-	#[transactional]
 	fn handle_redeem_requests(era_index: EraIndex) -> DispatchResult {
 		for currency in CurrentStakingRound::<T>::iter_keys() {
 			Self::handle_update_staking_round(era_index, currency)?;
@@ -945,6 +943,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	#[transactional]
 	pub fn update_current_era(era_index: EraIndex) -> DispatchResult {
 		let previous_era = Self::relay_chain_current_era();
 		let new_era = previous_era.saturating_add(era_index);
@@ -954,5 +953,9 @@ impl<T: Config> Pallet<T> {
 		Self::handle_redeem_requests(new_era)?;
 		Self::deposit_event(Event::<T>::CurrentEraUpdated { new_era_index: new_era });
 		Ok(())
+	}
+
+	pub fn get_pool_account() -> T::AccountId<T> {
+		(T::PoolAccount::get().into_account_truncating(),)
 	}
 }
