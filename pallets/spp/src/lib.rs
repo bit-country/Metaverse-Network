@@ -61,7 +61,7 @@ pub mod pallet {
 
 	use primitives::{PoolId, StakingRound};
 
-	use crate::utils::{BoostInfo, PoolInfo};
+	use crate::utils::{BoostInfo, BoostingRecord, PoolInfo};
 
 	use super::*;
 
@@ -230,6 +230,12 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn iteration_limit)]
 	pub type IterationLimit<T: Config> = StorageValue<_, u32, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn boosting_record)]
+	/// Store boosting records for each account
+	pub type BoostingOf<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BoostingRecord<BalanceOf<T>, T::BlockNumber>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
