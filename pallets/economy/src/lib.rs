@@ -18,7 +18,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
-
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
@@ -54,7 +53,6 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 

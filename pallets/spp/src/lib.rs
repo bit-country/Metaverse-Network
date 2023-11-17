@@ -53,10 +53,10 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::{Currency, ReservableCurrency};
+	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
-	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedSub};
+	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub};
 	use sp_runtime::Permill;
 
 	use primitives::{PoolId, StakingRound};
@@ -75,7 +75,9 @@ pub mod pallet {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Currency type
-		type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+		type Currency: Currency<Self::AccountId>
+			+ ReservableCurrency<Self::AccountId>
+			+ LockableCurrency<Self::AccountId>;
 		/// Multi currencies type that handles different currency type in auction
 		type MultiCurrency: MultiReservableCurrency<
 			Self::AccountId,
@@ -303,6 +305,8 @@ pub mod pallet {
 		InvalidLastEraUpdatedBlock,
 		/// Fail to process redeem requests
 		FailedToProcessRedemption,
+		/// Insufficient Fund
+		InsufficientFund,
 	}
 
 	#[pallet::hooks]
@@ -620,6 +624,28 @@ pub mod pallet {
 		/// This function allow reward voting for the pool
 		#[pallet::weight(< T as Config >::WeightInfo::mint_land())]
 		pub fn boost(origin: OriginFor<T>, pool_id: PoolId, vote: BoostInfo<BalanceOf<T>>) -> DispatchResult {
+			// Ensure user is signed
+			let who = ensure_signed(origin)?;
+
+			// Ensure user has balance to vote
+			ensure!(
+				vote.balance <= T::Currency::free_balance(&who),
+				Error::<T>::InsufficientFund
+			);
+
+			// Check if pool exists
+			let pool_instance = Pool::<T>::get(pool_id).ok_or(Error::<T>::PoolDoesNotExist)?;
+			// Convert boost conviction into shares
+			let vote_conviction = vote.conviction.lock_periods();
+			// Calculate lock period from UnlockDuration block number x conviction
+			let current_block: T::BlockNumber = <frame_system::Pallet<T>>::block_number();
+
+			let mut unlock_at = current_block.saturating_add(UpdateEraFrequency::<T>::get());
+			if !vote_conviction.is_zero() {
+				unlock_at.saturating_mul(vote_conviction.into());
+			}
+			// Locked token
+			// Add shares into the rewards pool
 			Ok(())
 		}
 	}
