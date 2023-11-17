@@ -24,7 +24,7 @@ use sp_runtime::{
 	Permill, RuntimeDebug,
 };
 
-use primitives::FungibleTokenId;
+use primitives::{FungibleTokenId, PoolId};
 
 // Helper methods to compute the issuance rate for undeployed land.
 
@@ -151,5 +151,48 @@ impl<Balance: Saturating> BoostInfo<Balance> {
 	/// referendum passed if `approved` is `true`.
 	pub fn get_locked_period(self) -> (u32, Balance) {
 		return (self.conviction.lock_periods(), self.balance);
+	}
+}
+
+/// A "prior" lock, i.e. a lock for some now-forgotten reason.
+#[derive(Encode, Decode, Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, RuntimeDebug, TypeInfo)]
+pub struct PriorLock<BlockNumber, Balance>(BlockNumber, Balance);
+
+impl<BlockNumber: Ord + Copy + Zero, Balance: Ord + Copy + Zero> PriorLock<BlockNumber, Balance> {
+	/// Accumulates an additional lock.
+	pub fn accumulate(&mut self, until: BlockNumber, amount: Balance) {
+		self.0 = self.0.max(until);
+		self.1 = self.1.max(amount);
+	}
+
+	pub fn locked(&self) -> Balance {
+		self.1
+	}
+
+	pub fn update(&mut self, now: BlockNumber) {
+		if now >= self.0 {
+			self.0 = Zero::zero();
+			self.1 = Zero::zero();
+		}
+	}
+}
+
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct BoostingRecord<Balance, BlockNumber> {
+	pub(crate) votes: Vec<(PoolId, Vote<Balance>)>,
+	pub(crate) prior: PriorLock<BlockNumber, Balance>,
+}
+
+impl<Balance: Saturating + Ord + Zero + Copy, BlockNumber: Ord + Copy + Zero> BoostingRecord<Balance, BlockNumber> {
+	pub fn update(&mut self, now: BlockNumber) {
+		self.prior.update(now);
+	}
+
+	/// The amount of this account's balance that much currently be locked due to voting.
+	pub fn locked_balance(&self) -> Balance {
+		self.votes
+			.iter()
+			.map(|i| i.1.balance)
+			.fold(self.prior.locked(), |a, i| a.max(i))
 	}
 }
