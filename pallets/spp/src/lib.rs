@@ -313,6 +313,8 @@ pub mod pallet {
 		FailedToProcessRedemption,
 		/// Insufficient Fund
 		InsufficientFund,
+		/// Error while adding new boost
+		MaxVotesReached,
 	}
 
 	#[pallet::hooks]
@@ -647,10 +649,34 @@ pub mod pallet {
 			let current_block: T::BlockNumber = <frame_system::Pallet<T>>::block_number();
 
 			let mut unlock_at = current_block.saturating_add(UpdateEraFrequency::<T>::get());
+			let mut total_balance = vote.balance;
 			if !vote_conviction.is_zero() {
 				unlock_at.saturating_mul(vote_conviction.into());
+				total_balance.saturating_mul(vote_conviction.into());
 			}
 			// Locked token
+
+			BoostingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
+				let votes = &mut voting.votes;
+				let prior_lock = &mut voting.prior;
+				match votes.binary_search_by_key(&pool_id, |i| i.0) {
+					Ok(i) => {
+						// User already boosted, this is adding up their boosting weight
+						votes[i]
+							.1
+							.add(total_balance.clone())
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
+						voting
+							.prior
+							.accumulate(unlock_at, votes[i].1.balance.saturating_add(total_balance))
+					}
+					Err(i) => {
+						votes.insert(i, (pool_id, vote));
+						voting.prior.accumulate(unlock_at, total_balance);
+					}
+				}
+				Ok(())
+			})?;
 			// Add shares into the rewards pool
 			Ok(())
 		}
