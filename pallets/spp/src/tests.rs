@@ -23,7 +23,7 @@ use sp_runtime::{Perbill, Permill};
 
 use mock::{RuntimeEvent, *};
 
-use crate::utils::PoolInfo;
+use crate::utils::{BoostInfo, BoostingConviction, BoostingRecord, PoolInfo, PriorLock};
 
 use super::*;
 
@@ -359,5 +359,68 @@ fn current_era_update_works() {
 				StakingRoundRedeemQueue::<Runtime>::get(StakingRound::Era(3), FungibleTokenId::NativeToken(1)),
 				None
 			);
+		});
+}
+
+#[test]
+fn boosting_works() {
+	ExtBuilder::default()
+		.ksm_setup_for_alice_and_bob()
+		.build()
+		.execute_with(|| {
+			assert_ok!(SppModule::create_pool(
+				RuntimeOrigin::signed(ALICE),
+				FungibleTokenId::NativeToken(1),
+				50,
+				Permill::from_percent(5)
+			));
+
+			let next_pool_id = NextPoolId::<Runtime>::get();
+			assert_eq!(next_pool_id, 1);
+			assert_eq!(
+				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
+				PoolInfo::<AccountId> {
+					creator: ALICE,
+					commission: Permill::from_percent(5),
+					currency_id: FungibleTokenId::NativeToken(1),
+					max: 50
+				}
+			);
+
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			// This is true because fee hasn't been set up.
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
+
+			// Deposit another 10000 KSM
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
+
+			// Boosting works
+			assert_ok!(SppModule::boost(
+				RuntimeOrigin::signed(BOB),
+				0,
+				BoostInfo {
+					balance: 1000,
+					conviction: BoostingConviction::None
+				}
+			));
+			let boosting_of = BoostingOf::<Runtime>::get(BOB);
+			let some_record = BoostingRecord {
+				votes: vec![(
+					0,
+					BoostInfo {
+						balance: 1000,
+						conviction: BoostingConviction::None,
+					},
+				)],
+				prior: PriorLock(1, 1000),
+			};
+			assert_eq!(boosting_of, some_record)
 		});
 }

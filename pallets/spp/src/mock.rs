@@ -18,7 +18,7 @@ use asset_manager::ForeignAssetMapping;
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{CollectionType, NftClassData, TokenType};
 use primitives::{
-	Amount, AssetId, Attributes, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, TokenId,
+	Amount, AssetId, Attributes, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, NftMetadata, PoolId, TokenId,
 	LAND_CLASS_ID,
 };
 
@@ -194,6 +194,14 @@ impl BlockNumberProvider for MockRelayBlockNumberProvider {
 	}
 }
 
+impl orml_rewards::Config for Runtime {
+	type Share = Balance;
+	type Balance = Balance;
+	type PoolId = PoolId;
+	type CurrencyId = FungibleTokenId;
+	type Handler = SppModule;
+}
+
 parameter_types! {
 	pub const MinBlocksPerRound: u32 = 10;
 	pub const MinimumStake: Balance = 200;
@@ -240,6 +248,7 @@ construct_runtime!(
 		Currencies: currencies::{ Pallet, Storage, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Spp: spp:: {Pallet, Call, Storage, Event<T>},
+		RewardsModule: orml_rewards
 	}
 );
 
