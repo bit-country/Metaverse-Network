@@ -146,11 +146,16 @@ pub struct BoostInfo<Balance> {
 	pub(crate) conviction: BoostingConviction,
 }
 
-impl<Balance: Saturating> BoostInfo<Balance> {
+impl<Balance: Saturating + Copy> BoostInfo<Balance> {
 	/// Returns `Some` of the lock periods that the account is locked for, assuming that the
 	/// referendum passed if `approved` is `true`.
 	pub fn get_locked_period(self) -> (u32, Balance) {
 		return (self.conviction.lock_periods(), self.balance);
+	}
+
+	pub fn add(&mut self, balance: Balance) -> Option<()> {
+		self.balance.saturating_add(balance.into());
+		Some(())
 	}
 }
 
@@ -179,7 +184,7 @@ impl<BlockNumber: Ord + Copy + Zero, Balance: Ord + Copy + Zero> PriorLock<Block
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug, TypeInfo)]
 pub struct BoostingRecord<Balance, BlockNumber> {
-	pub(crate) votes: Vec<(PoolId, Vote<Balance>)>,
+	pub(crate) votes: Vec<(PoolId, BoostInfo<Balance>)>,
 	pub(crate) prior: PriorLock<BlockNumber, Balance>,
 }
 
