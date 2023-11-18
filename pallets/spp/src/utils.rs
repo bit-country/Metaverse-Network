@@ -161,7 +161,7 @@ impl<Balance: Saturating + Copy> BoostInfo<Balance> {
 
 /// A "prior" lock, i.e. a lock for some now-forgotten reason.
 #[derive(Encode, Decode, Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, RuntimeDebug, TypeInfo)]
-pub struct PriorLock<BlockNumber, Balance>(BlockNumber, Balance);
+pub struct PriorLock<BlockNumber, Balance>(pub(crate) BlockNumber, pub(crate) Balance);
 
 impl<BlockNumber: Ord + Copy + Zero, Balance: Ord + Copy + Zero> PriorLock<BlockNumber, Balance> {
 	/// Accumulates an additional lock.
