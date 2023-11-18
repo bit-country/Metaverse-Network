@@ -18,6 +18,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
+use frame_support::traits::LockIdentifier;
 use frame_support::{
 	dispatch::DispatchResult,
 	ensure,
@@ -26,7 +27,7 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
-use orml_traits::MultiCurrency;
+use orml_traits::{MultiCurrency, RewardHandler};
 use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedSub};
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Saturating, Zero},
@@ -35,7 +36,7 @@ use sp_runtime::{
 
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{ClassId, EraIndex, FungibleTokenId, StakingRound, TokenId};
+use primitives::{ClassId, EraIndex, FungibleTokenId, PoolId, StakingRound, TokenId};
 pub use weights::WeightInfo;
 
 pub type QueueId = u32;
@@ -51,9 +52,11 @@ mod tests;
 
 pub mod weights;
 
+const BOOSTING_ID: LockIdentifier = *b"bc/boost";
+
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
+	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency, WithdrawReasons};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
 	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub, UniqueSaturatedInto};
@@ -656,7 +659,8 @@ pub mod pallet {
 			);
 
 			// Check if pool exists
-			let pool_instance = Pool::<T>::get(pool_id).ok_or(Error::<T>::PoolDoesNotExist)?;
+			ensure!(Pool::<T>::get(pool_id).is_some(), Error::<T>::PoolDoesNotExist);
+			// Still need to work out some
 			// Convert boost conviction into shares
 			let vote_conviction = vote.conviction.lock_periods();
 			// Calculate lock period from UnlockDuration block number x conviction
@@ -690,6 +694,8 @@ pub mod pallet {
 				}
 				Ok(())
 			})?;
+			T::Currency::extend_lock(BOOSTING_ID, &who, vote.balance, WithdrawReasons::TRANSFER);
+
 			// Add shares into the rewards pool
 			<orml_rewards::Pallet<T>>::add_share(&who, &pool_id, total_balance.unique_saturated_into());
 			// Emit Boosted event
@@ -1042,5 +1048,17 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_pool_account() -> T::AccountId {
 		T::PoolAccount::get().into_account_truncating()
+	}
+}
+
+impl<T: Config> RewardHandler<T::AccountId, FungibleTokenId> for Pallet<T> {
+	type Balance = BalanceOf<T>;
+	type PoolId = PoolId;
+
+	fn payout(who: &T::AccountId, pool_id: &Self::PoolId, currency_id: FungibleTokenId, payout_amount: Self::Balance) {
+		if payout_amount.is_zero() {
+			return;
+		}
+		// TODO implement payout logic
 	}
 }
