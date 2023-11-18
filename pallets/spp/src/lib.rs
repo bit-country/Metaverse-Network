@@ -56,7 +56,7 @@ pub mod pallet {
 	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
-	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub};
+	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub, UniqueSaturatedInto};
 	use sp_runtime::Permill;
 
 	use primitives::{PoolId, StakingRound};
@@ -71,7 +71,15 @@ pub mod pallet {
 	pub struct Pallet<T>(PhantomData<T>);
 
 	#[pallet::config]
-	pub trait Config: frame_system::Config {
+	pub trait Config:
+		frame_system::Config
+		+ orml_rewards::Config<
+			Share = BalanceOf<Self>,
+			Balance = BalanceOf<Self>,
+			PoolId = PoolId,
+			CurrencyId = FungibleTokenId,
+		>
+	{
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// Currency type
@@ -271,6 +279,12 @@ pub mod pallet {
 		LastEraUpdated { last_era_block: BlockNumberFor<T> },
 		/// Update era frequency
 		UpdateEraFrequency { frequency: BlockNumberFor<T> },
+		/// Boosted successful
+		Boosted {
+			booster: T::AccountId,
+			pool_id: PoolId,
+			boost_info: BoostInfo<BalanceOf<T>>,
+		},
 	}
 
 	#[pallet::error]
@@ -656,9 +670,8 @@ pub mod pallet {
 			}
 			// Locked token
 
-			BoostingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
+			BoostingOf::<T>::try_mutate(who.clone(), |voting| -> DispatchResult {
 				let votes = &mut voting.votes;
-				let prior_lock = &mut voting.prior;
 				match votes.binary_search_by_key(&pool_id, |i| i.0) {
 					Ok(i) => {
 						// User already boosted, this is adding up their boosting weight
@@ -671,13 +684,21 @@ pub mod pallet {
 							.accumulate(unlock_at, votes[i].1.balance.saturating_add(total_balance))
 					}
 					Err(i) => {
-						votes.insert(i, (pool_id, vote));
+						votes.insert(i, (pool_id, vote.clone()));
 						voting.prior.accumulate(unlock_at, total_balance);
 					}
 				}
 				Ok(())
 			})?;
 			// Add shares into the rewards pool
+			<orml_rewards::Pallet<T>>::add_share(&who, &pool_id, total_balance.unique_saturated_into());
+			// Emit Boosted event
+			Self::deposit_event(Event::<T>::Boosted {
+				booster: who.clone(),
+				pool_id,
+				boost_info: vote.clone(),
+			});
+
 			Ok(())
 		}
 	}
