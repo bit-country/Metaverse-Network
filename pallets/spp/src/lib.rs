@@ -694,7 +694,12 @@ pub mod pallet {
 				}
 				Ok(())
 			})?;
-			T::Currency::extend_lock(BOOSTING_ID, &who, vote.balance, WithdrawReasons::TRANSFER);
+			T::Currency::extend_lock(
+				BOOSTING_ID,
+				&who,
+				vote.balance,
+				frame_support::traits::WithdrawReasons::TRANSFER,
+			);
 
 			// Add shares into the rewards pool
 			<orml_rewards::Pallet<T>>::add_share(&who, &pool_id, total_balance.unique_saturated_into());

@@ -18,6 +18,7 @@
 #![cfg(test)]
 
 use frame_support::{assert_err, assert_noop, assert_ok};
+use pallet_balances::BalanceLock;
 use sp_runtime::traits::BadOrigin;
 use sp_runtime::{Perbill, Permill};
 
@@ -30,6 +31,14 @@ use super::*;
 #[test]
 fn test_one() {
 	ExtBuilder::default().build().execute_with(|| assert_eq!(1, 1));
+}
+
+fn the_lock(amount: Balance) -> BalanceLock<Balance> {
+	BalanceLock {
+		id: BOOSTING_ID,
+		amount,
+		reasons: pallet_balances::Reasons::Misc,
+	}
 }
 
 #[test]
@@ -402,11 +411,12 @@ fn boosting_works() {
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
 
 			// Boosting works
+			let bob_free_balance = Balances::free_balance(BOB);
 			assert_ok!(SppModule::boost(
 				RuntimeOrigin::signed(BOB),
 				0,
 				BoostInfo {
-					balance: 1000,
+					balance: bob_free_balance,
 					conviction: BoostingConviction::None
 				}
 			));
@@ -415,12 +425,13 @@ fn boosting_works() {
 				votes: vec![(
 					0,
 					BoostInfo {
-						balance: 1000,
+						balance: bob_free_balance,
 						conviction: BoostingConviction::None,
 					},
 				)],
-				prior: PriorLock(1, 1000),
+				prior: PriorLock(1, bob_free_balance),
 			};
-			assert_eq!(boosting_of, some_record)
+			assert_eq!(boosting_of, some_record);
+			assert_eq!(Balances::usable_balance(&BOB), 0);
 		});
 }
