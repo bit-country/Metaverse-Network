@@ -59,7 +59,7 @@ pub mod pallet {
 	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency, WithdrawReasons};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
-	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub, UniqueSaturatedInto};
+	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub, One, UniqueSaturatedInto};
 	use sp_runtime::Permill;
 
 	use primitives::{PoolId, StakingRound};
@@ -248,6 +248,11 @@ pub mod pallet {
 	pub type BoostingOf<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BoostingRecord<BalanceOf<T>, T::BlockNumber>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn network_boost_info)]
+	/// Store boosting records for each account
+	pub type NetworkBoostingInfo<T: Config> = StorageValue<_, BoostingRecord<BalanceOf<T>, T::BlockNumber>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -363,10 +368,14 @@ pub mod pallet {
 				Error::<T>::CurrencyIsNotSupported
 			);
 
-			// TODO Check commission below threshold
-
 			// Collect pool creation fee
 			Self::collect_pool_creation_fee(&who, currency_id)?;
+
+			// Ensure no pool id is zero
+			let current_pool_id = NextPoolId::<T>::get();
+			if current_pool_id.is_zero() {
+				NextPoolId::<T>::put(1u32);
+			}
 
 			// Next pool id
 			let next_pool_id = NextPoolId::<T>::try_mutate(|id| -> Result<PoolId, DispatchError> {
