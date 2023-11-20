@@ -712,6 +712,9 @@ pub mod pallet {
 
 			// Add shares into the rewards pool
 			<orml_rewards::Pallet<T>>::add_share(&who, &pool_id, total_balance.unique_saturated_into());
+			// Add shares into the network pool
+			<orml_rewards::Pallet<T>>::add_share(&who, &Zero::zero(), total_balance.unique_saturated_into());
+
 			// Emit Boosted event
 			Self::deposit_event(Event::<T>::Boosted {
 				booster: who.clone(),
