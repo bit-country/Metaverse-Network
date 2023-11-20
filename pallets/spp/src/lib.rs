@@ -951,6 +951,8 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	fn handle_reward_distribution_to_each_pool(pool_id: PoolId) -> DispatchResult {}
+
 	#[transactional]
 	fn update_queue_request(
 		currency_id: FungibleTokenId,
@@ -1122,6 +1124,13 @@ impl<T: Config> Pallet<T> {
 	fn handle_redeem_requests(era_index: EraIndex) -> DispatchResult {
 		for currency in CurrentStakingRound::<T>::iter_keys() {
 			Self::handle_update_staking_round(era_index, currency)?;
+		}
+		Ok(())
+	}
+
+	fn handle_boosting_reward_per_era(era_index: EraIndex) -> DispatchResult {
+		for boosted_pool_keys in NetworkBoostingInfo::<T>::iter_keys() {
+			Self::handle_reward_distribution_to_each_pool(boosted_pool_keys)?;
 		}
 		Ok(())
 	}
