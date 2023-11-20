@@ -433,5 +433,9 @@ fn boosting_works() {
 			};
 			assert_eq!(boosting_of, some_record);
 			assert_eq!(Balances::usable_balance(&BOB), 0);
+			let pool_1_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(1, BOB);
+			let network_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(0, BOB);
+			assert_eq!(pool_1_shared_rewards, (bob_free_balance, Default::default()));
+			assert_eq!(network_shared_rewards, (bob_free_balance, Default::default()));
 		});
 }
