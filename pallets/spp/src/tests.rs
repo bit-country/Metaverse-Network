@@ -55,7 +55,7 @@ fn create_ksm_pool_works() {
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
-			assert_eq!(next_pool_id, 1);
+			assert_eq!(next_pool_id, 2);
 			assert_eq!(
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
@@ -82,7 +82,7 @@ fn deposit_ksm_works() {
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
-			assert_eq!(next_pool_id, 1);
+			assert_eq!(next_pool_id, 2);
 			assert_eq!(
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
@@ -93,18 +93,18 @@ fn deposit_ksm_works() {
 				}
 			);
 
-			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
 			// This is true because fee hasn't been set up.
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
 
-			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
 
 			// Deposit another 10000 KSM
-			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
 
-			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 20000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
 		});
 }
@@ -123,7 +123,7 @@ fn redeem_rksm_request_works() {
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
-			assert_eq!(next_pool_id, 1);
+			assert_eq!(next_pool_id, 2);
 			assert_eq!(
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
@@ -134,32 +134,32 @@ fn redeem_rksm_request_works() {
 				}
 			);
 
-			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
 			// This is true because fee hasn't been set up.
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
 
-			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
 
 			// Deposit another 10000 KSM
-			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
 
-			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 20000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
 
 			assert_noop!(
-				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(1), 10000),
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 2, FungibleTokenId::FungibleToken(1), 10000),
 				Error::<Runtime>::PoolDoesNotExist
 			);
 
 			assert_noop!(
-				SppModule::redeem(RuntimeOrigin::signed(BOB), 0, FungibleTokenId::FungibleToken(0), 10000),
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(0), 10000),
 				Error::<Runtime>::CurrencyIsNotSupported
 			);
 
 			assert_noop!(
-				SppModule::redeem(RuntimeOrigin::signed(BOB), 0, FungibleTokenId::FungibleToken(1), 10000),
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(1), 10000),
 				Error::<Runtime>::NoCurrentStakingRound
 			);
 
@@ -168,13 +168,13 @@ fn redeem_rksm_request_works() {
 			CurrentStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1));
 			assert_ok!(SppModule::redeem(
 				RuntimeOrigin::signed(BOB),
-				0,
+				1,
 				FungibleTokenId::FungibleToken(1),
 				10000
 			));
 
 			// After Bob redeems, pool ledger 0 should have only 10000
-			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
 
 			// Verify if redeem queue has requests
 
@@ -227,7 +227,7 @@ fn current_era_update_works() {
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
-			assert_eq!(next_pool_id, 1);
+			assert_eq!(next_pool_id, 2);
 			assert_eq!(
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
@@ -239,22 +239,22 @@ fn current_era_update_works() {
 			);
 			// Verify BOB account with 20000 KSM
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 20000);
-			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
 			// This is true because fee hasn't been set up.
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
 			// Bob KSM balance become 10000
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 10000);
 
-			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
 
 			// Deposit another 10000 KSM
-			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
 			// Bob KSM now is 0
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 0);
 
-			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 20000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
 
 			// Pool summary
@@ -265,17 +265,17 @@ fn current_era_update_works() {
 			// Holding: 20000 FungibleToken(1) reciept token of NativeToken(1)
 
 			assert_noop!(
-				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(1), 10000),
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 2, FungibleTokenId::FungibleToken(1), 10000),
 				Error::<Runtime>::PoolDoesNotExist
 			);
 
 			assert_noop!(
-				SppModule::redeem(RuntimeOrigin::signed(BOB), 0, FungibleTokenId::FungibleToken(0), 10000),
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(0), 10000),
 				Error::<Runtime>::CurrencyIsNotSupported
 			);
 
 			assert_noop!(
-				SppModule::redeem(RuntimeOrigin::signed(BOB), 0, FungibleTokenId::FungibleToken(1), 10000),
+				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(1), 10000),
 				Error::<Runtime>::NoCurrentStakingRound
 			);
 
@@ -285,13 +285,13 @@ fn current_era_update_works() {
 			// Bob successfully redeemed
 			assert_ok!(SppModule::redeem(
 				RuntimeOrigin::signed(BOB),
-				0,
+				1,
 				FungibleTokenId::FungibleToken(1),
 				10000
 			));
 
 			// After Bob redeems, pool ledger 0 should have only 10000
-			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
 
 			// After Bob redeem, make sure BOB KSM balance remains the same as it will only released next era
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::NativeToken(1)).free, 0);
@@ -385,7 +385,7 @@ fn boosting_works() {
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
-			assert_eq!(next_pool_id, 1);
+			assert_eq!(next_pool_id, 2);
 			assert_eq!(
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
@@ -396,25 +396,25 @@ fn boosting_works() {
 				}
 			);
 
-			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
 			// This is true because fee hasn't been set up.
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
 
-			assert_eq!(PoolLedger::<Runtime>::get(0), 10000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
 
 			// Deposit another 10000 KSM
-			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 0, 10000));
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
 			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
 
-			assert_eq!(PoolLedger::<Runtime>::get(0), 20000);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 20000);
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
 
 			// Boosting works
 			let bob_free_balance = Balances::free_balance(BOB);
 			assert_ok!(SppModule::boost(
 				RuntimeOrigin::signed(BOB),
-				0,
+				1,
 				BoostInfo {
 					balance: bob_free_balance,
 					conviction: BoostingConviction::None
@@ -423,7 +423,7 @@ fn boosting_works() {
 			let boosting_of = BoostingOf::<Runtime>::get(BOB);
 			let some_record = BoostingRecord {
 				votes: vec![(
-					0,
+					1,
 					BoostInfo {
 						balance: bob_free_balance,
 						conviction: BoostingConviction::None,
