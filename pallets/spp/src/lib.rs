@@ -56,6 +56,8 @@ const BOOSTING_ID: LockIdentifier = *b"bc/boost";
 
 #[frame_support::pallet]
 pub mod pallet {
+	use std::collections::BTreeMap;
+
 	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency, WithdrawReasons};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
@@ -250,8 +252,14 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn network_boost_info)]
-	/// Store boosting records for each account
-	pub type NetworkBoostingInfo<T: Config> = StorageValue<_, BoostingRecord<BalanceOf<T>, T::BlockNumber>, ValueQuery>;
+	/// Store boosting records for each pool
+	pub type NetworkBoostingInfo<T: Config> = StorageMap<_, Twox64Concat, PoolId, BalanceOf<T>, ValueQuery>;
+
+	/// PoolRewardAmountPerEra: double_map Pool, FungibleTokenId => RewardAmountPerEra
+	#[pallet::storage]
+	#[pallet::getter(fn incentive_reward_amounts)]
+	pub type PoolRewardAmountPerEra<T: Config> =
+		StorageDoubleMap<_, Twox64Concat, PoolId, Twox64Concat, FungibleTokenId, BalanceOf<T>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -666,6 +674,73 @@ pub mod pallet {
 				vote.balance <= T::Currency::free_balance(&who),
 				Error::<T>::InsufficientFund
 			);
+
+			// Check if pool exists
+			ensure!(Pool::<T>::get(pool_id).is_some(), Error::<T>::PoolDoesNotExist);
+			// Still need to work out some
+			// Convert boost conviction into shares
+			let vote_conviction = vote.conviction.lock_periods();
+			// Calculate lock period from UnlockDuration block number x conviction
+			let current_block: T::BlockNumber = <frame_system::Pallet<T>>::block_number();
+
+			let mut unlock_at = current_block.saturating_add(UpdateEraFrequency::<T>::get());
+			let mut total_balance = vote.balance;
+			if !vote_conviction.is_zero() {
+				unlock_at.saturating_mul(vote_conviction.into());
+				total_balance.saturating_mul(vote_conviction.into());
+			}
+			// Locked token
+
+			BoostingOf::<T>::try_mutate(who.clone(), |voting| -> DispatchResult {
+				let votes = &mut voting.votes;
+				match votes.binary_search_by_key(&pool_id, |i| i.0) {
+					Ok(i) => {
+						// User already boosted, this is adding up their boosting weight
+						votes[i]
+							.1
+							.add(total_balance.clone())
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
+						voting
+							.prior
+							.accumulate(unlock_at, votes[i].1.balance.saturating_add(total_balance))
+					}
+					Err(i) => {
+						votes.insert(i, (pool_id, vote.clone()));
+						voting.prior.accumulate(unlock_at, total_balance);
+					}
+				}
+				Ok(())
+			})?;
+			T::Currency::extend_lock(
+				BOOSTING_ID,
+				&who,
+				vote.balance,
+				frame_support::traits::WithdrawReasons::TRANSFER,
+			);
+
+			// Add shares into the rewards pool
+			<orml_rewards::Pallet<T>>::add_share(&who, &pool_id, total_balance.unique_saturated_into());
+			// Add shares into the network pool
+			<orml_rewards::Pallet<T>>::add_share(&who, &Zero::zero(), total_balance.unique_saturated_into());
+
+			// Emit Boosted event
+			Self::deposit_event(Event::<T>::Boosted {
+				booster: who.clone(),
+				pool_id,
+				boost_info: vote.clone(),
+			});
+
+			Ok(())
+		}
+
+		/// This function allow reward voting for the pool
+		#[pallet::weight(< T as Config >::WeightInfo::mint_land())]
+		pub fn claim_reward(origin: OriginFor<T>, pool_id: PoolId) -> DispatchResult {
+			// Ensure user is signed
+			let who = ensure_signed(origin)?;
+
+			// orml_rewards will claim rewards for all currencies rewards
+			<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
 
 			// Check if pool exists
 			ensure!(Pool::<T>::get(pool_id).is_some(), Error::<T>::PoolDoesNotExist);
