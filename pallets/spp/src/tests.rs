@@ -588,5 +588,55 @@ fn boosting_and_claim_reward_works() {
 				Balances::free_balance(BOB),
 				bob_balance_before_claiming_boosting_reward + 2000
 			);
+
+			// Charlie now boost pool 1 with 15000 (share 50% of reward with Bob)
+			assert_ok!(SppModule::boost(
+				RuntimeOrigin::signed(CHARLIE),
+				1,
+				BoostInfo {
+					balance: 15000,
+					conviction: BoostingConviction::None
+				}
+			));
+			// Charlie now should have 15000 shares in the pool
+			assert_eq!(
+				RewardsModule::shares_and_withdrawn_rewards(1, CHARLIE),
+				(15000, Default::default())
+			);
+
+			// Network pool ledger should have total shares of 30,000 , 2000 total reward and claimed 2000 by
+			// Bob. However, as Charlie boosted, network pool inflate 15,000 shares, added 50% reward and 50%
+			// claimed reward to avoid dilution.
+			assert_eq!(
+				RewardsModule::pool_infos(0u32),
+				orml_rewards::PoolInfo {
+					total_shares: 30000,
+					rewards: vec![(FungibleTokenId::NativeToken(0), (4000, 4000))]
+						.into_iter()
+						.collect()
+				}
+			);
+
+			let charlie_balance_before_claiming_boosting_reward = Balances::free_balance(CHARLIE);
+
+			// Move to era 4, now protocol distribute another 1000 NEER to incentivise boosters
+			MockRelayBlockNumberProvider::set(402);
+			SppModule::on_initialize(400);
+
+			// Bob try to claim reward for new era
+			assert_ok!(SppModule::claim_rewards(RuntimeOrigin::signed(BOB), 0));
+			// Bob balance should increase 500 as Charlie shares 50% rewards
+			assert_eq!(
+				Balances::free_balance(BOB),
+				bob_balance_before_claiming_boosting_reward + 2500
+			);
+
+			// Charlie try to claim reward for new era
+			assert_ok!(SppModule::claim_rewards(RuntimeOrigin::signed(CHARLIE), 0));
+			// Charlie balance should increase 500
+			assert_eq!(
+				Balances::free_balance(CHARLIE),
+				charlie_balance_before_claiming_boosting_reward + 500
+			);
 		});
 }
