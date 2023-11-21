@@ -1152,6 +1152,10 @@ impl<T: Config> Pallet<T> {
 		T::RewardPayoutAccount::get().into_account_truncating()
 	}
 
+	pub fn get_reward_holding_account_id() -> T::AccountId {
+		T::RewardHoldingAccount::get().into_account_truncating()
+	}
+
 	fn do_claim_rewards(who: T::AccountId, pool_id: PoolId) -> DispatchResult {
 		if pool_id.is_zero() {
 			<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
