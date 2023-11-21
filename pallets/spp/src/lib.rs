@@ -131,6 +131,9 @@ pub mod pallet {
 		type PoolAccount: Get<PalletId>;
 
 		#[pallet::constant]
+		type RewardPayoutAccount: Get<PalletId>;
+
+		#[pallet::constant]
 		type MaximumQueue: Get<u32>;
 
 		type CurrencyIdConversion: CurrencyIdManagement;
@@ -263,7 +266,11 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn reward_frequency_per_era)]
-	pub type RewardEraFrequency<T: Config> = StorageValue<_, (BlockNumberFor<T>, BalanceOf<T>), ValueQuery>;
+	pub type RewardEraFrequency<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn is_reward_distribution_origin)]
+	pub type RewardDistributionOrigin<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -305,6 +312,10 @@ pub mod pallet {
 			pool_id: PoolId,
 			boost_info: BoostInfo<BalanceOf<T>>,
 		},
+		/// Reward distribution added
+		RewardDistributionAdded { who: T::AccountId },
+		/// Reward distribution removed
+		RewardDistributionRemoved { who: T::AccountId },
 	}
 
 	#[pallet::error]
@@ -349,6 +360,10 @@ pub mod pallet {
 		InsufficientFund,
 		/// Error while adding new boost
 		MaxVotesReached,
+		/// Reward distribution origin already exists
+		OriginsAlreadyExist,
+		/// Origin doesn't exists
+		OriginDoesNotExists,
 	}
 
 	#[pallet::hooks]
@@ -804,6 +819,31 @@ pub mod pallet {
 			Ok(())
 		}
 	}
+
+	#[pallet::weight(< T as pallet::Config >::WeightInfo::mint_land())]
+	pub fn add_reward_distribution_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+		T::GovernanceOrigin::ensure_origin(origin)?;
+
+		ensure!(
+			Self::is_reward_distribution_origin() != who,
+			Error::<T>::OriginsAlreadyExist
+		);
+
+		RewardDistributionOrigin::<T>::put(who.clone());
+		Self::deposit_event(Event::RewardDistributionAdded { who });
+		Ok(())
+	}
+
+	#[pallet::weight(< T as pallet::Config >::WeightInfo::mint_land())]
+	pub fn remove_reward_distribution_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+		T::GovernanceOrigin::ensure_origin(origin)?;
+
+		ensure!(is_reward_distribution_origin == who, Error::<T>::OriginDoesNotExists);
+
+		RewardDistributionOrigin::<T>::remove(who.clone());
+		Self::deposit_event(Event::RewardDistributionRemoved { who });
+		Ok(())
+	}
 }
 
 impl<T: Config> Pallet<T> {
@@ -955,7 +995,32 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn handle_reward_distribution_to_each_pool(pool_id: PoolId) -> DispatchResult {}
+	fn handle_reward_distribution_to_network_pool() -> DispatchResult {
+		// Get reward per era
+		// Accumulate reward to pool_id
+		let reward_per_era = RewardEraFrequency::<T>::get();
+		let reward_distribution_origin = RewardDistributionOrigin::<T>::get();
+		let reward_distribution_balance = T::Currency::free_balance(&RewardDistributionOrigin::<T>::get());
+
+		if reward_distribution_balance.is_zero() || !reward_distribution_origin.is_some() {
+			// Ignore if reward distributor balance is zero
+			Ok(())
+		}
+
+		let mut amount_to_send = reward_per_era.clone();
+		// Make user distributor account has enough balance
+		if amount_to_send > reward_distribution_balance {
+			amount_to_send = reward_distribution_balance
+		}
+
+		T::Currency::transfer(
+			reward_distribution_origin,
+			Self::get_reward_payout_account_id(),
+			amount_to_send,
+		)?;
+		<orml_rewards::Pallet<T>>::accumulate_reward(&Zero::zero(), FungibleTokenId::NativeToken(0), amount_to_send)?;
+		Ok(())
+	}
 
 	#[transactional]
 	fn update_queue_request(
@@ -1132,13 +1197,6 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn handle_boosting_reward_per_era(era_index: EraIndex) -> DispatchResult {
-		for boosted_pool_keys in NetworkBoostingInfo::<T>::iter_keys() {
-			Self::handle_reward_distribution_to_each_pool(boosted_pool_keys)?;
-		}
-		Ok(())
-	}
-
 	#[transactional]
 	pub fn update_current_era(era_index: EraIndex) -> DispatchResult {
 		let previous_era = Self::relay_chain_current_era();
@@ -1147,6 +1205,7 @@ impl<T: Config> Pallet<T> {
 		RelayChainCurrentEra::<T>::put(new_era);
 		LastEraUpdatedBlock::<T>::put(T::RelayChainBlockNumber::current_block_number());
 		Self::handle_redeem_requests(new_era)?;
+		Self::handle_reward_distribution_to_network_pool()?;
 		Self::deposit_event(Event::<T>::CurrentEraUpdated { new_era_index: new_era });
 		Ok(())
 	}
@@ -1157,6 +1216,10 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_pool_treasury(pool_id: PoolId) -> T::AccountId {
 		return T::PoolAccount::get().into_sub_account_truncating(pool_id);
+	}
+
+	pub fn get_reward_payout_account_id() -> T::AccountId {
+		T::RewardPayoutAccount::get().into_account_truncating()
 	}
 }
 
