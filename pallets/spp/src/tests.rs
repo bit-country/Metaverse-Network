@@ -549,6 +549,44 @@ fn boosting_and_claim_reward_works() {
 
 			// Reward records of BOB holding 15000 shares and 0 claimed
 			assert_eq!(reward_accumulated, (15000, Default::default()));
-			// Reward distribution works, now let's do claim rewards
+			// Reward distribution works, now claim rewards
+			let bob_balance_before_claiming_boosting_reward = Balances::free_balance(BOB);
+			// Bob claim rewards
+			assert_ok!(SppModule::claim_rewards(RuntimeOrigin::signed(BOB), 0));
+			assert_eq!(
+				last_event(),
+				mock::RuntimeEvent::Spp(crate::Event::ClaimRewards {
+					who: BOB,
+					pool: 0,
+					reward_currency_id: FungibleTokenId::NativeToken(0),
+					claimed_amount: 1000,
+				})
+			);
+
+			// Bob free balance now will be bob_balance_before_claiming_boosting_reward + 1000 as claimed reward
+			assert_eq!(
+				Balances::free_balance(BOB),
+				bob_balance_before_claiming_boosting_reward + 1000
+			);
+
+			// Bob try to claim again but getting no reward
+			assert_ok!(SppModule::claim_rewards(RuntimeOrigin::signed(BOB), 0));
+			// Bob balance doesn't increase
+			assert_eq!(
+				Balances::free_balance(BOB),
+				bob_balance_before_claiming_boosting_reward + 1000
+			);
+
+			// Move to era 3, now protocol distribute another 1000 NEER to incentivise boosters
+			MockRelayBlockNumberProvider::set(302);
+			SppModule::on_initialize(300);
+
+			// Bob try to claim reward for new era
+			assert_ok!(SppModule::claim_rewards(RuntimeOrigin::signed(BOB), 0));
+			// Bob balance should increase 2000
+			assert_eq!(
+				Balances::free_balance(BOB),
+				bob_balance_before_claiming_boosting_reward + 2000
+			);
 		});
 }
