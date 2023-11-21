@@ -261,6 +261,10 @@ pub mod pallet {
 	pub type PoolRewardAmountPerEra<T: Config> =
 		StorageDoubleMap<_, Twox64Concat, PoolId, Twox64Concat, FungibleTokenId, BalanceOf<T>, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn reward_frequency_per_era)]
+	pub type RewardEraFrequency<T: Config> = StorageValue<_, (BlockNumberFor<T>, BalanceOf<T>), ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -1149,6 +1153,10 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_pool_account() -> T::AccountId {
 		T::PoolAccount::get().into_account_truncating()
+	}
+
+	pub fn get_pool_treasury(pool_id: PoolId) -> T::AccountId {
+		return T::PoolAccount::get().into_sub_account_truncating(pool_id);
 	}
 }
 
