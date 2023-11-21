@@ -109,9 +109,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type RewardPaymentDelay: Get<u32>;
 
-		/// Default max bound for each metaverse mapping system, this could change through proposal
-		type DefaultMaxBound: Get<(i32, i32)>;
-
 		/// Network fee charged on pool creation
 		#[pallet::constant]
 		type NetworkFee: Get<BalanceOf<Self>>;
@@ -932,7 +929,7 @@ impl<T: Config> Pallet<T> {
 		let reward_per_era = RewardEraFrequency::<T>::get();
 		// Get reward holding account
 		let reward_holding_origin = T::RewardHoldingAccount::get().into_account_truncating();
-		let reward_holding_balance = T::Currency::free_balance(&reward_distribution_origin);
+		let reward_holding_balance = T::Currency::free_balance(&reward_holding_origin);
 
 		if reward_holding_balance.is_zero() {
 			// Ignore if reward distributor balance is zero
