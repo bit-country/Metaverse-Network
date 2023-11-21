@@ -928,25 +928,25 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn handle_reward_distribution_to_network_pool() -> DispatchResult {
-		// Get reward per era
-		// Accumulate reward to pool_id
+		// Get reward per era that set up Governance
 		let reward_per_era = RewardEraFrequency::<T>::get();
-		let reward_distribution_origin = T::RewardHoldingAccount::get().into_account_truncating();
-		let reward_distribution_balance = T::Currency::free_balance(&reward_distribution_origin);
+		// Get reward holding account
+		let reward_holding_origin = T::RewardHoldingAccount::get().into_account_truncating();
+		let reward_holding_balance = T::Currency::free_balance(&reward_distribution_origin);
 
-		if reward_distribution_balance.is_zero() {
+		if reward_holding_balance.is_zero() {
 			// Ignore if reward distributor balance is zero
 			return Ok(());
 		}
 
 		let mut amount_to_send = reward_per_era.clone();
-		// Make user distributor account has enough balance
-		if amount_to_send > reward_distribution_balance {
-			amount_to_send = reward_distribution_balance
+		// Make sure user distributor account has enough balance
+		if amount_to_send > reward_holding_balance {
+			amount_to_send = reward_holding_balance
 		}
 
 		T::Currency::transfer(
-			&reward_distribution_origin,
+			&reward_holding_origin,
 			&Self::get_reward_payout_account_id(),
 			amount_to_send,
 			ExistenceRequirement::KeepAlive,
