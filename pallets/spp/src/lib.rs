@@ -1167,7 +1167,9 @@ impl<T: Config> Pallet<T> {
 							continue;
 						}
 
-						match Self::payout_reward(pool_id, &who, *currency_id, *pending_reward) {
+						let payout_amount = pending_reward.clone();
+
+						match Self::payout_reward(pool_id, &who, *currency_id, payout_amount) {
 							Ok(_) => {
 								// update state
 								*pending_reward = Zero::zero();
@@ -1176,7 +1178,7 @@ impl<T: Config> Pallet<T> {
 									who: who.clone(),
 									pool: pool_id,
 									reward_currency_id: FungibleTokenId::NativeToken(0),
-									claimed_amount: *pending_reward,
+									claimed_amount: payout_amount,
 								});
 							}
 							Err(e) => {
