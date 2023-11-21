@@ -41,36 +41,11 @@ pub const AUCTION_BENEFICIARY_ID: AccountId = 100;
 pub const CLASS_FUND_ID: AccountId = 123;
 pub const METAVERSE_ID: MetaverseId = 0;
 pub const DOLLARS: Balance = 1_000_000_000_000_000_000;
-pub const ALICE_METAVERSE_ID: MetaverseId = 1;
-pub const BOB_METAVERSE_ID: MetaverseId = 2;
-pub const MAX_BOUND: (i32, i32) = (-100, 100);
-pub const LANDBLOCK_COORDINATE: (i32, i32) = (0, 0);
-pub const COORDINATE_IN_1: (i32, i32) = (-4, 4);
-pub const COORDINATE_IN_2: (i32, i32) = (-4, 5);
-pub const COORDINATE_IN_3: (i32, i32) = (-4, 6);
-pub const COORDINATE_IN_4: (i32, i32) = (-4, 8);
-pub const COORDINATE_OUT: (i32, i32) = (0, 101);
-pub const COORDINATE_IN_AUCTION: (i32, i32) = (-4, 7);
-pub const ESTATE_IN_AUCTION: EstateId = 3;
 
 pub const BOND_AMOUNT_1: Balance = 1000;
 pub const BOND_AMOUNT_2: Balance = 2000;
 pub const BOND_AMOUNT_BELOW_MINIMUM: Balance = 100;
 pub const BOND_LESS_AMOUNT_1: Balance = 100;
-
-pub const ESTATE_ID: EstateId = 0;
-
-pub const ASSET_ID_1: TokenId = 101;
-pub const ASSET_ID_2: TokenId = 100;
-pub const ASSET_CLASS_ID: ClassId = 5;
-pub const ASSET_TOKEN_ID: TokenId = 6;
-pub const ASSET_COLLECTION_ID: GroupCollectionId = 7;
-pub const METAVERSE_LAND_CLASS: ClassId = 15;
-pub const METAVERSE_LAND_IN_AUCTION_TOKEN: TokenId = 4;
-pub const METAVERSE_ESTATE_CLASS: ClassId = 16;
-pub const METAVERSE_ESTATE_IN_AUCTION_TOKEN: TokenId = 3;
-
-pub const GENERAL_METAVERSE_FUND: AccountId = 102;
 
 ord_parameter_types! {
 	pub const One: AccountId = ALICE;
@@ -134,9 +109,9 @@ impl pallet_balances::Config for Runtime {
 
 parameter_types! {
 	pub const GetNativeCurrencyId: FungibleTokenId = FungibleTokenId::NativeToken(0);
-	pub const LandTreasuryPalletId: PalletId = PalletId(*b"bit/land");
 	pub const PoolAccountPalletId: PalletId = PalletId(*b"bit/pool");
-	pub const MinimumLandPrice: Balance = 10 * DOLLARS;
+	pub const RewardPayoutAccount: PalletId = PalletId(*b"bit/payo");
+	pub const RewardHoldingAccount: PalletId = PalletId(*b"bit/hold");
 }
 
 fn test_attributes(x: u8) -> Attributes {
@@ -207,7 +182,6 @@ parameter_types! {
 	pub const MinimumStake: Balance = 200;
 	/// Reward payments are delayed by 2 hours (2 * 300 * block_time)
 	pub const RewardPaymentDelay: u32 = 2;
-	pub const DefaultMaxBound: (i32,i32) = MAX_BOUND;
 	pub const NetworkFee: Balance = 1; // Network fee
 	pub const MaxOffersPerEstate: u32 = 2;
 	pub const MinLeasePricePerBlock: Balance = 1u128;
@@ -224,7 +198,6 @@ impl Config for Runtime {
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
 	type RewardPaymentDelay = RewardPaymentDelay;
-	type DefaultMaxBound = DefaultMaxBound;
 	type NetworkFee = NetworkFee;
 	type BlockNumberToBalance = ConvertInto;
 	type StorageDepositFee = StorageDepositFee;
@@ -234,6 +207,8 @@ impl Config for Runtime {
 	type CurrencyIdConversion = ForeignAssetMapping<Runtime>;
 	type RelayChainBlockNumber = MockRelayBlockNumberProvider;
 	type GovernanceOrigin = EnsureSignedBy<Admin, AccountId>;
+	type RewardPayoutAccount = RewardPayoutAccount;
+	type RewardHoldingAccount = RewardHoldingAccount;
 }
 
 construct_runtime!(
