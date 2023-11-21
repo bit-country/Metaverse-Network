@@ -173,7 +173,7 @@ fn redeem_rksm_request_works() {
 				10000
 			));
 
-			// After Bob redeems, pool ledger 0 should have only 10000
+			// After Bob redeems, pool ledger 1 should have only 10000
 			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
 
 			// Verify if redeem queue has requests
@@ -437,5 +437,118 @@ fn boosting_works() {
 			let network_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(0, BOB);
 			assert_eq!(pool_1_shared_rewards, (bob_free_balance, Default::default()));
 			assert_eq!(network_shared_rewards, (bob_free_balance, Default::default()));
+		});
+}
+
+#[test]
+fn boosting_and_claim_reward_works() {
+	ExtBuilder::default()
+		.ksm_setup_for_alice_and_bob()
+		.build()
+		.execute_with(|| {
+			// Era config set up
+			// Current relaychain block is 102.
+			MockRelayBlockNumberProvider::set(102);
+			RelayChainCurrentEra::<Runtime>::put(1);
+			IterationLimit::<Runtime>::put(50);
+			// The correct set up era config is the last era block records is 101 with duration is 100 blocks
+			assert_ok!(SppModule::update_era_config(
+				RuntimeOrigin::signed(Admin::get()),
+				Some(101),
+				Some(100),
+				StakingRound::Era(1),
+			));
+
+			assert_ok!(SppModule::create_pool(
+				RuntimeOrigin::signed(ALICE),
+				FungibleTokenId::NativeToken(1),
+				50,
+				Permill::from_percent(5)
+			));
+
+			let next_pool_id = NextPoolId::<Runtime>::get();
+			assert_eq!(next_pool_id, 2);
+			assert_eq!(
+				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
+				PoolInfo::<AccountId> {
+					creator: ALICE,
+					commission: Permill::from_percent(5),
+					currency_id: FungibleTokenId::NativeToken(1),
+					max: 50
+				}
+			);
+
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
+			// This is true because fee hasn't been set up.
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
+
+			// Deposit another 10000 KSM
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 20000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(1), 20000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
+
+			// Boosting works
+			let bob_free_balance = Balances::free_balance(BOB);
+			assert_ok!(SppModule::boost(
+				RuntimeOrigin::signed(BOB),
+				1,
+				BoostInfo {
+					balance: 15000,
+					conviction: BoostingConviction::None
+				}
+			));
+			let boosting_of = BoostingOf::<Runtime>::get(BOB);
+			let some_record = BoostingRecord {
+				votes: vec![(
+					1,
+					BoostInfo {
+						balance: 15000,
+						conviction: BoostingConviction::None,
+					},
+				)],
+				prior: PriorLock(101, 15000),
+			};
+			assert_eq!(boosting_of, some_record);
+			assert_eq!(Balances::usable_balance(&BOB), bob_free_balance - 15000);
+			let pool_1_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(1, BOB);
+			let network_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(0, BOB);
+			assert_eq!(pool_1_shared_rewards, (15000, Default::default()));
+			assert_eq!(network_shared_rewards, (15000, Default::default()));
+
+			// Set reward per era. - 1000 NativeToken(0) per 100 blocks
+			RewardEraFrequency::<Runtime>::put(1000);
+			// Simulate Council transfer 10000 NativeToken to reward_payout_account so that account has
+			// sufficient balance for reward distribution
+			let reward_holding_account = SppModule::get_reward_holding_account_id();
+			assert_ok!(Balances::transfer(
+				RuntimeOrigin::signed(ALICE),
+				reward_holding_account.clone(),
+				10000
+			));
+
+			// Move to era 2, now protocol distribute 1000 NEER to incentivise boosters
+			MockRelayBlockNumberProvider::set(202);
+			SppModule::on_initialize(200);
+
+			let network_reward_pool = RewardsModule::pool_infos(0u32);
+			let reward_accumulated = RewardsModule::shares_and_withdrawn_rewards(0, BOB);
+
+			// Verify after 1 era, total rewards should have 1000 NEER and 0 claimed
+			assert_eq!(
+				network_reward_pool,
+				orml_rewards::PoolInfo {
+					total_shares: 15000,
+					rewards: vec![(FungibleTokenId::NativeToken(0), (1000, 0))].into_iter().collect()
+				}
+			);
+
+			// Reward records of BOB holding 15000 shares and 0 claimed
+			assert_eq!(reward_accumulated, (15000, Default::default()));
+			// Reward distribution works, now let's do claim rewards
 		});
 }
