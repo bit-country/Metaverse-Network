@@ -18,7 +18,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
-use frame_support::traits::LockIdentifier;
+use frame_support::traits::{ExistenceRequirement, LockIdentifier};
 use frame_support::{
 	dispatch::DispatchResult,
 	ensure, log,
@@ -132,6 +132,9 @@ pub mod pallet {
 
 		#[pallet::constant]
 		type RewardPayoutAccount: Get<PalletId>;
+
+		#[pallet::constant]
+		type RewardHoldingAccount: Get<PalletId>;
 
 		#[pallet::constant]
 		type MaximumQueue: Get<u32>;
@@ -268,10 +271,6 @@ pub mod pallet {
 	#[pallet::getter(fn reward_frequency_per_era)]
 	pub type RewardEraFrequency<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn is_reward_distribution_origin)]
-	pub type RewardDistributionOrigin<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
-
 	/// The pending rewards amount, actual available rewards amount may be deducted
 	///
 	/// PendingRewards: double_map PoolId, AccountId => BTreeMap<CurrencyId, Balance>
@@ -327,10 +326,13 @@ pub mod pallet {
 			pool_id: PoolId,
 			boost_info: BoostInfo<BalanceOf<T>>,
 		},
-		/// Reward distribution added
-		RewardDistributionAdded { who: T::AccountId },
-		/// Reward distribution removed
-		RewardDistributionRemoved { who: T::AccountId },
+		/// Claim rewards.
+		ClaimRewards {
+			who: T::AccountId,
+			pool: PoolId,
+			reward_currency_id: FungibleTokenId,
+			claimed_amount: BalanceOf<T>,
+		},
 	}
 
 	#[pallet::error]
@@ -766,38 +768,13 @@ pub mod pallet {
 
 			Ok(())
 		}
-	}
 
-	#[pallet::weight(< T as pallet::Config >::WeightInfo::mint_land())]
-	pub fn claim_rewards(origin: OriginFor<T>, pool_id: PoolId) -> DispatchResult {
-		let who = ensure_signed(origin)?;
+		#[pallet::weight(< T as pallet::Config >::WeightInfo::mint_land())]
+		pub fn claim_rewards(origin: OriginFor<T>, pool_id: PoolId) -> DispatchResult {
+			let who = ensure_signed(origin)?;
 
-		Self::do_claim_rewards(who, pool_id)
-	}
-
-	#[pallet::weight(< T as pallet::Config >::WeightInfo::mint_land())]
-	pub fn add_reward_distribution_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
-		T::GovernanceOrigin::ensure_origin(origin)?;
-
-		ensure!(
-			Self::is_reward_distribution_origin() != who,
-			Error::<T>::OriginsAlreadyExist
-		);
-
-		RewardDistributionOrigin::<T>::put(who.clone());
-		Self::deposit_event(Event::RewardDistributionAdded { who });
-		Ok(())
-	}
-
-	#[pallet::weight(< T as pallet::Config >::WeightInfo::mint_land())]
-	pub fn remove_reward_distribution_origin(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
-		T::GovernanceOrigin::ensure_origin(origin)?;
-
-		ensure!(is_reward_distribution_origin == who, Error::<T>::OriginDoesNotExists);
-
-		RewardDistributionOrigin::<T>::remove(who.clone());
-		Self::deposit_event(Event::RewardDistributionRemoved { who });
-		Ok(())
+			Self::do_claim_rewards(who, pool_id)
+		}
 	}
 }
 
@@ -954,12 +931,12 @@ impl<T: Config> Pallet<T> {
 		// Get reward per era
 		// Accumulate reward to pool_id
 		let reward_per_era = RewardEraFrequency::<T>::get();
-		let reward_distribution_origin = RewardDistributionOrigin::<T>::get();
-		let reward_distribution_balance = T::Currency::free_balance(&RewardDistributionOrigin::<T>::get());
+		let reward_distribution_origin = T::RewardHoldingAccount::get().into_account_truncating();
+		let reward_distribution_balance = T::Currency::free_balance(&reward_distribution_origin);
 
-		if reward_distribution_balance.is_zero() || !reward_distribution_origin.is_some() {
+		if reward_distribution_balance.is_zero() {
 			// Ignore if reward distributor balance is zero
-			Ok(())
+			return Ok(());
 		}
 
 		let mut amount_to_send = reward_per_era.clone();
@@ -969,9 +946,10 @@ impl<T: Config> Pallet<T> {
 		}
 
 		T::Currency::transfer(
-			reward_distribution_origin,
-			Self::get_reward_payout_account_id(),
+			&reward_distribution_origin,
+			&Self::get_reward_payout_account_id(),
 			amount_to_send,
+			ExistenceRequirement::KeepAlive,
 		)?;
 		<orml_rewards::Pallet<T>>::accumulate_reward(&Zero::zero(), FungibleTokenId::NativeToken(0), amount_to_send)?;
 		Ok(())
@@ -1178,7 +1156,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_claim_rewards(who: T::AccountId, pool_id: PoolId) -> DispatchResult {
-		if pool_id == Zero::zero() {
+		if pool_id.is_zero() {
 			<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
 
 			PendingRewards::<T>::mutate_exists(pool_id, &who, |maybe_pending_multi_rewards| {
@@ -1188,7 +1166,7 @@ impl<T: Config> Pallet<T> {
 							continue;
 						}
 
-						match Self::payout_reward(pool_id, &who, *currency_id, payout_amount) {
+						match Self::payout_reward(pool_id, &who, *currency_id, *pending_reward) {
 							Ok(_) => {
 								// update state
 								*pending_reward = Zero::zero();
@@ -1197,14 +1175,14 @@ impl<T: Config> Pallet<T> {
 									who: who.clone(),
 									pool: pool_id,
 									reward_currency_id: FungibleTokenId::NativeToken(0),
-									actual_amount: payout_amount,
+									claimed_amount: *pending_reward,
 								});
 							}
 							Err(e) => {
 								log::error!(
 									target: "spp",
 									"payout_reward: failed to payout {:?} to {:?} to pool {:?}: {:?}",
-									payout_amount, who, pool_id, e
+									pending_reward, who, pool_id, e
 								);
 							}
 						}
