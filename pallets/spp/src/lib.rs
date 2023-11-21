@@ -21,7 +21,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::traits::LockIdentifier;
 use frame_support::{
 	dispatch::DispatchResult,
-	ensure,
+	ensure, log,
 	traits::{Currency, Get},
 	transactional, PalletId,
 };
@@ -271,6 +271,21 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn is_reward_distribution_origin)]
 	pub type RewardDistributionOrigin<T: Config> = StorageValue<_, T::AccountId, OptionQuery>;
+
+	/// The pending rewards amount, actual available rewards amount may be deducted
+	///
+	/// PendingRewards: double_map PoolId, AccountId => BTreeMap<CurrencyId, Balance>
+	#[pallet::storage]
+	#[pallet::getter(fn pending_multi_rewards)]
+	pub type PendingRewards<T: Config> = StorageDoubleMap<
+		_,
+		Twox64Concat,
+		PoolId,
+		Twox64Concat,
+		T::AccountId,
+		BTreeMap<FungibleTokenId, BalanceOf<T>>,
+		ValueQuery,
+	>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -751,73 +766,13 @@ pub mod pallet {
 
 			Ok(())
 		}
+	}
 
-		/// This function allow reward voting for the pool
-		#[pallet::weight(< T as Config >::WeightInfo::mint_land())]
-		pub fn claim_reward(origin: OriginFor<T>, pool_id: PoolId) -> DispatchResult {
-			// Ensure user is signed
-			let who = ensure_signed(origin)?;
+	#[pallet::weight(< T as pallet::Config >::WeightInfo::mint_land())]
+	pub fn claim_rewards(origin: OriginFor<T>, pool_id: PoolId) -> DispatchResult {
+		let who = ensure_signed(origin)?;
 
-			// orml_rewards will claim rewards for all currencies rewards
-			<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
-
-			// Check if pool exists
-			ensure!(Pool::<T>::get(pool_id).is_some(), Error::<T>::PoolDoesNotExist);
-			// Still need to work out some
-			// Convert boost conviction into shares
-			let vote_conviction = vote.conviction.lock_periods();
-			// Calculate lock period from UnlockDuration block number x conviction
-			let current_block: T::BlockNumber = <frame_system::Pallet<T>>::block_number();
-
-			let mut unlock_at = current_block.saturating_add(UpdateEraFrequency::<T>::get());
-			let mut total_balance = vote.balance;
-			if !vote_conviction.is_zero() {
-				unlock_at.saturating_mul(vote_conviction.into());
-				total_balance.saturating_mul(vote_conviction.into());
-			}
-			// Locked token
-
-			BoostingOf::<T>::try_mutate(who.clone(), |voting| -> DispatchResult {
-				let votes = &mut voting.votes;
-				match votes.binary_search_by_key(&pool_id, |i| i.0) {
-					Ok(i) => {
-						// User already boosted, this is adding up their boosting weight
-						votes[i]
-							.1
-							.add(total_balance.clone())
-							.ok_or(Error::<T>::ArithmeticOverflow)?;
-						voting
-							.prior
-							.accumulate(unlock_at, votes[i].1.balance.saturating_add(total_balance))
-					}
-					Err(i) => {
-						votes.insert(i, (pool_id, vote.clone()));
-						voting.prior.accumulate(unlock_at, total_balance);
-					}
-				}
-				Ok(())
-			})?;
-			T::Currency::extend_lock(
-				BOOSTING_ID,
-				&who,
-				vote.balance,
-				frame_support::traits::WithdrawReasons::TRANSFER,
-			);
-
-			// Add shares into the rewards pool
-			<orml_rewards::Pallet<T>>::add_share(&who, &pool_id, total_balance.unique_saturated_into());
-			// Add shares into the network pool
-			<orml_rewards::Pallet<T>>::add_share(&who, &Zero::zero(), total_balance.unique_saturated_into());
-
-			// Emit Boosted event
-			Self::deposit_event(Event::<T>::Boosted {
-				booster: who.clone(),
-				pool_id,
-				boost_info: vote.clone(),
-			});
-
-			Ok(())
-		}
+		Self::do_claim_rewards(who, pool_id)
 	}
 
 	#[pallet::weight(< T as pallet::Config >::WeightInfo::mint_land())]
@@ -1221,16 +1176,79 @@ impl<T: Config> Pallet<T> {
 	pub fn get_reward_payout_account_id() -> T::AccountId {
 		T::RewardPayoutAccount::get().into_account_truncating()
 	}
+
+	fn do_claim_rewards(who: T::AccountId, pool_id: PoolId) -> DispatchResult {
+		if pool_id == Zero::zero() {
+			<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
+
+			PendingRewards::<T>::mutate_exists(pool_id, &who, |maybe_pending_multi_rewards| {
+				if let Some(pending_multi_rewards) = maybe_pending_multi_rewards {
+					for (currency_id, pending_reward) in pending_multi_rewards.iter_mut() {
+						if pending_reward.is_zero() {
+							continue;
+						}
+
+						match Self::payout_reward(pool_id, &who, *currency_id, payout_amount) {
+							Ok(_) => {
+								// update state
+								*pending_reward = Zero::zero();
+
+								Self::deposit_event(Event::ClaimRewards {
+									who: who.clone(),
+									pool: pool_id,
+									reward_currency_id: FungibleTokenId::NativeToken(0),
+									actual_amount: payout_amount,
+								});
+							}
+							Err(e) => {
+								log::error!(
+									target: "spp",
+									"payout_reward: failed to payout {:?} to {:?} to pool {:?}: {:?}",
+									payout_amount, who, pool_id, e
+								);
+							}
+						}
+					}
+				}
+			})
+		}
+
+		Ok(())
+	}
+
+	/// Ensure atomic
+	#[transactional]
+	fn payout_reward(
+		pool_id: PoolId,
+		who: &T::AccountId,
+		reward_currency_id: FungibleTokenId,
+		payout_amount: BalanceOf<T>,
+	) -> DispatchResult {
+		T::MultiCurrency::transfer(
+			reward_currency_id,
+			&Self::get_reward_payout_account_id(),
+			who,
+			payout_amount,
+		)?;
+		Ok(())
+	}
 }
 
 impl<T: Config> RewardHandler<T::AccountId, FungibleTokenId> for Pallet<T> {
 	type Balance = BalanceOf<T>;
 	type PoolId = PoolId;
 
+	/// This function trigger by orml_reward claim_rewards, it will modify and add pending reward
+	/// into PendingRewards for users to claim
 	fn payout(who: &T::AccountId, pool_id: &Self::PoolId, currency_id: FungibleTokenId, payout_amount: Self::Balance) {
 		if payout_amount.is_zero() {
 			return;
 		}
-		// TODO implement payout logic
+		PendingRewards::<T>::mutate(pool_id, who, |rewards| {
+			rewards
+				.entry(currency_id)
+				.and_modify(|current| *current = current.saturating_add(payout_amount))
+				.or_insert(payout_amount);
+		});
 	}
 }
