@@ -382,7 +382,7 @@ fn vote_work() {
 #[test]
 fn vote_when_not_country_member_does_not_work() {
 	ExtBuilder::default().build().execute_with(|| {
-		let origin = RuntimeOrigin::signed(BOB);
+		let _origin = RuntimeOrigin::signed(BOB);
 		let hash = set_freeze_metaverse_proposal_hash(1);
 		add_freeze_metaverse_preimage_alice(hash);
 		assert_ok!(GovernanceModule::propose(

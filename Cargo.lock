@@ -411,6 +411,7 @@ name = "asset-manager"
 version = "0.1.0"
 dependencies = [
  "bit-country-primitives",
+ "core-primitives",
  "frame-support",
  "frame-system",
  "hex",
@@ -6637,6 +6638,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "orml-rewards"
+version = "0.4.1-dev"
+source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.38#5861b6707c69031e8d70515b0aea6d222f5a5053"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "orml-traits",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "orml-tokens"
 version = "0.4.1-dev"
 source = "git+https://github.com/bit-country/open-runtime-module-library?branch=v-9.38#5861b6707c69031e8d70515b0aea6d222f5a5053"
@@ -8018,6 +8036,33 @@ dependencies = [
  "scale-info",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-spp"
+version = "2.0.0-rc6"
+dependencies = [
+ "asset-manager",
+ "auction-manager",
+ "bit-country-primitives",
+ "core-primitives",
+ "currencies",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "orml-rewards",
+ "orml-tokens",
+ "orml-traits",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+ "sp-version",
+ "substrate-fixed",
 ]
 
 [[package]]

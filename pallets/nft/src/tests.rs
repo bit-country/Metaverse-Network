@@ -863,7 +863,7 @@ fn setting_hard_limit_should_work() {
 fn force_updating_total_issuance_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = RuntimeOrigin::signed(account(1));
-		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		let _class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -894,7 +894,7 @@ fn force_updating_total_issuance_should_work() {
 fn force_updating_total_issuance_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = RuntimeOrigin::signed(account(1));
-		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		let _class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -922,7 +922,7 @@ fn force_updating_total_issuance_should_fail() {
 fn force_updating_new_royal_fee_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = RuntimeOrigin::signed(account(1));
-		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		let _class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),
@@ -956,7 +956,7 @@ fn force_updating_new_royal_fee_should_work() {
 fn force_updating_new_royal_fee_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let origin = RuntimeOrigin::signed(account(2));
-		let class_deposit = <Runtime as Config>::ClassMintingFee::get();
+		let _class_deposit = <Runtime as Config>::ClassMintingFee::get();
 		assert_ok!(Nft::create_group(RuntimeOrigin::root(), vec![1], vec![1],));
 		assert_ok!(Nft::create_class(
 			origin.clone(),

@@ -1,8 +1,8 @@
-use frame_support::pallet_prelude::{GenesisBuild, Hooks, MaybeSerializeDeserialize};
-use frame_support::sp_runtime::traits::AtLeast32Bit;
+use frame_support::pallet_prelude::GenesisBuild;
+
 use frame_support::traits::Nothing;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, traits::EnsureOrigin, weights::Weight};
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
+use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::{
@@ -13,11 +13,11 @@ use sp_runtime::{
 
 use primitives::estate::Estate;
 use primitives::staking::MetaverseStakingTrait;
-use primitives::FungibleTokenId::FungibleToken;
+
 use primitives::{Amount, CurrencyId, EstateId, FungibleTokenId, RoundIndex, UndeployedLandBlockId};
 
 use crate as mining;
-use crate::{Config, Module};
+use crate::Config;
 
 use super::*;
 
@@ -137,22 +137,22 @@ parameter_types! {
 pub struct EstateHandler;
 
 impl Estate<u128> for EstateHandler {
-	fn transfer_estate(estate_id: EstateId, from: &u128, to: &u128) -> Result<EstateId, DispatchError> {
+	fn transfer_estate(estate_id: EstateId, _from: &u128, _to: &u128) -> Result<EstateId, DispatchError> {
 		Ok(estate_id)
 	}
 
 	fn transfer_landunit(
 		coordinate: (i32, i32),
-		from: &u128,
-		to: &(u128, primitives::MetaverseId),
+		_from: &u128,
+		_to: &(u128, primitives::MetaverseId),
 	) -> Result<(i32, i32), DispatchError> {
 		Ok(coordinate)
 	}
 
 	fn transfer_undeployed_land_block(
-		who: &AccountId,
-		to: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
+		_who: &AccountId,
+		_to: &AccountId,
+		_undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
 		Ok(2)
 	}
@@ -161,18 +161,18 @@ impl Estate<u128> for EstateHandler {
 		Ok(true)
 	}
 
-	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+	fn check_landunit(_metaverse_id: primitives::MetaverseId, _coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
 	fn check_undeployed_land_block(
-		owner: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
+		_owner: &AccountId,
+		_undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
-	fn get_total_land_units(estate_id: Option<EstateId>) -> u64 {
+	fn get_total_land_units(_estate_id: Option<EstateId>) -> u64 {
 		10
 	}
 
@@ -180,15 +180,15 @@ impl Estate<u128> for EstateHandler {
 		10
 	}
 
-	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn check_estate_ownership(_owner: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leasor(_leasor: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leased(_estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 }
@@ -196,7 +196,7 @@ impl Estate<u128> for EstateHandler {
 pub struct MetaverseStakingHandler;
 
 impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
-	fn update_staking_reward(round: RoundIndex, total_reward: u128) -> sp_runtime::DispatchResult {
+	fn update_staking_reward(_round: RoundIndex, _total_reward: u128) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
 }

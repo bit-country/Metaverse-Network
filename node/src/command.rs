@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{io::Write, net::SocketAddr, sync::Arc};
+use std::{io::Write, net::SocketAddr};
 
 use codec::Encode;
 use cumulus_client_cli::generate_genesis_block;
@@ -23,13 +23,14 @@ use cumulus_primitives_core::ParaId;
 use frame_benchmarking_cli::{BenchmarkCmd, SUBSTRATE_REFERENCE_HARDWARE};
 use log::info;
 use sc_cli::{
-	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result, Role,
+	ChainSpec, CliConfiguration, DefaultConfigurationValues, ImportParams, KeystoreParams, NetworkParams, Result,
 	RuntimeVersion, SharedParams, SubstrateCli,
 };
 use sc_service::config::{BasePath, PrometheusConfig};
 use sc_service::PartialComponents;
 use sp_core::hexdisplay::HexDisplay;
-use sp_runtime::traits::{AccountIdConversion, Block as BlockT};
+use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::traits::Block as BlockT;
 
 #[cfg(feature = "with-continuum-runtime")]
 use continuum_runtime::RuntimeApi;
@@ -41,12 +42,11 @@ use pioneer_runtime::RuntimeApi;
 use crate::service::{continuum_partial, ContinuumParachainRuntimeExecutor};
 #[cfg(feature = "with-pioneer-runtime")]
 use crate::service::{pioneer_partial, ParachainRuntimeExecutor};
-use crate::service::{CONTINUUM_RUNTIME_NOT_AVAILABLE, METAVERSE_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
+use crate::service::{CONTINUUM_RUNTIME_NOT_AVAILABLE, PIONEER_RUNTIME_NOT_AVAILABLE};
 use crate::{
 	chain_spec,
 	cli::{Cli, RelayChainCli, Subcommand},
 	service,
-	service::ExecutorDispatch,
 };
 
 fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, String> {
