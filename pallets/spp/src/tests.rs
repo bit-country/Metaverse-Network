@@ -47,6 +47,8 @@ fn create_ksm_pool_works() {
 		.ksm_setup_for_alice_and_bob()
 		.build()
 		.execute_with(|| {
+
+			// Create the first pool
 			assert_ok!(SppModule::create_pool(
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
@@ -54,8 +56,11 @@ fn create_ksm_pool_works() {
 				Permill::from_percent(5)
 			));
 
-			let next_pool_id = NextPoolId::<Runtime>::get();
+			// Check the next pool id will increment
+			let next_pool_id: u32 = NextPoolId::<Runtime>::get();
 			assert_eq!(next_pool_id, 2);
+
+			// Check if the pool details as expected.
 			assert_eq!(
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
@@ -64,7 +69,29 @@ fn create_ksm_pool_works() {
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
-			)
+			);
+
+			// Create a second pool
+			assert_ok!(SppModule::create_pool(
+				RuntimeOrigin::signed(BOB),
+				FungibleTokenId::NativeToken(1),
+				10,
+				Permill::from_percent(1)
+			));
+
+			// Check Id will increment
+			let next_pool_id: u32 = NextPoolId::<Runtime>::get();
+			assert_eq!(next_pool_id, 3);
+			// Check the second pool has the right information as expected
+			assert_eq!(
+				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
+				PoolInfo::<AccountId> {
+					creator: BOB,
+					commission: Permill::from_percent(1),
+					currency_id: FungibleTokenId::NativeToken(1),
+					max: 10
+				}
+			);
 		});
 }
 
