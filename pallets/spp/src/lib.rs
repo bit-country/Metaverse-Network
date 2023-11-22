@@ -28,10 +28,10 @@ use frame_support::{
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, RewardHandler};
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedSub};
+use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedSub, UniqueSaturatedInto};
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Saturating, Zero},
-	ArithmeticError, DispatchError, SaturatedConversion,
+	ArithmeticError, DispatchError, Perbill, Permill, SaturatedConversion,
 };
 
 use core_primitives::*;
@@ -270,7 +270,7 @@ pub mod pallet {
 
 	/// The pending rewards amount, actual available rewards amount may be deducted
 	///
-	/// PendingRewards: double_map PoolId, AccountId => BTreeMap<CurrencyId, Balance>
+	/// PendingRewards: double_map PoolId, AccountId => BTreeMap<FungibleTokenId, Balance>
 	#[pallet::storage]
 	#[pallet::getter(fn pending_multi_rewards)]
 	pub type PendingRewards<T: Config> = StorageDoubleMap<
@@ -282,6 +282,12 @@ pub mod pallet {
 		BTreeMap<FungibleTokenId, BalanceOf<T>>,
 		ValueQuery,
 	>;
+
+	/// The estimated staking reward rate per era on relaychain.
+	///
+	/// EstimatedRewardRatePerEra: value: Rate
+	#[pallet::storage]
+	pub type EstimatedRewardRatePerEra<T: Config> = StorageValue<_, Permill, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -949,6 +955,31 @@ impl<T: Config> Pallet<T> {
 			ExistenceRequirement::KeepAlive,
 		)?;
 		<orml_rewards::Pallet<T>>::accumulate_reward(&Zero::zero(), FungibleTokenId::NativeToken(0), amount_to_send)?;
+		Ok(())
+	}
+
+	fn handle_reward_distribution_to_pool_treasury(previous_era: EraIndex, new_era: EraIndex) -> DispatchResult {
+		// Get reward per era for pool treasury
+		let reward_rate_per_era = EstimatedRewardRatePerEra::<T>::get();
+		// Get total compound reward rate based on number of era.
+		let reward_rate = reward_rate_per_era
+			.saturating_add(Permill::one())
+			.saturating_pow(new_era.saturating_sub(previous_era).unique_saturated_into())
+			.saturating_sub(Permill::one());
+
+		if !reward_rate.is_zero() {
+			let mut total_reward_staking: BalanceOf<T> = Zero::zero();
+
+			// iterate all pool ledgers
+			for (pool_id, pool_ledgers) in PoolLedger::<T>::iter() {
+				let reward_staking = reward_rate.saturating_mul_int(pool_ledgers);
+
+				if !reward_staking.is_zero() {
+					total_reward_staking = total_reward_staking.saturating_add(reward_staking);
+				}
+			}
+		}
+
 		Ok(())
 	}
 
