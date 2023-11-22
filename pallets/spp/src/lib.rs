@@ -28,7 +28,9 @@ use frame_support::{
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, RewardHandler};
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedSub, UniqueSaturatedInto};
+use sp_runtime::traits::{
+	BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, UniqueSaturatedInto,
+};
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Saturating, Zero},
 	ArithmeticError, DispatchError, Perbill, Permill, SaturatedConversion,
@@ -968,14 +970,22 @@ impl<T: Config> Pallet<T> {
 			.saturating_sub(Permill::one());
 
 		if !reward_rate.is_zero() {
-			let mut total_reward_staking: BalanceOf<T> = Zero::zero();
-
 			// iterate all pool ledgers
-			for (pool_id, pool_ledgers) in PoolLedger::<T>::iter() {
-				let reward_staking = reward_rate.saturating_mul_int(pool_ledgers);
+			for (pool_id, pool_amount) in PoolLedger::<T>::iter() {
+				let reward_staking = reward_rate * Permill::from_percent(1u32) * pool_amount;
 
 				if !reward_staking.is_zero() {
-					total_reward_staking = total_reward_staking.saturating_add(reward_staking);
+					let pool_treasury_account = Self::get_pool_treasury(pool_id);
+					T::MultiCurrency::deposit(
+						FungibleTokenId::FungibleToken(1),
+						&pool_treasury_account,
+						reward_staking,
+					);
+					<orml_rewards::Pallet<T>>::accumulate_reward(
+						&pool_id,
+						FungibleTokenId::FungibleToken(1),
+						reward_staking,
+					)?;
 				}
 			}
 		}
