@@ -23,6 +23,7 @@ use sp_runtime::traits::BadOrigin;
 use sp_runtime::{Perbill, Permill};
 
 use mock::{RuntimeEvent, *};
+use primitives::bounded::FractionalRate;
 
 use crate::utils::{BoostInfo, BoostingConviction, BoostingRecord, PoolInfo, PriorLock};
 
@@ -51,7 +52,7 @@ fn create_ksm_pool_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -60,7 +61,7 @@ fn create_ksm_pool_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -78,7 +79,7 @@ fn deposit_ksm_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -87,7 +88,7 @@ fn deposit_ksm_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -119,7 +120,7 @@ fn redeem_rksm_request_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -128,7 +129,7 @@ fn redeem_rksm_request_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -223,7 +224,7 @@ fn current_era_update_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -232,7 +233,7 @@ fn current_era_update_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50,
 				}
@@ -381,7 +382,7 @@ fn boosting_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -390,7 +391,7 @@ fn boosting_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -463,7 +464,7 @@ fn boosting_and_claim_reward_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -472,7 +473,7 @@ fn boosting_and_claim_reward_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
