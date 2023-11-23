@@ -23,7 +23,7 @@ interface Currency {
     function balanceOf(address owner) external view returns (uint256);
     
     /// @dev Gets the currency  allowance of an address.
-     /// @custom:selector dd62ed3e
+    /// @custom:selector dd62ed3e
     /// @param owner address The address that owns a currency
     /// @param currency address The currency address
     /// @return An uint256 representing of the currency for the owner.
@@ -53,7 +53,7 @@ interface Currency {
     
     /// @dev Approve currency for transfer.
     /// @custom:selector 095ea7b3
-    /// @param owner The currency owner address.
+    /// @param spender The currency spender address.
     /// @param value uint256 The value that will be approved.
     /// @return true if the approval was successful, revert otherwise.
     function approve(address spender, uint256 value) external returns (bool);
@@ -71,11 +71,11 @@ interface Currency {
     /// @param sender address The address that transferred the currency.
     /// @param receiver address The address that received the currency.
     /// @param value uint256 The value that was transferred.
-    event Transferred(address indexed sender, address receiver, uint256 value);
+    event Transfer(address sender, address receiver, uint256 value);
     
     /// @dev Event emitted when a currency is approved.
     /// @custom:selector 8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925
-    /// @param owner The currency owner address.
+    /// @param spender The currency spender address.
     /// @param value uint256 The value that was approved.
-    event Approved(address indexed owner, address indexed spender, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
