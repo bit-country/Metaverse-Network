@@ -29,16 +29,17 @@ use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, RewardHandler};
 use sp_runtime::traits::{
-	BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, UniqueSaturatedInto,
+	BlockNumberProvider, Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, UniqueSaturatedInto,
 };
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Saturating, Zero},
-	ArithmeticError, DispatchError, Perbill, Permill, SaturatedConversion,
+	ArithmeticError, DispatchError, FixedPointNumber, Perbill, Permill, SaturatedConversion,
 };
 
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{ClassId, EraIndex, FungibleTokenId, PoolId, StakingRound, TokenId};
+use primitives::bounded::Rate;
+use primitives::{ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId};
 pub use weights::WeightInfo;
 
 pub type QueueId = u32;
@@ -66,6 +67,7 @@ pub mod pallet {
 	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub, One, UniqueSaturatedInto};
 	use sp_runtime::Permill;
 
+	use primitives::bounded::FractionalRate;
 	use primitives::{PoolId, StakingRound};
 
 	use crate::utils::{BoostInfo, BoostingRecord, PoolInfo};
@@ -289,7 +291,7 @@ pub mod pallet {
 	///
 	/// EstimatedRewardRatePerEra: value: Rate
 	#[pallet::storage]
-	pub type EstimatedRewardRatePerEra<T: Config> = StorageValue<_, Permill, ValueQuery>;
+	pub type EstimatedRewardRatePerEra<T: Config> = StorageValue<_, FractionalRate, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -960,31 +962,44 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
+	pub(crate) fn estimated_reward_rate_per_era() -> Rate {
+		EstimatedRewardRatePerEra::<T>::get().into_inner()
+	}
+
 	fn handle_reward_distribution_to_pool_treasury(previous_era: EraIndex, new_era: EraIndex) -> DispatchResult {
+		let era_changes = new_era.saturating_sub(previous_era);
+		ensure!(!era_changes.is_zero(), Error::<T>::Unexpected);
 		// Get reward per era for pool treasury
-		let reward_rate_per_era = EstimatedRewardRatePerEra::<T>::get();
+		let reward_rate_per_era = Self::estimated_reward_rate_per_era();
 		// Get total compound reward rate based on number of era.
 		let reward_rate = reward_rate_per_era
-			.saturating_add(Permill::one())
-			.saturating_pow(new_era.saturating_sub(previous_era).unique_saturated_into())
-			.saturating_sub(Permill::one());
+			.saturating_add(Rate::one())
+			.saturating_pow(era_changes.unique_saturated_into())
+			.saturating_sub(Rate::one());
 
 		if !reward_rate.is_zero() {
 			// iterate all pool ledgers
 			for (pool_id, pool_amount) in PoolLedger::<T>::iter() {
-				let reward_staking = reward_rate * Permill::from_percent(1u32) * pool_amount;
+				let mut total_reward_staking: BalanceOf<T> = Zero::zero();
+				let mut reward_staking = reward_rate.saturating_mul_int(pool_amount);
 
 				if !reward_staking.is_zero() {
 					let pool_treasury_account = Self::get_pool_treasury(pool_id);
+					total_reward_staking = total_reward_staking.saturating_add(reward_staking);
+
+					let reward_commission_amount = Ratio::checked_from_rational(1, 100)
+						.unwrap_or_default()
+						.saturating_mul_int(total_reward_staking);
+
 					T::MultiCurrency::deposit(
 						FungibleTokenId::FungibleToken(1),
 						&pool_treasury_account,
-						reward_staking,
+						reward_commission_amount,
 					)?;
 					<orml_rewards::Pallet<T>>::accumulate_reward(
 						&pool_id,
 						FungibleTokenId::FungibleToken(1),
-						reward_staking,
+						reward_commission_amount,
 					)?;
 				}
 			}
