@@ -154,7 +154,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn fees)]
-	pub type Fees<T: Config> = StorageValue<_, (Permill, Permill), ValueQuery>;
+	pub type Fees<T: Config> = StorageValue<_, (FractionalRate, FractionalRate), ValueQuery>;
 
 	/// Keep track of Pool detail
 	#[pallet::storage]
@@ -409,7 +409,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			currency_id: FungibleTokenId,
 			max_nft_reward: u32,
-			commission: Permill,
+			commission: Rate,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -824,7 +824,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let (deposit_rate, _redeem_rate) = Fees::<T>::get();
 
-		let deposit_fee = deposit_rate * amount;
+		let deposit_fee = deposit_rate.into_inner().saturating_mul_int(amount);
 		let amount_exclude_fee = amount.checked_sub(&deposit_fee).ok_or(Error::<T>::ArithmeticOverflow)?;
 		T::MultiCurrency::transfer(
 			currency_id,
@@ -842,7 +842,7 @@ impl<T: Config> Pallet<T> {
 		amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let (_mint_rate, redeem_rate) = Fees::<T>::get();
-		let redeem_fee = redeem_rate * amount;
+		let redeem_fee = redeem_rate.into_inner().saturating_mul_int(amount);
 		let amount_exclude_fee = amount.checked_sub(&redeem_fee).ok_or(Error::<T>::ArithmeticOverflow)?;
 		T::MultiCurrency::transfer(
 			currency_id,
@@ -987,7 +987,7 @@ impl<T: Config> Pallet<T> {
 					let pool_treasury_account = Self::get_pool_treasury(pool_id);
 					total_reward_staking = total_reward_staking.saturating_add(reward_staking);
 
-					let reward_commission_amount = Ratio::checked_from_rational(1, 100)
+					let reward_commission_amount = Rate::checked_from_rational(1, 100)
 						.unwrap_or_default()
 						.saturating_mul_int(total_reward_staking);
 
