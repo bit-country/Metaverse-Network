@@ -28,7 +28,7 @@ use sp_runtime::{
 };
 use sp_std::{marker::PhantomData, prelude::*, result::Result};
 
-use primitives::{Balance, BlockNumber};
+use crate::{Balance, BlockNumber};
 
 pub type Rate = FixedU128;
 

@@ -980,7 +980,7 @@ impl<T: Config> Pallet<T> {
 						FungibleTokenId::FungibleToken(1),
 						&pool_treasury_account,
 						reward_staking,
-					);
+					)?;
 					<orml_rewards::Pallet<T>>::accumulate_reward(
 						&pool_id,
 						FungibleTokenId::FungibleToken(1),
