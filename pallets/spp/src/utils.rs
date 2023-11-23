@@ -24,6 +24,7 @@ use sp_runtime::{
 	Permill, RuntimeDebug,
 };
 
+use primitives::bounded::{FractionalRate, Rate};
 use primitives::{FungibleTokenId, PoolId};
 
 // Helper methods to compute the issuance rate for undeployed land.
@@ -32,7 +33,7 @@ use primitives::{FungibleTokenId, PoolId};
 #[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
 pub struct PoolInfo<AccountId> {
 	pub creator: AccountId,
-	pub commission: Permill,
+	pub commission: Rate,
 	/// Currency id of the pool
 	pub currency_id: FungibleTokenId,
 	/// Max nft rewards
