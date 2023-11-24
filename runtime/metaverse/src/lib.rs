@@ -24,6 +24,7 @@
 extern crate orml_benchmarking;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use cumulus_pallet_parachain_system::RelaychainDataProvider;
 // pub use this so we can import it in the chain spec.
 #[cfg(feature = "std")]
 pub use fp_evm::GenesisAccount;
@@ -99,7 +100,7 @@ use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
 	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN, H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
-use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
+use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, PoolId, RoundIndex, TokenId};
 
 // primitives imports
 use crate::opaque::SessionKeys;
@@ -1442,6 +1443,14 @@ impl modules_bridge::Config for Runtime {
 	type PalletId = BridgeSovereignPalletId;
 }
 
+impl orml_rewards::Config for Runtime {
+	type Share = Balance;
+	type Balance = Balance;
+	type PoolId = PoolId;
+	type CurrencyId = FungibleTokenId;
+	type Handler = Spp;
+}
+
 parameter_types! {
 	pub const MaximumQueue: u32 = 50;
 }
@@ -1450,11 +1459,11 @@ impl spp::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type MultiCurrency = Currencies;
-	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
+	type WeightInfo = weights::module_spp::WeightInfo<Runtime>;
 	type MinimumStake = MinimumStake;
 	type NetworkFee = NetworkFee;
 	type StorageDepositFee = StorageDepositFee;
-	type RelayChainBlockNumber = ();
+	type RelayChainBlockNumber = RelaychainDataProvider;
 	type PoolAccount = PoolAccountPalletId;
 	type RewardPayoutAccount = RewardPayoutAccountPalletId;
 	type RewardHoldingAccount = RewardHoldingAccountPalletId;
@@ -1538,7 +1547,8 @@ construct_runtime!(
 		BridgeSupport: modules_bridge::{Pallet, Call, Storage, Event<T>},
 
 		// Spp
-		Spp: spp::{Pallet, Call, Storage, Event<T>}
+		Spp: spp::{Pallet, Call, Storage, Event<T>},
+		Rewards: orml_rewards::{Pallet, Storage}
 	}
 );
 

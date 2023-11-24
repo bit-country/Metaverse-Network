@@ -84,6 +84,7 @@ orml-tokens = { workspace = true }
 orml-traits = { workspace = true }
 orml-nft = { workspace = true }
 orml-oracle = { workspace = true }
+orml-rewards = { workspace = true }
 orml-benchmarking = { workspace = true, optional = true }
 # metaverse dependencies
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
@@ -114,6 +115,18 @@ pallet-contracts-primitives = { workspace = true }
 
 # XCM builder ( need to be used to build the runtime benchmarking correctly)
 xcm-builder = { workspace = true }
+
+# Cumulus Dependencies
+cumulus-pallet-aura-ext = { workspace = true }
+cumulus-pallet-parachain-system = { workspace = true }
+cumulus-pallet-dmp-queue = { workspace = true }
+cumulus-pallet-xcm = { workspace = true }
+cumulus-pallet-xcmp-queue = { workspace = true }
+cumulus-primitives-core = { workspace = true }
+cumulus-primitives-timestamp = { workspace = true }
+cumulus-primitives-utility = { workspace = true }
+cumulus-pallet-session-benchmarking = { workspace = true }
+parachain-info = { workspace = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
@@ -163,6 +176,7 @@ std = [
     "orml-tokens/std",
     "orml-nft/std",
     "orml-oracle/std",
+    "orml-rewards/std",
     "primitives/std",
     "metaverse/std",
     "auction/std",
@@ -191,7 +205,14 @@ std = [
     "pallet-contracts-primitives/std",
     "frame-try-runtime/std",
     "metaverse-runtime-common/std",
-    "modules-bridge/std"
+    "modules-bridge/std",
+    "cumulus-pallet-aura-ext/std",
+    "cumulus-pallet-parachain-system/std",
+    "cumulus-pallet-xcmp-queue/std",
+    "cumulus-pallet-xcm/std",
+    "cumulus-primitives-core/std",
+    "cumulus-primitives-timestamp/std",
+    "cumulus-primitives-utility/std",
 ]
 runtime-benchmarks = [
     "xcm-builder/runtime-benchmarks",
