@@ -988,32 +988,53 @@ impl<T: Config> Pallet<T> {
 			.saturating_add(Rate::one())
 			.saturating_pow(era_changes.unique_saturated_into())
 			.saturating_sub(Rate::one());
+		let mut total_reward_staking: BalanceOf<T> = Zero::zero();
 
 		if !reward_rate.is_zero() {
 			// iterate all pool ledgers
 			for (pool_id, pool_amount) in PoolLedger::<T>::iter() {
-				let mut total_reward_staking: BalanceOf<T> = Zero::zero();
 				let mut reward_staking = reward_rate.saturating_mul_int(pool_amount);
 
 				if !reward_staking.is_zero() {
 					let pool_treasury_account = Self::get_pool_treasury(pool_id);
 					total_reward_staking = total_reward_staking.saturating_add(reward_staking);
 
-					let reward_commission_amount = Rate::checked_from_rational(1, 100)
-						.unwrap_or_default()
-						.saturating_mul_int(total_reward_staking);
+					let pool_treasury_commission = Rate::checked_from_rational(1, 100).unwrap_or_default();
+					let pool_treasury_reward_commission_amount =
+						pool_treasury_commission.saturating_mul_int(reward_staking);
+
+					// Increase reward staking of pool ledger
+					PoolLedger::<T>::mutate(pool_id, |total_staked| -> Result<(), Error<T>> {
+						*total_staked = total_staked
+							.checked_add(&reward_staking)
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
+
+						Ok(())
+					})?;
 
 					T::MultiCurrency::deposit(
 						FungibleTokenId::FungibleToken(1),
 						&pool_treasury_account,
-						reward_commission_amount,
+						pool_treasury_reward_commission_amount,
 					)?;
 					<orml_rewards::Pallet<T>>::accumulate_reward(
 						&pool_id,
 						FungibleTokenId::FungibleToken(1),
-						reward_commission_amount,
+						pool_treasury_reward_commission_amount,
 					)?;
 				}
+			}
+
+			if !total_reward_staking.is_zero() {
+				NetworkLedger::<T>::mutate(
+					&FungibleTokenId::NativeToken(1),
+					|total_staked| -> Result<(), Error<T>> {
+						*total_staked = total_staked
+							.checked_add(&total_reward_staking)
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
+						Ok(())
+					},
+				)?;
 			}
 		}
 
