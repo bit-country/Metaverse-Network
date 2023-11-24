@@ -104,6 +104,7 @@ core-primitives = { path = "../../traits/core-primitives", default-features = fa
 metaverse-runtime-common = { path = "../common", default-features = false }
 asset-manager = { path = "../../pallets/asset-manager", default-features = false }
 evm-mapping = { package = "pallet-evm-mapping", path = "../../pallets/evm-mapping", default-features = false }
+spp = { package = "pallet-spp", path = "../../pallets/spp", default-features = false }
 
 modules-bridge = { path = "../../modules/bridge", default-features = false }
 
@@ -176,6 +177,7 @@ std = [
     "economy/std",
     "emergency/std",
     "evm-mapping/std",
+    "spp/std",
     "pallet-utility/std",
     "pallet-collator-selection/std",
     "orml-benchmarking/std",

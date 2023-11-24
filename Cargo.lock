@@ -5823,6 +5823,7 @@ dependencies = [
  "pallet-reward",
  "pallet-scheduler",
  "pallet-session",
+ "pallet-spp",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
