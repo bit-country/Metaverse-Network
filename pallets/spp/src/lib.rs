@@ -340,6 +340,8 @@ pub mod pallet {
 			reward_currency_id: FungibleTokenId,
 			claimed_amount: BalanceOf<T>,
 		},
+		/// Reward rate per era updated.
+		EstimatedRewardRatePerEraUpdated { reward_rate_per_era: Rate },
 	}
 
 	#[pallet::error]
@@ -388,6 +390,8 @@ pub mod pallet {
 		OriginsAlreadyExist,
 		/// Origin doesn't exists
 		OriginDoesNotExists,
+		/// Invalid rate input
+		InvalidRate,
 	}
 
 	#[pallet::hooks]
@@ -679,6 +683,7 @@ pub mod pallet {
 			last_era_updated_block: Option<BlockNumberFor<T>>,
 			frequency: Option<BlockNumberFor<T>>,
 			last_staking_round: StakingRound,
+			estimated_reward_rate_per_era: Option<Rate>,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
@@ -703,6 +708,13 @@ pub mod pallet {
 				}
 			}
 
+			if let Some(reward_rate_per_era) = estimated_reward_rate_per_era {
+				EstimatedRewardRatePerEra::<T>::mutate(|rate| -> DispatchResult {
+					rate.try_set(reward_rate_per_era)
+						.map_err(|_| Error::<T>::InvalidRate.into())
+				})?;
+				Self::deposit_event(Event::<T>::EstimatedRewardRatePerEraUpdated { reward_rate_per_era });
+			}
 			Ok(())
 		}
 
