@@ -60,7 +60,6 @@ use pallet_evm::{
 };
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
-//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use polkadot_primitives::v2::MAX_POV_SIZE;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
@@ -87,6 +86,8 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
+use asset_manager::ForeignAssetMapping;
 pub use constants::{currency::*, time::*};
 use core_primitives::{NftAssetData, NftClassData};
 // External imports
@@ -364,6 +365,10 @@ parameter_types! {
 	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
 	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
 	pub const BridgeSovereignPalletId: PalletId = PalletId(*b"bit/brgd");
+	pub const PoolAccountPalletId: PalletId = PalletId(*b"bit/pool");
+	pub const RewardPayoutAccountPalletId: PalletId = PalletId(*b"bit/pout");
+	pub const RewardHoldingAccountPalletId: PalletId = PalletId(*b"bit/hold");
+
 	pub const MaxAuthorities: u32 = 50;
 	pub const MaxSetIdSessionEntries: u64 = u64::MAX;
 }
@@ -1437,6 +1442,27 @@ impl modules_bridge::Config for Runtime {
 	type PalletId = BridgeSovereignPalletId;
 }
 
+parameter_types! {
+	pub const MaximumQueue: u32 = 50;
+}
+
+impl spp::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type MultiCurrency = Currencies;
+	type WeightInfo = weights::module_estate::WeightInfo<Runtime>;
+	type MinimumStake = MinimumStake;
+	type NetworkFee = NetworkFee;
+	type StorageDepositFee = StorageDepositFee;
+	type RelayChainBlockNumber = ();
+	type PoolAccount = PoolAccountPalletId;
+	type RewardPayoutAccount = RewardPayoutAccountPalletId;
+	type RewardHoldingAccount = RewardHoldingAccountPalletId;
+	type MaximumQueue = MaximumQueue;
+	type CurrencyIdConversion = ForeignAssetMapping<Runtime>;
+	type GovernanceOrigin = EnsureRootOrTwoThirdsCouncilCollective;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1510,6 +1536,9 @@ construct_runtime!(
 
 		// Bridge
 		BridgeSupport: modules_bridge::{Pallet, Call, Storage, Event<T>},
+
+		// Spp
+		Spp: spp::{Pallet, Call, Storage, Event<T>}
 	}
 );
 
