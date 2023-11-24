@@ -645,7 +645,7 @@ fn boosting_and_claim_reward_works() {
 }
 
 #[test]
-fn pool_treasury_distribution_works() {
+fn reward_distribution_works() {
 	ExtBuilder::default()
 		.ksm_setup_for_alice_and_bob()
 		.build()
@@ -655,13 +655,15 @@ fn pool_treasury_distribution_works() {
 			MockRelayBlockNumberProvider::set(102);
 			RelayChainCurrentEra::<Runtime>::put(1);
 			IterationLimit::<Runtime>::put(50);
+			UnlockDuration::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1)); // Bump current staking round to 1
+			CurrentStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1));
 			// The correct set up era config is the last era block records is 101 with duration is 100 blocks
 			assert_ok!(SppModule::update_era_config(
 				RuntimeOrigin::signed(Admin::get()),
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
-				Some(Rate::saturating_from_rational(35, 100000))
+				Some(Rate::saturating_from_rational(20, 100)) // Set reward rate per era is 20%.
 			));
 
 			assert_ok!(SppModule::create_pool(
@@ -736,5 +738,17 @@ fn pool_treasury_distribution_works() {
 			// Move to era 2
 			MockRelayBlockNumberProvider::set(202);
 			SppModule::on_initialize(200);
+
+			assert_ok!(SppModule::handle_reward_distribution_to_pool_treasury(1, 2));
+			let pool_treasury = SppModule::get_pool_treasury(1);
+
+			assert_eq!(
+				Currencies::free_balance(FungibleTokenId::FungibleToken(1), &pool_treasury),
+				20
+			);
+
+			assert_eq!(Currencies::total_issuance(FungibleTokenId::FungibleToken(1)), 10020);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 12000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 12000);
 		});
 }
