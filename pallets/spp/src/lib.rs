@@ -109,10 +109,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
 
-		/// Delay of staking reward payment (in number of rounds)
-		#[pallet::constant]
-		type RewardPaymentDelay: Get<u32>;
-
 		/// Network fee charged on pool creation
 		#[pallet::constant]
 		type NetworkFee: Get<BalanceOf<Self>>;
@@ -121,9 +117,6 @@ pub mod pallet {
 		/// The fee will be unreserved after the storage is freed.
 		#[pallet::constant]
 		type StorageDepositFee: Get<BalanceOf<Self>>;
-
-		/// Allows converting block numbers into balance
-		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
 
 		/// Block number provider for the relaychain.
 		type RelayChainBlockNumber: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
