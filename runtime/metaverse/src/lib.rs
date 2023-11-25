@@ -24,7 +24,7 @@
 extern crate orml_benchmarking;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use cumulus_pallet_parachain_system::RelaychainDataProvider;
+use cumulus_pallet_parachain_system::RelaychainBlockNumberProvider;
 // pub use this so we can import it in the chain spec.
 #[cfg(feature = "std")]
 pub use fp_evm::GenesisAccount;
@@ -70,7 +70,7 @@ use sp_core::{
 	sp_std::marker::PhantomData,
 	ConstBool, OpaqueMetadata, H160, H256, U256,
 };
-use sp_runtime::traits::DispatchInfoOf;
+use sp_runtime::traits::{BlockNumberProvider, DispatchInfoOf};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
@@ -1454,6 +1454,15 @@ impl orml_rewards::Config for Runtime {
 parameter_types! {
 	pub const MaximumQueue: u32 = 50;
 }
+pub static MockRelayBlockNumberProvider: BlockNumber = 0;
+
+impl BlockNumberProvider for MockRelayBlockNumberProvider {
+	type BlockNumber = BlockNumber;
+
+	fn current_block_number() -> Self::BlockNumber {
+		Self::get()
+	}
+}
 
 impl spp::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
@@ -1463,7 +1472,7 @@ impl spp::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type NetworkFee = NetworkFee;
 	type StorageDepositFee = StorageDepositFee;
-	type RelayChainBlockNumber = RelaychainDataProvider;
+	type RelayChainBlockNumber = RelaychainBlockNumberProvider<Runtime>;
 	type PoolAccount = PoolAccountPalletId;
 	type RewardPayoutAccount = RewardPayoutAccountPalletId;
 	type RewardHoldingAccount = RewardHoldingAccountPalletId;
