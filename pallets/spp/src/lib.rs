@@ -390,7 +390,9 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-			let era_number = Self::get_era_index(T::RelayChainBlockNumber::current_block_number());
+			// let era_number = Self::get_era_index(T::RelayChainBlockNumber::current_block_number());
+			let era_number = Self::get_era_index(<frame_system::Pallet<T>>::block_number());
+
 			if !era_number.is_zero() {
 				let _ = Self::update_current_era(era_number).map_err(|err| err).ok();
 			}
