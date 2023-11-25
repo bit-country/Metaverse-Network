@@ -23,6 +23,7 @@ use sp_runtime::{
 	traits::{Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, IntegerSquareRoot, Saturating, Zero},
 	Permill, RuntimeDebug,
 };
+use sp_std::vec::Vec;
 
 use primitives::bounded::{FractionalRate, Rate};
 use primitives::{FungibleTokenId, PoolId};

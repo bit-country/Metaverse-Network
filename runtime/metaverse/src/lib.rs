@@ -1453,8 +1453,8 @@ impl orml_rewards::Config for Runtime {
 
 parameter_types! {
 	pub const MaximumQueue: u32 = 50;
+	pub const MockRelayBlockNumberProvider: BlockNumber = 0;
 }
-pub static MockRelayBlockNumberProvider: BlockNumber = 0;
 
 impl BlockNumberProvider for MockRelayBlockNumberProvider {
 	type BlockNumber = BlockNumber;
@@ -1472,7 +1472,7 @@ impl spp::Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type NetworkFee = NetworkFee;
 	type StorageDepositFee = StorageDepositFee;
-	type RelayChainBlockNumber = RelaychainBlockNumberProvider<Runtime>;
+	type RelayChainBlockNumber = MockRelayBlockNumberProvider;
 	type PoolAccount = PoolAccountPalletId;
 	type RewardPayoutAccount = RewardPayoutAccountPalletId;
 	type RewardHoldingAccount = RewardHoldingAccountPalletId;
