@@ -59,13 +59,12 @@ const BOOSTING_ID: LockIdentifier = *b"bc/boost";
 
 #[frame_support::pallet]
 pub mod pallet {
-	use std::collections::BTreeMap;
-
 	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency, WithdrawReasons};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
 	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub, One, UniqueSaturatedInto};
 	use sp_runtime::Permill;
+	use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 	use primitives::bounded::FractionalRate;
 	use primitives::{PoolId, StakingRound};
