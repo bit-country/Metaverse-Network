@@ -334,6 +334,13 @@ pub mod pallet {
 		},
 		/// Reward rate per era updated.
 		EstimatedRewardRatePerEraUpdated { reward_rate_per_era: Rate },
+		/// Unlock duration updated.
+		UnlockDurationUpdated {
+			currency_id: FungibleTokenId,
+			unlock_duration: StakingRound,
+		},
+		/// Iterator limit updated.
+		IterationLimitUpdated { new_limit: u32 },
 	}
 
 	#[pallet::error]
@@ -678,6 +685,8 @@ pub mod pallet {
 			frequency: Option<BlockNumberFor<T>>,
 			last_staking_round: StakingRound,
 			estimated_reward_rate_per_era: Option<Rate>,
+			unlock_duration: Option<(FungibleTokenId, StakingRound)>,
+			iteration_limit: Option<u32>,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
@@ -709,6 +718,20 @@ pub mod pallet {
 				})?;
 				Self::deposit_event(Event::<T>::EstimatedRewardRatePerEraUpdated { reward_rate_per_era });
 			}
+
+			if let Some((currency_id, staking_round)) = unlock_duration {
+				UnlockDuration::<T>::insert(currency_id, staking_round);
+				Self::deposit_event(Event::<T>::UnlockDurationUpdated {
+					currency_id,
+					unlock_duration: staking_round,
+				})
+			}
+
+			if let Some(new_limit) = iteration_limit {
+				IterationLimit::<T>::put(new_limit);
+				Self::deposit_event(Event::<T>::IterationLimitUpdated { new_limit })
+			}
+
 			Ok(())
 		}
 
