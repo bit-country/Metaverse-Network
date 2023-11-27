@@ -156,6 +156,7 @@ pub mod pallet {
 		<T as orml_nft::Config>::ClassId,
 		<T as orml_nft::Config>::TokenId,
 		<T as frame_system::Config>::AccountId,
+		BlockNumberFor<T>,
 		BalanceOf<T>,
 	>;
 
@@ -403,6 +404,8 @@ pub mod pallet {
 		InvalidCurrentTotalIssuance,
 		/// Wrong signature
 		WrongSignature,
+		/// Signature expired
+		SignatureExpired,
 	}
 
 	#[pallet::call]
@@ -1174,6 +1177,7 @@ impl<T: Config> Pallet<T> {
 			attributes,
 			metadata,
 			only_account,
+			expired,
 			mint_price,
 		} = mint_data;
 
@@ -1190,6 +1194,9 @@ impl<T: Config> Pallet<T> {
 		if let Some(account) = only_account {
 			ensure!(account == mint_to, Error::<T>::NoPermission);
 		}
+
+		let now = frame_system::Pallet::<T>::block_number();
+		ensure!(expired >= now, Error::<T>::SignatureExpired);
 
 		// Get class info of the collection
 		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
