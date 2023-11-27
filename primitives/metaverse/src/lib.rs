@@ -34,6 +34,7 @@ use sp_std::prelude::*;
 use sp_std::vec::Vec;
 use xcm::v3::MultiLocation;
 
+pub mod bounded;
 pub mod continuum;
 pub mod estate;
 pub mod evm;

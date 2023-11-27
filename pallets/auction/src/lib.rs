@@ -58,7 +58,6 @@ pub mod weights;
 pub struct AuctionLogicHandler;
 
 pub mod migration_v2 {
-
 	use codec::{Decode, Encode};
 	use scale_info::TypeInfo;
 	#[cfg(feature = "std")]
@@ -103,7 +102,6 @@ pub mod pallet {
 	use frame_support::dispatch::DispatchResultWithPostInfo;
 	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
-
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_runtime::traits::CheckedAdd;

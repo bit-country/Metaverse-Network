@@ -28,15 +28,18 @@ use frame_support::{
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
 use orml_traits::{MultiCurrency, RewardHandler};
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedSub};
+use sp_runtime::traits::{
+	BlockNumberProvider, Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, UniqueSaturatedInto,
+};
 use sp_runtime::{
 	traits::{AccountIdConversion, Convert, Saturating, Zero},
-	ArithmeticError, DispatchError, SaturatedConversion,
+	ArithmeticError, DispatchError, FixedPointNumber, Perbill, Permill, SaturatedConversion,
 };
 
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{ClassId, EraIndex, FungibleTokenId, PoolId, StakingRound, TokenId};
+use primitives::bounded::Rate;
+use primitives::{ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId};
 pub use weights::WeightInfo;
 
 pub type QueueId = u32;
@@ -56,14 +59,14 @@ const BOOSTING_ID: LockIdentifier = *b"bc/boost";
 
 #[frame_support::pallet]
 pub mod pallet {
-	use std::collections::BTreeMap;
-
 	use frame_support::traits::{Currency, LockableCurrency, ReservableCurrency, WithdrawReasons};
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
 	use sp_core::U256;
 	use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, CheckedSub, One, UniqueSaturatedInto};
 	use sp_runtime::Permill;
+	use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
+	use primitives::bounded::FractionalRate;
 	use primitives::{PoolId, StakingRound};
 
 	use crate::utils::{BoostInfo, BoostingRecord, PoolInfo};
@@ -105,10 +108,6 @@ pub mod pallet {
 		#[pallet::constant]
 		type MinimumStake: Get<BalanceOf<Self>>;
 
-		/// Delay of staking reward payment (in number of rounds)
-		#[pallet::constant]
-		type RewardPaymentDelay: Get<u32>;
-
 		/// Network fee charged on pool creation
 		#[pallet::constant]
 		type NetworkFee: Get<BalanceOf<Self>>;
@@ -117,9 +116,6 @@ pub mod pallet {
 		/// The fee will be unreserved after the storage is freed.
 		#[pallet::constant]
 		type StorageDepositFee: Get<BalanceOf<Self>>;
-
-		/// Allows converting block numbers into balance
-		type BlockNumberToBalance: Convert<Self::BlockNumber, BalanceOf<Self>>;
 
 		/// Block number provider for the relaychain.
 		type RelayChainBlockNumber: BlockNumberProvider<BlockNumber = BlockNumberFor<Self>>;
@@ -150,7 +146,7 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn fees)]
-	pub type Fees<T: Config> = StorageValue<_, (Permill, Permill), ValueQuery>;
+	pub type Fees<T: Config> = StorageValue<_, (FractionalRate, FractionalRate), ValueQuery>;
 
 	/// Keep track of Pool detail
 	#[pallet::storage]
@@ -270,7 +266,7 @@ pub mod pallet {
 
 	/// The pending rewards amount, actual available rewards amount may be deducted
 	///
-	/// PendingRewards: double_map PoolId, AccountId => BTreeMap<CurrencyId, Balance>
+	/// PendingRewards: double_map PoolId, AccountId => BTreeMap<FungibleTokenId, Balance>
 	#[pallet::storage]
 	#[pallet::getter(fn pending_multi_rewards)]
 	pub type PendingRewards<T: Config> = StorageDoubleMap<
@@ -282,6 +278,12 @@ pub mod pallet {
 		BTreeMap<FungibleTokenId, BalanceOf<T>>,
 		ValueQuery,
 	>;
+
+	/// The estimated staking reward rate per era on relaychain.
+	///
+	/// EstimatedRewardRatePerEra: value: Rate
+	#[pallet::storage]
+	pub type EstimatedRewardRatePerEra<T: Config> = StorageValue<_, FractionalRate, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
@@ -330,6 +332,8 @@ pub mod pallet {
 			reward_currency_id: FungibleTokenId,
 			claimed_amount: BalanceOf<T>,
 		},
+		/// Reward rate per era updated.
+		EstimatedRewardRatePerEraUpdated { reward_rate_per_era: Rate },
 	}
 
 	#[pallet::error]
@@ -378,12 +382,16 @@ pub mod pallet {
 		OriginsAlreadyExist,
 		/// Origin doesn't exists
 		OriginDoesNotExists,
+		/// Invalid rate input
+		InvalidRate,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-			let era_number = Self::get_era_index(T::RelayChainBlockNumber::current_block_number());
+			// let era_number = Self::get_era_index(T::RelayChainBlockNumber::current_block_number());
+			let era_number = Self::get_era_index(<frame_system::Pallet<T>>::block_number());
+
 			if !era_number.is_zero() {
 				let _ = Self::update_current_era(era_number).map_err(|err| err).ok();
 			}
@@ -399,7 +407,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			currency_id: FungibleTokenId,
 			max_nft_reward: u32,
-			commission: Permill,
+			commission: Rate,
 		) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
@@ -669,6 +677,7 @@ pub mod pallet {
 			last_era_updated_block: Option<BlockNumberFor<T>>,
 			frequency: Option<BlockNumberFor<T>>,
 			last_staking_round: StakingRound,
+			estimated_reward_rate_per_era: Option<Rate>,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
@@ -693,6 +702,13 @@ pub mod pallet {
 				}
 			}
 
+			if let Some(reward_rate_per_era) = estimated_reward_rate_per_era {
+				EstimatedRewardRatePerEra::<T>::mutate(|rate| -> DispatchResult {
+					rate.try_set(reward_rate_per_era)
+						.map_err(|_| Error::<T>::InvalidRate.into())
+				})?;
+				Self::deposit_event(Event::<T>::EstimatedRewardRatePerEraUpdated { reward_rate_per_era });
+			}
 			Ok(())
 		}
 
@@ -814,7 +830,7 @@ impl<T: Config> Pallet<T> {
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let (deposit_rate, _redeem_rate) = Fees::<T>::get();
 
-		let deposit_fee = deposit_rate * amount;
+		let deposit_fee = deposit_rate.into_inner().saturating_mul_int(amount);
 		let amount_exclude_fee = amount.checked_sub(&deposit_fee).ok_or(Error::<T>::ArithmeticOverflow)?;
 		T::MultiCurrency::transfer(
 			currency_id,
@@ -832,7 +848,7 @@ impl<T: Config> Pallet<T> {
 		amount: BalanceOf<T>,
 	) -> Result<BalanceOf<T>, DispatchError> {
 		let (_mint_rate, redeem_rate) = Fees::<T>::get();
-		let redeem_fee = redeem_rate * amount;
+		let redeem_fee = redeem_rate.into_inner().saturating_mul_int(amount);
 		let amount_exclude_fee = amount.checked_sub(&redeem_fee).ok_or(Error::<T>::ArithmeticOverflow)?;
 		T::MultiCurrency::transfer(
 			currency_id,
@@ -949,6 +965,73 @@ impl<T: Config> Pallet<T> {
 			ExistenceRequirement::KeepAlive,
 		)?;
 		<orml_rewards::Pallet<T>>::accumulate_reward(&Zero::zero(), FungibleTokenId::NativeToken(0), amount_to_send)?;
+		Ok(())
+	}
+
+	pub(crate) fn estimated_reward_rate_per_era() -> Rate {
+		EstimatedRewardRatePerEra::<T>::get().into_inner()
+	}
+
+	fn handle_reward_distribution_to_pool_treasury(previous_era: EraIndex, new_era: EraIndex) -> DispatchResult {
+		let era_changes = new_era.saturating_sub(previous_era);
+		ensure!(!era_changes.is_zero(), Error::<T>::Unexpected);
+		// Get reward per era for pool treasury
+		let reward_rate_per_era = Self::estimated_reward_rate_per_era();
+		// Get total compound reward rate based on number of era.
+		let reward_rate = reward_rate_per_era
+			.saturating_add(Rate::one())
+			.saturating_pow(era_changes.unique_saturated_into())
+			.saturating_sub(Rate::one());
+		let mut total_reward_staking: BalanceOf<T> = Zero::zero();
+
+		if !reward_rate.is_zero() {
+			// iterate all pool ledgers
+			for (pool_id, pool_amount) in PoolLedger::<T>::iter() {
+				let mut reward_staking = reward_rate.saturating_mul_int(pool_amount);
+
+				if !reward_staking.is_zero() {
+					let pool_treasury_account = Self::get_pool_treasury(pool_id);
+					total_reward_staking = total_reward_staking.saturating_add(reward_staking);
+
+					let pool_treasury_commission = Rate::checked_from_rational(1, 100).unwrap_or_default();
+					let pool_treasury_reward_commission_amount =
+						pool_treasury_commission.saturating_mul_int(reward_staking);
+
+					// Increase reward staking of pool ledger
+					PoolLedger::<T>::mutate(pool_id, |total_staked| -> Result<(), Error<T>> {
+						*total_staked = total_staked
+							.checked_add(&reward_staking)
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
+
+						Ok(())
+					})?;
+
+					T::MultiCurrency::deposit(
+						FungibleTokenId::FungibleToken(1),
+						&pool_treasury_account,
+						pool_treasury_reward_commission_amount,
+					)?;
+					<orml_rewards::Pallet<T>>::accumulate_reward(
+						&pool_id,
+						FungibleTokenId::FungibleToken(1),
+						pool_treasury_reward_commission_amount,
+					)?;
+				}
+			}
+
+			if !total_reward_staking.is_zero() {
+				NetworkLedger::<T>::mutate(
+					&FungibleTokenId::NativeToken(1),
+					|total_staked| -> Result<(), Error<T>> {
+						*total_staked = total_staked
+							.checked_add(&total_reward_staking)
+							.ok_or(Error::<T>::ArithmeticOverflow)?;
+						Ok(())
+					},
+				)?;
+			}
+		}
+
 		Ok(())
 	}
 

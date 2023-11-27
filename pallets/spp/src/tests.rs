@@ -23,6 +23,7 @@ use sp_runtime::traits::BadOrigin;
 use sp_runtime::{Perbill, Permill};
 
 use mock::{RuntimeEvent, *};
+use primitives::bounded::FractionalRate;
 
 use crate::utils::{BoostInfo, BoostingConviction, BoostingRecord, PoolInfo, PriorLock};
 
@@ -53,7 +54,7 @@ fn create_ksm_pool_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			// Check the next pool id will increment
@@ -65,7 +66,7 @@ fn create_ksm_pool_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -105,7 +106,7 @@ fn deposit_ksm_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -114,7 +115,7 @@ fn deposit_ksm_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -146,7 +147,7 @@ fn redeem_rksm_request_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -155,7 +156,7 @@ fn redeem_rksm_request_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -244,13 +245,14 @@ fn current_era_update_works() {
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
+				Some(Rate::saturating_from_rational(35, 100000))
 			));
 
 			assert_ok!(SppModule::create_pool(
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -259,7 +261,7 @@ fn current_era_update_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50,
 				}
@@ -408,7 +410,7 @@ fn boosting_works() {
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -417,7 +419,7 @@ fn boosting_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -484,13 +486,14 @@ fn boosting_and_claim_reward_works() {
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
+				Some(Rate::saturating_from_rational(35, 100000))
 			));
 
 			assert_ok!(SppModule::create_pool(
 				RuntimeOrigin::signed(ALICE),
 				FungibleTokenId::NativeToken(1),
 				50,
-				Permill::from_percent(5)
+				Rate::saturating_from_rational(5, 100)
 			));
 
 			let next_pool_id = NextPoolId::<Runtime>::get();
@@ -499,7 +502,7 @@ fn boosting_and_claim_reward_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: ALICE,
-					commission: Permill::from_percent(5),
+					commission: Rate::saturating_from_rational(5, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 50
 				}
@@ -665,5 +668,114 @@ fn boosting_and_claim_reward_works() {
 				Balances::free_balance(CHARLIE),
 				charlie_balance_before_claiming_boosting_reward + 500
 			);
+		});
+}
+
+#[test]
+fn reward_distribution_works() {
+	ExtBuilder::default()
+		.ksm_setup_for_alice_and_bob()
+		.build()
+		.execute_with(|| {
+			// Era config set up
+			// Current relaychain block is 102.
+			MockRelayBlockNumberProvider::set(102);
+			RelayChainCurrentEra::<Runtime>::put(1);
+			IterationLimit::<Runtime>::put(50);
+			UnlockDuration::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1)); // Bump current staking round to 1
+			CurrentStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1));
+			// The correct set up era config is the last era block records is 101 with duration is 100 blocks
+			assert_ok!(SppModule::update_era_config(
+				RuntimeOrigin::signed(Admin::get()),
+				Some(101),
+				Some(100),
+				StakingRound::Era(1),
+				Some(Rate::saturating_from_rational(20, 100)) // Set reward rate per era is 20%.
+			));
+
+			assert_ok!(SppModule::create_pool(
+				RuntimeOrigin::signed(ALICE),
+				FungibleTokenId::NativeToken(1),
+				50,
+				Rate::saturating_from_rational(5, 100)
+			));
+
+			let next_pool_id = NextPoolId::<Runtime>::get();
+			assert_eq!(next_pool_id, 2);
+			assert_eq!(
+				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
+				PoolInfo::<AccountId> {
+					creator: ALICE,
+					commission: Rate::saturating_from_rational(5, 100),
+					currency_id: FungibleTokenId::NativeToken(1),
+					max: 50
+				}
+			);
+
+			assert_ok!(SppModule::deposit(RuntimeOrigin::signed(BOB), 1, 10000));
+			// This is true because fee hasn't been set up.
+			assert_eq!(Tokens::accounts(BOB, FungibleTokenId::FungibleToken(1)).free, 10000);
+
+			assert_eq!(PoolLedger::<Runtime>::get(1), 10000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 10000);
+
+			// Boosting works
+			let bob_free_balance = Balances::free_balance(BOB);
+			assert_ok!(SppModule::boost(
+				RuntimeOrigin::signed(BOB),
+				1,
+				BoostInfo {
+					balance: 15000,
+					conviction: BoostingConviction::None
+				}
+			));
+			let boosting_of = BoostingOf::<Runtime>::get(BOB);
+			let some_record = BoostingRecord {
+				votes: vec![(
+					1,
+					BoostInfo {
+						balance: 15000,
+						conviction: BoostingConviction::None,
+					},
+				)],
+				prior: PriorLock(101, 15000),
+			};
+			assert_eq!(boosting_of, some_record);
+			assert_eq!(Balances::usable_balance(&BOB), bob_free_balance - 15000);
+			let pool_1_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(1, BOB);
+			let network_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(0, BOB);
+			assert_eq!(pool_1_shared_rewards, (15000, Default::default()));
+			assert_eq!(network_shared_rewards, (15000, Default::default()));
+
+			// Charlie boosted with 15000 Native token
+			assert_ok!(SppModule::boost(
+				RuntimeOrigin::signed(CHARLIE),
+				1,
+				BoostInfo {
+					balance: 15000,
+					conviction: BoostingConviction::None
+				}
+			));
+			// Charlie now should have 15000 shares in the pool
+			assert_eq!(
+				RewardsModule::shares_and_withdrawn_rewards(1, CHARLIE),
+				(15000, Default::default())
+			);
+
+			// Move to era 2
+			MockRelayBlockNumberProvider::set(202);
+			SppModule::on_initialize(200);
+
+			assert_ok!(SppModule::handle_reward_distribution_to_pool_treasury(1, 2));
+			let pool_treasury = SppModule::get_pool_treasury(1);
+
+			assert_eq!(
+				Currencies::free_balance(FungibleTokenId::FungibleToken(1), &pool_treasury),
+				20
+			);
+
+			assert_eq!(Currencies::total_issuance(FungibleTokenId::FungibleToken(1)), 10020);
+			assert_eq!(PoolLedger::<Runtime>::get(1), 12000);
+			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 12000);
 		});
 }
