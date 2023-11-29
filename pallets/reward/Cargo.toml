@@ -20,7 +20,7 @@ sp-std = { workspace = true }
 frame-system = { workspace = true }
 frame-support = { workspace = true }
 pallet-balances = { workspace = true }
-pallet-randomness-collective-flip = { workspace = true }
+pallet-insecure-randomness-collective-flip = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
