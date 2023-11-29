@@ -63,7 +63,6 @@ frame-system = { git = 'https://github.com/paritytech/substrate', branch = 'polk
 frame-system-benchmarking = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.43', default-features = false}
 frame-benchmarking-cli = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 frame-system-rpc-runtime-api = { git = 'https://github.com/paritytech/substrate', branch = 'polkadot-v0.9.43', default-features = false }
-frame-try-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.43", default-features = false }
 
 # Substrate Primitive Dependencies (node - only)
 sc-authority-discovery = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
@@ -116,7 +115,6 @@ sp-arithmetic = { git = 'https://github.com/paritytech/substrate', branch = 'pol
 # Substrate Utilities
 node-primitives = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43"}
 substrate-build-script-utils = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
-try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.43" }
 substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43", default-features = false }
 substrate-fixed = { default-features = false, git = "https://github.com/encointer/substrate-fixed" }
 
@@ -234,6 +232,10 @@ libsecp256k1 = { version = "0.7.0", default-features = false, features = ["hmac"
 # ink!
 pallet-contracts = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43", default-features = false }
 pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43", default-features = false }
+
+# try-runtime
+frame-try-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.43", default-features = false }
+try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.43",  default-features = false }
 
 # Metaverse Network Traits
 auction-manager = { default-features = false, package = 'auction-manager', path = '../../traits/auction-manager' }

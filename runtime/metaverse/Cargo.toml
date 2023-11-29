@@ -58,7 +58,7 @@ pallet-collator-selection = { workspace = true }
 pallet-proxy = { workspace = true }
 
 frame-try-runtime = { workspace = true, optional = true }
-try-runtime-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.43", optional = true, default-features = false }
+try-runtime-cli = { workspace = true, optional = true }
 polkadot-primitives = { workspace = true }
 
 # Used for the node template"s RPCs
@@ -218,6 +218,7 @@ runtime-benchmarks = [
 disable-runtime-api = []
 
 try-runtime = [
+    "try-runtime-cli",
     "frame-executive/try-runtime",
     "frame-try-runtime",
     "frame-system/try-runtime",
