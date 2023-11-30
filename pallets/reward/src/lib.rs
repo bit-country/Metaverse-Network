@@ -17,9 +17,9 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, HasCompact};
+use codec::Encode;
 use frame_support::storage::{child, ChildTriePrefixIterator};
-use frame_support::traits::{LockIdentifier, WithdrawReasons};
+
 use frame_support::{
 	ensure, log,
 	pallet_prelude::*,
@@ -27,23 +27,21 @@ use frame_support::{
 	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
+use orml_traits::{DataProvider, MultiCurrency, MultiReservableCurrency};
 use sp_core::Encode as SPEncode;
 use sp_io::hashing::keccak_256;
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Hash as Hasher, Saturating};
+use sp_runtime::traits::{Hash as Hasher, Saturating};
 use sp_runtime::{
-	traits::{AccountIdConversion, One, Zero},
-	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
+	traits::{AccountIdConversion, Zero},
+	DispatchError, Perbill, SaturatedConversion,
 };
-use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
+use sp_std::{prelude::*, vec::Vec};
 
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{
-	estate::Estate, CampaignId, CampaignInfo, CampaignInfoV1, CampaignInfoV2, EstateId, Hash, RewardType, TrieIndex,
-};
-use primitives::{Balance, ClassId, FungibleTokenId, NftId};
+use primitives::{Balance, ClassId, FungibleTokenId};
+use primitives::{CampaignId, CampaignInfo, CampaignInfoV2, Hash, RewardType, TrieIndex};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -59,13 +57,12 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::tokens::currency;
+
 	use frame_support::traits::ExistenceRequirement::AllowDeath;
-	use orml_traits::{rewards, MultiCurrencyExtended};
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
+
+	use sp_runtime::traits::{CheckedAdd, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::staking::RoundInfo;
 	use primitives::{CampaignId, CampaignInfo, ClassId, NftId};
 
 	use super::*;
@@ -379,7 +376,7 @@ pub mod pallet {
 		/// - `properties`: information relevant for the campaign.
 		///
 		/// Emits `NewRewardCampaignCreated` if successful.
-		#[pallet::weight(T::WeightInfo::create_campaign().saturating_mul((1u64.saturating_add(reward.len() as u64))))]
+		#[pallet::weight(T::WeightInfo::create_campaign().saturating_mul(1u64.saturating_add(reward.len() as u64)))]
 		#[transactional]
 		pub fn create_nft_campaign(
 			origin: OriginFor<T>,
@@ -518,7 +515,7 @@ pub mod pallet {
 		/// - `leaf_nodes`: list of the merkle tree nodes required for merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_reward_root().saturating_mul((1u64.saturating_add(leaf_nodes.len() as u64))))]
+		#[pallet::weight(T::WeightInfo::claim_reward_root().saturating_mul(1u64.saturating_add(leaf_nodes.len() as u64)))]
 		#[transactional]
 		pub fn claim_reward_root(
 			origin: OriginFor<T>,
@@ -582,7 +579,7 @@ pub mod pallet {
 		/// - `amount`: the amount of NFTs that the account is going to claim
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_nft_reward().saturating_mul((1u64.saturating_add(*amount))))]
+		#[pallet::weight(T::WeightInfo::claim_nft_reward().saturating_mul(1u64.saturating_add(*amount)))]
 		#[transactional]
 		pub fn claim_nft_reward(origin: OriginFor<T>, id: CampaignId, amount: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -641,7 +638,7 @@ pub mod pallet {
 		/// - `leaf_nodes`: list of the merkle tree nodes required for  merkle-proof calculation.
 		///
 		/// Emits `RewardClaimed` if successful.
-		#[pallet::weight(T::WeightInfo::claim_nft_reward_root().saturating_mul((1u64.saturating_add(reward_tokens.len() as u64))))]
+		#[pallet::weight(T::WeightInfo::claim_nft_reward_root().saturating_mul(1u64.saturating_add(reward_tokens.len() as u64)))]
 		#[transactional]
 		pub fn claim_nft_reward_root(
 			origin: OriginFor<T>,
@@ -855,7 +852,7 @@ pub mod pallet {
 						let mut new_cap = cap.clone();
 						let mut rewards_list: Vec<(T::AccountId, Vec<(ClassId, NftId)>)> = Vec::new();
 						let mut tokens: Vec<(ClassId, TokenId)> = Vec::new();
-						let mut total_amount_left: u64 = total_nfts_amount;
+						let total_amount_left: u64 = total_nfts_amount;
 						for (to, amount) in rewards {
 							let (t, _) = Self::reward_get_nft(campaign.trie_index, &to);
 							ensure!(t.is_empty(), Error::<T>::AccountAlreadyRewarded);
@@ -866,7 +863,7 @@ pub mod pallet {
 							);
 							total_amount_left.saturating_sub(amount);
 
-							for l in 0..amount {
+							for _l in 0..amount {
 								let token = new_cap.pop().ok_or(Error::<T>::RewardExceedCap)?;
 								tokens.push(token);
 							}
@@ -945,13 +942,13 @@ pub mod pallet {
 		/// - `merkle_roots_quanity`: the amount of merkle roots that were used for setting rewards.
 		///
 		/// Emits `RewardCampaignClosed` and/or `RewardCampaignRootClosed`  if successful.
-		#[pallet::weight(T::WeightInfo::close_campaign().saturating_mul((1u64.saturating_add(*merkle_roots_quantity))))]
+		#[pallet::weight(T::WeightInfo::close_campaign().saturating_mul(1u64.saturating_add(*merkle_roots_quantity)))]
 		#[transactional]
 		pub fn close_campaign(origin: OriginFor<T>, id: CampaignId, merkle_roots_quantity: u64) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
 			ensure!(who == campaign.creator, Error::<T>::NotCampaignCreator);
 
@@ -1012,7 +1009,7 @@ pub mod pallet {
 			let who = ensure_signed(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
 			ensure!(who == campaign.creator, Error::<T>::NotCampaignCreator);
 
@@ -1069,7 +1066,7 @@ pub mod pallet {
 			T::AdminOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
 			ensure!(campaign.end > now, Error::<T>::CampaignEnded);
 
@@ -1100,7 +1097,7 @@ pub mod pallet {
 			T::AdminOrigin::ensure_origin(origin)?;
 			let now = frame_system::Pallet::<T>::block_number();
 
-			let mut campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
+			let campaign = Self::campaigns(id).ok_or(Error::<T>::CampaignIsNotFound)?;
 
 			ensure!(campaign.end > now, Error::<T>::CampaignEnded);
 
@@ -1179,7 +1176,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
 		/// Hook that is called every time a new block is finalized.
 		fn on_finalize(block_number: T::BlockNumber) {
-			for (id, info) in Campaigns::<T>::iter()
+			for (id, _info) in Campaigns::<T>::iter()
 				.filter(|(_, campaign_info)| campaign_info.end == block_number)
 				.collect::<Vec<_>>()
 			{
@@ -1394,7 +1391,7 @@ impl<T: Config> Pallet<T> {
 		let mut upgraded_campaign_items = 0;
 
 		Campaigns::<T>::translate(
-			|k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+			|_k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
 				upgraded_campaign_items += 1;
 
 				let v3_reward = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.reward);

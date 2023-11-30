@@ -16,22 +16,17 @@
 // limitations under the License.
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
-use cumulus_pallet_parachain_system::CheckAssociatedRelayNumber;
 use frame_support::{
 	traits::Get,
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 };
 use orml_traits::currency::MutationHooks;
-use polkadot_parachain::primitives::RelayChainBlockNumber;
+
 use sp_runtime::{FixedPointNumber, FixedU128};
 use sp_std::{marker::PhantomData, prelude::*};
 use xcm::latest::prelude::*;
 use xcm_builder::TakeRevenue;
-use xcm_executor::{
-	traits::{DropAssets, WeightTrader},
-	Assets,
-};
+use xcm_executor::{traits::WeightTrader, Assets};
 
 use primitives::BuyWeightRate;
 

@@ -7,8 +7,8 @@ use sp_std::collections::btree_map::BTreeMap;
 use auction_manager::ListingLevel;
 use core_primitives::{Attributes, CollectionType, NFTTrait, TokenType};
 use mock::{RuntimeEvent, *};
-use primitives::ItemId::NFT;
-use primitives::{ClassId, FungibleTokenId};
+
+use primitives::FungibleTokenId;
 
 use super::*;
 
@@ -1691,7 +1691,7 @@ fn auction_bundle_should_update_new_price_according_new_bid() {
 		assert_eq!(Balances::free_balance(ALICE), 99991);
 
 		let tokens_after_bid = vec![(0, 0, 150), (0, 1, 150)];
-		let item_updated_after_bid = AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone()));
+		let _item_updated_after_bid = AuctionModule::items_in_auction(ItemId::Bundle(tokens.clone()));
 		let auction_item = AuctionModule::get_auction_item(0).unwrap();
 
 		assert_eq!(auction_item.item_id, ItemId::Bundle(tokens_after_bid));
@@ -2112,7 +2112,7 @@ fn withdraw_offer_should_work() {
 fn finalize_auction_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(BOB);
-		let bidder = RuntimeOrigin::signed(ALICE);
+		let _bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
@@ -2152,7 +2152,7 @@ fn finalize_auction_should_fail() {
 fn cancel_listing_should_work() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(BOB);
-		let bidder = RuntimeOrigin::signed(ALICE);
+		let _bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(
 			AuctionType::Auction,
@@ -2192,7 +2192,7 @@ fn cancel_listing_should_work() {
 fn cancel_listing_should_fail() {
 	ExtBuilder::default().build().execute_with(|| {
 		let owner = RuntimeOrigin::signed(BOB);
-		let bidder = RuntimeOrigin::signed(ALICE);
+		let _bidder = RuntimeOrigin::signed(ALICE);
 		init_test_nft(owner.clone());
 		init_test_nft(owner.clone());
 		assert_ok!(AuctionModule::create_auction(

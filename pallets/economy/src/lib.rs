@@ -17,16 +17,15 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Decode, Encode, HasCompact};
-use frame_support::traits::{LockIdentifier, WithdrawReasons};
+use codec::Encode;
 use frame_support::{
-	ensure, log,
+	ensure,
 	pallet_prelude::*,
-	traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency},
+	traits::{Currency, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
-use orml_traits::{DataFeeder, DataProvider, MultiCurrency, MultiReservableCurrency};
+use orml_traits::{DataProvider, MultiCurrency, MultiReservableCurrency};
 use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Saturating};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
@@ -38,7 +37,7 @@ use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
 use primitives::{estate::Estate, EstateId};
-use primitives::{AssetId, Balance, ClassId, DomainId, FungibleTokenId, MetaverseId, NftId, PowerAmount, RoundIndex};
+use primitives::{Balance, ClassId, DomainId, FungibleTokenId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
 //#[cfg(feature = "runtime-benchmarks")]
@@ -54,12 +53,11 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use orml_traits::MultiCurrencyExtended;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::staking::{Bond, RoundInfo};
-	use primitives::{ClassId, GroupCollectionId, NftId};
+	use primitives::staking::Bond;
+	use primitives::{ClassId, NftId};
 
 	use super::*;
 
@@ -338,7 +336,7 @@ pub mod pallet {
 						Error::<T>::ExitQueueAlreadyScheduled
 					);
 
-					let mut staked_balance = StakingInfo::<T>::get(&who);
+					let staked_balance = StakingInfo::<T>::get(&who);
 					let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 					ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
@@ -440,7 +438,7 @@ pub mod pallet {
 
 			match estate {
 				None => {
-					let mut staked_balance = StakingInfo::<T>::get(&who);
+					let staked_balance = StakingInfo::<T>::get(&who);
 					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
 					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
@@ -672,7 +670,7 @@ pub mod pallet {
 
 			match estate {
 				None => {
-					let mut staked_balance = StakingInfo::<T>::get(&who);
+					let staked_balance = StakingInfo::<T>::get(&who);
 					ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
 					let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
@@ -771,7 +769,7 @@ pub mod pallet {
 			ensure!(!amount.is_zero(), Error::<T>::UnstakeAmountIsZero);
 
 			// Update staking info
-			let mut staked_reserved_balance = T::Currency::reserved_balance(&who);
+			let staked_reserved_balance = T::Currency::reserved_balance(&who);
 			ensure!(
 				amount <= staked_reserved_balance,
 				Error::<T>::UnstakeAmountExceedStakedAmount
@@ -795,7 +793,7 @@ impl<T: Config> Pallet<T> {
 	pub fn convert_power_to_bit(power_amount: Balance, commission: Perbill) -> (Balance, Balance) {
 		let rate = Self::get_bit_power_exchange_rate();
 
-		let mut bit_required = power_amount
+		let bit_required = power_amount
 			.checked_mul(rate)
 			.ok_or(ArithmeticError::Overflow)
 			.unwrap_or(Zero::zero());

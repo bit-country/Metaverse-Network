@@ -15,17 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use codec::{Decode, Encode};
-use orml_traits::arithmetic::{CheckedDiv, CheckedMul};
 use orml_traits::MultiCurrency;
-use scale_info::TypeInfo;
-#[cfg(feature = "std")]
-use serde::{Deserialize, Serialize};
-use sp_runtime::traits::{Saturating, Zero};
-use sp_runtime::{ArithmeticError, Perbill, RuntimeDebug};
+
+use sp_runtime::Perbill;
 
 use core_primitives::{MiningRange, MiningResourceRateInfo};
-use primitives::{estate::Estate, Balance, FungibleTokenId};
+use primitives::{Balance, FungibleTokenId};
 
 // Helper methods to compute the issuance rate for undeployed land.
 use crate::pallet::{Config, Pallet};

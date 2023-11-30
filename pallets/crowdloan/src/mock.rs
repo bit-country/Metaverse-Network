@@ -1,14 +1,11 @@
 #![cfg(test)]
 
 use frame_support::traits::WithdrawReasons;
-use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
-use frame_system::EnsureSignedBy;
-use sp_core::H256;
-use sp_runtime::traits::{ConvertInto, Identity};
-use sp_runtime::{testing::Header, traits::IdentityLookup, DispatchError, Perbill};
+use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 
-use auction_manager::{Auction, AuctionInfo, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use primitives::FungibleTokenId;
+use sp_core::H256;
+use sp_runtime::traits::ConvertInto;
+use sp_runtime::{testing::Header, traits::IdentityLookup, Perbill};
 
 use crate as crowdloan;
 
@@ -124,29 +121,29 @@ impl VestingSchedule<AccountId> for VestingScheduleTrait {
 	type Moment = ();
 	type Currency = Balances;
 
-	fn vesting_balance(who: &AccountId) -> Option<Balance> {
+	fn vesting_balance(_who: &AccountId) -> Option<Balance> {
 		None
 	}
 
 	fn add_vesting_schedule(
-		who: &AccountId,
-		locked: Balance,
-		per_block: Balance,
-		starting_block: Self::Moment,
+		_who: &AccountId,
+		_locked: Balance,
+		_per_block: Balance,
+		_starting_block: Self::Moment,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn can_add_vesting_schedule(
-		who: &AccountId,
-		locked: Balance,
-		per_block: Balance,
-		starting_block: Self::Moment,
+		_who: &AccountId,
+		_locked: Balance,
+		_per_block: Balance,
+		_starting_block: Self::Moment,
 	) -> DispatchResult {
 		Ok(())
 	}
 
-	fn remove_vesting_schedule(who: &AccountId, schedule_index: u32) -> DispatchResult {
+	fn remove_vesting_schedule(_who: &AccountId, _schedule_index: u32) -> DispatchResult {
 		Ok(())
 	}
 }

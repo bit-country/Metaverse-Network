@@ -26,11 +26,10 @@ use frame_support::{
 };
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
-use scale_info::TypeInfo;
 
 use sp_runtime::{
-	traits::{AccountIdConversion, Convert, One, Saturating, Zero},
-	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
+	traits::{AccountIdConversion, Convert, One, Saturating},
+	DispatchError, Perbill, SaturatedConversion,
 };
 use sp_std::vec::Vec;
 
@@ -40,7 +39,7 @@ pub use pallet::*;
 use primitives::estate::EstateInfo;
 use primitives::{
 	estate::{Estate, LandUnitStatus, LeaseContract, OwnerId},
-	Attributes, ClassId, EstateId, FungibleTokenId, ItemId, MetaverseId, NftMetadata, TokenId, UndeployedLandBlock,
+	Attributes, ClassId, EstateId, ItemId, MetaverseId, NftMetadata, TokenId, UndeployedLandBlock,
 	UndeployedLandBlockId, UndeployedLandBlockType,
 };
 pub use rate::{MintingRateInfo, Range};
@@ -61,11 +60,11 @@ pub mod weights;
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::traits::{Currency, Imbalance, ReservableCurrency};
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Zero};
+	use sp_runtime::traits::{CheckedSub, Zero};
 
 	use primitives::estate::EstateInfo;
-	use primitives::staking::{Bond, RoundInfo, StakeSnapshot};
-	use primitives::{Balance, RoundIndex, UndeployedLandBlockId};
+	use primitives::staking::RoundInfo;
+	use primitives::{RoundIndex, UndeployedLandBlockId};
 
 	use crate::rate::{round_issuance_range, MintingRateInfo};
 
@@ -1047,7 +1046,7 @@ pub mod pallet {
 								T::NFTTokenizationSource::burn_nft(&who, &(class_id, token_id));
 								*estate_owner = None;
 							}
-							OwnerId::Account(ref a) => {
+							OwnerId::Account(ref _a) => {
 								*estate_owner = None;
 							}
 						}
@@ -1063,7 +1062,7 @@ pub mod pallet {
 						AllEstatesCount::<T>::put(new_total_estates_count);
 
 						// Mint new land tokens to replace the lands in the dissolved estate
-						let estate_account_id: T::AccountId =
+						let _estate_account_id: T::AccountId =
 							T::LandTreasury::get().into_sub_account_truncating(estate_id);
 						let storage_fee: BalanceOf<T> =
 							Perbill::from_percent(100u32.saturating_mul(estate_info.land_units.len() as u32))
@@ -1207,11 +1206,12 @@ pub mod pallet {
 						Error::<T>::NoPermission
 					);
 					let estate_info: EstateInfo = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
-					let estate_account_id: T::AccountId = T::LandTreasury::get().into_sub_account_truncating(estate_id);
+					let _estate_account_id: T::AccountId =
+						T::LandTreasury::get().into_sub_account_truncating(estate_id);
 
 					// Mutate estates
 					Estates::<T>::try_mutate_exists(&estate_id, |maybe_estate_info| {
-						let mut mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
+						let mut_estate_info = maybe_estate_info.as_mut().ok_or(Error::<T>::EstateDoesNotExist)?;
 
 						let storage_fee: BalanceOf<T> =
 							Perbill::from_percent(100u32.saturating_mul(land_units.len() as u32))
@@ -1549,7 +1549,7 @@ pub mod pallet {
 			);
 			let current_block = <frame_system::Pallet<T>>::block_number();
 			EstateLeases::<T>::try_mutate_exists(&estate_id, |estate_lease_value| {
-				let mut lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
+				let lease = estate_lease_value.as_mut().ok_or(Error::<T>::LeaseDoesNotExist)?;
 
 				ensure!(lease.end_block > current_block, Error::<T>::LeaseIsExpired);
 
@@ -1615,7 +1615,7 @@ impl<T: Config> Pallet<T> {
 								Error::<T>::NoPermission
 							);
 
-							if let OwnerId::Token(owner_class_id, owner_token_id) = token_owner {
+							if let OwnerId::Token(owner_class_id, _owner_token_id) = token_owner {
 								ensure!(owner_class_id != class_id, Error::<T>::LandUnitAlreadyInEstate)
 							}
 
@@ -1881,11 +1881,11 @@ impl<T: Config> Pallet<T> {
 		from: &T::AccountId,
 		to: &T::AccountId,
 	) -> Result<EstateId, DispatchError> {
-		EstateOwner::<T>::try_mutate_exists(&estate_id, |estate_owner| -> Result<EstateId, DispatchError> {
+		EstateOwner::<T>::try_mutate_exists(&estate_id, |_estate_owner| -> Result<EstateId, DispatchError> {
 			//ensure there is record of the estate owner with estate id and account id
 			ensure!(from != to, Error::<T>::AlreadyOwnTheEstate);
 			let estate_owner_value = Self::get_estate_owner(&estate_id).ok_or(Error::<T>::NoPermission)?;
-			let estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
+			let _estate_info = Estates::<T>::get(estate_id).ok_or(Error::<T>::EstateDoesNotExist)?;
 			ensure!(
 				!EstateLeases::<T>::contains_key(estate_id),
 				Error::<T>::EstateIsAlreadyLeased
@@ -2081,8 +2081,8 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn verify_land_unit_in_bound(block_coordinate: &(i32, i32), land_unit_coordinates: &Vec<(i32, i32)>) -> bool {
-		let mut vec_axis = land_unit_coordinates.iter().map(|lu| lu.0).collect::<Vec<_>>();
-		let mut vec_yaxis = land_unit_coordinates.iter().map(|lu| lu.1).collect::<Vec<_>>();
+		let vec_axis = land_unit_coordinates.iter().map(|lu| lu.0).collect::<Vec<_>>();
+		let vec_yaxis = land_unit_coordinates.iter().map(|lu| lu.1).collect::<Vec<_>>();
 
 		let max_axis = vec_axis.iter().max().unwrap_or(&i32::MAX);
 		let max_yaxis = vec_yaxis.iter().max().unwrap_or(&i32::MAX);

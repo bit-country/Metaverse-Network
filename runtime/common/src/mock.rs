@@ -1,22 +1,19 @@
-use std::ptr::hash;
-
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchResult,
 	parameter_types,
-	traits::{AsEnsureOriginWithArg, Everything, Nothing},
+	traits::{Everything, Nothing},
 	weights::Weight,
 	PalletId,
 };
-use frame_system::{EnsureNever, EnsureRoot};
-use hex_literal::hex;
+use frame_system::EnsureRoot;
+
 use orml_traits::parameter_type_with_key;
-use pallet_evm::{AddressMapping, PrecompileHandle, PrecompileOutput};
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
-use scale_info::TypeInfo;
-use serde::{Deserialize, Serialize};
-use sp_core::{Blake2Hasher, Decode, Encode, Hasher, MaxEncodedLen, H160, H256, U256};
-use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, ConstU32, IdentityLookup, Verify};
+use pallet_evm::{PrecompileHandle, PrecompileOutput};
+
+use sp_core::{MaxEncodedLen, H160, H256, U256};
+use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Verify};
 use sp_runtime::{AccountId32, DispatchError, MultiSignature, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
@@ -29,11 +26,10 @@ use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_TOKEN,
 	H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
-use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, GroupCollectionId, ItemId, TokenId};
+use primitives::{Amount, AuctionId, ClassId, FungibleTokenId, ItemId, TokenId};
 
 use crate::currencies::MultiCurrencyPrecompile;
 use crate::nft::NftPrecompile;
-use crate::precompiles::MetaverseNetworkPrecompiles;
 
 use super::*;
 
@@ -142,7 +138,7 @@ where
 		}
 	}
 
-	fn is_precompile(&self, address: H160) -> bool {
+	fn is_precompile(&self, _address: H160) -> bool {
 		true
 	}
 }
@@ -311,7 +307,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+	fn auction_item(_id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
 		None
 	}
 
@@ -319,7 +315,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		Ok(())
 	}
 
-	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
+	fn update_auction_item(_id: AuctionId, _item_id: ItemId<Self::Balance>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -348,11 +344,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
-	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+	fn auction_bid_handler(_from: AccountId, _id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 
-	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
+	fn buy_now_handler(_from: AccountId, _auction_id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 

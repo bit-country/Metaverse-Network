@@ -11,7 +11,7 @@ use sp_core::{H160, U256};
 use sp_std::prelude::*;
 
 pub use pallet::*;
-use primitives::{Balance, FungibleTokenId};
+use primitives::FungibleTokenId;
 
 pub type ResourceId = H160;
 pub type ChainId = u8;
@@ -29,12 +29,12 @@ pub mod pallet {
 	use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 	use frame_support::PalletId;
 	use orml_traits::MultiCurrency;
-	use sp_arithmetic::traits::{CheckedMul, Saturating, Zero};
-	use sp_runtime::traits::{AccountIdConversion, CheckedDiv};
-	use sp_runtime::{ArithmeticError, ModuleError};
+	use sp_arithmetic::traits::{Saturating, Zero};
+	use sp_runtime::traits::AccountIdConversion;
+	use sp_runtime::ModuleError;
 
 	use core_primitives::NFTTrait;
-	use primitives::evm::CurrencyIdType::FungibleToken;
+
 	use primitives::{Attributes, ClassId, NftMetadata, TokenId};
 
 	use super::*;
@@ -300,7 +300,11 @@ pub mod pallet {
 					Ok(())
 				}
 				Err(err) => match err {
-					DispatchError::Module(ModuleError { index, error, message }) => {
+					DispatchError::Module(ModuleError {
+						index: _,
+						error: _,
+						message,
+					}) => {
 						if message == Some("AssetInfoNotFound") {
 							if let Ok(_mint_succeeded) =
 								T::NFTHandler::mint_token_with_id(&to, class_id, token_id, metadata, Attributes::new())
@@ -335,7 +339,7 @@ pub mod pallet {
 			let bridge_id = T::PalletId::get().into_account_truncating();
 
 			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
-			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
+			let (min_fee, _fee_scale) = Self::bridge_fee(chain_id);
 
 			T::Currency::transfer(&source, &bridge_id, min_fee.into(), ExistenceRequirement::AllowDeath)?;
 

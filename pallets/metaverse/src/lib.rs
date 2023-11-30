@@ -80,7 +80,7 @@ pub struct MetaverseStakingPoints<AccountId: Ord, Balance: HasCompact> {
 #[frame_support::pallet]
 pub mod pallet {
 	use orml_traits::MultiCurrencyExtended;
-	use sp_runtime::traits::{CheckedAdd, Saturating};
+
 	use sp_runtime::ArithmeticError;
 
 	use primitives::staking::RoundInfo;
@@ -545,7 +545,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Minting of a land class for the metaverse
-	fn mint_metaverse_land_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn mint_metaverse_land_class(_sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for lands
 		let mut land_class_attributes = Attributes::new();
 		land_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), "MetaverseId:".as_bytes().to_vec());
@@ -565,7 +565,10 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Minting of an estate class for the metaverse
-	fn mint_metaverse_estate_class(sender: &T::AccountId, metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn mint_metaverse_estate_class(
+		_sender: &T::AccountId,
+		metaverse_id: MetaverseId,
+	) -> Result<ClassId, DispatchError> {
 		// Pre-mint class for estates
 		let mut estate_class_attributes = Attributes::new();
 		estate_class_attributes.insert("MetaverseId:".as_bytes().to_vec(), metaverse_id.to_be_bytes().to_vec());
@@ -611,7 +614,7 @@ impl<T: Config> Pallet<T> {
 		let default_land_class_id = TryInto::<ClassId>::try_into(0u32).unwrap_or_default();
 		let default_estate_class_id = TryInto::<ClassId>::try_into(1u32).unwrap_or_default();
 
-		Metaverses::<T>::translate(|k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
+		Metaverses::<T>::translate(|_k, metaverse_info_v1: MetaverseInfoV1<T::AccountId>| {
 			upgraded_metaverse_items += 1;
 
 			let v2: MetaverseInfo<T::AccountId> = MetaverseInfo {
