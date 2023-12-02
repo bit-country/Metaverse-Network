@@ -43,11 +43,11 @@ parachain-info = { git = "https://github.com/paritytech/cumulus", branch = "polk
 statemine-runtime = { git = "https://github.com/paritytech/cumulus", branch = "polkadot-v0.9.43", default-features = false }
 
 # Orml pallets
-orml-tokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.43", default-features = false }
-orml-traits = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.43", default-features = false }
-orml-xtokens = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.43", default-features = false }
-orml-xcm = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.43", default-features = false }
-orml-xcm-support = { git = "https://github.com/bit-country/open-runtime-module-library", branch = "v-9.43", default-features = false }
+orml-tokens = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false }
+orml-traits = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false }
+orml-xtokens = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false }
+orml-xcm = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false }
+orml-xcm-support = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false }
 
 # Misc
 xcm-emulator = { git = "https://github.com/shaunxw/xcm-simulator", rev = "d011e5ca62b93e8f688c2042c1f92cdbafc5d1d0" }

@@ -193,16 +193,16 @@ polkadot-runtime-common = { git = 'https://github.com/paritytech/polkadot', bran
 kusama-runtime = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.43", default-features = false }
 
 # ORML
-orml-currencies = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-traits = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-nft = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-unknown-tokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-xtokens = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-xcm = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-xcm-support = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-oracle = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false  }
-orml-benchmarking = { git = "https://github.com/open-web3-stack/open-runtime-module-library", branch = "polkadot-v0.9.43", default-features = false }
+orml-currencies = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-tokens = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-traits = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-nft = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-unknown-tokens = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-xtokens = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-xcm = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-xcm-support = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-oracle = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-benchmarking = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false }
 
 # EVM
 pallet-dynamic-fee = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43" }
