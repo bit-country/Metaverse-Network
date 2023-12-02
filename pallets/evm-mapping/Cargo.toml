@@ -6,7 +6,7 @@ edition = '2021'
 
 [dependencies]
 serde = { workspace = true, optional = true }
-codec = { workspace = true }
+codec = { workspace = true, package = "parity-scale-codec" }
 libsecp256k1 = { workspace = true, optional = true }
 scale-info = { workspace = true }
 

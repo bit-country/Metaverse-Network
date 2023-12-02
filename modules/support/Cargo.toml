@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 impl-trait-for-tuples = { workspace = true }
-codec = { workspace = true }
+codec = { workspace = true, package = "parity-scale-codec" }
 sp-runtime = { workspace = true }
 frame-support = { workspace = true }
 sp-std = { workspace = true }

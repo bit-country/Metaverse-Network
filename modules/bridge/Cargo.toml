@@ -10,7 +10,7 @@ version = '0.0.1'
 
 [dependencies]
 # third-party dependencies
-codec = { workspace = true, features = ["derive", "max-encoded-len"] }
+codec = { workspace = true, features = ["derive", "max-encoded-len"], package = "parity-scale-codec" }
 serde = { workspace = true, optional = true }
 hex = { workspace = true }
 scale-info = { workspace = true }

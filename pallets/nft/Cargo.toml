@@ -15,7 +15,7 @@ targets = ['x86_64-unknown-linux-gnu']
 serde = { workspace = true, optional = true, features = ["derive"] }
 log = { workspace = true }
 scale-info = { workspace = true }
-codec = { workspace = true }
+codec = { workspace = true, package = "parity-scale-codec" }
 sp-std = { workspace = true }
 sp-runtime = { workspace = true }
 sp-io = { workspace = true }
