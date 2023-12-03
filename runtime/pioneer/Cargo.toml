@@ -10,7 +10,7 @@ edition = '2021'
 substrate-wasm-builder = { workspace = true, default-features = true }
 
 [dependencies]
-codec = { package = 'parity-scale-codec', version = '3.1.5', default-features = false, features = ['derive'] }
+codec = { workspace = true, package = "parity-scale-codec" }
 log = { workspace = true }
 serde = { workspace = true, optional = true, features = ['derive'] }
 scale-info = { workspace = true }
@@ -71,7 +71,7 @@ pallet-aura = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-collective = { workspace = true }
 pallet-democracy = { workspace = true }
-pallet-randomness-collective-flip = { workspace = true }
+pallet-insecure-randomness-collective-flip = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-timestamp = { workspace = true }
@@ -149,7 +149,7 @@ std = [
     "frame-executive/std",
     "frame-system/std",
     "pallet-balances/std",
-    "pallet-randomness-collective-flip/std",
+    "pallet-insecure-randomness-collective-flip/std",
     "pallet-timestamp/std",
     "pallet-sudo/std",
     "pallet-transaction-payment/std",

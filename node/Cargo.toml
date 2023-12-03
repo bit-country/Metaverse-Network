@@ -17,7 +17,7 @@ targets = ['x86_64-unknown-linux-gnu']
 name = "metaverse-node"
 
 [dependencies]
-codec = { package = 'parity-scale-codec', version = '3.1.5' }
+codec = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive"] }
 futures = { workspace = true }
 hex-literal = { workspace = true }
@@ -54,9 +54,7 @@ sc-consensus-slots = { workspace = true }
 sc-consensus-manual-seal = { workspace = true }
 sp-consensus = { workspace = true }
 sp-authority-discovery = { workspace = true, optional = true }
-sp-finality-grandpa = { workspace = true }
-sc-finality-grandpa = { workspace = true }
-sc-finality-grandpa-rpc = { workspace = true }
+sc-consensus-grandpa = { workspace = true }
 sc-client-api = { workspace = true }
 sc-network = { workspace = true }
 sc-network-common = { workspace = true }
