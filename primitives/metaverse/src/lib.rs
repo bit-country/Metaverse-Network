@@ -34,6 +34,7 @@ use sp_std::prelude::*;
 use sp_std::vec::Vec;
 use xcm::v3::MultiLocation;
 
+pub mod bounded;
 pub mod continuum;
 pub mod estate;
 pub mod evm;
@@ -104,6 +105,8 @@ pub type ReferendumId = u64;
 pub type LandId = u64;
 /// EstateId
 pub type EstateId = u64;
+/// Number of era on relaychain
+pub type EraIndex = u32;
 /// Social Token Id type
 pub type TokenId = u64;
 /// Undeployed LandBlock Id type
@@ -132,6 +135,8 @@ pub type TrieIndex = u32;
 pub type CampaignId = u32;
 /// Index used for claim rewrads for merkle root campaigns
 pub type ClaimId = u64;
+/// Pool Id to keep track of each pool
+pub type PoolId = u32;
 
 /// Land Token Class Id
 pub const LAND_CLASS_ID: ClassId = 15;
@@ -192,7 +197,7 @@ impl FungibleTokenId {
 	pub fn decimals(&self) -> u8 {
 		match self {
 			FungibleTokenId::NativeToken(0) => 18, // Native token
-			FungibleTokenId::NativeToken(1) | FungibleTokenId::NativeToken(2) | FungibleTokenId::Stable(0) => 12, // KSM KAR KUSD
+			FungibleTokenId::NativeToken(1) | FungibleTokenId::NativeToken(2) | FungibleTokenId::Stable(0) => 12, // KSM
 			FungibleTokenId::MiningResource(0) => 18,
 			_ => 18,
 		}
@@ -459,4 +464,54 @@ pub struct CampaignInfo<AccountId, Balance, BlockNumber, FungibleTokenId, ClassI
 	pub claimed: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
 	/// A hard-cap on the each reward amount that may be contributed.
 	pub cap: RewardType<FungibleTokenId, Balance, ClassId, TokenId>,
+}
+// For multiple time calculation type
+#[derive(Encode, Decode, Clone, RuntimeDebug, Eq, TypeInfo, MaxEncodedLen)]
+pub enum StakingRound {
+	Era(#[codec(compact)] u32),
+	Round(#[codec(compact)] u32),
+	Epoch(#[codec(compact)] u32),
+	Hour(#[codec(compact)] u32),
+}
+
+impl Default for StakingRound {
+	fn default() -> Self {
+		StakingRound::Era(0u32)
+	}
+}
+
+impl PartialEq for StakingRound {
+	fn eq(&self, other: &Self) -> bool {
+		match (&self, other) {
+			(Self::Era(a), Self::Era(b)) => a.eq(b),
+			(Self::Round(a), Self::Round(b)) => a.eq(b),
+			(Self::Epoch(a), Self::Epoch(b)) => a.eq(b),
+			(Self::Hour(a), Self::Hour(b)) => a.eq(b),
+			_ => false,
+		}
+	}
+}
+
+impl Ord for StakingRound {
+	fn cmp(&self, other: &Self) -> sp_std::cmp::Ordering {
+		match (&self, other) {
+			(Self::Era(a), Self::Era(b)) => a.cmp(b),
+			(Self::Round(a), Self::Round(b)) => a.cmp(b),
+			(Self::Epoch(a), Self::Epoch(b)) => a.cmp(b),
+			(Self::Hour(a), Self::Hour(b)) => a.cmp(b),
+			_ => sp_std::cmp::Ordering::Less,
+		}
+	}
+}
+
+impl PartialOrd for StakingRound {
+	fn partial_cmp(&self, other: &Self) -> Option<sp_std::cmp::Ordering> {
+		match (&self, other) {
+			(Self::Era(a), Self::Era(b)) => Some(a.cmp(b)),
+			(Self::Round(a), Self::Round(b)) => Some(a.cmp(b)),
+			(Self::Epoch(a), Self::Epoch(b)) => Some(a.cmp(b)),
+			(Self::Hour(a), Self::Hour(b)) => Some(a.cmp(b)),
+			_ => None,
+		}
+	}
 }

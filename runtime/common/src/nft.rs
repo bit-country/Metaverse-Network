@@ -1,27 +1,25 @@
 use core_primitives::{Attributes, CollectionType, NftMetadata, TokenType};
 use evm_mapping::AddressMapping as EvmMapping;
-use evm_mapping::EvmAddressMapping;
+
 use frame_support::pallet_prelude::Get;
 use frame_support::traits::{Currency, OriginTrait};
 use frame_system::RawOrigin;
 use orml_traits::{BasicCurrency, MultiCurrency};
 use pallet_evm::{
-	AddressMapping, ExitRevert, ExitSucceed, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
-	PrecompileResult, PrecompileSet,
+	ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
 use sp_runtime::traits::{AccountIdConversion, Dispatchable};
 use sp_runtime::Perbill;
 use sp_std::{marker::PhantomData, prelude::*};
 
-use codec::{DecodeAll, Encode};
 use precompile_utils::data::{Address, EvmData, EvmDataWriter};
 use precompile_utils::handle::PrecompileHandleExt;
 use precompile_utils::modifier::FunctionModifier;
 use precompile_utils::prelude::RuntimeHelper;
 use precompile_utils::{succeed, EvmResult};
 use primitives::evm::{Erc20Mapping, Output};
-use primitives::{evm, Balance, ClassId, GroupCollectionId, TokenId};
+use primitives::{ClassId, GroupCollectionId, TokenId};
 
 #[precompile_utils_macro::generate_function_selector]
 #[derive(Debug, PartialEq)]
@@ -119,7 +117,7 @@ where
 		Some(result)
 	}
 
-	fn is_precompile(&self, address: H160) -> bool {
+	fn is_precompile(&self, _address: H160) -> bool {
 		todo!()
 	}
 }
@@ -449,7 +447,7 @@ where
 		let class_id = input.read::<ClassIdOf<Runtime>>()?.into();
 
 		// Build call info
-		let owner: H160 = input.read::<Address>()?.into();
+		let _owner: H160 = input.read::<Address>()?.into();
 		let who = <Runtime as evm_mapping::Config>::AddressMapping::get_account_id(&handle.context().caller);
 
 		log::debug!(target: "evm", "withdraw funds from class {:?} fund", class_id);

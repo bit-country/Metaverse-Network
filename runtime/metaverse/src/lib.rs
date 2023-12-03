@@ -24,6 +24,7 @@
 extern crate orml_benchmarking;
 
 use codec::{Decode, Encode, MaxEncodedLen};
+use cumulus_pallet_parachain_system::RelaychainBlockNumberProvider;
 // pub use this so we can import it in the chain spec.
 #[cfg(feature = "std")]
 pub use fp_evm::GenesisAccount;
@@ -60,7 +61,6 @@ use pallet_evm::{
 };
 use pallet_grandpa::{fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList};
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
-//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
 use polkadot_primitives::v2::MAX_POV_SIZE;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
@@ -70,7 +70,7 @@ use sp_core::{
 	sp_std::marker::PhantomData,
 	ConstBool, OpaqueMetadata, H160, H256, U256,
 };
-use sp_runtime::traits::DispatchInfoOf;
+use sp_runtime::traits::{BlockNumberProvider, DispatchInfoOf};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
@@ -87,6 +87,8 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
+//use pallet_evm::{EnsureAddressTruncated, HashedAddressMapping};
+use asset_manager::ForeignAssetMapping;
 pub use constants::{currency::*, time::*};
 use core_primitives::{NftAssetData, NftClassData};
 // External imports
@@ -98,7 +100,7 @@ use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
 	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN, H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
-use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, RoundIndex, TokenId};
+use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, PoolId, RoundIndex, TokenId};
 
 // primitives imports
 use crate::opaque::SessionKeys;
@@ -180,7 +182,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 92,
+	spec_version: 95,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -364,6 +366,10 @@ parameter_types! {
 	pub const EconomyTreasury: PalletId = PalletId(*b"bit/econ");
 	pub const LocalMetaverseFundPalletId: PalletId = PalletId(*b"bit/meta");
 	pub const BridgeSovereignPalletId: PalletId = PalletId(*b"bit/brgd");
+	pub const PoolAccountPalletId: PalletId = PalletId(*b"bit/pool");
+	pub const RewardPayoutAccountPalletId: PalletId = PalletId(*b"bit/pout");
+	pub const RewardHoldingAccountPalletId: PalletId = PalletId(*b"bit/hold");
+
 	pub const MaxAuthorities: u32 = 50;
 	pub const MaxSetIdSessionEntries: u64 = u64::MAX;
 }
@@ -1437,6 +1443,44 @@ impl modules_bridge::Config for Runtime {
 	type PalletId = BridgeSovereignPalletId;
 }
 
+impl orml_rewards::Config for Runtime {
+	type Share = Balance;
+	type Balance = Balance;
+	type PoolId = PoolId;
+	type CurrencyId = FungibleTokenId;
+	type Handler = Spp;
+}
+
+parameter_types! {
+	pub const MaximumQueue: u32 = 50;
+	pub const MockRelayBlockNumberProvider: BlockNumber = 0;
+}
+
+impl BlockNumberProvider for MockRelayBlockNumberProvider {
+	type BlockNumber = BlockNumber;
+
+	fn current_block_number() -> Self::BlockNumber {
+		Self::get()
+	}
+}
+
+impl spp::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type Currency = Balances;
+	type MultiCurrency = Currencies;
+	type WeightInfo = weights::module_spp::WeightInfo<Runtime>;
+	type MinimumStake = MinimumStake;
+	type NetworkFee = NetworkFee;
+	type StorageDepositFee = StorageDepositFee;
+	type RelayChainBlockNumber = MockRelayBlockNumberProvider;
+	type PoolAccount = PoolAccountPalletId;
+	type RewardPayoutAccount = RewardPayoutAccountPalletId;
+	type RewardHoldingAccount = RewardHoldingAccountPalletId;
+	type MaximumQueue = MaximumQueue;
+	type CurrencyIdConversion = ForeignAssetMapping<Runtime>;
+	type GovernanceOrigin = EnsureRootOrTwoThirdsCouncilCollective;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -1510,6 +1554,10 @@ construct_runtime!(
 
 		// Bridge
 		BridgeSupport: modules_bridge::{Pallet, Call, Storage, Event<T>},
+
+		// Spp
+		Spp: spp::{Pallet, Call, Storage, Event<T>},
+		Rewards: orml_rewards::{Pallet, Storage}
 	}
 );
 

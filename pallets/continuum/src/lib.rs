@@ -47,18 +47,15 @@
 use codec::{Decode, Encode};
 use frame_support::{
 	dispatch::DispatchResult,
-	ensure, log,
+	ensure,
 	traits::ExistenceRequirement,
 	traits::{Currency, Get, LockableCurrency, ReservableCurrency},
 	transactional, PalletId,
 };
 use frame_system::{ensure_root, ensure_signed};
 use scale_info::TypeInfo;
-use sp_runtime::traits::CheckedAdd;
-use sp_runtime::{
-	traits::{AccountIdConversion, One, Zero},
-	DispatchError, Perbill, RuntimeDebug,
-};
+
+use sp_runtime::{traits::AccountIdConversion, DispatchError, Perbill, RuntimeDebug};
 use sp_std::vec;
 use sp_std::vec::Vec;
 
@@ -112,7 +109,6 @@ pub struct AuctionSlot<BlockNumber, AccountId> {
 pub mod pallet {
 	use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
 	use frame_system::pallet_prelude::OriginFor;
-	use sp_arithmetic::traits::UniqueSaturatedInto;
 
 	use core_primitives::TokenType;
 	use primitives::{AuctionId, MapSpotId};

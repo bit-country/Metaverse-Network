@@ -18,26 +18,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use frame_support::pallet_prelude::*;
-use frame_support::traits::{Currency, ExistenceRequirement, VestingSchedule};
-use frame_support::{dispatch::DispatchResult, ensure, traits::Get, PalletId};
+use frame_support::traits::{Currency, VestingSchedule};
+use frame_support::{dispatch::DispatchResult, ensure, traits::Get};
 use frame_system::pallet_prelude::*;
 use frame_system::{ensure_root, ensure_signed};
 use pallet_vesting::{Pallet as VestingModule, VestingInfo};
-use scale_info::TypeInfo;
-use sp_runtime::traits::Convert;
-use sp_runtime::{
-	traits::{AccountIdConversion, One, Saturating, Zero},
-	DispatchError,
-};
+
+use sp_runtime::traits::Saturating;
 use sp_std::{convert::TryInto, vec::Vec};
 
-use auction_manager::{Auction, CheckAuctionItemHandler};
-use core_primitives::*;
 pub use pallet::*;
-use primitives::{
-	estate::Estate, Balance, EstateId, ItemId, MetaverseId, UndeployedLandBlock, UndeployedLandBlockId,
-	UndeployedLandBlockType,
-};
+
 pub use weights::WeightInfo;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -53,11 +44,9 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::traits::{Currency, ExistenceRequirement, Imbalance, ReservableCurrency, VestingSchedule};
+	use frame_support::traits::{Currency, ExistenceRequirement, VestingSchedule};
 	use pallet_vesting::VestingInfo;
-	use sp_runtime::traits::{CheckedAdd, CheckedSub, Convert, ConvertInto, StaticLookup, Zero};
-
-	use primitives::UndeployedLandBlockId;
+	use sp_runtime::traits::{Convert, StaticLookup};
 
 	use super::*;
 

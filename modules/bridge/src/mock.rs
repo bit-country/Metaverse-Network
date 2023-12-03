@@ -3,22 +3,18 @@
 use std::collections::BTreeMap;
 use std::vec;
 
-use frame_support::traits::{EqualPrivilegeOnly, Nothing};
+use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, pallet_prelude::Hooks, parameter_types, PalletId};
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use sp_core::H256;
 use sp_runtime::traits::AccountIdConversion;
 use sp_runtime::{testing::Header, traits::IdentityLookup, ModuleError, Perbill};
 
-use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
-use core_primitives::{
-	Attributes, CollectionType, MetaverseInfo, MetaverseMetadata, MetaverseTrait, NFTTrait, NftAssetData, NftClassData,
-	NftMetadata, TokenType,
-};
+use core_primitives::{Attributes, CollectionType, NFTTrait, NftClassData, NftMetadata, TokenType};
 use primitives::{
-	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, GroupCollectionId,
-	ItemId, MapSpotId, NftOffer, TokenId, UndeployedLandBlockId,
+	continuum::MapTrait, Amount, ClassId, EstateId, FungibleTokenId, GroupCollectionId, MapSpotId, TokenId,
+	UndeployedLandBlockId,
 };
 
 use crate as bridge;
@@ -283,7 +279,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		{
 			return Ok(true);
 		}
-		if (nft_value.1 == 5) {
+		if nft_value.1 == 5 {
 			return Err(DispatchError::Module(ModuleError {
 				index: 5,
 				error: [0, 0, 0, 0],
@@ -293,7 +289,7 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(false)
 	}
 
-	fn is_stackable(asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+	fn is_stackable(_asset_id: (Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
@@ -306,19 +302,19 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 		Ok(false)
 	}
-	fn get_nft_group_collection(nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
+	fn get_nft_group_collection(_nft_collection: &Self::ClassId) -> Result<GroupCollectionId, DispatchError> {
 		Ok(ASSET_COLLECTION_ID)
 	}
 
 	fn create_token_class(
 		sender: &AccountId,
-		metadata: NftMetadata,
-		attributes: Attributes,
+		_metadata: NftMetadata,
+		_attributes: Attributes,
 		collection_id: GroupCollectionId,
-		token_type: TokenType,
-		collection_type: CollectionType,
-		royalty_fee: Perbill,
-		mint_limit: Option<u32>,
+		_token_type: TokenType,
+		_collection_type: CollectionType,
+		_royalty_fee: Perbill,
+		_mint_limit: Option<u32>,
 	) -> Result<ClassId, DispatchError> {
 		match *sender {
 			ALICE => {
@@ -339,8 +335,8 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 	fn mint_token(
 		sender: &AccountId,
 		class_id: ClassId,
-		metadata: NftMetadata,
-		attributes: Attributes,
+		_metadata: NftMetadata,
+		_attributes: Attributes,
 	) -> Result<TokenId, DispatchError> {
 		match *sender {
 			ALICE => Ok(1),
@@ -364,26 +360,26 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 	}
 
-	fn transfer_nft(from: &AccountId, to: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+	fn transfer_nft(_from: &AccountId, _to: &AccountId, _nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
 		Ok(())
 	}
 
-	fn check_item_on_listing(class_id: Self::ClassId, token_id: Self::TokenId) -> Result<bool, DispatchError> {
+	fn check_item_on_listing(_class_id: Self::ClassId, _token_id: Self::TokenId) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
-	fn burn_nft(account: &AccountId, nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
+	fn burn_nft(_account: &AccountId, _nft: &(Self::ClassId, Self::TokenId)) -> DispatchResult {
 		Ok(())
 	}
-	fn is_transferable(nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
+	fn is_transferable(_nft: &(Self::ClassId, Self::TokenId)) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
-	fn get_class_fund(class_id: &Self::ClassId) -> AccountId {
+	fn get_class_fund(_class_id: &Self::ClassId) -> AccountId {
 		CLASS_FUND_ID
 	}
 
-	fn get_nft_detail(asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
+	fn get_nft_detail(_asset_id: (Self::ClassId, Self::TokenId)) -> Result<NftClassData<Balance>, DispatchError> {
 		let new_data = NftClassData {
 			deposit: 0,
 			attributes: test_attributes(1),
@@ -397,11 +393,11 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(new_data)
 	}
 
-	fn set_lock_collection(class_id: Self::ClassId, is_locked: bool) -> sp_runtime::DispatchResult {
+	fn set_lock_collection(_class_id: Self::ClassId, _is_locked: bool) -> sp_runtime::DispatchResult {
 		todo!()
 	}
 
-	fn set_lock_nft(token_id: (Self::ClassId, Self::TokenId), is_locked: bool) -> sp_runtime::DispatchResult {
+	fn set_lock_nft(_token_id: (Self::ClassId, Self::TokenId), _is_locked: bool) -> sp_runtime::DispatchResult {
 		todo!()
 	}
 
@@ -419,20 +415,20 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		Ok(new_data)
 	}
 
-	fn get_total_issuance(class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
+	fn get_total_issuance(_class_id: Self::ClassId) -> Result<Self::TokenId, DispatchError> {
 		Ok(10u64)
 	}
 
-	fn get_asset_owner(asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError> {
+	fn get_asset_owner(_asset_id: &(Self::ClassId, Self::TokenId)) -> Result<AccountId, DispatchError> {
 		Ok(ALICE)
 	}
 
 	fn mint_token_with_id(
 		sender: &AccountId,
 		class_id: Self::ClassId,
-		token_id: Self::TokenId,
-		metadata: NftMetadata,
-		attributes: Attributes,
+		_token_id: Self::TokenId,
+		_metadata: NftMetadata,
+		_attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError> {
 		match *sender {
 			ALICE => Ok(1),
@@ -456,31 +452,31 @@ impl NFTTrait<AccountId, Balance> for MockNFTHandler {
 		}
 	}
 
-	fn get_free_stackable_nft_balance(who: &AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
+	fn get_free_stackable_nft_balance(_who: &AccountId, _asset_id: &(Self::ClassId, Self::TokenId)) -> Balance {
 		1000
 	}
 
 	fn reserve_stackable_nft_balance(
-		who: &AccountId,
-		asset_id: &(Self::ClassId, Self::TokenId),
-		amount: Balance,
+		_who: &AccountId,
+		_asset_id: &(Self::ClassId, Self::TokenId),
+		_amount: Balance,
 	) -> DispatchResult {
 		Ok(())
 	}
 
 	fn unreserve_stackable_nft_balance(
-		who: &AccountId,
-		asset_id: &(Self::ClassId, Self::TokenId),
-		amount: Balance,
+		_who: &AccountId,
+		_asset_id: &(Self::ClassId, Self::TokenId),
+		_amount: Balance,
 	) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
 
 	fn transfer_stackable_nft(
-		sender: &AccountId,
-		to: &AccountId,
-		nft: &(Self::ClassId, Self::TokenId),
-		amount: Balance,
+		_sender: &AccountId,
+		_to: &AccountId,
+		_nft: &(Self::ClassId, Self::TokenId),
+		_amount: Balance,
 	) -> sp_runtime::DispatchResult {
 		Ok(())
 	}

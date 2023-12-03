@@ -459,7 +459,7 @@ pub mod pallet {
 						let mut metaverse_has_referendum_running: bool = false;
 						for (_, referendum_info) in ReferendumInfoOf::<T>::iter_prefix(metaverse_id) {
 							match referendum_info {
-								ReferendumInfo::Ongoing(status) => {
+								ReferendumInfo::Ongoing(_status) => {
 									metaverse_has_referendum_running = true;
 									break;
 								}
@@ -514,7 +514,7 @@ pub mod pallet {
 			metaverse_id: MetaverseId,
 		) -> DispatchResultWithPostInfo {
 			ensure_root(origin)?;
-			let proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
+			let _proposal_info = Self::proposals(metaverse_id, proposal).ok_or(Error::<T>::ProposalDoesNotExist)?;
 			if let Some((depositors, deposit)) = <DepositOf<T>>::take(proposal) {
 				<Proposals<T>>::remove(metaverse_id, proposal);
 				Self::update_proposals_per_metaverse_number(metaverse_id, false); // slash depositors
@@ -670,7 +670,7 @@ pub mod pallet {
 								ReferendumInfoOf::<T>::insert(&metaverse, &referendum, ReferendumInfo::Ongoing(status));
 								Self::deposit_event(Event::VoteRemoved(from, referendum));
 							}
-							Some(ReferendumInfo::Finished { end, passed, title }) => {
+							Some(ReferendumInfo::Finished { end, passed, title: _ }) => {
 								let prior = &mut voting_record.prior;
 								if let Some((lock_periods, balance)) = vote.locked_if(passed) {
 									let mut lock_value: T::BlockNumber =
@@ -893,7 +893,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	/// Table the waiting public proposal with the highest backing for a vote.
-	fn launch_public(now: T::BlockNumber, metaverse_id: MetaverseId) -> DispatchResult {
+	fn launch_public(_now: T::BlockNumber, metaverse_id: MetaverseId) -> DispatchResult {
 		let launch_block = Self::get_proposal_launch_block(metaverse_id)?;
 		if let Some((_, proposal)) = Proposals::<T>::iter_prefix(metaverse_id).enumerate().max_by_key(
 			// defensive only: All current public proposals have an amount locked
@@ -1059,7 +1059,7 @@ impl<T: Config> Pallet<T> {
 		} else {
 			let preimage = <Preimages<T>>::take(&metaverse_id, &referendum_status.proposal_hash);
 			if let Some(PreimageStatus::Available {
-				data,
+				data: _,
 				provider,
 				deposit,
 				..
@@ -1075,7 +1075,7 @@ impl<T: Config> Pallet<T> {
 
 	/// Internal enacting of successfully passed proposal
 	fn do_enact_proposal(
-		proposal_id: ProposalId,
+		_proposal_id: ProposalId,
 		metaverse_id: MetaverseId,
 		referendum_id: ReferendumId,
 		proposal_hash: T::Hash,

@@ -18,6 +18,7 @@ sp-std = { workspace = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
 xcm = { workspace = true }
 
 [dev-dependencies]
@@ -42,5 +43,6 @@ std = [
     "frame-support/std",
     "frame-system/std",
     "primitives/std",
+    "core-primitives/std",
     "xcm/std",
 ]

@@ -5,7 +5,6 @@ use cumulus_client_cli;
 use url::Url;
 
 use crate::chain_spec;
-use crate::chain_spec::Extensions;
 
 fn validate_relay_chain_url(arg: &str) -> Result<(), String> {
 	let url = Url::parse(arg).map_err(|e| e.to_string())?;

@@ -1,5 +1,3 @@
-use asset_manager::BalanceOf;
-use frame_support::assert_noop;
 use hex_literal::hex;
 use sp_core::{H160, U256};
 use sp_runtime::traits::Zero;
@@ -242,7 +240,7 @@ fn balance_of_native_currencies_works() {
 		.with_balances(vec![(alice_account_id(), 100000)])
 		.build()
 		.execute_with(|| {
-			let mut evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
+			let _evm_writer = EvmDataWriter::new_with_selector(Action::BalanceOf);
 			EvmMapping::claim_default_account(RuntimeOrigin::signed(alice_account_id()));
 			precompiles()
 				.prepare_test(

@@ -3,7 +3,7 @@
 use frame_support::traits::Nothing;
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
-use orml_traits::currency::MutationHooks;
+
 use orml_traits::parameter_type_with_key;
 use sp_core::crypto::AccountId32;
 use sp_core::H256;
@@ -139,9 +139,9 @@ impl Estate<AccountId> for EstateHandler {
 	}
 
 	fn transfer_undeployed_land_block(
-		who: &AccountId,
-		to: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
+		_who: &AccountId,
+		_to: &AccountId,
+		_undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
 		Ok(2)
 	}
@@ -160,18 +160,18 @@ impl Estate<AccountId> for EstateHandler {
 		Ok(false)
 	}
 
-	fn check_landunit(_metaverse_id: primitives::MetaverseId, coordinate: (i32, i32)) -> Result<bool, DispatchError> {
+	fn check_landunit(_metaverse_id: primitives::MetaverseId, _coordinate: (i32, i32)) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
 	fn check_undeployed_land_block(
-		owner: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
+		_owner: &AccountId,
+		_undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<bool, DispatchError> {
 		Ok(true)
 	}
 
-	fn get_total_land_units(estate_id: Option<EstateId>) -> u64 {
+	fn get_total_land_units(_estate_id: Option<EstateId>) -> u64 {
 		10
 	}
 
@@ -179,11 +179,11 @@ impl Estate<AccountId> for EstateHandler {
 		10
 	}
 
-	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leasor(_leasor: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leased(_estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 }
@@ -191,7 +191,7 @@ impl Estate<AccountId> for EstateHandler {
 pub struct MetaverseStakingHandler;
 
 impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
-	fn update_staking_reward(round: RoundIndex, total_reward: u128) -> sp_runtime::DispatchResult {
+	fn update_staking_reward(_round: RoundIndex, _total_reward: u128) -> sp_runtime::DispatchResult {
 		Ok(())
 	}
 }
@@ -284,7 +284,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+	fn auction_item(_id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
 		None
 	}
 
@@ -292,7 +292,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		Ok(())
 	}
 
-	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> DispatchResult {
+	fn update_auction_item(_id: AuctionId, _item_id: ItemId<Self::Balance>) -> DispatchResult {
 		Ok(())
 	}
 
@@ -321,11 +321,11 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
-	fn auction_bid_handler(from: AccountId, id: AuctionId, value: Self::Balance) -> DispatchResult {
+	fn auction_bid_handler(_from: AccountId, _id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 
-	fn buy_now_handler(from: AccountId, auction_id: AuctionId, value: Self::Balance) -> DispatchResult {
+	fn buy_now_handler(_from: AccountId, _auction_id: AuctionId, _value: Self::Balance) -> DispatchResult {
 		Ok(())
 	}
 

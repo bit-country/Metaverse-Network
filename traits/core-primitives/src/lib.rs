@@ -163,7 +163,7 @@ pub struct MetaverseFund<AccountId, Balance> {
 }
 
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct PreSignedMint<ClassId, TokenId, AccountId, Balance> {
+pub struct PreSignedMint<ClassId, TokenId, AccountId, BlockNumber, Balance> {
 	/// A collection of the item to be minted.
 	pub class_id: ClassId,
 	/// TokenId.
@@ -174,6 +174,8 @@ pub struct PreSignedMint<ClassId, TokenId, AccountId, Balance> {
 	pub metadata: NftMetadata,
 	/// Restrict the claim to a particular account.
 	pub only_account: Option<AccountId>,
+	/// A deadline for the signature.
+	pub expired: BlockNumber,
 	/// An optional price the claimer would need to pay for the mint.
 	pub mint_price: Option<Balance>,
 }
@@ -399,4 +401,10 @@ impl MiningResourceRateInfo {
 	pub fn set_mining_reward(&mut self, mining_reward: Perbill) {
 		self.mining_reward = mining_reward;
 	}
+}
+
+pub trait CurrencyIdManagement {
+	fn check_token_exist(currency_id: FungibleTokenId) -> bool;
+	fn convert_to_rcurrency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()>;
+	fn convert_to_currency(currency_id: FungibleTokenId) -> Result<FungibleTokenId, ()>;
 }

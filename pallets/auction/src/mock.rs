@@ -12,7 +12,7 @@ use sp_runtime::{testing::Header, traits::IdentityLookup, MultiSignature, Perbil
 use auction_manager::{CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{MetaverseInfo, MetaverseMetadata, MetaverseTrait, NftAssetData, NftClassData};
 use primitives::{
-	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId, NftOffer,
+	continuum::MapTrait, estate::Estate, Amount, AuctionId, ClassId, EstateId, FungibleTokenId, MapSpotId,
 	UndeployedLandBlockId,
 };
 
@@ -117,9 +117,9 @@ impl Estate<AccountId32> for EstateHandler {
 	}
 
 	fn transfer_undeployed_land_block(
-		who: &AccountId,
-		to: &AccountId,
-		undeployed_land_block_id: UndeployedLandBlockId,
+		_who: &AccountId,
+		_to: &AccountId,
+		_undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<UndeployedLandBlockId, DispatchError> {
 		Ok(2)
 	}
@@ -141,7 +141,7 @@ impl Estate<AccountId32> for EstateHandler {
 	}
 
 	fn check_undeployed_land_block(
-		owner: &AccountId,
+		_owner: &AccountId,
 		undeployed_land_block_id: UndeployedLandBlockId,
 	) -> Result<bool, DispatchError> {
 		match undeployed_land_block_id {
@@ -151,7 +151,7 @@ impl Estate<AccountId32> for EstateHandler {
 		}
 	}
 
-	fn get_total_land_units(estate_id: Option<EstateId>) -> u64 {
+	fn get_total_land_units(_estate_id: Option<EstateId>) -> u64 {
 		100
 	}
 
@@ -159,15 +159,15 @@ impl Estate<AccountId32> for EstateHandler {
 		100
 	}
 
-	fn check_estate_ownership(owner: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn check_estate_ownership(_owner: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leasor(leasor: AccountId, estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leasor(_leasor: AccountId, _estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 
-	fn is_estate_leased(estate_id: EstateId) -> Result<bool, DispatchError> {
+	fn is_estate_leased(_estate_id: EstateId) -> Result<bool, DispatchError> {
 		Ok(false)
 	}
 }
@@ -241,7 +241,7 @@ parameter_types! {
 pub struct MetaverseInfoSource {}
 
 impl MetaverseTrait<AccountId> for MetaverseInfoSource {
-	fn create_metaverse(who: &AccountId, metadata: MetaverseMetadata) -> MetaverseId {
+	fn create_metaverse(_who: &AccountId, _metadata: MetaverseMetadata) -> MetaverseId {
 		1u64
 	}
 
@@ -267,19 +267,19 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 		Ok(())
 	}
 
-	fn get_metaverse_land_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn get_metaverse_land_class(_metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(15u32)
 	}
 
-	fn get_metaverse_estate_class(metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
+	fn get_metaverse_estate_class(_metaverse_id: MetaverseId) -> Result<ClassId, DispatchError> {
 		Ok(16u32)
 	}
 
-	fn get_metaverse_marketplace_listing_fee(metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
+	fn get_metaverse_marketplace_listing_fee(_metaverse_id: MetaverseId) -> Result<Perbill, DispatchError> {
 		Ok(Perbill::from_percent(1u32))
 	}
 
-	fn get_metaverse_treasury(metaverse_id: MetaverseId) -> AccountId {
+	fn get_metaverse_treasury(_metaverse_id: MetaverseId) -> AccountId {
 		[102; 32].into()
 	}
 
@@ -288,7 +288,7 @@ impl MetaverseTrait<AccountId> for MetaverseInfoSource {
 	}
 
 	fn check_if_metaverse_estate(
-		metaverse_id: primitives::MetaverseId,
+		_metaverse_id: primitives::MetaverseId,
 		class_id: &ClassId,
 	) -> Result<bool, DispatchError> {
 		if class_id == &15u32 || class_id == &16u32 {
@@ -490,7 +490,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		None
 	}
 
-	fn auction_item(id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
+	fn auction_item(_id: AuctionId) -> Option<AuctionItem<AccountId, BlockNumber, Self::Balance>> {
 		None
 	}
 
@@ -498,7 +498,7 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 		Ok(())
 	}
 
-	fn update_auction_item(id: AuctionId, item_id: ItemId<Self::Balance>) -> frame_support::dispatch::DispatchResult {
+	fn update_auction_item(_id: AuctionId, _item_id: ItemId<Self::Balance>) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
 
@@ -528,17 +528,17 @@ impl Auction<AccountId, BlockNumber> for MockAuctionManager {
 	fn remove_auction(_id: u64, _item_id: ItemId<Balance>) {}
 
 	fn auction_bid_handler(
-		from: AccountId,
-		id: AuctionId,
-		value: Self::Balance,
+		_from: AccountId,
+		_id: AuctionId,
+		_value: Self::Balance,
 	) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
 
 	fn buy_now_handler(
-		from: AccountId,
-		auction_id: AuctionId,
-		value: Self::Balance,
+		_from: AccountId,
+		_auction_id: AuctionId,
+		_value: Self::Balance,
 	) -> frame_support::dispatch::DispatchResult {
 		Ok(())
 	}
