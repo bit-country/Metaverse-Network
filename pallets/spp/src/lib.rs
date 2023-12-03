@@ -697,7 +697,8 @@ pub mod pallet {
 
 			if let Some(change) = last_era_updated_block {
 				let update_era_frequency = UpdateEraFrequency::<T>::get();
-				let current_relay_chain_block = T::RelayChainBlockNumber::current_block_number();
+				let current_relay_chain_block = <frame_system::Pallet<T>>::block_number();
+				//	let current_relay_chain_block = T::RelayChainBlockNumber::current_block_number();
 				if !update_era_frequency.is_zero() {
 					ensure!(
 						change > current_relay_chain_block.saturating_sub(update_era_frequency)
@@ -720,7 +721,7 @@ pub mod pallet {
 			}
 
 			if let Some((currency_id, staking_round)) = unlock_duration {
-				UnlockDuration::<T>::insert(currency_id, staking_round);
+				UnlockDuration::<T>::insert(currency_id, staking_round.clone());
 				Self::deposit_event(Event::<T>::UnlockDurationUpdated {
 					currency_id,
 					unlock_duration: staking_round,
@@ -728,7 +729,7 @@ pub mod pallet {
 			}
 
 			if let Some(new_limit) = iteration_limit {
-				IterationLimit::<T>::put(new_limit);
+				IterationLimit::<T>::put(new_limit.clone());
 				Self::deposit_event(Event::<T>::IterationLimitUpdated { new_limit })
 			}
 
@@ -1239,7 +1240,8 @@ impl<T: Config> Pallet<T> {
 		let new_era = previous_era.saturating_add(era_index);
 
 		RelayChainCurrentEra::<T>::put(new_era);
-		LastEraUpdatedBlock::<T>::put(T::RelayChainBlockNumber::current_block_number());
+		//		LastEraUpdatedBlock::<T>::put(T::RelayChainBlockNumber::current_block_number());
+		LastEraUpdatedBlock::<T>::put(<frame_system::Pallet<T>>::block_number());
 		Self::handle_redeem_requests(new_era)?;
 		Self::handle_reward_distribution_to_network_pool()?;
 		Self::deposit_event(Event::<T>::CurrentEraUpdated { new_era_index: new_era });
