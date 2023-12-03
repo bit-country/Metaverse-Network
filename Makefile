@@ -65,7 +65,11 @@ build-docker-pioneer:
 .PHONY: run-dev
 run-dev:
 	./target/release/metaverse-node purge-chain --dev
-	./target/release/metaverse-node --dev --tmp --alice -lruntime=debug
+	./target/release/metaverse-node --dev --tmp --alice --node-key 0000000000000000000000000000000000000000000000000000000000000001 -lruntime=debug
+
+.PHONY: run-bob-dev
+run-bob-dev:
+	./target/release/metaverse-node --dev --tmp --bob --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp -lruntime=debug
 
 .PHONY: run-chopsticks-pioneer
 run-chopsticks-pioneer:
