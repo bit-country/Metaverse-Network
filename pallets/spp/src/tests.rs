@@ -76,7 +76,7 @@ fn create_ksm_pool_works() {
 				RuntimeOrigin::signed(BOB),
 				FungibleTokenId::NativeToken(1),
 				10,
-				Permill::from_percent(1)
+				1u128
 			));
 
 			// Check Id will increment
@@ -87,7 +87,7 @@ fn create_ksm_pool_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: BOB,
-					commission: Permill::from_percent(1),
+					commission: 1u128,
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 10
 				}

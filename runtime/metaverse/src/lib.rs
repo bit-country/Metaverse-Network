@@ -1207,7 +1207,6 @@ parameter_types! {
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
 	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
 	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
-	/// Equals 4 for values used by Shibuya runtime.
 	pub const GasLimitPovSizeRatio: u64 = 4;
 }
 
