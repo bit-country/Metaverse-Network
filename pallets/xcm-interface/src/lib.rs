@@ -42,6 +42,8 @@ use core_primitives::*;
 pub use pallet::*;
 use primitives::{bounded::Rate, Balance, ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId};
 
+mod utils;
+
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
