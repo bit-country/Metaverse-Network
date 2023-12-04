@@ -98,7 +98,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 0;
+	pub const ExistentialDeposit: u128 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -113,8 +113,8 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type HoldIdentifier = ();
 	type FreezeIdentifier = ();
-	type MaxHolds = frame_support::traits::ConstU32<0>;
-	type MaxFreezes = frame_support::traits::ConstU32<0>;
+	type MaxHolds = frame_support::traits::ConstU32<1>;
+	type MaxFreezes = frame_support::traits::ConstU32<1>;
 }
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed

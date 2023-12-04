@@ -303,7 +303,7 @@ fn withdraw_from_class_fund_works() {
 
 			assert_eq!(
 				<Runtime as currencies_pallet::Config>::NativeCurrency::free_balance(&class_fund),
-				0
+				1
 			);
 		});
 }
