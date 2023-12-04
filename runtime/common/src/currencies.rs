@@ -3,7 +3,7 @@ use frame_support::traits::{Currency, OriginTrait};
 use orml_traits::{BasicCurrency, MultiCurrency as MultiCurrencyTrait};
 
 use pallet_evm::{
-	ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet,
+	ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet, IsPrecompileResult,
 };
 use sp_core::{H160, U256};
 use sp_runtime::traits::Dispatchable;
@@ -113,7 +113,7 @@ where
 		}))
 	}
 
-	fn is_precompile(&self, _address: H160) -> bool {
+	fn is_precompile(&self, _address: H160, remaining_gas: u64) -> IsPrecompileResult {
 		todo!()
 	}
 }

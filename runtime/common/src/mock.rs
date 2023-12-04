@@ -9,7 +9,7 @@ use frame_support::{
 use frame_system::EnsureRoot;
 
 use orml_traits::parameter_type_with_key;
-use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
+use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet, IsPrecompileResult};
 use pallet_evm::{PrecompileHandle, PrecompileOutput};
 
 use sp_core::{MaxEncodedLen, H160, H256, U256};
@@ -135,10 +135,10 @@ where
 				NftPrecompile::<R>::default().execute(handle)
 			}
 			_ => None,
-		}s
+		}
 	}
 
-	fn is_precompile(&self, _address: H160, gas: u64) -> IsPrecompileResult {
+	fn is_precompile(&self, _address: H160, remaining_gas: u64) -> IsPrecompileResult {
 		IsPrecompileResult::Answer {
 			is_precompile: true,
 			extra_cost: 0,
