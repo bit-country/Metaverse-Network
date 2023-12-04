@@ -27,6 +27,7 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 use frame_system::pallet_prelude::*;
+use orml_traits::XcmTransfer;
 use orml_traits::{MultiCurrency, RewardHandler};
 use sp_runtime::traits::{
 	BlockNumberProvider, Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, UniqueSaturatedInto,
@@ -39,15 +40,7 @@ use xcm::{prelude::*, v3::Weight as XcmWeight};
 
 use core_primitives::*;
 pub use pallet::*;
-use primitives::bounded::Rate;
-use primitives::{ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId};
-pub use weights::WeightInfo;
-
-pub type QueueId = u32;
-//#[cfg(feature = "runtime-benchmarks")]
-//pub mod benchmarking;
-
-const BOOSTING_ID: LockIdentifier = *b"bc/boost";
+use primitives::{bounded::Rate, Balance, ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId};
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -64,6 +57,15 @@ pub mod pallet {
 		// Parachain fee with location info
 		ParachainFee(Box<MultiLocation>),
 	}
+
+	/// The dest weight limit and fee for execution XCM msg sent by XcmInterface. Must be
+	/// sufficient, otherwise the execution of XCM msg on relaychain will fail.
+	///
+	/// XcmDestWeightAndFee: map: XcmInterfaceOperation => (Weight, Balance)
+	#[pallet::storage]
+	#[pallet::getter(fn xcm_dest_weight_and_fee)]
+	pub type XcmDestWeightAndFee<T: Config> =
+		StorageMap<_, Twox64Concat, XcmInterfaceOperation, (Weight, Balance), OptionQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -87,7 +89,7 @@ pub mod pallet {
 		type SovereignSubAccountLocationConvert: Convert<u16, MultiLocation>;
 
 		/// The interface to Cross-chain transfer.
-		type XcmTransfer: XcmTransfer<Self::AccountId, Balance, CurrencyId>;
+		type XcmTransfer: XcmTransfer<Self::AccountId, Balance, FungibleTokenId>;
 
 		/// Origin represented Governance
 		type GovernanceOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
@@ -122,5 +124,39 @@ pub mod pallet {
 	}
 
 	#[pallet::call]
-	impl<T: Config> Pallet<T> {}
+	impl<T: Config> Pallet<T> {
+		/// Sets the xcm_dest_weight and fee for XCM operation of XcmInterface.
+		///
+		/// Parameters:
+		/// - `updates`: vec of tuple: (XcmInterfaceOperation, WeightChange, FeeChange).
+		#[pallet::call_index(0)]
+		#[pallet::weight({10_000_000})]
+		pub fn update_xcm_dest_weight_and_fee(
+			origin: OriginFor<T>,
+			updates: Vec<(XcmInterfaceOperation, Option<Weight>, Option<Balance>)>,
+		) -> DispatchResult {
+			T::GovernanceOrigin::ensure_origin(origin)?;
+
+			for (operation, weight_change, fee_change) in updates {
+				XcmDestWeightAndFee::<T>::mutate(&operation, |(weight, fee)| {
+					if let Some(new_weight) = weight_change {
+						*weight = new_weight;
+						Self::deposit_event(Event::<T>::XcmDestWeightUpdated {
+							xcm_operation: operation.clone(),
+							new_xcm_dest_weight: new_weight,
+						});
+					}
+					if let Some(new_fee) = fee_change {
+						*fee = new_fee;
+						Self::deposit_event(Event::<T>::XcmFeeUpdated {
+							xcm_operation: operation.clone(),
+							new_xcm_dest_weight: new_fee,
+						});
+					}
+				});
+			}
+
+			Ok(())
+		}
+	}
 }
