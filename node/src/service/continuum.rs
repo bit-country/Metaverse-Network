@@ -330,7 +330,7 @@ where
 
 	let announce_block = {
 		let sync_service = sync_service.clone();
-        Arc::new(move |hash, data| sync_service.announce_block(hash, data))
+		Arc::new(move |hash, data| sync_service.announce_block(hash, data))
 	};
 
 	let relay_chain_slot_duration = Duration::from_secs(6);

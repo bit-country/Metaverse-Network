@@ -201,9 +201,7 @@ impl Config for Runtime {
 	type Currency = Balances;
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
-	type RewardPaymentDelay = RewardPaymentDelay;
 	type NetworkFee = NetworkFee;
-	type BlockNumberToBalance = ConvertInto;
 	type StorageDepositFee = StorageDepositFee;
 	type MultiCurrency = Currencies;
 	type PoolAccount = PoolAccountPalletId;

@@ -637,10 +637,9 @@ pub fn run_to_block(n: u64) {
 }
 
 pub fn set_balance_proposal(value: u64) -> Vec<u8> {
-	RuntimeCall::Balances(pallet_balances::Call::set_balance {
+	RuntimeCall::Balances(pallet_balances::Call::force_set_balance {
 		who: BOB,
 		new_free: value,
-		new_reserved: 100,
 	})
 	.encode()
 }
