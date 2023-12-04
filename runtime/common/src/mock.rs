@@ -135,11 +135,14 @@ where
 				NftPrecompile::<R>::default().execute(handle)
 			}
 			_ => None,
-		}
+		}s
 	}
 
-	fn is_precompile(&self, _address: H160) -> bool {
-		true
+	fn is_precompile(&self, _address: H160, gas: u64) -> IsPrecompileResult {
+		IsPrecompileResult::Answer {
+			is_precompile: true,
+			extra_cost: 0,
+		}
 	}
 }
 

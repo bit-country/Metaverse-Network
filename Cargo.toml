@@ -194,6 +194,7 @@ kusama-runtime = { git = "https://github.com/paritytech/polkadot", branch = "rel
 
 # ORML
 orml-currencies = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
+orml-rewards = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
 orml-tokens = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
 orml-traits = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
 orml-nft = { git = "https://github.com/chexware/open-runtime-module-library", branch = "v-9.43", default-features = false  }
