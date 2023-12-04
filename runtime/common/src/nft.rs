@@ -6,7 +6,8 @@ use frame_support::traits::{Currency, OriginTrait};
 use frame_system::RawOrigin;
 use orml_traits::{BasicCurrency, MultiCurrency};
 use pallet_evm::{
-	ExitRevert, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult, PrecompileSet, IsPrecompileResult,
+	ExitRevert, IsPrecompileResult, Precompile, PrecompileFailure, PrecompileHandle, PrecompileOutput,
+	PrecompileResult, PrecompileSet,
 };
 use sp_core::{H160, U256};
 use sp_runtime::traits::{AccountIdConversion, Dispatchable};

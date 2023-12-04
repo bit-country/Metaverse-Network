@@ -19,7 +19,9 @@
 //! default and must be disabled explicely throught type annotations.
 
 use crate::{revert, EvmResult, StatefulPrecompile};
-use fp_evm::{ExitError, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet, IsPrecompileResult};
+use fp_evm::{
+	ExitError, IsPrecompileResult, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet,
+};
 use frame_support::pallet_prelude::Get;
 use impl_trait_for_tuples::impl_for_tuples;
 use pallet_evm::AddressMapping;
@@ -93,12 +95,12 @@ impl DelegateCallSupport for AllowDelegateCall {
 }
 
 pub fn is_precompile_or_fail<R: pallet_evm::Config>(address: H160, gas: u64) -> EvmResult<bool> {
-    match <R as pallet_evm::Config>::PrecompilesValue::get().is_precompile(address, gas) {
-        IsPrecompileResult::Answer { is_precompile, .. } => Ok(is_precompile),
-        IsPrecompileResult::OutOfGas => Err(PrecompileFailure::Error {
-            exit_status: ExitError::OutOfGas,
-        }),
-    }
+	match <R as pallet_evm::Config>::PrecompilesValue::get().is_precompile(address, gas) {
+		IsPrecompileResult::Answer { is_precompile, .. } => Ok(is_precompile),
+		IsPrecompileResult::OutOfGas => Err(PrecompileFailure::Error {
+			exit_status: ExitError::OutOfGas,
+		}),
+	}
 }
 
 pub struct AddressU64<const N: u64>;
@@ -310,7 +312,7 @@ where
 pub struct PrecompileSetStartingWith<A, P, V, R = ForbidRecursion, D = ForbidDelegateCall> {
 	precompile_set: P,
 	current_recursion_level: RefCell<BTreeMap<H160, u16>>,
-	_phantom: PhantomData<(A,V,R,D)>,
+	_phantom: PhantomData<(A, V, R, D)>,
 }
 
 impl<A, P, V, R, D> PrecompileSetFragment for PrecompileSetStartingWith<A, P, V, R, D>
@@ -335,8 +337,8 @@ where
 		let code_address = handle.code_address();
 
 		if !is_precompile_or_fail::<V>(code_address, handle.remaining_gas()).ok()? {
-            return None;
-        }
+			return None;
+		}
 
 		// Check DELEGATECALL config.
 		if !D::allow_delegate_call() && code_address != handle.context().address {
@@ -386,14 +388,13 @@ where
 	#[inline(always)]
 	fn is_precompile(&self, address: H160, remaining_gas: u64) -> IsPrecompileResult {
 		if address.as_bytes().starts_with(A::get()) {
-            return self.precompile_set.is_precompile(address, remaining_gas);
-        }
-        IsPrecompileResult::Answer {
-            is_precompile: false,
-            extra_cost: 0,
-        }
+			return self.precompile_set.is_precompile(address, remaining_gas);
+		}
+		IsPrecompileResult::Answer {
+			is_precompile: false,
+			extra_cost: 0,
+		}
 	}
-		
 
 	#[inline(always)]
 	fn used_addresses(&self) -> Vec<H160> {

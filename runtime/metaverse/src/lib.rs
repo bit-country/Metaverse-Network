@@ -41,8 +41,8 @@ pub use frame_support::{
 	},
 	PalletId, RuntimeDebug, StorageValue,
 };
-use pallet_evm::GasWeightMapping;
 use frame_support::{BoundedVec, ConsensusEngineId};
+use pallet_evm::GasWeightMapping;
 // A few exports that help ease life for downstream crates.
 use frame_support::traits::{
 	Contains, EitherOfDiverse, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
@@ -52,10 +52,10 @@ use frame_system::{
 	Config, EnsureRoot, EnsureSigned, RawOrigin,
 };
 // EVM imports
+use crate::sp_api_hidden_includes_construct_runtime::hidden_include::traits::Hooks;
 use orml_traits::parameter_type_with_key;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_contracts::weights::WeightInfo;
-use crate::sp_api_hidden_includes_construct_runtime::hidden_include::traits::Hooks;
 use pallet_ethereum::{Call::transact, EthereumBlockHashMapping, Transaction as EthereumTransaction};
 use pallet_evm::{
 	Account as EVMAccount, EnsureAddressNever, EnsureAddressRoot, FeeCalculator, HashedAddressMapping, Runner,
@@ -98,12 +98,12 @@ use currencies::BasicCurrencyAdapter;
 pub use estate::{MintingRateInfo, Range as MintingRange};
 use evm_mapping::EvmAddressMapping;
 use metaverse_runtime_common::{precompiles::MetaverseNetworkPrecompiles, CurrencyHooks};
+use pallet_ethereum::PostLogContent;
 use primitives::evm::{
 	CurrencyIdType, Erc20Mapping, EvmAddress, H160_POSITION_CURRENCY_ID_TYPE, H160_POSITION_FUNGIBLE_TOKEN,
 	H160_POSITION_MINING_RESOURCE, H160_POSITION_TOKEN, H160_POSITION_TOKEN_NFT, H160_POSITION_TOKEN_NFT_CLASS_ID_END,
 };
 use primitives::{Amount, Balance, BlockNumber, ClassId, FungibleTokenId, Moment, NftId, PoolId, RoundIndex, TokenId};
-use pallet_ethereum::PostLogContent;
 // primitives imports
 use crate::opaque::SessionKeys;
 
@@ -143,10 +143,8 @@ pub type Index = u32;
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
-type EventRecord = frame_system::EventRecord<
-    <Runtime as frame_system::Config>::RuntimeEvent,
-    <Runtime as frame_system::Config>::Hash,
->;
+type EventRecord =
+	frame_system::EventRecord<<Runtime as frame_system::Config>::RuntimeEvent, <Runtime as frame_system::Config>::Hash>;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -435,9 +433,9 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 	type HoldIdentifier = ();
-    type FreezeIdentifier = ();
-    type MaxHolds = ConstU32<0>;
-    type MaxFreezes = ConstU32<0>;
+	type FreezeIdentifier = ();
+	type MaxHolds = ConstU32<0>;
+	type MaxFreezes = ConstU32<0>;
 }
 
 parameter_types! {
@@ -518,7 +516,7 @@ impl pallet_collective::Config<CouncilCollective> for Runtime {
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 	type SetMembersOrigin = EnsureRoot<Self::AccountId>;
-    type MaxProposalWeight = MaxProposalWeight;
+	type MaxProposalWeight = MaxProposalWeight;
 }
 
 parameter_types! {
@@ -538,7 +536,7 @@ impl pallet_collective::Config<TechnicalCommitteeCollective> for Runtime {
 	type DefaultVote = pallet_collective::PrimeDefaultVote;
 	type WeightInfo = pallet_collective::weights::SubstrateWeight<Runtime>;
 	type SetMembersOrigin = EnsureRoot<Self::AccountId>;
-    type MaxProposalWeight = MaxProposalWeight;
+	type MaxProposalWeight = MaxProposalWeight;
 }
 
 // Metaverse network related pallets
@@ -1235,20 +1233,20 @@ impl pallet_evm::Config for Runtime {
 	type WeightPerGas = WeightPerGas;
 	type Timestamp = Timestamp;
 	type OnCreate = ();
-    type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
-    type WeightInfo = pallet_evm::weights::SubstrateWeight<Runtime>;
+	type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
+	type WeightInfo = pallet_evm::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
-    pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
+	pub const PostBlockAndTxnHashes: PostLogContent = PostLogContent::BlockAndTxnHashes;
 }
 
 impl pallet_ethereum::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type StateRoot = pallet_ethereum::IntermediateStateRoot<Self>;
 	type PostLogContent = PostBlockAndTxnHashes;
-    // Maximum length (in bytes) of revert message to include in Executed event
-    type ExtraDataLength = ConstU32<30>;
+	// Maximum length (in bytes) of revert message to include in Executed event
+	type ExtraDataLength = ConstU32<30>;
 }
 
 pub struct RPCCallFilter;
@@ -1706,12 +1704,12 @@ impl_runtime_apis! {
 		}
 
 		fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
-            Runtime::metadata_at_version(version)
-        }
+			Runtime::metadata_at_version(version)
+		}
 
-        fn metadata_versions() -> sp_std::vec::Vec<u32> {
-            Runtime::metadata_versions()
-        }
+		fn metadata_versions() -> sp_std::vec::Vec<u32> {
+			Runtime::metadata_versions()
+		}
 	}
 
 	impl sp_block_builder::BlockBuilder<Block> for Runtime {
@@ -1802,38 +1800,38 @@ impl_runtime_apis! {
 			let validate = true;
 
 			// Reused approach from Moonbeam since Frontier implementation doesn't support this
-            let mut estimated_transaction_len = data.len() +
-                // to: 20
-                // from: 20
-                // value: 32
-                // gas_limit: 32
-                // nonce: 32
-                // 1 byte transaction action variant
-                // chain id 8 bytes
-                // 65 bytes signature
-                210;
-            if max_fee_per_gas.is_some() {
-                estimated_transaction_len += 32;
-            }
-            if max_priority_fee_per_gas.is_some() {
-                estimated_transaction_len += 32;
-            }
-            if access_list.is_some() {
-                estimated_transaction_len += access_list.encoded_size();
-            }
+			let mut estimated_transaction_len = data.len() +
+				// to: 20
+				// from: 20
+				// value: 32
+				// gas_limit: 32
+				// nonce: 32
+				// 1 byte transaction action variant
+				// chain id 8 bytes
+				// 65 bytes signature
+				210;
+			if max_fee_per_gas.is_some() {
+				estimated_transaction_len += 32;
+			}
+			if max_priority_fee_per_gas.is_some() {
+				estimated_transaction_len += 32;
+			}
+			if access_list.is_some() {
+				estimated_transaction_len += access_list.encoded_size();
+			}
 
 			let gas_limit = gas_limit.min(u64::MAX.into()).low_u64();
-            let without_base_extrinsic_weight = true;
+			let without_base_extrinsic_weight = true;
 			let (weight_limit, proof_size_base_cost) =
-                match <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
-                    gas_limit,
-                    without_base_extrinsic_weight
-                ) {
-                    weight_limit if weight_limit.proof_size() > 0 => {
-                        (Some(weight_limit), Some(estimated_transaction_len as u64))
-                    }
-                    _ => (None, None),
-                };
+				match <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
+					gas_limit,
+					without_base_extrinsic_weight
+				) {
+					weight_limit if weight_limit.proof_size() > 0 => {
+						(Some(weight_limit), Some(estimated_transaction_len as u64))
+					}
+					_ => (None, None),
+				};
 
 			<Runtime as pallet_evm::Config>::Runner::call(
 				from,
@@ -1848,7 +1846,7 @@ impl_runtime_apis! {
 				is_transactional,
 				validate,
 				weight_limit,
-                proof_size_base_cost,
+				proof_size_base_cost,
 				config
 					.as_ref()
 					.unwrap_or_else(|| <Runtime as pallet_evm::Config>::config()),
@@ -1878,40 +1876,40 @@ impl_runtime_apis! {
 			let is_transactional = false;
 			let validate = true;
 
-			
+
 			// Reused approach from Moonbeam since Frontier implementation doesn't support this
-            let mut estimated_transaction_len = data.len() +
-                // to: 20
-                // from: 20
-                // value: 32
-                // gas_limit: 32
-                // nonce: 32
-                // 1 byte transaction action variant
-                // chain id 8 bytes
-                // 65 bytes signature
-                210;
-            if max_fee_per_gas.is_some() {
-                estimated_transaction_len += 32;
-            }
-            if max_priority_fee_per_gas.is_some() {
-                estimated_transaction_len += 32;
-            }
-            if access_list.is_some() {
-                estimated_transaction_len += access_list.encoded_size();
-            }
+			let mut estimated_transaction_len = data.len() +
+				// to: 20
+				// from: 20
+				// value: 32
+				// gas_limit: 32
+				// nonce: 32
+				// 1 byte transaction action variant
+				// chain id 8 bytes
+				// 65 bytes signature
+				210;
+			if max_fee_per_gas.is_some() {
+				estimated_transaction_len += 32;
+			}
+			if max_priority_fee_per_gas.is_some() {
+				estimated_transaction_len += 32;
+			}
+			if access_list.is_some() {
+				estimated_transaction_len += access_list.encoded_size();
+			}
 
 			let gas_limit = gas_limit.min(u64::MAX.into()).low_u64();
-            let without_base_extrinsic_weight = true;
+			let without_base_extrinsic_weight = true;
 			let (weight_limit, proof_size_base_cost) =
-                match <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
-                    gas_limit,
-                    without_base_extrinsic_weight
-                ) {
-                    weight_limit if weight_limit.proof_size() > 0 => {
-                        (Some(weight_limit), Some(estimated_transaction_len as u64))
-                    }
-                    _ => (None, None),
-                };
+				match <Runtime as pallet_evm::Config>::GasWeightMapping::gas_to_weight(
+					gas_limit,
+					without_base_extrinsic_weight
+				) {
+					weight_limit if weight_limit.proof_size() > 0 => {
+						(Some(weight_limit), Some(estimated_transaction_len as u64))
+					}
+					_ => (None, None),
+				};
 
 
 			#[allow(clippy::or_fun_call)] // suggestion not helpful here
@@ -1927,7 +1925,7 @@ impl_runtime_apis! {
 				is_transactional,
 				validate,
 				weight_limit,
-                proof_size_base_cost,
+				proof_size_base_cost,
 				config
 					.as_ref()
 					.unwrap_or(<Runtime as pallet_evm::Config>::config()),
@@ -1974,19 +1972,19 @@ impl_runtime_apis! {
 		fn gas_limit_multiplier_support() {}
 
 		fn pending_block(
-            xts: Vec<<Block as BlockT>::Extrinsic>,
-        ) -> (Option<pallet_ethereum::Block>, Option<Vec<fp_rpc::TransactionStatus>>) {
-            for ext in xts.into_iter() {
-                let _ = Executive::apply_extrinsic(ext);
-            }
+			xts: Vec<<Block as BlockT>::Extrinsic>,
+		) -> (Option<pallet_ethereum::Block>, Option<Vec<fp_rpc::TransactionStatus>>) {
+			for ext in xts.into_iter() {
+				let _ = Executive::apply_extrinsic(ext);
+			}
 
-            Ethereum::on_finalize(System::block_number() + 1);
+			Ethereum::on_finalize(System::block_number() + 1);
 
-            (
-                pallet_ethereum::CurrentBlock::<Runtime>::get(),
-                pallet_ethereum::CurrentTransactionStatuses::<Runtime>::get()
-            )
-        }
+			(
+				pallet_ethereum::CurrentBlock::<Runtime>::get(),
+				pallet_ethereum::CurrentTransactionStatuses::<Runtime>::get()
+			)
+		}
 	}
 
 	impl fp_rpc::ConvertTransactionRuntimeApi<Block> for Runtime {
@@ -2090,16 +2088,16 @@ impl_runtime_apis! {
 		) -> pallet_contracts_primitives::ContractExecResult<Balance, EventRecord> {
 			let gas_limit = gas_limit.unwrap_or(RuntimeBlockWeights::get().max_block);
 			Contracts::bare_call(
-                origin,
-                dest,
-                value,
-                gas_limit,
-                storage_deposit_limit,
-                input_data,
-                pallet_contracts::DebugInfo::UnsafeDebug,
-                pallet_contracts::CollectEvents::UnsafeCollect,
-                pallet_contracts::Determinism::Enforced,
-            )
+				origin,
+				dest,
+				value,
+				gas_limit,
+				storage_deposit_limit,
+				input_data,
+				pallet_contracts::DebugInfo::UnsafeDebug,
+				pallet_contracts::CollectEvents::UnsafeCollect,
+				pallet_contracts::Determinism::Enforced,
+			)
 		}
 
 		fn instantiate(
@@ -2114,16 +2112,16 @@ impl_runtime_apis! {
 		{
 			let gas_limit = gas_limit.unwrap_or(RuntimeBlockWeights::get().max_block);
 			Contracts::bare_instantiate(
-                origin,
-                value,
-                gas_limit,
-                storage_deposit_limit,
-                code,
-                data,
-                salt,
-                pallet_contracts::DebugInfo::UnsafeDebug,
-                pallet_contracts::CollectEvents::UnsafeCollect,
-            )
+				origin,
+				value,
+				gas_limit,
+				storage_deposit_limit,
+				code,
+				data,
+				salt,
+				pallet_contracts::DebugInfo::UnsafeDebug,
+				pallet_contracts::CollectEvents::UnsafeCollect,
+			)
 		}
 
 		fn upload_code(

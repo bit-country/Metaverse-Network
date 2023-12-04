@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use fc_rpc::{
 	EthBlockDataCacheTask, OverrideHandle, RuntimeApiStorageOverride, SchemaV1Override, SchemaV2Override,
-	SchemaV3Override, StorageOverride,
+	SchemaV3Override, StorageOverride, TxPool,
 };
 use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use fp_storage::EthereumStorageSchema;
@@ -18,11 +18,13 @@ use sc_client_api::{
 	client::BlockchainEvents,
 };
 use sc_network::NetworkService;
+use sc_network_sync::SyncingService;
 pub use sc_rpc::{DenyUnsafe, SubscriptionTaskExecutor};
 use sc_transaction_pool::{ChainApi, Pool};
 use sc_transaction_pool_api::TransactionPool;
-use sp_api::ProvideRuntimeApi;
+use sp_api::{CallApiAt, ProvideRuntimeApi};
 use sp_block_builder::BlockBuilder;
+use sp_blockchain::Backend as BlockchainBackend;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 use sp_runtime::traits::BlakeTwo256;
 use substrate_frame_rpc_system::{System, SystemApiServer};
@@ -33,28 +35,22 @@ use primitives::*;
 pub fn open_frontier_backend<C>(
 	client: Arc<C>,
 	config: &sc_service::Configuration,
-) -> Result<Arc<fc_db::Backend<Block>>, String>
+) -> Result<Arc<fc_db::kv::Backend<Block>>, String>
 where
 	C: sp_blockchain::HeaderBackend<Block>,
 {
-	let config_dir = config
-		.base_path
-		.as_ref()
-		.map(|base_path| base_path.config_dir(config.chain_spec.id()))
-		.unwrap_or_else(|| {
-			sc_service::BasePath::from_project("", "", "metaverse-node").config_dir(config.chain_spec.id())
-		});
+	let config_dir = config.base_path.config_dir(config.chain_spec.id());
 	let path = config_dir.join("frontier").join("db");
 	//let client =
 
-	Ok(Arc::new(fc_db::Backend::<Block>::new(
+	Ok(Arc::new(fc_db::kv::Backend::<Block>::new(
 		client,
-		&fc_db::DatabaseSettings {
-			source: sc_client_db::DatabaseSource::RocksDb { path, cache_size: 0 },
+		&fc_db::kv::DatabaseSettings {
+			source: fc_db::DatabaseSource::RocksDb { path, cache_size: 0 },
 		},
 	)?))
 }
-
+/*
 pub fn overrides_handle<C, BE>(client: Arc<C>) -> Arc<OverrideHandle<Block>>
 where
 	C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
@@ -83,6 +79,7 @@ where
 		fallback: Box::new(RuntimeApiStorageOverride::new(client.clone())),
 	})
 }
+*/
 
 /// Full client dependencies.
 pub struct FullDeps<C, P, A: ChainApi> {
@@ -98,12 +95,12 @@ pub struct FullDeps<C, P, A: ChainApi> {
 	pub is_authority: bool,
 	/// Network service
 	pub network: Arc<NetworkService<Block, Hash>>,
+	/// Chain syncing service
+	pub sync: Arc<SyncingService<Block>>,
 	/// EthFilterApi pool.
 	pub filter_pool: Option<FilterPool>,
 	/// Frontier Backend.
-	pub frontier_backend: Arc<fc_db::Backend<Block>>,
-	/// Maximum number of logs in a query.
-	pub max_past_logs: u32,
+	pub frontier_backend: Arc<dyn fc_db::BackendReader<Block> + Send + Sync>,
 	/// Fee history cache.
 	pub fee_history_cache: FeeHistoryCache,
 	/// Maximum fee history cache size.
@@ -112,23 +109,28 @@ pub struct FullDeps<C, P, A: ChainApi> {
 	pub overrides: Arc<OverrideHandle<Block>>,
 	/// Cache for Ethereum block data.
 	pub block_data_cache: Arc<EthBlockDataCacheTask<Block>>,
-	/// Manual seal command sink
-	#[cfg(feature = "manual-seal")]
-	pub command_sink: Option<futures::channel::mpsc::Sender<sc_consensus_manual_seal::rpc::EngineCommand<Hash>>>,
+	/// Enable EVM RPC servers
+	pub enable_evm_rpc: bool,
 }
 
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, BE, A>(
 	deps: FullDeps<C, P, A>,
 	subscription_task_executor: SubscriptionTaskExecutor,
+	pubsub_notification_sinks: Arc<
+		fc_mapping_sync::EthereumBlockNotificationSinks<fc_mapping_sync::EthereumBlockNotification<Block>>,
+	>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
 	BE: Backend<Block> + 'static,
 	BE::State: StateBackend<BlakeTwo256>,
+	//BE::Blockchain: BlockchainBackend<Block>,
 	C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
 	C: BlockchainEvents<Block>,
+	C: CallApiAt<Block>,
 	C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError>,
 	C: Send + Sync + 'static,
+	C: sc_client_api::BlockBackend<Block>,
 	C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
 	C::Api: BlockBuilder<Block>,
 	C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
@@ -149,18 +151,17 @@ where
 		client,
 		pool,
 		graph,
-		network,
 		deny_unsafe,
 		is_authority,
+		network,
+		sync,
 		filter_pool,
 		frontier_backend,
-		max_past_logs,
 		fee_history_cache,
 		fee_history_limit,
 		overrides,
 		block_data_cache,
-		#[cfg(feature = "manual-seal")]
-		command_sink,
+		enable_evm_rpc,
 	} = deps;
 
 	io.merge(System::new(Arc::clone(&client), Arc::clone(&pool), deny_unsafe).into_rpc())?;
@@ -172,9 +173,9 @@ where
 		Eth::new(
 			client.clone(),
 			pool.clone(),
-			graph,
+			graph.clone(),
 			no_tx_converter,
-			network.clone(),
+			sync.clone(),
 			Default::default(),
 			overrides.clone(),
 			frontier_backend.clone(),
@@ -182,18 +183,25 @@ where
 			block_data_cache.clone(),
 			fee_history_cache,
 			fee_history_limit,
-			Default::default(),
+			// Allow 10x max allowed weight for non-transactional calls
+			10,
+			None,
 		)
 		.into_rpc(),
 	)?;
+
+	let max_past_logs: u32 = 10_000;
+	let max_stored_filters: usize = 500;
+	let tx_pool = TxPool::new(client.clone(), graph);
 
 	if let Some(filter_pool) = filter_pool {
 		io.merge(
 			EthFilter::new(
 				client.clone(),
 				frontier_backend,
+				tx_pool.clone(),
 				filter_pool,
-				500_usize, // max stored filters
+				max_stored_filters,
 				max_past_logs,
 				block_data_cache,
 			)
@@ -213,7 +221,17 @@ where
 
 	io.merge(Web3::new(client.clone()).into_rpc())?;
 
-	io.merge(EthPubSub::new(pool, client, network, subscription_task_executor, overrides).into_rpc())?;
+	io.merge(
+		EthPubSub::new(
+			pool,
+			client,
+			sync,
+			subscription_task_executor,
+			overrides,
+			pubsub_notification_sinks,
+		)
+		.into_rpc(),
+	)?;
 
 	#[cfg(feature = "manual-seal")]
 	if let Some(command_sink) = command_sink {

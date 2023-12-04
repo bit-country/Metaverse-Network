@@ -48,7 +48,6 @@ fn create_ksm_pool_works() {
 		.ksm_setup_for_alice_and_bob()
 		.build()
 		.execute_with(|| {
-
 			// Create the first pool
 			assert_ok!(SppModule::create_pool(
 				RuntimeOrigin::signed(ALICE),

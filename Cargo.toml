@@ -88,6 +88,7 @@ sp-authority-discovery = { git = "https://github.com/paritytech/substrate", bran
 sc-consensus-grandpa = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-client-api = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-network = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
+sc-network-sync = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-network-common = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-tracing = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
 sc-sync-state-rpc = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.43" }
@@ -208,7 +209,8 @@ orml-benchmarking = { git = "https://github.com/chexware/open-runtime-module-lib
 # EVM
 pallet-dynamic-fee = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43" }
 fp-consensus = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43"}
-fp-storage = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43"}
+fp-storage = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43" }
+fc-storage = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43" }
 fc-cli = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43"}
 fc-rpc = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43"}
 fc-rpc-core = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43"}

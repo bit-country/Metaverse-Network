@@ -9,7 +9,9 @@ use frame_support::{
 use frame_system::EnsureRoot;
 
 use orml_traits::parameter_type_with_key;
-use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet, IsPrecompileResult};
+use pallet_evm::{
+	EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, IsPrecompileResult, Precompile, PrecompileSet,
+};
 use pallet_evm::{PrecompileHandle, PrecompileOutput};
 
 use sp_core::{MaxEncodedLen, H160, H256, U256};

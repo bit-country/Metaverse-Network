@@ -62,6 +62,7 @@ sc-tracing = { workspace = true }
 sp-runtime = { workspace = true }
 sp-timestamp = { workspace = true }
 sc-sync-state-rpc = { workspace = true }
+sc-network-sync = { workspace = true }
 sp-transaction-pool = { workspace = true, default-features = true }
 sp-transaction-storage-proof = { workspace = true }
 sp-keystore = { workspace = true }
@@ -124,6 +125,7 @@ xcm = { workspace = true }
 fp-rpc = { workspace = true, default-features = true, optional = true }
 fp-consensus = { workspace = true, optional = true }
 fp-storage = { workspace = true, optional = true }
+fc-storage = { workspace = true }
 fc-cli = { workspace = true, optional = true }
 fc-rpc = { workspace = true, optional = true }
 fc-rpc-core = { workspace = true, optional = true }
