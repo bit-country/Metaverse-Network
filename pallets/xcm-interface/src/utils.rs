@@ -1,7 +1,7 @@
 use frame_support::dispatch::DispatchResult;
 use xcm::prelude::MultiLocation;
 
-pub trait SppAccountXcm<AccountId, Balance> {
+pub trait SppAccountXcmHelper<AccountId, Balance> {
 	/// Cross-chain transfer staking currency to sub account on relaychain.
 	fn transfer_staking_to_sub_account(sender: &AccountId, sub_account_index: u16, amount: Balance) -> DispatchResult;
 	/// Send XCM message to the relaychain for sub account to withdraw_unbonded staking currency and

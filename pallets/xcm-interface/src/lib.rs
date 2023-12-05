@@ -40,7 +40,10 @@ use xcm::{prelude::*, v3::Weight as XcmWeight};
 
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{bounded::Rate, Balance, ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId};
+use primitives::{
+	bounded::Rate, AccountId, Balance, ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId,
+};
+use utils::SppAccountXcmHelper;
 
 mod utils;
 
@@ -53,6 +56,7 @@ pub mod pallet {
 		// XTokens
 		XtokensTransfer,
 		// Spp
+		PayoutReward,
 		WithdrawUnbonded,
 		BondExtra,
 		Unbond,
@@ -159,6 +163,43 @@ pub mod pallet {
 			}
 
 			Ok(())
+		}
+	}
+
+	impl<T: Config> SppAccountXcmHelper<AccountId, Balance> for Pallet<T> {
+		fn transfer_staking_to_sub_account(
+			sender: &AccountId,
+			sub_account_index: u16,
+			amount: Balance,
+		) -> DispatchResult {
+			T::XcmTransfer::transfer(
+				sender.clone(),
+				T::StakingCurrencyId::get(),
+				amount,
+				T::SovereignSubAccountLocationConvert::convert(sub_account_index),
+				Limited(Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::XtokensTransfer).0),
+			)
+			.map(|_| ())
+		}
+
+		fn withdraw_unbonded_from_sub_account(sub_account_index: u16, amount: Balance) -> DispatchResult {
+			todo!()
+		}
+
+		fn bond_extra_on_sub_account(sub_account_index: u16, amount: Balance) -> DispatchResult {
+			todo!()
+		}
+
+		fn unbond_on_sub_account(sub_account_index: u16, amount: Balance) -> DispatchResult {
+			todo!()
+		}
+
+		fn get_xcm_transfer_fee() -> Balance {
+			todo!()
+		}
+
+		fn get_parachain_fee(location: MultiLocation) -> Balance {
+			todo!()
 		}
 	}
 }
