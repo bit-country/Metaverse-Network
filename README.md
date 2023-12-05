@@ -1,13 +1,5 @@
-<p align="center">
-  <img src="https://github.com/bit-country/Metaverse-Network/blob/master/node/res/bm-logo.png?raw=true" width="200">
-</p>
-
-<p align="center">  
-  <img src="https://raw.githubusercontent.com/w3f/General-Grants-Program/master/src/badge_black.svg" width="530">
-</p>
-
 <div align="center">
-<h1>[Bit.Country] Metaverse.Network</h1>
+<h1>Metaverse.Network by BitCountry team</h1>
 
 ## An Ethereum-compatible Blockchain Network Built using Substrate
 
@@ -102,3 +94,8 @@ cargo run -- \
   --telemetry-url 'wss://telemetry.polkadot.io/submit/ 0' \
   --validator
 ```
+
+<p align="center">  
+  <img src="https://raw.githubusercontent.com/w3f/General-Grants-Program/master/src/badge_black.svg" width="530">
+</p>
+
