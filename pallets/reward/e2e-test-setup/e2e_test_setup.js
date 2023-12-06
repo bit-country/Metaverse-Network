@@ -36,4 +36,4 @@ console.log("Merkle Tree: ", tree.toString());
 console.log("Merkle Tree Root: ", tree.getHexRoot().toString());
 // (4) Get proofs for each leaf - use them to call claimRewardRoot
 
-console.log(tree.getHexProof(leaves[7]));
+console.log(tree.getHexProof(leaves[3]));
