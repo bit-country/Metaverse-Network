@@ -4,11 +4,11 @@ use std::str::FromStr;
 use cumulus_primitives_core::ParaId;
 use hex_literal::hex;
 use sc_chain_spec::{ChainSpecExtension, ChainSpecGroup};
+use sc_consensus_grandpa::AuthorityId as GrandpaId;
 use sc_service::{ChainType, Properties};
 use serde::{Deserialize, Serialize};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public, H160, U256};
-use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
 	Perbill,

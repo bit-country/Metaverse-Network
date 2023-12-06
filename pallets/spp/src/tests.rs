@@ -48,7 +48,6 @@ fn create_ksm_pool_works() {
 		.ksm_setup_for_alice_and_bob()
 		.build()
 		.execute_with(|| {
-
 			// Create the first pool
 			assert_ok!(SppModule::create_pool(
 				RuntimeOrigin::signed(ALICE),
@@ -77,7 +76,7 @@ fn create_ksm_pool_works() {
 				RuntimeOrigin::signed(BOB),
 				FungibleTokenId::NativeToken(1),
 				10,
-				Permill::from_percent(1)
+				Permill::from_percent(1).into()
 			));
 
 			// Check Id will increment
@@ -88,7 +87,7 @@ fn create_ksm_pool_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: BOB,
-					commission: Permill::from_percent(1),
+					commission: Permill::from_percent(1).into(),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 10
 				}
@@ -245,7 +244,9 @@ fn current_era_update_works() {
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
-				Some(Rate::saturating_from_rational(35, 100000))
+				Some(Rate::saturating_from_rational(35, 100000)),
+				None,
+				Some(100u32),
 			));
 
 			assert_ok!(SppModule::create_pool(
@@ -486,7 +487,9 @@ fn boosting_and_claim_reward_works() {
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
-				Some(Rate::saturating_from_rational(35, 100000))
+				Some(Rate::saturating_from_rational(35, 100000)),
+				None,
+				Some(100u32),
 			));
 
 			assert_ok!(SppModule::create_pool(
@@ -690,7 +693,9 @@ fn reward_distribution_works() {
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
-				Some(Rate::saturating_from_rational(20, 100)) // Set reward rate per era is 20%.
+				Some(Rate::saturating_from_rational(20, 100)), // Set reward rate per era is 20%.
+				None,
+				Some(100u32),
 			));
 
 			assert_ok!(SppModule::create_pool(

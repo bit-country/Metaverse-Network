@@ -187,6 +187,7 @@ benchmarks! {
 			metadata: vec![1],
 			only_account: None,
 			mint_price: None,
+			expired: 100u32.into()
 		};
 
 		let message = Encode::encode(&mint_data);

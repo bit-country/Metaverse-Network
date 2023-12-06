@@ -102,6 +102,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 
 // pub type AdaptedBasicCurrency =
@@ -197,9 +201,7 @@ impl Config for Runtime {
 	type Currency = Balances;
 	type WeightInfo = ();
 	type MinimumStake = MinimumStake;
-	type RewardPaymentDelay = RewardPaymentDelay;
 	type NetworkFee = NetworkFee;
-	type BlockNumberToBalance = ConvertInto;
 	type StorageDepositFee = StorageDepositFee;
 	type MultiCurrency = Currencies;
 	type PoolAccount = PoolAccountPalletId;

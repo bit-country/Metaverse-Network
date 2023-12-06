@@ -15,14 +15,10 @@ import {WalkerImpl, encodeU128, encodeU64, encodeU32} from "@scale-codec/core";
 
 // (1) Get the whitelist data: pair of AccountId,  Balance / (ClassId, TokenId).
 const values  = [ 
-      ['5GuttyuDTejF1p6fzv1ffzxNKEnTWWJ4jCMwqcFfiwMj1bYh', 100000000000000000000], // sudo dev
-      ['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY', 100000000000000000000], // alice sudo
-      ['5FHmnS7PYbm8MBNt33S9yuwiJEKkj3eT6ZcuQz1itW4fa3mA', 100000000000000000000], // blockchex
-      ['5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', 100000000000000000000], // bob
-      ['5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y', 100000000000000000000], // charlie
-      ['5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL', 100000000000000000000], // freddie
-      ['5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy', 100000000000000000000], // dave
-      ['5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw', 100000000000000000000] // eva
+      ['5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt', 10], // bob
+      ['5C8etthaGJi5SkQeEDSaK32ABBjkhwDeK9ksQCTLEGM3EH14', 25], // charlie
+      ['5C9yEy27yLNG5BDMxVwS8RyGBneZB1ouShazFhGZVP8thK5z', 50], // donna
+      ['5CBHb3LfgN2Shc25gnSHwpvNCPZMe6QAaFR77C5nkVvkAK1o', 75] // eva
 ];
 
 // (2) Decode address and encode reward using SCALE
@@ -40,4 +36,4 @@ console.log("Merkle Tree: ", tree.toString());
 console.log("Merkle Tree Root: ", tree.getHexRoot().toString());
 // (4) Get proofs for each leaf - use them to call claimRewardRoot
 
-console.log(tree.getHexProof(leaves[7]));
+console.log(tree.getHexProof(leaves[3]));

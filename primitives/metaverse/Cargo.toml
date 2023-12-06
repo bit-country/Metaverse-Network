@@ -6,6 +6,7 @@ edition = '2021'
 
 [dependencies]
 serde = { workspace = true, optional = true, features = ["derive"] }
+serde_json = { workspace = true }
 codec = { workspace = true, package = "parity-scale-codec" }
 scale-info = { workspace = true }
 hex-literal = { workspace = true }

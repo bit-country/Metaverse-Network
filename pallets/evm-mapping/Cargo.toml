@@ -23,7 +23,7 @@ orml-traits = { workspace = true }
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 
 [dev-dependencies]
-pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+pallet-balances = { workspace = true }
 orml-currencies = { workspace = true }
 orml-tokens = { workspace = true }
 

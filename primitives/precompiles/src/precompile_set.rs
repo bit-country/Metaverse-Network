@@ -18,8 +18,10 @@
 //! final precompile set with security checks. All security checks are enabled by
 //! default and must be disabled explicely throught type annotations.
 
-use crate::{revert, StatefulPrecompile};
-use fp_evm::{Precompile, PrecompileHandle, PrecompileResult, PrecompileSet, IsPrecompileResult};
+use crate::{revert, EvmResult, StatefulPrecompile};
+use fp_evm::{
+	ExitError, IsPrecompileResult, Precompile, PrecompileFailure, PrecompileHandle, PrecompileResult, PrecompileSet,
+};
 use frame_support::pallet_prelude::Get;
 use impl_trait_for_tuples::impl_for_tuples;
 use pallet_evm::AddressMapping;
@@ -89,6 +91,15 @@ impl DelegateCallSupport for AllowDelegateCall {
 	#[inline(always)]
 	fn allow_delegate_call() -> bool {
 		true
+	}
+}
+
+pub fn is_precompile_or_fail<R: pallet_evm::Config>(address: H160, gas: u64) -> EvmResult<bool> {
+	match <R as pallet_evm::Config>::PrecompilesValue::get().is_precompile(address, gas) {
+		IsPrecompileResult::Answer { is_precompile, .. } => Ok(is_precompile),
+		IsPrecompileResult::OutOfGas => Err(PrecompileFailure::Error {
+			exit_status: ExitError::OutOfGas,
+		}),
 	}
 }
 
@@ -298,18 +309,19 @@ where
 /// Type parameters allow to define:
 /// - A: The common prefix
 /// - D: If DELEGATECALL is supported (default to no)
-pub struct PrecompileSetStartingWith<A, P, R = ForbidRecursion, D = ForbidDelegateCall> {
+pub struct PrecompileSetStartingWith<A, P, V, R = ForbidRecursion, D = ForbidDelegateCall> {
 	precompile_set: P,
 	current_recursion_level: RefCell<BTreeMap<H160, u16>>,
-	_phantom: PhantomData<(A, R, D)>,
+	_phantom: PhantomData<(A, V, R, D)>,
 }
 
-impl<A, P, R, D> PrecompileSetFragment for PrecompileSetStartingWith<A, P, R, D>
+impl<A, P, V, R, D> PrecompileSetFragment for PrecompileSetStartingWith<A, P, V, R, D>
 where
 	A: Get<&'static [u8]>,
 	P: PrecompileSet + Default,
 	R: RecursionLimit,
 	D: DelegateCallSupport,
+	V: pallet_evm::Config,
 {
 	#[inline(always)]
 	fn new() -> Self {
@@ -323,9 +335,8 @@ where
 	#[inline(always)]
 	fn execute(&self, handle: &mut impl PrecompileHandle) -> Option<PrecompileResult> {
 		let code_address = handle.code_address();
-		let gas_limit = handle.gas_limit();
 
-		if !self.is_precompile(code_address, gas_limit) {
+		if !is_precompile_or_fail::<V>(code_address, handle.remaining_gas()).ok()? {
 			return None;
 		}
 
@@ -376,14 +387,14 @@ where
 
 	#[inline(always)]
 	fn is_precompile(&self, address: H160, remaining_gas: u64) -> IsPrecompileResult {
+		if address.as_bytes().starts_with(A::get()) {
+			return self.precompile_set.is_precompile(address, remaining_gas);
+		}
 		IsPrecompileResult::Answer {
-			is_precompile: (
-				address.as_bytes().starts_with(A::get()) && 
-				self.precompile_set.is_precompile(address, remaining_gas).is_precompile
-			),
+			is_precompile: false,
 			extra_cost: 0,
 		}
-		
+	}
 
 	#[inline(always)]
 	fn used_addresses(&self) -> Vec<H160> {
@@ -452,14 +463,15 @@ impl PrecompileSetFragment for Tuple {
 	#[inline(always)]
 	fn is_precompile(&self, address: H160, remaining_gas: u64) -> IsPrecompileResult {
 		for_tuples!(#(
-			if self.Tuple.is_precompile(address, remaining_gas).is_precompile {
-				return IsPrecompileResult::Answer {
-					is_precompile: true,
-					extra_cost: 0,
-				};
-			}
+			if let IsPrecompileResult::Answer {
+			is_precompile: true,
+				..
+			} = self.Tuple.is_precompile(address, remaining_gas) { return IsPrecompileResult::Answer {
+				is_precompile: true,
+				extra_cost: 0,
+				}
+			};
 		)*);
-
 		IsPrecompileResult::Answer {
 			is_precompile: false,
 			extra_cost: 0,

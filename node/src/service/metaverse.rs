@@ -16,8 +16,8 @@ use fc_rpc_core::types::{FeeHistoryCache, FilterPool};
 use futures::StreamExt;
 use sc_client_api::{BlockBackend, BlockchainEvents};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
+use sc_consensus_grandpa::SharedVoterState;
 use sc_executor::NativeElseWasmExecutor;
-use sc_finality_grandpa::SharedVoterState;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
@@ -71,20 +71,16 @@ pub fn new_partial(
 		(
 			FrontierBlockImport<
 				Block,
-				sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
+				sc_consensus_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
 				FullClient,
 			>,
-			sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
+			sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
 			Option<Telemetry>,
-			Arc<fc_db::Backend<Block>>,
+			Arc<fc_db::kv::Backend<Block>>,
 		),
 	>,
 	ServiceError,
 > {
-	if config.keystore_remote.is_some() {
-		return Err(ServiceError::Other(format!("Remote Keystores are not supported.")));
-	}
-
 	let telemetry = config
 		.telemetry_endpoints
 		.clone()
@@ -125,7 +121,7 @@ pub fn new_partial(
 		client.clone(),
 	);
 
-	let (grandpa_block_import, grandpa_link) = sc_finality_grandpa::block_import(
+	let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
 		client.clone(),
 		&(client.clone() as Arc<_>),
 		select_chain.clone(),
@@ -133,8 +129,7 @@ pub fn new_partial(
 	)?;
 
 	let frontier_backend = crate::rpc::open_frontier_backend(client.clone(), config)?;
-	let frontier_block_import =
-		FrontierBlockImport::new(grandpa_block_import.clone(), client.clone(), frontier_backend.clone());
+	let frontier_block_import = FrontierBlockImport::new(grandpa_block_import.clone(), client.clone());
 
 	let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
@@ -190,45 +185,53 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		transaction_pool,
 		other: (block_import, grandpa_link, mut telemetry, frontier_backend),
 	} = new_partial(&config, cli)?;
-
-	if let Some(url) = &config.keystore_remote {
-		match remote_keystore(url) {
-			Ok(k) => keystore_container.set_remote_keystore(k),
-			Err(e) => {
-				return Err(ServiceError::Other(format!(
-					"Error hooking up remote keystore for {}: {}",
-					url, e
-				)));
-			}
-		};
-	}
-
-	let grandpa_protocol_name = sc_finality_grandpa::protocol_standard_name(
+	/*
+		if let Some(url) = &config.keystore_remote {
+			match remote_keystore(url) {
+				Ok(k) => keystore_container.set_remote_keystore(k),
+				Err(e) => {
+					return Err(ServiceError::Other(format!(
+						"Error hooking up remote keystore for {}: {}",
+						url, e
+					)));
+				}
+			};
+		}
+	*/
+	let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
 		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
 		&config.chain_spec,
 	);
-
-	config
-		.network
-		.extra_sets
-		.push(sc_finality_grandpa::grandpa_peers_set_config(
-			grandpa_protocol_name.clone(),
-		));
-	let warp_sync = Arc::new(sc_finality_grandpa::warp_proof::NetworkProvider::new(
+	/*
+		config
+			.network
+			//.extra_sets
+			.push(sc_consensus_grandpa::grandpa_peers_set_config(
+				grandpa_protocol_name.clone(),
+			));
+	*/
+	let warp_sync = Arc::new(sc_consensus_grandpa::warp_proof::NetworkProvider::new(
 		backend.clone(),
 		grandpa_link.shared_authority_set().clone(),
 		Vec::default(),
 	));
+	let net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
 
-	let (network, system_rpc_tx, transaction_handler, network_starter) =
+	let pubsub_notification_sinks: fc_mapping_sync::EthereumBlockNotificationSinks<
+		fc_mapping_sync::EthereumBlockNotification<Block>,
+	> = Default::default();
+	let pubsub_notification_sinks = Arc::new(pubsub_notification_sinks);
+
+	let (network, system_rpc_tx, transaction_handler, network_starter, sync_service) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
 			config: &config,
+			net_config,
 			client: client.clone(),
 			transaction_pool: transaction_pool.clone(),
 			spawn_handle: task_manager.spawn_handle(),
-			import_queue: import_queue,
+			import_queue,
 			block_announce_validator_builder: None,
-			warp_sync: Some(warp_sync),
+			warp_sync_params: None, // Some(warp_sync),
 		})?;
 
 	if config.offchain_worker.enabled {
@@ -237,22 +240,25 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 
 	let filter_pool: FilterPool = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
 	let fee_history_cache: FeeHistoryCache = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
-	let overrides = crate::rpc::overrides_handle(client.clone());
+	let overrides = fc_storage::overrides_handle(client.clone());
 
 	// Frontier offchain DB task. Essential.
 	// Maps emulated ethereum data to substrate native data.
 	task_manager.spawn_essential_handle().spawn(
 		"frontier-mapping-sync-worker",
 		Some("frontier"),
-		fc_mapping_sync::MappingSyncWorker::new(
+		fc_mapping_sync::kv::MappingSyncWorker::new(
 			client.import_notification_stream(),
 			Duration::new(6, 0),
 			client.clone(),
 			backend.clone(),
+			overrides.clone(),
 			frontier_backend.clone(),
 			3, // retry_times: usize,
 			0, // sync_from: <Block::Header as HeaderT>::Number,
 			fc_mapping_sync::SyncStrategy::Parachain,
+			sync_service.clone(),
+			pubsub_notification_sinks.clone(),
 		)
 		.for_each(|()| futures::future::ready(())),
 	);
@@ -284,7 +290,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 	let name = config.network.node_name.clone();
 	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
-	let overrides = crate::rpc::overrides_handle(client.clone());
+	let overrides = fc_storage::overrides_handle(client.clone());
 	let block_data_cache = Arc::new(fc_rpc::EthBlockDataCacheTask::new(
 		task_manager.spawn_handle(),
 		overrides.clone(),
@@ -302,7 +308,9 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		let frontier_backend = frontier_backend.clone();
 		let overrides = overrides.clone();
 		let fee_history_cache = fee_history_cache.clone();
-		let max_past_logs = cli.run.max_past_logs;
+		//let max_past_logs = cli.run.max_past_logs;
+		let sync = sync_service.clone();
+		let pubsub_notification_sinks = pubsub_notification_sinks.clone();
 
 		Box::new(move |deny_unsafe, subscription_task_executor| {
 			let deps = crate::rpc::FullDeps {
@@ -312,16 +320,18 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 				deny_unsafe,
 				is_authority,
 				network: network.clone(),
+				sync: sync.clone(),
 				filter_pool: Some(filter_pool.clone()),
 				frontier_backend: frontier_backend.clone(),
-				max_past_logs,
 				fee_history_cache: fee_history_cache.clone(),
 				fee_history_limit: FEE_HISTORY_LIMIT,
 				overrides: overrides.clone(),
 				block_data_cache: block_data_cache.clone(),
+				enable_evm_rpc: true,
 			};
 
-			crate::rpc::create_full(deps, subscription_task_executor).map_err(Into::into)
+			crate::rpc::create_full(deps, subscription_task_executor, pubsub_notification_sinks.clone())
+				.map_err::<ServiceError, _>(Into::into)
 		})
 	};
 
@@ -330,12 +340,13 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		client: client.clone(),
 		backend,
 		task_manager: &mut task_manager,
-		keystore: keystore_container.sync_keystore(),
+		keystore: keystore_container.keystore(),
 		transaction_pool: transaction_pool.clone(),
 		rpc_builder: rpc_extensions_builder,
 		network: network.clone(),
 		system_rpc_tx,
 		tx_handler_controller: transaction_handler,
+		sync_service: sync_service.clone(),
 		telemetry: telemetry.as_mut(),
 	})?;
 
@@ -371,9 +382,9 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 			},
 			force_authoring,
 			backoff_authoring_blocks,
-			keystore: keystore_container.sync_keystore(),
-			sync_oracle: network.clone(),
-			justification_sync_link: network.clone(),
+			keystore: keystore_container.keystore(),
+			sync_oracle: sync_service.clone(),
+			justification_sync_link: sync_service.clone(),
 			block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
 			max_block_proposal_slot_portion: None,
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
@@ -390,12 +401,12 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 	// if the node isn't actively participating in consensus then it doesn't
 	// need a keystore, regardless of which protocol we use below.
 	let keystore = if role.is_authority() {
-		Some(keystore_container.sync_keystore())
+		Some(keystore_container.keystore())
 	} else {
 		None
 	};
 
-	let grandpa_config = sc_finality_grandpa::Config {
+	let grandpa_config = sc_consensus_grandpa::Config {
 		// FIXME #1578 make this available through chainspec
 		gossip_duration: Duration::from_millis(333),
 		justification_period: 512,
@@ -414,11 +425,12 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		// and vote data availability than the observer. The observer has not
 		// been tested extensively yet and having most nodes in a network run it
 		// could lead to finality stalls.
-		let grandpa_config = sc_finality_grandpa::GrandpaParams {
+		let grandpa_config = sc_consensus_grandpa::GrandpaParams {
 			config: grandpa_config,
 			link: grandpa_link,
 			network,
-			voting_rule: sc_finality_grandpa::VotingRulesBuilder::default().build(),
+			sync: sync_service,
+			voting_rule: sc_consensus_grandpa::VotingRulesBuilder::default().build(),
 			prometheus_registry,
 			shared_voter_state: SharedVoterState::empty(),
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
@@ -429,7 +441,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		task_manager.spawn_essential_handle().spawn_blocking(
 			"grandpa-voter",
 			None,
-			sc_finality_grandpa::run_grandpa_voter(grandpa_config)?,
+			sc_consensus_grandpa::run_grandpa_voter(grandpa_config)?,
 		);
 	}
 
