@@ -49,6 +49,8 @@ mod utils;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use primitives::xcm::CallBuilder;
+
 	use super::*;
 
 	#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo)]
@@ -106,6 +108,9 @@ pub mod pallet {
 
 		/// Convert AccountId to MultiLocation to build XCM message.
 		type AccountIdToMultiLocation: Convert<Self::AccountId, MultiLocation>;
+
+		/// The Call builder for communicating with RelayChain via XCM messaging.
+		type RelayChainCallBuilder: CallBuilder<AccountId = Self::AccountId, Balance = Balance>;
 	}
 
 	#[pallet::event]
@@ -183,6 +188,8 @@ pub mod pallet {
 		}
 
 		fn withdraw_unbonded_from_sub_account(sub_account_index: u16, amount: Balance) -> DispatchResult {
+			let (xcm_dest_weight, xcm_fee) = Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::WithdrawUnbonded);
+
 			todo!()
 		}
 

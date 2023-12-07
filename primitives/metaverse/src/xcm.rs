@@ -1,0 +1,155 @@
+// This file is part of Metaverse.Network & Bit.Country.
+
+// Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
+// SPDX-License-Identifier: Apache-2.0
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use codec::{Decode, Encode, FullCodec};
+use sp_runtime::{
+	traits::{AccountIdLookup, StaticLookup},
+	RuntimeDebug,
+};
+use sp_std::prelude::*;
+use xcm::{prelude::*, v3::Weight as XcmWeight};
+
+use crate::{AccountId, Balance};
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum BalancesCall {
+	#[codec(index = 3)]
+	TransferKeepAlive(<RelayChainLookup as StaticLookup>::Source, #[codec(compact)] Balance),
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum UtilityCall<RCC> {
+	#[codec(index = 1)]
+	AsDerivative(u16, RCC),
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum StakingCall {
+	#[codec(index = 1)]
+	BondExtra(#[codec(compact)] Balance),
+	#[codec(index = 2)]
+	Unbond(#[codec(compact)] Balance),
+	#[codec(index = 3)]
+	WithdrawUnbonded(u32),
+}
+
+/// `pallet-xcm` calls.
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum XcmCall {
+	/// `limited_reserve_transfer_assets(dest, beneficiary, assets, fee_asset_item, weight_limit)`
+	/// call.
+	#[codec(index = 8)]
+	LimitedReserveTransferAssets(
+		VersionedMultiLocation,
+		VersionedMultiLocation,
+		VersionedMultiAssets,
+		u32,
+		WeightLimit,
+	),
+}
+
+// Same to `Polkadot` and `Kusama` runtime `Lookup` config.
+pub type RelayChainLookup = AccountIdLookup<AccountId, ()>;
+
+/// `pallet-proxy` calls.
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum ProxyCall<RCC> {
+	/// `proxy(real, force_proxy_type, call)` call. Force proxy type is not supported and
+	/// is always set to `None`.
+	#[codec(index = 0)]
+	Proxy(<RelayChainLookup as StaticLookup>::Source, Option<()>, RCC),
+}
+
+pub trait RelayChainCall: Sized {
+	fn balances(call: BalancesCall) -> Self;
+	fn staking(call: StakingCall) -> Self;
+	fn utility(call: UtilityCall<Self>) -> Self;
+	fn proxy(call: ProxyCall<Self>) -> Self;
+	fn xcm_pallet(call: XcmCall) -> Self;
+}
+
+pub trait CallBuilder {
+	type AccountId: FullCodec;
+	type Balance: FullCodec;
+	type RelayChainCall: FullCodec + RelayChainCall;
+
+	/// Execute a call, replacing the `Origin` with a sub-account.
+	///  params:
+	/// - call: The call to be executed.
+	/// - index: The index of sub-account to be used as the new origin.
+	fn utility_as_derivative_call(call: Self::RelayChainCall, index: u16) -> Self::RelayChainCall;
+
+	/// Bond extra on relay-chain.
+	///  params:
+	/// - amount: The amount of staking currency to bond.
+	fn staking_bond_extra(amount: Self::Balance) -> Self::RelayChainCall;
+
+	/// Unbond on relay-chain.
+	///  params:
+	/// - amount: The amount of staking currency to unbond.
+	fn staking_unbond(amount: Self::Balance) -> Self::RelayChainCall;
+
+	/// Withdraw unbonded staking on the relay-chain.
+	///  params:
+	/// - num_slashing_spans: The number of slashing spans to withdraw from.
+	fn staking_withdraw_unbonded(num_slashing_spans: u32) -> Self::RelayChainCall;
+
+	/// Transfer Staking currency to another account, disallowing "death".
+	///  params:
+	/// - to: The destination for the transfer
+	/// - amount: The amount of staking currency to be transferred.
+	fn balances_transfer_keep_alive(to: Self::AccountId, amount: Self::Balance) -> Self::RelayChainCall;
+
+	/// Reserve transfer assets.
+	/// params:
+	/// - dest: The destination chain.
+	/// - beneficiary: The beneficiary.
+	/// - assets: The assets to be transferred.
+	/// - fee_assets_item: The index of assets for fees.
+	fn xcm_pallet_reserve_transfer_assets(
+		dest: MultiLocation,
+		beneficiary: MultiLocation,
+		assets: MultiAssets,
+		fee_assets_item: u32,
+	) -> Self::RelayChainCall;
+
+	/// Proxy a call with a `real` account without a forced proxy type.
+	/// params:
+	/// - real: The real account.
+	/// - call: The call to be executed.
+	fn proxy_call(real: Self::AccountId, call: Self::RelayChainCall) -> Self::RelayChainCall;
+
+	/// Wrap the final call into the Xcm format.
+	///  params:
+	/// - call: The call to be executed
+	/// - extra_fee: Extra fee (in staking currency) used for buy the `weight`.
+	/// - weight: the weight limit used for XCM.
+	fn finalize_call_into_xcm_message(
+		call: Self::RelayChainCall,
+		extra_fee: Self::Balance,
+		weight: XcmWeight,
+	) -> Xcm<()>;
+
+	/// Wrap the final multiple calls into the Xcm format.
+	///  params:
+	/// - calls: the multiple calls and its weight limit to be executed
+	/// - extra_fee: Extra fee (in staking currency) used for buy the `weight`.
+	fn finalize_multiple_calls_into_xcm_message(
+		calls: Vec<(Self::RelayChainCall, XcmWeight)>,
+		extra_fee: Self::Balance,
+	) -> Xcm<()>;
+}
