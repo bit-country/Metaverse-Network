@@ -8361,6 +8361,7 @@ dependencies = [
  "frame-system",
  "insta",
  "log",
+ "module-support",
  "orml-tokens",
  "orml-traits",
  "pallet-balances",

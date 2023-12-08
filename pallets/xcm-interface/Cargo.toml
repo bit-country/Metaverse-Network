@@ -25,7 +25,7 @@ core-primitives = { path = "../../traits/core-primitives", default-features = fa
 primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
 currencies = { package = "currencies", path = "../currencies", default-features = false }
 asset-manager = { package = "asset-manager", path = "../asset-manager", default-features = false }
-
+module-support = { package = "module-support", path = "../../modules/support", default-features = false }
 #orml
 orml-tokens = { workspace = true }
 orml-traits = { workspace = true }
@@ -54,6 +54,7 @@ std = [
     "sp-runtime/std",
     "sp-std/std",
     "xcm/std",
+    "module-support/std"
 ]
 runtime-benchmarks = [
     "frame-benchmarking",

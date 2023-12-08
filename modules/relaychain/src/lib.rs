@@ -31,8 +31,7 @@ use sp_runtime::{traits::StaticLookup, RuntimeDebug};
 use sp_std::{boxed::Box, marker::PhantomData, prelude::*};
 use xcm::{prelude::*, v3::Weight as XcmWeight};
 
-use module_support::relaychain::*;
-use primitives::xcm::*;
+use module_support::*;
 use primitives::{AccountId, Balance};
 
 /// The encoded index correspondes to Kusama's Runtime module configuration.

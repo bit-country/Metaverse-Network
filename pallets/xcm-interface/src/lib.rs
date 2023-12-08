@@ -39,6 +39,7 @@ use sp_runtime::{
 use xcm::{prelude::*, v3::Weight as XcmWeight};
 
 use core_primitives::*;
+use module_support::CallBuilder;
 pub use pallet::*;
 use primitives::{
 	bounded::Rate, AccountId, Balance, ClassId, EraIndex, FungibleTokenId, PoolId, Ratio, StakingRound, TokenId,
@@ -49,8 +50,6 @@ mod utils;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use primitives::xcm::CallBuilder;
-
 	use super::*;
 
 	#[derive(Encode, Decode, Eq, PartialEq, Clone, RuntimeDebug, TypeInfo)]
@@ -73,7 +72,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn xcm_dest_weight_and_fee)]
 	pub type XcmDestWeightAndFee<T: Config> =
-		StorageMap<_, Twox64Concat, XcmInterfaceOperation, (Weight, Balance), OptionQuery>;
+		StorageMap<_, Twox64Concat, XcmInterfaceOperation, (Weight, Balance), ValueQuery>;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(trait Store)]
@@ -175,9 +174,9 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> SppAccountXcmHelper<AccountId, Balance> for Pallet<T> {
+	impl<T: Config> SppAccountXcmHelper<T::AccountId, Balance> for Pallet<T> {
 		fn transfer_staking_to_sub_account(
-			sender: &AccountId,
+			sender: &T::AccountId,
 			sub_account_index: u16,
 			amount: Balance,
 		) -> DispatchResult {
@@ -228,7 +227,7 @@ pub mod pallet {
 		}
 
 		fn bond_extra_on_sub_account(sub_account_index: u16, amount: Balance) -> DispatchResult {
-			let (xcm_dest_weight, xcm_fee) = Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::HomaBondExtra);
+			let (xcm_dest_weight, xcm_fee) = Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::BondExtra);
 			let xcm_message = T::RelayChainCallBuilder::finalize_call_into_xcm_message(
 				T::RelayChainCallBuilder::utility_as_derivative_call(
 					T::RelayChainCallBuilder::staking_bond_extra(amount),
@@ -249,7 +248,7 @@ pub mod pallet {
 		}
 
 		fn unbond_on_sub_account(sub_account_index: u16, amount: Balance) -> DispatchResult {
-			let (xcm_dest_weight, xcm_fee) = Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::HomaUnbond);
+			let (xcm_dest_weight, xcm_fee) = Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::Unbond);
 			let xcm_message = T::RelayChainCallBuilder::finalize_call_into_xcm_message(
 				T::RelayChainCallBuilder::utility_as_derivative_call(
 					T::RelayChainCallBuilder::staking_unbond(amount),
