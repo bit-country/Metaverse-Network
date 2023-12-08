@@ -94,3 +94,8 @@ cargo run -- \
   --telemetry-url 'wss://telemetry.polkadot.io/submit/ 0' \
   --validator
 ```
+
+<p align="center">  
+  <img src="https://raw.githubusercontent.com/w3f/General-Grants-Program/master/src/badge_black.svg" width="530">
+</p>
+
