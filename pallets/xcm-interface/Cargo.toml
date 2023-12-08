@@ -1,0 +1,71 @@
+[package]
+authors = ['Metaverse Network <https://github.com/bit-country>']
+description = 'Metaverse Network pallet for xcm interface logic.'
+edition = '2021'
+homepage = 'https://metaverse.network'
+license = 'Unlicense'
+name = 'pallet-xcm-interface'
+repository = 'https://github.com/bit-country'
+version = '2.0.0-rc6'
+
+[dependencies]
+log = { version = "0.4.17", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.9.0", default-features = false, features = ["derive"] }
+frame-benchmarking = { workspace = true, optional = true }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+sp-runtime = { workspace = true }
+sp-core = { workspace = true }
+sp-std = { workspace = true }
+pallet-xcm = { workspace = true }
+xcm = { package = "staging-xcm", workspace = true }
+# local packages
+core-primitives = { path = "../../traits/core-primitives", default-features = false }
+primitives = { package = "bit-country-primitives", path = "../../primitives/metaverse", default-features = false }
+currencies = { package = "currencies", path = "../currencies", default-features = false }
+asset-manager = { package = "asset-manager", path = "../asset-manager", default-features = false }
+module-support = { package = "module-support", path = "../../modules/support", default-features = false }
+#orml
+orml-tokens = { workspace = true }
+orml-traits = { workspace = true }
+
+[dev-dependencies]
+insta = { version = "1.31.0" }
+
+cumulus-primitives-core = { workspace = true }
+pallet-balances = { workspace = true }
+sp-io = { workspace = true }
+xcm-builder = { package = "staging-xcm-builder", workspace = true }
+xcm-executor = { package = "staging-xcm-executor", workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "codec/std",
+    "frame-benchmarking/std",
+    "frame-support/std",
+    "frame-system/std",
+    "orml-traits/std",
+    "pallet-xcm/std",
+    "primitives/std",
+    "scale-info/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "xcm/std",
+    "module-support/std"
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-xcm/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+    "xcm-builder/runtime-benchmarks",
+]
+try-runtime = [
+    "frame-support/try-runtime",
+    "frame-system/try-runtime",
+    "pallet-xcm/try-runtime",
+]

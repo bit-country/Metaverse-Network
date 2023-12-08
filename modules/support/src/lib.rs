@@ -3,52 +3,93 @@
 // Copyright (C) 2020-2022 Metaverse.Network & Bit.Country .
 // SPDX-License-Identifier: Apache-2.0
 
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-#![cfg_attr(not(feature = "std"), no_std)]
-#![allow(clippy::upper_case_acronyms)]
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 use codec::{Decode, Encode, FullCodec};
-use frame_support::pallet_prelude::{DispatchClass, Pays, Weight};
-use primitives::CurrencyId;
-use sp_core::H160;
 use sp_runtime::{
-	traits::{AtLeast32BitUnsigned, CheckedDiv, MaybeSerializeDeserialize},
-	transaction_validity::TransactionValidityError,
-	DispatchError, DispatchResult, FixedU128, RuntimeDebug,
+	traits::{AccountIdLookup, StaticLookup},
+	RuntimeDebug,
 };
-use sp_std::{
-	cmp::{Eq, PartialEq},
-	fmt::Debug,
-	prelude::*,
-};
+use sp_std::prelude::*;
+use xcm::{prelude::*, v3::Weight as XcmWeight};
 
-use xcm::latest::prelude::*;
+use primitives::{AccountId, Balance};
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum BalancesCall {
+	#[codec(index = 3)]
+	TransferKeepAlive(<RelayChainLookup as StaticLookup>::Source, #[codec(compact)] Balance),
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum UtilityCall<RCC> {
+	#[codec(index = 1)]
+	AsDerivative(u16, RCC),
+}
+
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum StakingCall {
+	#[codec(index = 1)]
+	BondExtra(#[codec(compact)] Balance),
+	#[codec(index = 2)]
+	Unbond(#[codec(compact)] Balance),
+	#[codec(index = 3)]
+	WithdrawUnbonded(u32),
+}
+
+/// `pallet-xcm` calls.
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum XcmCall {
+	/// `limited_reserve_transfer_assets(dest, beneficiary, assets, fee_asset_item, weight_limit)`
+	/// call.
+	#[codec(index = 8)]
+	LimitedReserveTransferAssets(
+		VersionedMultiLocation,
+		VersionedMultiLocation,
+		VersionedMultiAssets,
+		u32,
+		WeightLimit,
+	),
+}
+
+// Same to `Polkadot` and `Kusama` runtime `Lookup` config.
+pub type RelayChainLookup = AccountIdLookup<AccountId, ()>;
+
+/// `pallet-proxy` calls.
+#[derive(Encode, Decode, RuntimeDebug)]
+pub enum ProxyCall<RCC> {
+	/// `proxy(real, force_proxy_type, call)` call. Force proxy type is not supported and
+	/// is always set to `None`.
+	#[codec(index = 0)]
+	Proxy(<RelayChainLookup as StaticLookup>::Source, Option<()>, RCC),
+}
+
+pub trait RelayChainCall: Sized {
+	fn balances(call: BalancesCall) -> Self;
+	fn staking(call: StakingCall) -> Self;
+	fn utility(call: UtilityCall<Self>) -> Self;
+	fn proxy(call: ProxyCall<Self>) -> Self;
+	fn xcm_pallet(call: XcmCall) -> Self;
+}
 
 pub trait CallBuilder {
 	type AccountId: FullCodec;
 	type Balance: FullCodec;
-	type RelayChainCall: FullCodec;
-
-	/// Execute multiple calls in a batch.
-	/// Param:
-	/// - calls: List of calls to be executed
-	fn utility_batch_call(calls: Vec<Self::RelayChainCall>) -> Self::RelayChainCall;
+	type RelayChainCall: FullCodec + RelayChainCall;
 
 	/// Execute a call, replacing the `Origin` with a sub-account.
 	///  params:
-	/// - call: The call to be executed. Can be nested with `utility_batch_call`
+	/// - call: The call to be executed.
 	/// - index: The index of sub-account to be used as the new origin.
 	fn utility_as_derivative_call(call: Self::RelayChainCall, index: u16) -> Self::RelayChainCall;
 
@@ -73,23 +114,42 @@ pub trait CallBuilder {
 	/// - amount: The amount of staking currency to be transferred.
 	fn balances_transfer_keep_alive(to: Self::AccountId, amount: Self::Balance) -> Self::RelayChainCall;
 
-	/// Wrap the final calls into the Xcm format.
+	/// Reserve transfer assets.
+	/// params:
+	/// - dest: The destination chain.
+	/// - beneficiary: The beneficiary.
+	/// - assets: The assets to be transferred.
+	/// - fee_assets_item: The index of assets for fees.
+	fn xcm_pallet_reserve_transfer_assets(
+		dest: MultiLocation,
+		beneficiary: MultiLocation,
+		assets: MultiAssets,
+		fee_assets_item: u32,
+	) -> Self::RelayChainCall;
+
+	/// Proxy a call with a `real` account without a forced proxy type.
+	/// params:
+	/// - real: The real account.
+	/// - call: The call to be executed.
+	fn proxy_call(real: Self::AccountId, call: Self::RelayChainCall) -> Self::RelayChainCall;
+
+	/// Wrap the final call into the Xcm format.
 	///  params:
 	/// - call: The call to be executed
-	/// - extra_fee: Extra fee (in staking currency) used for buy the `weight` and `debt`.
+	/// - extra_fee: Extra fee (in staking currency) used for buy the `weight`.
 	/// - weight: the weight limit used for XCM.
-	/// - debt: the weight limit used to process the `call`.
-	fn finalize_call_into_xcm_message(call: Self::RelayChainCall, extra_fee: Self::Balance, weight: Weight) -> Xcm<()>;
+	fn finalize_call_into_xcm_message(
+		call: Self::RelayChainCall,
+		extra_fee: Self::Balance,
+		weight: XcmWeight,
+	) -> Xcm<()>;
+
+	/// Wrap the final multiple calls into the Xcm format.
+	///  params:
+	/// - calls: the multiple calls and its weight limit to be executed
+	/// - extra_fee: Extra fee (in staking currency) used for buy the `weight`.
+	fn finalize_multiple_calls_into_xcm_message(
+		calls: Vec<(Self::RelayChainCall, XcmWeight)>,
+		extra_fee: Self::Balance,
+	) -> Xcm<()>;
 }
-//
-// /// Dispatchable tasks
-// pub trait DispatchableTask {
-// 	fn dispatch(self, weight: Weight) -> TaskResult;
-// }
-//
-// #[cfg(feature = "std")]
-// impl DispatchableTask for () {
-// 	fn dispatch(self, _weight: Weight) -> TaskResult {
-// 		unimplemented!()
-// 	}
-// }
