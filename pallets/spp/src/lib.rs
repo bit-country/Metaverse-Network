@@ -285,6 +285,11 @@ pub mod pallet {
 	#[pallet::storage]
 	pub type EstimatedRewardRatePerEra<T: Config> = StorageValue<_, FractionalRate, ValueQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn network_fee)]
+	/// Store network fee by currency id
+	pub type CurrencyNetworkFee<T: Config> = StorageMap<_, Twox64Concat, FungibleTokenId, BalanceOf<T>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (crate) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -341,6 +346,11 @@ pub mod pallet {
 		},
 		/// Iterator limit updated.
 		IterationLimitUpdated { new_limit: u32 },
+		/// Network fee updated.
+		NetworkFeeUpdated {
+			currency_id: FungibleTokenId,
+			new_fee: BalanceOf<T>,
+		},
 	}
 
 	#[pallet::error]
@@ -687,6 +697,7 @@ pub mod pallet {
 			estimated_reward_rate_per_era: Option<Rate>,
 			unlock_duration: Option<(FungibleTokenId, StakingRound)>,
 			iteration_limit: Option<u32>,
+			network_fee: Option<(FungibleTokenId, BalanceOf<T>)>,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
@@ -731,6 +742,11 @@ pub mod pallet {
 			if let Some(new_limit) = iteration_limit {
 				IterationLimit::<T>::put(new_limit.clone());
 				Self::deposit_event(Event::<T>::IterationLimitUpdated { new_limit })
+			}
+
+			if let Some((currency_id, new_fee)) = network_fee {
+				CurrencyNetworkFee::<T>::insert(currency_id, new_fee);
+				Self::deposit_event(Event::<T>::NetworkFeeUpdated { currency_id, new_fee });
 			}
 
 			Ok(())
