@@ -228,19 +228,55 @@ pub mod pallet {
 		}
 
 		fn bond_extra_on_sub_account(sub_account_index: u16, amount: Balance) -> DispatchResult {
-			todo!()
+			let (xcm_dest_weight, xcm_fee) = Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::HomaBondExtra);
+			let xcm_message = T::RelayChainCallBuilder::finalize_call_into_xcm_message(
+				T::RelayChainCallBuilder::utility_as_derivative_call(
+					T::RelayChainCallBuilder::staking_bond_extra(amount),
+					sub_account_index,
+				),
+				xcm_fee,
+				xcm_dest_weight,
+			);
+			let result = pallet_xcm::Pallet::<T>::send_xcm(Here, Parent, xcm_message);
+			log::debug!(
+				target: "xcm-interface",
+				"subaccount {:?} send XCM to bond {:?}, result: {:?}",
+				sub_account_index, amount, result,
+			);
+
+			ensure!(result.is_ok(), Error::<T>::XcmFailed);
+			Ok(())
 		}
 
 		fn unbond_on_sub_account(sub_account_index: u16, amount: Balance) -> DispatchResult {
-			todo!()
+			let (xcm_dest_weight, xcm_fee) = Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::HomaUnbond);
+			let xcm_message = T::RelayChainCallBuilder::finalize_call_into_xcm_message(
+				T::RelayChainCallBuilder::utility_as_derivative_call(
+					T::RelayChainCallBuilder::staking_unbond(amount),
+					sub_account_index,
+				),
+				xcm_fee,
+				xcm_dest_weight,
+			);
+			let result = pallet_xcm::Pallet::<T>::send_xcm(Here, Parent, xcm_message);
+			log::debug!(
+				target: "xcm-interface",
+				"subaccount {:?} send XCM to unbond {:?}, result: {:?}",
+				sub_account_index, amount, result
+			);
+
+			ensure!(result.is_ok(), Error::<T>::XcmFailed);
+			Ok(())
 		}
 
+		/// The fee of cross-chain transfer is deducted from the recipient.
 		fn get_xcm_transfer_fee() -> Balance {
-			todo!()
+			Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::XtokensTransfer).1
 		}
 
+		/// The fee of parachain transfer.
 		fn get_parachain_fee(location: MultiLocation) -> Balance {
-			todo!()
+			Self::xcm_dest_weight_and_fee(XcmInterfaceOperation::ParachainFee(Box::new(location))).1
 		}
 	}
 }
