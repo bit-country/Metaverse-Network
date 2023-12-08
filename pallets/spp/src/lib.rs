@@ -901,7 +901,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	pub fn collect_pool_creation_fee(who: &T::AccountId, currency_id: FungibleTokenId) -> DispatchResult {
-		let pool_fee = T::NetworkFee::get();
+		let pool_fee = CurrencyNetworkFee::<T>::get(currency_id);
 		T::MultiCurrency::transfer(
 			currency_id,
 			who,
