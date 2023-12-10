@@ -1023,7 +1023,11 @@ impl<T: Config> Pallet<T> {
 			.saturating_pow(era_changes.unique_saturated_into())
 			.saturating_sub(Rate::one());
 		let mut total_reward_staking: BalanceOf<T> = Zero::zero();
-
+		log::info!(
+			target: "pallet-spp",
+			"reward distribution to pool treasury era: {:?} reward rate {:?}",
+			era_changes, reward_rate
+		);
 		if !reward_rate.is_zero() {
 			// iterate all pool ledgers
 			for (pool_id, pool_amount) in PoolLedger::<T>::iter() {
