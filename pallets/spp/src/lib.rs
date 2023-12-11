@@ -711,11 +711,11 @@ pub mod pallet {
 				let current_relay_chain_block = <frame_system::Pallet<T>>::block_number();
 				//	let current_relay_chain_block = T::RelayChainBlockNumber::current_block_number();
 				if !update_era_frequency.is_zero() {
-					ensure!(
-						change > current_relay_chain_block.saturating_sub(update_era_frequency)
-							&& change <= current_relay_chain_block,
-						Error::<T>::InvalidLastEraUpdatedBlock
-					);
+					//					ensure!(
+					//						change > current_relay_chain_block.saturating_sub(update_era_frequency)
+					//							&& change <= current_relay_chain_block,
+					//						Error::<T>::InvalidLastEraUpdatedBlock
+					//					);
 
 					LastEraUpdatedBlock::<T>::put(change);
 					LastStakingRound::<T>::insert(FungibleTokenId::NativeToken(1), last_staking_round);
@@ -1022,11 +1022,12 @@ impl<T: Config> Pallet<T> {
 			.saturating_add(Rate::one())
 			.saturating_pow(era_changes.unique_saturated_into())
 			.saturating_sub(Rate::one());
+
 		let mut total_reward_staking: BalanceOf<T> = Zero::zero();
 		log::info!(
 			target: "pallet-spp",
-			"reward distribution to pool treasury era: {:?} reward rate {:?}",
-			era_changes, reward_rate
+			"reward distribution to pool treasury era: {:?} reward rate per era {:?} with reward_rate {:?}",
+			era_changes, reward_rate_per_era, reward_rate
 		);
 		if !reward_rate.is_zero() {
 			// iterate all pool ledgers
@@ -1053,11 +1054,6 @@ impl<T: Config> Pallet<T> {
 					T::MultiCurrency::deposit(
 						FungibleTokenId::FungibleToken(1),
 						&pool_treasury_account,
-						pool_treasury_reward_commission_amount,
-					)?;
-					<orml_rewards::Pallet<T>>::accumulate_reward(
-						&pool_id,
-						FungibleTokenId::FungibleToken(1),
 						pool_treasury_reward_commission_amount,
 					)?;
 				}
@@ -1264,6 +1260,7 @@ impl<T: Config> Pallet<T> {
 		LastEraUpdatedBlock::<T>::put(<frame_system::Pallet<T>>::block_number());
 		Self::handle_redeem_requests(new_era)?;
 		Self::handle_reward_distribution_to_network_pool()?;
+		Self::handle_reward_distribution_to_pool_treasury(previous_era, new_era)?;
 		Self::deposit_event(Event::<T>::CurrentEraUpdated { new_era_index: new_era });
 		Ok(())
 	}
