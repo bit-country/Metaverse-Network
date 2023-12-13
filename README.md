@@ -22,7 +22,7 @@ Development Note: It is still a WIP.
 
 # 1. Introduction
 
-Metaverse.Network, featuring a seamlessly integrated enriched social layer, stands as an interesting blockchain ecosystem that extends support for both EVM (Ethereum Virtual Machine) and WASM (WebAssembly) smart contracts. This framework empowers developers to harness the network's capabilities in crafting decentralized applications (dApps) with unparalleled versatility and functionality.
+MNET (Metaverse.Network), featuring a seamlessly integrated enriched social layer, stands as an interesting blockchain ecosystem that extends support for both EVM (Ethereum Virtual Machine) and WASM (WebAssembly) smart contracts. This framework empowers developers to harness the network's capabilities in crafting decentralized applications (dApps) with unparalleled versatility and functionality.
 
 # 2. Build
 
