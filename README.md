@@ -1,5 +1,5 @@
 <div align="center">
-<h1>Metaverse.Network by BitCountry team</h1>
+<h1>MNET (Metaverse.Network) by BitCountry team</h1>
 
 ## An Ethereum-compatible Blockchain Network Built using Substrate
 
