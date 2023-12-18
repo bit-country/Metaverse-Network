@@ -5925,6 +5925,7 @@ dependencies = [
  "pallet-estate",
  "pallet-ethereum",
  "pallet-evm",
+ "pallet-evm-chain-id",
  "pallet-evm-mapping",
  "pallet-governance",
  "pallet-grandpa",
@@ -7496,6 +7497,17 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-evm-chain-id"
+version = "1.0.0-dev"
+source = "git+https://github.com/AstarNetwork/frontier?branch=polkadot-v0.9.43#a5481542518ec420352d263adcb2f78835ac9bc2"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]

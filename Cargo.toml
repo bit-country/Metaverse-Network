@@ -221,6 +221,7 @@ fp-self-contained = { git = "https://github.com/AstarNetwork/frontier", branch =
 fp-rpc = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43", default-features = false }
 fp-evm = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43", default-features = false }
 pallet-evm = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43", default-features = false }
+pallet-evm-chain-id = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43", default-features = false }
 pallet-ethereum = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43", default-features = false }
 pallet-base-fee = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43", default-features = false }
 pallet-evm-precompile-blake2 = { git = "https://github.com/AstarNetwork/frontier", branch = "polkadot-v0.9.43", default-features = false }
