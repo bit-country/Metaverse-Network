@@ -5805,6 +5805,7 @@ dependencies = [
  "node-primitives",
  "pallet-dynamic-fee",
  "pallet-ethereum",
+ "pallet-evm-chain-id",
  "pallet-im-online",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc",

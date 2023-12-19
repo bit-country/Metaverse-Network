@@ -132,8 +132,9 @@ fc-rpc-core = { workspace = true, optional = true }
 fc-consensus = { workspace = true, optional = true }
 fc-mapping-sync = { workspace = true, optional = true }
 fc-db = { workspace = true, optional = true }
-pallet-dynamic-fee = { workspace = true, optional = true }
+pallet-dynamic-fee = { workspace = true, default-features = true, optional = true }
 pallet-ethereum = { workspace = true, default-features = true, optional = true }
+pallet-evm-chain-id = { workspace = true, default-features = true, optional = true }
 
 
 [build-dependencies]
@@ -157,6 +158,7 @@ with-metaverse-runtime = [
     "fp-storage",
     "pallet-dynamic-fee",
     "pallet-ethereum",
+    "pallet-evm-chain-id",
 ]
 
 with-pioneer-runtime = [

@@ -13,7 +13,7 @@ use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
 	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig, GenesisAccount,
 	GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig,
-	SystemConfig,
+	SystemConfig, EvmChainIdConfig,
 };
 use primitives::Balance;
 
@@ -304,11 +304,12 @@ fn testnet_genesis(
 				accounts
 			},
 		},
-		ethereum: EthereumConfig {},
+		ethereum: Default::default(),
 		base_fee: BaseFeeConfig::new(
 			sp_core::U256::from(1_000_000_000u64),
 			sp_runtime::Permill::from_parts(125_000),
 		),
+		evm_chain_id: EvmChainIdConfig { chain_id: 0x7fa },
 	}
 }
 

@@ -1216,6 +1216,8 @@ impl pallet_evm::Config for Runtime {
 	type Currency = Balances;
 
 	type BlockGasLimit = BlockGasLimit;
+	// Ethereum-compatible chain_id:
+    // * Metaverse Network: 2042
 	type ChainId = EvmChainId;
 	type BlockHashMapping = EthereumBlockHashMapping<Self>;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
@@ -1554,7 +1556,7 @@ construct_runtime!(
 		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
 		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
-		EvmChainId: pallet_evm_chain_id::{Pallet, Storage},
+		EvmChainId: pallet_evm_chain_id::{Pallet, Storage, Config},
 
 		// ink! Smart Contracts.
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
