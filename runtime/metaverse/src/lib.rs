@@ -43,6 +43,7 @@ pub use frame_support::{
 };
 use frame_support::{BoundedVec, ConsensusEngineId};
 use pallet_evm::GasWeightMapping;
+use sp_core::Get;
 // A few exports that help ease life for downstream crates.
 use frame_support::traits::{
 	Contains, EitherOfDiverse, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
@@ -1203,8 +1204,6 @@ pub const GAS_PER_SECOND: u64 = 40_000_000;
 pub const WEIGHT_PER_GAS: u64 = WEIGHT_REF_TIME_PER_SECOND.saturating_div(GAS_PER_SECOND);
 
 parameter_types! {
-	// Ethereum Compatible Chain Id
-	pub const ChainId: u64 = 0x7fa;
 	pub BlockGasLimit: U256 = U256::from(u32::max_value());
 	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
 	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
@@ -1756,7 +1755,7 @@ impl_runtime_apis! {
 
 	impl fp_rpc::EthereumRuntimeRPCApi<Block> for Runtime {
 		fn chain_id() -> u64 {
-			ChainId::get()
+			EvmChainId::get()
 		}
 
 		fn account_basic(address: H160) -> pallet_evm::Account {
