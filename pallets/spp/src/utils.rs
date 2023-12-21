@@ -156,7 +156,7 @@ impl<Balance: Saturating + Copy> BoostInfo<Balance> {
 	}
 
 	pub fn add(&mut self, balance: Balance) -> Option<()> {
-		self.balance.saturating_add(balance.into());
+		self.balance = self.balance.saturating_add(balance.into());
 		Some(())
 	}
 }
