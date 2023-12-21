@@ -248,7 +248,9 @@ fn current_era_update_works() {
 				Some(Rate::saturating_from_rational(35, 100000)),
 				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1))),
 				Some(50),
-				Some((FungibleTokenId::NativeToken(1), 0))
+				Some((FungibleTokenId::NativeToken(1), 0)),
+				Some(100),
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1)))
 			));
 
 			assert_ok!(SppModule::create_pool(
@@ -540,7 +542,9 @@ fn boosting_and_claim_reward_works() {
 				Some(Rate::saturating_from_rational(35, 100000)),
 				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1))),
 				Some(50),
-				Some((FungibleTokenId::NativeToken(1), 0))
+				Some((FungibleTokenId::NativeToken(1), 0)),
+				Some(100),
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1)))
 			));
 
 			assert_ok!(SppModule::create_pool(
@@ -748,7 +752,9 @@ fn reward_distribution_works() {
 				Some(Rate::saturating_from_rational(20, 100)), // Set reward rate per era is 20%.
 				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1))),
 				Some(50),
-				Some((FungibleTokenId::NativeToken(1), 0))
+				Some((FungibleTokenId::NativeToken(1), 0)),
+				Some(100),
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1)))
 			));
 
 			assert_ok!(SppModule::create_pool(
