@@ -1280,7 +1280,7 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_claim_rewards(who: T::AccountId, pool_id: PoolId) -> DispatchResult {
-		if pool_id.is_zero() {
+		if !pool_id.is_zero() {
 			<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
 
 			PendingRewards::<T>::mutate_exists(pool_id, &who, |maybe_pending_multi_rewards| {
