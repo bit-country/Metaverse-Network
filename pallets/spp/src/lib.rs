@@ -789,9 +789,7 @@ pub mod pallet {
 							.1
 							.add(total_balance.clone())
 							.ok_or(Error::<T>::ArithmeticOverflow)?;
-						voting
-							.prior
-							.accumulate(unlock_at, votes[i].1.balance.saturating_add(total_balance))
+						voting.prior.accumulate(unlock_at, total_balance)
 					}
 					Err(i) => {
 						votes.insert(i, (pool_id, vote.clone()));
