@@ -7747,6 +7747,7 @@ dependencies = [
  "orml-tokens",
  "orml-traits",
  "pallet-balances",
+ "pallet-proxy",
  "pallet-scheduler",
  "pallet-timestamp",
  "parity-scale-codec",
