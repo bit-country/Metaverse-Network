@@ -92,6 +92,7 @@ pub mod pallet {
 	pub trait Config:
 		frame_system::Config
 		+ orml_nft::Config<TokenData = NftAssetData<BalanceOf<Self>>, ClassData = NftClassData<BalanceOf<Self>>>
+		+ pallet_proxy::Config
 	{
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 		/// The data deposit per byte to calculate fee
@@ -1266,6 +1267,36 @@ impl<T: Config> Pallet<T> {
 		Self::do_mint_nft_with_token_id(&mint_to, &mint_to, class_id, token_id, metadata, attributes, false)?;
 
 		Ok(())
+	}
+
+	/// Internal NFT minting with token id
+	fn do_mint_nft_proxy(
+		sender: &T::AccountId,
+		mint_to: &T::AccountId,
+		class_id: ClassIdOf<T>,
+		token_id: Option<TokenIdOf<T>>,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		is_locked: bool,
+	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
+		Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked)?;
+		let nft_proxy_account: T::AccountId = T::PalletId::get().into_sub_account_truncating((class_id, token_id));
+		let proxy_deposit = <pallet_proxy::Pallet<T>>::deposit(1u32);
+		// Ensure balance above ED
+		let total_deposit = proxy_deposit.saturating_add(<T as pallet::Config>::Currency::minimum_balance());
+
+		<T as pallet::Config>::Currency::transfer(&sender, &nft_proxy_account, total_deposit, KeepAlive)?;
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, minted_token_id.clone()),
+			(class_id, minted_token_id),
+			mint_to.clone(),
+			class_id,
+			1u32,
+			minted_token_id,
+		));
+
+		Ok(minted_token_id)
 	}
 
 	/// A helper method to construct metadata.
