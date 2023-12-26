@@ -1247,6 +1247,22 @@ impl<T: Config> Pallet<T> {
 		let now = frame_system::Pallet::<T>::block_number();
 		ensure!(expired >= now, Error::<T>::SignatureExpired);
 
+		// Get class info of the collection
+		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
+
+		// Ensure signer is owner of collection
+		ensure!(signer == class_info.owner, Error::<T>::NoPermission);
+
+		// If minting price is specified, this will transfer token to collection owner.
+		if let Some(price) = mint_price {
+			<T as orml_nft::Config>::Currency::transfer(
+				&mint_to,
+				&class_info.owner,
+				price,
+				ExistenceRequirement::KeepAlive,
+			)?;
+		}
+
 		Self::do_mint_nft_with_token_id(&mint_to, &mint_to, class_id, token_id, metadata, attributes, false)?;
 
 		Ok(())
