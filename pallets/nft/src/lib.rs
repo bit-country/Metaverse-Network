@@ -1168,6 +1168,7 @@ impl<T: Config> Pallet<T> {
 	/// Internal NFT minting with token id
 	fn do_mint_nft_with_token_id(
 		sender: &T::AccountId,
+		mint_to: &T::AccountId,
 		class_id: ClassIdOf<T>,
 		token_id: Option<TokenIdOf<T>>,
 		metadata: NftMetadata,
@@ -1191,6 +1192,8 @@ impl<T: Config> Pallet<T> {
 			is_locked,
 		};
 
+		let mut new_token_id: TokenIdOf<T> = Default::default();
+
 		// Mint specific token id
 		if let Some(provided_token_id) = token_id {
 			NftModule::<T>::mint_with_token_id(
@@ -1206,12 +1209,12 @@ impl<T: Config> Pallet<T> {
 		}
 
 		let minted_token_id =
-			NftModule::<T>::mint_with_token_id(&sender, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
+			NftModule::<T>::mint_with_token_id(&mint_to, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
 
 		Self::deposit_event(Event::<T>::NewNftMinted(
 			(class_id, minted_token_id.clone()),
 			(class_id, minted_token_id),
-			sender.clone(),
+			mint_to.clone(),
 			class_id,
 			1u32,
 			minted_token_id,
@@ -1236,15 +1239,6 @@ impl<T: Config> Pallet<T> {
 			mint_price,
 		} = mint_data;
 
-		// Make sure collection is not locked
-		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
-
-		// Check metadata length
-		ensure!(
-			attributes.len() <= T::MaxMetadata::get() as usize,
-			Error::<T>::ExceedMaximumMetadataLength
-		);
-
 		// If specific account recipient specified, this will make sure requirement pass
 		if let Some(account) = only_account {
 			ensure!(account == mint_to, Error::<T>::NoPermission);
@@ -1253,60 +1247,7 @@ impl<T: Config> Pallet<T> {
 		let now = frame_system::Pallet::<T>::block_number();
 		ensure!(expired >= now, Error::<T>::SignatureExpired);
 
-		// Get class info of the collection
-		let class_info = NftModule::<T>::classes(class_id).ok_or(Error::<T>::ClassIdNotFound)?;
-
-		// Ensure signer is owner of collection
-		ensure!(signer == class_info.owner, Error::<T>::NoPermission);
-
-		// If minting price is specified, this will transfer token to collection owner.
-		if let Some(price) = mint_price {
-			<T as orml_nft::Config>::Currency::transfer(
-				&mint_to,
-				&class_info.owner,
-				price,
-				ExistenceRequirement::KeepAlive,
-			)?;
-		}
-
-		// Update class total issuance
-		Self::update_class_total_issuance(&signer, &class_id, One::one())?;
-
-		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
-		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1 as u32));
-		<T as orml_nft::Config>::Currency::transfer(&mint_to, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
-
-		let new_nft_data = NftAssetData {
-			deposit,
-			attributes: attributes,
-			is_locked: false,
-		};
-
-		let mut new_token_id: TokenIdOf<T> = Default::default();
-
-		// Mint specific token id
-		if let Some(provided_token_id) = token_id {
-			NftModule::<T>::mint_with_token_id(
-				&mint_to,
-				class_id,
-				provided_token_id,
-				metadata.clone(),
-				new_nft_data.clone(),
-			)?;
-			new_token_id = provided_token_id
-		} else {
-			new_token_id = NftModule::<T>::mint(&mint_to, class_id, metadata.clone(), new_nft_data.clone())?;
-		}
-
-		// Emit New Nft minted event
-		Self::deposit_event(Event::<T>::NewNftMinted(
-			(class_id, new_token_id),
-			(class_id, new_token_id),
-			mint_to.clone(),
-			class_id,
-			One::one(),
-			new_token_id,
-		));
+		Self::do_mint_nft_with_token_id(&mint_to, &mint_to, class_id, token_id, metadata, attributes, false)?;
 
 		Ok(())
 	}
