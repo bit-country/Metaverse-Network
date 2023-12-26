@@ -27,6 +27,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::Encode;
+use frame_support::traits::ExistenceRequirement::KeepAlive;
 use frame_support::traits::Len;
 use frame_support::{
 	dispatch::{DispatchResult, DispatchResultWithPostInfo},
@@ -1175,7 +1176,7 @@ impl<T: Config> Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 		is_locked: bool,
-	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
+	) -> Result<TokenIdOf<T>, DispatchError> {
 		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
 
 		ensure!(
@@ -1279,17 +1280,19 @@ impl<T: Config> Pallet<T> {
 		attributes: Attributes,
 		is_locked: bool,
 	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
-		Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked)?;
-		let nft_proxy_account: T::AccountId = T::PalletId::get().into_sub_account_truncating((class_id, token_id));
+		let minted_token_id =
+			Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked)?;
+		let nft_proxy_account: T::AccountId =
+			T::PalletId::get().into_sub_account_truncating((class_id, &minted_token_id));
 		let proxy_deposit = <pallet_proxy::Pallet<T>>::deposit(1u32);
 		// Ensure balance above ED
-		let total_deposit = proxy_deposit.saturating_add(<T as pallet::Config>::Currency::minimum_balance());
+		let total_deposit = proxy_deposit.saturating_add(<T as Config>::Currency::minimum_balance());
 
-		<T as pallet::Config>::Currency::transfer(&sender, &nft_proxy_account, total_deposit, KeepAlive)?;
+		<T as Config>::Currency::transfer(&sender, &nft_proxy_account, total_deposit, KeepAlive)?;
 
 		Self::deposit_event(Event::<T>::NewNftMinted(
 			(class_id, minted_token_id.clone()),
-			(class_id, minted_token_id),
+			(class_id, minted_token_id.clone()),
 			mint_to.clone(),
 			class_id,
 			1u32,
