@@ -1165,6 +1165,61 @@ impl<T: Config> Pallet<T> {
 		Ok((new_asset_ids, last_token_id))
 	}
 
+	/// Internal NFT minting with token id
+	fn do_mint_nft_with_token_id(
+		sender: &T::AccountId,
+		class_id: ClassIdOf<T>,
+		token_id: Option<TokenIdOf<T>>,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		is_locked: bool,
+	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
+		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
+
+		ensure!(
+			metadata.len() as u32 <= T::MaxMetadata::get(),
+			Error::<T>::ExceedMaximumMetadataLength
+		);
+
+		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
+		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
+		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
+
+		let new_nft_data = NftAssetData {
+			deposit,
+			attributes,
+			is_locked,
+		};
+
+		// Mint specific token id
+		if let Some(provided_token_id) = token_id {
+			NftModule::<T>::mint_with_token_id(
+				&mint_to,
+				class_id,
+				provided_token_id,
+				metadata.clone(),
+				new_nft_data.clone(),
+			)?;
+			new_token_id = provided_token_id
+		} else {
+			new_token_id = NftModule::<T>::mint(&mint_to, class_id, metadata.clone(), new_nft_data.clone())?;
+		}
+
+		let minted_token_id =
+			NftModule::<T>::mint_with_token_id(&sender, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, minted_token_id.clone()),
+			(class_id, minted_token_id),
+			sender.clone(),
+			class_id,
+			1u32,
+			minted_token_id,
+		));
+
+		Ok(minted_token_id)
+	}
+
 	// Mint with pre-signed approval from collection owner
 	pub(crate) fn do_mint_pre_signed(
 		mint_to: T::AccountId,
@@ -1344,7 +1399,6 @@ impl<T: Config> Pallet<T> {
 		// update class total issuance
 		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
 			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
-			ensure!(sender.clone() == info.owner, Error::<T>::NoPermission);
 			match info.data.mint_limit {
 				Some(l) => {
 					ensure!(
@@ -1624,36 +1678,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError> {
-		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
-
-		ensure!(
-			metadata.len() as u32 <= T::MaxMetadata::get(),
-			Error::<T>::ExceedMaximumMetadataLength
-		);
-
-		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
-		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
-		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
-
-		let new_nft_data = NftAssetData {
-			deposit,
-			attributes: attributes,
-			is_locked: false,
-		};
-
-		let minted_token_id =
-			NftModule::<T>::mint_with_token_id(&sender, class_id, token_id, metadata.clone(), new_nft_data.clone())?;
-
-		Self::deposit_event(Event::<T>::NewNftMinted(
-			(class_id, minted_token_id.clone()),
-			(class_id, minted_token_id),
-			sender.clone(),
-			class_id,
-			1u32,
-			minted_token_id,
-		));
-
-		Ok(minted_token_id)
+		Self::do_mint_nft_with_token_id(sender, class_id, token_id, metadata, attributes, false)
 	}
 
 	fn get_free_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {
