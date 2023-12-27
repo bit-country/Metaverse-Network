@@ -988,11 +988,12 @@ fn validate_signature() {
 		let alice_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
 		let alice_signer = MultiSigner::Sr25519(alice_pair.public());
 		let alice = alice_signer.clone().into_account();
-		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, u64> = PreSignedMint {
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, BlockNumber, Balance> = PreSignedMint {
 			class_id: 0,
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
+			expired: 1000,
 			mint_price: None,
 			token_id: None,
 		};
@@ -1017,11 +1018,12 @@ fn pre_signed_mints_should_work() {
 		let user_1_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
 		let user_1_signer = MultiSigner::Sr25519(user_1_pair.public());
 		let user_1 = user_1_signer.clone().into_account();
-		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, BlockNumber, Balance> = PreSignedMint {
 			class_id: 0,
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
+			expired: 1000,
 			mint_price: None,
 			token_id: None,
 		};
@@ -1053,11 +1055,12 @@ fn pre_signed_mint_should_work_with_only_account() {
 		let user_1_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
 		let user_1_signer = MultiSigner::Sr25519(user_1_pair.public());
 		let user_1 = user_1_signer.clone().into_account();
-		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, BlockNumber, Balance> = PreSignedMint {
 			class_id: 0,
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: Some(account(2)),
+			expired: 1000,
 			mint_price: None,
 			token_id: None,
 		};
@@ -1098,11 +1101,12 @@ fn pre_signed_mint_should_collect_fee_with_mint_price() {
 		let user_1_pair = sp_core::sr25519::Pair::from_string("//Alice", None).unwrap();
 		let user_1_signer = MultiSigner::Sr25519(user_1_pair.public());
 		let user_1 = user_1_signer.clone().into_account();
-		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, Balance> = PreSignedMint {
+		let mint_data: PreSignedMint<ClassId, TokenId, AccountId, BlockNumber, Balance> = PreSignedMint {
 			class_id: 0,
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
+			expired: 1000,
 			mint_price: Some(50),
 			token_id: None,
 		};
