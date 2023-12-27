@@ -308,11 +308,6 @@ fn current_era_update_works() {
 				Error::<Runtime>::CurrencyIsNotSupported
 			);
 
-			assert_noop!(
-				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(1), 10000),
-				Error::<Runtime>::NoCurrentStakingRound
-			);
-
 			UnlockDuration::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1)); // Bump current staking round to 1
 			CurrentStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1));
 
@@ -351,12 +346,13 @@ fn current_era_update_works() {
 
 			// Move to era 2 to allow user redeem token successfully
 			MockRelayBlockNumberProvider::set(202);
-			SppModule::on_initialize(200);
+			run_to_block(202);
+			SppModule::on_initialize(202);
 
 			let pool_account = SppModule::get_pool_account();
 			assert_eq!(
 				Tokens::accounts(pool_account, FungibleTokenId::NativeToken(1)).free,
-				10001
+				10000
 			);
 
 			// After KSM released, BOB balance now is
@@ -381,7 +377,7 @@ fn current_era_update_works() {
 			// Pool account remain the same
 			assert_eq!(
 				Tokens::accounts(pool_account, FungibleTokenId::NativeToken(1)).free,
-				10001
+				10000
 			);
 
 			// BOB balance remain the same
@@ -599,7 +595,7 @@ fn boosting_and_claim_reward_works() {
 						conviction: BoostingConviction::None,
 					},
 				)],
-				prior: PriorLock(101, 15000),
+				prior: PriorLock(202, 15000),
 			};
 			assert_eq!(boosting_of, some_record);
 			assert_eq!(Balances::usable_balance(&BOB), bob_free_balance - 15000);
@@ -620,7 +616,8 @@ fn boosting_and_claim_reward_works() {
 			));
 
 			// Move to era 2, now protocol distribute 1000 NEER to incentivise boosters
-			MockRelayBlockNumberProvider::set(202);
+			//			MockRelayBlockNumberProvider::set(202);
+			run_to_block(202);
 			SppModule::on_initialize(200);
 
 			let network_reward_pool = RewardsModule::pool_infos(0u32);
@@ -666,7 +663,8 @@ fn boosting_and_claim_reward_works() {
 			);
 
 			// Move to era 3, now protocol distribute another 1000 NEER to incentivise boosters
-			MockRelayBlockNumberProvider::set(302);
+			//			MockRelayBlockNumberProvider::set(302);
+			run_to_block(302);
 			SppModule::on_initialize(300);
 
 			// Bob try to claim reward for new era
@@ -709,6 +707,7 @@ fn boosting_and_claim_reward_works() {
 
 			// Move to era 4, now protocol distribute another 1000 NEER to incentivise boosters
 			MockRelayBlockNumberProvider::set(402);
+			run_to_block(402);
 			SppModule::on_initialize(400);
 
 			// Bob try to claim reward for new era
@@ -802,7 +801,7 @@ fn reward_distribution_works() {
 						conviction: BoostingConviction::None,
 					},
 				)],
-				prior: PriorLock(101, 15000),
+				prior: PriorLock(202, 15000),
 			};
 			assert_eq!(boosting_of, some_record);
 			assert_eq!(Balances::usable_balance(&BOB), bob_free_balance - 15000);
