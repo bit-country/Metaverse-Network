@@ -1417,6 +1417,7 @@ impl<T: Config> Pallet<T> {
 		// update class total issuance
 		Classes::<T>::try_mutate(class_id, |class_info| -> DispatchResult {
 			let info = class_info.as_mut().ok_or(Error::<T>::ClassIdNotFound)?;
+			ensure!(info.owner == sender.clone(), Error::<T>::NoPermission);
 			match info.data.mint_limit {
 				Some(l) => {
 					ensure!(
