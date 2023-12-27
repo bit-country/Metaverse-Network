@@ -1293,43 +1293,40 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_claim_rewards(who: T::AccountId, pool_id: PoolId) -> DispatchResult {
-		if !pool_id.is_zero() {
-			<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
+		<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
 
-			PendingRewards::<T>::mutate_exists(pool_id, &who, |maybe_pending_multi_rewards| {
-				if let Some(pending_multi_rewards) = maybe_pending_multi_rewards {
-					for (currency_id, pending_reward) in pending_multi_rewards.iter_mut() {
-						if pending_reward.is_zero() {
-							continue;
+		PendingRewards::<T>::mutate_exists(pool_id, &who, |maybe_pending_multi_rewards| {
+			if let Some(pending_multi_rewards) = maybe_pending_multi_rewards {
+				for (currency_id, pending_reward) in pending_multi_rewards.iter_mut() {
+					if pending_reward.is_zero() {
+						continue;
+					}
+
+					let payout_amount = pending_reward.clone();
+
+					match Self::payout_reward(pool_id, &who, *currency_id, payout_amount) {
+						Ok(_) => {
+							// update state
+							*pending_reward = Zero::zero();
+
+							Self::deposit_event(Event::ClaimRewards {
+								who: who.clone(),
+								pool: pool_id,
+								reward_currency_id: FungibleTokenId::NativeToken(0),
+								claimed_amount: payout_amount,
+							});
 						}
-
-						let payout_amount = pending_reward.clone();
-
-						match Self::payout_reward(pool_id, &who, *currency_id, payout_amount) {
-							Ok(_) => {
-								// update state
-								*pending_reward = Zero::zero();
-
-								Self::deposit_event(Event::ClaimRewards {
-									who: who.clone(),
-									pool: pool_id,
-									reward_currency_id: FungibleTokenId::NativeToken(0),
-									claimed_amount: payout_amount,
-								});
-							}
-							Err(e) => {
-								log::error!(
-									target: "spp",
-									"payout_reward: failed to payout {:?} to {:?} to pool {:?}: {:?}",
-									pending_reward, who, pool_id, e
-								);
-							}
+						Err(e) => {
+							log::error!(
+								target: "spp",
+								"payout_reward: failed to payout {:?} to {:?} to pool {:?}: {:?}",
+								pending_reward, who, pool_id, e
+							);
 						}
 					}
 				}
-			})
-		}
-
+			}
+		});
 		Ok(())
 	}
 
