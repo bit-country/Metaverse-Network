@@ -1214,6 +1214,9 @@ impl<T: Config> Pallet<T> {
 			Error::<T>::ExceedMaximumMetadataLength
 		);
 
+		// Update class total issuance
+		Self::update_class_total_issuance(&sender, &class_id, 1u32)?;
+
 		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
 		<T as orml_nft::Config>::Currency::transfer(&sender, &class_fund, deposit, ExistenceRequirement::KeepAlive)?;
