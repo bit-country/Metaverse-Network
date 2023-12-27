@@ -989,7 +989,35 @@ pub mod pallet {
 		) -> DispatchResult {
 			let origin = ensure_signed(origin)?;
 			Self::validate_signature(&Encode::encode(&mint_data), &signature, &signer)?;
-			Self::do_mint_pre_signed(origin, *mint_data, signer)?;
+			Self::do_mint_pre_signed(origin, *mint_data, signer)
+		}
+
+		/// Mint nft as wallet then owner as proxy acount to control this wallet.
+		///
+		/// Origin must be Signed.
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		/// - `class_id`: class ID of the collection the NFT will be part of
+		/// - `mint_to`: address that will receive NFT
+		/// - `metadata`: NFT assets metadata as NFT metadata
+		/// - `attributes`: NFTs' attributes
+		/// - `quantity`: the number of NFTs to be minted
+		///
+		/// Emits `NewNftMinted` if successful.
+		#[pallet::weight(< T as Config >::WeightInfo::mint() * * quantity as u64)]
+		#[transactional]
+		pub fn mint_nft_proxy(
+			origin: OriginFor<T>,
+			mint_to: T::AccountId,
+			class_id: ClassIdOf<T>,
+			metadata: NftMetadata,
+			attributes: Attributes,
+		) -> DispatchResultWithPostInfo {
+			let sender = ensure_signed(origin)?;
+
+			Self::do_mint_nft_proxy(&sender, &mint_to, class_id, None, metadata, attributes, false?);
+
+			Ok(().into())
 		}
 	}
 
@@ -1267,39 +1295,37 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	//	/// Internal NFT minting with token id
-	//	fn do_mint_nft_proxy(
-	//		sender: &T::AccountId,
-	//		mint_to: &T::AccountId,
-	//		class_id: ClassIdOf<T>,
-	//		token_id: Option<TokenIdOf<T>>,
-	//		metadata: NftMetadata,
-	//		attributes: Attributes,
-	//		is_locked: bool,
-	//	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
-	//		let minted_token_id =
-	//			Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes,
-	// is_locked)?; 		let nft_proxy_account: T::AccountId =
-	//			T::PalletId::get().into_sub_account_truncating((class_id, &minted_token_id));
-	//		let proxy_deposit = <pallet_proxy::Pallet<T>>::deposit(1u32);
-	//		// Ensure balance above ED
-	//		let total_deposit = proxy_deposit.saturating_add(<T as
-	// pallet::Config>::Currency::minimum_balance());
-	//
-	//		<T as pallet::Config>::Currency::transfer(&sender, &nft_proxy_account, total_deposit,
-	// KeepAlive)?;
-	//
-	//		Self::deposit_event(Event::<T>::NewNftMinted(
-	//			(class_id, minted_token_id.clone()),
-	//			(class_id, minted_token_id.clone()),
-	//			mint_to.clone(),
-	//			class_id,
-	//			1u32,
-	//			minted_token_id,
-	//		));
-	//
-	//		Ok(minted_token_id)
-	//	}
+	/// Internal NFT minting with token id
+	fn do_mint_nft_proxy(
+		sender: &T::AccountId,
+		mint_to: &T::AccountId,
+		class_id: ClassIdOf<T>,
+		token_id: Option<TokenIdOf<T>>,
+		metadata: NftMetadata,
+		attributes: Attributes,
+		is_locked: bool,
+	) -> Result<(Vec<(ClassIdOf<T>, TokenIdOf<T>)>, TokenIdOf<T>), DispatchError> {
+		let minted_token_id =
+			Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked)?;
+		let nft_proxy_account: T::AccountId =
+			T::PalletId::get().into_sub_account_truncating((class_id, &minted_token_id));
+		let proxy_deposit = <pallet_proxy::Pallet<T>>::deposit(1u32);
+		// Ensure balance above ED
+		let total_deposit = proxy_deposit.saturating_add(<T as pallet::Config>::Currency::minimum_balance());
+
+		<T as pallet::Config>::Currency::transfer(&sender, &nft_proxy_account, total_deposit, KeepAlive)?;
+
+		Self::deposit_event(Event::<T>::NewNftMinted(
+			(class_id, minted_token_id.clone()),
+			(class_id, minted_token_id.clone()),
+			mint_to.clone(),
+			class_id,
+			1u32,
+			minted_token_id,
+		));
+
+		Ok(minted_token_id)
+	}
 
 	/// A helper method to construct metadata.
 	///
