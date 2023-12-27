@@ -1,18 +1,20 @@
+use codec::{Decode, Encode};
+use frame_support::traits::{Contains, InstanceFilter};
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchResult,
+	pallet_prelude::TypeInfo,
 	parameter_types,
 	traits::{Everything, Nothing},
 	weights::Weight,
-	PalletId,
+	PalletId, RuntimeDebug,
 };
+use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
-
 use orml_traits::parameter_type_with_key;
 use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
 use pallet_evm::{PrecompileHandle, PrecompileOutput};
-
-use sp_core::{MaxEncodedLen, H160, H256, U256};
+use sp_core::{ConstU128, ConstU32, MaxEncodedLen, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Verify};
 use sp_runtime::{AccountId32, DispatchError, MultiSignature, Perbill};
 
@@ -440,6 +442,54 @@ impl nft_pallet::Config for Runtime {
 	type OffchainPublic = AccountPublic;
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+pub enum ProxyType {
+	Any,
+	JustTransfer,
+}
+impl Default for ProxyType {
+	fn default() -> Self {
+		Self::Any
+	}
+}
+impl InstanceFilter<RuntimeCall> for ProxyType {
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		match self {
+			ProxyType::Any => true,
+			ProxyType::JustTransfer => matches!(c, RuntimeCall::Balances(pallet_balances::Call::transfer { .. })),
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == &ProxyType::Any || self == o
+	}
+}
+pub struct BaseFilter;
+impl Contains<RuntimeCall> for BaseFilter {
+	fn contains(c: &RuntimeCall) -> bool {
+		match *c {
+			// Remark is used as a no-op call in the benchmarking
+			RuntimeCall::System(SystemCall::remark { .. }) => true,
+			RuntimeCall::System(_) => false,
+			_ => true,
+		}
+	}
+}
+
+impl pallet_proxy::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ConstU128<1>;
+	type ProxyDepositFactor = ConstU128<1>;
+	type MaxProxies = ConstU32<4>;
+	type WeightInfo = ();
+	type CallHasher = BlakeTwo256;
+	type MaxPending = ConstU32<2>;
+	type AnnouncementDepositBase = ConstU128<1>;
+	type AnnouncementDepositFactor = ConstU128<1>;
+}
+
 // Configure a mock runtime to test the pallet.
 construct_runtime!(
 	pub enum Runtime where
@@ -461,6 +511,8 @@ construct_runtime!(
 		Currencies: currencies_pallet::{ Pallet, Storage, Call, Event<T>},
 		Nft: nft_pallet::{Pallet, Storage, Call, Event<T>},
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
+
+		Proxy: pallet_proxy,
 	}
 );
 
