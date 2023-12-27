@@ -332,6 +332,16 @@ pub mod pallet {
 		NftUnlocked(ClassIdOf<T>, TokenIdOf<T>),
 		/// Successfully updated royalty fee
 		ClassRoyaltyFeeUpdated(ClassIdOf<T>, Perbill),
+		// New proxy NFT minted
+		NewProxyNftMinted(
+			(ClassIdOf<T>, TokenIdOf<T>),
+			(ClassIdOf<T>, TokenIdOf<T>),
+			<T as frame_system::Config>::AccountId,
+			ClassIdOf<T>,
+			u32,
+			TokenIdOf<T>,
+			<T as frame_system::Config>::AccountId,
+		),
 	}
 
 	#[pallet::error]
@@ -1320,13 +1330,14 @@ impl<T: Config> Pallet<T> {
 
 		<T as pallet_proxy::Config>::Currency::transfer(&sender, &nft_proxy_account, total_deposit, KeepAlive)?;
 
-		Self::deposit_event(Event::<T>::NewNftMinted(
+		Self::deposit_event(Event::<T>::NewProxyNftMinted(
 			(class_id, minted_token_id.clone()),
 			(class_id, minted_token_id.clone()),
 			mint_to.clone(),
 			class_id,
 			1u32,
 			minted_token_id,
+			nft_proxy_account,
 		));
 
 		Ok((class_id, minted_token_id))
