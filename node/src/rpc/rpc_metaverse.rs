@@ -124,7 +124,7 @@ pub fn create_full<C, P, BE, A>(
 where
 	BE: Backend<Block> + 'static,
 	BE::State: StateBackend<BlakeTwo256>,
-	//BE::Blockchain: BlockchainBackend<Block>,
+	BE::Blockchain: BlockchainBackend<Block>,
 	C: ProvideRuntimeApi<Block> + StorageProvider<Block, BE> + AuxStore,
 	C: BlockchainEvents<Block>,
 	C: CallApiAt<Block>,
