@@ -1204,7 +1204,10 @@ pub const GAS_PER_SECOND: u64 = 40_000_000;
 pub const WEIGHT_PER_GAS: u64 = WEIGHT_REF_TIME_PER_SECOND.saturating_div(GAS_PER_SECOND);
 
 parameter_types! {
-	pub BlockGasLimit: U256 = U256::from(u32::max_value());
+	/// EVM gas limit
+    pub BlockGasLimit: U256 = U256::from(
+        NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS
+    );
 	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
 	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
 	pub const GasLimitPovSizeRatio: u64 = 4;
