@@ -22,6 +22,7 @@ pallet-randomness-collective-flip = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
+pallet-proxy = { workspace = true }
 sp-io = { workspace = true }
 sp-core = { workspace = true }
 sp-session = { workspace = true }
@@ -69,5 +70,6 @@ std = [
     "frame-benchmarking/std",
     "currencies/std",
     "auction-manager/std",
-    "pallet-mining/std"
+    "pallet-mining/std",
+    "pallet-proxy/std"
 ]

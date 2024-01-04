@@ -29,6 +29,7 @@ frame-executive = { workspace = true }
 sp-core = { workspace = true }
 sp-version = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
+pallet-proxy = { workspace = true }
 
 # Used for the node's RPCs
 frame-system-rpc-runtime-api = { workspace = true }
@@ -76,4 +77,5 @@ std = [
     'core-primitives/std',
     'frame-benchmarking/std',
     'pallet-scheduler/std',
+    'pallet-proxy/std',
 ]
