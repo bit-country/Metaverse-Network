@@ -2,18 +2,18 @@ use std::str::FromStr;
 
 use hex_literal::hex;
 use log::info;
+use sc_consensus_grandpa::AuthorityId as GrandpaId;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
 use sp_core::{sr25519, Pair, Public, H160, U256};
-use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
 	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig, GenesisAccount,
 	GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig,
-	SystemConfig,
+	SystemConfig, EvmChainIdConfig,
 };
 use primitives::Balance;
 
@@ -304,11 +304,12 @@ fn testnet_genesis(
 				accounts
 			},
 		},
-		ethereum: EthereumConfig {},
+		ethereum: Default::default(),
 		base_fee: BaseFeeConfig::new(
 			sp_core::U256::from(1_000_000_000u64),
 			sp_runtime::Permill::from_parts(125_000),
 		),
+		evm_chain_id: EvmChainIdConfig { chain_id: 0x7fa },
 	}
 }
 

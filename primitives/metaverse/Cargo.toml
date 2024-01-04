@@ -6,7 +6,8 @@ edition = '2021'
 
 [dependencies]
 serde = { workspace = true, optional = true, features = ["derive"] }
-codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false }
+serde_json = { workspace = true }
+codec = { workspace = true, package = "parity-scale-codec" }
 scale-info = { workspace = true }
 hex-literal = { workspace = true }
 num_enum = { workspace = true }
@@ -18,7 +19,6 @@ sp-application-crypto = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 xcm = { workspace = true }
-serde_json = { workspace = true }
 
 [features]
 default = ["std"]

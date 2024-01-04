@@ -115,6 +115,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 
 parameter_types! {
@@ -602,7 +606,7 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 100000), (BOB, 500)],
+			balances: vec![(ALICE, 100000), (BOB, 50000)],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -633,10 +637,9 @@ pub fn run_to_block(n: u64) {
 }
 
 pub fn set_balance_proposal(value: u64) -> Vec<u8> {
-	RuntimeCall::Balances(pallet_balances::Call::set_balance {
+	RuntimeCall::Balances(pallet_balances::Call::force_set_balance {
 		who: BOB,
 		new_free: value,
-		new_reserved: 100,
 	})
 	.encode()
 }

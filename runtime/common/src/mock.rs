@@ -12,7 +12,9 @@ use frame_support::{
 use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
-use pallet_evm::{EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, Precompile, PrecompileSet};
+use pallet_evm::{
+	EnsureAddressNever, EnsureAddressRoot, HashedAddressMapping, IsPrecompileResult, Precompile, PrecompileSet,
+};
 use pallet_evm::{PrecompileHandle, PrecompileOutput};
 use sp_core::{ConstU128, ConstU32, MaxEncodedLen, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Verify};
@@ -98,7 +100,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 0;
+	pub const ExistentialDeposit: u128 = 1;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -111,6 +113,10 @@ impl pallet_balances::Config for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = ();
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<1>;
+	type MaxFreezes = frame_support::traits::ConstU32<1>;
 }
 
 /// The asset precompile address prefix. Addresses that match against this prefix will be routed
@@ -140,8 +146,11 @@ where
 		}
 	}
 
-	fn is_precompile(&self, _address: H160) -> bool {
-		true
+	fn is_precompile(&self, _address: H160, remaining_gas: u64) -> IsPrecompileResult {
+		IsPrecompileResult::Answer {
+			is_precompile: true,
+			extra_cost: 0,
+		}
 	}
 }
 
@@ -159,6 +168,7 @@ parameter_types! {
 	pub BlockGasLimit: U256 = U256::max_value();
 	pub PrecompilesValue: Precompiles<Runtime> = Precompiles(PhantomData);
 	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
+	pub const GasLimitPovSizeRatio: u64 = 4;
 }
 
 impl pallet_evm::Config for Runtime {
@@ -178,6 +188,10 @@ impl pallet_evm::Config for Runtime {
 	type BlockGasLimit = BlockGasLimit;
 	type BlockHashMapping = pallet_evm::SubstrateBlockHashMapping<Self>;
 	type WeightPerGas = WeightPerGas;
+	type Timestamp = Timestamp;
+	type OnCreate = ();
+	type GasLimitPovSizeRatio = GasLimitPovSizeRatio;
+	type WeightInfo = ();
 }
 
 parameter_type_with_key! {

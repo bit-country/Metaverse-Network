@@ -57,7 +57,7 @@ fn test_hash(value: u64) -> Hash {
 }
 
 fn test_js_root_hash() -> Hash {
-	let root_bytes_hash = hex!("b0885a06a169891b562c9ed1b43510422328d6975923d72b661e084e119dde80");
+	let root_bytes_hash = hex!("898e1ce4ab2506b4ced853e9db154065867ec000ff9e7e5b3cb6e1d451312892");
 	Hash::from_slice(&root_bytes_hash)
 }
 
@@ -72,26 +72,26 @@ fn test_js_root_hash() -> Hash {
 fn test_js_leaf_hashes(who: AccountId) -> Vec<Hash> {
 	match who {
 		BOB => {
-			let charlie_bytes_hash = hex!("d90b5864238131f03c065e80a5e0c04aadb2493984702ef3bb279dcd3cb8ac7d");
-			let branch_bytes_hash = hex!("addd535f444323fab87b3350449e85e8ca478541d55a3697caa567d06b45ec3a");
+			let charlie_bytes_hash = hex!("f2af2ee84f7ac9bd76b6cb5f2a18bd0e6ae1fd52c994ee5a024e05c45c65c4b5");
+			let branch_bytes_hash = hex!("90107c8c0892c59f36316de0cb00757349ea3c2b18f2cd39a18127eac79b6954");
 			return vec![
 				Hash::from_slice(&charlie_bytes_hash),
 				Hash::from_slice(&branch_bytes_hash),
 			];
 		}
 		CHARLIE => {
-			let bob_bytes_hash = hex!("64b39d59f54b02b6d862584c58735a0d3ff7c8d1ee46250809f4c244ca13d5ca");
-			let branch_bytes_hash = hex!("addd535f444323fab87b3350449e85e8ca478541d55a3697caa567d06b45ec3a");
+			let bob_bytes_hash = hex!("9e9245c9a51f35062c488859f74e3ba2645a80ae82399945850ad678a9a21936");
+			let branch_bytes_hash = hex!("90107c8c0892c59f36316de0cb00757349ea3c2b18f2cd39a18127eac79b6954");
 			return vec![Hash::from_slice(&bob_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
 		}
 		DONNA => {
-			let eva_bytes_hash = hex!("7ecf6a4f9809680533d36217de280ae07964f4c65595308405e2c860bc52d4bf");
-			let branch_bytes_hash = hex!("8903505f09ba64010935c4ff9155d37f572578ffdf205dbfdf4381d41a9a83cd");
+			let eva_bytes_hash = hex!("39c244ac6d495a25f737feec330c33a6b7f87cfb110c054ad5ea6d9aab373135");
+			let branch_bytes_hash = hex!("a07fae87d7d9611f142fa6e416a28c216c71dedda1d30b14b7290b46a6709e84");
 			return vec![Hash::from_slice(&eva_bytes_hash), Hash::from_slice(&branch_bytes_hash)];
 		}
 		EVA => {
-			let donna_bytes_hash = hex!("77ead2ce9a216ed6ac05f5d8a2c7d12373428794b33d56f65163073769976208");
-			let branch_bytes_hash = hex!("8903505f09ba64010935c4ff9155d37f572578ffdf205dbfdf4381d41a9a83cd");
+			let donna_bytes_hash = hex!("8ee7c097a253565e6d9c421b068ecb9bd29f2bf0c6f446f9bddfc7af8e465b95");
+			let branch_bytes_hash = hex!("a07fae87d7d9611f142fa6e416a28c216c71dedda1d30b14b7290b46a6709e84");
 			return vec![
 				Hash::from_slice(&donna_bytes_hash),
 				Hash::from_slice(&branch_bytes_hash),
@@ -2259,6 +2259,16 @@ fn js_encoded_data_matches_blockchain_encoded_data() {
 				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 			]
 		); // SCALE encoding for [2u128, 10u128]
+	});
+}
+
+#[test]
+fn js_accounts_match_mock_accounts() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_eq!(BOB.to_string(), "5C7LYpP2ZH3tpKbvVvwiVe54AapxErdPBbvkYhe6y9ZBkqWt");
+		assert_eq!(CHARLIE.to_string(), "5C8etthaGJi5SkQeEDSaK32ABBjkhwDeK9ksQCTLEGM3EH14");
+		assert_eq!(DONNA.to_string(), "5C9yEy27yLNG5BDMxVwS8RyGBneZB1ouShazFhGZVP8thK5z");
+		assert_eq!(EVA.to_string(), "5CBHb3LfgN2Shc25gnSHwpvNCPZMe6QAaFR77C5nkVvkAK1o");
 	});
 }
 
