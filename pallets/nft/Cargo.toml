@@ -28,6 +28,7 @@ orml-nft = { workspace = true }
 orml-tokens = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-scheduler = { workspace = true, optional = true }
+pallet-proxy = { workspace = true }
 
 sp-core = { workspace = true }
 pallet-balances = { workspace = true }
@@ -57,6 +58,7 @@ std = [
     'orml-nft/std',
     'pallet-balances/std',
     'pallet-timestamp/std',
+    'pallet-proxy/std',
     'auction-manager/std',
     'currencies/std',
     'scale-info/std',

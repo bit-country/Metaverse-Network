@@ -156,7 +156,7 @@ impl<Balance: Saturating + Copy> BoostInfo<Balance> {
 	}
 
 	pub fn add(&mut self, balance: Balance) -> Option<()> {
-		self.balance.saturating_add(balance.into());
+		self.balance = self.balance.saturating_add(balance.into());
 		Some(())
 	}
 }
@@ -169,7 +169,7 @@ impl<BlockNumber: Ord + Copy + Zero, Balance: Ord + Copy + Zero> PriorLock<Block
 	/// Accumulates an additional lock.
 	pub fn accumulate(&mut self, until: BlockNumber, amount: Balance) {
 		self.0 = self.0.max(until);
-		self.1 = self.1.max(amount);
+		self.1 = self.1.add(amount);
 	}
 
 	pub fn locked(&self) -> Balance {

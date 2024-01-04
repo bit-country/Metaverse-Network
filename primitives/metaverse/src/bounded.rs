@@ -154,12 +154,21 @@ impl Get<Rate> for OneFifth {
 	}
 }
 
+/// Maximum absolute change is 1/2.
+#[derive(Clone, Copy, PartialEq, Eq, RuntimeDebug)]
+pub struct OneHalf;
+impl Get<Rate> for OneHalf {
+	fn get() -> Rate {
+		Rate::saturating_from_rational(1, 2)
+	}
+}
+
 pub type BoundedRate<Range, MaxChangeAbs> = BoundedType<Rate, Range, MaxChangeAbs>;
 
 /// Fractional rate.
 ///
-/// The range is between 0 to 1, and max absolute value of change diff is 1/5.
-pub type FractionalRate = BoundedRate<Fractional, OneFifth>;
+/// The range is between 0 to 1, and max absolute value of change diff is 1/2.
+pub type FractionalRate = BoundedRate<Fractional, OneHalf>;
 
 pub type BoundedBalance<Range, MaxChangeAbs> = BoundedType<Balance, Range, MaxChangeAbs>;
 
@@ -181,7 +190,7 @@ mod tests {
 		let mut rate = FractionalRate::try_from(Rate::from_rational(8, 10)).unwrap();
 		assert_ok!(rate.try_set(Rate::from_rational(10, 10)));
 		assert_err!(rate.try_set(Rate::from_rational(11, 10)), Error::OutOfBounds);
-		assert_err!(rate.try_set(Rate::from_rational(79, 100)), Error::ExceedMaxChangeAbs);
+		assert_err!(rate.try_set(Rate::from_rational(1, 100)), Error::ExceedMaxChangeAbs);
 
 		assert_eq!(FractionalRate::default().into_inner(), Rate::zero());
 	}

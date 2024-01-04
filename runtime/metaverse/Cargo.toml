@@ -71,6 +71,7 @@ frame-system-benchmarking = { workspace = true, optional = true }
 
 # EVM pallets
 pallet-evm = { workspace = true }
+pallet-evm-chain-id = { workspace = true }
 pallet-ethereum = { workspace = true }
 pallet-base-fee = { workspace = true }
 fp-self-contained = { workspace = true }
@@ -200,6 +201,7 @@ std = [
     "fp-evm/std",
     "pallet-ethereum/std",
     "pallet-evm/std",
+    "pallet-evm-chain-id/std",
     "pallet-contracts/std",
     "pallet-contracts-primitives/std",
     "frame-try-runtime/std",

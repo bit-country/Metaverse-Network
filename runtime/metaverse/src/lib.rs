@@ -43,6 +43,7 @@ pub use frame_support::{
 };
 use frame_support::{BoundedVec, ConsensusEngineId};
 use pallet_evm::GasWeightMapping;
+use sp_core::Get;
 // A few exports that help ease life for downstream crates.
 use frame_support::traits::{
 	Contains, EitherOfDiverse, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
@@ -187,7 +188,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 95,
+	spec_version: 101,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -1203,8 +1204,10 @@ pub const GAS_PER_SECOND: u64 = 40_000_000;
 pub const WEIGHT_PER_GAS: u64 = WEIGHT_REF_TIME_PER_SECOND.saturating_div(GAS_PER_SECOND);
 
 parameter_types! {
-	pub const ChainId: u64 = 2042;
-	pub BlockGasLimit: U256 = U256::from(u32::max_value());
+	/// EVM gas limit
+    pub BlockGasLimit: U256 = U256::from(
+        NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS
+    );
 	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
 	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
 	pub const GasLimitPovSizeRatio: u64 = 4;
@@ -1215,7 +1218,9 @@ impl pallet_evm::Config for Runtime {
 	type Currency = Balances;
 
 	type BlockGasLimit = BlockGasLimit;
-	type ChainId = ChainId;
+	// Ethereum-compatible chain_id:
+    // * Metaverse Network: 2042
+	type ChainId = EvmChainId;
 	type BlockHashMapping = EthereumBlockHashMapping<Self>;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
 
@@ -1439,7 +1444,7 @@ impl evm_mapping::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type AddressMapping = EvmAddressMapping<Runtime>;
-	type ChainId = ChainId;
+	type ChainId = EvmChainId;
 	type TransferAll = OrmlCurrencies;
 	type NetworkTreasuryAccount = TreasuryModuleAccount;
 	type StorageDepositFee = EvmMappingStorageFee;
@@ -1455,6 +1460,8 @@ impl modules_bridge::Config for Runtime {
 	type NativeCurrencyId = GetNativeCurrencyId;
 	type PalletId = BridgeSovereignPalletId;
 }
+
+impl pallet_evm_chain_id::Config for Runtime {}
 
 impl orml_rewards::Config for Runtime {
 	type Share = Balance;
@@ -1551,6 +1558,7 @@ construct_runtime!(
 		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
 		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
+		EvmChainId: pallet_evm_chain_id::{Pallet, Storage, Config},
 
 		// ink! Smart Contracts.
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
@@ -1750,15 +1758,17 @@ impl_runtime_apis! {
 
 	impl fp_rpc::EthereumRuntimeRPCApi<Block> for Runtime {
 		fn chain_id() -> u64 {
-			<Runtime as pallet_evm::Config>::ChainId::get()
+			EvmChainId::get()
 		}
 
-		fn account_basic(address: H160) -> EVMAccount {
-			EVM::account_basic(&address).0
+		fn account_basic(address: H160) -> pallet_evm::Account {
+			let (account, _) = EVM::account_basic(&address);
+            account
 		}
 
 		fn gas_price() -> U256 {
-			<Runtime as pallet_evm::Config>::FeeCalculator::min_gas_price().0
+			let (gas_price, _) = <Runtime as pallet_evm::Config>::FeeCalculator::min_gas_price();
+            gas_price
 		}
 
 		fn account_code_at(address: H160) -> Vec<u8> {

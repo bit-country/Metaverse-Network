@@ -20,6 +20,7 @@ sp-core = { workspace = true }
 sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 sp-io = { workspace = true }
+pallet-proxy = { workspace = true }
 
 # Polkadot & Cumulus pallets
 polkadot-parachain = { workspace = true }
@@ -103,4 +104,5 @@ std = [
     "xcm-builder/std",
     "pallet-timestamp/std",
     "pallet-balances/std",
+    'pallet-proxy/std',
 ]
