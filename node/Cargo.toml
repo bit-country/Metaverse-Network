@@ -78,14 +78,14 @@ jsonrpc-pubsub = { workspace = true }
 sc-rpc = { workspace = true }
 sp-api = { workspace = true, default-features = true }
 sc-rpc-api = { workspace = true }
-sp-blockchain =  { workspace = true }
-sp-block-builder =  { workspace = true, default-features = true }
-sc-basic-authorship =  { workspace = true }
+sp-blockchain = { workspace = true }
+sp-block-builder = { workspace = true, default-features = true }
+sc-basic-authorship = { workspace = true }
 substrate-frame-rpc-system = { workspace = true }
 pallet-transaction-payment-rpc = { workspace = true, default-features = true }
 pallet-transaction-payment = { workspace = true, default-features = true }
 pallet-im-online = { workspace = true, optional = true }
-substrate-prometheus-endpoint =  { workspace = true }
+substrate-prometheus-endpoint = { workspace = true }
 
 # These dependencies are used for runtime benchmarking
 frame-benchmarking = { workspace = true, default-features = true }
@@ -107,7 +107,7 @@ cumulus-client-collator = { workspace = true }
 cumulus-client-cli = { workspace = true }
 cumulus-client-network = { workspace = true }
 cumulus-client-service = { workspace = true }
-cumulus-primitives-core = { workspace = true, default-features = true}
+cumulus-primitives-core = { workspace = true, default-features = true }
 cumulus-primitives-parachain-inherent = { workspace = true }
 cumulus-relay-chain-interface = { workspace = true }
 cumulus-relay-chain-minimal-node = { workspace = true }

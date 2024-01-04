@@ -13,6 +13,7 @@ substrate-wasm-builder = { workspace = true, default-features = true }
 codec = { workspace = true, package = "parity-scale-codec" }
 log = { workspace = true }
 serde = { workspace = true, optional = true, features = ['derive'] }
+serde_json = { workspace = true, default-features = false, features = ["alloc"] }
 scale-info = { workspace = true }
 smallvec = { workspace = true }
 hex-literal = { workspace = true }
