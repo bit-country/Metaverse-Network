@@ -37,7 +37,7 @@ jobs:
       # Build WASM with Substrate Runtime Tool
       - name: Srtool build
         id: srtool_build
-        uses: chevdor/srtool-actions@v0.4.0
+        uses: chevdor/srtool-actions@v0.7.0
         with:
           chain: ${{ github.event.inputs.chain }}
           tag: ${{ github.event.inputs.srtool_image }}
