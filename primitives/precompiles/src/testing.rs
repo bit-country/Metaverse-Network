@@ -17,7 +17,7 @@
 use {
 	alloc::format,
 	alloc::string::String,
-	core::assert_matches::assert_matches,
+	assert_matches::assert_matches,
 	fp_evm::{
 		Context, ExitError, ExitReason, ExitSucceed, Log, PrecompileFailure, PrecompileHandle, PrecompileOutput,
 		PrecompileResult, PrecompileSet, Transfer,
