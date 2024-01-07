@@ -7,7 +7,7 @@ edition = '2021'
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-substrate-wasm-builder = { workspace = true, default-features = true }
+substrate-wasm-builder = { workspace = true }
 
 [dependencies]
 codec = { workspace = true, package = "parity-scale-codec" }
@@ -149,12 +149,16 @@ std = [
     "frame-support/std",
     "frame-executive/std",
     "frame-system/std",
+    "frame-system-rpc-runtime-api/std",
     "pallet-balances/std",
     "pallet-insecure-randomness-collective-flip/std",
     "pallet-timestamp/std",
     "pallet-sudo/std",
+    "pallet-grandpa/std",
     "pallet-transaction-payment/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
     "pallet-collective/std",
+    "pallet-democracy/std",
     "pallet-session/std",
     "pallet-scheduler/std",
     "pallet-vesting/std",
