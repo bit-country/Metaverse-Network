@@ -68,7 +68,7 @@ fn load_spec(id: &str) -> std::result::Result<Box<dyn sc_service::ChainSpec>, St
 		#[cfg(feature = "with-continuum-runtime")]
 		"continuum-dev" => Box::new(chain_spec::continuum::development_config()),
 		#[cfg(feature = "with-continuum-runtime")]
-		"continuum" => Box::new(chain_spec::continuum::continuum_genesis_config()),
+		"continuum" => Box::new(chain_spec::continuum::continuum_network_config_json()?),
 		path => Box::new(chain_spec::metaverse::ChainSpec::from_json_file(
 			std::path::PathBuf::from(path),
 		)?),
