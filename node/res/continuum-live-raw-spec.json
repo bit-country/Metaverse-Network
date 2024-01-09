@@ -6,7 +6,7 @@
     "/ip4/34.126.180.57/tcp/30333/p2p/12D3KooWRDYGTk7gyz54qLDi8dcJTjEaPe6qRuvY8wankNyi1zKq"
   ],
   "telemetryEndpoints": null,
-  "protocolId": null,
+  "protocolId": "continuum",
   "properties": {
     "ss58Format": 42,
     "tokenDecimals": 18,
