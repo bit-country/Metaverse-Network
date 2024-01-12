@@ -1,0 +1,71 @@
+[relaychain]
+default_command = "./bin/polkadot"
+chain = "kusama-local"
+
+  [[relaychain.nodes]]
+  name = "alice"
+  ws_port = 9934
+  validator = true
+  extra_args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "bob"
+  ws_port = 9935
+  validator = true
+  extra_args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "charlie"
+  ws_port = 9936
+  validator = true
+  extra_args = [ "-lparachain=debug" ]
+
+  [[relaychain.nodes]]
+  name = "dave"
+  ws_port = 9937
+  validator = true
+  extra_args = [ "-lparachain=debug" ]
+
+
+[[parachains]]
+id = 2096
+add_to_genesis = true
+cumulus_based = true
+
+  [[parachains.collators]]
+  name = "metaverse-collator"
+  command = "./bin/metaverse-node"
+  ws_port = 9920
+  args = ["-lparachain=debug"]
+
+[[parachains]]
+id = 1000
+add_to_genesis = true
+cumulus_based = true
+chain = "statemine-local"
+
+  [[parachains.collators]]
+  name = "statemine-collator"
+  command = "./bin/polkadot-parachain"
+  ws_port = 9910
+  args = ["-lparachain=debug"]
+
+[[hrmp_channels]]
+sender = 1000
+recipient = 2096
+max_capacity = 8
+max_message_size = 8192
+
+[[hrmp_channels]]
+sender = 2096
+recipient = 1000
+max_capacity = 8
+max_message_size = 8192
+
+[types.Header]
+number = "u64"
+weight = "u64"
+parent_hash = "Hash"
+post_state = "Hash"
+
+
