@@ -71,6 +71,19 @@ run-dev:
 run-bob-dev:
 	./target/release/metaverse-node --dev --tmp --bob --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp -lruntime=debug
 
+.PHONY: spawn-zombienet-basic
+spawn-zombienet-basic:
+	./scripts/zombienet/zombienet.sh spawn_basic
+
+.PHONY: spawn-zombienet-meatverse
+spawn-zombienet-meatverse:
+	./scripts/zombienet/zombienet.sh spawn_metaverse
+
+.PHONY: spawn-zombienet-pioneeer
+spawn-zombienet-meatverse:
+	./scripts/zombienet/zombienet.sh spawn_pioneer
+
+
 .PHONY: run-chopsticks-pioneer
 run-chopsticks-pioneer:
 	npx @acala-network/chopsticks --config=scripts/chopsticks_pioneer.yml
