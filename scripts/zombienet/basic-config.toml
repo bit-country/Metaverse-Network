@@ -20,7 +20,7 @@ chain = "statemine-local"
 
   [[parachains.collators]]
   name = "statemine-collator"
-  command = "./bin/polkadot-parachain"
+  command = "./bin/asset-hub"
   ws_port = 9946
 
 [types.Header]
