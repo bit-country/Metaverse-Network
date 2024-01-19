@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity >=0.8.3;
+pragma solidity >=0.8.19;
 
 /// @dev The NFT Precompile contract's address.
 address constant NFT_PRECOMPILE_ADDRESS = 0x0202020202020202020000000000000000000000;

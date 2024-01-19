@@ -147,6 +147,8 @@ pub type Hash = sp_core::H256;
 type EventRecord =
 	frame_system::EventRecord<<Runtime as frame_system::Config>::RuntimeEvent, <Runtime as frame_system::Config>::Hash>;
 
+pub type Precompiles = metaverse_runtime_common::precompiles::MetaverseNetworkPrecompiles<Runtime>;
+
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -1232,7 +1234,7 @@ impl pallet_evm::Config for Runtime {
 	type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
 	type OnChargeTransaction = ();
 	type FindAuthor = FindAuthorTruncated<Aura>;
-	type PrecompilesType = MetaverseNetworkPrecompiles<Self>;
+	type PrecompilesType = Precompiles;
 	type PrecompilesValue = PrecompilesValue;
 	type WeightPerGas = WeightPerGas;
 	type Timestamp = Timestamp;

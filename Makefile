@@ -75,8 +75,8 @@ run-bob-dev:
 spawn-zombienet-basic:
 	./scripts/zombienet/zombienet.sh spawn_basic
 
-.PHONY: spawn-zombienet-meatverse
-spawn-zombienet-meatverse:
+.PHONY: spawn-zombienet-metaverse
+spawn-zombienet-metaverse:
 	./scripts/zombienet/zombienet.sh spawn_metaverse
 
 .PHONY: spawn-zombienet-pioneeer

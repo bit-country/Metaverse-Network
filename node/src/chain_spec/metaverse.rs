@@ -13,7 +13,7 @@ use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
 	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig, GenesisAccount,
 	GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig,
-	SystemConfig, EvmChainIdConfig,
+	SystemConfig, EvmChainIdConfig, 
 };
 use primitives::Balance;
 
@@ -224,6 +224,12 @@ fn testnet_genesis(
 	info!("{}", staking_candidate[0].0);
 	info!("{}", staking_candidate[1].0);
 
+	// This is supposed the be the simplest bytecode to revert without returning any data.
+    // We will pre-deploy it under all of our precompiles to ensure they can be called from
+    // within contracts.
+    // (PUSH1 0x00 PUSH1 0x00 REVERT)
+	let revert_bytecode = vec![0x60, 0x00, 0x60, 0x00, 0xFD];
+
 	GenesisConfig {
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
@@ -274,8 +280,27 @@ fn testnet_genesis(
 		},
 		evm: EVMConfig {
 			accounts: {
-				// Prefund the "ALICE" account
-				let mut accounts = std::collections::BTreeMap::new();
+				// We need _some_ code inserted at the precompile address so that
+            	// the evm will actually call the address.
+				let precompilesAddresses = vec![
+					H160::from(hex_literal::hex!("0000000000000000000000000000000000000000")),
+					//H160::from(hex_literal::hex!("0000000000000000000300000000000000000000")),
+					H160::from(hex_literal::hex!("0202020202020202020000000000000000000000")),
+				];
+				let mut accounts=  std::collections::BTreeMap::new();
+				for address in precompilesAddresses {
+					accounts.insert(
+						address,
+						fp_evm::GenesisAccount {
+							nonce: Default::default(),
+							balance: Default::default(),
+							storage: Default::default(),
+							code: revert_bytecode.clone(),
+						},
+					);
+				}
+				
+				// Prefund the "ALICE" account	
 				accounts.insert(
 					/*SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 					 * hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d

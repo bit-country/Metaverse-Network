@@ -123,6 +123,7 @@ xcm = { workspace = true }
 
 # EVM dependencies
 fp-rpc = { workspace = true, default-features = true, optional = true }
+fp-evm = { workspace = true, default-features = true, optional = true }
 fp-consensus = { workspace = true, optional = true }
 fp-storage = { workspace = true, optional = true }
 fc-storage = { workspace = true }
@@ -133,6 +134,7 @@ fc-consensus = { workspace = true, optional = true }
 fc-mapping-sync = { workspace = true, optional = true }
 fc-db = { workspace = true, optional = true }
 pallet-dynamic-fee = { workspace = true, default-features = true, optional = true }
+pallet-evm = { workspace = true, default-features = true, optional = true }
 pallet-ethereum = { workspace = true, default-features = true, optional = true }
 pallet-evm-chain-id = { workspace = true, default-features = true, optional = true }
 
@@ -155,9 +157,11 @@ with-metaverse-runtime = [
     "fc-rpc-core",
     "fp-consensus",
     "fp-rpc",
+    "fp-evm",
     "fp-storage",
     "pallet-dynamic-fee",
     "pallet-ethereum",
+    "pallet-evm",
     "pallet-evm-chain-id",
 ]
 
