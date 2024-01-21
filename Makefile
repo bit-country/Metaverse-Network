@@ -83,10 +83,13 @@ spawn-zombienet-metaverse:
 spawn-zombienet-meatverse:
 	./scripts/zombienet/zombienet.sh spawn_pioneer
 
+.PHONY: install-chopsticks
+install-chopsticks:
+	npm i -g @acala-network/chopsticks@latest
 
 .PHONY: run-chopsticks-pioneer
 run-chopsticks-pioneer:
-	npx @acala-network/chopsticks --config=scripts/chopsticks_pioneer.yml
+	npx @acala-network/chopsticks --config=scripts/chopsticks/chopsticks_pioneer.yml
 
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))
