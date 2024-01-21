@@ -3,7 +3,7 @@
 set -e
 
 root_dir=$(git rev-parse --show-toplevel)
-bin_dir="$root_dir/scripts/zombienet/bin"
+bin_dir="$root_dir/bin"
 working_dir="$(pwd)"
 
 provider=native
@@ -99,12 +99,11 @@ build_asset_hub() {
 }
 
 build_meatverse_node() {
-#    if [ ! -f "$bin_dir/meatverse-node" ]; then
-        echo "::group::Building Metaverse node.."
-        time cargo build --release  --features with-metaverse-runtime
-        echo "::endgroup::"
-        cp "$root_dir/target/release/metaverse-node" "$bin_dir/metaverse-node"
-#    fi
+    echo "::group::Building Metaverse node.."
+    time cargo build --release  --features with-metaverse-runtime
+    echo "::endgroup::"
+    cp "$root_dir/target/release/metaverse-node" "$bin_dir/metaverse-node"
+    
     echo "✅ Metaverse node built"
     cp "$root_dir/target/release/metaverse-node" "$bin_dir/metaverse-node"
     
@@ -113,12 +112,10 @@ build_meatverse_node() {
 }
 
 build_pioneer_node() {
-#    if [ ! -f "$bin_dir/pioneer-node" ]; then
-        echo "::group::Building Pioneer node.."
-        time cargo build --release  --features with-pioneer-runtime
-        echo "::endgroup::"
-        cp "$root_dir/target/release/metaverse-node" "$bin_dir/pioneer-node"
-#    fi
+    echo "::group::Building Pioneer node.."
+    time cargo build --release  --features with-pioneer-runtime
+    echo "::endgroup::"
+    cp "$root_dir/target/release/metaverse-node" "$bin_dir/pioneer-node"
     echo "✅ Pioneer node built"
     cp "$root_dir/target/release/metaverse-node" "$bin_dir/pioneer-node"
     
@@ -152,19 +149,19 @@ setup_pioneer() {
 spawn_basic() {
     setup_basic
     echo "Spawning zombienet using provider: $provider..."
-    zombienet --provider="$provider" spawn ./basic-config.toml
+    zombienet --provider="$provider" spawn $root_dir/scripts/zombienet/basic-config.toml
 }
 
 spawn_metaverse() {
     setup_metaverse
     echo "Spawning zombienet using provider: $provider..."
-    zombienet --provider="$provider" spawn ./mnet-metaverse.toml
+    zombienet --provider="$provider" spawn $root_dir/scripts/zombienet/mnet-metaverse.toml
 }
 
 spawn_pioneer() {
     setup_pioneer
     echo "Spawning zombienet using provider: $provider..."
-    zombienet --provider="$provider" spawn ./mnet-pioneer.toml
+    zombienet --provider="$provider" spawn $root_dir/scripts/zombienet/mnet-pioneer.toml
 }
 
 case "$1" in
