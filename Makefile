@@ -91,6 +91,10 @@ install-chopsticks:
 run-chopsticks-pioneer:
 	npx @acala-network/chopsticks --config=scripts/chopsticks/chopsticks_pioneer.yml
 
+.PHONY: run-chopsticks-pioneer-xcm
+run-chopsticks-pioneer-xcm:
+	npx @acala-network/chopsticks xcm -r kusama -p statemine -p scripts/chopsticks/chopsticks_pioneer.yml
+
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))
 
