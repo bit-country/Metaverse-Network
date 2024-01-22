@@ -87,7 +87,7 @@ where
 				};
 
 				if let Err(err) = handle.check_function_modifier(match selector {
-					Action::Approve | Action::Transfer | Action::TransferFrom => FunctionModifier::NonPayable,
+					Action::Approve | Action::Transfer | Action::TransferFrom => FunctionModifier::Payable,
 					_ => FunctionModifier::View,
 				}) {
 					return Some(Err(err));
@@ -150,7 +150,7 @@ where
 				};
 
 				if let Err(err) = handle.check_function_modifier(match selector {
-					Action::Approve | Action::Transfer | Action::TransferFrom => FunctionModifier::NonPayable,
+					Action::Approve | Action::Transfer | Action::TransferFrom => FunctionModifier::Payable,
 					_ => FunctionModifier::View,
 				}) {
 					return Err(err);

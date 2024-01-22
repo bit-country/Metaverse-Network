@@ -96,7 +96,7 @@ where
 				| Action::MintNfts
 				| Action::BurnNft
 				| Action::TransferNft
-				| Action::WithdrawFromClassFund => FunctionModifier::NonPayable,
+				| Action::WithdrawFromClassFund => FunctionModifier::Payable,
 				_ => FunctionModifier::View,
 			}) {
 				return Some(Err(err));
@@ -149,7 +149,7 @@ where
 				| Action::MintNfts
 				| Action::BurnNft
 				| Action::TransferNft
-				| Action::WithdrawFromClassFund => FunctionModifier::NonPayable,
+				| Action::WithdrawFromClassFund => FunctionModifier::Payable,
 				_ => FunctionModifier::View,
 			}) {
 				return Err(err);
