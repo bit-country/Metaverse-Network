@@ -194,10 +194,7 @@ where
 	>,
 	BalanceOf<Runtime>: TryFrom<U256> + Into<U256> + EvmData,
 {
-	fn not_supported(
-		_currency_id: FungibleTokenId,
-		handle: &mut impl PrecompileHandle,
-	) -> EvmResult<PrecompileOutput> {
+	fn not_supported(_currency_id: FungibleTokenId, handle: &mut impl PrecompileHandle) -> EvmResult<PrecompileOutput> {
 		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 		Err(PrecompileFailure::Error {
 			exit_status: pallet_evm::ExitError::Other("not supported".into()),
