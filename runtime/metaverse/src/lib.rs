@@ -46,7 +46,8 @@ use pallet_evm::GasWeightMapping;
 use sp_core::Get;
 // A few exports that help ease life for downstream crates.
 use frame_support::traits::{
-	Contains, EitherOfDiverse, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter, Nothing,
+	Contains, Currency, EitherOfDiverse, EnsureOneOf, EqualPrivilegeOnly, Everything, FindAuthor, InstanceFilter,
+	Nothing, OnUnbalanced,
 };
 use frame_system::{
 	limits::{BlockLength, BlockWeights},
@@ -845,7 +846,7 @@ impl pallet_collator_selection::Config for Runtime {
 	type ValidatorId = <Self as frame_system::Config>::AccountId;
 	type ValidatorIdOf = pallet_collator_selection::IdentityCollator;
 	type ValidatorRegistration = Session;
-	type WeightInfo = ();
+	type WeightInfo = pallet_collator_selection::weights::SubstrateWeight<Runtime>;
 }
 
 parameter_types! {
@@ -1205,13 +1206,23 @@ pub const GAS_PER_SECOND: u64 = 40_000_000;
 /// u64 works for approximations because Weight is a very small unit compared to gas.
 pub const WEIGHT_PER_GAS: u64 = WEIGHT_REF_TIME_PER_SECOND.saturating_div(GAS_PER_SECOND);
 
+type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+
+pub struct ToStakingPot;
+impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
+	fn on_nonzero_unbalanced(amount: NegativeImbalance) {
+		let staking_pot = PotId::get().into_account_truncating();
+		Balances::resolve_creating(&staking_pot, amount);
+	}
+}
+
 parameter_types! {
 	/// EVM gas limit
-    pub BlockGasLimit: U256 = U256::from(
-        NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS
-    );
+	pub BlockGasLimit: U256 = U256::from(
+		NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS
+	);
 	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
-	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
+	pub WeightPerGas: Weight =  Weight::from_parts(WEIGHT_PER_GAS, 0);
 	pub const GasLimitPovSizeRatio: u64 = 4;
 }
 
@@ -1221,7 +1232,7 @@ impl pallet_evm::Config for Runtime {
 
 	type BlockGasLimit = BlockGasLimit;
 	// Ethereum-compatible chain_id:
-    // * Metaverse Network: 2042
+	// * Metaverse Network: 2042
 	type ChainId = EvmChainId;
 	type BlockHashMapping = EthereumBlockHashMapping<Self>;
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
@@ -1230,9 +1241,9 @@ impl pallet_evm::Config for Runtime {
 	type WithdrawOrigin = EnsureAddressNever<AccountId>;
 	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
 
-	type FeeCalculator = ();
+	type FeeCalculator = (); //BaseFee;
 	type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
-	type OnChargeTransaction = ();
+	type OnChargeTransaction = pallet_evm::EVMCurrencyAdapter<Balances, ToStakingPot>;
 	type FindAuthor = FindAuthorTruncated<Aura>;
 	type PrecompilesType = Precompiles;
 	type PrecompilesValue = PrecompilesValue;
@@ -1765,12 +1776,12 @@ impl_runtime_apis! {
 
 		fn account_basic(address: H160) -> pallet_evm::Account {
 			let (account, _) = EVM::account_basic(&address);
-            account
+			account
 		}
 
 		fn gas_price() -> U256 {
 			let (gas_price, _) = <Runtime as pallet_evm::Config>::FeeCalculator::min_gas_price();
-            gas_price
+			gas_price
 		}
 
 		fn account_code_at(address: H160) -> Vec<u8> {
