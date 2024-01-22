@@ -1216,6 +1216,31 @@ impl OnUnbalanced<NegativeImbalance> for ToStakingPot {
 	}
 }
 
+pub struct TransactionPaymentAsGasPrice;
+impl FeeCalculator for TransactionPaymentAsGasPrice {
+	fn min_gas_price() -> (U256, Weight) {
+		// TODO: transaction-payment differs from EIP-1559 in that its tip and length fees are not
+		//       scaled by the multiplier, which means its multiplier will be overstated when
+		//       applied to an ethereum transaction
+		// note: transaction-payment uses both a congestion modifier (next_fee_multiplier, which is
+		//       updated once per block in on_finalize) and a 'WeightToFee' implementation. Our
+		//       runtime implements this as a 'ConstantModifier', so we can get away with a simple
+		//       multiplication here.
+		// It is imperative that `saturating_mul_int` be performed as late as possible in the
+		// expression since it involves fixed point multiplication with a division by a fixed
+		// divisor. This leads to truncation and subsequent precision loss if performed too early.
+		// This can lead to min_gas_price being same across blocks even if the multiplier changes.
+		// There's still some precision loss when the final `gas_price` (used_gas * min_gas_price)
+		// is computed in frontier, but that's currently unavoidable.
+		let min_gas_price = TransactionPayment::next_fee_multiplier()
+			.saturating_mul_int(constants::currency::WEIGHT_FEE.saturating_mul(WEIGHT_PER_GAS as u128));
+		(
+			min_gas_price.into(),
+			<Runtime as frame_system::Config>::DbWeight::get().reads(1),
+		)
+	}
+}
+
 parameter_types! {
 	/// EVM gas limit
 	pub BlockGasLimit: U256 = U256::from(
@@ -1241,7 +1266,7 @@ impl pallet_evm::Config for Runtime {
 	type WithdrawOrigin = EnsureAddressNever<AccountId>;
 	type AddressMapping = HashedAddressMapping<BlakeTwo256>;
 
-	type FeeCalculator = (); //BaseFee;
+	type FeeCalculator = TransactionPaymentAsGasPrice;
 	type GasWeightMapping = pallet_evm::FixedGasWeightMapping<Self>;
 	type OnChargeTransaction = pallet_evm::EVMCurrencyAdapter<Balances, ToStakingPot>;
 	type FindAuthor = FindAuthorTruncated<Aura>;

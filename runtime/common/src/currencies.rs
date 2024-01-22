@@ -143,7 +143,7 @@ where
 		if let Some(currency_id) = Runtime::decode_evm_address(address) {
 			log::debug!(target: "evm", "multicurrency: currency id: {:?}", currency_id);
 
-			let _result = {
+			let result = {
 				let selector = match handle.read_selector() {
 					Ok(selector) => selector,
 					Err(e) => return Err(e),
@@ -169,6 +169,7 @@ where
 					Action::Decimals => Self::decimals(currency_id, handle),
 				}
 			};
+			return result;
 		}
 		Err(PrecompileFailure::Revert {
 			exit_status: ExitRevert::Reverted,
@@ -195,8 +196,9 @@ where
 {
 	fn not_supported(
 		_currency_id: FungibleTokenId,
-		_handle: &mut impl PrecompileHandle,
+		handle: &mut impl PrecompileHandle,
 	) -> EvmResult<PrecompileOutput> {
+		handle.record_cost(RuntimeHelper::<Runtime>::db_read_gas_cost())?;
 		Err(PrecompileFailure::Error {
 			exit_status: pallet_evm::ExitError::Other("not supported".into()),
 		})
