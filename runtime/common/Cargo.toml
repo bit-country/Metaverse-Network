@@ -5,7 +5,7 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-codec = { workspace = true }
+codec = { workspace = true, package = "parity-scale-codec" }
 serde = { workspace = true, default-features = false, optional = true }
 scale-info = { workspace = true }
 impl-trait-for-tuples = { workspace = true }
