@@ -280,26 +280,28 @@ fn testnet_genesis(
 		},
 		evm: EVMConfig {
 			accounts: {
+				let mut accounts = std::collections::BTreeMap::new();
 				// We need _some_ code inserted at the precompile address so that
 				// the evm will actually call the address.
+				/*
 				let precompilesAddresses = vec![
 					H160::from(hex_literal::hex!("0000000000000000000000000000000000000000")),
 					H160::from(hex_literal::hex!("0000000000000000000100000000000000000000")),
 					H160::from(hex_literal::hex!("0000000000000000000300000000000000000000")),
 					H160::from(hex_literal::hex!("0202020202020202020000000000000000000000")),
 				];
-				let mut accounts = std::collections::BTreeMap::new();
 				for address in precompilesAddresses {
 					accounts.insert(
 						address,
 						fp_evm::GenesisAccount {
 							nonce: Default::default(),
-							balance: U256::from(1u64 << 61),
+							balance: Default::default(),
 							storage: Default::default(),
 							code: revert_bytecode.clone(),
 						},
 					);
 				}
+				 */
 
 				// Prefund the "ALICE" account
 				accounts.insert(
