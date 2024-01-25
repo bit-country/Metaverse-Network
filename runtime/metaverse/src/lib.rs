@@ -1595,7 +1595,7 @@ construct_runtime!(
 		EVM: pallet_evm::{Pallet, Call, Storage, Config, Event<T>},
 		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
-		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
+		EvmMapping: evm_mapping::{Pallet, Call, Storage, Config, Event<T>},
 		EvmChainId: pallet_evm_chain_id::{Pallet, Storage, Config},
 
 		// ink! Smart Contracts.

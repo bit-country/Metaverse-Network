@@ -5,6 +5,7 @@ authors = ["Bit.Country Developer"]
 edition = '2021'
 
 [dependencies]
+hex-literal = { workspace = true }
 serde = { workspace = true, optional = true }
 codec = { workspace = true, package = "parity-scale-codec" }
 libsecp256k1 = { workspace = true, optional = true }
