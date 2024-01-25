@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use hex_literal::hex;
 use log::info;
+use metaverse_runtime::AssetManager;
 use sc_consensus_grandpa::AuthorityId as GrandpaId;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -10,10 +11,10 @@ use sp_core::{sr25519, Pair, Public, H160, U256};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 use metaverse_runtime::{
-	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig, EvmChainIdConfig,
-	GenesisAccount, GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature,
-	SudoConfig, SystemConfig,
+	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AssetManagerConfig, AuraConfig,
+	BalancesConfig, BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig,
+	EvmChainIdConfig, GenesisAccount, GenesisConfig, GrandpaConfig, MintingRateInfo, NftConfig, OracleMembershipConfig,
+	SessionConfig, Signature, SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 
@@ -278,6 +279,8 @@ fn testnet_genesis(
 			members: Default::default(),
 			phantom: Default::default(),
 		},
+		nft: NftConfig::default(),
+		asset_manager: AssetManagerConfig::default(),
 		evm: EVMConfig {
 			accounts: {
 				let mut accounts = std::collections::BTreeMap::new();

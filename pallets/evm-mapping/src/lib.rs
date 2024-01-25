@@ -180,6 +180,31 @@ pub mod pallet {
 	#[pallet::getter(fn evm_addresses)]
 	pub type EvmAddresses<T: Config> = StorageMap<_, Twox64Concat, T::AccountId, EvmAddress, OptionQuery>;
 
+	/*
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {
+		pub is_testnet_genesis: bool,
+	}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			GenesisConfig {
+				is_testnet_genesis: false,
+			}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			if (is_testnet_genesis) {
+
+			}
+		}
+	}
+	*/
+
 	#[pallet::pallet]
 	pub struct Pallet<T>(_);
 

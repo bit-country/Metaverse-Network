@@ -47,7 +47,8 @@ pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system:
 
 #[frame_support::pallet]
 pub mod pallet {
-	use primitives::{AssetIds, AssetMetadata, EvmAddress, TokenId};
+	use primitives::{AssetIds, AssetMetadata, Balance, EvmAddress, TokenId};
+	use sp_runtime::traits::Zero;
 
 	use super::*;
 
@@ -146,6 +147,34 @@ pub mod pallet {
 	#[pallet::getter(fn asset_metadatas)]
 	pub type AssetMetadatas<T: Config> =
 		StorageMap<_, Twox64Concat, AssetIds, AssetMetadata<BalanceOf<T>>, OptionQuery>;
+
+	#[pallet::genesis_config]
+	pub struct GenesisConfig {}
+
+	#[cfg(feature = "std")]
+	impl Default for GenesisConfig {
+		fn default() -> Self {
+			GenesisConfig {}
+		}
+	}
+
+	#[pallet::genesis_build]
+	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+		fn build(&self) {
+			let nuum_id = FungibleTokenId::NativeToken(0);
+			let nuum_metadata = AssetMetadata::<BalanceOf<T>> {
+				name: "NUUM".as_bytes().to_vec(),
+				symbol: "NUUM".as_bytes().to_vec(),
+				decimals: 18,
+				minimal_balance: Zero::zero(),
+			};
+			<AssetMetadatas<T>>::insert(AssetIds::NativeAssetId(nuum_id.clone()), nuum_metadata.clone());
+			<Pallet<T>>::deposit_event(Event::AssetUpdated {
+				asset_id: nuum_id,
+				metadata: nuum_metadata,
+			});
+		}
+	}
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]

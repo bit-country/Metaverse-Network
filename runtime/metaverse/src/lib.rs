@@ -1569,7 +1569,7 @@ construct_runtime!(
 
 		// Metaverse & Related
 		OrmlNFT: orml_nft::{Pallet, Storage},
-		Nft: nft::{Pallet, Call, Storage, Event<T>},
+		Nft: nft::{Pallet, Call, Config, Storage, Event<T>},
 		Auction: auction::{Pallet, Call ,Storage, Event<T>},
 		Metaverse: metaverse::{Pallet, Call, Storage, Event<T>},
 		Continuum: continuum::{Pallet, Call, Storage, Event<T>},
@@ -1606,7 +1606,7 @@ construct_runtime!(
 		Treasury: pallet_treasury::{Pallet, Storage, Config, Event<T>, Call},
 
 		// Asset manager
-		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
+		AssetManager: asset_manager::{Pallet, Call, Config, Storage, Event<T>},
 
 		// Proxy
 		Proxy: pallet_proxy::{Pallet, Call, Storage, Event<T>},
