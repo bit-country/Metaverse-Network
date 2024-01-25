@@ -230,7 +230,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("continuum-runtime"),
 	impl_name: create_runtime_str!("continuum-runtime"),
 	authoring_version: 1,
-	spec_version: 7,
+	spec_version: 8,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -277,9 +277,9 @@ impl Contains<RuntimeCall> for NormalCallFilter {
 			// Polkadot XCM
 			| RuntimeCall::PolkadotXcm{..}
 			// Orml XCM wrapper
-			//| RuntimeCall::OrmlXcm{..}
-			//| RuntimeCall::Balances(..)
-			//| RuntimeCall::XTokens(..)
+			| RuntimeCall::OrmlXcm{..}
+			| RuntimeCall::Balances(..)
+			| RuntimeCall::XTokens(..)
 		);
 
 		if is_core {
@@ -292,7 +292,7 @@ impl Contains<RuntimeCall> for NormalCallFilter {
 			// Not allow stopped tx
 			return false;
 		}
-		false // Change back to true after token transfer enable
+		true
 	}
 }
 
@@ -1044,9 +1044,8 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 		use FungibleTokenId::{FungibleToken, MiningResource, NativeToken, Stable};
 
 		// NativeToken
-		// 0 => NEER
-		// 1 => KSM
-		// 2 => KAR
+		// 0 => NUUM
+		// 1 => DOT
 
 		// Stable
 		// 0 => KUSD
@@ -1069,15 +1068,9 @@ impl Convert<MultiLocation, Option<FungibleTokenId>> for FungibleTokenIdConvert 
 				interior: X2(Parachain(para_id), GeneralKey { length, data }),
 			} => match para_id {
 				// Local testing para chain id
-				2096 | 3096 => match FungibleTokenId::decode(&mut &data[..]) {
+				3446 | 4446 => match FungibleTokenId::decode(&mut &data[..]) {
 					Ok(NativeToken(0)) => Some(FungibleTokenId::NativeToken(0)),
 					Ok(MiningResource(0)) => Some(FungibleTokenId::MiningResource(0)),
-					_ => None,
-				},
-
-				parachains::karura::ID => match &data[..] {
-					parachains::karura::KAR_KEY => Some(FungibleTokenId::NativeToken(2)),
-					parachains::karura::KUSD_KEY => Some(FungibleTokenId::Stable(0)),
 					_ => None,
 				},
 
@@ -1448,7 +1441,7 @@ parameter_types! {
 	pub MaxBatchTransfer: u32 = 100;
 	pub MaxBatchMinting: u32 = 1000;
 	pub MaxNftMetadata: u32 = 1024;
-	pub StorageDepositFee: Balance = BASE_STORAGE_FEE;
+	pub StorageDepositFee: Balance =  BASE_STORAGE_FEE;
 }
 
 impl nft::Config for Runtime {
