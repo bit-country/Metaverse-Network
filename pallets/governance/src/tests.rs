@@ -117,7 +117,7 @@ fn create_new_proposal_when_not_enough_funds_does_not_work() {
 			GovernanceModule::propose(
 				origin.clone(),
 				BOB_COUNTRY_ID,
-				600,
+				60000,
 				hash.clone(),
 				PROPOSAL_DESCRIPTION.to_vec()
 			),
@@ -371,7 +371,7 @@ fn vote_work() {
 			0,
 			VOTE_FOR
 		));
-		assert_eq!(Balances::usable_balance(&BOB), 490);
+		assert_eq!(Balances::usable_balance(&BOB), 49990);
 		assert_eq!(
 			last_event(),
 			RuntimeEvent::Governance(crate::Event::VoteRecorded(BOB, 0, true))
@@ -687,7 +687,7 @@ fn unlocking_balance_after_removing_vote_works() {
 			0,
 			VOTE_FOR
 		));
-		assert_eq!(Balances::usable_balance(&BOB), 490);
+		assert_eq!(Balances::usable_balance(&BOB), 49990);
 		run_to_block(26);
 		assert_ok!(GovernanceModule::try_remove_vote(
 			RuntimeOrigin::signed(BOB),
@@ -695,7 +695,7 @@ fn unlocking_balance_after_removing_vote_works() {
 			BOB_COUNTRY_ID
 		));
 		assert_ok!(GovernanceModule::unlock_balance(RuntimeOrigin::signed(BOB), BOB));
-		assert_eq!(Balances::usable_balance(&BOB), 499);
+		assert_eq!(Balances::usable_balance(&BOB), 49999);
 	});
 }
 
@@ -719,7 +719,7 @@ fn unlocking_balance_after_referendum_is_over_works() {
 			0,
 			VOTE_FOR
 		));
-		assert_eq!(Balances::usable_balance(&BOB), 490);
+		assert_eq!(Balances::usable_balance(&BOB), 49990);
 		run_to_block(30);
 		assert_ok!(GovernanceModule::try_remove_vote(
 			RuntimeOrigin::signed(BOB),
@@ -727,7 +727,7 @@ fn unlocking_balance_after_referendum_is_over_works() {
 			BOB_COUNTRY_ID
 		));
 		assert_ok!(GovernanceModule::unlock_balance(RuntimeOrigin::signed(BOB), BOB));
-		assert_eq!(Balances::usable_balance(&BOB), 499);
+		assert_eq!(Balances::usable_balance(&BOB), 49999);
 	});
 }
 

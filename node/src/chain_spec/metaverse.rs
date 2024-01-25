@@ -2,18 +2,18 @@ use std::str::FromStr;
 
 use hex_literal::hex;
 use log::info;
+use sc_consensus_grandpa::AuthorityId as GrandpaId;
 use sc_service::{ChainType, Properties};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::crypto::UncheckedInto;
 use sp_core::{sr25519, Pair, Public, H160, U256};
-use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 use metaverse_runtime::{
 	constants::currency::*, opaque::SessionKeys, wasm_binary_unwrap, AccountId, AuraConfig, BalancesConfig,
-	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig, GenesisAccount,
-	GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature, SudoConfig,
-	SystemConfig,
+	BaseFeeConfig, CollatorSelectionConfig, DemocracyConfig, EVMConfig, EstateConfig, EthereumConfig, EvmChainIdConfig,
+	GenesisAccount, GenesisConfig, GrandpaConfig, MintingRateInfo, OracleMembershipConfig, SessionConfig, Signature,
+	SudoConfig, SystemConfig,
 };
 use primitives::Balance;
 
@@ -224,6 +224,12 @@ fn testnet_genesis(
 	info!("{}", staking_candidate[0].0);
 	info!("{}", staking_candidate[1].0);
 
+	// This is supposed the be the simplest bytecode to revert without returning any data.
+	// We will pre-deploy it under all of our precompiles to ensure they can be called from
+	// within contracts.
+	// (PUSH1 0x00 PUSH1 0x00 REVERT)
+	let revert_bytecode = vec![0x60, 0x00, 0x60, 0x00, 0xFD];
+
 	GenesisConfig {
 		system: SystemConfig {
 			// Add Wasm runtime to storage.
@@ -274,8 +280,30 @@ fn testnet_genesis(
 		},
 		evm: EVMConfig {
 			accounts: {
-				// Prefund the "ALICE" account
 				let mut accounts = std::collections::BTreeMap::new();
+				// We need _some_ code inserted at the precompile address so that
+				// the evm will actually call the address.
+				/*
+				let precompilesAddresses = vec![
+					H160::from(hex_literal::hex!("0000000000000000000000000000000000000000")),
+					H160::from(hex_literal::hex!("0000000000000000000100000000000000000000")),
+					H160::from(hex_literal::hex!("0000000000000000000300000000000000000000")),
+					H160::from(hex_literal::hex!("0202020202020202020000000000000000000000")),
+				];
+				for address in precompilesAddresses {
+					accounts.insert(
+						address,
+						fp_evm::GenesisAccount {
+							nonce: Default::default(),
+							balance: Default::default(),
+							storage: Default::default(),
+							code: revert_bytecode.clone(),
+						},
+					);
+				}
+				 */
+
+				// Prefund the "ALICE" account
 				accounts.insert(
 					/*SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 					 * hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
@@ -304,11 +332,12 @@ fn testnet_genesis(
 				accounts
 			},
 		},
-		ethereum: EthereumConfig {},
+		ethereum: Default::default(),
 		base_fee: BaseFeeConfig::new(
 			sp_core::U256::from(1_000_000_000u64),
 			sp_runtime::Permill::from_parts(125_000),
 		),
+		evm_chain_id: EvmChainIdConfig { chain_id: 0x7fa },
 	}
 }
 

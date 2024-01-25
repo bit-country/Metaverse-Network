@@ -48,7 +48,6 @@ fn create_ksm_pool_works() {
 		.ksm_setup_for_alice_and_bob()
 		.build()
 		.execute_with(|| {
-
 			// Create the first pool
 			assert_ok!(SppModule::create_pool(
 				RuntimeOrigin::signed(ALICE),
@@ -77,7 +76,7 @@ fn create_ksm_pool_works() {
 				RuntimeOrigin::signed(BOB),
 				FungibleTokenId::NativeToken(1),
 				10,
-				Permill::from_percent(1)
+				Rate::saturating_from_rational(1, 100),
 			));
 
 			// Check Id will increment
@@ -88,7 +87,7 @@ fn create_ksm_pool_works() {
 				Pool::<Runtime>::get(next_pool_id - 1).unwrap(),
 				PoolInfo::<AccountId> {
 					creator: BOB,
-					commission: Permill::from_percent(1),
+					commission: Rate::saturating_from_rational(1, 100),
 					currency_id: FungibleTokenId::NativeToken(1),
 					max: 10
 				}
@@ -236,7 +235,8 @@ fn current_era_update_works() {
 			assert_eq!(SppModule::update_era_frequency(), 0);
 			assert_eq!(MockRelayBlockNumberProvider::current_block_number(), 0);
 			// Current relaychain block is 102.
-			MockRelayBlockNumberProvider::set(102);
+			//			MockRelayBlockNumberProvider::set(102);
+			run_to_block(102);
 			RelayChainCurrentEra::<Runtime>::put(1);
 			IterationLimit::<Runtime>::put(50);
 			// The correct set up era config is the last era block records is 101 with duration is 100 blocks
@@ -245,7 +245,12 @@ fn current_era_update_works() {
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
-				Some(Rate::saturating_from_rational(35, 100000))
+				Some(Rate::saturating_from_rational(35, 100000)),
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1))),
+				Some(50),
+				Some((FungibleTokenId::NativeToken(1), 0)),
+				Some(100),
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1)))
 			));
 
 			assert_ok!(SppModule::create_pool(
@@ -303,11 +308,6 @@ fn current_era_update_works() {
 				Error::<Runtime>::CurrencyIsNotSupported
 			);
 
-			assert_noop!(
-				SppModule::redeem(RuntimeOrigin::signed(BOB), 1, FungibleTokenId::FungibleToken(1), 10000),
-				Error::<Runtime>::NoCurrentStakingRound
-			);
-
 			UnlockDuration::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1)); // Bump current staking round to 1
 			CurrentStakingRound::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1));
 
@@ -346,12 +346,13 @@ fn current_era_update_works() {
 
 			// Move to era 2 to allow user redeem token successfully
 			MockRelayBlockNumberProvider::set(202);
-			SppModule::on_initialize(200);
+			run_to_block(202);
+			SppModule::on_initialize(202);
 
 			let pool_account = SppModule::get_pool_account();
 			assert_eq!(
 				Tokens::accounts(pool_account, FungibleTokenId::NativeToken(1)).free,
-				10001
+				10000
 			);
 
 			// After KSM released, BOB balance now is
@@ -376,7 +377,7 @@ fn current_era_update_works() {
 			// Pool account remain the same
 			assert_eq!(
 				Tokens::accounts(pool_account, FungibleTokenId::NativeToken(1)).free,
-				10001
+				10000
 			);
 
 			// BOB balance remain the same
@@ -440,12 +441,12 @@ fn boosting_works() {
 			assert_eq!(NetworkLedger::<Runtime>::get(FungibleTokenId::NativeToken(1)), 20000);
 
 			// Boosting works
-			let bob_free_balance = Balances::free_balance(BOB);
+			let bob_boost_balance = 1000;
 			assert_ok!(SppModule::boost(
 				RuntimeOrigin::signed(BOB),
 				1,
 				BoostInfo {
-					balance: bob_free_balance,
+					balance: bob_boost_balance,
 					conviction: BoostingConviction::None
 				}
 			));
@@ -454,18 +455,65 @@ fn boosting_works() {
 				votes: vec![(
 					1,
 					BoostInfo {
-						balance: bob_free_balance,
+						balance: bob_boost_balance,
 						conviction: BoostingConviction::None,
 					},
 				)],
-				prior: PriorLock(1, bob_free_balance),
+				prior: PriorLock(1, bob_boost_balance),
 			};
 			assert_eq!(boosting_of, some_record);
-			assert_eq!(Balances::usable_balance(&BOB), 0);
+			assert_eq!(Balances::usable_balance(&BOB), 99000);
 			let pool_1_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(1, BOB);
 			let network_shared_rewards = RewardsModule::shares_and_withdrawn_rewards(0, BOB);
-			assert_eq!(pool_1_shared_rewards, (bob_free_balance, Default::default()));
-			assert_eq!(network_shared_rewards, (bob_free_balance, Default::default()));
+			assert_eq!(pool_1_shared_rewards, (bob_boost_balance, Default::default()));
+			assert_eq!(network_shared_rewards, (bob_boost_balance, Default::default()));
+
+			// Second boost that will make total lock 11000
+			assert_ok!(SppModule::boost(
+				RuntimeOrigin::signed(BOB),
+				1,
+				BoostInfo {
+					balance: 10000,
+					conviction: BoostingConviction::None
+				}
+			));
+			let second_boosting_of = BoostingOf::<Runtime>::get(BOB);
+			let second_boosting_record = BoostingRecord {
+				votes: vec![(
+					1,
+					BoostInfo {
+						balance: 11000,
+						conviction: BoostingConviction::None,
+					},
+				)],
+				prior: PriorLock(1, 11000),
+			};
+			let view_votes = &second_boosting_of.votes;
+			let debug_votes = &second_boosting_of.votes[0];
+			assert_eq!(second_boosting_of, second_boosting_record);
+
+			// Third boosting with lower balance than previous boost
+			assert_ok!(SppModule::boost(
+				RuntimeOrigin::signed(BOB),
+				1,
+				BoostInfo {
+					balance: 500,
+					conviction: BoostingConviction::None
+				}
+			));
+			let third_boosting_of = BoostingOf::<Runtime>::get(BOB);
+			let third_boosting_record = BoostingRecord {
+				votes: vec![(
+					1,
+					BoostInfo {
+						balance: 11500,
+						conviction: BoostingConviction::None,
+					},
+				)],
+				prior: PriorLock(1, 11500),
+			};
+
+			assert_eq!(third_boosting_of, third_boosting_record);
 		});
 }
 
@@ -477,7 +525,8 @@ fn boosting_and_claim_reward_works() {
 		.execute_with(|| {
 			// Era config set up
 			// Current relaychain block is 102.
-			MockRelayBlockNumberProvider::set(102);
+			// MockRelayBlockNumberProvider::set(102);
+			run_to_block(102);
 			RelayChainCurrentEra::<Runtime>::put(1);
 			IterationLimit::<Runtime>::put(50);
 			// The correct set up era config is the last era block records is 101 with duration is 100 blocks
@@ -486,7 +535,12 @@ fn boosting_and_claim_reward_works() {
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
-				Some(Rate::saturating_from_rational(35, 100000))
+				Some(Rate::saturating_from_rational(35, 100000)),
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1))),
+				Some(50),
+				Some((FungibleTokenId::NativeToken(1), 0)),
+				Some(100),
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1)))
 			));
 
 			assert_ok!(SppModule::create_pool(
@@ -541,7 +595,7 @@ fn boosting_and_claim_reward_works() {
 						conviction: BoostingConviction::None,
 					},
 				)],
-				prior: PriorLock(101, 15000),
+				prior: PriorLock(202, 15000),
 			};
 			assert_eq!(boosting_of, some_record);
 			assert_eq!(Balances::usable_balance(&BOB), bob_free_balance - 15000);
@@ -562,7 +616,8 @@ fn boosting_and_claim_reward_works() {
 			));
 
 			// Move to era 2, now protocol distribute 1000 NEER to incentivise boosters
-			MockRelayBlockNumberProvider::set(202);
+			//			MockRelayBlockNumberProvider::set(202);
+			run_to_block(202);
 			SppModule::on_initialize(200);
 
 			let network_reward_pool = RewardsModule::pool_infos(0u32);
@@ -608,7 +663,8 @@ fn boosting_and_claim_reward_works() {
 			);
 
 			// Move to era 3, now protocol distribute another 1000 NEER to incentivise boosters
-			MockRelayBlockNumberProvider::set(302);
+			//			MockRelayBlockNumberProvider::set(302);
+			run_to_block(302);
 			SppModule::on_initialize(300);
 
 			// Bob try to claim reward for new era
@@ -651,6 +707,7 @@ fn boosting_and_claim_reward_works() {
 
 			// Move to era 4, now protocol distribute another 1000 NEER to incentivise boosters
 			MockRelayBlockNumberProvider::set(402);
+			run_to_block(402);
 			SppModule::on_initialize(400);
 
 			// Bob try to claim reward for new era
@@ -679,7 +736,8 @@ fn reward_distribution_works() {
 		.execute_with(|| {
 			// Era config set up
 			// Current relaychain block is 102.
-			MockRelayBlockNumberProvider::set(102);
+			// MockRelayBlockNumberProvider::set(102);
+			run_to_block(102);
 			RelayChainCurrentEra::<Runtime>::put(1);
 			IterationLimit::<Runtime>::put(50);
 			UnlockDuration::<Runtime>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(1)); // Bump current staking round to 1
@@ -690,7 +748,12 @@ fn reward_distribution_works() {
 				Some(101),
 				Some(100),
 				StakingRound::Era(1),
-				Some(Rate::saturating_from_rational(20, 100)) // Set reward rate per era is 20%.
+				Some(Rate::saturating_from_rational(20, 100)), // Set reward rate per era is 20%.
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1))),
+				Some(50),
+				Some((FungibleTokenId::NativeToken(1), 0)),
+				Some(100),
+				Some((FungibleTokenId::NativeToken(1), StakingRound::Era(1)))
 			));
 
 			assert_ok!(SppModule::create_pool(
@@ -738,7 +801,7 @@ fn reward_distribution_works() {
 						conviction: BoostingConviction::None,
 					},
 				)],
-				prior: PriorLock(101, 15000),
+				prior: PriorLock(202, 15000),
 			};
 			assert_eq!(boosting_of, some_record);
 			assert_eq!(Balances::usable_balance(&BOB), bob_free_balance - 15000);

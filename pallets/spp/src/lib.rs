@@ -698,6 +698,8 @@ pub mod pallet {
 			unlock_duration: Option<(FungibleTokenId, StakingRound)>,
 			iteration_limit: Option<u32>,
 			network_fee: Option<(FungibleTokenId, BalanceOf<T>)>,
+			reward_per_era: Option<BalanceOf<T>>,
+			current_staking_round: Option<(FungibleTokenId, StakingRound)>,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
 
@@ -711,11 +713,11 @@ pub mod pallet {
 				let current_relay_chain_block = <frame_system::Pallet<T>>::block_number();
 				//	let current_relay_chain_block = T::RelayChainBlockNumber::current_block_number();
 				if !update_era_frequency.is_zero() {
-					//					ensure!(
-					//						change > current_relay_chain_block.saturating_sub(update_era_frequency)
-					//							&& change <= current_relay_chain_block,
-					//						Error::<T>::InvalidLastEraUpdatedBlock
-					//					);
+					ensure!(
+						change > current_relay_chain_block.saturating_sub(update_era_frequency)
+							&& change <= current_relay_chain_block,
+						Error::<T>::InvalidLastEraUpdatedBlock
+					);
 
 					LastEraUpdatedBlock::<T>::put(change);
 					LastStakingRound::<T>::insert(FungibleTokenId::NativeToken(1), last_staking_round);
@@ -747,6 +749,14 @@ pub mod pallet {
 			if let Some((currency_id, new_fee)) = network_fee {
 				CurrencyNetworkFee::<T>::insert(currency_id, new_fee);
 				Self::deposit_event(Event::<T>::NetworkFeeUpdated { currency_id, new_fee });
+			}
+
+			if let Some(reward_p_era) = reward_per_era {
+				RewardEraFrequency::<T>::put(reward_p_era);
+			}
+
+			if let Some((currency, current_staking_round)) = current_staking_round {
+				CurrentStakingRound::<T>::insert(currency, current_staking_round);
 			}
 
 			Ok(())
@@ -789,9 +799,7 @@ pub mod pallet {
 							.1
 							.add(total_balance.clone())
 							.ok_or(Error::<T>::ArithmeticOverflow)?;
-						voting
-							.prior
-							.accumulate(unlock_at, votes[i].1.balance.saturating_add(total_balance))
+						voting.prior.accumulate(unlock_at, total_balance)
 					}
 					Err(i) => {
 						votes.insert(i, (pool_id, vote.clone()));
@@ -1258,6 +1266,9 @@ impl<T: Config> Pallet<T> {
 		RelayChainCurrentEra::<T>::put(new_era);
 		//		LastEraUpdatedBlock::<T>::put(T::RelayChainBlockNumber::current_block_number());
 		LastEraUpdatedBlock::<T>::put(<frame_system::Pallet<T>>::block_number());
+
+		CurrentStakingRound::<T>::insert(FungibleTokenId::NativeToken(1), StakingRound::Era(new_era));
+
 		Self::handle_redeem_requests(new_era)?;
 		Self::handle_reward_distribution_to_network_pool()?;
 		Self::handle_reward_distribution_to_pool_treasury(previous_era, new_era)?;
@@ -1282,43 +1293,40 @@ impl<T: Config> Pallet<T> {
 	}
 
 	fn do_claim_rewards(who: T::AccountId, pool_id: PoolId) -> DispatchResult {
-		if pool_id.is_zero() {
-			<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
+		<orml_rewards::Pallet<T>>::claim_rewards(&who, &pool_id);
 
-			PendingRewards::<T>::mutate_exists(pool_id, &who, |maybe_pending_multi_rewards| {
-				if let Some(pending_multi_rewards) = maybe_pending_multi_rewards {
-					for (currency_id, pending_reward) in pending_multi_rewards.iter_mut() {
-						if pending_reward.is_zero() {
-							continue;
+		PendingRewards::<T>::mutate_exists(pool_id, &who, |maybe_pending_multi_rewards| {
+			if let Some(pending_multi_rewards) = maybe_pending_multi_rewards {
+				for (currency_id, pending_reward) in pending_multi_rewards.iter_mut() {
+					if pending_reward.is_zero() {
+						continue;
+					}
+
+					let payout_amount = pending_reward.clone();
+
+					match Self::payout_reward(pool_id, &who, *currency_id, payout_amount) {
+						Ok(_) => {
+							// update state
+							*pending_reward = Zero::zero();
+
+							Self::deposit_event(Event::ClaimRewards {
+								who: who.clone(),
+								pool: pool_id,
+								reward_currency_id: FungibleTokenId::NativeToken(0),
+								claimed_amount: payout_amount,
+							});
 						}
-
-						let payout_amount = pending_reward.clone();
-
-						match Self::payout_reward(pool_id, &who, *currency_id, payout_amount) {
-							Ok(_) => {
-								// update state
-								*pending_reward = Zero::zero();
-
-								Self::deposit_event(Event::ClaimRewards {
-									who: who.clone(),
-									pool: pool_id,
-									reward_currency_id: FungibleTokenId::NativeToken(0),
-									claimed_amount: payout_amount,
-								});
-							}
-							Err(e) => {
-								log::error!(
-									target: "spp",
-									"payout_reward: failed to payout {:?} to {:?} to pool {:?}: {:?}",
-									pending_reward, who, pool_id, e
-								);
-							}
+						Err(e) => {
+							log::error!(
+								target: "spp",
+								"payout_reward: failed to payout {:?} to {:?} to pool {:?}: {:?}",
+								pending_reward, who, pool_id, e
+							);
 						}
 					}
 				}
-			})
-		}
-
+			}
+		});
 		Ok(())
 	}
 

@@ -190,7 +190,7 @@ mod tests {
 		let mut rate = FractionalRate::try_from(Rate::from_rational(8, 10)).unwrap();
 		assert_ok!(rate.try_set(Rate::from_rational(10, 10)));
 		assert_err!(rate.try_set(Rate::from_rational(11, 10)), Error::OutOfBounds);
-		assert_err!(rate.try_set(Rate::from_rational(79, 100)), Error::ExceedMaxChangeAbs);
+		assert_err!(rate.try_set(Rate::from_rational(1, 100)), Error::ExceedMaxChangeAbs);
 
 		assert_eq!(FractionalRate::default().into_inner(), Rate::zero());
 	}

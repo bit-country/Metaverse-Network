@@ -1,0 +1,8 @@
+endpoint: wss://pioneer-rpc-3.bit.country/wss
+port: 9050
+mock-signature-host: true
+block: ${env.PIONEER_BLOCK_NUMBER}
+db: ./scripts/chopsticks/db/db.sqlite
+import-storage: ./scripts/chopsticks/pioneer_storage.yml
+  
+     

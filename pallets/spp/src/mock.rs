@@ -102,6 +102,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 
 // pub type AdaptedBasicCurrency =
@@ -272,8 +276,8 @@ impl ExtBuilder {
 
 	pub fn ksm_setup_for_alice_and_bob(self) -> Self {
 		self.balances(vec![
-			(ALICE, FungibleTokenId::NativeToken(1), 200000000000), //KSM
-			(BOB, FungibleTokenId::NativeToken(1), 200000000000),   //KSM
+			(ALICE, FungibleTokenId::NativeToken(1), 20000), //KSM
+			(BOB, FungibleTokenId::NativeToken(1), 20000),   //KSM
 		])
 	}
 }

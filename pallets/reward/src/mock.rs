@@ -1,17 +1,17 @@
 #![cfg(test)]
 
-use frame_support::traits::Nothing;
+use frame_support::traits::{Contains, InstanceFilter, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
+use frame_system::Call as SystemCall;
 use frame_system::EnsureSignedBy;
 use orml_traits::parameter_type_with_key;
 use sp_core::crypto::AccountId32;
-use sp_core::H256;
-use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_core::{ConstU128, H256};
+use sp_runtime::traits::{BlakeTwo256, IdentifyAccount, Verify};
 use sp_runtime::{testing::Header, traits::IdentityLookup, MultiSignature, Perbill};
 
 use auction_manager::*;
 use core_primitives::NftAssetData;
-
 use primitives::{Amount, AuctionId, FungibleTokenId, ItemId};
 
 use crate as reward;
@@ -90,6 +90,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 
 parameter_types! {
@@ -283,6 +287,54 @@ impl orml_nft::Config for Runtime {
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+pub enum ProxyType {
+	Any,
+	JustTransfer,
+}
+impl Default for ProxyType {
+	fn default() -> Self {
+		Self::Any
+	}
+}
+impl InstanceFilter<RuntimeCall> for ProxyType {
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		match self {
+			ProxyType::Any => true,
+			ProxyType::JustTransfer => matches!(c, RuntimeCall::Balances(pallet_balances::Call::transfer { .. })),
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == &ProxyType::Any || self == o
+	}
+}
+pub struct BaseFilter;
+impl Contains<RuntimeCall> for BaseFilter {
+	fn contains(c: &RuntimeCall) -> bool {
+		match *c {
+			// Remark is used as a no-op call in the benchmarking
+			RuntimeCall::System(SystemCall::remark { .. }) => true,
+			RuntimeCall::System(_) => false,
+			_ => true,
+		}
+	}
+}
+
+impl pallet_proxy::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ConstU128<1>;
+	type ProxyDepositFactor = ConstU128<1>;
+	type MaxProxies = ConstU32<4>;
+	type WeightInfo = ();
+	type CallHasher = BlakeTwo256;
+	type MaxPending = ConstU32<2>;
+	type AnnouncementDepositBase = ConstU128<1>;
+	type AnnouncementDepositFactor = ConstU128<1>;
+}
+
 pub type RewardModule = Pallet<Runtime>;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
@@ -301,6 +353,7 @@ construct_runtime!(
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
 		NFTModule: pallet_nft::{Pallet, Storage ,Call, Event<T>},
 		Reward: reward::{Pallet, Storage ,Call, Event<T>},
+		Proxy: pallet_proxy
 	}
 );
 

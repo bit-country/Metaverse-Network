@@ -1,14 +1,15 @@
 #![cfg(test)]
 
 use codec::Encode;
-use frame_support::traits::{EqualPrivilegeOnly, Nothing};
+use frame_support::traits::{Contains, EqualPrivilegeOnly, InstanceFilter, Nothing};
 use frame_support::{construct_runtime, parameter_types};
+use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
 use orml_traits::parameter_type_with_key;
 use sp_core::crypto::AccountId32;
-use sp_core::H256;
+use sp_core::{ConstU128, H256};
 use sp_runtime::testing::Header;
-use sp_runtime::traits::{IdentifyAccount, IdentityLookup, Verify};
+use sp_runtime::traits::{BlakeTwo256, IdentifyAccount, IdentityLookup, Verify};
 use sp_runtime::{MultiSignature, Perbill};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, ListingLevel};
@@ -78,6 +79,10 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = ();
 	type MaxReserves = ();
 	type ReserveIdentifier = ();
+	type HoldIdentifier = ();
+	type FreezeIdentifier = ();
+	type MaxHolds = frame_support::traits::ConstU32<0>;
+	type MaxFreezes = frame_support::traits::ConstU32<0>;
 }
 
 parameter_type_with_key! {
@@ -238,25 +243,6 @@ parameter_types! {
 	pub StorageDepositFee: Balance = 1;
 }
 
-impl Config for Runtime {
-	type RuntimeEvent = RuntimeEvent;
-	type Currency = Balances;
-	type Treasury = MetaverseNetworkTreasuryPalletId;
-	type PalletId = NftPalletId;
-	type AuctionHandler = MockAuctionManager;
-	type WeightInfo = ();
-	type MaxBatchTransfer = MaxBatchTransfer;
-	type MaxBatchMinting = MaxBatchMinting;
-	type MaxMetadata = MaxMetadata;
-	type MultiCurrency = Currencies;
-	type MiningResourceId = MiningCurrencyId;
-	type AssetMintingFee = AssetMintingFee;
-	type ClassMintingFee = ClassMintingFee;
-	type StorageDepositFee = StorageDepositFee;
-	type OffchainSignature = Signature;
-	type OffchainPublic = AccountPublic;
-}
-
 parameter_types! {
 	pub MaxClassMetadata: u32 = 1024;
 	pub MaxTokenMetadata: u32 = 1024;
@@ -272,9 +258,75 @@ impl orml_nft::Config for Runtime {
 	type MaxTokenMetadata = MaxTokenMetadata;
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Encode, Decode, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+pub enum ProxyType {
+	Any,
+	JustTransfer,
+}
+impl Default for ProxyType {
+	fn default() -> Self {
+		Self::Any
+	}
+}
+impl InstanceFilter<RuntimeCall> for ProxyType {
+	fn filter(&self, c: &RuntimeCall) -> bool {
+		match self {
+			ProxyType::Any => true,
+			ProxyType::JustTransfer => matches!(c, RuntimeCall::Balances(pallet_balances::Call::transfer { .. })),
+		}
+	}
+	fn is_superset(&self, o: &Self) -> bool {
+		self == &ProxyType::Any || self == o
+	}
+}
+pub struct BaseFilter;
+impl Contains<RuntimeCall> for BaseFilter {
+	fn contains(c: &RuntimeCall) -> bool {
+		match *c {
+			// Remark is used as a no-op call in the benchmarking
+			RuntimeCall::System(SystemCall::remark { .. }) => true,
+			RuntimeCall::System(_) => false,
+			_ => true,
+		}
+	}
+}
+
+impl pallet_proxy::Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type RuntimeCall = RuntimeCall;
+	type Currency = Balances;
+	type ProxyType = ProxyType;
+	type ProxyDepositBase = ConstU128<1>;
+	type ProxyDepositFactor = ConstU128<1>;
+	type MaxProxies = ConstU32<4>;
+	type WeightInfo = ();
+	type CallHasher = BlakeTwo256;
+	type MaxPending = ConstU32<2>;
+	type AnnouncementDepositBase = ConstU128<1>;
+	type AnnouncementDepositFactor = ConstU128<1>;
+}
+
+impl Config for Runtime {
+	type RuntimeEvent = RuntimeEvent;
+	type AssetMintingFee = AssetMintingFee;
+	type ClassMintingFee = ClassMintingFee;
+	type Treasury = MetaverseNetworkTreasuryPalletId;
+	type Currency = Balances;
+	type PalletId = NftPalletId;
+	type WeightInfo = ();
+	type AuctionHandler = MockAuctionManager;
+	type MaxBatchTransfer = MaxBatchTransfer;
+	type MaxBatchMinting = MaxBatchMinting;
+	type MaxMetadata = MaxMetadata;
+	type MultiCurrency = Currencies;
+	type MiningResourceId = MiningCurrencyId;
+	type StorageDepositFee = StorageDepositFee;
+	type OffchainSignature = Signature;
+	type OffchainPublic = AccountPublic;
+}
+
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Runtime>;
 type Block = frame_system::mocking::MockBlock<Runtime>;
-
 construct_runtime!(
 	pub enum Runtime where
 		Block = Block,
@@ -287,6 +339,7 @@ construct_runtime!(
 		Tokens: orml_tokens::{ Pallet, Storage, Call, Event<T>},
 		Nft: nft::{Pallet, Call, Event<T>},
 		OrmlNft: orml_nft::{Pallet, Storage, Config<T>},
+		Proxy: pallet_proxy,
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 	}
 );
