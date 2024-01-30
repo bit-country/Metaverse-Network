@@ -475,31 +475,34 @@ pub mod pallet {
 				Error::<T>::InsufficientBalanceForStaking
 			);
 
-			ensure!(!add_amount.is_zero(), Error::<T>::StakeBelowMinimum);
+			ensure!(
+				!add_amount.is_zero() || add_amount >= T::MinimumStake::get(),
+				Error::<T>::StakeBelowMinimum
+			);
 
 			StakingRewardPoolInfo::<T>::mutate(|pool_info| {
 				let initial_total_shares = pool_info.total_shares;
 				pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
 				let mut withdrawn_inflation = Vec::<(FungibleTokenId, BalanceOf<T>)>::new();
-				//				pool_info
-				//					.rewards
-				//					.iter_mut()
-				//					.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
-				//						let reward_inflation = if initial_total_shares.is_zero() {
-				//							Zero::zero()
-				//						} else {
-				//							U256::from(add_amount.to_owned().saturated_into::<u128>())
-				//								.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
-				//								.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
-				//								.unwrap_or_default()
-				//								.as_u128()
-				//								.saturated_into()
-				//						};
-				//						*total_reward = total_reward.saturating_add(reward_inflation);
-				//						*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
-				//
-				//						withdrawn_inflation.push((*reward_currency, reward_inflation));
-				//					});
+				pool_info
+					.rewards
+					.iter_mut()
+					.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
+						let reward_inflation = if initial_total_shares.is_zero() {
+							Zero::zero()
+						} else {
+							U256::from(add_amount.to_owned().saturated_into::<u128>())
+								.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
+								.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
+								.unwrap_or_default()
+								.as_u128()
+								.saturated_into()
+						};
+						*total_reward = total_reward.saturating_add(reward_inflation);
+						*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
+
+						withdrawn_inflation.push((*reward_currency, reward_inflation));
+					});
 
 				SharesAndWithdrawnRewards::<T>::mutate(who, |(share, withdrawn_rewards)| {
 					*share = share.saturating_add(add_amount);
