@@ -56,8 +56,7 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::staking::Bond;
-	use primitives::{ClassId, NftId};
+	use primitives::{staking::Bond, ClassId, CurrencyId, NftId, PoolId};
 
 	use super::*;
 
@@ -67,8 +66,8 @@ pub mod pallet {
 	pub struct Pallet<T>(PhantomData<T>);
 
 	pub type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
-
 	pub type TokenId = NftId;
+	pub type WithdrawnRewards<T> = BTreeMap<FungibleTokenId, BalanceOf<T>>;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -179,13 +178,22 @@ pub mod pallet {
 
 	/// Innovation staking info
 	#[pallet::storage]
-	#[pallet::getter(fn get_staking_info)]
+	#[pallet::getter(fn get_innovation_staking_info)]
 	pub type InnovationStakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
 
 	/// Total innovation staking locked in this pallet
 	#[pallet::storage]
-	#[pallet::getter(fn total_stake)]
+	#[pallet::getter(fn total_innovation_staking)]
 	type TotalInnovationStaking<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
+	/// Record share amount, reward currency and withdrawn reward amount for
+	/// specific `AccountId`
+	///
+	/// double_map (PoolId, AccountId) => (Share, BTreeMap<CurrencyId, Balance>)
+	#[pallet::storage]
+	#[pallet::getter(fn shares_and_withdrawn_rewards)]
+	pub type SharesAndWithdrawnRewards<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, (BalanceOf<T>, WithdrawnRewards<T>), ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
