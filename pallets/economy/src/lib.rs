@@ -17,7 +17,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::Encode;
+use codec::{Encode, HasCompact};
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
@@ -40,8 +40,28 @@ use primitives::{estate::Estate, EstateId};
 use primitives::{Balance, ClassId, DomainId, FungibleTokenId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
-//#[cfg(feature = "runtime-benchmarks")]
-//pub mod benchmarking;
+/// The Reward Pool Info.
+#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+pub struct InnovationStakingPoolInfo<Share: HasCompact, Balance: HasCompact, CurrencyId: Ord> {
+	/// Total shares amount
+	pub total_shares: Share,
+	/// Reward infos <reward_currency, (total_reward, total_withdrawn_reward)>
+	pub rewards: BTreeMap<CurrencyId, (Balance, Balance)>,
+}
+
+impl<Share, Balance, CurrencyId> Default for InnovationStakingPoolInfo<Share, Balance, CurrencyId>
+where
+	Share: Default + HasCompact,
+	Balance: HasCompact,
+	CurrencyId: Ord,
+{
+	fn default() -> Self {
+		Self {
+			total_shares: Default::default(),
+			rewards: BTreeMap::new(),
+		}
+	}
+}
 
 #[cfg(test)]
 mod mock;
@@ -189,11 +209,19 @@ pub mod pallet {
 	/// Record share amount, reward currency and withdrawn reward amount for
 	/// specific `AccountId`
 	///
-	/// double_map (PoolId, AccountId) => (Share, BTreeMap<CurrencyId, Balance>)
+	/// storage_map AccountId => (Share, BTreeMap<CurrencyId, Balance>)
 	#[pallet::storage]
 	#[pallet::getter(fn shares_and_withdrawn_rewards)]
 	pub type SharesAndWithdrawnRewards<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, (BalanceOf<T>, WithdrawnRewards<T>), ValueQuery>;
+
+	/// Record reward pool info.
+	///
+	/// map PoolId => PoolInfo
+	#[pallet::storage]
+	#[pallet::getter(fn staking_reward_pool_info)]
+	pub type StakingRewardPoolInfo<T: Config> =
+		StorageValue<_, InnovationStakingPoolInfo<BalanceOf<T>, BalanceOf<T>, FungibleTokenId>, ValueQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -426,6 +454,70 @@ pub mod pallet {
 			}
 
 			Ok(().into())
+		}
+
+		/// Stake native token to innovation staking ledger to receive reward and voting points
+		/// every round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `amount`: the stake amount
+		///
+		/// Emit `SelfStakedToEconomy101` event or `EstateStakedToEconomy101` event if successful
+		#[pallet::weight(T::WeightInfo::stake_a())]
+		#[transactional]
+		pub fn stake_on_innovation(origin: OriginFor<T>, add_amount: BalanceOf<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// Check if user has enough balance for staking
+			ensure!(
+				T::Currency::free_balance(&who) >= add_amount,
+				Error::<T>::InsufficientBalanceForStaking
+			);
+
+			ensure!(!add_amount.is_zero(), Error::<T>::StakeBelowMinimum);
+
+			StakingRewardPoolInfo::<T>::mutate(|pool_info| {
+				let initial_total_shares = pool_info.total_shares;
+				pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
+				let mut withdrawn_inflation = Vec::<(FungibleTokenId, BalanceOf<T>)>::new();
+				//				pool_info
+				//					.rewards
+				//					.iter_mut()
+				//					.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
+				//						let reward_inflation = if initial_total_shares.is_zero() {
+				//							Zero::zero()
+				//						} else {
+				//							U256::from(add_amount.to_owned().saturated_into::<u128>())
+				//								.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
+				//								.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
+				//								.unwrap_or_default()
+				//								.as_u128()
+				//								.saturated_into()
+				//						};
+				//						*total_reward = total_reward.saturating_add(reward_inflation);
+				//						*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
+				//
+				//						withdrawn_inflation.push((*reward_currency, reward_inflation));
+				//					});
+
+				SharesAndWithdrawnRewards::<T>::mutate(who, |(share, withdrawn_rewards)| {
+					*share = share.saturating_add(add_amount);
+					// update withdrawn inflation for each reward currency
+					withdrawn_inflation
+						.into_iter()
+						.for_each(|(reward_currency, reward_inflation)| {
+							withdrawn_rewards
+								.entry(reward_currency)
+								.and_modify(|withdrawn_reward| {
+									*withdrawn_reward = withdrawn_reward.saturating_add(reward_inflation);
+								})
+								.or_insert(reward_inflation);
+						});
+				});
+			});
+
+			Ok(())
 		}
 
 		/// Unstake native token from staking ledger. The unstaked amount able to redeem from the
