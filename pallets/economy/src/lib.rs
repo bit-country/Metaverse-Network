@@ -177,6 +177,16 @@ pub mod pallet {
 	#[pallet::getter(fn total_estate_stake)]
 	type TotalEstateStake<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 
+	/// Innovation staking info
+	#[pallet::storage]
+	#[pallet::getter(fn get_staking_info)]
+	pub type InnovationStakingInfo<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, BalanceOf<T>, ValueQuery>;
+
+	/// Total innovation staking locked in this pallet
+	#[pallet::storage]
+	#[pallet::getter(fn total_stake)]
+	type TotalInnovationStaking<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
