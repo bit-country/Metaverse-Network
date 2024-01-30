@@ -244,6 +244,8 @@ pub mod pallet {
 		SetPowerBalance(T::AccountId, PowerAmount),
 		/// Power conversion request has cancelled [(class_id, token_id), account]
 		CancelPowerConversionRequest((ClassId, TokenId), T::AccountId),
+		/// Innovation Staking [staker, amount]
+		StakedInnovation(T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -480,6 +482,28 @@ pub mod pallet {
 				Error::<T>::StakeBelowMinimum
 			);
 
+			let current_round = T::RoundHandler::get_current_round_info();
+
+			// Check if user already in exit queue
+			ensure!(
+				!ExitQueue::<T>::contains_key(&who, current_round.current),
+				Error::<T>::ExitQueueAlreadyScheduled
+			);
+
+			let staked_balance = InnovationStakingInfo::<T>::get(&who);
+			let total = staked_balance
+				.checked_add(&add_amount)
+				.ok_or(ArithmeticError::Overflow)?;
+
+			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+
+			T::Currency::reserve(&who, add_amount)?;
+
+			InnovationStakingInfo::<T>::insert(&who, total);
+
+			let new_total_staked = TotalInnovationStaking::<T>::get().saturating_add(add_amount);
+			<TotalInnovationStaking<T>>::put(new_total_staked);
+
 			StakingRewardPoolInfo::<T>::mutate(|pool_info| {
 				let initial_total_shares = pool_info.total_shares;
 				pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
@@ -519,6 +543,8 @@ pub mod pallet {
 						});
 				});
 			});
+
+			Self::deposit_event(Event::StakedInnovation(who, amount));
 
 			Ok(())
 		}
