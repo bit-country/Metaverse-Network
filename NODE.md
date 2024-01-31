@@ -136,7 +136,7 @@ Once the build has finished you will have the metaverse-node binary available in
 start a node for Continuum Chain from the root of the directory like so:
 
 ```sh
-./target/release/metaverse-node --chain continuum --bootnodes /ip4/13.239.118.231/tcp/30344/p2p/12D3KooW9rDqyS5S5F6oGHYsmFjSdZdX6HAbTD88rPfxYfoXJdNU --name 'your_node_name' --telemetry-url 'wss://telemetry.polkadot.io/submit/ 0'
+./target/release/metaverse-node --chain continuum --rpc-methods=unsafe --rpc-cors=all --ws-external --rpc-external --ws-max-connections=100000 --name continuum-rpc-1  --bootnodes /ip4/34.126.180.57/tcp/30333/p2p/12D3KooWRDYGTk7gyz54qLDi8dcJTjEaPe6qRuvY8wankNyi1zKq  --telemetry-url 'wss://telemetry.polkadot.io/submit/ 0' -- --execution wasm --chain polkadot
 ```
 
 # 3. Using Docker
@@ -169,5 +169,5 @@ Assuming the example path you want to use locally is
 _path/to/continuumDb/continuum-node_, the command would be:
 
 ```sh
-docker run --network=host -v /continuumDb/continuum-node:/bitcountry-db bitcountry/continuum-collator-node:latest -d /bitcountry-db --chain continuum --bootnodes /ip4/13.239.118.231/tcp/30344/p2p/12D3KooW9rDqyS5S5F6oGHYsmFjSdZdX6HAbTD88rPfxYfoXJdNU --telemetry-url 'wss://telemetry.polkadot.io/submit/ 0'
+docker run --network=host -v /continuumDb/continuum-node:/continuum-db bitcountry/continuum-collator-node:latest -d /continuum-db --chain continuum --bootnodes /ip4/34.126.180.57/tcp/30333/p2p/12D3KooWRDYGTk7gyz54qLDi8dcJTjEaPe6qRuvY8wankNyi1zKq --telemetry-url 'wss://telemetry.polkadot.io/submit/ 0'  -- --execution wasm --chain polkadot
 ```
