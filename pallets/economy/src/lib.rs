@@ -18,6 +18,8 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Encode, HasCompact};
+use frame_benchmarking::log;
+use frame_support::traits::ExistenceRequirement;
 use frame_support::{
 	ensure,
 	pallet_prelude::*,
@@ -32,13 +34,14 @@ use sp_runtime::traits::{
 };
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
+	ArithmeticError, DispatchError, FixedPointNumber, Perbill, SaturatedConversion,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
+use primitives::bounded::Rate;
 use primitives::{estate::Estate, EraIndex, EstateId, PoolId, StakingRound};
 use primitives::{Balance, ClassId, DomainId, FungibleTokenId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
@@ -80,7 +83,7 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
-	use primitives::bounded::Rate;
+	use primitives::bounded::{FractionalRate, Rate};
 	use primitives::{staking::Bond, ClassId, CurrencyId, NftId, PoolId};
 
 	use super::*;
@@ -247,21 +250,26 @@ pub mod pallet {
 	pub type PendingRewardsOfStakingInnovation<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BTreeMap<FungibleTokenId, BalanceOf<T>>, ValueQuery>;
 
-	/// The current epoch index
+	/// The current era index
 	#[pallet::storage]
-	#[pallet::getter(fn current_epoch)]
-	pub type CurrentEpoch<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+	#[pallet::getter(fn current_era)]
+	pub type CurrentEra<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
 
-	/// The block number of last epoch updated
+	/// The block number of last era updated
 	#[pallet::storage]
-	#[pallet::getter(fn last_epoch_updated_block)]
-	pub type LastEpochUpdatedBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+	#[pallet::getter(fn last_era_updated_block)]
+	pub type LastEraUpdatedBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
-	/// The internal of block number between epoch.
+	/// The internal of block number between era.
 	#[pallet::storage]
-	#[pallet::getter(fn update_epoch_frequency)]
-	pub type UpdateEpochFrequency<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+	#[pallet::getter(fn update_era_frequency)]
+	pub type UpdateEraFrequency<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
 
+	/// The estimated staking reward rate per era on innovation staking.
+	///
+	/// EstimatedStakingRewardRatePerEra: value: Rate
+	#[pallet::storage]
+	pub type EstimatedStakingRewardPerEra<T: Config> = StorageValue<_, BalanceOf<T>, ValueQuery>;
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -289,12 +297,12 @@ pub mod pallet {
 		UnstakedInnovation(T::AccountId, BalanceOf<T>),
 		/// Claim rewards
 		ClaimRewards(T::AccountId, FungibleTokenId, BalanceOf<T>),
-		/// Current epoch updated
-		CurrentEpochUpdated(EraIndex),
-		/// Epoch frequency updated
-		UpdatedEpochFrequency(BlockNumberFor<T>),
-		/// Last epoch updated
-		LastEpochUpdated(BlockNumberFor<T>),
+		/// Current innovation staking era updated
+		CurrentInnovationStakingEraUpdated(EraIndex),
+		/// Innovation Staking Era frequency updated
+		UpdatedInnovationStakingEraFrequency(BlockNumberFor<T>),
+		/// Last innovation staking era updated
+		LastInnovationStakingEraUpdated(BlockNumberFor<T>),
 	}
 
 	#[pallet::error]
@@ -347,17 +355,21 @@ pub mod pallet {
 		EstateExitQueueDoesNotExit,
 		/// Stake amount exceed estate max amount
 		StakeAmountExceedMaximumAmount,
-		/// Invalid epoch set up config
-		InvalidLastEpochUpdatedBlock,
+		/// Invalid era set up config
+		InvalidLastEraUpdatedBlock,
+		/// Unexpected error
+		Unexpected,
+		/// Reward pool does not exist
+		RewardPoolDoesNotExist,
 	}
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-			let epoch_number = Self::get_epoch_index(<frame_system::Pallet<T>>::block_number());
+			let era_number = Self::get_era_index(<frame_system::Pallet<T>>::block_number());
 
-			if !epoch_number.is_zero() {
-				let _ = Self::update_current_epoch(epoch_number).map_err(|err| err).ok();
+			if !era_number.is_zero() {
+				let _ = Self::update_current_era(era_number).map_err(|err| err).ok();
 			}
 
 			T::WeightInfo::stake_b()
@@ -1005,29 +1017,29 @@ pub mod pallet {
 		/// This function only for governance origin to execute when starting the protocol or
 		/// changes of era duration.
 		#[pallet::weight(< T as Config >::WeightInfo::stake_b())]
-		pub fn update_epoch_config(
+		pub fn update_era_config(
 			origin: OriginFor<T>,
-			last_epoch_updated_block: Option<BlockNumberFor<T>>,
+			last_era_updated_block: Option<BlockNumberFor<T>>,
 			frequency: Option<BlockNumberFor<T>>,
 		) -> DispatchResult {
 			let _ = ensure_root(origin)?;
 
 			if let Some(change) = frequency {
-				UpdateEpochFrequency::<T>::put(change);
-				Self::deposit_event(Event::<T>::UpdatedEpochFrequency(change));
+				UpdateEraFrequency::<T>::put(change);
+				Self::deposit_event(Event::<T>::UpdatedInnovationStakingEraFrequency(change));
 			}
 
-			if let Some(change) = last_epoch_updated_block {
-				let update_epoch_frequency = UpdateEpochFrequency::<T>::get();
+			if let Some(change) = last_era_updated_block {
+				let update_era_frequency = UpdateEraFrequency::<T>::get();
 				let current_block = <frame_system::Pallet<T>>::block_number();
-				if !update_epoch_frequency.is_zero() {
+				if !update_era_frequency.is_zero() {
 					ensure!(
-						change > current_block.saturating_sub(update_epoch_frequency) && change <= current_block,
-						Error::<T>::InvalidLastEpochUpdatedBlock
+						change > current_block.saturating_sub(update_era_frequency) && change <= current_block,
+						Error::<T>::InvalidLastEraUpdatedBlock
 					);
 
-					LastEpochUpdatedBlock::<T>::put(change);
-					Self::deposit_event(Event::<T>::LastEpochUpdated(change));
+					LastEraUpdatedBlock::<T>::put(change);
+					Self::deposit_event(Event::<T>::LastInnovationStakingEraUpdated(change));
 				}
 			}
 			Ok(())
@@ -1318,23 +1330,70 @@ impl<T: Config> Pallet<T> {
 		T::RewardPayoutAccount::get().into_account_truncating()
 	}
 
-	pub fn get_epoch_index(block_number: BlockNumberFor<T>) -> EraIndex {
+	pub fn get_era_index(block_number: BlockNumberFor<T>) -> EraIndex {
 		block_number
-			.checked_sub(&Self::last_epoch_updated_block())
-			.and_then(|n| n.checked_div(&Self::update_epoch_frequency()))
+			.checked_sub(&Self::last_era_updated_block())
+			.and_then(|n| n.checked_div(&Self::update_era_frequency()))
 			.and_then(|n| TryInto::<EraIndex>::try_into(n).ok())
 			.unwrap_or_else(Zero::zero)
 	}
 
 	#[transactional]
-	pub fn update_current_epoch(epoch_index: EraIndex) -> DispatchResult {
-		let previous_epoch = Self::current_epoch();
-		let new_epoch = previous_epoch.saturating_add(epoch_index);
+	pub fn update_current_era(era_index: EraIndex) -> DispatchResult {
+		let previous_era = Self::current_era();
+		let new_era = previous_era.saturating_add(era_index);
 
-		CurrentEpoch::<T>::put(new_epoch.clone());
-		LastEpochUpdatedBlock::<T>::put(<frame_system::Pallet<T>>::block_number());
+		CurrentEra::<T>::put(new_era.clone());
+		LastEraUpdatedBlock::<T>::put(<frame_system::Pallet<T>>::block_number());
 
-		Self::deposit_event(Event::<T>::CurrentEpochUpdated(new_epoch.clone()));
+		Self::deposit_event(Event::<T>::CurrentInnovationStakingEraUpdated(new_era.clone()));
 		Ok(())
+	}
+
+	fn handle_reward_distribution_to_reward_pool_every_era(
+		previous_era: EraIndex,
+		new_era: EraIndex,
+	) -> DispatchResult {
+		let era_changes = new_era.saturating_sub(previous_era);
+		ensure!(!era_changes.is_zero(), Error::<T>::Unexpected);
+		// Get reward per era that set up Governance
+		let reward_per_era = EstimatedStakingRewardPerEra::<T>::get();
+		// Get reward holding account
+		let reward_holding_origin = T::RewardPayoutAccount::get().into_account_truncating();
+		let reward_holding_balance = T::Currency::free_balance(&reward_holding_origin);
+
+		if reward_holding_balance.is_zero() {
+			// Ignore if reward distributor balance is zero
+			return Ok(());
+		}
+
+		let total_reward = reward_per_era.saturating_mul(era_changes.into());
+		let mut amount_to_send = total_reward.clone();
+		// Make sure user distributor account has enough balance
+		if amount_to_send > reward_holding_balance {
+			amount_to_send = reward_holding_balance
+		}
+
+		Self::accumulate_reward(FungibleTokenId::NativeToken(0), amount_to_send)?;
+		Ok(())
+	}
+
+	pub fn accumulate_reward(reward_currency: FungibleTokenId, reward_increment: BalanceOf<T>) -> DispatchResult {
+		if reward_increment.is_zero() {
+			return Ok(());
+		}
+		StakingRewardPoolInfo::<T>::mutate_exists(|maybe_pool_info| -> DispatchResult {
+			let pool_info = maybe_pool_info.as_mut().ok_or(Error::<T>::RewardPoolDoesNotExist)?;
+
+			pool_info
+				.rewards
+				.entry(reward_currency)
+				.and_modify(|(total_reward, _)| {
+					*total_reward = total_reward.saturating_add(reward_increment);
+				})
+				.or_insert((reward_increment, Zero::zero()));
+
+			Ok(())
+		})
 	}
 }
