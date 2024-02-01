@@ -80,6 +80,7 @@ pub mod pallet {
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
+	use primitives::bounded::Rate;
 	use primitives::{staking::Bond, ClassId, CurrencyId, NftId, PoolId};
 
 	use super::*;
@@ -290,6 +291,10 @@ pub mod pallet {
 		ClaimRewards(T::AccountId, FungibleTokenId, BalanceOf<T>),
 		/// Current epoch updated
 		CurrentEpochUpdated(EraIndex),
+		/// Epoch frequency updated
+		UpdatedEpochFrequency(BlockNumberFor<T>),
+		/// Last epoch updated
+		LastEpochUpdated(BlockNumberFor<T>),
 	}
 
 	#[pallet::error]
@@ -342,6 +347,8 @@ pub mod pallet {
 		EstateExitQueueDoesNotExit,
 		/// Stake amount exceed estate max amount
 		StakeAmountExceedMaximumAmount,
+		/// Invalid epoch set up config
+		InvalidLastEpochUpdatedBlock,
 	}
 
 	#[pallet::hooks]
@@ -993,6 +1000,37 @@ pub mod pallet {
 			T::Currency::unreserve(&who, amount);
 
 			Ok(().into())
+		}
+
+		/// This function only for governance origin to execute when starting the protocol or
+		/// changes of era duration.
+		#[pallet::weight(< T as Config >::WeightInfo::stake_b())]
+		pub fn update_epoch_config(
+			origin: OriginFor<T>,
+			last_epoch_updated_block: Option<BlockNumberFor<T>>,
+			frequency: Option<BlockNumberFor<T>>,
+		) -> DispatchResult {
+			let _ = ensure_root(origin)?;
+
+			if let Some(change) = frequency {
+				UpdateEpochFrequency::<T>::put(change);
+				Self::deposit_event(Event::<T>::UpdatedEpochFrequency(change));
+			}
+
+			if let Some(change) = last_epoch_updated_block {
+				let update_epoch_frequency = UpdateEpochFrequency::<T>::get();
+				let current_block = <frame_system::Pallet<T>>::block_number();
+				if !update_epoch_frequency.is_zero() {
+					ensure!(
+						change > current_block.saturating_sub(update_epoch_frequency) && change <= current_block,
+						Error::<T>::InvalidLastEpochUpdatedBlock
+					);
+
+					LastEpochUpdatedBlock::<T>::put(change);
+					Self::deposit_event(Event::<T>::LastEpochUpdated(change));
+				}
+			}
+			Ok(())
 		}
 	}
 }
