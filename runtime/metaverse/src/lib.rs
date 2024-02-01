@@ -376,6 +376,7 @@ parameter_types! {
 	pub const PoolAccountPalletId: PalletId = PalletId(*b"bit/pool");
 	pub const RewardPayoutAccountPalletId: PalletId = PalletId(*b"bit/pout");
 	pub const RewardHoldingAccountPalletId: PalletId = PalletId(*b"bit/hold");
+	pub const InnovationStakingRewardPayoutAccountPalletId: PalletId = PalletId(*b"bit/sred");
 
 	pub const MaxAuthorities: u32 = 50;
 	pub const MaxSetIdSessionEntries: u64 = u64::MAX;
@@ -1116,6 +1117,7 @@ impl economy::Config for Runtime {
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
 	type MaximumEstateStake = MaximumEstateStake;
+	type RewardPayoutAccount = InnovationStakingRewardPayoutAccountPalletId;
 }
 
 impl emergency::Config for Runtime {

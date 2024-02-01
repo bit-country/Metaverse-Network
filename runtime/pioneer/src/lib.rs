@@ -1612,6 +1612,7 @@ impl crowdloan::Config for Runtime {
 parameter_types! {
 	pub const MiningCurrencyId: FungibleTokenId = FungibleTokenId::MiningResource(0);
 	pub const PowerAmountPerBlock: u32 = 100;
+	pub const InnovationStakingRewardPayoutAccountPalletId: PalletId = PalletId(*b"bit/sred");
 }
 
 impl economy::Config for Runtime {
@@ -1627,6 +1628,7 @@ impl economy::Config for Runtime {
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
 	type MaximumEstateStake = MaximumEstateStake;
+	type RewardPayoutAccount = InnovationStakingRewardPayoutAccountPalletId;
 }
 
 impl emergency::Config for Runtime {
