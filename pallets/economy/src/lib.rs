@@ -218,11 +218,18 @@ pub mod pallet {
 
 	/// Record reward pool info.
 	///
-	/// map PoolId => PoolInfo
+	/// StakingRewardPoolInfo
 	#[pallet::storage]
 	#[pallet::getter(fn staking_reward_pool_info)]
 	pub type StakingRewardPoolInfo<T: Config> =
 		StorageValue<_, InnovationStakingPoolInfo<BalanceOf<T>, BalanceOf<T>, FungibleTokenId>, ValueQuery>;
+
+	/// Self-staking exit queue info
+	/// This will keep track of stake exits queue, unstake only allows after 1 round
+	#[pallet::storage]
+	#[pallet::getter(fn innovation_staking_exit_queue)]
+	pub type InnovationStakingExitQueue<T: Config> =
+		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, RoundIndex, BalanceOf<T>, OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
@@ -305,51 +312,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// Set bit power exchange rate
-		///
-		/// The dispatch origin for this call must be _Root_.
-		///
-		/// `rate`: exchange rate of bit to power. input is BIT price per power
-		///
-		/// Emit `BitPowerExchangeRateUpdated` event if successful
-		#[pallet::weight(T::WeightInfo::set_bit_power_exchange_rate())]
-		#[transactional]
-		pub fn set_bit_power_exchange_rate(origin: OriginFor<T>, rate: Balance) -> DispatchResultWithPostInfo {
-			// Only root can authorize
-			ensure_root(origin)?;
-
-			BitPowerExchangeRate::<T>::set(rate);
-
-			Self::deposit_event(Event::<T>::BitPowerExchangeRateUpdated(rate));
-
-			Ok(().into())
-		}
-
-		/// Set power balance for specific NFT
-		///
-		/// The dispatch origin for this call must be _Root_.
-		///
-		/// `beneficiary`: NFT account that receives power
-		/// `amount`: amount of power
-		///
-		/// Emit `SetPowerBalance` event if successful
-		#[pallet::weight(T::WeightInfo::set_power_balance())]
-		#[transactional]
-		pub fn set_power_balance(
-			origin: OriginFor<T>,
-			beneficiary: (ClassId, TokenId),
-			amount: PowerAmount,
-		) -> DispatchResultWithPostInfo {
-			ensure_root(origin)?;
-
-			let account_id = T::EconomyTreasury::get().into_sub_account_truncating(beneficiary);
-			PowerBalance::<T>::insert(&account_id, amount);
-
-			Self::deposit_event(Event::<T>::SetPowerBalance(account_id, amount));
-
-			Ok(().into())
-		}
-
 		/// Stake native token to staking ledger to receive build material every round
 		///
 		/// The dispatch origin for this call must be _Signed_.
@@ -489,7 +451,7 @@ pub mod pallet {
 
 			// Check if user already in exit queue
 			ensure!(
-				!ExitQueue::<T>::contains_key(&who, current_round.current),
+				!InnovationStakingExitQueue::<T>::contains_key(&who, current_round.current),
 				Error::<T>::ExitQueueAlreadyScheduled
 			);
 
@@ -538,16 +500,16 @@ pub mod pallet {
 			};
 
 			let current_round = T::RoundHandler::get_current_round_info();
-			let next_round = current_round.current.saturating_add(One::one() * 28);
+			let next_round = current_round.current.saturating_add(28u32);
 
 			// Check if user already in exit queue of the current
 			ensure!(
-				!ExitQueue::<T>::contains_key(&who, next_round),
+				!InnovationStakingExitQueue::<T>::contains_key(&who, next_round),
 				Error::<T>::ExitQueueAlreadyScheduled
 			);
 
 			// This exit queue will be executed by exit_staking extrinsics to unreserved token
-			ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
+			InnovationStakingExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
 
 			// Update staking info of user immediately
 			// Remove staking info
