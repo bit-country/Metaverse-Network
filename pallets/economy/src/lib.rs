@@ -27,7 +27,9 @@ use frame_support::{
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{DataProvider, MultiCurrency, MultiReservableCurrency};
 use sp_core::U256;
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Saturating, UniqueSaturatedInto};
+use sp_runtime::traits::{
+	BlockNumberProvider, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Saturating, UniqueSaturatedInto,
+};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
 	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
@@ -37,7 +39,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{estate::Estate, EstateId, PoolId};
+use primitives::{estate::Estate, EraIndex, EstateId, PoolId, StakingRound};
 use primitives::{Balance, ClassId, DomainId, FungibleTokenId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
@@ -244,6 +246,21 @@ pub mod pallet {
 	pub type PendingRewardsOfStakingInnovation<T: Config> =
 		StorageMap<_, Twox64Concat, T::AccountId, BTreeMap<FungibleTokenId, BalanceOf<T>>, ValueQuery>;
 
+	/// The current epoch index
+	#[pallet::storage]
+	#[pallet::getter(fn current_epoch)]
+	pub type CurrentEpoch<T: Config> = StorageValue<_, EraIndex, ValueQuery>;
+
+	/// The block number of last epoch updated
+	#[pallet::storage]
+	#[pallet::getter(fn last_epoch_updated_block)]
+	pub type LastEpochUpdatedBlock<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
+	/// The internal of block number between epoch.
+	#[pallet::storage]
+	#[pallet::getter(fn update_epoch_frequency)]
+	pub type UpdateEpochFrequency<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -271,6 +288,8 @@ pub mod pallet {
 		UnstakedInnovation(T::AccountId, BalanceOf<T>),
 		/// Claim rewards
 		ClaimRewards(T::AccountId, FungibleTokenId, BalanceOf<T>),
+		/// Current epoch updated
+		CurrentEpochUpdated(EraIndex),
 	}
 
 	#[pallet::error]
@@ -323,6 +342,19 @@ pub mod pallet {
 		EstateExitQueueDoesNotExit,
 		/// Stake amount exceed estate max amount
 		StakeAmountExceedMaximumAmount,
+	}
+
+	#[pallet::hooks]
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
+			let epoch_number = Self::get_epoch_index(<frame_system::Pallet<T>>::block_number());
+
+			if !epoch_number.is_zero() {
+				let _ = Self::update_current_epoch(epoch_number).map_err(|err| err).ok();
+			}
+
+			T::WeightInfo::stake_b()
+		}
 	}
 
 	#[pallet::call]
@@ -963,9 +995,6 @@ pub mod pallet {
 			Ok(().into())
 		}
 	}
-
-	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {}
 }
 
 impl<T: Config> Pallet<T> {
@@ -1249,5 +1278,25 @@ impl<T: Config> Pallet<T> {
 
 	pub fn get_reward_payout_account_id() -> T::AccountId {
 		T::RewardPayoutAccount::get().into_account_truncating()
+	}
+
+	pub fn get_epoch_index(block_number: BlockNumberFor<T>) -> EraIndex {
+		block_number
+			.checked_sub(&Self::last_epoch_updated_block())
+			.and_then(|n| n.checked_div(&Self::update_epoch_frequency()))
+			.and_then(|n| TryInto::<EraIndex>::try_into(n).ok())
+			.unwrap_or_else(Zero::zero)
+	}
+
+	#[transactional]
+	pub fn update_current_epoch(epoch_index: EraIndex) -> DispatchResult {
+		let previous_epoch = Self::current_epoch();
+		let new_epoch = previous_epoch.saturating_add(epoch_index);
+
+		CurrentEpoch::<T>::put(new_epoch.clone());
+		LastEpochUpdatedBlock::<T>::put(<frame_system::Pallet<T>>::block_number());
+
+		Self::deposit_event(Event::<T>::CurrentEpochUpdated(new_epoch.clone()));
+		Ok(())
 	}
 }
