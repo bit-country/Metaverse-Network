@@ -246,6 +246,8 @@ pub mod pallet {
 		CancelPowerConversionRequest((ClassId, TokenId), T::AccountId),
 		/// Innovation Staking [staker, amount]
 		StakedInnovation(T::AccountId, BalanceOf<T>),
+		/// Unstaked from Innovation [staker, amount]
+		UnstakedInnovation(T::AccountId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -469,6 +471,97 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::stake_a())]
 		#[transactional]
 		pub fn stake_on_innovation(origin: OriginFor<T>, add_amount: BalanceOf<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			// Check if user has enough balance for staking
+			ensure!(
+				T::Currency::free_balance(&who) >= add_amount,
+				Error::<T>::InsufficientBalanceForStaking
+			);
+
+			ensure!(
+				!add_amount.is_zero() || add_amount >= T::MinimumStake::get(),
+				Error::<T>::StakeBelowMinimum
+			);
+
+			let current_round = T::RoundHandler::get_current_round_info();
+
+			// Check if user already in exit queue
+			ensure!(
+				!ExitQueue::<T>::contains_key(&who, current_round.current),
+				Error::<T>::ExitQueueAlreadyScheduled
+			);
+
+			let staked_balance = InnovationStakingInfo::<T>::get(&who);
+			let total = staked_balance
+				.checked_add(&add_amount)
+				.ok_or(ArithmeticError::Overflow)?;
+
+			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+
+			T::Currency::reserve(&who, add_amount)?;
+
+			InnovationStakingInfo::<T>::insert(&who, total);
+
+			let new_total_staked = TotalInnovationStaking::<T>::get().saturating_add(add_amount);
+			<TotalInnovationStaking<T>>::put(new_total_staked);
+
+			StakingRewardPoolInfo::<T>::mutate(|pool_info| {
+				let initial_total_shares = pool_info.total_shares;
+				pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
+				let mut withdrawn_inflation = Vec::<(FungibleTokenId, BalanceOf<T>)>::new();
+				pool_info
+					.rewards
+					.iter_mut()
+					.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
+						let reward_inflation = if initial_total_shares.is_zero() {
+							Zero::zero()
+						} else {
+							U256::from(add_amount.to_owned().saturated_into::<u128>())
+								.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
+								.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
+								.unwrap_or_default()
+								.as_u128()
+								.saturated_into()
+						};
+						*total_reward = total_reward.saturating_add(reward_inflation);
+						*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
+
+						withdrawn_inflation.push((*reward_currency, reward_inflation));
+					});
+
+				SharesAndWithdrawnRewards::<T>::mutate(who, |(share, withdrawn_rewards)| {
+					*share = share.saturating_add(add_amount);
+					// update withdrawn inflation for each reward currency
+					withdrawn_inflation
+						.into_iter()
+						.for_each(|(reward_currency, reward_inflation)| {
+							withdrawn_rewards
+								.entry(reward_currency)
+								.and_modify(|withdrawn_reward| {
+									*withdrawn_reward = withdrawn_reward.saturating_add(reward_inflation);
+								})
+								.or_insert(reward_inflation);
+						});
+				});
+			});
+
+			Self::deposit_event(Event::StakedInnovation(who, amount));
+
+			Ok(())
+		}
+
+		/// Unstake native token to innovation staking ledger to receive reward and voting points
+		/// every round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `amount`: the unstake amount
+		///
+		/// Emit `UnstakedInnovation` event if successful
+		#[pallet::weight(T::WeightInfo::stake_a())]
+		#[transactional]
+		pub fn unstake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			// Check if user has enough balance for staking
