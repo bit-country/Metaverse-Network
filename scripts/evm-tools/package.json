@@ -1,0 +1,7 @@
+{
+    "type": "module",
+    "dependencies": {
+      "@polkadot/util-crypto": "^10.4.2"
+    }
+  }
+  

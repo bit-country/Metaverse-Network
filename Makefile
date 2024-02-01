@@ -95,6 +95,10 @@ run-chopsticks-pioneer:
 run-chopsticks-pioneer-xcm:
 	npx @acala-network/chopsticks xcm -r kusama -p statemine -p scripts/chopsticks/chopsticks_pioneer.yml
 
+.PHONY: get-default-substrate-address
+get-default-substrate-address: 
+	cd ./scripts/evm-tools && npm i && node get_default_substrate_address.js $(EVM_ADDRESS) $(PREFIX)
+
 GITHOOKS_SRC = $(wildcard githooks/*)
 GITHOOKS_DEST = $(patsubst githooks/%, .git/hooks/%, $(GITHOOKS_SRC))
 
