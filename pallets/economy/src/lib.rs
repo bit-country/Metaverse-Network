@@ -37,7 +37,7 @@ use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 use core_primitives::NFTTrait;
 use core_primitives::*;
 pub use pallet::*;
-use primitives::{estate::Estate, EstateId};
+use primitives::{estate::Estate, EstateId, PoolId};
 use primitives::{Balance, ClassId, DomainId, FungibleTokenId, PowerAmount, RoundIndex};
 pub use weights::WeightInfo;
 
@@ -74,6 +74,7 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
+	use frame_benchmarking::log;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
@@ -103,7 +104,7 @@ pub mod pallet {
 		type FungibleTokenCurrency: MultiReservableCurrency<
 			Self::AccountId,
 			CurrencyId = FungibleTokenId,
-			Balance = Balance,
+			Balance = BalanceOf<Self>,
 		>;
 
 		/// NFT handler
@@ -135,6 +136,9 @@ pub mod pallet {
 		#[pallet::constant]
 		type PowerAmountPerBlock: Get<PowerAmount>;
 
+		// Reward payout account
+		#[pallet::constant]
+		type RewardPayoutAccount: Get<PalletId>;
 		/// Weight info
 		type WeightInfo: WeightInfo;
 	}
@@ -231,6 +235,15 @@ pub mod pallet {
 	pub type InnovationStakingExitQueue<T: Config> =
 		StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Twox64Concat, RoundIndex, BalanceOf<T>, OptionQuery>;
 
+	/// The pending rewards amount accumulated from staking on innovation, pending reward added when
+	/// user claim reward or remove shares
+	///
+	/// PendingRewards: map AccountId => BTreeMap<FungibleTokenId, Balance>
+	#[pallet::storage]
+	#[pallet::getter(fn pending_multi_rewards)]
+	pub type PendingRewardsOfStakingInnovation<T: Config> =
+		StorageMap<_, Twox64Concat, T::AccountId, BTreeMap<FungibleTokenId, BalanceOf<T>>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub (super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -256,6 +269,8 @@ pub mod pallet {
 		StakedInnovation(T::AccountId, BalanceOf<T>),
 		/// Unstaked from Innovation [staker, amount]
 		UnstakedInnovation(T::AccountId, BalanceOf<T>),
+		/// Claim rewards
+		ClaimRewards(T::AccountId, FungibleTokenId, BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -525,6 +540,56 @@ pub mod pallet {
 			Self::remove_share(&who, amount_to_unstake);
 
 			Self::deposit_event(Event::UnstakedInnovation(who, amount));
+			Ok(())
+		}
+
+		/// Claim reward from innovation staking ledger to receive reward and voting points
+		/// every round
+		///
+		/// The dispatch origin for this call must be _Signed_.
+		///
+		/// `amount`: the unstake amount
+		///
+		/// Emit `UnstakedInnovation` event if successful
+		#[pallet::weight(T::WeightInfo::stake_a())]
+		#[transactional]
+		pub fn claim_reward(origin: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+
+			Self::claim_rewards(&who);
+
+			PendingRewardsOfStakingInnovation::<T>::mutate_exists(&who, |maybe_pending_multi_rewards| {
+				if let Some(pending_multi_rewards) = maybe_pending_multi_rewards {
+					for (currency_id, pending_reward) in pending_multi_rewards.iter_mut() {
+						if pending_reward.is_zero() {
+							continue;
+						}
+
+						let payout_amount = pending_reward.clone();
+
+						match Self::distribute_reward(&who, *currency_id, payout_amount) {
+							Ok(_) => {
+								// update state
+								*pending_reward = Zero::zero();
+
+								Self::deposit_event(Event::ClaimRewards(
+									who.clone(),
+									FungibleTokenId::NativeToken(0),
+									payout_amount,
+								));
+							}
+							Err(e) => {
+								log::error!(
+									target: "economy",
+									"staking_payout_reward: failed to payout {:?} to {:?} to {:?}",
+									pending_reward, who, e
+								);
+							}
+						}
+					}
+				}
+			});
+
 			Ok(())
 		}
 
@@ -927,8 +992,6 @@ impl<T: Config> Pallet<T> {
 			return Ok(());
 		}
 
-		T::FungibleTokenCurrency::withdraw(T::MiningCurrencyId::get(), who, amount);
-
 		Self::deposit_event(Event::<T>::MiningResourceBurned(amount));
 
 		Ok(())
@@ -1134,7 +1197,7 @@ impl<T: Config> Pallet<T> {
 			withdrawn_rewards.insert(reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
 
 			// pay reward to `who`
-			// T::Handler::payout(who, pool, reward_currency, reward_to_withdraw);
+			Self::reward_payout(who, reward_currency, reward_to_withdraw);
 		}
 	}
 
@@ -1154,5 +1217,37 @@ impl<T: Config> Pallet<T> {
 		total_reward_proportion
 			.saturating_sub(withdrawn_reward)
 			.min(total_reward.saturating_sub(total_withdrawn_reward))
+	}
+
+	fn reward_payout(who: &T::AccountId, currency_id: FungibleTokenId, payout_amount: BalanceOf<T>) {
+		if payout_amount.is_zero() {
+			return;
+		}
+		PendingRewardsOfStakingInnovation::<T>::mutate(who, |rewards| {
+			rewards
+				.entry(currency_id)
+				.and_modify(|current| *current = current.saturating_add(payout_amount))
+				.or_insert(payout_amount);
+		});
+	}
+
+	/// Ensure atomic
+	#[transactional]
+	fn distribute_reward(
+		who: &T::AccountId,
+		reward_currency_id: FungibleTokenId,
+		payout_amount: BalanceOf<T>,
+	) -> DispatchResult {
+		T::FungibleTokenCurrency::transfer(
+			reward_currency_id,
+			&Self::get_reward_payout_account_id(),
+			who,
+			payout_amount,
+		)?;
+		Ok(())
+	}
+
+	pub fn get_reward_payout_account_id() -> T::AccountId {
+		T::RewardPayoutAccount::get().into_account_truncating()
 	}
 }
