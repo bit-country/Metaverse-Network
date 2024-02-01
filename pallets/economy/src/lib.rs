@@ -26,10 +26,11 @@ use frame_support::{
 };
 use frame_system::{ensure_signed, pallet_prelude::*};
 use orml_traits::{DataProvider, MultiCurrency, MultiReservableCurrency};
-use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Saturating};
+use sp_core::U256;
+use sp_runtime::traits::{BlockNumberProvider, CheckedAdd, CheckedMul, Saturating, UniqueSaturatedInto};
 use sp_runtime::{
 	traits::{AccountIdConversion, One, Zero},
-	ArithmeticError, DispatchError, Perbill,
+	ArithmeticError, DispatchError, Perbill, SaturatedConversion,
 };
 use sp_std::{collections::btree_map::BTreeMap, prelude::*, vec::Vec};
 
@@ -470,17 +471,17 @@ pub mod pallet {
 		/// Emit `SelfStakedToEconomy101` event or `EstateStakedToEconomy101` event if successful
 		#[pallet::weight(T::WeightInfo::stake_a())]
 		#[transactional]
-		pub fn stake_on_innovation(origin: OriginFor<T>, add_amount: BalanceOf<T>) -> DispatchResult {
+		pub fn stake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
 			// Check if user has enough balance for staking
 			ensure!(
-				T::Currency::free_balance(&who) >= add_amount,
+				T::Currency::free_balance(&who) >= amount,
 				Error::<T>::InsufficientBalanceForStaking
 			);
 
 			ensure!(
-				!add_amount.is_zero() || add_amount >= T::MinimumStake::get(),
+				!amount.is_zero() || amount >= T::MinimumStake::get(),
 				Error::<T>::StakeBelowMinimum
 			);
 
@@ -493,58 +494,18 @@ pub mod pallet {
 			);
 
 			let staked_balance = InnovationStakingInfo::<T>::get(&who);
-			let total = staked_balance
-				.checked_add(&add_amount)
-				.ok_or(ArithmeticError::Overflow)?;
+			let total = staked_balance.checked_add(&amount).ok_or(ArithmeticError::Overflow)?;
 
 			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
 
-			T::Currency::reserve(&who, add_amount)?;
+			T::Currency::reserve(&who, amount)?;
 
 			InnovationStakingInfo::<T>::insert(&who, total);
 
-			let new_total_staked = TotalInnovationStaking::<T>::get().saturating_add(add_amount);
+			let new_total_staked = TotalInnovationStaking::<T>::get().saturating_add(amount);
 			<TotalInnovationStaking<T>>::put(new_total_staked);
 
-			StakingRewardPoolInfo::<T>::mutate(|pool_info| {
-				let initial_total_shares = pool_info.total_shares;
-				pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
-				let mut withdrawn_inflation = Vec::<(FungibleTokenId, BalanceOf<T>)>::new();
-				pool_info
-					.rewards
-					.iter_mut()
-					.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
-						let reward_inflation = if initial_total_shares.is_zero() {
-							Zero::zero()
-						} else {
-							U256::from(add_amount.to_owned().saturated_into::<u128>())
-								.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
-								.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
-								.unwrap_or_default()
-								.as_u128()
-								.saturated_into()
-						};
-						*total_reward = total_reward.saturating_add(reward_inflation);
-						*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
-
-						withdrawn_inflation.push((*reward_currency, reward_inflation));
-					});
-
-				SharesAndWithdrawnRewards::<T>::mutate(who, |(share, withdrawn_rewards)| {
-					*share = share.saturating_add(add_amount);
-					// update withdrawn inflation for each reward currency
-					withdrawn_inflation
-						.into_iter()
-						.for_each(|(reward_currency, reward_inflation)| {
-							withdrawn_rewards
-								.entry(reward_currency)
-								.and_modify(|withdrawn_reward| {
-									*withdrawn_reward = withdrawn_reward.saturating_add(reward_inflation);
-								})
-								.or_insert(reward_inflation);
-						});
-				});
-			});
+			Self::add_share(&who, amount);
 
 			Self::deposit_event(Event::StakedInnovation(who, amount));
 
@@ -564,81 +525,44 @@ pub mod pallet {
 		pub fn unstake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 
-			// Check if user has enough balance for staking
-			ensure!(
-				T::Currency::free_balance(&who) >= add_amount,
-				Error::<T>::InsufficientBalanceForStaking
-			);
+			let staked_balance = InnovationStakingInfo::<T>::get(&who);
+			ensure!(amount <= staked_balance, Error::<T>::UnstakeAmountExceedStakedAmount);
 
-			ensure!(
-				!add_amount.is_zero() || add_amount >= T::MinimumStake::get(),
-				Error::<T>::StakeBelowMinimum
-			);
+			let remaining = staked_balance.checked_sub(&amount).ok_or(ArithmeticError::Underflow)?;
+
+			let amount_to_unstake = if remaining < T::MinimumStake::get() {
+				// Remaining amount below minimum, remove all staked amount
+				staked_balance
+			} else {
+				amount
+			};
 
 			let current_round = T::RoundHandler::get_current_round_info();
+			let next_round = current_round.current.saturating_add(One::one() * 28);
 
-			// Check if user already in exit queue
+			// Check if user already in exit queue of the current
 			ensure!(
-				!ExitQueue::<T>::contains_key(&who, current_round.current),
+				!ExitQueue::<T>::contains_key(&who, next_round),
 				Error::<T>::ExitQueueAlreadyScheduled
 			);
 
-			let staked_balance = InnovationStakingInfo::<T>::get(&who);
-			let total = staked_balance
-				.checked_add(&add_amount)
-				.ok_or(ArithmeticError::Overflow)?;
+			// This exit queue will be executed by exit_staking extrinsics to unreserved token
+			ExitQueue::<T>::insert(&who, next_round.clone(), amount_to_unstake);
 
-			ensure!(total >= T::MinimumStake::get(), Error::<T>::StakeBelowMinimum);
+			// Update staking info of user immediately
+			// Remove staking info
+			if amount_to_unstake == staked_balance {
+				InnovationStakingInfo::<T>::remove(&who);
+			} else {
+				InnovationStakingInfo::<T>::insert(&who, remaining);
+			}
 
-			T::Currency::reserve(&who, add_amount)?;
-
-			InnovationStakingInfo::<T>::insert(&who, total);
-
-			let new_total_staked = TotalInnovationStaking::<T>::get().saturating_add(add_amount);
+			let new_total_staked = TotalInnovationStaking::<T>::get().saturating_sub(amount_to_unstake);
 			<TotalInnovationStaking<T>>::put(new_total_staked);
 
-			StakingRewardPoolInfo::<T>::mutate(|pool_info| {
-				let initial_total_shares = pool_info.total_shares;
-				pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
-				let mut withdrawn_inflation = Vec::<(FungibleTokenId, BalanceOf<T>)>::new();
-				pool_info
-					.rewards
-					.iter_mut()
-					.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
-						let reward_inflation = if initial_total_shares.is_zero() {
-							Zero::zero()
-						} else {
-							U256::from(add_amount.to_owned().saturated_into::<u128>())
-								.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
-								.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
-								.unwrap_or_default()
-								.as_u128()
-								.saturated_into()
-						};
-						*total_reward = total_reward.saturating_add(reward_inflation);
-						*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
+			Self::remove_share(&who, amount_to_unstake);
 
-						withdrawn_inflation.push((*reward_currency, reward_inflation));
-					});
-
-				SharesAndWithdrawnRewards::<T>::mutate(who, |(share, withdrawn_rewards)| {
-					*share = share.saturating_add(add_amount);
-					// update withdrawn inflation for each reward currency
-					withdrawn_inflation
-						.into_iter()
-						.for_each(|(reward_currency, reward_inflation)| {
-							withdrawn_rewards
-								.entry(reward_currency)
-								.and_modify(|withdrawn_reward| {
-									*withdrawn_reward = withdrawn_reward.saturating_add(reward_inflation);
-								})
-								.or_insert(reward_inflation);
-						});
-				});
-			});
-
-			Self::deposit_event(Event::StakedInnovation(who, amount));
-
+			Self::deposit_event(Event::UnstakedInnovation(who, amount));
 			Ok(())
 		}
 
@@ -1084,5 +1008,189 @@ impl<T: Config> Pallet<T> {
 		let current_block_number = <frame_system::Pallet<T>>::current_block_number();
 
 		current_block_number >= target
+	}
+
+	pub fn add_share(who: &T::AccountId, add_amount: BalanceOf<T>) {
+		if add_amount.is_zero() {
+			return;
+		}
+
+		StakingRewardPoolInfo::<T>::mutate(|pool_info| {
+			let initial_total_shares = pool_info.total_shares;
+			pool_info.total_shares = pool_info.total_shares.saturating_add(add_amount);
+
+			let mut withdrawn_inflation = Vec::<(FungibleTokenId, BalanceOf<T>)>::new();
+
+			pool_info
+				.rewards
+				.iter_mut()
+				.for_each(|(reward_currency, (total_reward, total_withdrawn_reward))| {
+					let reward_inflation = if initial_total_shares.is_zero() {
+						Zero::zero()
+					} else {
+						U256::from(add_amount.to_owned().saturated_into::<u128>())
+							.saturating_mul(total_reward.to_owned().saturated_into::<u128>().into())
+							.checked_div(initial_total_shares.to_owned().saturated_into::<u128>().into())
+							.unwrap_or_default()
+							.as_u128()
+							.saturated_into()
+					};
+					*total_reward = total_reward.saturating_add(reward_inflation);
+					*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_inflation);
+
+					withdrawn_inflation.push((*reward_currency, reward_inflation));
+				});
+
+			SharesAndWithdrawnRewards::<T>::mutate(who, |(share, withdrawn_rewards)| {
+				*share = share.saturating_add(add_amount);
+				// update withdrawn inflation for each reward currency
+				withdrawn_inflation
+					.into_iter()
+					.for_each(|(reward_currency, reward_inflation)| {
+						withdrawn_rewards
+							.entry(reward_currency)
+							.and_modify(|withdrawn_reward| {
+								*withdrawn_reward = withdrawn_reward.saturating_add(reward_inflation);
+							})
+							.or_insert(reward_inflation);
+					});
+			});
+		});
+	}
+
+	pub fn remove_share(who: &T::AccountId, remove_amount: BalanceOf<T>) {
+		if remove_amount.is_zero() {
+			return;
+		}
+
+		// claim rewards firstly
+		Self::claim_rewards(who);
+
+		SharesAndWithdrawnRewards::<T>::mutate_exists(who, |share_info| {
+			if let Some((mut share, mut withdrawn_rewards)) = share_info.take() {
+				let remove_amount = remove_amount.min(share);
+
+				if remove_amount.is_zero() {
+					return;
+				}
+
+				StakingRewardPoolInfo::<T>::mutate_exists(|maybe_pool_info| {
+					if let Some(mut pool_info) = maybe_pool_info.take() {
+						let removing_share = U256::from(remove_amount.saturated_into::<u128>());
+
+						pool_info.total_shares = pool_info.total_shares.saturating_sub(remove_amount);
+
+						// update withdrawn rewards for each reward currency
+						withdrawn_rewards
+							.iter_mut()
+							.for_each(|(reward_currency, withdrawn_reward)| {
+								let withdrawn_reward_to_remove: BalanceOf<T> = removing_share
+									.saturating_mul(withdrawn_reward.to_owned().saturated_into::<u128>().into())
+									.checked_div(share.saturated_into::<u128>().into())
+									.unwrap_or_default()
+									.as_u128()
+									.saturated_into();
+
+								if let Some((total_reward, total_withdrawn_reward)) =
+									pool_info.rewards.get_mut(reward_currency)
+								{
+									*total_reward = total_reward.saturating_sub(withdrawn_reward_to_remove);
+									*total_withdrawn_reward =
+										total_withdrawn_reward.saturating_sub(withdrawn_reward_to_remove);
+
+									// remove if all reward is withdrawn
+									if total_reward.is_zero() {
+										pool_info.rewards.remove(reward_currency);
+									}
+								}
+								*withdrawn_reward = withdrawn_reward.saturating_sub(withdrawn_reward_to_remove);
+							});
+
+						if !pool_info.total_shares.is_zero() {
+							*maybe_pool_info = Some(pool_info);
+						}
+					}
+				});
+
+				share = share.saturating_sub(remove_amount);
+				if !share.is_zero() {
+					*share_info = Some((share, withdrawn_rewards));
+				}
+			}
+		});
+	}
+
+	pub fn claim_rewards(who: &T::AccountId) {
+		SharesAndWithdrawnRewards::<T>::mutate_exists(who, |maybe_share_withdrawn| {
+			if let Some((share, withdrawn_rewards)) = maybe_share_withdrawn {
+				if share.is_zero() {
+					return;
+				}
+
+				StakingRewardPoolInfo::<T>::mutate_exists(|maybe_pool_info| {
+					if let Some(pool_info) = maybe_pool_info {
+						let total_shares = U256::from(pool_info.total_shares.to_owned().saturated_into::<u128>());
+						pool_info.rewards.iter_mut().for_each(
+							|(reward_currency, (total_reward, total_withdrawn_reward))| {
+								Self::claim_one(
+									withdrawn_rewards,
+									*reward_currency,
+									share.to_owned(),
+									total_reward.to_owned(),
+									total_shares,
+									total_withdrawn_reward,
+									who,
+								);
+							},
+						);
+					}
+				});
+			}
+		});
+	}
+
+	#[allow(clippy::too_many_arguments)] // just we need to have all these to do the stuff
+	fn claim_one(
+		withdrawn_rewards: &mut BTreeMap<FungibleTokenId, BalanceOf<T>>,
+		reward_currency: FungibleTokenId,
+		share: BalanceOf<T>,
+		total_reward: BalanceOf<T>,
+		total_shares: U256,
+		total_withdrawn_reward: &mut BalanceOf<T>,
+		who: &T::AccountId,
+	) {
+		let withdrawn_reward = withdrawn_rewards.get(&reward_currency).copied().unwrap_or_default();
+		let reward_to_withdraw = Self::reward_to_withdraw(
+			share,
+			total_reward,
+			total_shares,
+			withdrawn_reward,
+			total_withdrawn_reward.to_owned(),
+		);
+		if !reward_to_withdraw.is_zero() {
+			*total_withdrawn_reward = total_withdrawn_reward.saturating_add(reward_to_withdraw);
+			withdrawn_rewards.insert(reward_currency, withdrawn_reward.saturating_add(reward_to_withdraw));
+
+			// pay reward to `who`
+			// T::Handler::payout(who, pool, reward_currency, reward_to_withdraw);
+		}
+	}
+
+	fn reward_to_withdraw(
+		share: BalanceOf<T>,
+		total_reward: BalanceOf<T>,
+		total_shares: U256,
+		withdrawn_reward: BalanceOf<T>,
+		total_withdrawn_reward: BalanceOf<T>,
+	) -> BalanceOf<T> {
+		let total_reward_proportion: BalanceOf<T> = U256::from(share.saturated_into::<u128>())
+			.saturating_mul(U256::from(total_reward.saturated_into::<u128>()))
+			.checked_div(total_shares)
+			.unwrap_or_default()
+			.as_u128()
+			.unique_saturated_into();
+		total_reward_proportion
+			.saturating_sub(withdrawn_reward)
+			.min(total_reward.saturating_sub(total_withdrawn_reward))
 	}
 }
