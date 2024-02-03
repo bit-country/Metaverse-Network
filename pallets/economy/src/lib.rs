@@ -303,6 +303,8 @@ pub mod pallet {
 		UpdatedInnovationStakingEraFrequency(BlockNumberFor<T>),
 		/// Last innovation staking era updated
 		LastInnovationStakingEraUpdated(BlockNumberFor<T>),
+		/// Estimated reward per era
+		EstimatedRewardPerEraUpdated(BalanceOf<T>),
 	}
 
 	#[pallet::error]
@@ -361,6 +363,8 @@ pub mod pallet {
 		Unexpected,
 		/// Reward pool does not exist
 		RewardPoolDoesNotExist,
+		/// Invalid reward set up
+		InvalidEstimatedRewardSetup,
 	}
 
 	#[pallet::hooks]
@@ -1021,6 +1025,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			last_era_updated_block: Option<BlockNumberFor<T>>,
 			frequency: Option<BlockNumberFor<T>>,
+			estimated_reward_rate_per_era: Option<BalanceOf<T>>,
 		) -> DispatchResult {
 			let _ = ensure_root(origin)?;
 
@@ -1041,6 +1046,11 @@ pub mod pallet {
 					LastEraUpdatedBlock::<T>::put(change);
 					Self::deposit_event(Event::<T>::LastInnovationStakingEraUpdated(change));
 				}
+			}
+
+			if let Some(reward_rate_per_era) = estimated_reward_rate_per_era {
+				EstimatedStakingRewardPerEra::<T>::put(reward_rate_per_era);
+				Self::deposit_event(Event::<T>::EstimatedRewardPerEraUpdated(reward_rate_per_era));
 			}
 			Ok(())
 		}
