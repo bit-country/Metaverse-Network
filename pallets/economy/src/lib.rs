@@ -1343,6 +1343,7 @@ impl<T: Config> Pallet<T> {
 		let previous_era = Self::current_era();
 		let new_era = previous_era.saturating_add(era_index);
 
+		Self::handle_reward_distribution_to_reward_pool_every_era(previous_era, new_era.clone())?;
 		CurrentEra::<T>::put(new_era.clone());
 		LastEraUpdatedBlock::<T>::put(<frame_system::Pallet<T>>::block_number());
 
