@@ -29,7 +29,6 @@ type AccountPublic = <Signature as Verify>::Signer;
 pub const ALICE: AccountId = AccountId32::new([1; 32]);
 pub const BOB: AccountId = AccountId32::new([2; 32]);
 pub const FREEDY: AccountId = AccountId32::new([3; 32]);
-
 pub const DISTRIBUTOR_COLLECTION_ID: u64 = 0;
 pub const DISTRIBUTOR_CLASS_ID: ClassId = 0;
 pub const DISTRIBUTOR_NFT_ASSET_ID: (ClassId, TokenId) = (0, 0);
@@ -203,6 +202,7 @@ impl MetaverseStakingTrait<u128> for MetaverseStakingHandler {
 parameter_types! {
 	pub const TreasuryStakingReward: Perbill = Perbill::from_percent(1);
 	pub StorageDepositFee: Balance = 1;
+	pub const InnovationStakingRewardPayoutAccountPalletId: PalletId = PalletId(*b"bit/rest");
 }
 
 impl pallet_mining::Config for Runtime {
@@ -237,6 +237,7 @@ impl Config for Runtime {
 	type MinimumStake = MinimumStake;
 	type MaximumEstateStake = MaximumEstateStake;
 	type PowerAmountPerBlock = PowerAmountPerBlock;
+	type RewardPayoutAccount = InnovationStakingRewardPayoutAccountPalletId;
 	type WeightInfo = ();
 }
 

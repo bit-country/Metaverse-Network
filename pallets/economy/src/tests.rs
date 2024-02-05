@@ -68,28 +68,6 @@ fn get_mining_currency() -> FungibleTokenId {
 }
 
 #[test]
-fn set_bit_power_exchange_rate_should_fail_bad_origin() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_noop!(
-			EconomyModule::set_bit_power_exchange_rate(RuntimeOrigin::signed(account(2)), EXCHANGE_RATE),
-			BadOrigin
-		);
-	});
-}
-
-#[test]
-fn set_bit_power_exchange_rate_should_work() {
-	ExtBuilder::default().build().execute_with(|| {
-		assert_ok!(EconomyModule::set_bit_power_exchange_rate(
-			RuntimeOrigin::root(),
-			EXCHANGE_RATE
-		));
-
-		assert_eq!(EconomyModule::get_bit_power_exchange_rate(), EXCHANGE_RATE);
-	});
-}
-
-#[test]
 fn stake_should_fail_insufficient_balance() {
 	ExtBuilder::default().build().execute_with(|| {
 		assert_noop!(
@@ -539,5 +517,93 @@ fn unstake_new_estate_owner_should_work() {
 		);
 		assert_eq!(EconomyModule::get_estate_staking_info(OWNED_ESTATE_ID).is_some(), false);
 		assert_eq!(EconomyModule::total_estate_stake(), 0u128);
+	});
+}
+
+#[test]
+fn stake_on_innovation_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::StakedInnovation(account(1), STAKE_BALANCE))
+		);
+
+		/// Account share of pool reward should be == STAKE_BALANCE
+		let acc_1_shared_rewards = EconomyModule::shares_and_withdrawn_rewards(account(1));
+		assert_eq!(acc_1_shared_rewards, (STAKE_BALANCE, Default::default()));
+
+		/// Do another staking and ensure all working correctly
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			2000,
+		));
+
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::StakedInnovation(account(1), 2000))
+		);
+
+		assert_eq!(Balances::reserved_balance(account(1)), STAKE_BALANCE + 2000);
+
+		assert_eq!(
+			EconomyModule::shares_and_withdrawn_rewards(account(1)),
+			(3000, Default::default())
+		);
+
+		assert_eq!(
+			EconomyModule::get_innovation_staking_info(account(1)),
+			STAKE_BALANCE + 2000
+		);
+
+		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE + 2000);
+	});
+}
+
+#[test]
+fn unstake_on_innovation_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		/// Account share of pool reward should be == STAKE_BALANCE
+		let acc_1_shared_rewards = EconomyModule::shares_and_withdrawn_rewards(account(1));
+		assert_eq!(acc_1_shared_rewards, (STAKE_BALANCE, Default::default()));
+
+		assert_ok!(EconomyModule::unstake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			UNSTAKE_AMOUNT,
+		));
+
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::UnstakedInnovation(account(1), UNSTAKE_AMOUNT))
+		);
+
+		let total_staked_balance = STAKE_BALANCE - UNSTAKE_AMOUNT;
+
+		assert_eq!(
+			EconomyModule::get_innovation_staking_info(account(1)),
+			total_staked_balance
+		);
+		assert_eq!(EconomyModule::total_innovation_staking(), total_staked_balance);
+		let next_round: RoundIndex = CURRENT_ROUND.saturating_add(28u32);
+		assert_eq!(
+			EconomyModule::innovation_staking_exit_queue(account(1), next_round),
+			Some(UNSTAKE_AMOUNT)
+		);
+
+		// Make sure unstaked-share are removed
+		/// Account share of pool reward should be == STAKE_BALANCE
+		assert_eq!(
+			EconomyModule::shares_and_withdrawn_rewards(account(1)),
+			(total_staked_balance, Default::default())
+		);
 	});
 }

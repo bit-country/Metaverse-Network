@@ -189,7 +189,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	//   `spec_version`, and `authoring_version` are the same between Wasm and native.
 	// This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
 	//   the compatible custom types.
-	spec_version: 101,
+	spec_version: 106,
 	impl_version: 1,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -376,6 +376,7 @@ parameter_types! {
 	pub const PoolAccountPalletId: PalletId = PalletId(*b"bit/pool");
 	pub const RewardPayoutAccountPalletId: PalletId = PalletId(*b"bit/pout");
 	pub const RewardHoldingAccountPalletId: PalletId = PalletId(*b"bit/hold");
+	pub const InnovationStakingRewardPayoutAccountPalletId: PalletId = PalletId(*b"bit/sred");
 
 	pub const MaxAuthorities: u32 = 50;
 	pub const MaxSetIdSessionEntries: u64 = u64::MAX;
@@ -1116,6 +1117,7 @@ impl economy::Config for Runtime {
 	type PowerAmountPerBlock = PowerAmountPerBlock;
 	type WeightInfo = weights::module_economy::WeightInfo<Runtime>;
 	type MaximumEstateStake = MaximumEstateStake;
+	type RewardPayoutAccount = InnovationStakingRewardPayoutAccountPalletId;
 }
 
 impl emergency::Config for Runtime {
