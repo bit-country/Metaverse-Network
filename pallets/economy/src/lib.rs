@@ -499,7 +499,7 @@ pub mod pallet {
 		/// `amount`: the stake amount
 		///
 		/// Emit `SelfStakedToEconomy101` event or `EstateStakedToEconomy101` event if successful
-		#[pallet::weight(T::WeightInfo::stake_a())]
+		#[pallet::weight(T::WeightInfo::stake_on_innovation())]
 		#[transactional]
 		pub fn stake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -550,7 +550,7 @@ pub mod pallet {
 		/// `amount`: the unstake amount
 		///
 		/// Emit `UnstakedInnovation` event if successful
-		#[pallet::weight(T::WeightInfo::stake_a())]
+		#[pallet::weight(T::WeightInfo::unstake_on_innovation())]
 		#[transactional]
 		pub fn unstake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;

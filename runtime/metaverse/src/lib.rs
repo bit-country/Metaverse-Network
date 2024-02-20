@@ -66,6 +66,8 @@ use polkadot_primitives::MAX_POV_SIZE;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+#[cfg(not(feature = "runtime-benchmarks"))]
+use sp_core::Get;
 use sp_core::{
 	crypto::{KeyTypeId, Public},
 	sp_std::marker::PhantomData,
