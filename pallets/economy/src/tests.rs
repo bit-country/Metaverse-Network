@@ -607,3 +607,49 @@ fn unstake_on_innovation_should_work() {
 		);
 	});
 }
+
+#[test]
+fn claim_reward_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		/// Account share of pool reward should be == STAKE_BALANCE
+		let acc_1_shared_rewards = EconomyModule::shares_and_withdrawn_rewards(account(1));
+		assert_eq!(acc_1_shared_rewards, (STAKE_BALANCE, Default::default()));
+		assert_eq!(EconomyModule::get_innovation_staking_info(account(1)), STAKE_BALANCE);
+		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE);
+
+		run_to_block(100);
+
+		let reward = EconomyModule::pending_multi_rewards(account(1));
+		let reward_amount = *reward.get(&FungibleTokenId::NativeToken(0)).unwrap();
+
+		assert_eq!(reward_amount, 0u128);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::ClaimRewards(
+				account(1),
+				FungibleTokenId::NativeToken(0),
+				reward_amount.clone()
+			))
+		);
+
+		assert_eq!(EconomyModule::get_innovation_staking_info(account(1)), STAKE_BALANCE);
+		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE);
+		assert_eq!(
+			EconomyModule::shares_and_withdrawn_rewards(account(1)),
+			(STAKE_BALANCE, reward)
+		);
+		assert_eq!(
+			EconomyModule::pending_multi_rewards(account(1))
+				.get(&FungibleTokenId::NativeToken(0))
+				.unwrap(),
+			&0u128
+		);
+	});
+}
