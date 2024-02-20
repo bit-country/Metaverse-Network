@@ -18,7 +18,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Encode, HasCompact};
-use frame_benchmarking::log;
 use frame_support::traits::ExistenceRequirement;
 use frame_support::{
 	ensure,
@@ -79,7 +78,6 @@ pub mod weights;
 
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_benchmarking::log;
 	use sp_runtime::traits::{CheckedAdd, CheckedSub, Saturating};
 	use sp_runtime::ArithmeticError;
 
@@ -501,7 +499,7 @@ pub mod pallet {
 		/// `amount`: the stake amount
 		///
 		/// Emit `SelfStakedToEconomy101` event or `EstateStakedToEconomy101` event if successful
-		#[pallet::weight(T::WeightInfo::stake_a())]
+		#[pallet::weight(T::WeightInfo::stake_on_innovation())]
 		#[transactional]
 		pub fn stake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
@@ -552,7 +550,7 @@ pub mod pallet {
 		/// `amount`: the unstake amount
 		///
 		/// Emit `UnstakedInnovation` event if successful
-		#[pallet::weight(T::WeightInfo::stake_a())]
+		#[pallet::weight(T::WeightInfo::unstake_on_innovation())]
 		#[transactional]
 		pub fn unstake_on_innovation(origin: OriginFor<T>, amount: BalanceOf<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;

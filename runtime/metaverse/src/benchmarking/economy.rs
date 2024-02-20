@@ -51,30 +51,6 @@ pub fn run_to_block(n: u32) {
 
 runtime_benchmarks! {
 	{ Runtime, economy }
-	// set_bit_power_exchange_rate
-	set_bit_power_exchange_rate{
-		let caller: AccountId = whitelisted_caller();
-		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-	}: _(RawOrigin::Root, EXCHANGE_RATE)
-	verify {
-		let new_rate = Economy::get_bit_power_exchange_rate();
-		assert_eq!(new_rate, EXCHANGE_RATE);
-	}
-
-	// set_power_balance
-	set_power_balance{
-		let caller: AccountId = whitelisted_caller();
-		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
-		set_balance(CURRENCY_ID, &caller, dollar(10));
-	}: _(RawOrigin::Root, BENEFICIARY_NFT, 123)
-	verify {
-		let account_id: AccountId = EconomyTreasury::get().into_sub_account_truncating(BENEFICIARY_NFT);
-
-		let new_balance = Economy::get_power_balance(account_id);
-		assert_eq!(new_balance, 123);
-	}
-
 	// stake with no estate
 	stake_a{
 		let caller: AccountId = whitelisted_caller();
@@ -105,6 +81,17 @@ runtime_benchmarks! {
 		let stake_amount = min_stake + dollar(100);
 
 	}: stake(RawOrigin::Signed(caller.clone()), stake_amount, Some(ESTATE_ID))
+
+	// stake on innovation
+	stake_on_innovation{
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+
+		let min_stake = MinimumStake::get();
+		let stake_amount = min_stake + dollar(100);
+
+	}: _(RawOrigin::Signed(caller.clone()), stake_amount)
 
 	// unstake
 	unstake_a{
@@ -175,6 +162,19 @@ runtime_benchmarks! {
 
 		Estate::transfer_estate(RawOrigin::Signed(owner.clone()).into(), caller.clone(), ESTATE_ID);
 	}: _(RawOrigin::Signed(caller.clone()), ESTATE_ID)
+
+	// unstake on innovation
+	unstake_on_innovation{
+		let caller: AccountId = whitelisted_caller();
+		let caller_lookup = <Runtime as frame_system::Config>::Lookup::unlookup(caller.clone());
+		set_balance(CURRENCY_ID, &caller, dollar(1000));
+
+		let min_stake = MinimumStake::get();
+		let stake_amount = min_stake + dollar(100);
+
+		Economy::stake_on_innovation(RawOrigin::Signed(caller.clone()).into(), stake_amount);
+
+	}: _(RawOrigin::Signed(caller.clone()), dollar(99))
 
 	// withdraw_unreserved
 	withdraw_unreserved{

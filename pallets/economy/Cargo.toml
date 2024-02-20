@@ -12,6 +12,7 @@ version = '2.0.0-rc6'
 targets = ['x86_64-unknown-linux-gnu']
 
 [dependencies]
+log = { workspace = true }
 serde = { workspace = true, optional = true, features = ["derive"] }
 codec = { workspace = true, package = "parity-scale-codec" }
 scale-info = { workspace = true }
@@ -55,6 +56,7 @@ runtime-benchmarks = [
 default = ['std']
 std = [
     "serde",
+    "log/std",
     "codec/std",
     "sp-runtime/std",
     "frame-support/std",

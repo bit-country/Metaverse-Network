@@ -6801,6 +6801,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "log",
  "orml-currencies",
  "orml-nft",
  "orml-tokens",
