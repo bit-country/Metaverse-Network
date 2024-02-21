@@ -1216,6 +1216,7 @@ impl<T: Config> Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 		is_locked: bool,
+		singer: &T::AccountId,
 	) -> Result<TokenIdOf<T>, DispatchError> {
 		ensure!(!Self::is_collection_locked(&class_id), Error::<T>::CollectionIsLocked);
 
@@ -1225,7 +1226,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		// Update class total issuance
-		Self::update_class_total_issuance(&sender, &class_id, 1u32)?;
+		Self::update_class_total_issuance(&singer, &class_id, 1u32)?;
 
 		let class_fund: T::AccountId = T::Treasury::get().into_account_truncating();
 		let deposit = T::AssetMintingFee::get().saturating_mul(Into::<BalanceOf<T>>::into(1u32));
@@ -1305,7 +1306,7 @@ impl<T: Config> Pallet<T> {
 			)?;
 		}
 
-		Self::do_mint_nft_with_token_id(&mint_to, &mint_to, class_id, token_id, metadata, attributes, false)?;
+		Self::do_mint_nft_with_token_id(&mint_to, &mint_to, class_id, token_id, metadata, attributes, false, &signer)?;
 
 		Ok(())
 	}
@@ -1321,7 +1322,7 @@ impl<T: Config> Pallet<T> {
 		is_locked: bool,
 	) -> Result<((ClassIdOf<T>, TokenIdOf<T>)), DispatchError> {
 		let minted_token_id =
-			Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked)?;
+			Self::do_mint_nft_with_token_id(&sender, &mint_to, class_id, token_id, metadata, attributes, is_locked, &sender)?;
 		let nft_proxy_account: T::AccountId =
 			T::PalletId::get().into_sub_account_truncating((class_id, &minted_token_id));
 		let proxy_deposit = <pallet_proxy::Pallet<T>>::deposit(1u32);
@@ -1711,7 +1712,7 @@ impl<T: Config> NFTTrait<T::AccountId, BalanceOf<T>> for Pallet<T> {
 		metadata: NftMetadata,
 		attributes: Attributes,
 	) -> Result<Self::TokenId, DispatchError> {
-		Self::do_mint_nft_with_token_id(sender, sender, class_id, Some(token_id), metadata, attributes, false)
+		Self::do_mint_nft_with_token_id(sender, sender, class_id, Some(token_id), metadata, attributes, false, sender)
 	}
 
 	fn get_free_stackable_nft_balance(who: &T::AccountId, asset_id: &(Self::ClassId, Self::TokenId)) -> BalanceOf<T> {
