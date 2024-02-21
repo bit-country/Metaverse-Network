@@ -993,10 +993,9 @@ fn validate_signature() {
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
-			expired: 1000,
 			mint_price: None,
 			token_id: None,
-			expired: 100u64,
+			expired: 1000u64,
 		};
 		let encoded_data = Encode::encode(&mint_data);
 		let signature = MultiSignature::Sr25519(alice_pair.sign(&encoded_data));
@@ -1024,10 +1023,9 @@ fn pre_signed_mints_should_work() {
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
-			expired: 1000,
 			mint_price: None,
 			token_id: None,
-			expired: 100u64,
+			expired: 1000u64,
 		};
 		let message = Encode::encode(&mint_data);
 		let signature = MultiSignature::Sr25519(user_1_pair.sign(&message));
@@ -1062,10 +1060,9 @@ fn pre_signed_mint_should_work_with_only_account() {
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: Some(account(2)),
-			expired: 1000,
 			mint_price: None,
 			token_id: None,
-			expired: 100u64,
+			expired: 1000u64,
 		};
 		let message = Encode::encode(&mint_data);
 		let signature = MultiSignature::Sr25519(user_1_pair.sign(&message));
@@ -1109,10 +1106,9 @@ fn pre_signed_mint_should_collect_fee_with_mint_price() {
 			attributes: test_attributes(1),
 			metadata: vec![],
 			only_account: None,
-			expired: 1000,
 			mint_price: Some(50),
 			token_id: None,
-			expired: 100u64,
+			expired: 1000u64,
 		};
 		let message = Encode::encode(&mint_data);
 		let signature = MultiSignature::Sr25519(user_1_pair.sign(&message));
