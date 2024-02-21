@@ -621,35 +621,40 @@ fn claim_reward_should_work() {
 		assert_eq!(acc_1_shared_rewards, (STAKE_BALANCE, Default::default()));
 		assert_eq!(EconomyModule::get_innovation_staking_info(account(1)), STAKE_BALANCE);
 		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE);
+		assert_eq!(
+			EconomyModule::pending_multi_rewards(account(1)).get(&FungibleTokenId::MiningResource(0)),
+			None
+		);
 
-		run_to_block(100);
+		let round_two_start = Mining::round().first + Mining::round().length as u64 + 1u64;
+		run_to_block(round_two_start);
 
-		let reward = EconomyModule::pending_multi_rewards(account(1));
-		let reward_amount = *reward.get(&FungibleTokenId::NativeToken(0)).unwrap();
+		let reward_map = EconomyModule::pending_multi_rewards(account(1));
+		let mut currency = FungibleTokenId::NativeToken(0);
+		let mut reward = 0u128;
 
-		assert_eq!(reward_amount, 0u128);
+		for (currency_id, reward_amount) in reward_map.iter() {
+			if reward_amount.is_zero() {
+				continue;
+			}
+			currency = *currency_id;
+			reward = *reward_amount;
+			break;
+		}
+		assert_eq!(reward > 0u128, true);
 
 		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
 		assert_eq!(
 			last_event(),
-			RuntimeEvent::Economy(crate::Event::ClaimRewards(
-				account(1),
-				FungibleTokenId::NativeToken(0),
-				reward_amount.clone()
-			))
+			RuntimeEvent::Economy(crate::Event::ClaimRewards(account(1), currency, reward.clone()))
 		);
 
 		assert_eq!(EconomyModule::get_innovation_staking_info(account(1)), STAKE_BALANCE);
 		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE);
 		assert_eq!(
 			EconomyModule::shares_and_withdrawn_rewards(account(1)),
-			(STAKE_BALANCE, reward)
-		);
-		assert_eq!(
-			EconomyModule::pending_multi_rewards(account(1))
-				.get(&FungibleTokenId::NativeToken(0))
-				.unwrap(),
-			&0u128
+			(STAKE_BALANCE, reward_map)
 		);
 	});
 }
