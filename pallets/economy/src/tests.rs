@@ -736,7 +736,6 @@ fn claim_reward_with_multiple_stakers_should_work() {
 	});
 }
 
-
 #[test]
 fn claim_reward_twice_should_not_update_balance_twice() {
 	ExtBuilder::default().build().execute_with(|| {
@@ -772,7 +771,6 @@ fn claim_reward_twice_should_not_update_balance_twice() {
 		assert_eq!(Balances::free_balance(account(1)), 9100u128);
 	});
 }
-
 
 #[test]
 fn claim_reward_after_unstaking_should_not_update_balance() {
