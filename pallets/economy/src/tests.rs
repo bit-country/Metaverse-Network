@@ -735,3 +735,74 @@ fn claim_reward_with_multiple_stakers_should_work() {
 		assert_eq!(Balances::free_balance(account(2)), 20750u128);
 	});
 }
+
+
+#[test]
+fn claim_reward_twice_should_not_update_balance_twice() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		EstimatedStakingRewardPerEra::<Runtime>::set(100u128);
+		UpdateEraFrequency::<Runtime>::set(3u64);
+
+		run_to_block(4);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::ClaimRewards(
+				account(1),
+				FungibleTokenId::NativeToken(0),
+				100u128
+			))
+		);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_eq!(
+			Balances::free_balance(
+				&<mock::Runtime as pallet::Config>::RewardPayoutAccount::get().into_account_truncating()
+			),
+			29900u128
+		);
+		assert_eq!(Balances::free_balance(account(1)), 9100u128);
+	});
+}
+
+
+#[test]
+fn claim_reward_after_unstaking_should_not_update_balance() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		EstimatedStakingRewardPerEra::<Runtime>::set(100u128);
+		UpdateEraFrequency::<Runtime>::set(4u64);
+
+		run_to_block(4);
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_ok!(EconomyModule::unstake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		run_to_block(500);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_eq!(
+			Balances::free_balance(
+				&<mock::Runtime as pallet::Config>::RewardPayoutAccount::get().into_account_truncating()
+			),
+			29900u128
+		);
+		assert_eq!(Balances::free_balance(account(1)), 10100u128);
+	});
+}
