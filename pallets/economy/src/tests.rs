@@ -801,6 +801,6 @@ fn claim_reward_after_unstaking_should_not_update_balance() {
 			),
 			29900u128
 		);
-		assert_eq!(Balances::free_balance(account(1)), 10100u128);
+		assert_eq!(Balances::free_balance(account(1)), 9100u128);
 	});
 }
