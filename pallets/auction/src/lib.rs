@@ -812,10 +812,10 @@ pub mod pallet {
 			T::WeightInfo::on_finalize().saturating_mul(total_item)
 		}
 
-		fn on_runtime_upgrade() -> Weight {
-			Self::upgrade_auction_item_data_v3();
-			Weight::from_ref_time(0u64)
-		}
+		// fn on_runtime_upgrade() -> Weight {
+		// 	Self::upgrade_auction_item_data_v3();
+		// 	Weight::from_ref_time(0u64)
+		// }
 	}
 
 	impl<T: Config> Auction<T::AccountId, T::BlockNumber> for Pallet<T> {
