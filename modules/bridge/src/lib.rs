@@ -194,16 +194,15 @@ pub mod pallet {
 			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
 			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
 
-			let fee_estimated = amount.saturating_mul(fee_scale.into());
+			let fee_estimated = amount.saturating_mul(currency_id.1);
 			let fee = if fee_estimated > min_fee {
 				fee_estimated
 			} else {
 				min_fee
 			};
 
-			let mut actual_fee = Zero::zero();
+			let mut actual_fee = fee;
 			if currency_id.0 == FungibleTokenId::NativeToken(0) {
-				actual_fee = fee;
 				T::Currency::transfer(
 					&source,
 					&bridge_id,
@@ -211,8 +210,6 @@ pub mod pallet {
 					ExistenceRequirement::AllowDeath,
 				)?;
 			} else {
-				actual_fee = currency_id.1 * fee;
-
 				// Transfer the fee as native token first
 				T::Currency::transfer(&source, &bridge_id, actual_fee.into(), ExistenceRequirement::AllowDeath)?;
 				// Handle the multi currency token transfer
