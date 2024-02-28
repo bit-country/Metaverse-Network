@@ -194,7 +194,7 @@ pub mod pallet {
 			ensure!(BridgeFee::<T>::contains_key(&chain_id), Error::<T>::FeeOptionsMissing);
 			let (min_fee, fee_scale) = Self::bridge_fee(chain_id);
 
-			let fee_estimated = amount.saturating_mul(currency_id.1);
+			let fee_estimated = currency_id.1 * amount;
 			let fee = if fee_estimated > min_fee {
 				fee_estimated
 			} else {
