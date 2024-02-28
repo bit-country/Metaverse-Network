@@ -19,7 +19,7 @@
 
 use frame_support::{assert_noop, assert_ok};
 
-use sp_runtime::traits::BadOrigin;
+use sp_runtime::traits::{AccountIdConversion, BadOrigin};
 use sp_std::default::Default;
 
 use core_primitives::{Attributes, CollectionType, TokenType};
@@ -605,5 +605,202 @@ fn unstake_on_innovation_should_work() {
 			EconomyModule::shares_and_withdrawn_rewards(account(1)),
 			(total_staked_balance, Default::default())
 		);
+	});
+}
+
+#[test]
+fn claim_reward_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		/// Account share of pool reward should be == STAKE_BALANCE
+		let acc_1_shared_rewards = EconomyModule::shares_and_withdrawn_rewards(account(1));
+		assert_eq!(acc_1_shared_rewards, (STAKE_BALANCE, Default::default()));
+		assert_eq!(EconomyModule::get_innovation_staking_info(account(1)), STAKE_BALANCE);
+		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE);
+
+		let reward_amount = 100u128;
+		let mut reward_map: BTreeMap<FungibleTokenId, u128> = BTreeMap::new();
+		reward_map.insert(FungibleTokenId::NativeToken(0), reward_amount.clone());
+
+		PendingRewardsOfStakingInnovation::<Runtime>::insert(account(1), reward_map.clone());
+
+		run_to_block(2);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::ClaimRewards(
+				account(1),
+				FungibleTokenId::NativeToken(0),
+				reward_amount
+			))
+		);
+
+		assert_eq!(EconomyModule::get_innovation_staking_info(account(1)), STAKE_BALANCE);
+		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE);
+		assert_eq!(
+			Balances::free_balance(
+				&<mock::Runtime as pallet::Config>::RewardPayoutAccount::get().into_account_truncating()
+			),
+			29900u128
+		);
+		assert_eq!(Balances::free_balance(account(1)), 9100u128);
+	});
+}
+
+#[test]
+fn claim_reward_with_multiple_stakers_should_work() {
+	ExtBuilder::default().build().execute_with(|| {
+		let account_2_stake_balance = STAKE_BALANCE / 4;
+		let account_1_stake_balance = STAKE_BALANCE - account_2_stake_balance;
+
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			account_1_stake_balance,
+		));
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(2)),
+			account_2_stake_balance,
+		));
+
+		let acc_1_shared_rewards = EconomyModule::shares_and_withdrawn_rewards(account(1));
+		assert_eq!(acc_1_shared_rewards, (account_1_stake_balance, Default::default()));
+		assert_eq!(
+			EconomyModule::get_innovation_staking_info(account(1)),
+			account_1_stake_balance
+		);
+		let acc_2_shared_rewards = EconomyModule::shares_and_withdrawn_rewards(account(2));
+		assert_eq!(acc_2_shared_rewards, (account_2_stake_balance, Default::default()));
+		assert_eq!(
+			EconomyModule::get_innovation_staking_info(account(2)),
+			account_2_stake_balance
+		);
+		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE);
+
+		EstimatedStakingRewardPerEra::<Runtime>::set(2000u128);
+		UpdateEraFrequency::<Runtime>::set(1u64);
+
+		run_to_block(2);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::ClaimRewards(
+				account(1),
+				FungibleTokenId::NativeToken(0),
+				3000u128
+			))
+		);
+
+		assert_eq!(
+			EconomyModule::get_innovation_staking_info(account(1)),
+			account_1_stake_balance
+		);
+		assert_eq!(EconomyModule::total_innovation_staking(), STAKE_BALANCE);
+		assert_eq!(
+			Balances::free_balance(
+				&<mock::Runtime as pallet::Config>::RewardPayoutAccount::get().into_account_truncating()
+			),
+			27000u128
+		);
+		assert_eq!(Balances::free_balance(account(1)), 12250u128);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(2))));
+
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::ClaimRewards(
+				account(2),
+				FungibleTokenId::NativeToken(0),
+				1000u128
+			))
+		);
+
+		assert_eq!(
+			EconomyModule::get_innovation_staking_info(account(2)),
+			account_2_stake_balance
+		);
+		assert_eq!(
+			Balances::free_balance(
+				&<mock::Runtime as pallet::Config>::RewardPayoutAccount::get().into_account_truncating()
+			),
+			26000u128
+		);
+		assert_eq!(Balances::free_balance(account(2)), 20750u128);
+	});
+}
+
+#[test]
+fn claim_reward_twice_should_not_update_balance_twice() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		EstimatedStakingRewardPerEra::<Runtime>::set(100u128);
+		UpdateEraFrequency::<Runtime>::set(3u64);
+
+		run_to_block(4);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_eq!(
+			last_event(),
+			RuntimeEvent::Economy(crate::Event::ClaimRewards(
+				account(1),
+				FungibleTokenId::NativeToken(0),
+				100u128
+			))
+		);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_eq!(
+			Balances::free_balance(
+				&<mock::Runtime as pallet::Config>::RewardPayoutAccount::get().into_account_truncating()
+			),
+			29900u128
+		);
+		assert_eq!(Balances::free_balance(account(1)), 9100u128);
+	});
+}
+
+#[test]
+fn claim_reward_after_unstaking_should_not_update_balance() {
+	ExtBuilder::default().build().execute_with(|| {
+		assert_ok!(EconomyModule::stake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		EstimatedStakingRewardPerEra::<Runtime>::set(100u128);
+		UpdateEraFrequency::<Runtime>::set(4u64);
+
+		run_to_block(4);
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_ok!(EconomyModule::unstake_on_innovation(
+			RuntimeOrigin::signed(account(1)),
+			STAKE_BALANCE,
+		));
+
+		run_to_block(500);
+
+		assert_ok!(EconomyModule::claim_reward(RuntimeOrigin::signed(account(1))));
+
+		assert_eq!(
+			Balances::free_balance(
+				&<mock::Runtime as pallet::Config>::RewardPayoutAccount::get().into_account_truncating()
+			),
+			29900u128
+		);
+		assert_eq!(Balances::free_balance(account(1)), 9100u128);
 	});
 }

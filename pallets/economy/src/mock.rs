@@ -496,13 +496,14 @@ impl ExtBuilder {
 			.unwrap();
 
 		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(ALICE, 10000)],
-		}
-		.assimilate_storage(&mut t)
-		.unwrap();
-
-		pallet_balances::GenesisConfig::<Runtime> {
-			balances: vec![(BOB, 20000)],
+			balances: vec![
+				(ALICE, 10000),
+				(BOB, 20000),
+				(
+					<mock::Runtime as pallet::Config>::RewardPayoutAccount::get().into_account_truncating(),
+					30000,
+				),
+			],
 		}
 		.assimilate_storage(&mut t)
 		.unwrap();
@@ -525,6 +526,7 @@ pub fn run_to_block(n: u64) {
 		System::set_block_number(System::block_number() + 1);
 		System::on_initialize(System::block_number());
 		Mining::on_initialize(System::block_number());
+		EconomyModule::on_initialize(System::block_number());
 	}
 }
 
