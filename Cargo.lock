@@ -1074,6 +1074,7 @@ dependencies = [
  "hex-literal 0.3.4",
  "log",
  "metaverse-runtime-common",
+ "modules-bridge",
  "orml-currencies",
  "orml-nft",
  "orml-oracle",
