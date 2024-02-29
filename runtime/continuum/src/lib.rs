@@ -266,20 +266,6 @@ impl Contains<RuntimeCall> for NormalCallFilter {
 			| RuntimeCall::Session(..)
 			// Enable collator selection
 			| RuntimeCall::CollatorSelection(..)
-			// Enable vesting
-			| RuntimeCall::Vesting(..)
-			// Enable ultility
-			| RuntimeCall::Utility{..}
-			// Enable multisign
-			| RuntimeCall::Multisig(..)
-			// Enable Crowdloan
-			| RuntimeCall::Crowdloan{..}
-			// Polkadot XCM
-			| RuntimeCall::PolkadotXcm{..}
-			// Orml XCM wrapper
-			| RuntimeCall::OrmlXcm{..}
-			| RuntimeCall::Balances(..)
-			| RuntimeCall::XTokens(..)
 		);
 
 		if is_core {
