@@ -23,16 +23,16 @@ serde_json = "1.0.92"
 serde = { version = "1.0.151" }
 scale-info = { version = "2.5.0", features = ["derive"], default-features = false }
 hex-literal = { version = "0.3.4" }
-log = { version = "0.4.17", default-features = false }
-smallvec = "1.8.0"
-clap = { version = "4.2.4", features = ["derive"] }
+log = { version = "0.4.20", default-features = false }
+smallvec = "1.9.0"
+clap = { version = "4.2.5", features = ["derive"] }
 url = "2.3.1"
 tracing-core = "0.1.28"
 impl-trait-for-tuples = "0.2.2"
 num_enum = { version = "0.5.3", default-features = false }
 getrandom = { version = "0.2.7", features = ["js"] }
 blake2-rfc = { version = "0.2.18", default-features = false }
-hex = { version = "0.4", default-features = false }
+hex = { version = "0.4.3", default-features = false }
 funty = { version = "=1.1.0", default-features = false }
 similar-asserts = { version = "1.1.0" }
 
@@ -48,9 +48,9 @@ syn = { version = "1.0", features = ["extra-traits", "fold", "full", "visit"] }
 
 # General (node only)
 parking_lot = "0.12.1"
-async-trait = "0.1"
+async-trait = "0.1.59"
 futures = { version = "0.3.9", features = ["compat"] }
-jsonrpsee = { version = "0.16.2", features = ["server"] }
+jsonrpsee = { version = "0.16.3", features = ["server"] }
 jsonrpc-core = "18.0.0"
 jsonrpc-pubsub = "18.0.0"
 parity-util-mem = { version = "0.12.0", default-features = false, features = ["jemalloc-global"] }
@@ -183,12 +183,13 @@ pallet-collator-selection = { git = 'https://github.com/paritytech/polkadot-sdk'
 # Polkadot
 polkadot-cli = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 polkadot-service = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
-polkadot-parachain = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
+polkadot-parachain = { package = "polkadot-parachain-primitives",  git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 polkadot-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
-xcm = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
-xcm-builder = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
-xcm-executor = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
+xcm = { package = "staging-xcm", git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
+xcm-builder = { package = "staging-xcm-builder", git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
+xcm-executor = { package = "staging-xcm-executor", git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
+xcm-simulator = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 kusama-runtime = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
