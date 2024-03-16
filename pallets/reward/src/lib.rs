@@ -146,7 +146,7 @@ pub mod pallet {
 		_,
 		Twox64Concat,
 		CampaignId,
-		CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId>,
+		CampaignInfo<T::AccountId, BalanceOf<T>, BlockNumberFor<T>, FungibleTokenId, ClassId, TokenId>,
 	>;
 
 	/// List of merkle roots for each campaign
@@ -285,8 +285,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			creator: T::AccountId,
 			reward: BalanceOf<T>,
-			end: T::BlockNumber,
-			cooling_off_duration: T::BlockNumber,
+			end: BlockNumberFor<T>,
+			cooling_off_duration: BlockNumberFor<T>,
 			properties: Vec<u8>,
 			currency_id: FungibleTokenId,
 		) -> DispatchResult {
@@ -382,8 +382,8 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			creator: T::AccountId,
 			reward: Vec<(ClassId, TokenId)>,
-			end: T::BlockNumber,
-			cooling_off_duration: T::BlockNumber,
+			end: BlockNumberFor<T>,
+			cooling_off_duration: BlockNumberFor<T>,
 			properties: Vec<u8>,
 		) -> DispatchResult {
 			let depositor = ensure_signed(origin)?;
@@ -1173,9 +1173,9 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		/// Hook that is called every time a new block is finalized.
-		fn on_finalize(block_number: T::BlockNumber) {
+		fn on_finalize(block_number: BlockNumberFor<T>) {
 			for (id, _info) in Campaigns::<T>::iter()
 				.filter(|(_, campaign_info)| campaign_info.end == block_number)
 				.collect::<Vec<_>>()
@@ -1364,10 +1364,10 @@ impl<T: Config> Pallet<T> {
 			let mut upgraded_campaign_items = 0;
 
 			Campaigns::<T>::translate(
-				|k, campaign_info_v1: CampaignInfoV1<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+				|k, campaign_info_v1: CampaignInfoV1<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>| {
 					upgraded_campaign_items += 1;
 
-					let v2: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber> = CampaignInfo {
+					let v2: CampaignInfo<T::AccountId, BalanceOf<T>, BlockNumberFor<T>> = CampaignInfo {
 						creator: campaign_info_v1.creator,
 						properties: Vec::<u8>::new(),
 						reward: campaign_info_v1.reward,
@@ -1391,14 +1391,14 @@ impl<T: Config> Pallet<T> {
 		let mut upgraded_campaign_items = 0;
 
 		Campaigns::<T>::translate(
-			|_k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, T::BlockNumber>| {
+			|_k, campaign_info_v2: CampaignInfoV2<T::AccountId, BalanceOf<T>, BlockNumberFor<T>>| {
 				upgraded_campaign_items += 1;
 
 				let v3_reward = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.reward);
 				let v3_claimed = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.claimed);
 				let v3_cap = RewardType::FungibleTokens(FungibleTokenId::NativeToken(0), campaign_info_v2.cap);
 
-				let v3: CampaignInfo<T::AccountId, BalanceOf<T>, T::BlockNumber, FungibleTokenId, ClassId, TokenId> =
+				let v3: CampaignInfo<T::AccountId, BalanceOf<T>, BlockNumberFor<T>, FungibleTokenId, ClassId, TokenId> =
 					CampaignInfo {
 						creator: campaign_info_v2.creator,
 						properties: campaign_info_v2.properties,

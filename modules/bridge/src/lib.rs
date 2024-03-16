@@ -47,7 +47,7 @@ pub mod pallet {
 		type BridgeOrigin: EnsureOrigin<Self::RuntimeOrigin>;
 		/// The currency mechanism.
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 		type MultiCurrency: MultiCurrencyExtended<
 			Self::AccountId,
 			CurrencyId = FungibleTokenId,

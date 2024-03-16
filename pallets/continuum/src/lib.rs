@@ -212,15 +212,15 @@ pub mod pallet {
 		/// Emergency shutdown is on
 		ContinuumEmergencyShutdownEnabled(),
 		/// Start new referendum
-		NewContinuumReferendumStarted(T::BlockNumber, SpotId),
+		NewContinuumReferendumStarted(BlockNumberFor<T>, SpotId),
 		/// Start new good neighbourhood protocol round
-		NewContinuumNeighbourHoodProtocolStarted(T::BlockNumber, SpotId),
+		NewContinuumNeighbourHoodProtocolStarted(BlockNumberFor<T>, SpotId),
 		/// Spot transferred
 		ContinuumSpotTransferred(T::AccountId, T::AccountId, MapSpotId),
 		/// New max auction slot set
 		NewMaxAuctionSlotSet(u8),
 		/// Rotated new auction slot
-		NewAuctionSlotRotated(T::BlockNumber),
+		NewAuctionSlotRotated(BlockNumberFor<T>),
 		/// Finalize vote
 		FinalizedVote(SpotId),
 		/// New Map Spot issued
@@ -315,7 +315,7 @@ pub mod pallet {
 			spot_id: MapSpotId,
 			auction_type: AuctionType,
 			value: BalanceOf<T>,
-			end_time: T::BlockNumber,
+			end_time: BlockNumberFor<T>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 

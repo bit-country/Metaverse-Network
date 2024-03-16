@@ -247,7 +247,7 @@ pub mod pallet {
 	#[pallet::getter(fn boosting_record)]
 	/// Store boosting records for each account
 	pub type BoostingOf<T: Config> =
-		StorageMap<_, Twox64Concat, T::AccountId, BoostingRecord<BalanceOf<T>, T::BlockNumber>, ValueQuery>;
+		StorageMap<_, Twox64Concat, T::AccountId, BoostingRecord<BalanceOf<T>, BlockNumberFor<T>>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn network_boost_info)]
@@ -780,7 +780,7 @@ pub mod pallet {
 			// Convert boost conviction into shares
 			let vote_conviction = vote.conviction.lock_periods();
 			// Calculate lock period from UnlockDuration block number x conviction
-			let current_block: T::BlockNumber = <frame_system::Pallet<T>>::block_number();
+			let current_block: BlockNumberFor<T> = <frame_system::Pallet<T>>::block_number();
 
 			let mut unlock_at = current_block.saturating_add(UpdateEraFrequency::<T>::get());
 			let mut total_balance = vote.balance;

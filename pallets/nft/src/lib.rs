@@ -114,7 +114,7 @@ pub mod pallet {
 		/// Weight info
 		type WeightInfo: WeightInfo;
 		/// Auction Handler
-		type AuctionHandler: Auction<Self::AccountId, Self::BlockNumber> + CheckAuctionItemHandler<BalanceOf<Self>>;
+		type AuctionHandler: Auction<Self::AccountId, BlockNumberFor<Self>> + CheckAuctionItemHandler<BalanceOf<Self>>;
 		/// Max transfer batch
 		#[pallet::constant]
 		type MaxBatchTransfer: Get<u32>;
@@ -229,7 +229,7 @@ pub mod pallet {
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> GenesisBuild<T> for GenesisConfig {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig {
 		fn build(&self) {
 			// Pre-mint group collection for lands
 			let land_collection_data = NftGroupCollectionData {
@@ -284,7 +284,7 @@ pub mod pallet {
 			<T as frame_system::Config>::AccountId,
 			ClassIdOf<T>,
 			TokenIdOf<T>,
-			T::BlockNumber,
+			BlockNumberFor<T>,
 			Vec<u8>,
 		),
 		/// Successfully transfer NFT
@@ -319,7 +319,7 @@ pub mod pallet {
 		/// Executed NFT
 		ExecutedNft(AssetId),
 		/// Scheduled time capsule
-		ScheduledTimeCapsule(AssetId, Vec<u8>, T::BlockNumber),
+		ScheduledTimeCapsule(AssetId, Vec<u8>, BlockNumberFor<T>),
 		/// Collection is locked
 		CollectionLocked(ClassIdOf<T>),
 		/// Collection is unlocked
@@ -1034,7 +1034,7 @@ pub mod pallet {
 	}
 
 	#[pallet::hooks]
-	impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		//		fn on_runtime_upgrade() -> Weight {
 		//			Self::storage_migration_fix_locking_issue();
 		//			Weight::from_ref_time(0)

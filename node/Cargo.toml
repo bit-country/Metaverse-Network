@@ -22,7 +22,7 @@ serde = { workspace = true, features = ["derive"] }
 futures = { workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true, default-features = true }
-clap = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 parking_lot = { workspace = true }
 async-trait = { workspace = true }
 jsonrpsee = { workspace = true }
@@ -69,8 +69,7 @@ sp-keystore = { workspace = true }
 sp-keyring = { workspace = true }
 sp-session = { workspace = true, default-features = true }
 sp-offchain = { workspace = true, default-features = true }
-#sp-authorship = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
-#sc-consensus-uncles = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.38" }
+
 
 # These dependencies are used for the node template's RPCs
 jsonrpc-core = { workspace = true }

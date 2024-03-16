@@ -101,7 +101,7 @@ pub mod pallet {
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
 		/// The currency type
-		type Currency: LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>
+		type Currency: LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>
 			+ ReservableCurrency<Self::AccountId>;
 
 		/// Multi-fungible token currency
@@ -115,7 +115,7 @@ pub mod pallet {
 		type NFTHandler: NFTTrait<Self::AccountId, BalanceOf<Self>, ClassId = ClassId, TokenId = TokenId>;
 
 		/// Round handler
-		type RoundHandler: RoundTrait<Self::BlockNumber>;
+		type RoundHandler: RoundTrait<BlockNumberFor<Self>>;
 
 		/// Estate handler
 		type EstateHandler: Estate<Self::AccountId>;
@@ -1095,7 +1095,7 @@ impl<T: Config> Pallet<T> {
 		Ok(())
 	}
 
-	fn get_target_execution_order(power_amount: PowerAmount) -> Result<T::BlockNumber, DispatchError> {
+	fn get_target_execution_order(power_amount: PowerAmount) -> Result<BlockNumberFor<T>, DispatchError> {
 		let current_block_number = <frame_system::Pallet<T>>::current_block_number();
 		let target_block = if power_amount <= T::PowerAmountPerBlock::get() {
 			let target_b = current_block_number
@@ -1108,7 +1108,7 @@ impl<T: Config> Pallet<T> {
 				.ok_or(ArithmeticError::Overflow)?;
 
 			let target_b = current_block_number
-				.checked_add(&TryInto::<T::BlockNumber>::try_into(block_required).unwrap_or_default())
+				.checked_add(&TryInto::<BlockNumberFor<T>>::try_into(block_required).unwrap_or_default())
 				.ok_or(ArithmeticError::Overflow)?;
 			target_b
 		};
@@ -1116,7 +1116,7 @@ impl<T: Config> Pallet<T> {
 		Ok(target_block)
 	}
 
-	fn check_target_execution(target: T::BlockNumber) -> bool {
+	fn check_target_execution(target: BlockNumberFor<T>) -> bool {
 		let current_block_number = <frame_system::Pallet<T>>::current_block_number();
 
 		current_block_number >= target
