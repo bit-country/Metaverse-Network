@@ -1526,11 +1526,11 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		// Core
-		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		System: frame_system::{Pallet, Call, Config<T>, Storage, Event<T>},
 		RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip::{Pallet, Storage},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Aura: pallet_aura::{Pallet, Config<T>},
-		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
+		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config<T>, Event},
 		Utility: pallet_utility::{Pallet, Call, Event},
 
 		// Governance
@@ -1572,17 +1572,17 @@ construct_runtime!(
 		Crowdloan: crowdloan::{Pallet, Call, Storage, Event<T>},
 
 		EVM: pallet_evm::{Pallet, Call, Storage, Config<T>, Event<T>},
-		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config, Origin},
+		Ethereum: pallet_ethereum::{Pallet, Call, Storage, Event, Config<T>, Origin},
 		BaseFee: pallet_base_fee::{Pallet, Call, Storage, Config<T>, Event},
 		EvmMapping: evm_mapping::{Pallet, Call, Storage, Event<T>},
-		EvmChainId: pallet_evm_chain_id::{Pallet, Storage, Config},
+		EvmChainId: pallet_evm_chain_id::{Pallet, Storage, Config<T>},
 
 		// ink! Smart Contracts.
 		Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>},
 
 		// Technical committee
 		TechnicalCommittee: pallet_collective::<Instance2>::{Pallet, Call, Storage ,Origin<T>, Event<T>},
-		Treasury: pallet_treasury::{Pallet, Storage, Config, Event<T>, Call},
+		Treasury: pallet_treasury::{Pallet, Storage, Config<T>, Event<T>, Call},
 
 		// Asset manager
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>},
