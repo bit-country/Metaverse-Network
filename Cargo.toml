@@ -213,8 +213,8 @@ pallet-dynamic-fee = { git = "https://github.com/justinphamnz/frontier", branch 
 fp-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }
 fp-storage = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }
 fc-storage = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }
-fc-cli = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }
-fc-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }
+fc-api = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }
+fc-rpc = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0", features = ["rpc-binary-search-estimate", "txpool"] }
 fc-rpc-core = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }
 fc-consensus = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }
 fc-mapping-sync = { git = "https://github.com/justinphamnz/frontier", branch = "polkadot-v1.1.0" }

@@ -3263,24 +3263,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fc-cli"
-version = "1.0.0-dev"
-source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v1.1.0#eaa9d956bf7f6c4fd510451bf64980701e31d2cb"
-dependencies = [
- "clap",
- "ethereum-types",
- "fc-db",
- "fp-rpc",
- "fp-storage",
- "sc-cli",
- "serde",
- "serde_json",
- "sp-api",
- "sp-blockchain",
- "sp-runtime",
-]
-
-[[package]]
 name = "fc-consensus"
 version = "2.0.0-dev"
 source = "git+https://github.com/justinphamnz/frontier?branch=polkadot-v1.1.0#eaa9d956bf7f6c4fd510451bf64980701e31d2cb"
@@ -5925,7 +5907,8 @@ dependencies = [
  "cumulus-relay-chain-interface",
  "cumulus-relay-chain-minimal-node",
  "cumulus-relay-chain-rpc-interface",
- "fc-cli",
+ "cumulus-test-relay-sproof-builder",
+ "fc-api",
  "fc-consensus",
  "fc-db",
  "fc-mapping-sync",
