@@ -33,14 +33,15 @@ use fp_rpc::TransactionStatus;
 #[cfg(feature = "runtime-benchmarks")]
 use frame_benchmarking::frame_support::pallet_prelude::Get;
 pub use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime,
+	dispatch::DispatchInfo,
+	pallet_prelude::DispatchClass,
+	parameter_types,
 	traits::{ConstU32, EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo, WithdrawReasons},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		ConstantMultiplier, IdentityFee, Weight, WeightToFeePolynomial,
 	},
-	pallet_prelude::DispatchClass,
-	dispatch::DispatchInfo,
 	PalletId, StorageValue,
 };
 use frame_support::{BoundedVec, ConsensusEngineId};
@@ -150,8 +151,6 @@ pub type Hash = sp_core::H256;
 
 type EventRecord =
 	frame_system::EventRecord<<Runtime as frame_system::Config>::RuntimeEvent, <Runtime as frame_system::Config>::Hash>;
-
-	
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
@@ -394,7 +393,6 @@ impl pallet_aura::Config for Runtime {
 	// Should be only enabled (`true`) when async backing is enabled
 	// otherwise set to `false`
 	type AllowMultipleBlocksPerSlot = ConstBool<false>;
-
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -1375,11 +1373,11 @@ impl pallet_contracts::Config for Runtime {
 	type UnsafeUnstableInterface = ConstBool<false>;
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
 	type MaxDelegateDependencies = MaxDelegateDependencies;
-   type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+	type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
 	type RuntimeHoldReason = pallet_contracts::pallet::HoldReason;
 	type Debug = ();
-   type Environment = ();
-   type Migrations = ();
+	type Environment = ();
+	type Migrations = ();
 }
 
 // Treasury and Bounty

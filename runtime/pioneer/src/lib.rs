@@ -26,14 +26,15 @@ use frame_support::traits::{
 	OnUnbalanced,
 };
 use frame_support::{
-	construct_runtime, match_type, parameter_types,
+	construct_runtime, match_type,
+	pallet_prelude::DispatchClass,
+	parameter_types,
 	traits::{Everything, Imbalance, WithdrawReasons},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		ConstantMultiplier, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
-	pallet_prelude::DispatchClass,
 	BoundedVec, PalletId, WeakBoundedVec,
 };
 use frame_system::{

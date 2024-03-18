@@ -26,14 +26,15 @@ use frame_support::traits::{
 	OnUnbalanced,
 };
 use frame_support::{
-	construct_runtime, match_type, parameter_types,
+	construct_runtime, match_type,
+	pallet_prelude::DispatchClass,
+	parameter_types,
 	traits::{Everything, Imbalance, WithdrawReasons},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
 		ConstantMultiplier, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
-	pallet_prelude::DispatchClass,
 	BoundedVec, PalletId, WeakBoundedVec,
 };
 use frame_system::{
@@ -62,7 +63,7 @@ use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
 	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature, RuntimeDebug
+	ApplyExtrinsicResult, MultiSignature, RuntimeDebug,
 };
 pub use sp_runtime::{MultiAddress, Perbill, Percent, Permill};
 use sp_std::prelude::*;

@@ -19,8 +19,8 @@ pub mod currency {
 
 /// Time.
 pub mod time {
-	use sp_weights::Weight;
 	use frame_support::weights::constants::{ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND};
+	use sp_weights::Weight;
 
 	use polkadot_primitives::MAX_POV_SIZE;
 	use primitives::{BlockNumber, Moment};

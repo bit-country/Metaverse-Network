@@ -21,6 +21,7 @@ use sc_executor::NativeElseWasmExecutor;
 use sc_keystore::LocalKeystore;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
+use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 
 use metaverse_runtime::RuntimeApi;
@@ -66,7 +67,7 @@ pub fn new_partial(
 		FullClient,
 		FullBackend,
 		FullSelectChain,
-		sc_consensus::DefaultImportQueue<Block, FullClient>,
+		sc_consensus::DefaultImportQueue<Block>,
 		sc_transaction_pool::FullPool<Block, FullClient>,
 		(
 			FrontierBlockImport<
@@ -123,6 +124,7 @@ pub fn new_partial(
 
 	let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
 		client.clone(),
+		512,
 		&(client.clone() as Arc<_>),
 		select_chain.clone(),
 		telemetry.as_ref().map(|x| x.handle()),
@@ -185,31 +187,12 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		transaction_pool,
 		other: (block_import, grandpa_link, mut telemetry, frontier_backend),
 	} = new_partial(&config, cli)?;
-	/*
-		if let Some(url) = &config.keystore_remote {
-			match remote_keystore(url) {
-				Ok(k) => keystore_container.set_remote_keystore(k),
-				Err(e) => {
-					return Err(ServiceError::Other(format!(
-						"Error hooking up remote keystore for {}: {}",
-						url, e
-					)));
-				}
-			};
-		}
-	*/
+
 	let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
 		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
 		&config.chain_spec,
 	);
-	/*
-		config
-			.network
-			//.extra_sets
-			.push(sc_consensus_grandpa::grandpa_peers_set_config(
-				grandpa_protocol_name.clone(),
-			));
-	*/
+
 	let warp_sync = Arc::new(sc_consensus_grandpa::warp_proof::NetworkProvider::new(
 		backend.clone(),
 		grandpa_link.shared_authority_set().clone(),
@@ -233,11 +216,11 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 			block_announce_validator_builder: None,
 			warp_sync_params: None, // Some(warp_sync),
 		})?;
-
-	if config.offchain_worker.enabled {
-		sc_service::build_offchain_workers(&config, task_manager.spawn_handle(), client.clone(), network.clone());
-	}
-
+	/*
+		if config.offchain_worker.enabled {
+			sc_service::build_offchain_workers(&config, task_manager.spawn_handle(), client.clone(), network.clone());
+		}
+	*/
 	let filter_pool: FilterPool = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
 	let fee_history_cache: FeeHistoryCache = Arc::new(std::sync::Mutex::new(BTreeMap::new()));
 	let overrides = fc_storage::overrides_handle(client.clone());
@@ -321,7 +304,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 				is_authority,
 				network: network.clone(),
 				sync: sync.clone(),
-				filter_pool: Some(filter_pool.clone()),
+				filter_pool: filter_pool.clone(),
 				frontier_backend: frontier_backend.clone(),
 				fee_history_cache: fee_history_cache.clone(),
 				fee_history_limit: FEE_HISTORY_LIMIT,
@@ -330,8 +313,16 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 				enable_evm_rpc: true,
 			};
 
-			crate::rpc::create_full(deps, subscription_task_executor, pubsub_notification_sinks.clone())
-				.map_err::<ServiceError, _>(Into::into)
+			let pending_consensus_data_provider =
+				Box::new(fc_rpc::pending::AuraConsensusDataProvider::new(client.clone()));
+
+			crate::rpc::create_full(
+				deps,
+				subscription_task_executor,
+				pubsub_notification_sinks.clone(),
+				pending_consensus_data_provider,
+			)
+			.map_err::<ServiceError, _>(Into::into)
 		})
 	};
 
@@ -354,7 +345,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 		let proposer_factory = sc_basic_authorship::ProposerFactory::new(
 			task_manager.spawn_handle(),
 			client.clone(),
-			transaction_pool,
+			transaction_pool.clone(),
 			prometheus_registry.as_ref(),
 			telemetry.as_ref().map(|x| x.handle()),
 		);
@@ -409,7 +400,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 	let grandpa_config = sc_consensus_grandpa::Config {
 		// FIXME #1578 make this available through chainspec
 		gossip_duration: Duration::from_millis(333),
-		justification_period: 512,
+		justification_generation_period: 512,
 		name: Some(name),
 		observer_enabled: false,
 		keystore,
@@ -434,6 +425,7 @@ pub fn new_full(mut config: Configuration, cli: &Cli) -> Result<TaskManager, Ser
 			prometheus_registry,
 			shared_voter_state: SharedVoterState::empty(),
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
+			offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool),
 		};
 
 		// the GRANDPA voter task is considered infallible, i.e.

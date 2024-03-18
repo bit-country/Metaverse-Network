@@ -28,9 +28,9 @@ use orml_traits::parameter_type_with_key;
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
-	DispatchError,
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
+	DispatchError,
 };
 
 use primitives::{Amount, Balance, FungibleTokenId};
