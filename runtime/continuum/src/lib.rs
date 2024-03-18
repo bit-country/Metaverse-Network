@@ -30,9 +30,10 @@ use frame_support::{
 	traits::{Everything, Imbalance, WithdrawReasons},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-		ConstantMultiplier, DispatchClass, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
+		ConstantMultiplier, IdentityFee, Weight, WeightToFeeCoefficient, WeightToFeeCoefficients,
 		WeightToFeePolynomial,
 	},
+	pallet_prelude::DispatchClass,
 	BoundedVec, PalletId, WeakBoundedVec,
 };
 use frame_system::{

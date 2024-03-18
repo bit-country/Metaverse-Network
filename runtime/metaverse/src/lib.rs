@@ -37,8 +37,10 @@ pub use frame_support::{
 	traits::{ConstU32, EnsureOrigin, KeyOwnerProofSystem, Randomness, StorageInfo, WithdrawReasons},
 	weights::{
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND},
-		ConstantMultiplier, DispatchClass, DispatchInfo, IdentityFee, Weight, WeightToFeePolynomial,
+		ConstantMultiplier, IdentityFee, Weight, WeightToFeePolynomial,
 	},
+	pallet_prelude::DispatchClass,
+	dispatch::DispatchInfo,
 	PalletId, StorageValue,
 };
 use frame_support::{BoundedVec, ConsensusEngineId};

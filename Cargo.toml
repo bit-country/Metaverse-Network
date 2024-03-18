@@ -110,6 +110,7 @@ sp-runtime = { git = 'https://github.com/paritytech/polkadot-sdk', branch = 'rel
 sp-std = { git = 'https://github.com/paritytech/polkadot-sdk', branch = 'release-polkadot-v1.1.0', default-features = false }
 sp-version = { git = 'https://github.com/paritytech/polkadot-sdk', branch = 'release-polkadot-v1.1.0', default-features = false }
 sp-timestamp = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
+sp-weights = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 sp-application-crypto = { git = 'https://github.com/paritytech/polkadot-sdk', branch = 'release-polkadot-v1.1.0', default-features = false }
 sp-arithmetic = { git = 'https://github.com/paritytech/polkadot-sdk', branch = 'release-polkadot-v1.1.0', default-features = false }
 

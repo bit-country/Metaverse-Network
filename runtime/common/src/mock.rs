@@ -7,7 +7,7 @@ use frame_support::{
 	parameter_types,
 	traits::{Everything, Nothing},
 	weights::Weight,
-	PalletId, RuntimeDebug,
+	PalletId,
 };
 use frame_system::Call as SystemCall;
 use frame_system::EnsureRoot;
@@ -18,7 +18,7 @@ use pallet_evm::{
 use pallet_evm::{PrecompileHandle, PrecompileOutput};
 use sp_core::{ConstU128, ConstU32, MaxEncodedLen, H160, H256, U256};
 use sp_runtime::traits::{AccountIdConversion, BlakeTwo256, IdentityLookup, Verify};
-use sp_runtime::{AccountId32, DispatchError, MultiSignature, Perbill};
+use sp_runtime::{AccountId32, DispatchError, MultiSignature, Perbill, RuntimeDebug};
 
 use auction_manager::{Auction, AuctionInfo, AuctionItem, AuctionType, CheckAuctionItemHandler, ListingLevel};
 use core_primitives::{NftAssetData, NftClassData};
@@ -65,6 +65,8 @@ impl frame_system::Config for Runtime {
 	type BaseCallFilter = Everything;
 	type DbWeight = ();
 	type RuntimeOrigin = RuntimeOrigin;
+	type Nonce = u64;
+	type Block = BlockNumber;
 	type RuntimeCall = RuntimeCall;
 	type Hash = H256;
 	type Hashing = BlakeTwo256;
