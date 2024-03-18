@@ -20,7 +20,7 @@
 use frame_support::pallet_prelude::*;
 use frame_support::{
 	dispatch::DispatchResult,
-	ensure, log,
+	ensure,
 	traits::{Currency, ExistenceRequirement, Get},
 	transactional, PalletId,
 };
@@ -248,21 +248,14 @@ pub mod pallet {
 	>;
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig {
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T> {
 		pub minting_rate_config: MintingRateInfo,
-	}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			GenesisConfig {
-				minting_rate_config: Default::default(),
-			}
-		}
+		pub _config: PhantomData<T>,
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> BuildGenesisConfig for GenesisConfig {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			<MintingRateConfig<T>>::put(self.minting_rate_config.clone());
 
@@ -2127,7 +2120,7 @@ impl<T: Config> Pallet<T> {
 		NextEstateId::<T>::put(1);
 		AllLandUnitsCount::<T>::put(0);
 		AllEstatesCount::<T>::put(0);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 
 	fn collect_network_fee(

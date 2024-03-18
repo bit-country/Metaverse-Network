@@ -27,7 +27,7 @@
 
 use frame_support::traits::{Currency, ExistenceRequirement, LockableCurrency, ReservableCurrency};
 use frame_support::{ensure, pallet_prelude::*, transactional};
-use frame_system::{self as system, ensure_signed};
+use frame_system::{self as system, ensure_signed, pallet_prelude::BlockNumberFor};
 use sp_core::sp_std::convert::TryInto;
 use sp_runtime::SaturatedConversion;
 use sp_runtime::{
@@ -100,7 +100,6 @@ pub mod migration_v2 {
 #[frame_support::pallet]
 pub mod pallet {
 	use frame_support::dispatch::DispatchResultWithPostInfo;
-	use frame_support::log;
 	use frame_support::sp_runtime::traits::CheckedSub;
 	use frame_system::pallet_prelude::OriginFor;
 	use orml_traits::{MultiCurrency, MultiReservableCurrency};
@@ -128,14 +127,14 @@ pub mod pallet {
 
 		/// Default auction close time if there is no end time specified
 		#[pallet::constant]
-		type AuctionTimeToClose: Get<Self::BlockNumber>;
+		type AuctionTimeToClose: Get<BlockNumberFor<Self>>;
 
 		/// The `AuctionHandler` trait that allow custom bidding logic and handles auction result
-		type Handler: AuctionHandler<Self::AccountId, BalanceOf<Self>, Self::BlockNumber, AuctionId>;
+		type Handler: AuctionHandler<Self::AccountId, BalanceOf<Self>, BlockNumberFor<Self>, AuctionId>;
 
 		/// Native currency type that handles currency in auction
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 
 		/// Multi currencies type that handles different currency type in auction
 		type FungibleTokenCurrency: MultiReservableCurrency<
@@ -151,7 +150,7 @@ pub mod pallet {
 
 		/// Minimum auction duration when new listing created.
 		#[pallet::constant]
-		type MinimumAuctionDuration: Get<Self::BlockNumber>;
+		type MinimumAuctionDuration: Get<BlockNumberFor<Self>>;
 
 		/// Estate handler that support land and estate listing
 		type EstateHandler: Estate<Self::AccountId>;
@@ -181,7 +180,7 @@ pub mod pallet {
 
 		/// Offer duration
 		#[pallet::constant]
-		type OfferDuration: Get<Self::BlockNumber>;
+		type OfferDuration: Get<BlockNumberFor<Self>>;
 
 		/// Minimum listing price
 		#[pallet::constant]
@@ -189,7 +188,7 @@ pub mod pallet {
 
 		/// Anti-snipe duration
 		#[pallet::constant]
-		type AntiSnipeDuration: Get<Self::BlockNumber>;
+		type AntiSnipeDuration: Get<BlockNumberFor<Self>>;
 
 		/// Storage deposit free charged when saving data into the blockchain.
 		/// The fee will be unreserved after the storage is freed.
@@ -456,7 +455,8 @@ pub mod pallet {
 
 			let start_time: BlockNumberFor<T> = <system::Pallet<T>>::block_number();
 
-			let remaining_time: BlockNumberFor<T> = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
+			let remaining_time: BlockNumberFor<T> =
+				end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
 
 			// Ensure auction duration is valid
 			ensure!(
@@ -513,7 +513,8 @@ pub mod pallet {
 			);
 
 			let start_time: BlockNumberFor<T> = <system::Pallet<T>>::block_number();
-			let remaining_time: BlockNumberFor<T> = end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
+			let remaining_time: BlockNumberFor<T> =
+				end_time.checked_sub(&start_time).ok_or(ArithmeticError::Overflow)?;
 
 			// Ensure auction duration is valid
 			ensure!(
@@ -814,7 +815,7 @@ pub mod pallet {
 
 		fn on_runtime_upgrade() -> Weight {
 			Self::upgrade_auction_item_data_v3();
-			Weight::from_ref_time(0u64)
+			Weight::from_parts(0, 0)
 		}
 	}
 
@@ -1873,7 +1874,7 @@ pub mod pallet {
 			);
 
 			log::info!("{} auction items upgraded:", num_auction_items);
-			Weight::from_ref_time(0)
+			Weight::from_parts(0, 0)
 		}
 
 		pub fn swap_new_bid(

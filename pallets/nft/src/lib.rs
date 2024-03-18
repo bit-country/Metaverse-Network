@@ -66,7 +66,7 @@ pub mod weights;
 
 const TIMECAPSULE_ID: LockIdentifier = *b"bctimeca";
 
-#[derive(codec::Encode, codec::Decode, Clone, frame_support::RuntimeDebug, PartialEq)]
+#[derive(codec::Encode, codec::Decode, Clone, RuntimeDebug, PartialEq)]
 pub enum StorageVersion {
 	V0,
 	V1,
@@ -219,17 +219,13 @@ pub mod pallet {
 	>;
 
 	#[pallet::genesis_config]
-	pub struct GenesisConfig {}
-
-	#[cfg(feature = "std")]
-	impl Default for GenesisConfig {
-		fn default() -> Self {
-			GenesisConfig {}
-		}
+	#[derive(frame_support::DefaultNoBound)]
+	pub struct GenesisConfig<T> {
+		pub _config: PhantomData<T>,
 	}
 
 	#[pallet::genesis_build]
-	impl<T: Config> BuildGenesisConfig for GenesisConfig {
+	impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
 		fn build(&self) {
 			// Pre-mint group collection for lands
 			let land_collection_data = NftGroupCollectionData {
@@ -1037,7 +1033,7 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		//		fn on_runtime_upgrade() -> Weight {
 		//			Self::storage_migration_fix_locking_issue();
-		//			Weight::from_ref_time(0)
+		//			Weight::from_parts(0, 0)
 		//		}
 	}
 }
@@ -1499,7 +1495,7 @@ impl<T: Config> Pallet<T> {
 		);
 
 		log::info!("Classes upgraded: {}", num_nft_classes);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 
 	/// Upgrading lock of each nft
@@ -1534,7 +1530,7 @@ impl<T: Config> Pallet<T> {
 			},
 		);
 		log::info!("Tokens upgraded: {}", num_nft_tokens);
-		Weight::from_ref_time(0)
+		Weight::from_parts(0, 0)
 	}
 }
 

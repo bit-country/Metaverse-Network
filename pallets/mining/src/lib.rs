@@ -93,11 +93,11 @@ pub mod pallet {
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(PhantomData<T>);
 
-	pub(crate) type VestingScheduleOf<T> = VestingSchedule<<T as frame_system::Config>::BlockNumber, Balance>;
+	pub(crate) type VestingScheduleOf<T> = VestingSchedule<BlockNumberFor<T>, Balance>;
 	pub type ScheduledItem<T> = (
 		<T as frame_system::Config>::AccountId,
-		<T as frame_system::Config>::BlockNumber,
-		<T as frame_system::Config>::BlockNumber,
+		BlockNumberFor<T>,
+		BlockNumberFor<T>,
 		u32,
 		Balance,
 	);
@@ -358,9 +358,9 @@ pub mod pallet {
 				Round::<T>::put(round);
 				CurrentMiningResourceAllocation::<T>::put(allocation_range);
 				Self::deposit_event(Event::NewMiningRound(round.current, allocation_range));
-				Weight::from_ref_time(0)
+				Weight::from_parts(0, 0)
 			} else {
-				Weight::from_ref_time(0)
+				Weight::from_parts(0, 0)
 			}
 		}
 	}

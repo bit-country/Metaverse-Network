@@ -21,7 +21,7 @@ use frame_support::pallet_prelude::*;
 use frame_support::traits::{ExistenceRequirement, LockIdentifier};
 use frame_support::{
 	dispatch::DispatchResult,
-	ensure, log,
+	ensure,
 	traits::{Currency, Get},
 	transactional, PalletId,
 };

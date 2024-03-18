@@ -25,6 +25,7 @@ sp-std = { workspace = true }
 sp-io = { workspace = true }
 substrate-fixed = { workspace = true }
 pallet-balances = { workspace = true, optional = true }
+log = { workspace = true }
 
 # local packages
 core-primitives = { path = "../../traits/core-primitives", default-features = false }
@@ -48,6 +49,7 @@ runtime-benchmarks = [
 default = ['std']
 std = [
     'codec/std',
+    'log/std',
     "serde",
     'scale-info/std',
     'frame-support/std',

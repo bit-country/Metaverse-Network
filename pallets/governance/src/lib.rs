@@ -36,6 +36,7 @@ use sp_runtime::traits::{Dispatchable, Hash, Saturating, Zero};
 use sp_runtime::{Perbill, SaturatedConversion};
 use sp_std::prelude::*;
 
+use frame_system::pallet_prelude::BlockNumberFor;
 use metaverse_primitive::MetaverseTrait;
 pub use pallet::*;
 use primitives::{MetaverseId, ProposalId, ReferendumId};
@@ -73,7 +74,7 @@ pub mod pallet {
 
 		/// Constant equivalent to one block
 		#[pallet::constant]
-		type OneBlock: Get<Self::BlockNumber>;
+		type OneBlock: Get<BlockNumberFor<Self>>;
 
 		/// Default preimage byte deposit
 		#[pallet::constant]
@@ -105,7 +106,7 @@ pub mod pallet {
 
 		/// Native currency type that handles voting
 		type Currency: ReservableCurrency<Self::AccountId>
-			+ LockableCurrency<Self::AccountId, Moment = Self::BlockNumber>;
+			+ LockableCurrency<Self::AccountId, Moment = BlockNumberFor<Self>>;
 
 		/// Slashing handler
 		type Slash: OnUnbalanced<NegativeImbalanceOf<Self>>;
@@ -126,7 +127,7 @@ pub mod pallet {
 		type ProposalType: Parameter + Member + Default + InstanceFilter<Self::Proposal>;
 
 		/// The Scheduler.
-		type Scheduler: ScheduleNamed<Self::BlockNumber, Self::Proposal, Self::PalletsOrigin>;
+		type Scheduler: ScheduleNamed<BlockNumberFor<Self>, Self::Proposal, Self::PalletsOrigin>;
 
 		/// Metaverse Council which collective of members
 		type MetaverseCouncil: EnsureOrigin<Self::RuntimeOrigin>;
