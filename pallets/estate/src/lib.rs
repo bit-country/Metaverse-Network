@@ -249,8 +249,9 @@ pub mod pallet {
 
 	#[pallet::genesis_config]
 	#[derive(frame_support::DefaultNoBound)]
-	pub struct GenesisConfig<T> {
+	pub struct GenesisConfig<T: Config> {
 		pub minting_rate_config: MintingRateInfo,
+		#[serde(skip)]
 		pub _config: PhantomData<T>,
 	}
 

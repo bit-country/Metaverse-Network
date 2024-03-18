@@ -21,6 +21,7 @@ scale-info = { workspace = true }
 default = ['std']
 std = [
     'serde',
+    'primitives/std',
     'codec/std',
     'sp-runtime/std',
     'sp-std/std',

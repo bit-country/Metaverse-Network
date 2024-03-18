@@ -43,6 +43,7 @@ auction-manager = { default-features = false, package = 'auction-manager', path 
 default = ["std"]
 std = [
     "codec/std",
+    "hex/std",
     "serde",
     "scale-info/std",
     "sp-std/std",

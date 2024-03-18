@@ -1,15 +1,15 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-metaverse'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network pallet."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-metaverse"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { workspace = true, optional = true, features = ["derive"] }
@@ -43,9 +43,9 @@ currencies = { package = "currencies", path = "../currencies", default-features 
 
 [dependencies.nft]
 default-features = false
-package = 'pallet-nft'
-path = '../nft'
-version = '2.0.0-rc6'
+package = "pallet-nft"
+path = "../nft"
+version = "2.0.0-rc6"
 
 [features]
 runtime-benchmarks = [
@@ -53,7 +53,7 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
 ]
-default = ['std']
+default = ["std"]
 std = [
     "serde",
     "codec/std",
@@ -64,11 +64,21 @@ std = [
     "sp-io/std",
     "sp-core/std",
     "sp-std/std",
+    "sp-session/std",
+    "sp-version/std",
     "orml-traits/std",
     "orml-tokens/std",
+    "orml-currencies/std",
+    "core-primitives/std",
     "nft/std",
     "primitives/std",
+    "core-primitives/std",
     "scale-info/std",
     "frame-benchmarking/std",
-    "currencies/std"
+    "currencies/std",
+    "pallet-balances/std",
+    "pallet-timestamp/std",
+    "pallet-sudo/std",
+    "pallet-transaction-payment/std",
+    "pallet-insecure-randomness-collective-flip/std",
 ]

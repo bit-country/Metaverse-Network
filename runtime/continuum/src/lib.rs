@@ -365,7 +365,7 @@ impl frame_system::Config for Runtime {
 	/// The index type for storing how many extrinsics an account has signed.
 	type Nonce = Index;
 	/// The index type for blocks.
-	type Block = BlockNumber;
+	type Block = Block;
 	/// The type for hashing blocks and tries.
 	type Hash = Hash;
 	/// The hashing algorithm used.
@@ -715,7 +715,7 @@ impl orml_tokens::Config for Runtime {
 }
 
 parameter_types! {
-	pub const BaseXcmWeight: Weight = Weight::from_ref_time(100_000_000);
+	pub const BaseXcmWeight: Weight = Weight::from_parts(100_000_000, 0);
 	pub const MaxAssetsForTransfer: usize = 2;
 	pub SelfLocation: MultiLocation = MultiLocation::new(1, X1(Parachain(ParachainInfo::get().into())));
 	pub UniversalLocation: InteriorMultiLocation = X2(GlobalConsensus(RelayNetwork::get()), Parachain(ParachainInfo::parachain_id().into()));
@@ -786,8 +786,8 @@ impl currencies::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ReservedXcmpWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 4);
-	pub const ReservedDmpWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 4);
+	pub const ReservedXcmpWeight: Weight =  MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
+	pub const ReservedDmpWeight: Weight =  MAXIMUM_BLOCK_WEIGHT.saturating_div(4);
 }
 
 impl cumulus_pallet_parachain_system::Config for Runtime {
@@ -985,7 +985,7 @@ pub type XcmOriginToTransactDispatchOrigin = (
 
 parameter_types! {
 	// One XCM operation is 100_000_000 weight - almost certainly a conservative estimate.
-	pub UnitWeightCost: Weight = Weight::from_ref_time(100_000_000);
+	pub UnitWeightCost: Weight = Weight::from_parts(100_000_000, 0);
 	pub const MaxInstructions: u32 = 100;
 }
 
@@ -1186,7 +1186,7 @@ impl xcm_executor::Config for XcmConfig {
 }
 
 parameter_types! {
-	pub const MaxDownwardMessageWeight: Weight =  Weight::from_ref_time(MAXIMUM_BLOCK_WEIGHT.ref_time() / 10);
+	pub const MaxDownwardMessageWeight: Weight = MAXIMUM_BLOCK_WEIGHT.saturating_div(10);
 	pub const RelayNetworkId: NetworkId = NetworkId::Kusama;
 }
 
@@ -1860,7 +1860,7 @@ construct_runtime!(
 		Auction: auction::{Call, Pallet ,Storage, Event<T>} = 62,
 
 		Continuum: continuum::{Call, Pallet, Storage, Event<T>} = 63,
-		Estate: estate::{Call, Pallet, Storage, Event<T>, Config} = 64,
+		Estate: estate::{Call, Pallet, Storage, Event<T>, Config<T>} = 64,
 		Economy: economy::{Pallet, Call, Storage, Event<T>} = 65,
 		AssetManager: asset_manager::{Pallet, Call, Storage, Event<T>} = 66,
 		// Proxy

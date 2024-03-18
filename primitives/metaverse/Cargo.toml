@@ -24,12 +24,15 @@ xcm = { workspace = true }
 default = ["std"]
 std = [
     "serde",
+    "serde_json/std",
+    "num_enum/std",
     "codec/std",
     "scale-info/std",
     "ethabi/std",
     "frame-system/std",
     "frame-support/std",
     "sp-application-crypto/std",
+    "sp-std/std",
     "sp-core/std",
     "sp-runtime/std",
     "xcm/std"

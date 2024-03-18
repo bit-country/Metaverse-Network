@@ -17,7 +17,7 @@
 
 #![cfg(test)]
 
-use frame_support::pallet_prelude::{GenesisBuild, Hooks};
+use frame_support::pallet_prelude::{BuildGenesisConfig, Hooks};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types, PalletId};
 use frame_system::EnsureSignedBy;
 use sp_core::H256;

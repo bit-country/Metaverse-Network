@@ -1,15 +1,15 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet for land minting logic.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-spp'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network pallet for land minting logic."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-spp"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.1.5", default-features = false, features = ["derive"] }
@@ -38,9 +38,9 @@ asset-manager = { package = "asset-manager", path = "../asset-manager", default-
 
 [dependencies.auction-manager]
 default-features = false
-package = 'auction-manager'
-path = '../../traits/auction-manager'
-version = '2.0.0-rc6'
+package = "auction-manager"
+path = "../../traits/auction-manager"
+version = "2.0.0-rc6"
 
 
 
@@ -50,24 +50,28 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
 ]
-default = ['std']
+default = ["std"]
 std = [
-    'codec/std',
-    'log/std',
+    "codec/std",
+    "log/std",
     "serde",
-    'scale-info/std',
-    'frame-support/std',
-    'frame-system/std',
-    'sp-runtime/std',
-    'sp-core/std',
-    'core-primitives/std',
-    'primitives/std',
-    'sp-io/std',
-    'pallet-balances/std',
-    'auction-manager/std',
-    'frame-benchmarking/std',
-    'orml-tokens/std',
+    "scale-info/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-runtime/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-version/std",
+    "sp-std/std",
+    "core-primitives/std",
+    "primitives/std",
+    "pallet-balances/std",
+    "auction-manager/std",
+    "frame-benchmarking/std",
+    "orml-tokens/std",
+    "orml-traits/std",
+    "orml-rewards/std",
     "currencies/std",
     "asset-manager/std",
-    "orml-rewards/std"
+    "substrate-fixed/std",
 ]

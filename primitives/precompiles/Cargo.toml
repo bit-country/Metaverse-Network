@@ -37,7 +37,11 @@ hex-literal = { workspace = true }
 [features]
 default = ["std"]
 std = [
+    "log/std",
+    "sha3/std",
+    "xcm/std",
     "codec/std",
+    "num_enum/std",
     "fp-evm/std",
     "frame-support/std",
     "frame-system/std",

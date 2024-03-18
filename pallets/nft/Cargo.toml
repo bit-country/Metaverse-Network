@@ -1,15 +1,15 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet for general nft logic.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-nft'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network pallet for general nft logic."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-nft"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 serde = { workspace = true, optional = true, features = ["derive"] }
@@ -42,28 +42,30 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
 ]
-default = ['std']
+default = ["std"]
 std = [
-    'serde',
-    'codec/std',
-    'sp-std/std',
-    'sp-core/std',
-    'sp-io/std',
-    'sp-runtime/std',
-    'frame-support/std',
-    'frame-system/std',
-    'primitives/std',
-    'orml-traits/std',
-    'orml-tokens/std',
-    'orml-nft/std',
-    'pallet-balances/std',
-    'pallet-timestamp/std',
-    'pallet-proxy/std',
-    'auction-manager/std',
-    'currencies/std',
-    'scale-info/std',
-    'pallet-scheduler/std',
-    'primitive-traits/std'
+    "serde",
+    "log/std",
+    "codec/std",
+    "sp-std/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "frame-support/std",
+    "frame-system/std",
+    "primitives/std",
+    "orml-traits/std",
+    "orml-tokens/std",
+    "orml-nft/std",
+    "pallet-balances/std",
+    "pallet-timestamp/std",
+    "pallet-proxy/std",
+    "auction-manager/std",
+    "currencies/std",
+    "scale-info/std",
+    "pallet-scheduler/std",
+    "primitive-traits/std",
+    "frame-benchmarking/std"
 ]
 
 

@@ -151,6 +151,8 @@ pub type Hash = sp_core::H256;
 type EventRecord =
 	frame_system::EventRecord<<Runtime as frame_system::Config>::RuntimeEvent, <Runtime as frame_system::Config>::Hash>;
 
+	
+
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -332,7 +334,7 @@ impl frame_system::Config for Runtime {
 	/// The nonce type for storing how many extrinsics an account has signed.
 	type Nonce = Index;
 	/// The type for blocks.
-	type Block = BlockNumber;
+	type Block = Block;
 	/// The type for hashing blocks and tries.
 	type Hash = Hash;
 	/// The hashing algorithm used.
@@ -441,8 +443,8 @@ impl pallet_balances::Config for Runtime {
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-	type RuntimeHoldReason = ();
-	type FreezeIdentifier = ();
+	type RuntimeHoldReason = pallet_contracts::pallet::HoldReason;
+	type FreezeIdentifier = RuntimeFreezeReason;
 	type MaxHolds = ConstU32<0>;
 	type MaxFreezes = ConstU32<0>;
 }
@@ -1218,7 +1220,7 @@ parameter_types! {
 		NORMAL_DISPATCH_RATIO * MAXIMUM_BLOCK_WEIGHT.ref_time() / WEIGHT_PER_GAS
 	);
 	pub PrecompilesValue: MetaverseNetworkPrecompiles<Runtime> = MetaverseNetworkPrecompiles::<_>::new();
-	pub WeightPerGas: Weight = Weight::from_ref_time(WEIGHT_PER_GAS);
+	pub WeightPerGas: Weight = Weight::from_parts(WEIGHT_PER_GAS, 0);
 	pub const GasLimitPovSizeRatio: u64 = 4;
 }
 
@@ -1374,7 +1376,7 @@ impl pallet_contracts::Config for Runtime {
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
 	type MaxDelegateDependencies = MaxDelegateDependencies;
    type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
-	type RuntimeHoldReason = RuntimeHoldReason;
+	type RuntimeHoldReason = pallet_contracts::pallet::HoldReason;
 	type Debug = ();
    type Environment = ();
    type Migrations = ();
@@ -1555,7 +1557,7 @@ construct_runtime!(
 		Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Mining: mining::{Pallet, Call, Storage ,Event<T>},
 		Reward: reward::{Pallet, Call, Storage ,Event<T>},
-		Estate: estate::{Pallet, Call, Storage, Event<T>, Config},
+		Estate: estate::{Pallet, Call, Storage, Event<T>, Config<T>},
 		Economy: economy::{Pallet, Call, Storage, Event<T>},
 		Emergency: emergency::{Pallet, Call, Storage, Event<T>},
 		RewardOracle: orml_oracle::<Instance1>::{Pallet, Storage, Call, Event<T>},

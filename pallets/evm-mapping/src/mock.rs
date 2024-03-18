@@ -20,7 +20,6 @@
 #![cfg(test)]
 
 use codec::Encode;
-use frame_support::dispatch::DispatchError;
 use frame_support::traits::{ConstU32, EqualPrivilegeOnly, Everything, Nothing};
 use frame_support::{construct_runtime, ord_parameter_types, parameter_types};
 use frame_support::{pallet_prelude::Hooks, weights::Weight, PalletId};
@@ -29,6 +28,7 @@ use orml_traits::parameter_type_with_key;
 use scale_info::TypeInfo;
 use sp_core::H256;
 use sp_runtime::{
+	DispatchError,
 	testing::Header,
 	traits::{AccountIdConversion, BlakeTwo256, Hash, IdentityLookup},
 };

@@ -1,15 +1,15 @@
 [package]
-authors = ['Metaverse Network <https://github.com/bit-country>']
-description = 'Metaverse Network pallet for block logic.'
-edition = '2021'
-homepage = 'https://metaverse.network'
-license = 'Unlicense'
-name = 'pallet-estate'
-repository = 'https://github.com/bit-country'
-version = '2.0.0-rc6'
+authors = ["Metaverse Network <https://github.com/bit-country>"]
+description = "Metaverse Network pallet for block logic."
+edition = "2021"
+homepage = "https://metaverse.network"
+license = "Unlicense"
+name = "pallet-estate"
+repository = "https://github.com/bit-country"
+version = "2.0.0-rc6"
 
 [package.metadata.docs.rs]
-targets = ['x86_64-unknown-linux-gnu']
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { workspace = true, package = "parity-scale-codec" }
@@ -34,9 +34,9 @@ primitives = { package = "bit-country-primitives", path = "../../primitives/meta
 
 [dependencies.auction-manager]
 default-features = false
-package = 'auction-manager'
-path = '../../traits/auction-manager'
-version = '2.0.0-rc6'
+package = "auction-manager"
+path = "../../traits/auction-manager"
+version = "2.0.0-rc6"
 
 
 
@@ -46,21 +46,23 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
 ]
-default = ['std']
+default = ["std"]
 std = [
-    'codec/std',
-    'log/std',
+    "codec/std",
+    "log/std",
     "serde",
-    'scale-info/std',
-    'frame-support/std',
-    'frame-system/std',
-    'sp-runtime/std',
-    'sp-core/std',
-    'core-primitives/std',
-    'primitives/std',
-    'sp-io/std',
-    'pallet-balances/std',
-    'auction-manager/std',
-   # 'pallet-nft/std',
-    'frame-benchmarking/std'
+    "scale-info/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-runtime/std",
+    "sp-core/std",
+    "sp-std/std",
+    "sp-version/std",
+    "core-primitives/std",
+    "primitives/std",
+    "sp-io/std",
+    "pallet-balances/std",
+    "auction-manager/std",
+    "frame-benchmarking/std",
+    "substrate-fixed/std",
 ]
