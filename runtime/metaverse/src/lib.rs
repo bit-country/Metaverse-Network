@@ -327,6 +327,10 @@ impl frame_system::Config for Runtime {
 	type RuntimeCall = RuntimeCall;
 	/// The lookup mechanism to get account ID from whatever is passed in dispatchers.
 	type Lookup = AccountIdLookup<AccountId, ()>;
+	/// The nonce type for storing how many extrinsics an account has signed.
+	type Nonce = Index;
+	/// The type for blocks.
+	type Block = BlockNumber;
 	/// The type for hashing blocks and tries.
 	type Hash = Hash;
 	/// The hashing algorithm used.
@@ -383,6 +387,10 @@ impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type MaxAuthorities = MaxAuthorities;
 	type DisabledValidators = ();
+	// Should be only enabled (`true`) when async backing is enabled
+	// otherwise set to `false`
+	type AllowMultipleBlocksPerSlot = ConstBool<false>;
+
 }
 
 impl pallet_grandpa::Config for Runtime {
@@ -392,6 +400,7 @@ impl pallet_grandpa::Config for Runtime {
 	type WeightInfo = ();
 	type MaxAuthorities = MaxAuthorities;
 	type MaxSetIdSessionEntries = MaxSetIdSessionEntries;
+	type MaxNominators = ConstU32<0>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -1331,6 +1340,8 @@ parameter_types! {
 	pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
 	// Fallback value if storage deposit limit not set by the user
 	pub const DefaultDepositLimit: Balance = deposit(16, 16 * 1024);
+	pub const MaxDelegateDependencies: u32 = 32;
+   pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(10);
 }
 
 impl pallet_contracts::Config for Runtime {
@@ -1359,6 +1370,12 @@ impl pallet_contracts::Config for Runtime {
 	type MaxStorageKeyLen = ConstU32<1024>;
 	type UnsafeUnstableInterface = ConstBool<false>;
 	type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
+	type MaxDelegateDependencies = MaxDelegateDependencies;
+   type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+	type RuntimeHoldReason = RuntimeHoldReason;
+	type Debug = ();
+   type Environment = ();
+   type Migrations = ();
 }
 
 // Treasury and Bounty
